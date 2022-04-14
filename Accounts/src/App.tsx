@@ -22,7 +22,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { LoadingState } from './components/basic/Loader';
 
-const cookies = new Cookies();
+const cookies: $TSFixMe = new Cookies();
 
 if (!isApiServer) {
     history.listen((location: $TSFixMe) => {
@@ -31,11 +31,11 @@ if (!isApiServer) {
     });
 }
 
-const isStatusPageLogin =
+const isStatusPageLogin: $TSFixMe =
     queryString.parse(window.location.search).statusPage === 'true';
-const statusPageURL = queryString.parse(window.location.search).statusPageURL;
-const userIsLoggedIn = cookies.get('data') || cookies.get('admin-data');
-const redirectTo = queryString.parse(window.location.search).redirectTo;
+const statusPageURL: $TSFixMe = queryString.parse(window.location.search).statusPageURL;
+const userIsLoggedIn: $TSFixMe = cookies.get('data') || cookies.get('admin-data');
+const redirectTo: $TSFixMe = queryString.parse(window.location.search).redirectTo;
 
 if (userIsLoggedIn) {
     const {

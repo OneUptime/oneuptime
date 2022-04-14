@@ -14,7 +14,7 @@ export default class Service {
         if (!meta) {
             meta = {};
         }
-        const populateNotification = [
+        const populateNotification: $TSFixMe = [
             { path: 'projectId', select: 'name _id' },
             {
                 path: 'meta.incidentId',
@@ -28,7 +28,7 @@ export default class Service {
             },
         ];
 
-        const selectNotification =
+        const selectNotification: $TSFixMe =
             'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
         let notification = new NotificationModel();
 
@@ -42,7 +42,7 @@ export default class Service {
 
         notification.meta = meta;
         notification = await notification.save();
-        const populatedNotification = await this.findOneBy({
+        const populatedNotification: $TSFixMe = await this.findOneBy({
             query: { _id: notification._id },
             select: selectNotification,
             populate: populateNotification,
@@ -68,14 +68,14 @@ export default class Service {
         });
 
         if (data.read) {
-            const read = notification.read;
+            const read: $TSFixMe = notification.read;
             for (const userId of data.read) {
                 read.push(userId);
             }
             data.read = read;
         }
         if (data.closed) {
-            const closed = notification.closed;
+            const closed: $TSFixMe = notification.closed;
             if (data.closed) {
                 for (const userId of data.closed) {
                     closed.push(userId);

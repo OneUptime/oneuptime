@@ -27,7 +27,7 @@ export const getActiveMembersError: Function = (error: ErrorPayload): void => {
     };
 };
 
-export const getActiveMembers =
+export const getActiveMembers: $TSFixMe =
     (
         projectId: ObjectID,
         startDate: $TSFixMe,
@@ -37,11 +37,11 @@ export const getActiveMembers =
     ) =>
     async (dispatch: Dispatch) => {
         try {
-            const promise = BackendAPI.get(
+            const promise: $TSFixMe = BackendAPI.get(
                 `reports/${projectId}/active-members?startDate=${startDate}&endDate=${endDate}&skip=${skip}&limit=${limit}`
             );
             dispatch(getActiveMembersRequest(promise));
-            const members = await promise;
+            const members: $TSFixMe = await promise;
 
             dispatch(getActiveMembersSuccess(members.data));
         } catch (error) {
@@ -84,7 +84,7 @@ export const getActiveMonitorsError: Function = (error: ErrorPayload): void => {
     };
 };
 
-export const getActiveMonitors =
+export const getActiveMonitors: $TSFixMe =
     (
         projectId: ObjectID,
         startDate: $TSFixMe,
@@ -94,13 +94,13 @@ export const getActiveMonitors =
     ) =>
     async (dispatch: Dispatch) => {
         try {
-            const promise = BackendAPI.get(
+            const promise: $TSFixMe = BackendAPI.get(
                 `reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${
                     skip || 0
                 }&limit=${limit || 0}`
             );
             dispatch(getActiveMonitorsRequest(promise));
-            const monitors = await promise;
+            const monitors: $TSFixMe = await promise;
 
             dispatch(getActiveMonitorsSuccess(monitors.data));
         } catch (error) {
@@ -141,7 +141,7 @@ export const getIncidentsError: Function = (error: ErrorPayload): void => {
     };
 };
 
-export const getIncidents =
+export const getIncidents: $TSFixMe =
     (
         projectId: ObjectID,
         filter: $TSFixMe,
@@ -150,11 +150,11 @@ export const getIncidents =
     ) =>
     async (dispatch: Dispatch) => {
         try {
-            const promise = BackendAPI.get(
+            const promise: $TSFixMe = BackendAPI.get(
                 `reports/${projectId}/incidents?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
             );
             dispatch(getIncidentsRequest(promise));
-            const reports = await promise;
+            const reports: $TSFixMe = await promise;
 
             dispatch(getIncidentsSuccess(reports.data));
         } catch (error) {
@@ -195,7 +195,7 @@ export const getResolveTimeError: Function = (error: ErrorPayload): void => {
     };
 };
 
-export const getResolveTime =
+export const getResolveTime: $TSFixMe =
     (
         projectId: ObjectID,
         filter: $TSFixMe,
@@ -204,11 +204,11 @@ export const getResolveTime =
     ) =>
     async (dispatch: Dispatch) => {
         try {
-            const promise = BackendAPI.get(
+            const promise: $TSFixMe = BackendAPI.get(
                 `reports/${projectId}/average-resolved?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
             );
             dispatch(getResolveTimeRequest(promise));
-            const reports = await promise;
+            const reports: $TSFixMe = await promise;
 
             dispatch(getResolveTimeSuccess(reports.data));
         } catch (error) {

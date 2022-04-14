@@ -22,7 +22,7 @@ class RoutingNumberButton extends React.Component<RoutingNumberButtonProps> {
 
     override render() {
 
-        const { addNumberModalId } = this.state;
+        const { addNumberModalId }: $TSFixMe = this.state;
         return (
             <button
                 className="Button bs-ButtonLegacy ActionIconParent"

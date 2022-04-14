@@ -82,7 +82,7 @@ export class AddResourceCategoryForm extends React.Component<AddResourceCategory
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
                 <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -215,7 +215,7 @@ export class AddResourceCategoryForm extends React.Component<AddResourceCategory
 
 AddResourceCategoryForm.displayName = 'AddResourceCategoryForm';
 
-const CreateAddResourceCategoryForm = reduxForm({
+const CreateAddResourceCategoryForm: $TSFixMe = reduxForm({
     form: 'AddResourceCategoryForm',
     validate,
 })(AddResourceCategoryForm);

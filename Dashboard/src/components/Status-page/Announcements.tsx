@@ -39,7 +39,7 @@ class Announcements extends Component<ComponentProps> {
 
     async override componentDidMount() {
 
-        const { fetchAnnouncements, projectId, statusPage } = this.props;
+        const { fetchAnnouncements, projectId, statusPage }: $TSFixMe = this.props;
 
         fetchAnnouncements(projectId, statusPage._id, 0, this.state.limit);
     }
@@ -64,9 +64,9 @@ class Announcements extends Component<ComponentProps> {
 
     prevClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { fetchAnnouncements, statusPage } = this.props;
+        const { fetchAnnouncements, statusPage }: $TSFixMe = this.props;
 
-        const { limit } = this.state;
+        const { limit }: $TSFixMe = this.state;
         fetchAnnouncements(
             projectId,
             statusPage._id,
@@ -77,9 +77,9 @@ class Announcements extends Component<ComponentProps> {
 
     nextClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { fetchAnnouncements, statusPage } = this.props;
+        const { fetchAnnouncements, statusPage }: $TSFixMe = this.props;
 
-        const { limit } = this.state;
+        const { limit }: $TSFixMe = this.state;
         fetchAnnouncements(
             projectId,
             statusPage._id,
@@ -90,7 +90,7 @@ class Announcements extends Component<ComponentProps> {
 
     override render() {
 
-        const { createAnnounceentModalId, deleteModalId } = this.state;
+        const { createAnnounceentModalId, deleteModalId }: $TSFixMe = this.state;
         const {
 
             projectId,
@@ -104,10 +104,10 @@ class Announcements extends Component<ComponentProps> {
             announceError,
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
-        const { skip, count, limit } = announcements;
+        const { skip, count, limit }: $TSFixMe = announcements;
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
         return <>
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">

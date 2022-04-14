@@ -34,7 +34,7 @@ class GitCredential extends Component<ComponentProps> {
 
         if (prevProps.projectId !== this.props.projectId) {
 
-            const { projectId, getGitCredentials } = this.props;
+            const { projectId, getGitCredentials }: $TSFixMe = this.props;
 
             // load all the Docker Credentials
             getGitCredentials({ projectId });
@@ -43,7 +43,7 @@ class GitCredential extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { projectId, getGitCredentials } = this.props;
+        const { projectId, getGitCredentials }: $TSFixMe = this.props;
 
         // load all the Git Credentials
         getGitCredentials({ projectId });
@@ -66,7 +66,7 @@ class GitCredential extends Component<ComponentProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
         return (
             <Fade>
                 <BreadCrumbItem

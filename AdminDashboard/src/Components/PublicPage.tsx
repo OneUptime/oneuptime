@@ -3,7 +3,7 @@ import React from 'react';
 import { Route, Redirect, Switch } from 'react-router-dom';
 import routes from '../routes';
 
-const { allRoutes } = routes;
+const { allRoutes }: $TSFixMe = routes;
 
 const PublicPage: Function = () => (
     <Switch>

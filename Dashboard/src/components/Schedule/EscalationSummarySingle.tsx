@@ -22,7 +22,7 @@ const EscalationSummarySingle: Function = ({
     hasNextEscalationPolicy,
     currentEscalationPolicyCount
 }: EscalationSummarySingleProps) => {
-    const data = isActiveTeam
+    const data: $TSFixMe = isActiveTeam
         ? escalation.activeTeam
         : escalation.nextActiveTeam;
     let teamMembers = [];

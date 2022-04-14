@@ -21,19 +21,19 @@ export const createCommunicationSlaFailure: Function = (
     payload: error,
 });
 
-export const createCommunicationSla =
+export const createCommunicationSla: $TSFixMe =
     (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createCommunicationSlaRequest());
 
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `incidentSla/${projectId}`,
                 data
             );
 
             dispatch(createCommunicationSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -63,7 +63,7 @@ export const updateCommunicationSlaFailure: Function = (
     payload: error,
 });
 
-export const updateCommunicationSla =
+export const updateCommunicationSla: $TSFixMe =
     (
         projectId: ObjectID,
         incidentSlaId: $TSFixMe,
@@ -75,14 +75,14 @@ export const updateCommunicationSla =
             dispatch(updateCommunicationSlaRequest());
 
             data.handleDefault = handleDefault;
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `incidentSla/${projectId}/${incidentSlaId}`,
                 data
             );
 
             dispatch(updateCommunicationSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -112,7 +112,7 @@ export const fetchCommunicationSlasFailure: Function = (
     payload: error,
 });
 
-export const fetchCommunicationSlas =
+export const fetchCommunicationSlas: $TSFixMe =
     (projectId: ObjectID, skip = 0, limit = 0) =>
     async (dispatch: Dispatch) => {
         try {
@@ -129,7 +129,7 @@ export const fetchCommunicationSlas =
 
             dispatch(fetchCommunicationSlasSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -159,18 +159,18 @@ export const deleteCommunicationSlaFailure: Function = (
     payload: error,
 });
 
-export const deleteCommunicationSla =
+export const deleteCommunicationSla: $TSFixMe =
     (projectId: ObjectID, incidentSlaId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCommunicationSlaRequest());
 
-            const response =
+            const response: $TSFixMe =
                 await delete `incidentSla/${projectId}/${incidentSlaId}`;
 
             dispatch(deleteCommunicationSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -206,18 +206,18 @@ export const fetchDefaultCommunicationSlaFailure: Function = (
     payload: error,
 });
 
-export const fetchDefaultCommunicationSla =
+export const fetchDefaultCommunicationSla: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultCommunicationSlaRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `incidentSla/${projectId}/defaultCommunicationSla`
             );
 
             dispatch(fetchDefaultCommunicationSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data

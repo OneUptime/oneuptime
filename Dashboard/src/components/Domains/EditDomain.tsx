@@ -20,7 +20,7 @@ import {
 
 
 function validate(_values: $TSFixMe) {
-    const error = undefined;
+    const error: $TSFixMe = undefined;
     return error;
 }
 
@@ -113,7 +113,7 @@ class EditDomain extends React.Component<EditDomainProps> {
 
     override render() {
 
-        const { requesting, updateDomainError, handleSubmit } = this.props;
+        const { requesting, updateDomainError, handleSubmit }: $TSFixMe = this.props;
 
         return (
             <div
@@ -276,7 +276,7 @@ EditDomain.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const EditDomainForm = reduxForm({
+const EditDomainForm: $TSFixMe = reduxForm({
     form: 'EditDomainForm',
     enableReinitialize: false,
     destroyOnUnmount: true,

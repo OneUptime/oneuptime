@@ -6,8 +6,8 @@ import { RootState } from '../../store';
 // params 1: props
 // returns JSX.Element or NULL
 export const RenderIfOwner: Function = (props: $TSFixMe): void => {
-    const { currentProject, children } = props;
-    const userId = User.getUserId();
+    const { currentProject, children }: $TSFixMe = props;
+    const userId: $TSFixMe = User.getUserId();
     let renderItems = null;
     if (
         userId &&

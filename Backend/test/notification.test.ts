@@ -15,7 +15,7 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 
@@ -31,7 +31,7 @@ describe('Notification API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -132,7 +132,7 @@ describe('Notification API', function (): void {
                 icon: 'bell',
             })
             .end((err: $TSFixMe, res: $TSFixMe): void => {
-                const notificationId = res.body._id;
+                const notificationId: $TSFixMe = res.body._id;
                 request
                     .put(`/notification/${projectId}/read`)
                     .set('Authorization', authorization)
@@ -156,7 +156,7 @@ describe('Notification API', function (): void {
                 icon: 'bell',
             })
             .end((err: $TSFixMe, res: $TSFixMe): void => {
-                const notificationId = res.body._id;
+                const notificationId: $TSFixMe = res.body._id;
                 request
                     .put(`/notification/${projectId}/${notificationId}/closed`)
                     .set('Authorization', authorization)

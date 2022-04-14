@@ -4,17 +4,17 @@ const projectCollection: string = 'projects';
 
 async function run(): void {
     // all main projects
-    const adminUser = await find('users', {
+    const adminUser: $TSFixMe = await find('users', {
         role: 'master-admin',
         deleted: false,
     });
 
-    const projects = await find(projectCollection, {
+    const projects: $TSFixMe = await find(projectCollection, {
         deleted: false,
         parentProjectId: null,
     });
 
-    const adminUserId = adminUser[0]?._id;
+    const adminUserId: $TSFixMe = adminUser[0]?._id;
 
     for (const project of projects) {
         let projectUsers = project.users;
@@ -58,12 +58,12 @@ async function run(): void {
         mainUserIds = projectUsers.map((user: $TSFixMe) => user.userId);
 
         // all subProjects
-        const subProjects = await find(projectCollection, {
+        const subProjects: $TSFixMe = await find(projectCollection, {
             parentProjectId: String(project._id.toString()),
         });
 
         for (const subProject of subProjects) {
-            const subProjectUsers =
+            const subProjectUsers: $TSFixMe =
                 subProject.users?.map((user: $TSFixMe) => {
                     if (mainUserIds.includes(user.userId.toString())) {
                         user.show = false;
@@ -71,7 +71,7 @@ async function run(): void {
                     return user;
                 }) || [];
 
-            const subProjectUserIds = subProjectUsers.map(
+            const subProjectUserIds: $TSFixMe = subProjectUsers.map(
                 (user: $TSFixMe) => user.userId
             );
 

@@ -20,7 +20,7 @@ interface DomainSettingsProps {
 class DomainSettings extends React.Component<DomainSettingsProps> {
     ready = () => {
 
-        const { fetchCustomFields } = this.props;
+        const { fetchCustomFields }: $TSFixMe = this.props;
         fetchCustomFields(
 
             this.props.currentProject && this.props.currentProject._id,
@@ -55,8 +55,8 @@ class DomainSettings extends React.Component<DomainSettingsProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem

@@ -3,11 +3,11 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const subProjectName = utils.generateRandomString();
-const newProjectName = utils.generateRandomString();
-const statusPageName = utils.generateRandomString();
+const subProjectName: $TSFixMe = utils.generateRandomString();
+const newProjectName: $TSFixMe = utils.generateRandomString();
+const statusPageName: $TSFixMe = utils.generateRandomString();
 const projectViewer: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -21,7 +21,7 @@ const role: string = 'Viewer';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Sub-Project API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -73,7 +73,7 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
-            const subProjectSelector = await init.pageWaitForSelector(
+            const subProjectSelector: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#sub_project_name_${subProjectName}`,
                 { visible: true, timeout: init.timeout }
@@ -186,7 +186,7 @@ describe('Sub-Project API', () => {
 
         await init.pageClick(page, `#btn_modal_${newProjectName}`);
 
-        const elem = await init.page$(page, 'button[id=btnConfirmInvite]');
+        const elem: $TSFixMe = await init.page$(page, 'button[id=btnConfirmInvite]');
         elem.click();
         await init.pageWaitForSelector(page, `#btn_modal_${newProjectName}`, {
             hidden: true,
@@ -261,10 +261,10 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const projectStatusPages = await page.$('#statusPageTable');
+            const projectStatusPages: $TSFixMe = await page.$('#statusPageTable');
             expect(projectStatusPages).toEqual(null);
 
-            const subProjectStatusPages = await page.$('#statusPageTable_0');
+            const subProjectStatusPages: $TSFixMe = await page.$('#statusPageTable_0');
             expect(subProjectStatusPages).not.toEqual(null);
             done();
         },
@@ -287,7 +287,7 @@ describe('Sub-Project API', () => {
                 timeout: init.timeout,
             });
 
-            const element = await init.page$(
+            const element: $TSFixMe = await init.page$(
                 page,
                 `#accountSwitcher > div[title=${newProjectName}]`
             );
@@ -297,13 +297,13 @@ describe('Sub-Project API', () => {
                 timeout: init.timeout,
             });
 
-            const projectStatusPages = await init.page$(
+            const projectStatusPages: $TSFixMe = await init.page$(
                 page,
                 '#statusPageTable'
             );
             expect(projectStatusPages).not.toEqual(null);
 
-            const subProjectStatusPages = await init.page$(
+            const subProjectStatusPages: $TSFixMe = await init.page$(
                 page,
                 '#statusPageTable_0'
             );
@@ -327,18 +327,18 @@ describe('Sub-Project API', () => {
             timeout: init.timeout,
         });
 
-        const element = await init.page$(
+        const element: $TSFixMe = await init.page$(
             page,
             `#accountSwitcher > div[title=${newProjectName}]`
         );
         element.click();
-        const rowItem = await init.pageWaitForSelector(
+        const rowItem: $TSFixMe = await init.pageWaitForSelector(
             page,
             '#statusPagesListContainer > tr',
             { visible: true, timeout: init.timeout }
         );
         rowItem.click();
-        const statusPage = await page.$(`#cb${statusPageName}`);
+        const statusPage: $TSFixMe = await page.$(`#cb${statusPageName}`);
         expect(statusPage).toEqual(null);
         done();
     });

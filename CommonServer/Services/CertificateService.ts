@@ -6,7 +6,7 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async create(data: $TSFixMe): void {
-        const certificate = await CertificateModel.create(data);
+        const certificate: $TSFixMe = await CertificateModel.create(data);
         return certificate;
     }
 
@@ -19,14 +19,14 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const certificateQuery = CertificateModel.findOne(query)
+        const certificateQuery: $TSFixMe = CertificateModel.findOne(query)
             .sort(sort)
             .lean();
 
         certificateQuery.select(select);
         certificateQuery.populate(populate);
 
-        const certificate = await certificateQuery;
+        const certificate: $TSFixMe = await certificateQuery;
         return certificate;
     }
 
@@ -55,7 +55,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const certificateQuery = CertificateModel.find(query)
+        const certificateQuery: $TSFixMe = CertificateModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -64,7 +64,7 @@ export default class Service {
         certificateQuery.select(select);
         certificateQuery.populate(populate);
 
-        const certificates = await certificateQuery;
+        const certificates: $TSFixMe = await certificateQuery;
         return certificates;
     }
 
@@ -91,7 +91,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        const certificate = await this.updateOneBy(query, {
+        const certificate: $TSFixMe = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),
         });
@@ -110,7 +110,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await CertificateModel.countDocuments(query);
+        const count: $TSFixMe = await CertificateModel.countDocuments(query);
         return count;
     }
 }

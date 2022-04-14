@@ -33,7 +33,7 @@ class ResetCssModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -109,9 +109,9 @@ class ResetCssModal extends Component<ComponentProps> {
 
 ResetCssModal.displayName = 'ResetCssModal';
 
-const mapDispatchToProps = null;
+const mapDispatchToProps: $TSFixMe = null;
 
-const mapStateToProps = null;
+const mapStateToProps: $TSFixMe = null;
 
 
 ResetCssModal.propTypes = {

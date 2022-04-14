@@ -67,7 +67,7 @@ export const createResourceCategory: Function = (
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `resourceCategory/${projectId}`,
             values
         );
@@ -102,7 +102,7 @@ export function updateResourceCategory(
     values: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `resourceCategory/${projectId}/${resourceCategoryId}`,
             values
         );
@@ -186,7 +186,7 @@ export function deleteResourceCategory(
     projectId: ObjectID
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise =
+        const promise: $TSFixMe =
             delete `resourceCategory/${projectId}/${resourceCategoryId}`;
         dispatch(deleteResourceCategoryRequest(resourceCategoryId));
 
@@ -235,7 +235,7 @@ export const fetchResourceCategoriesForNewResource: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`resourceCategory/${projectId}`);
+        const promise: $TSFixMe = BackendAPI.get(`resourceCategory/${projectId}`);
         dispatch(fetchResourceCategoriesForNewResourceRequest());
 
         promise.then(

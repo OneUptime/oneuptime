@@ -1,5 +1,5 @@
 import momentTz from 'moment-timezone';
-const TimeZoneNames = momentTz.tz.names();
+const TimeZoneNames: $TSFixMe = momentTz.tz.names();
 const offsetTmz: $TSFixMe = [];
 TimeZoneNames.map(tzName => {
     return offsetTmz.push({
@@ -7,7 +7,7 @@ TimeZoneNames.map(tzName => {
         value: tzName,
     });
 });
-export const Zones = offsetTmz;
-export const currentTimeZone = momentTz.tz.guess();
+export const Zones: $TSFixMe = offsetTmz;
+export const currentTimeZone: $TSFixMe = momentTz.tz.guess();
 export const GMT: Function = (name: $TSFixMe): void =>
     momentTz.tz(name).format('Z');

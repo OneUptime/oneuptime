@@ -18,7 +18,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import ProbeService from '../backend/services/probeService';
 import MonitorService from '../backend/services/monitorService';
 import ComponentService from '../backend/services/componentService';
@@ -33,7 +33,7 @@ let token: $TSFixMe, userId, projectId: ObjectID, componentId: $TSFixMe;
 const probeKey: string = 'test-key';
 const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
-const generateRandomString = require('./utils/string').generateRandomString;
+const generateRandomString: $TSFixMe = require('./utils/string').generateRandomString;
 const probeServerRequestHeader: Function = ({
     probeName,
     probeKey,
@@ -57,12 +57,12 @@ describe('Probe API', function (): void {
         // remove every monitor in DB
         await MonitorService.hardDeleteBy({});
 
-        const user = await UserService.create({
+        const user: $TSFixMe = await UserService.create({
             ...userData.user,
             role: 'master-admin',
         });
 
-        const project = await ProjectService.create({
+        const project: $TSFixMe = await ProjectService.create({
             name: 'New Test Project',
             userId: user._id,
             stripePlanId: newProject.stripePlanId,
@@ -70,13 +70,13 @@ describe('Probe API', function (): void {
         });
         projectId = project._id;
 
-        const component = await ComponentService.create({
+        const component: $TSFixMe = await ComponentService.create({
             name: 'New Test Component',
             projectId,
         });
         componentId = component._id;
 
-        const response = await request.post('/user/login').send({
+        const response: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,
         });
@@ -113,7 +113,7 @@ describe('Probe API', function (): void {
 
     it('should add a probe by admin', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const probeName = generateRandomString();
+        const probeName: $TSFixMe = generateRandomString();
         request
             .post('/probe/')
             .set('Authorization', authorization)
@@ -130,7 +130,7 @@ describe('Probe API', function (): void {
     });
 
     it('should not add a probe if not admin', (done: $TSFixMe): void => {
-        const probeName = generateRandomString();
+        const probeName: $TSFixMe = generateRandomString();
         createUser(
             request,
             userData.newUser,
@@ -181,7 +181,7 @@ describe('Probe API', function (): void {
 
     it('should reject a probe if same name already exists', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const probeName = generateRandomString();
+        const probeName: $TSFixMe = generateRandomString();
         request
             .post('/probe/')
             .set('Authorization', authorization)
@@ -219,7 +219,7 @@ describe('Probe API', function (): void {
 
     it('should delete a probe by admin', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const probeName = generateRandomString();
+        const probeName: $TSFixMe = generateRandomString();
         request
             .post('/probe/')
             .set('Authorization', authorization)
@@ -243,7 +243,7 @@ describe('Probe API', function (): void {
 
     it('should add to the database the unknown probe servers requesting the list of monitor to ping.', async (): void => {
         probeServerName1 = generateRandomString();
-        const res = await request.get('/probe/monitors').set(
+        const res: $TSFixMe = await request.get('/probe/monitors').set(
             probeServerRequestHeader({
                 probeName: probeServerName1,
                 probeKey,
@@ -253,7 +253,7 @@ describe('Probe API', function (): void {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
 
-        const probe = await ProbeService.findOneBy({
+        const probe: $TSFixMe = await ProbeService.findOneBy({
             query: { probeName: probeServerName1 },
             select: '_id',
         });
@@ -262,7 +262,7 @@ describe('Probe API', function (): void {
 
     it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ', async function (): void {
         this.timeout(100000);
-        const monitor = await MonitorService.create({
+        const monitor: $TSFixMe = await MonitorService.create({
             projectId,
             componentId,
             name: generateRandomString(),
@@ -344,7 +344,7 @@ describe('Probe API', function (): void {
 
     it('should return the list of monitors of type "url" only 1 time for every probe server during an interval of 1 min', async function (): void {
         this.timeout(100000);
-        const monitor = await MonitorService.create({
+        const monitor: $TSFixMe = await MonitorService.create({
             projectId,
             componentId,
             name: generateRandomString(),

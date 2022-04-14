@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 const user: $TSFixMe = {
@@ -14,7 +14,7 @@ const user: $TSFixMe = {
 };
 
 describe('Keyboard Shortcut: Dashboard', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -45,7 +45,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('c');
-            const componentForm = await init.pageWaitForSelector(
+            const componentForm: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#form-new-component',
                 { visible: true, timeout: init.timeout }
@@ -69,7 +69,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('i');
-            const incidentLogs = await init.pageWaitForSelector(
+            const incidentLogs: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#incidentLogs',
                 {
@@ -96,7 +96,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('p');
-            const statusPageTable = await init.pageWaitForSelector(
+            const statusPageTable: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPageTable',
                 { visible: true, timeout: init.timeout }
@@ -120,7 +120,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('o');
-            const onCall = await init.pageWaitForSelector(
+            const onCall: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#onCallSchedulePage',
                 {
@@ -147,7 +147,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('o');
             await page.keyboard.press('a');
-            const alertLog = await init.pageWaitForSelector(
+            const alertLog: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#alertLogPage',
                 {
@@ -174,7 +174,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('e');
-            const scheduledEventsPage = await init.pageWaitForSelector(
+            const scheduledEventsPage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#scheduleEventsPage',
                 { visible: true, timeout: init.timeout }
@@ -198,7 +198,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('z');
-            const automationScriptsPage = await init.pageWaitForSelector(
+            const automationScriptsPage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#automationScriptsPage',
                 { visible: true, timeout: init.timeout }
@@ -222,7 +222,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('v');
-            const report = await init.pageWaitForSelector(page, '#reportPage', {
+            const report: $TSFixMe = await init.pageWaitForSelector(page, '#reportPage', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -245,7 +245,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('u');
-            const teamMember = await init.pageWaitForSelector(
+            const teamMember: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#teamMemberPage',
                 {
@@ -272,7 +272,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('s');
-            const projectSettings = await init.pageWaitForSelector(
+            const projectSettings: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#settingsPage',
                 { visible: true, timeout: init.timeout }
@@ -296,7 +296,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('q');
-            const consultingServicesPage = await init.pageWaitForSelector(
+            const consultingServicesPage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#consultingServicesPage',
                 { visible: true, timeout: init.timeout }
@@ -320,7 +320,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('b');
-            const billing = await init.pageWaitForSelector(page, '#billing', {
+            const billing: $TSFixMe = await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -343,7 +343,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('r');
-            const resourceCategory = await init.pageWaitForSelector(
+            const resourceCategory: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#resourceCategories',
                 { visible: true, timeout: init.timeout }
@@ -367,7 +367,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('m');
-            const monitorSettings = await init.pageWaitForSelector(
+            const monitorSettings: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#monitorSettingsPage',
                 { visible: true, timeout: init.timeout }
@@ -391,7 +391,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('t');
-            const incidentSettings = await init.pageWaitForSelector(
+            const incidentSettings: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#incidentSettingsPage',
                 { visible: true, timeout: init.timeout }
@@ -415,7 +415,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('i');
-            const integrations = await init.pageWaitForSelector(
+            const integrations: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#integrations',
                 {
@@ -442,7 +442,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('e');
-            const emailTemplate = await init.pageWaitForSelector(
+            const emailTemplate: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#emailTemplate',
                 {
@@ -469,7 +469,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('c');
-            const smsTemplate = await init.pageWaitForSelector(
+            const smsTemplate: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#smsTemplate',
                 {
@@ -496,7 +496,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('w');
-            const webhooksSettingsPage = await init.pageWaitForSelector(
+            const webhooksSettingsPage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#webhooksSettingsPage',
                 { visible: true, timeout: init.timeout }
@@ -520,7 +520,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('p');
-            const probe = await init.pageWaitForSelector(page, '#probeList', {
+            const probe: $TSFixMe = await init.pageWaitForSelector(page, '#probeList', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -543,7 +543,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('g');
-            const gitCredential = await init.pageWaitForSelector(
+            const gitCredential: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#gitCredentialPage',
                 { visible: true, timeout: init.timeout }
@@ -567,7 +567,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('k'); // k is the new addition
-            const dockerCredential = await init.pageWaitForSelector(
+            const dockerCredential: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#dockerCredentialPage',
                 { visible: true, timeout: init.timeout }
@@ -591,7 +591,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('g');
-            const gitCredentialsSettings = await init.pageWaitForSelector(
+            const gitCredentialsSettings: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#gitCredentialPage',
                 { visible: true, timeout: init.timeout }
@@ -615,7 +615,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('k'); // k is the new addition
-            const dockerCredentialsSettings = await init.pageWaitForSelector(
+            const dockerCredentialsSettings: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#dockerCredentialPage',
                 { visible: true, timeout: init.timeout }
@@ -639,7 +639,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('a');
-            const oneuptimeApi = await init.pageWaitForSelector(
+            const oneuptimeApi: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#oneuptimeApi',
                 {
@@ -666,7 +666,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
             });
             await page.keyboard.press('s');
             await page.keyboard.press('v');
-            const advancedSettingsPage = await init.pageWaitForSelector(
+            const advancedSettingsPage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#advancedPage',
                 { visible: true, timeout: init.timeout }
@@ -701,7 +701,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
             await page.keyboard.press('f');
             await page.keyboard.press('n');
-            const profileSetting = await init.pageWaitForSelector(
+            const profileSetting: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#profileSettingPage',
                 { visible: true, timeout: init.timeout }
@@ -736,7 +736,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
             await page.keyboard.press('f');
             await page.keyboard.press('w');
-            const changePassword = await init.pageWaitForSelector(
+            const changePassword: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#changePasswordSetting',
                 { visible: true, timeout: init.timeout }
@@ -771,7 +771,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
             await page.keyboard.press('f');
             await page.keyboard.press('b');
-            const profileBilling = await init.pageWaitForSelector(
+            const profileBilling: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#profileBilling',
                 { visible: true, timeout: init.timeout }
@@ -806,7 +806,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
             await page.keyboard.press('f');
             await page.keyboard.press('a');
-            const deleteBtn = await init.pageWaitForSelector(
+            const deleteBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#btn_delete_account',
                 { visible: true, timeout: init.timeout }
@@ -841,7 +841,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
 
             await page.keyboard.press('f');
             await page.keyboard.press('k');
-            const component = await init.pageWaitForSelector(
+            const component: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#components',
                 {

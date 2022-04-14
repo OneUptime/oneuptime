@@ -40,7 +40,7 @@ class WebHookInput extends React.Component<WebHookInputProps> {
         //if the webhook contains more than one monitor just remove the monitor from it
         //if not delete the monitor
         if (monitorId) {
-            const newMonitors = monitors
+            const newMonitors: $TSFixMe = monitors
                 .filter((monitor: $TSFixMe) => monitor.monitorId._id !== monitorId)
                 .map((monitor: $TSFixMe) => ({
                     monitorId: monitor.monitorId._id
@@ -95,12 +95,12 @@ class WebHookInput extends React.Component<WebHookInputProps> {
 
     override render() {
 
-        const { data, webhooks, monitors, monitorId } = this.props;
+        const { data, webhooks, monitors, monitorId }: $TSFixMe = this.props;
 
-        const { endpoint, endpointType } = data.data;
+        const { endpoint, endpointType }: $TSFixMe = data.data;
         let deleting = false;
-        const monitorName = monitors && monitors[0].monitorId.name;
-        const monitorTitle =
+        const monitorName: $TSFixMe = monitors && monitors[0].monitorId.name;
+        const monitorTitle: $TSFixMe =
             monitors && monitors.length > 1
                 ? `${monitorName} and ${monitors?.length - 1} other${monitors?.length - 1 === 1 ? '' : 's'
                 }`

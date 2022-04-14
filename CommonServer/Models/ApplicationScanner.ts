@@ -4,8 +4,8 @@ import mongoose, {
     EncryptedFields,
 } from '../Infrastructure/ORM';
 
-const Schema = mongoose.Schema;
-const schema = new Schema({
+const Schema: $TSFixMe = mongoose.Schema;
+const schema: $TSFixMe = new Schema({
     createdAt: { type: Date, default: Date.now },
     applicationScannerKey: { type: String },
     applicationScannerName: { type: String },

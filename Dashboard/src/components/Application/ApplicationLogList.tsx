@@ -23,16 +23,16 @@ interface ApplicationLogListProps {
 }
 
 export const ApplicationLogList: Function = (props: ApplicationLogListProps) => {
-    const applicationLogs = props.applicationLogs ? props.applicationLogs : [];
+    const applicationLogs: $TSFixMe = props.applicationLogs ? props.applicationLogs : [];
     let applicationLogDetails = null;
-    const skip = props.skip;
-    const limit = props.limit;
-    const count = props.count;
-    const page = props.page;
-    const canNext =
+    const skip: $TSFixMe = props.skip;
+    const limit: $TSFixMe = props.limit;
+    const count: $TSFixMe = props.count;
+    const page: $TSFixMe = props.page;
+    const canNext: $TSFixMe =
         applicationLogs && count && count > skip + limit ? true : false;
-    const canPrev = applicationLogs && skip <= 0 ? false : true;
-    const numberOfPages = props.numberOfPage
+    const canPrev: $TSFixMe = applicationLogs && skip <= 0 ? false : true;
+    const numberOfPages: $TSFixMe = props.numberOfPage
         ? props.numberOfPage
         : Math.ceil(parseInt(count) / limit);
 

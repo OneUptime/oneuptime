@@ -31,11 +31,11 @@ export class MonitorViewDeleteBox extends Component<MonitorViewDeleteBoxProps>{
     }
 
     deleteMonitor = () => {
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.monitor.projectId._id || this.props.monitor.projectId;
 
-        const promise = this.props
+        const promise: $TSFixMe = this.props
 
             .deleteMonitor(this.props.monitor._id, projectId)
             .then(() => {
@@ -70,7 +70,7 @@ export class MonitorViewDeleteBox extends Component<MonitorViewDeleteBoxProps>{
             deleting = true;
         }
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
         return (
             <div

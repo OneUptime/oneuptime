@@ -22,7 +22,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 export default class MailService {
     private static async getGlobalSmtpSettings(): Promise<MailServer> {
-        const document = await GlobalConfigService.findOneBy({
+        const document: $TSFixMe = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
             select: ['value'],
             populate: [],
@@ -93,7 +93,7 @@ export default class MailService {
     private static async getProjectSmtpSettings(
         projectId: ObjectID
     ): Promise<MailServer> {
-        const select = [
+        const select: $TSFixMe = [
             'user',
             'pass',
             'host',
@@ -103,7 +103,7 @@ export default class MailService {
             'secure',
         ];
 
-        const projectSmtp = await EmailSmtpService.findOneBy({
+        const projectSmtp: $TSFixMe = await EmailSmtpService.findOneBy({
             query: { projectId, enabled: true },
             select,
             populate: [],
@@ -147,7 +147,7 @@ export default class MailService {
             LocalCache.set(emailTemplateType, templateData);
         }
 
-        const emailBody = Handlebars.compile(templateData);
+        const emailBody: $TSFixMe = Handlebars.compile(templateData);
         return emailBody(vars).toString();
     }
 
@@ -155,7 +155,7 @@ export default class MailService {
         subject: string,
         vars: Dictionary<string>
     ): string {
-        const subjectHandlebars = Handlebars.compile(subject);
+        const subjectHandlebars: $TSFixMe = Handlebars.compile(subject);
         return subjectHandlebars(vars).toString();
     }
 
@@ -248,7 +248,7 @@ export default class MailService {
                 );
             }
 
-            const exception = error as Exception;
+            const exception: $TSFixMe = error as Exception;
 
             await this.createEmailStatus({
                 fromEmail: mailServer.fromEmail,

@@ -21,10 +21,10 @@ export default {
 
         //#1
 
-        const selectOnCallScheduleStatus =
+        const selectOnCallScheduleStatus: $TSFixMe =
             'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
-        const populateOnCallScheduleStatus = [
+        const populateOnCallScheduleStatus: $TSFixMe = [
             { path: 'incidentId', select: 'name slug' },
             { path: 'project', select: 'name slug' },
             { path: 'scheduleId', select: 'name slug' },
@@ -35,7 +35,7 @@ export default {
             },
         ];
 
-        const notAcknowledgedCallScheduleStatuses =
+        const notAcknowledgedCallScheduleStatuses: $TSFixMe =
             await OnCallScheduleStatusService.findBy({
                 query: {
                     incidentAcknowledged: false,
@@ -63,7 +63,7 @@ export default {
                 continue;
             }
 
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -82,10 +82,10 @@ export default {
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'name _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-            const incident = await IncidentService.findOneBy({
+            const incident: $TSFixMe = await IncidentService.findOneBy({
                 query: { _id: notAcknowledgedCallScheduleStatus.incident },
                 select,
                 populate,
@@ -114,7 +114,7 @@ export default {
             // #3 and #4
             // get active escalation policy.
 
-            const alerts = await AlertService.findBy({
+            const alerts: $TSFixMe = await AlertService.findBy({
                 query: {
                     onCallScheduleStatus: notAcknowledgedCallScheduleStatus._id,
                 },
@@ -125,12 +125,12 @@ export default {
             }); //sort by createdAt descending.
             if (alerts && alerts.length > 0 && alerts[0]) {
                 //check when the last alert was sent.
-                const lastAlertSentAt = alerts[0].createdAt; //we take '0' index because list is reverse sorted.
+                const lastAlertSentAt: $TSFixMe = alerts[0].createdAt; //we take '0' index because list is reverse sorted.
                 if (!DateTime.isOlderThanLastMinute(lastAlertSentAt)) {
                     continue;
                 }
             }
-            const populateSchedule = [
+            const populateSchedule: $TSFixMe = [
                 { path: 'userIds', select: 'name' },
                 { path: 'createdById', select: 'name' },
                 { path: 'monitorIds', select: 'name' },
@@ -148,7 +148,7 @@ export default {
                 },
             ];
 
-            const selectSchedule =
+            const selectSchedule: $TSFixMe =
                 '_id userIds name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
             let schedule = await ScheduleService.findOneBy({
                 query: { _id: notAcknowledgedCallScheduleStatus.schedule },
@@ -169,7 +169,7 @@ export default {
             }
             //and the rest happens here.
 
-            const monitors = incident.monitors.map(
+            const monitors: $TSFixMe = incident.monitors.map(
                 (monitor: $TSFixMe) =>
                     monitor.monitorId._id || monitor.monitorId
             );

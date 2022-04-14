@@ -31,7 +31,7 @@ class DuplicateStatusPageConfirmation extends Component<ComponentProps> {
 
     handleNavigation = () => {
 
-        const { slug, statusPageSlug } = this.props;
+        const { slug, statusPageSlug }: $TSFixMe = this.props;
 
         this.props.closeModal({
 

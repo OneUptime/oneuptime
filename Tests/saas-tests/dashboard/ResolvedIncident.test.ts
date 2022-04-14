@@ -4,14 +4,14 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 
 // parent user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
-const monitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
 
 describe('Incident Reports API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(360000);
@@ -69,7 +69,7 @@ describe('Incident Reports API', () => {
 
                 await init.pageClick(page, '#btnResolve_0');
 
-                const resolvedConfirmation = await init.pageWaitForSelector(
+                const resolvedConfirmation: $TSFixMe = await init.pageWaitForSelector(
                     page,
                     '.bs-resolved-green'
                 );
@@ -88,7 +88,7 @@ describe('Incident Reports API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const closedResolvedIncidents = await init.pageWaitForSelector(
+            const closedResolvedIncidents: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#incidents-close-all-btn',
                 { hidden: true }

@@ -27,7 +27,7 @@ class ProbeAddModal extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { addProbe, closeThisDialog, resetAddProbe } = this.props;
+        const { addProbe, closeThisDialog, resetAddProbe }: $TSFixMe = this.props;
         addProbe(values.probe_key, values.probe_name).then(
             function (val: $TSFixMe) {
                 if (val === 'ok') {
@@ -66,7 +66,7 @@ class ProbeAddModal extends Component<ComponentProps> {
 
             resetAddProbe,
         } = this.props;
-        const disabled = addProbeState.requesting || probes.requesting;
+        const disabled: $TSFixMe = addProbeState.requesting || probes.requesting;
         return (
             <div
                 className="ModalLayer-contents"
@@ -235,7 +235,7 @@ class ProbeAddModal extends Component<ComponentProps> {
 
 ProbeAddModal.displayName = 'ProbeAddFormModal';
 
-const ProbeAddModalForm = reduxForm({
+const ProbeAddModalForm: $TSFixMe = reduxForm({
     form: 'AddProbe', // a unique identifier for this form
 })(ProbeAddModal);
 

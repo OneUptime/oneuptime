@@ -233,7 +233,7 @@ class Incident extends React.Component<IncidentProps> {
         });
     };
     tabSelected = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
@@ -321,7 +321,7 @@ class Incident extends React.Component<IncidentProps> {
             10
         );
 
-        const monitors =
+        const monitors: $TSFixMe =
 
             this.props.incident && this.props.incident.monitors
 
@@ -364,7 +364,7 @@ class Incident extends React.Component<IncidentProps> {
     }
 
     ready = () => {
-        // const incidentId = this.props.incidentId;
+        // const incidentId: $TSFixMe = this.props.incidentId;
         const {
 
             projectId,
@@ -450,8 +450,8 @@ class Incident extends React.Component<IncidentProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const slug = currentProject ? currentProject.slug : null;
-        const redirectTo:string = `/dashboard/project/${slug}/on-call`;
+        const slug: $TSFixMe = currentProject ? currentProject.slug : null;
+        const redirectTo:string: $TSFixMe = `/dashboard/project/${slug}/on-call`;
         const {
 
             component,
@@ -463,11 +463,11 @@ class Incident extends React.Component<IncidentProps> {
 
         let scheduleAlert;
 
-        const monitorList = monitors
+        const monitorList: $TSFixMe = monitors
             ? monitors.map((monitor: $TSFixMe) => monitor.monitorId)
             : [];
 
-        const incidentMonitors = [];
+        const incidentMonitors: $TSFixMe = [];
         const monitorIds = monitorList.map((monitor: $TSFixMe) => String(monitor._id));
         allMonitors.forEach((monitor: $TSFixMe) => {
             if (monitorIds.includes(String(monitor._id))) {
@@ -482,7 +482,7 @@ class Incident extends React.Component<IncidentProps> {
             }
         });
 
-        const monitorNames = joinNames(monitorWithoutSchedule);
+        const monitorNames: $TSFixMe = joinNames(monitorWithoutSchedule);
 
         if (defaultSchedule !== true) {
             scheduleAlert = (
@@ -810,9 +810,9 @@ class Incident extends React.Component<IncidentProps> {
                 </ShouldRender>
             );
         }
-        const componentName = component ? component.name : '';
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const componentName: $TSFixMe = component ? component.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -890,7 +890,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
         slug: projectSlug,
     } = props.match.params;
 
-    const projectId = componentSlug
+    const projectId: $TSFixMe = componentSlug
         ? state.component.currentComponent.component &&
         state.component.currentComponent.component.projectId._id
         : state.project.projectSlug.project &&
@@ -918,7 +918,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
             .filter((monitorObj: $TSFixMe) => String(monitorObj._id) === String(projectId))
             .map((monitorObj: $TSFixMe) => monitorObj.monitors);
     allMonitors = flat(allMonitors);
-    const monitors =
+    const monitors: $TSFixMe =
         state.incident &&
         state.incident.incident &&
         state.incident.incident.incident &&

@@ -10,7 +10,7 @@ import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 
 import { createUser } from './utils/userSignUp';
@@ -21,27 +21,27 @@ import DockerCredentialService from '../backend/services/dockerCredentialService
 import AirtableService from '../backend/services/airtableService';
 
 describe('Docker Credential API', function (): void {
-    const timeout = 30000;
+    const timeout: $TSFixMe = 30000;
     let projectId: ObjectID, userId, token: $TSFixMe, credentialId: $TSFixMe;
-    const dockerRegistryUrl = dockerCredential.dockerRegistryUrl;
-    const dockerUsername = dockerCredential.dockerUsername;
-    const dockerPassword = dockerCredential.dockerPassword;
+    const dockerRegistryUrl: $TSFixMe = dockerCredential.dockerRegistryUrl;
+    const dockerUsername: $TSFixMe = dockerCredential.dockerUsername;
+    const dockerPassword: $TSFixMe = dockerCredential.dockerPassword;
 
     this.timeout(timeout);
 
     before(async (): void => {
         await GlobalConfig.initTestConfig();
-        const res = await createUser(request, userData.user);
-        const project = res.body.project;
+        const res: $TSFixMe = await createUser(request, userData.user);
+        const project: $TSFixMe = res.body.project;
         projectId = project._id;
         userId = res.body.id;
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
-        const res1 = await request.post('/user/login').send({
+        const res1: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,
         });
@@ -62,7 +62,7 @@ describe('Docker Credential API', function (): void {
 
     it('should add docker credential', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization)
             .send({
@@ -80,7 +80,7 @@ describe('Docker Credential API', function (): void {
         const dockerUsername: string = 'username';
         const dockerPassword: string = 'hello1234567890';
 
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/credential/${projectId}/dockerCredential/${credentialId}`)
             .set('Authorization', authorization)
             .send({
@@ -96,7 +96,7 @@ describe('Docker Credential API', function (): void {
         const authorization: string = `Basic ${token}`;
         const dockerUsername: string = 'randomUsername';
         const dockerPassword: string = 'randomPassword';
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/credential/${projectId}/dockerCredential/${credentialId}`)
             .set('Authorization', authorization)
             .send({ dockerRegistryUrl, dockerUsername, dockerPassword });
@@ -106,7 +106,7 @@ describe('Docker Credential API', function (): void {
 
     it('should not add docker credential if username or password is invalid', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization)
             .send({
@@ -120,7 +120,7 @@ describe('Docker Credential API', function (): void {
 
     it('should remove a docker credential', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .delete(`/credential/${projectId}/dockerCredential/${credentialId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -138,7 +138,7 @@ describe('Docker Credential API', function (): void {
                 dockerUsername,
                 dockerPassword,
             });
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -148,7 +148,7 @@ describe('Docker Credential API', function (): void {
     it('should not create docker credential with an existing docker registry url and docker username in a project', async (): void => {
         const authorization: string = `Basic ${token}`;
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization)
             .send({
@@ -164,7 +164,7 @@ describe('Docker Credential API', function (): void {
 
     it('should not create docker credential if docker registry url is missing', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization)
             .send({
@@ -178,7 +178,7 @@ describe('Docker Credential API', function (): void {
 
     it('should not create docker credential if docker username is missing', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization)
             .send({
@@ -192,7 +192,7 @@ describe('Docker Credential API', function (): void {
 
     it('should not create docker credential if docker password is missing', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/credential/${projectId}/dockerCredential`)
             .set('Authorization', authorization)
             .send({
@@ -206,7 +206,7 @@ describe('Docker Credential API', function (): void {
     it('should not remove a non-existing docker credential', async (): void => {
         const authorization: string = `Basic ${token}`;
         const newCredentialId: string = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
-        const res = await request
+        const res: $TSFixMe = await request
             .delete(
                 `/credential/${projectId}/dockerCredential/${newCredentialId}`
             )

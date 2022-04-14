@@ -40,7 +40,7 @@ export class MonitorLogsList extends Component<MonitorLogsListProps>{
         };
     }
     override componentDidMount() {
-        // const { updatemonitorlogbysocket } = this.props;
+        // const { updatemonitorlogbysocket }: $TSFixMe = this.props;
         // socket.on(`updateMonitorLog-${this.props.projectId}`, function(data) {
         //     updatemonitorlogbysocket(data);
         // });
@@ -50,12 +50,12 @@ export class MonitorLogsList extends Component<MonitorLogsListProps>{
     }
     override render() {
 
-        const { monitorLogs } = this.props;
+        const { monitorLogs }: $TSFixMe = this.props;
         let skip = monitorLogs && monitorLogs.skip ? monitorLogs.skip : null;
         let limit = monitorLogs && monitorLogs.limit ? monitorLogs.limit : null;
-        const count =
+        const count: $TSFixMe =
             monitorLogs && monitorLogs.count ? monitorLogs.count : null;
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
         if (skip && typeof skip === 'string') {
             skip = parseInt(skip, 10);
         }
@@ -1316,8 +1316,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const monitorId = props.monitorId ? props.monitorId : null;
-    const monitorLogs = monitorId ? state.monitor.monitorLogs[monitorId] : {};
+    const monitorId: $TSFixMe = props.monitorId ? props.monitorId : null;
+    const monitorLogs: $TSFixMe = monitorId ? state.monitor.monitorLogs[monitorId] : {};
 
     if (monitorLogs && monitorLogs.logs) {
         monitorLogs.logs = monitorLogs.logs.map((log: $TSFixMe) => {

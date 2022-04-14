@@ -11,7 +11,7 @@ import Main from './workers/main';
 import cron from 'node-cron';
 import config from './utils/config';
 
-const cronMinuteStartTime = Math.floor(Math.random() * 50);
+const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
 app.use(cors());
 app.set('port', process.env['PORT'] || 3015);

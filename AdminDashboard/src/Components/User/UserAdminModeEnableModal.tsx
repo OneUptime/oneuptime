@@ -222,7 +222,7 @@ UserAdminModeEnableModal.propTypes = {
     handleSubmit: PropTypes.func,
 };
 
-const UserAdminModeEnableForm = reduxForm({
+const UserAdminModeEnableForm: $TSFixMe = reduxForm({
     form: formName,
     enableReinitialize: false,
     destroyOnUnmount: true,

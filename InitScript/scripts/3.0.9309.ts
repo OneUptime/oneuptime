@@ -11,12 +11,12 @@ const monitorCollection: string = 'monitors';
 const monitorStatusCollection: string = 'monitorstatuses';
 
 async function run(): void {
-    const monitors = await find(monitorCollection, {
+    const monitors: $TSFixMe = await find(monitorCollection, {
         deleted: false,
     });
 
     for (const monitor of monitors) {
-        const monitorStatuses = await find(
+        const monitorStatuses: $TSFixMe = await find(
             monitorStatusCollection,
             {
                 deleted: false,

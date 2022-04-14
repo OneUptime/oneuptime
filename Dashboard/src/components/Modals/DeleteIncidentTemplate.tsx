@@ -82,7 +82,7 @@ class DeleteIncidentTemplate extends Component<ComponentProps> {
 
     override render() {
 
-        const { deletingTemplate, deleteError } = this.props;
+        const { deletingTemplate, deleteError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

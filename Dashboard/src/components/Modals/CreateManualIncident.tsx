@@ -43,9 +43,9 @@ class CreateManualIncident extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { fetchCustomFields } = this.props;
+        const { fetchCustomFields }: $TSFixMe = this.props;
 
-        const { projectId } = this.props.data;
+        const { projectId }: $TSFixMe = this.props.data;
         fetchCustomFields(projectId);
 
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -67,10 +67,10 @@ class CreateManualIncident extends Component<ComponentProps> {
             createIncidentReset,
         } = this.props;
 
-        const { projectId, monitorId } = this.props.data;
-        const monitor = [monitorId];
+        const { projectId, monitorId }: $TSFixMe = this.props.data;
+        const monitor: $TSFixMe = [monitorId];
         this.setState({ incidentType: values.incidentType });
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
 
 
         const customFields = this.props.customFields.map((field: $TSFixMe) => ({
@@ -111,7 +111,7 @@ class CreateManualIncident extends Component<ComponentProps> {
 
     handleKeyBoard = (e: $TSFixMe) => {
 
-        const { createIncidentReset } = this.props;
+        const { createIncidentReset }: $TSFixMe = this.props;
 
         if (e.key) {
             if (e.key === 'Escape') {
@@ -136,7 +136,7 @@ class CreateManualIncident extends Component<ComponentProps> {
 
     setTemplateValues = (value: $TSFixMe) => {
 
-        const { change, incidentTemplateObj } = this.props;
+        const { change, incidentTemplateObj }: $TSFixMe = this.props;
 
         if (value) {
             !incidentTemplateObj.requesting &&
@@ -168,7 +168,7 @@ class CreateManualIncident extends Component<ComponentProps> {
 
             incidentTemplateObj,
         } = this.props;
-        const sameError =
+        const sameError: $TSFixMe =
             newIncident &&
                 newIncident.error &&
                 newIncident.error ===
@@ -603,19 +603,19 @@ CreateManualIncident.propTypes = {
 };
 
 const  formName: string = 'CreateManualIncident';
-const selector = formValueSelector(formName);
+const selector: $TSFixMe = formValueSelector(formName);
 
 function mapStateToProps(state: RootState) {
-    const { currentProject } = state.project;
-    const incidentTemplateObj = state.incidentBasicSettings.incidentTemplates;
-    const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;
+    const { currentProject }: $TSFixMe = state.project;
+    const incidentTemplateObj: $TSFixMe = state.incidentBasicSettings.incidentTemplates;
+    const defaultTemplateObj: $TSFixMe = state.incidentBasicSettings.defaultTemplate;
 
     const  incidentType: string = 'offline';
     const initialValues: $TSFixMe = {
         incidentType,
     };
 
-    const defaultTemplate = defaultTemplateObj.template;
+    const defaultTemplate: $TSFixMe = defaultTemplateObj.template;
     if (defaultTemplate) {
 
         initialValues.incidentTemplate = defaultTemplate._id;
@@ -629,7 +629,7 @@ function mapStateToProps(state: RootState) {
             defaultTemplate.incidentPriority;
     }
 
-    const selectedIncidentType = selector(state, 'incidentType');
+    const selectedIncidentType: $TSFixMe = selector(state, 'incidentType');
     return {
         newIncident: state.incident.newIncident,
         createIncidentModalId: state.modal.modals[0].id,
@@ -658,7 +658,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 
-const CreateManualIncidentForm = reduxForm({
+const CreateManualIncidentForm: $TSFixMe = reduxForm({
     form: formName,
     enableReinitialize: true,
     destroyOnUnmount: true,

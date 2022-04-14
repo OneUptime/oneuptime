@@ -38,7 +38,7 @@ export const getSubProjects: Function = (
     limit = 10
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `project/${projectId}/subProjects?skip=${skip}&limit=${limit}`
         );
         dispatch(subProjectsRequest(promise));
@@ -108,7 +108,7 @@ export function createSubProject(
     subProjectName: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`project/${projectId}/subProject`, {
+        const promise: $TSFixMe = BackendAPI.post(`project/${projectId}/subProject`, {
             subProjectName,
         });
 
@@ -168,7 +168,7 @@ export const resetSubProjectToken: Function = (
     subProjectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`project/${subProjectId}/resetToken`);
+        const promise: $TSFixMe = BackendAPI.get(`project/${subProjectId}/resetToken`);
 
         dispatch(resetSubProjectTokenRequest());
 
@@ -223,7 +223,7 @@ export function renameSubProject(
     subProjectName: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(`project/${projectId}/${subProjectId}`, {
+        const promise: $TSFixMe = BackendAPI.put(`project/${projectId}/${subProjectId}`, {
             subProjectName,
         });
 
@@ -282,7 +282,7 @@ export const deleteSubProject: Function = (
     subProjectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete (`project/${projectId}/${subProjectId}`,
+        const promise: $TSFixMe = delete (`project/${projectId}/${subProjectId}`,
         {
             subProjectId,
         });
@@ -333,7 +333,7 @@ export function exitSubProject(
     userId: ObjectID
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise =
+        const promise: $TSFixMe =
             delete (`subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`,
             null);
         dispatch(exitSubProjectRequest());
@@ -389,7 +389,7 @@ export function markSubProjectForDelete(
     feedback: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise =
+        const promise: $TSFixMe =
             delete (`subProject/${projectId}/${subProjectId}/deleteProject`,
             { subProjectId, feedback });
 

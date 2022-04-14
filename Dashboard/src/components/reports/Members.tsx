@@ -103,7 +103,7 @@ class MembersList extends Component<ComponentProps> {
             getActiveMembers,
         } = this.props;
 
-        const skip = this.state.skip + this.state.limit;
+        const skip: $TSFixMe = this.state.skip + this.state.limit;
         getActiveMembers(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
@@ -125,7 +125,7 @@ class MembersList extends Component<ComponentProps> {
             getActiveMembers,
         } = this.props;
 
-        const skip = this.state.skip - this.state.limit;
+        const skip: $TSFixMe = this.state.skip - this.state.limit;
         getActiveMembers(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
@@ -135,7 +135,7 @@ class MembersList extends Component<ComponentProps> {
     }
 
     override render() {
-        const count =
+        const count: $TSFixMe =
 
             this.props.activeMembers &&
 
@@ -159,7 +159,7 @@ class MembersList extends Component<ComponentProps> {
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>

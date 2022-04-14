@@ -67,9 +67,9 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
             data: { monitorId },
         } = this.props;
         const postObj: $TSFixMe = {};
-        const { selectAllMonitors } = values;
+        const { selectAllMonitors }: $TSFixMe = values;
         let monitors = [];
-        const allMonitors = monitor.monitorsList.monitors
+        const allMonitors: $TSFixMe = monitor.monitorsList.monitors
             .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
 
@@ -117,7 +117,7 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
             : false;
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -156,12 +156,12 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -234,7 +234,7 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -364,7 +364,7 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
         } = this.props;
 
 
-        const { formValues } = this.props;
+        const { formValues }: $TSFixMe = this.props;
         const {
             selectedProjects,
             selectedComponents,
@@ -372,9 +372,9 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
             selectData,
         } = this.state;
 
-        const monitorList = [];
+        const monitorList: $TSFixMe = [];
 
-        const allMonitors = this.props.monitor.monitorsList.monitors
+        const allMonitors: $TSFixMe = this.props.monitor.monitorsList.monitors
             .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
         if (allMonitors && allMonitors.length > 0) {
@@ -982,7 +982,7 @@ CreateMsTeams.propTypes = {
     monitorsList: PropTypes.array,
 };
 
-const NewCreateMsTeams = reduxForm({
+const NewCreateMsTeams: $TSFixMe = reduxForm({
     form: 'newCreateMsTeams', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for

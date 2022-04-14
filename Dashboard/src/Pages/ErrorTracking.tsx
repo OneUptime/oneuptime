@@ -135,9 +135,9 @@ class ErrorTracking extends Component<ComponentProps> {
     setRequesting = () => this.setState({ requesting: true });
     ready = () => {
 
-        const { componentSlug, fetchComponent, componentId } = this.props;
+        const { componentSlug, fetchComponent, componentId }: $TSFixMe = this.props;
 
-        const projectId = this.props.currentProject
+        const projectId: $TSFixMe = this.props.currentProject
 
             ? this.props.currentProject._id
             : null;
@@ -191,11 +191,11 @@ class ErrorTracking extends Component<ComponentProps> {
             switchToProjectViewerNav,
         } = this.props;
 
-        const errorTrackers =
+        const errorTrackers: $TSFixMe =
             errorTracker && errorTracker.errorTrackers
                 ? sortByName(errorTracker.errorTrackers)
                 : [];
-        const errorTrackersList =
+        const errorTrackersList: $TSFixMe =
             errorTrackers && errorTrackers.length > 0 ? (
                 <div
                     id={`box_${componentId}`}
@@ -230,9 +230,9 @@ class ErrorTracking extends Component<ComponentProps> {
                 false
             );
 
-        const componentName = component ? component.name : '';
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const componentName: $TSFixMe = component ? component.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -335,15 +335,15 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { componentSlug } = ownProps.match.params;
-    const projectId =
+    const { componentSlug }: $TSFixMe = ownProps.match.params;
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
-    const currentProject = state.project.currentProject;
+    const currentProject: $TSFixMe = state.project.currentProject;
 
-    const errorTracker = state.errorTracker.errorTrackersList;
+    const errorTracker: $TSFixMe = state.errorTracker.errorTrackersList;
 
     // try to get custom project tutorial by project ID
-    const projectCustomTutorial = state.tutorial[projectId];
+    const projectCustomTutorial: $TSFixMe = state.tutorial[projectId];
 
     // set a default show to true for the tutorials to display
     const tutorialStat: $TSFixMe = {

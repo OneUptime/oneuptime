@@ -254,7 +254,7 @@ function TD5({
         resolved: 'green',
         investigationNoteCreated: 'green',
     };
-    const isIncidentStatus = Object.keys(incidentStatusColor).includes(text);
+    const isIncidentStatus: $TSFixMe = Object.keys(incidentStatusColor).includes(text);
 
     return (
         <td
@@ -399,7 +399,7 @@ class SubscriberAlertTableRowsClass extends React.Component<SubscriberAlertTable
 
     override render() {
 
-        const { alerts, monitors } = this.props;
+        const { alerts, monitors }: $TSFixMe = this.props;
         return alerts.length > 0
             ? alerts.map((alert: $TSFixMe, index: $TSFixMe) => (
                 <tr
@@ -464,7 +464,7 @@ SubscriberAlertTableRowsClass.propTypes = {
     monitors: PropTypes.array,
 };
 
-const SubscriberAlertTableRows = connect(null, dispatch =>
+const SubscriberAlertTableRows = connect(null, dispatch: $TSFixMe =>
     bindActionCreators(
         {
             openModal,

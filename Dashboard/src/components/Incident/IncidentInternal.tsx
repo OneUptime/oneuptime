@@ -36,7 +36,7 @@ export class IncidentInternal extends Component<IncidentInternalProps>{
     }
     override componentDidMount() {
 
-        const { currentProject, fetchIncidentNoteTemplates } = this.props;
+        const { currentProject, fetchIncidentNoteTemplates }: $TSFixMe = this.props;
         if (currentProject) {
             fetchIncidentNoteTemplates({
                 projectId: currentProject._id,
@@ -99,7 +99,7 @@ export class IncidentInternal extends Component<IncidentInternalProps>{
     };
     deleteInvestigationMessage = (incidentMessageId: $TSFixMe) => {
 
-        const promise = this.props.deleteIncidentMessage(
+        const promise: $TSFixMe = this.props.deleteIncidentMessage(
 
             this.props.currentProject._id,
 
@@ -118,7 +118,7 @@ export class IncidentInternal extends Component<IncidentInternalProps>{
         let canNext = false;
         let error;
 
-        const { incidentMessages, incident, openModal } = this.props;
+        const { incidentMessages, incident, openModal }: $TSFixMe = this.props;
         const {
 
             createMessageModalId,
@@ -200,14 +200,14 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const incidentMessages = state.incident.incidentMessages
+    const incidentMessages: $TSFixMe = state.incident.incidentMessages
         ? state.incident.incidentMessages[ownProps.incident.slug]
             ? state.incident.incidentMessages[ownProps.incident.slug][
             'internal'
             ]
             : {}
         : {};
-    const currentProject = state.project.currentProject;
+    const currentProject: $TSFixMe = state.project.currentProject;
     return {
         incidentMessages,
         currentProject,

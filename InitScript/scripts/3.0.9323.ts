@@ -9,7 +9,7 @@ const statusPageCollection: string = 'statuspages';
 
 async function run(): void {
     // fetch status pages
-    const statusPages = await find(statusPageCollection, {
+    const statusPages: $TSFixMe = await find(statusPageCollection, {
         isGroupedByMonitorCategory: true,
         deleted: false,
     });
@@ -17,12 +17,12 @@ async function run(): void {
     for (const statusPage of statusPages) {
         // check if status page category is now being used for a particular status page
         // the assumption is that if no status page category is being used, then it's possible that resource category is still being used
-        const statCategories = await find(statusPageCategoryCollection, {
+        const statCategories: $TSFixMe = await find(statusPageCategoryCollection, {
             statusPageId: String(statusPage._id),
             deleted: false,
         });
         if (!statCategories || statCategories.length === 0) {
-            const resourceCategories = await find(resourceCategoryCollection, {
+            const resourceCategories: $TSFixMe = await find(resourceCategoryCollection, {
                 projectId: String(statusPage.projectId),
                 deleted: false,
             });
@@ -34,7 +34,7 @@ async function run(): void {
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
-                const monitors = await find(monitorCollection, {
+                const monitors: $TSFixMe = await find(monitorCollection, {
                     _id: { $in: monitorIds },
                     resourceCategory: String(resourceCategory._id),
                     deleted: false,
@@ -51,7 +51,7 @@ async function run(): void {
                     ]);
 
                     // update the status page with the category
-                    const statusPageCategory = await findOne(
+                    const statusPageCategory: $TSFixMe = await findOne(
                         statusPageCategoryCollection,
                         {
                             name: resourceCategory.name,
@@ -95,7 +95,7 @@ async function run(): void {
             }
         } else {
             // we need to fix the initial migration script
-            const resourceCategories = await find(resourceCategoryCollection, {
+            const resourceCategories: $TSFixMe = await find(resourceCategoryCollection, {
                 projectId: String(statusPage.projectId),
                 deleted: false,
             });
@@ -107,14 +107,14 @@ async function run(): void {
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
-                const monitors = await find(monitorCollection, {
+                const monitors: $TSFixMe = await find(monitorCollection, {
                     _id: { $in: monitorIds },
                     resourceCategory: String(resourceCategory._id),
                     deleted: false,
                 });
                 if (monitors && monitors.length > 0) {
                     // update the status page with the category
-                    const statusPageCategory = await findOne(
+                    const statusPageCategory: $TSFixMe = await findOne(
                         statusPageCategoryCollection,
                         {
                             name: resourceCategory.name,

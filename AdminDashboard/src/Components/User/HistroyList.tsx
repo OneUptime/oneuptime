@@ -57,7 +57,7 @@ export class HistoryList extends Component<ComponentProps>{
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(
+        const numberOfPages: $TSFixMe = Math.ceil(
 
             parseInt(this.props.history && this.props.history.count) / 10
         );

@@ -54,20 +54,20 @@ export const testTwilioFailure: Function = (error: $TSFixMe): void => ({
     payload: error,
 });
 
-export const testSmtp =
+export const testSmtp: $TSFixMe =
     (payload: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         dispatch(testSmtpRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 new Route('emailSmtp/test'),
                 payload
             );
             dispatch(testSmtpSuccess(response));
             return response;
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -81,20 +81,20 @@ export const testSmtp =
         }
     };
 
-export const testTwilio =
+export const testTwilio: $TSFixMe =
     (payload: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         dispatch(testTwilioRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 new Route('twilio/sms/test'),
                 payload
             );
             dispatch(testTwilioSuccess(response));
             return response;
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -108,14 +108,14 @@ export const testTwilio =
         }
     };
 
-export const fetchSettings =
+export const fetchSettings: $TSFixMe =
     (type: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         dispatch(requestingSettings());
         try {
-            const response = await BackendAPI.get(`globalConfig/${type}`);
+            const response: $TSFixMe = await BackendAPI.get(`globalConfig/${type}`);
 
-            const data = response.data || { value: {} };
+            const data: $TSFixMe = response.data || { value: {} };
             if (type === 'smtp') {
                 data.value = { 'smtp-secure': false, ...data.value };
             }
@@ -146,16 +146,16 @@ export const fetchSettings =
         }
     };
 
-export const saveSettings =
+export const saveSettings: $TSFixMe =
     (type: $TSFixMe, settings: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(requestingSettings());
         try {
-            const response = await BackendAPI.post(`globalConfig`, {
+            const response: $TSFixMe = await BackendAPI.post(`globalConfig`, {
                 name: type,
                 value: settings,
             });
 
-            const data = response.data || { value: {} };
+            const data: $TSFixMe = response.data || { value: {} };
             dispatch(requestingSettingsSucceeded(data.value, type));
             return response;
         } catch (error) {

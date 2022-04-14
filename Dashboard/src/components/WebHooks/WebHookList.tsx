@@ -30,9 +30,9 @@ interface WebHookListProps {
 class WebHookList extends React.Component<WebHookListProps> {
     ready() {
 
-        const { getWebHookMonitor, getWebHook } = this.props;
+        const { getWebHookMonitor, getWebHook }: $TSFixMe = this.props;
 
-        const { projectId, monitorId } = this.props;
+        const { projectId, monitorId }: $TSFixMe = this.props;
 
         if (monitorId) {
             getWebHookMonitor(projectId, monitorId);
@@ -121,8 +121,8 @@ class WebHookList extends React.Component<WebHookListProps> {
 
     override render() {
 
-        const { webHook, isRequesting, monitorId } = this.props;
-        const { count, skip, limit } = webHook;
+        const { webHook, isRequesting, monitorId }: $TSFixMe = this.props;
+        const { count, skip, limit }: $TSFixMe = webHook;
         let { webHooks } = webHook;
         let canPaginateForward =
             webHook && count && count > skip + limit ? true : false;
@@ -131,13 +131,13 @@ class WebHookList extends React.Component<WebHookListProps> {
             webHooks = webHooks.filter((hook: $TSFixMe) => hook.monitors.some((mon: $TSFixMe) => mon.monitorId._id === monitorId)
             );
         }
-        const numberOfWebHooks = webHooks ? webHooks.length : 0;
+        const numberOfWebHooks: $TSFixMe = webHooks ? webHooks.length : 0;
 
         if (webHook && (webHook.requesting || !webHook.webHooks)) {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
-        const numberOfPages = Math.ceil(parseInt(count) / limit);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / limit);
         return (
             <React.Fragment>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>

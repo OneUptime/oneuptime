@@ -7,13 +7,13 @@ export default {
     run: async ({ monitor }: $TSFixMe) => {
         if (monitor && monitor.type) {
             if (monitor.data.link && monitor.criteria) {
-                const up = monitor.criteria.up
+                const up: $TSFixMe = monitor.criteria.up
                     ? await checkCondition(monitor.criteria.up)
                     : false;
-                const degraded = monitor.criteria.degraded
+                const degraded: $TSFixMe = monitor.criteria.degraded
                     ? await checkCondition(monitor.criteria.degraded)
                     : false;
-                const down = monitor.criteria.down
+                const down: $TSFixMe = monitor.criteria.down
                     ? await checkCondition(monitor.criteria.down)
                     : false;
                 if (up || degraded || down) {
@@ -46,7 +46,7 @@ const checkCondition = async (condition: $TSFixMe): void => {
                 condition.and[i].collection &&
                 condition.and[i].collection.length
             ) {
-                const tempAnd = await checkCondition(
+                const tempAnd: $TSFixMe = await checkCondition(
                     condition.and[i].collection
                 );
                 if (tempAnd) {
@@ -68,7 +68,7 @@ const checkCondition = async (condition: $TSFixMe): void => {
                 condition.or[i].collection &&
                 condition.or[i].collection.length
             ) {
-                const tempOr = await checkCondition(condition.or[i].collection);
+                const tempOr: $TSFixMe = await checkCondition(condition.or[i].collection);
                 if (tempOr) {
                     response = true;
                 }

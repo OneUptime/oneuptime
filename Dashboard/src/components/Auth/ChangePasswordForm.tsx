@@ -167,7 +167,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const changePasswordForm = reduxForm({
+const changePasswordForm: $TSFixMe = reduxForm({
     form: 'changePasswordForm', // a unique identifier for this form
     validate,
 })(ChangePasswordForm);

@@ -5,7 +5,7 @@
 
 export default function (text: $TSFixMe): void {
     /* Get the text field */
-    const el = document.createElement('textarea');
+    const el: $TSFixMe = document.createElement('textarea');
     el.value = text;
 
     /* make it readonly and hidden from the display */
@@ -15,7 +15,7 @@ export default function (text: $TSFixMe): void {
 
     // Check if there is any content selected previously
     // Store selection if found
-    const selected =
+    const selected: $TSFixMe =
         document.getSelection().rangeCount > 0
             ? document.getSelection().getRangeAt(0)
             : false;

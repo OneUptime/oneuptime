@@ -41,7 +41,7 @@ class ConfirmResetBrandColors extends Component<ComponentProps> {
 
     resetBrandColors = () => {
 
-        const { projectId, statusPageId } = this.props.data;
+        const { projectId, statusPageId }: $TSFixMe = this.props.data;
 
         this.props.resetBrandingColors(projectId, statusPageId).then(() => {
 
@@ -51,7 +51,7 @@ class ConfirmResetBrandColors extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeModal, data, closeThisDialog } = this.props;
+        const { closeModal, data, closeThisDialog }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

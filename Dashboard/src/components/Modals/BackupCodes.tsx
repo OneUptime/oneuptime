@@ -52,12 +52,12 @@ class BackupCodesModal extends React.Component<BackupCodesModalProps> {
 
             profileSettings: { data },
         } = this.props;
-        const refinedCodes = [];
+        const refinedCodes: $TSFixMe = [];
         if (data.backupCodes.length > 0) {
-            const rows = Math.ceil(data.backupCodes.length / 2);
+            const rows: $TSFixMe = Math.ceil(data.backupCodes.length / 2);
             let j = 0;
             for (let i = 0; i < rows; i++) {
-                const temp = [data.backupCodes[j], data.backupCodes[j + 1]];
+                const temp: $TSFixMe = [data.backupCodes[j], data.backupCodes[j + 1]];
                 j += 2;
                 refinedCodes.push(temp);
             }
@@ -77,8 +77,8 @@ class BackupCodesModal extends React.Component<BackupCodesModalProps> {
 
     override render() {
 
-        const { generateBackupCodes } = this.props;
-        const backupCodes = this.refineCodes();
+        const { generateBackupCodes }: $TSFixMe = this.props;
+        const backupCodes: $TSFixMe = this.refineCodes();
 
         return (
             <div

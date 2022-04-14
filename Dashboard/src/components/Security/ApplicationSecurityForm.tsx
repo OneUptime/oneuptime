@@ -35,7 +35,7 @@ interface ApplicationSecurityFormProps {
 class ApplicationSecurityForm extends Component<ComponentProps> {
     override componentDidMount() {
 
-        const { projectId, getGitCredentials } = this.props;
+        const { projectId, getGitCredentials }: $TSFixMe = this.props;
         if (projectId) {
             getGitCredentials({ projectId });
         }
@@ -44,7 +44,7 @@ class ApplicationSecurityForm extends Component<ComponentProps> {
 
         if (prevProps.projectId !== this.props.projectId) {
 
-            const { projectId, getGitCredentials } = this.props;
+            const { projectId, getGitCredentials }: $TSFixMe = this.props;
             if (projectId) {
                 getGitCredentials({ projectId });
             }
@@ -53,7 +53,7 @@ class ApplicationSecurityForm extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe, dispatch: Dispatch) => {
 
-        const { projectId, componentId, addApplicationSecurity } = this.props;
+        const { projectId, componentId, addApplicationSecurity }: $TSFixMe = this.props;
         if (!values) return;
 
         addApplicationSecurity({ projectId, componentId, data: values });
@@ -62,7 +62,7 @@ class ApplicationSecurityForm extends Component<ComponentProps> {
 
     handleGitCredential = () => {
 
-        const { openModal, projectId } = this.props;
+        const { openModal, projectId }: $TSFixMe = this.props;
 
         openModal({
             id: projectId,
@@ -72,7 +72,7 @@ class ApplicationSecurityForm extends Component<ComponentProps> {
     };
     handleGitSSH = () => {
 
-        const { openModal, projectId } = this.props;
+        const { openModal, projectId }: $TSFixMe = this.props;
         openModal({
             id: projectId,
             content: GitSshModal,
@@ -551,7 +551,7 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const NewApplicationSecurityForm = reduxForm({
+const NewApplicationSecurityForm: $TSFixMe = reduxForm({
     form: 'ApplicationSecurityForm',
     destroyOnUnmount: true,
     enableReinitialize: true,

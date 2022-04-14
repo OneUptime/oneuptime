@@ -27,14 +27,14 @@ export const fetchSsoDefaultRolesError: Function = (
     };
 };
 
-export const fetchSsoDefaultRoles =
+export const fetchSsoDefaultRoles: $TSFixMe =
     (skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchSsoDefaultRolesRequest());
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `ssoDefaultRoles/?skip=${skip}&limit=${limit}`
             );
 
@@ -78,11 +78,11 @@ export const fetchSsoDefaultRoleError: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const fetchSsoDefaultRole =
+export const fetchSsoDefaultRole: $TSFixMe =
     (ssoDefaultRoleId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(fetchSsoDefaultRoleRequest());
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `ssoDefaultRoles/${ssoDefaultRoleId}`
             );
 
@@ -128,11 +128,11 @@ export const deleteSsoDefaultRoleError: Function = (
     };
 };
 
-export const deleteSsoDefaultRole =
+export const deleteSsoDefaultRole: $TSFixMe =
     (ssoId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(deleteSsoDefaultRoleRequest());
         try {
-            const response = await delete `ssoDefaultRoles/${ssoId}`;
+            const response: $TSFixMe = await delete `ssoDefaultRoles/${ssoId}`;
 
             dispatch(deleteSsoDefaultRoleSuccess(response.data));
 
@@ -173,7 +173,7 @@ export const addSsoDefaultRoleError: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const addSsoDefaultRole =
+export const addSsoDefaultRole: $TSFixMe =
     ({ data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(addSsoDefaultRoleRequest());
@@ -220,7 +220,7 @@ export const updateSsoDefaultRoleError: Function = (
     };
 };
 
-export const updateSsoDefaultRole =
+export const updateSsoDefaultRole: $TSFixMe =
     ({ id, data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(updateSsoDefaultRoleRequest());

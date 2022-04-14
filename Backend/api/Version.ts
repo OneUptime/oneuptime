@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import {
     sendErrorResponse,

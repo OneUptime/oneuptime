@@ -54,7 +54,7 @@ class DeleteIncidentCommunicationSlaModal extends Component<ComponentProps> {
 
             deleteCommunicationSla,
         } = this.props;
-        const { projectId, incidentSlaId } = data;
+        const { projectId, incidentSlaId }: $TSFixMe = data;
         deleteCommunicationSla(projectId, incidentSlaId).then(() => {
             if (!deleteError) {
                 closeModal({ id: modalId });
@@ -64,7 +64,7 @@ class DeleteIncidentCommunicationSlaModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { isRequesting, closeThisDialog, deleteError } = this.props;
+        const { isRequesting, closeThisDialog, deleteError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

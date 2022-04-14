@@ -240,7 +240,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
         case CREATE_MONITOR_SUCCESS:
         case 'CREATE_MONITOR': {
             let monitorFound = false;
-            const monitors = state.monitorsList.monitors.map(monitorData => {
+            const monitors = state.monitorsList.monitors.map(monitorData: $TSFixMe => {
                 let output = {
                     ...monitorData,
                     monitors: monitorData.monitors.map(monitor => {
@@ -358,23 +358,23 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     error: null,
                     success: false,
                     monitors: state.monitorsList.monitors.map(project => {
-                        const subProject = Object.assign({}, project);
-                        const subProjectMonitors =
+                        const subProject: $TSFixMe = Object.assign({}, project);
+                        const subProjectMonitors: $TSFixMe =
                             subProject.monitors && subProject.monitors.slice();
 
-                        const newMonitor = Object.assign({}, action.payload);
+                        const newMonitor: $TSFixMe = Object.assign({}, action.payload);
 
-                        const monitorIndex =
+                        const monitorIndex: $TSFixMe =
                             subProjectMonitors &&
                             subProjectMonitors.findIndex(
                                 (monitor: $TSFixMe) =>
                                     monitor._id === newMonitor._id
                             );
-                        const isSubProjectMonitor = monitorIndex > -1;
+                        const isSubProjectMonitor: $TSFixMe = monitorIndex > -1;
 
                         if (subProject._id === newMonitor.projectId) {
                             if (isSubProjectMonitor) {
-                                const oldMonitor = Object.assign(
+                                const oldMonitor: $TSFixMe = Object.assign(
                                     {},
                                     subProjectMonitors[monitorIndex]
                                 );
@@ -821,7 +821,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                           monitor._id ===
                                           action.payload.monitorId
                                       ) {
-                                          const mainSiteUrlLogs =
+                                          const mainSiteUrlLogs: $TSFixMe =
                                               action.payload.logs.data.filter(
                                                   (log: $TSFixMe) =>
                                                       monitor.data &&
@@ -865,7 +865,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                                   monitor._id ===
                                                   action.payload.monitorId
                                               ) {
-                                                  const mainSiteUrlLogs =
+                                                  const mainSiteUrlLogs: $TSFixMe =
                                                       action.payload.logs.data.filter(
                                                           (log: $TSFixMe) =>
                                                               monitor.data &&
@@ -945,13 +945,13 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
             });
 
         case 'UPDATE_MONITOR_LOG': {
-            const isPresent =
+            const isPresent: $TSFixMe =
                 state.monitorLogs &&
                 state.monitorLogs[action.payload.monitorId] &&
                 state.monitorLogs[action.payload.monitorId].logs
                     ? true
                     : false;
-            const newMonitorLogs = isPresent
+            const newMonitorLogs: $TSFixMe = isPresent
                 ? {
                       ...state.monitorLogs,
                       [action.payload.monitorId]: {
@@ -1000,11 +1000,11 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                           monitor._id ===
                                           action.payload.monitorId
                                       ) {
-                                          const data = Object.assign(
+                                          const data: $TSFixMe = Object.assign(
                                               {},
                                               action.payload.data
                                           );
-                                          const intervalInDays = moment(
+                                          const intervalInDays: $TSFixMe = moment(
                                               state.monitorsList.endDate
                                           ).diff(
                                               moment(
@@ -1012,7 +1012,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                               ),
                                               'days'
                                           );
-                                          const isNewMonitor =
+                                          const isNewMonitor: $TSFixMe =
                                               moment(
                                                   state.monitorsList.endDate
                                               ).diff(
@@ -1088,7 +1088,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                                             (
                                                                 probeLogs: $TSFixMe
                                                             ) => {
-                                                                const probeId =
+                                                                const probeId: $TSFixMe =
                                                                     probeLogs._id;
 
                                                                 if (
@@ -1122,7 +1122,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                                                             dateFormat
                                                                         )
                                                                     ) {
-                                                                        const currentLog =
+                                                                        const currentLog: $TSFixMe =
                                                                             probeLogs
                                                                                 .logs[0];
 
@@ -1228,13 +1228,13 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                               monitor._id ===
                                               action.payload.status.monitorId
                                           ) {
-                                              const data = Object.assign(
+                                              const data: $TSFixMe = Object.assign(
                                                   {},
                                                   action.payload.status.data
                                               );
-                                              const probes =
+                                              const probes: $TSFixMe =
                                                   action.payload.probes;
-                                              const isValidProbe =
+                                              const isValidProbe: $TSFixMe =
                                                   (monitor.type === 'url' ||
                                                       monitor.type === 'api' ||
                                                       monitor.type === 'ip') &&
@@ -1245,7 +1245,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                                   monitor.statuses &&
                                                   monitor.statuses.length > 0
                                               ) {
-                                                  const monitorProbes =
+                                                  const monitorProbes: $TSFixMe =
                                                       monitor.statuses.map(
                                                           (a: $TSFixMe) => a._id
                                                       );
@@ -1261,7 +1261,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                                               (
                                                                   probeStatuses: $TSFixMe
                                                               ) => {
-                                                                  const probeId =
+                                                                  const probeId: $TSFixMe =
                                                                       probeStatuses._id;
 
                                                                   if (
@@ -1269,7 +1269,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                                                           data.probeId ||
                                                                       !data.probeId
                                                                   ) {
-                                                                      const previousStatus =
+                                                                      const previousStatus: $TSFixMe =
                                                                           probeStatuses
                                                                               .statuses[0];
                                                                       previousStatus.endTime =
@@ -1410,7 +1410,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                               monitor.lighthouseLogs.data
                                                   .length > 0
                                           ) {
-                                              const logIndex =
+                                              const logIndex: $TSFixMe =
                                                   monitor.lighthouseLogs.data.findIndex(
                                                       (log: $TSFixMe) =>
                                                           log.url ===
@@ -1936,7 +1936,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                             (action.payload.projectId._id ||
                                 action.payload.projectId)
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      const monitors =
+                                      const monitors: $TSFixMe =
                                           action.payload.monitors.map(
                                               (monitor: $TSFixMe) =>
                                                   monitor.monitorId
@@ -2043,7 +2043,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
             });
 
         case GET_MONITOR_LOGS_SUCCESS: {
-            const monitorId = action.payload.monitorId
+            const monitorId: $TSFixMe = action.payload.monitorId
                 ? action.payload.monitorId
                 : action.payload.logs && action.payload.logs.length > 0
                 ? action.payload.logs[0].monitorId
@@ -2168,7 +2168,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
             };
 
         case CLOSE_BREACHED_MONITOR_SLA_SUCCESS: {
-            const slaBreaches = state.monitorSlaBreaches.slaBreaches.filter(
+            const slaBreaches: $TSFixMe = state.monitorSlaBreaches.slaBreaches.filter(
                 monitor => String(monitor._id) !== String(action.payload._id)
             );
 

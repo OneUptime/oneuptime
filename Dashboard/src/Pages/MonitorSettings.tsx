@@ -27,7 +27,7 @@ class MonitorSettings extends React.Component<MonitorSettingsProps> {
 
     ready = () => {
 
-        const { fetchCustomFields } = this.props;
+        const { fetchCustomFields }: $TSFixMe = this.props;
         fetchCustomFields(
 
             this.props.currentProject && this.props.currentProject._id,
@@ -54,7 +54,7 @@ class MonitorSettings extends React.Component<MonitorSettingsProps> {
     }
 
     tabSelected = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
@@ -71,8 +71,8 @@ class MonitorSettings extends React.Component<MonitorSettingsProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem

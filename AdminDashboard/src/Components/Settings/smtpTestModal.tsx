@@ -277,7 +277,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const ReduxFormComponent = reduxForm({
+const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'smtp-test-form',
     enableReinitialize: true,
     destroyOnUnmount: false,

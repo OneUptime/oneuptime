@@ -17,11 +17,11 @@ try {
 import 'should';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('Server Monitor API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -43,8 +43,8 @@ describe('Server Monitor API', () => {
         done();
     });
 
-    const componentName = utils.generateRandomString();
-    const monitorName = utils.generateRandomString();
+    const componentName: $TSFixMe = utils.generateRandomString();
+    const monitorName: $TSFixMe = utils.generateRandomString();
 
     test(
         'should create offline incident if no data is uploaded in 3 minutes after creating server monitor',
@@ -137,7 +137,7 @@ describe('Server Monitor API', () => {
             monitorId = await monitorId.getProperty('innerText');
             monitorId = await monitorId.jsonValue();
 
-            const monitor = serverMonitor({
+            const monitor: $TSFixMe = serverMonitor({
                 simulate: 'online',
                 projectId,
                 apiUrl,
@@ -216,7 +216,7 @@ describe('Server Monitor API', () => {
             monitorId = await monitorId.getProperty('innerText');
             monitorId = await monitorId.jsonValue();
 
-            const monitor = serverMonitor({
+            const monitor: $TSFixMe = serverMonitor({
                 simulate: 'degraded',
                 projectId,
                 apiUrl,
@@ -228,7 +228,7 @@ describe('Server Monitor API', () => {
 
             // check status
 
-            const element = await init.pageWaitForSelector(
+            const element: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#${monitorName}-degraded`
             );
@@ -290,7 +290,7 @@ describe('Server Monitor API', () => {
             monitorId = await monitorId.getProperty('innerText');
             monitorId = await monitorId.jsonValue();
 
-            const monitor = serverMonitor({
+            const monitor: $TSFixMe = serverMonitor({
                 simulate: 'offline',
                 projectId,
                 apiUrl,
@@ -302,7 +302,7 @@ describe('Server Monitor API', () => {
 
             // check status
 
-            const element = await init.pageWaitForSelector(
+            const element: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#${monitorName}-offline`
             );
@@ -364,7 +364,7 @@ describe('Server Monitor API', () => {
             monitorId = await monitorId.getProperty('innerText');
             monitorId = await monitorId.jsonValue();
 
-            const monitor = serverMonitor({
+            const monitor: $TSFixMe = serverMonitor({
                 simulate: 'online',
                 projectId,
                 apiUrl,

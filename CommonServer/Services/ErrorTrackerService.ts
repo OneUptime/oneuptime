@@ -3,7 +3,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
     async create(data: $TSFixMe): void {
         // check if component exist
-        const componentCount = await ComponentService.countBy({
+        const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: data.componentId,
         });
         // send an error if the component doesnt exist
@@ -11,9 +11,9 @@ export default class Service {
             throw new BadDataException('Component does not exist.');
         }
         // try to find in the application log if the name already exist for that component
-        const select =
+        const select: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-        const existingErrorTracker = await this.findBy({
+        const existingErrorTracker: $TSFixMe = await this.findBy({
             query: { name: data.name, componentId: data.componentId },
             select,
             populate: [
@@ -26,14 +26,14 @@ export default class Service {
             ],
         });
         if (existingErrorTracker && existingErrorTracker.length > 0) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Error Tracker with that name already exists.'
             );
 
             error.code = 400;
             throw error;
         }
-        const resourceCategoryCount = await ResourceCategoryService.countBy({
+        const resourceCategoryCount: $TSFixMe = await ResourceCategoryService.countBy({
             _id: data.resourceCategory,
         });
         // prepare error tracker model
@@ -52,7 +52,7 @@ export default class Service {
         if (data && data.name) {
             errorTracker.slug = getSlug(data.name);
         }
-        const savedErrorTracker = await errorTracker.save();
+        const savedErrorTracker: $TSFixMe = await errorTracker.save();
         errorTracker = await this.findOneBy({
             query: { _id: savedErrorTracker._id },
             select,
@@ -72,7 +72,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await ErrorTrackerModel.countDocuments(query);
+        const count: $TSFixMe = await ErrorTrackerModel.countDocuments(query);
         return count;
     }
 
@@ -101,7 +101,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const errorTrackersQuery = ErrorTrackerModel.find(query)
+        const errorTrackersQuery: $TSFixMe = ErrorTrackerModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -109,7 +109,7 @@ export default class Service {
 
         errorTrackersQuery.select(select);
         errorTrackersQuery.populate(populate);
-        const result = await errorTrackersQuery;
+        const result: $TSFixMe = await errorTrackersQuery;
         return result;
     }
     // find a particular error tracker
@@ -121,12 +121,12 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const errorTrackersQuery = ErrorTrackerModel.findOne(query)
+        const errorTrackersQuery: $TSFixMe = ErrorTrackerModel.findOne(query)
             .sort(sort)
             .lean();
         errorTrackersQuery.select(select);
         errorTrackersQuery.populate(populate);
-        const result = await errorTrackersQuery;
+        const result: $TSFixMe = await errorTrackersQuery;
         return result;
     }
     // get all error trackers by component ID
@@ -136,7 +136,7 @@ export default class Service {
         skip: PositiveNumber
     ): void {
         // Check if component exists
-        const componentCount = await ComponentService.countBy({
+        const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: componentId,
         });
         // send an error if the component doesnt exist
@@ -151,10 +151,10 @@ export default class Service {
             skip = parseInt(skip);
         }
 
-        const select =
+        const select: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
 
-        const [errorTrackers, count] = await Promise.all([
+        const [errorTrackers, count]: $TSFixMe = await Promise.all([
             this.findBy({
                 query: { componentId: componentId },
                 limit,
@@ -177,7 +177,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const errorTracker = await ErrorTrackerModel.findOneAndUpdate(
+        const errorTracker: $TSFixMe = await ErrorTrackerModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -189,7 +189,7 @@ export default class Service {
             { new: true }
         ).populate('deletedById', 'name');
         if (errorTracker) {
-            const component = ComponentService.findOneBy({
+            const component: $TSFixMe = ComponentService.findOneBy({
                 query: { _id: errorTracker.componentId._id },
                 select: 'projectId',
             });
@@ -235,9 +235,9 @@ export default class Service {
                 }
             );
         }
-        const select =
+        const select: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'componentId', select: 'name' },
             { path: 'resourceCategory', select: 'name' },
         ];

@@ -22,10 +22,10 @@ export class EscalationSummary extends Component<EscalationSummaryProps>{
 
     override render() {
 
-        const { onEditClicked, escalations, teamMembers, groups } = this.props;
+        const { onEditClicked, escalations, teamMembers, groups }: $TSFixMe = this.props;
 
 
-        const { isLoading, error } = this.state;
+        const { isLoading, error }: $TSFixMe = this.state;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">

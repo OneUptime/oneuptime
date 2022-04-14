@@ -5,7 +5,7 @@ import express, {
 import ProbeService from '../Services/probeService';
 import MonitorService from '../Services/monitorService';
 import LighthouseLogService from '../Services/lighthouseLogService';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import {
     sendErrorResponse,
@@ -32,7 +32,7 @@ router.post(
                 retryCount,
                 kubernetesData,
             } = req.body;
-            const { monitorId } = req.params;
+            const { monitorId }: $TSFixMe = req.params;
 
             let status,
                 log,
@@ -41,11 +41,11 @@ router.post(
             let matchedCriterion;
 
             if (type === 'incomingHttpRequest') {
-                const newMonitor = await MonitorService.findOneBy({
+                const newMonitor: $TSFixMe = await MonitorService.findOneBy({
                     query: { _id: ObjectId(monitor._id) },
                 });
 
-                const probeId = req.probe && req.probe.id ? req.probe.id : null;
+                const probeId: $TSFixMe = req.probe && req.probe.id ? req.probe.id : null;
                 log = await ProbeService.probeHttpRequest(newMonitor, probeId);
             } else {
                 if (type === 'api' || type === 'url') {
@@ -117,7 +117,7 @@ router.post(
                               failedReasons: [],
                           };
 
-                    const [up, degraded, down] = await Promise.all([
+                    const [up, degraded, down]: $TSFixMe = await Promise.all([
                         validUp,
                         validDegraded,
                         validDown,
@@ -596,7 +596,7 @@ router.post(
                                   self.indexOf(item) === pos
                           )
                         : data.reason;
-                const index =
+                const index: $TSFixMe =
                     data.reason && data.reason.indexOf('Request Timed out');
                 if (index > -1) {
                     data.reason =
@@ -672,10 +672,10 @@ router.post(
     isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.probeId = req.probe.id;
             data.monitorId = req.params.monitorId;
-            const log = await ProbeService.saveMonitorLog(data);
+            const log: $TSFixMe = await ProbeService.saveMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -688,10 +688,10 @@ router.post(
     isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.probeId = req.probe.id;
             data.monitorId = req.params.monitorId;
-            const log = await ProbeService.getMonitorLog(data);
+            const log: $TSFixMe = await ProbeService.getMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -704,7 +704,7 @@ router.post(
     isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { monitorIds, scanning } = req.body;
+            const { monitorIds, scanning }: $TSFixMe = req.body;
             await MonitorService.updateScanStatus(monitorIds, scanning);
 
             return sendEmptyResponse(req, res);
@@ -719,7 +719,7 @@ router.post(
     isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { monitorIds } = req.body;
+            const { monitorIds }: $TSFixMe = req.body;
             await MonitorService.addProbeScanning(monitorIds, req.probe.id);
 
             return sendEmptyResponse(req, res);
@@ -734,7 +734,7 @@ router.post(
     isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { monitorIds } = req.body;
+            const { monitorIds }: $TSFixMe = req.body;
             await MonitorService.removeProbeScanning(monitorIds, req.probe.id);
 
             return sendEmptyResponse(req, res);

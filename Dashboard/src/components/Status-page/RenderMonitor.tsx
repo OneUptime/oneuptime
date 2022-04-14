@@ -83,16 +83,16 @@ let RenderMonitor = ({
     form = 'StatuspageMonitors',
     statusPageCategory
 }: RenderMonitorProps) => {
-    const currentMonitorForm = monitors[monitorIndex];
+    const currentMonitorForm: $TSFixMe = monitors[monitorIndex];
     const { monitor: currentMonitorID } = currentMonitorForm;
     const getParentComponent: Function = (monitor: $TSFixMe) => allComponents.filter(
         (component: $TSFixMe) => component._id === monitor.componentId._id || monitor.componentId
     )[0];
 
-    const selectedMonitor = allMonitors.filter(
+    const selectedMonitor: $TSFixMe = allMonitors.filter(
         (monitor: $TSFixMe) => monitor._id === currentMonitorID
     )[0];
-    const { type = null } = !!selectedMonitor && selectedMonitor;
+    const { type = null }: $TSFixMe = !!selectedMonitor && selectedMonitor;
 
     const resetSelectedCharts: Function = () => {
         dispatch(change(form, `${monitor}.uptime`, false));
@@ -107,7 +107,7 @@ let RenderMonitor = ({
         );
     };
 
-    const shouldEdit =
+    const shouldEdit: $TSFixMe =
         IsAdminSubProject(subProject) || IsOwnerSubProject(subProject);
 
     return (
@@ -321,21 +321,21 @@ let RenderMonitor = ({
 };
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const selector = formValueSelector(ownProps.form);
-    const { subProject } = ownProps;
-    const subProjectId = subProject?._id;
+    const selector: $TSFixMe = formValueSelector(ownProps.form);
+    const { subProject }: $TSFixMe = ownProps;
+    const subProjectId: $TSFixMe = subProject?._id;
 
-    const allComponents = state.component.componentList.components
+    const allComponents: $TSFixMe = state.component.componentList.components
         .filter(
             (component: $TSFixMe) => String(component._id._id || component._id) ===
                 String(subProjectId)
         )
         .map((component: $TSFixMe) => component.components)
         .flat();
-    const allMonitors = state.monitor.monitorsList.monitors
+    const allMonitors: $TSFixMe = state.monitor.monitorsList.monitors
         .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
-    const monitors = selector(state, 'monitors');
+    const monitors: $TSFixMe = selector(state, 'monitors');
 
     /** On Theme change, the updated monitors state becomes a monitor nested object within an array
      * This monitor nested object(monitor.monitor._id) is then extracted and used to update 'monitor.monitor'.

@@ -14,7 +14,7 @@ interface WebHookButtonProps {
 class WebHookButton extends React.Component<WebHookButtonProps> {
     override render() {
 
-        const { monitorId } = this.props;
+        const { monitorId }: $TSFixMe = this.props;
 
         return (
             <button

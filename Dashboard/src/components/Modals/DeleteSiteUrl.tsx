@@ -37,7 +37,7 @@ export class DeleteSiteUrl extends Component<DeleteSiteUrlProps>{
 
     override render() {
 
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

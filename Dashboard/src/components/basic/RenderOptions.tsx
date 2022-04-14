@@ -26,7 +26,7 @@ const flexStylehidden: $TSFixMe = {
     visibility: 'hidden',
 };
 
-const firstField = [
+const firstField: $TSFixMe = [
     'greaterThan',
     'lessThan',
     'inBetween',
@@ -43,7 +43,7 @@ const firstField = [
     'throwsError',
     'doesNotThrowError',
 ];
-const placeholderfilter = [
+const placeholderfilter: $TSFixMe = [
     'greaterThan',
     'lessThan',
     'inBetween',
@@ -208,7 +208,7 @@ export class RenderOption extends Component<RenderOptionProps>{
             criterionType,
         } = this.props;
 
-        const filterval =
+        const filterval: $TSFixMe =
             bodyfield && bodyfield.filter && bodyfield.filter !== ''
                 ? bodyfield.filter
                 : '';
@@ -1393,8 +1393,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const selector = formValueSelector('NewMonitor');
-    const formCriteria = selector(state, `${ownProps.fieldnameprop}.criteria`);
+    const selector: $TSFixMe = formValueSelector('NewMonitor');
+    const formCriteria: $TSFixMe = selector(state, `${ownProps.fieldnameprop}.criteria`);
     return {
         // bodyfield: newSelector(state, `${ownProps.fieldname}`),
         formCriteria,

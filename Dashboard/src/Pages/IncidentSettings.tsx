@@ -68,7 +68,7 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
 
     handleKeyboard = (e: $TSFixMe) => {
 
-        const { modalId } = this.props;
+        const { modalId }: $TSFixMe = this.props;
 
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
@@ -87,7 +87,7 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
 
     handleCreateNewIncidentPriority() {
 
-        const { openModal } = this.props;
+        const { openModal }: $TSFixMe = this.props;
         openModal({
             content: CreateIncidentPriorityForm,
         });
@@ -95,7 +95,7 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
 
     handleEditIncidentPriority(id: $TSFixMe) {
 
-        const { openModal } = this.props;
+        const { openModal }: $TSFixMe = this.props;
         openModal({
             content: DataPathHoC(EditIncidentPriorityForm, {
                 selectedIncidentPriority: id,
@@ -105,7 +105,7 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
 
     handleDeleteIncidentPriority(id: $TSFixMe) {
 
-        const { openModal } = this.props;
+        const { openModal }: $TSFixMe = this.props;
         openModal({
             content: DataPathHoC(RemoveIncidentPriorityForm, {
                 selectedIncidentPriority: id,
@@ -143,7 +143,7 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
 
     prevClicked() {
 
-        const { skip, limit } = this.props.incidentPrioritiesList;
+        const { skip, limit }: $TSFixMe = this.props.incidentPrioritiesList;
 
         this.props.fetchIncidentPriorities(
 
@@ -155,7 +155,7 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
     }
     nextClicked() {
 
-        const { skip, limit } = this.props.incidentPrioritiesList;
+        const { skip, limit }: $TSFixMe = this.props.incidentPrioritiesList;
 
         this.props.fetchIncidentPriorities(
 
@@ -164,13 +164,13 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
             10
         );
 
-        const { count } = this.props.incidentPrioritiesList;
+        const { count }: $TSFixMe = this.props.incidentPrioritiesList;
         this.setState({
             page: this.state.page < count ? this.state.page + 1 : count,
         });
     }
     tabSelected = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
@@ -187,22 +187,22 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
             switchToProjectViewerNav,
         } = this.props;
 
-        const { skip, limit, count } = this.props.incidentPrioritiesList;
-        const canPaginateForward =
+        const { skip, limit, count }: $TSFixMe = this.props.incidentPrioritiesList;
+        const canPaginateForward: $TSFixMe =
 
             !this.props.incidentPrioritiesList.requesting &&
                 count &&
                 count > skip + limit
                 ? true
                 : false;
-        const canPaginateBackward =
+        const canPaginateBackward: $TSFixMe =
 
             !this.props.incidentPrioritiesList.requesting && skip && skip > 0
                 ? true
                 : false;
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem

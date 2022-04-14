@@ -36,11 +36,11 @@ class LogTail extends Component<ComponentProps> {
             });
         }
 
-        const { logs, applicationLog } = this.props;
-        const firstItem = logs?.logs[0];
-        const newDate = firstItem?.createdAt;
-        const logName = applicationLog.name;
-        const items = [
+        const { logs, applicationLog }: $TSFixMe = this.props;
+        const firstItem: $TSFixMe = logs?.logs[0];
+        const newDate: $TSFixMe = firstItem?.createdAt;
+        const logName: $TSFixMe = applicationLog.name;
+        const items: $TSFixMe = [
             {
                 type: logName,
                 createdAt: newDate,
@@ -123,8 +123,8 @@ class LogTail extends Component<ComponentProps> {
 LogTail.displayName = 'LogTail';
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const applicationLogId = props.applicationLog._id;
-    const logs = state.applicationLog.logs[applicationLogId];
+    const applicationLogId: $TSFixMe = props.applicationLog._id;
+    const logs: $TSFixMe = state.applicationLog.logs[applicationLogId];
     return {
         applicationLogId,
         logs,
@@ -150,14 +150,14 @@ interface LogItemProps {
 const LogItem: Function = ({
     value
 }: LogItemProps) => {
-    const [show, setShow] = useState(false);
-    const [hover, setHover] = useState(false);
-    const [copy, setCopy] = useState(false);
+    const [show, setShow]: $TSFixMe = useState(false);
+    const [hover, setHover]: $TSFixMe = useState(false);
+    const [copy, setCopy]: $TSFixMe = useState(false);
     let classes = 'bs-rowfull';
     if (show) {
         classes = classes + ' bs-active-row';
     }
-    const content =
+    const content: $TSFixMe =
         typeof value.content === 'object' ? value.content : { message: null };
 
     const copyHandler: Function = (text: $TSFixMe) => {

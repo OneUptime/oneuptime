@@ -78,7 +78,7 @@ class Service extends DatabaseService<typeof Model> {
         }
 
         query['deleted'] = false;
-        const numbers = await Model.findOneAndUpdate(
+        const numbers: $TSFixMe = await Model.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -91,7 +91,7 @@ class Service extends DatabaseService<typeof Model> {
                 new: true,
             }
         );
-        const stripeSubscriptionId = numbers.stripeSubscriptionId;
+        const stripeSubscriptionId: $TSFixMe = numbers.stripeSubscriptionId;
 
         await Promise.all([
             TwilioService.releasePhoneNumber(numbers.projectId, numbers.sid),
@@ -103,11 +103,11 @@ class Service extends DatabaseService<typeof Model> {
 
     async reserveNumber(data: $TSFixMe, projectId: ObjectID): void {
         let confirmBuy = null;
-        const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
+        const hasCustomTwilioSettings: $TSFixMe = await TwilioService.hasCustomSettings(
             projectId
         );
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'users',
             });
@@ -115,12 +115,12 @@ class Service extends DatabaseService<typeof Model> {
                 (user: $TSFixMe) => user.role === 'Owner'
             );
             owner = owner && owner.length ? owner[0] : owner;
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: owner.userId },
                 select: 'stripeCustomerId',
             });
-            const stripeCustomerId = user.stripeCustomerId;
-            const stripeSubscription = await PaymentService.createSubscription(
+            const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
+            const stripeSubscription: $TSFixMe = await PaymentService.createSubscription(
                 stripeCustomerId,
                 data.price
             );
@@ -150,7 +150,7 @@ class Service extends DatabaseService<typeof Model> {
             );
         }
         data.sid = confirmBuy && confirmBuy.sid ? confirmBuy.sid : null;
-        const CallRouting = await this.create(data);
+        const CallRouting: $TSFixMe = await this.create(data);
         return CallRouting;
     }
 
@@ -158,7 +158,7 @@ class Service extends DatabaseService<typeof Model> {
         let user;
         const selectEscalation: string = 'teams createdAt deleted deletedAt';
 
-        const populateEscalation = [
+        const populateEscalation: $TSFixMe = [
             {
                 path: 'teams.teamMembers.user',
                 select: 'name email',
@@ -187,24 +187,24 @@ class Service extends DatabaseService<typeof Model> {
                 };
             }
         } else if (type && type === 'Schedule') {
-            const schedules = await ScheduleService.findOneBy({
+            const schedules: $TSFixMe = await ScheduleService.findOneBy({
                 query: { _id: id },
                 select: '_id escalationIds',
             });
-            const escalationId =
+            const escalationId: $TSFixMe =
                 schedules &&
                 schedules.escalationIds &&
                 schedules.escalationIds.length
                     ? schedules.escalationIds[0]
                     : null;
-            const escalation = escalationId
+            const escalation: $TSFixMe = escalationId
                 ? await EscalationService.findOneBy({
                       query: { _id: escalationId },
                       select: selectEscalation,
                       populate: populateEscalation,
                   })
                 : null;
-            const activeTeam =
+            const activeTeam: $TSFixMe =
                 escalation && escalation.activeTeam
                     ? escalation.activeTeam
                     : null;
@@ -215,7 +215,7 @@ class Service extends DatabaseService<typeof Model> {
             ) {
                 let dutyCheck = 0;
                 for (const teamMember of activeTeam.teamMembers) {
-                    const [isOnDuty, user] = await Promise.all([
+                    const [isOnDuty, user]: $TSFixMe = await Promise.all([
                         AlertService.checkIsOnDuty(
                             teamMember.startTime,
                             teamMember.endTime
@@ -242,7 +242,7 @@ class Service extends DatabaseService<typeof Model> {
                     }
                 }
                 if (dutyCheck <= 0) {
-                    const user = await UserService.findOneBy({
+                    const user: $TSFixMe = await UserService.findOneBy({
                         query: { _id: activeTeam.teamMembers[0].userId },
                         select: '_id alertPhoneNumber',
                     });
@@ -277,23 +277,23 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async chargeRoutedCall(projectId: ObjectID, body: $TSFixMe): void {
-        const callSid = body['CallSid'];
-        const callStatus = body['CallStatus'] || null;
-        const callDetails = await TwilioService.getCallDetails(
+        const callSid: $TSFixMe = body['CallSid'];
+        const callStatus: $TSFixMe = body['CallStatus'] || null;
+        const callDetails: $TSFixMe = await TwilioService.getCallDetails(
             projectId,
             callSid
         );
         if (callDetails && callDetails.price) {
-            const duration = callDetails.duration;
+            const duration: $TSFixMe = callDetails.duration;
             let price = callDetails.price;
             if (price && price.includes('-')) {
                 price = price.replace('-', '');
             }
             price = price * 10;
-            const hasCustomTwilioSettings =
+            const hasCustomTwilioSettings: $TSFixMe =
                 await TwilioService.hasCustomSettings(projectId);
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                const project = await ProjectService.findOneBy({
+                const project: $TSFixMe = await ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'users',
                 });
@@ -307,7 +307,7 @@ class Service extends DatabaseService<typeof Model> {
                     price
                 );
             }
-            const callRoutingLog = await CallRoutingLogService.findOneBy({
+            const callRoutingLog: $TSFixMe = await CallRoutingLogService.findOneBy({
                 query: { callSid },
                 select: 'callSid dialTo _id',
             });
@@ -345,25 +345,25 @@ class Service extends DatabaseService<typeof Model> {
         body: $TSFixMe,
         backup: $TSFixMe
     ): void {
-        const fromNumber = body['From'];
-        const callSid = body['CallSid'];
-        const dialCallSid = body['DialCallSid'] || null;
-        const callStatus = body['CallStatus'] || null;
-        const dialCallStatus = body['DialCallStatus'] || null;
+        const fromNumber: $TSFixMe = body['From'];
+        const callSid: $TSFixMe = body['CallSid'];
+        const dialCallSid: $TSFixMe = body['DialCallSid'] || null;
+        const callStatus: $TSFixMe = body['CallStatus'] || null;
+        const dialCallStatus: $TSFixMe = body['DialCallStatus'] || null;
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: data.projectId },
             select: 'balance alertOptions',
         });
-        const balance = project.balance;
-        const customThresholdAmount = project.alertOptions
+        const balance: $TSFixMe = project.balance;
+        const customThresholdAmount: $TSFixMe = project.alertOptions
             ? project.alertOptions.minimumBalance
             : null;
-        const isBalanceMoreThanMinimum = balance > 10;
-        const isBalanceMoreThanCustomThresholdAmount = customThresholdAmount
+        const isBalanceMoreThanMinimum: $TSFixMe = balance > 10;
+        const isBalanceMoreThanCustomThresholdAmount: $TSFixMe = customThresholdAmount
             ? balance > customThresholdAmount
             : null;
-        const hasEnoughBalance = isBalanceMoreThanCustomThresholdAmount
+        const hasEnoughBalance: $TSFixMe = isBalanceMoreThanCustomThresholdAmount
             ? isBalanceMoreThanCustomThresholdAmount && isBalanceMoreThanMinimum
             : isBalanceMoreThanMinimum;
 
@@ -373,12 +373,12 @@ class Service extends DatabaseService<typeof Model> {
             return response;
         }
 
-        const routingSchema =
+        const routingSchema: $TSFixMe =
             data && data.routingSchema && data.routingSchema.type
                 ? data.routingSchema
                 : {};
         let memberId = null;
-        const response = new twilio.twiml.VoiceResponse();
+        const response: $TSFixMe = new twilio.twiml.VoiceResponse();
         let forwardingNumber, error, userId, scheduleId;
 
         const {
@@ -421,7 +421,7 @@ class Service extends DatabaseService<typeof Model> {
 
         if (type && !backup) {
             if (id && id.length && type !== 'PhoneNumber') {
-                const result = await this.findTeamMember(type, id);
+                const result: $TSFixMe = await this.findTeamMember(type, id);
 
                 forwardingNumber = result.forwardingNumber;
 
@@ -447,7 +447,7 @@ class Service extends DatabaseService<typeof Model> {
                 backup_id.length &&
                 backup_type !== 'PhoneNumber'
             ) {
-                const result = await this.findTeamMember(
+                const result: $TSFixMe = await this.findTeamMember(
                     backup_type,
                     backup_id
                 );
@@ -507,7 +507,7 @@ class Service extends DatabaseService<typeof Model> {
         } else if (!forwardingNumber && error && error.length) {
             response.say(error);
         }
-        const callRoutingLog = await CallRoutingLogService.findOneBy({
+        const callRoutingLog: $TSFixMe = await CallRoutingLogService.findOneBy({
             query: { callSid },
             select: '_id dialTo callSid',
         });
@@ -558,15 +558,15 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async updateRoutingSchema(data: $TSFixMe): void {
-        const currentCallRouting = await this.findOneBy({
+        const currentCallRouting: $TSFixMe = await this.findOneBy({
             query: { _id: data.callRoutingId },
             select: 'routingSchema',
         });
-        const routingSchema =
+        const routingSchema: $TSFixMe =
             currentCallRouting && currentCallRouting.routingSchema
                 ? currentCallRouting.routingSchema
                 : {};
-        const showAdvance =
+        const showAdvance: $TSFixMe =
             Object.keys(data).indexOf('showAdvance') > -1
                 ? data.showAdvance
                 : 'null';
@@ -601,7 +601,7 @@ class Service extends DatabaseService<typeof Model> {
                 }
             }
         }
-        const CallRouting = await this.updateOneBy(
+        const CallRouting: $TSFixMe = await this.updateOneBy(
             { _id: data.callRoutingId },
             { routingSchema }
         );
@@ -610,21 +610,21 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async updateRoutingSchemaAudio(data: $TSFixMe): void {
-        const currentCallRouting = await this.findOneBy({
+        const currentCallRouting: $TSFixMe = await this.findOneBy({
             query: { _id: data.callRoutingId },
             select: 'routingSchema',
         });
-        const routingSchema =
+        const routingSchema: $TSFixMe =
             currentCallRouting && currentCallRouting.routingSchema
                 ? currentCallRouting.routingSchema
                 : {};
-        const currentIntroAudio =
+        const currentIntroAudio: $TSFixMe =
             routingSchema &&
             routingSchema.introAudio &&
             routingSchema.introAudio.length
                 ? routingSchema.introAudio
                 : null;
-        const currentBackupIntroAudio =
+        const currentBackupIntroAudio: $TSFixMe =
             routingSchema &&
             routingSchema.backup_introAudio &&
             routingSchema.backup_introAudio.length
@@ -659,7 +659,7 @@ class Service extends DatabaseService<typeof Model> {
                 routingSchema.backup_introAudioName = data.fileName;
             }
         }
-        const CallRouting = await this.updateOneBy(
+        const CallRouting: $TSFixMe = await this.updateOneBy(
             { _id: data.callRoutingId },
             { routingSchema }
         );
@@ -669,16 +669,16 @@ class Service extends DatabaseService<typeof Model> {
 
     async getCallRoutingLogs(projectId: ObjectID): void {
         let logs: $TSFixMe = [];
-        const callRouting = await this.findBy({
+        const callRouting: $TSFixMe = await this.findBy({
             query: { projectId },
             select: '_id',
         });
         if (callRouting && callRouting.length) {
-            const select =
+            const select: $TSFixMe =
                 'callRoutingId callSid price calledFrom calledTo duration dialTo';
             for (let i = 0; i < callRouting.length; i++) {
-                const callRoutingId = callRouting[i]._id;
-                const callLogs = await CallRoutingLogService.findBy({
+                const callRoutingId: $TSFixMe = callRouting[i]._id;
+                const callLogs: $TSFixMe = await CallRoutingLogService.findBy({
                     query: { callRoutingId },
                     select,
                 });

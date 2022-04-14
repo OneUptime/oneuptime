@@ -22,7 +22,7 @@ import { Validate } from '../../config';
 
 
 function validate(_values: $TSFixMe) {
-    const error = undefined;
+    const error: $TSFixMe = undefined;
     return error;
 }
 
@@ -131,10 +131,10 @@ class AddMoreDomainModal extends React.Component<AddMoreDomainModalProps> {
     changeCertFile = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const { projectId, uploadCertFile } = this.props;
+        const { projectId, uploadCertFile }: $TSFixMe = this.props;
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
             uploadCertFile(projectId, file);
@@ -149,10 +149,10 @@ class AddMoreDomainModal extends React.Component<AddMoreDomainModalProps> {
     changePrivateKey = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const { projectId, uploadPrivateKey } = this.props;
+        const { projectId, uploadPrivateKey }: $TSFixMe = this.props;
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
             uploadPrivateKey(projectId, file);
@@ -691,7 +691,7 @@ AddMoreDomainModal.propTypes = {
     createDomain: PropTypes.func,
 };
 
-const AddMoreDomainForm = reduxForm({
+const AddMoreDomainForm: $TSFixMe = reduxForm({
     form: 'AddMoreDomainForm',
     enableReinitialize: false,
     destroyOnUnmount: true,

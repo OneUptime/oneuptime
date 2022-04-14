@@ -14,14 +14,14 @@ import IncidentMessageService from '../services/incidentMessageService';
 import AlertService from '../services/alertService';
 import UserService from '../services/userService';
 import MonitorService from '../services/monitorService';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 import errorService from 'CommonServer/Utils/error';
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const getUser = require('../middlewares/user').getUser;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
-const getSubProjects = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
 
 import {
     sendErrorResponse,
@@ -43,10 +43,10 @@ router.post(
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
             // Call the IncidentService
-            const incident = await IncidentService.create(data);
+            const incident: $TSFixMe = await IncidentService.create(data);
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -61,9 +61,9 @@ router.post(
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { incidentId, name, probeId } = req.body;
+            const { incidentId, name, probeId }: $TSFixMe = req.body;
 
-            const incident = await IncidentService.acknowledge(
+            const incident: $TSFixMe = await IncidentService.acknowledge(
                 incidentId,
                 null,
                 name,
@@ -83,9 +83,9 @@ router.post(
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { incidentId, name, probeId } = req.body;
+            const { incidentId, name, probeId }: $TSFixMe = req.body;
 
-            const incident = await IncidentService.resolve(
+            const incident: $TSFixMe = await IncidentService.resolve(
                 incidentId,
                 null,
                 name,
@@ -105,8 +105,8 @@ router.post(
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { data, query } = req.body;
-            const incident = await IncidentService.updateOneBy(query, data);
+            const { data, query }: $TSFixMe = req.body;
+            const incident: $TSFixMe = await IncidentService.updateOneBy(query, data);
 
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -127,15 +127,15 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const incidentType = req.body.incidentType;
-            const incidentPriority = req.body.incidentPriority;
-            const title = req.body.title;
-            const description = req.body.description;
-            const customFields = req.body.customFields;
-            const monitors = req.body.monitors;
+            const projectId: $TSFixMe = req.params.projectId;
+            const incidentType: $TSFixMe = req.body.incidentType;
+            const incidentPriority: $TSFixMe = req.body.incidentPriority;
+            const title: $TSFixMe = req.body.title;
+            const description: $TSFixMe = req.body.description;
+            const customFields: $TSFixMe = req.body.customFields;
+            const monitors: $TSFixMe = req.body.monitors;
 
-            const userId = req.user
+            const userId: $TSFixMe = req.user
                 ? req.user.id === 'API'
                     ? null
                     : req.user.id
@@ -205,7 +205,7 @@ router.post(
                 });
             }
             // Call the IncidentService
-            const incident = await IncidentService.create({
+            const incident: $TSFixMe = await IncidentService.create({
                 projectId,
                 createdById: userId,
                 manuallyCreated: true,
@@ -218,7 +218,7 @@ router.post(
                 createdByApi,
             });
             if (incident) {
-                const monitorItems = [];
+                const monitorItems: $TSFixMe = [];
                 for (const monitor of monitors) {
                     monitorItems.push({
                         monitorId: monitor,
@@ -246,17 +246,17 @@ router.post(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { monitorId } = req.params;
+        const { monitorId }: $TSFixMe = req.params;
         // include date range
         try {
-            const { startDate, endDate } = req.body;
+            const { startDate, endDate }: $TSFixMe = req.body;
             let query = {
                 'monitors.monitorId': { $in: [monitorId] },
             };
 
             if (startDate && endDate) {
-                const start = moment(startDate).toDate();
-                const end = moment(endDate).toDate();
+                const start: $TSFixMe = moment(startDate).toDate();
+                const end: $TSFixMe = moment(endDate).toDate();
                 query = {
                     'monitors.monitorId': { $in: [monitorId] },
 
@@ -264,7 +264,7 @@ router.post(
                 };
             }
 
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -286,10 +286,10 @@ router.post(
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'probeName _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'slug createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-            const [incidents, count] = await Promise.all([
+            const [incidents, count]: $TSFixMe = await Promise.all([
                 IncidentService.findBy({
                     query,
                     limit: req.body.limit || 3,
@@ -314,11 +314,11 @@ router.get(
     getSubProjects,
     async (req, res): void => {
         try {
-            // const subProjectIds = req.user.subProjects
+            // const subProjectIds: $TSFixMe = req.user.subProjects
             //     ? req.user.subProjects.map(project => project._id)
             //     : null;
-            const { projectId } = req.params;
-            const incidents = await IncidentService.getSubProjectIncidents(
+            const { projectId }: $TSFixMe = req.params;
+            const incidents: $TSFixMe = await IncidentService.getSubProjectIncidents(
                 projectId
             );
             return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
@@ -336,8 +336,8 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { componentId, projectId } = req.params;
-            const incidents = await IncidentService.getComponentIncidents(
+            const { componentId, projectId }: $TSFixMe = req.params;
+            const incidents: $TSFixMe = await IncidentService.getComponentIncidents(
                 projectId,
                 componentId
             );
@@ -359,9 +359,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, componentId } = req.params;
+            const { projectId, componentId }: $TSFixMe = req.params;
 
-            const incident = await IncidentService.getProjectComponentIncidents(
+            const incident: $TSFixMe = await IncidentService.getProjectComponentIncidents(
                 projectId,
                 componentId,
                 req.query['limit'] || 10,
@@ -380,8 +380,8 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const projectId = req.params.projectId;
-            const populate = [
+            const projectId: $TSFixMe = req.params.projectId;
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -403,10 +403,10 @@ router.get(
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'probeName _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'slug createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-            const monitors = await MonitorService.findBy({
+            const monitors: $TSFixMe = await MonitorService.findBy({
                 query: { projectId },
                 select: '_id',
             });
@@ -416,7 +416,7 @@ router.get(
                 'monitors.monitorId': { $in: monitorIds },
             };
 
-            const [incident, count] = await Promise.all([
+            const [incident, count]: $TSFixMe = await Promise.all([
                 IncidentService.findBy({
                     query,
                     limit: req.query['limit'] || 10,
@@ -446,8 +446,8 @@ router.get(
         // Call the IncidentService.
 
         try {
-            const { incidentSlug } = req.params;
-            const populate = [
+            const { incidentSlug }: $TSFixMe = req.params;
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -469,10 +469,10 @@ router.get(
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'probeName _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'slug createdAt reason response notifications hideIncident acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-            const incident = await IncidentService.findOneBy({
+            const incident: $TSFixMe = await IncidentService.findOneBy({
                 query: { slug: incidentSlug },
                 select,
                 populate,
@@ -490,18 +490,18 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { incidentId } = req.params;
+            const { incidentId }: $TSFixMe = req.params;
 
-            const populateIncTimeline = [
+            const populateIncTimeline: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 {
                     path: 'probeId',
                     select: 'probeName probeImage',
                 },
             ];
-            const selectIncTimeline =
+            const selectIncTimeline: $TSFixMe =
                 'incidentId createdById probeId createdByZapier createdAt status incident_state';
-            const [timeline, count] = await Promise.all([
+            const [timeline, count]: $TSFixMe = await Promise.all([
                 IncidentTimelineService.findBy({
                     query: { incidentId },
                     skip: req.query['skip'] || 0,
@@ -525,14 +525,14 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call the IncidentService.
 
-            const userId = req.user ? req.user.id : null;
-            const { isHome } = req.query;
-            const incident = await IncidentService.getUnresolvedIncidents(
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const { isHome }: $TSFixMe = req.query;
+            const incident: $TSFixMe = await IncidentService.getUnresolvedIncidents(
                 subProjectIds,
                 userId,
 
@@ -551,7 +551,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.user
+            const userId: $TSFixMe = req.user
                 ? req.user.id === 'API'
                     ? null
                     : req.user.id
@@ -561,10 +561,10 @@ router.post(
             if (req.user && req.user.id === 'API') {
                 acknowledgedByApi = true;
             }
-            const projectId = req.params.projectId;
-            const incidentId = req.params.incidentId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const incidentId: $TSFixMe = req.params.incidentId;
 
-            const incident = await IncidentService.acknowledge(
+            const incident: $TSFixMe = await IncidentService.acknowledge(
                 incidentId,
                 userId,
 
@@ -575,7 +575,7 @@ router.post(
                 null,
                 acknowledgedByApi
             );
-            const populateIncidentMessage = [
+            const populateIncidentMessage: $TSFixMe = [
                 {
                     path: 'incidentId',
                     select: 'idNumber name slug',
@@ -583,19 +583,19 @@ router.post(
                 { path: 'createdById', select: 'name' },
             ];
 
-            const selectIncidentMessage =
+            const selectIncidentMessage: $TSFixMe =
                 '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
 
-            const populateAlert = [
+            const populateAlert: $TSFixMe = [
                 { path: 'userId', select: 'name' },
                 { path: 'monitorId', select: 'name' },
                 { path: 'projectId', select: 'name' },
             ];
 
-            const selectAlert =
+            const selectAlert: $TSFixMe =
                 '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'incidentId', select: 'name' },
                 { path: 'projectId', select: 'name' },
                 {
@@ -603,12 +603,12 @@ router.post(
                     select: 'name contactEmail contactPhone contactWebhook countryCode',
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
-            const selectOnCallScheduleStatus =
+            const selectOnCallScheduleStatus: $TSFixMe =
                 'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
-            const populateOnCallScheduleStatus = [
+            const populateOnCallScheduleStatus: $TSFixMe = [
                 { path: 'incidentId', select: 'name slug' },
                 { path: 'project', select: 'name slug' },
                 { path: 'scheduleId', select: 'name slug' },
@@ -619,14 +619,14 @@ router.post(
                 },
             ];
 
-            const populateIncTimeline = [
+            const populateIncTimeline: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 {
                     path: 'probeId',
                     select: 'probeName probeImage',
                 },
             ];
-            const selectIncTimeline =
+            const selectIncTimeline: $TSFixMe =
                 'incidentId createdById probeId createdByZapier createdAt status incident_state';
             /* eslint-disable prefer-const */
             let [
@@ -667,13 +667,13 @@ router.post(
             ]);
             /* eslint-enable prefer-const */
 
-            const [subAlerts, scheduleStatus] = await Promise.all([
+            const [subAlerts, scheduleStatus]: $TSFixMe = await Promise.all([
                 Services.deduplicate(subscriberAlerts),
                 Services.checkCallSchedule(callScheduleStatus),
             ]);
             callScheduleStatus = scheduleStatus;
 
-            const timelineAlerts = [
+            const timelineAlerts: $TSFixMe = [
                 ...timeline,
                 ...alerts,
                 ...incidentMessages,
@@ -689,7 +689,7 @@ router.post(
                 (a: $TSFixMe, b: $TSFixMe) =>
                     typeof a.schedule !== 'object' && b.createdAt - a.createdAt
             );
-            const filteredMsg = incidentMessages.filter(
+            const filteredMsg: $TSFixMe = incidentMessages.filter(
                 (a: $TSFixMe) =>
                     a.status !== 'internal notes added' &&
                     a.status !== 'internal notes updated'
@@ -717,7 +717,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.user
+            const userId: $TSFixMe = req.user
                 ? req.user.id === 'API'
                     ? null
                     : req.user.id
@@ -727,10 +727,10 @@ router.post(
             if (req.user && req.user.id === 'API') {
                 resolvedByApi = true;
             }
-            const projectId = req.params.projectId;
-            const incidentId = req.params.incidentId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const incidentId: $TSFixMe = req.params.incidentId;
 
-            const incident = await IncidentService.resolve(
+            const incident: $TSFixMe = await IncidentService.resolve(
                 incidentId,
                 userId,
                 null,
@@ -740,7 +740,7 @@ router.post(
                 null,
                 resolvedByApi
             );
-            const populateIncidentMessage = [
+            const populateIncidentMessage: $TSFixMe = [
                 {
                     path: 'incidentId',
                     select: 'idNumber name slug',
@@ -748,19 +748,19 @@ router.post(
                 { path: 'createdById', select: 'name' },
             ];
 
-            const selectIncidentMessage =
+            const selectIncidentMessage: $TSFixMe =
                 '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
 
-            const populateAlert = [
+            const populateAlert: $TSFixMe = [
                 { path: 'userId', select: 'name' },
                 { path: 'monitorId', select: 'name' },
                 { path: 'projectId', select: 'name' },
             ];
 
-            const selectAlert =
+            const selectAlert: $TSFixMe =
                 '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'incidentId', select: 'name' },
                 { path: 'projectId', select: 'name' },
                 {
@@ -768,13 +768,13 @@ router.post(
                     select: 'name contactEmail contactPhone contactWebhook countryCode',
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
 
-            const selectOnCallScheduleStatus =
+            const selectOnCallScheduleStatus: $TSFixMe =
                 'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
-            const populateOnCallScheduleStatus = [
+            const populateOnCallScheduleStatus: $TSFixMe = [
                 { path: 'incidentId', select: 'name slug' },
                 { path: 'project', select: 'name slug' },
                 { path: 'scheduleId', select: 'name slug' },
@@ -784,14 +784,14 @@ router.post(
                     select: 'projectId teams scheduleId',
                 },
             ];
-            const populateIncTimeline = [
+            const populateIncTimeline: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 {
                     path: 'probeId',
                     select: 'probeName probeImage',
                 },
             ];
-            const selectIncTimeline =
+            const selectIncTimeline: $TSFixMe =
                 'incidentId createdById probeId createdByZapier createdAt status incident_state';
             /* eslint-disable prefer-const */
             let [
@@ -832,14 +832,14 @@ router.post(
             ]);
             /* eslint-enable prefer-const */
 
-            const [subAlerts, scheduleStatus] = await Promise.all([
+            const [subAlerts, scheduleStatus]: $TSFixMe = await Promise.all([
                 Services.deduplicate(subscriberAlerts),
                 Services.checkCallSchedule(callScheduleStatus),
             ]);
 
             callScheduleStatus = scheduleStatus;
 
-            const timelineAlerts = [
+            const timelineAlerts: $TSFixMe = [
                 ...timeline,
                 ...alerts,
                 ...incidentMessages,
@@ -855,7 +855,7 @@ router.post(
                 (a: $TSFixMe, b: $TSFixMe) =>
                     typeof a.schedule !== 'object' && b.createdAt - a.createdAt
             );
-            const filteredMsg = incidentMessages.filter(
+            const filteredMsg: $TSFixMe = incidentMessages.filter(
                 (a: $TSFixMe) =>
                     a.status !== 'internal notes added' &&
                     a.status !== 'internal notes updated'
@@ -879,10 +879,10 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.user ? req.user.id : null;
-            const { incidentId } = req.params;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const { incidentId }: $TSFixMe = req.params;
             // Call the IncidentService
-            const incident = await IncidentService.close(incidentId, userId);
+            const incident: $TSFixMe = await IncidentService.close(incidentId, userId);
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -897,9 +897,9 @@ router.put(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId = req.params.projectId;
-        const incidentId = req.params.incidentId;
-        const { title, description, incidentPriority } = req.body;
+        const projectId: $TSFixMe = req.params.projectId;
+        const incidentId: $TSFixMe = req.params.incidentId;
+        const { title, description, incidentPriority }: $TSFixMe = req.body;
 
         const query: $TSFixMe = {
             title,
@@ -915,7 +915,7 @@ router.put(
             );
         }
         try {
-            const incident = await IncidentService.updateOneBy(
+            const incident: $TSFixMe = await IncidentService.updateOneBy(
                 {
                     projectId,
                     _id: incidentId,
@@ -934,10 +934,10 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const incidentId = req.params.incidentId;
-            const projectId = req.params.projectId;
-            const populate = [
+            const data: $TSFixMe = req.body;
+            const incidentId: $TSFixMe = req.params.incidentId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -959,10 +959,10 @@ router.post(
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'probeName _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'slug createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-            const populateIncidentMessage = [
+            const populateIncidentMessage: $TSFixMe = [
                 {
                     path: 'incidentId',
                     select: 'idNumber name slug',
@@ -970,17 +970,17 @@ router.post(
                 { path: 'createdById', select: 'name' },
             ];
 
-            const selectIncidentMessage =
+            const selectIncidentMessage: $TSFixMe =
                 '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
 
-            const incident = await IncidentService.findOneBy({
+            const incident: $TSFixMe = await IncidentService.findOneBy({
                 query: { _id: incidentId },
                 select,
                 populate,
             });
-            const idNumber = incident.idNumber;
+            const idNumber: $TSFixMe = incident.idNumber;
 
-            const userId = req.user.id;
+            const userId: $TSFixMe = req.user.id;
             if (!data.content) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1041,7 +1041,7 @@ router.post(
             // If the message ID is available, treat this as an update
             if (data.id) {
                 // validate if Message ID exist or not
-                const incidentMsgCount = await IncidentMessageService.countBy({
+                const incidentMsgCount: $TSFixMe = await IncidentMessageService.countBy({
                     _id: data.id,
                 });
 
@@ -1056,7 +1056,7 @@ router.post(
             if (incident && incident._id) {
                 data.incidentId = incidentId;
 
-                const monitors = incident.monitors.map(
+                const monitors: $TSFixMe = incident.monitors.map(
                     (monitor: $TSFixMe) => monitor.monitorId.name
                 );
                 const templateInput: $TSFixMe = {
@@ -1066,10 +1066,10 @@ router.post(
                     incidentType: incident.incidentType,
                     monitorName: joinNames(monitors),
                 };
-                const incidentStateTemplate = Handlebars.compile(
+                const incidentStateTemplate: $TSFixMe = Handlebars.compile(
                     data.incident_state
                 );
-                const contentTemplate = Handlebars.compile(data.content);
+                const contentTemplate: $TSFixMe = Handlebars.compile(data.content);
 
                 data.incident_state = incidentStateTemplate(templateInput);
                 data.content = contentTemplate(templateInput);
@@ -1100,7 +1100,7 @@ router.post(
                         incident_state: data.incident_state,
                     };
 
-                    const [message, investigation] = await Promise.all([
+                    const [message, investigation]: $TSFixMe = await Promise.all([
                         IncidentMessageService.updateOneBy(
                             { _id: data.id },
                             updatedMessage
@@ -1145,7 +1145,7 @@ router.post(
                     data.id ? 'updated' : 'added'
                 }`;
 
-                const user = await UserService.findOneBy({
+                const user: $TSFixMe = await UserService.findOneBy({
                     query: { _id: userId },
                     select: 'name',
                 });
@@ -1153,16 +1153,16 @@ router.post(
                 data.created_by =
                     user && user.name ? user.name : 'OneUptime User';
 
-                const populateAlert = [
+                const populateAlert: $TSFixMe = [
                     { path: 'userId', select: 'name' },
                     { path: 'monitorId', select: 'name' },
                     { path: 'projectId', select: 'name' },
                 ];
 
-                const selectAlert =
+                const selectAlert: $TSFixMe =
                     '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
-                const populate = [
+                const populate: $TSFixMe = [
                     { path: 'incidentId', select: 'name' },
                     { path: 'projectId', select: 'name' },
                     {
@@ -1170,12 +1170,12 @@ router.post(
                         select: 'name contactEmail contactPhone contactWebhook countryCode',
                     },
                 ];
-                const select =
+                const select: $TSFixMe =
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
-                const selectOnCallScheduleStatus =
+                const selectOnCallScheduleStatus: $TSFixMe =
                     'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
-                const populateOnCallScheduleStatus = [
+                const populateOnCallScheduleStatus: $TSFixMe = [
                     { path: 'incidentId', select: 'name slug' },
                     { path: 'project', select: 'name slug' },
                     { path: 'scheduleId', select: 'name slug' },
@@ -1186,16 +1186,16 @@ router.post(
                     },
                 ];
 
-                const populateIncTimeline = [
+                const populateIncTimeline: $TSFixMe = [
                     { path: 'createdById', select: 'name' },
                     {
                         path: 'probeId',
                         select: 'probeName probeImage',
                     },
                 ];
-                const selectIncTimeline =
+                const selectIncTimeline: $TSFixMe =
                     'incidentId createdById probeId createdByZapier createdAt status incident_state';
-                const [alerts, subscriberAlerts] = await Promise.all([
+                const [alerts, subscriberAlerts]: $TSFixMe = await Promise.all([
                     AlertService.findBy({
                         query: { incidentId: incident._id },
                         select: selectAlert,
@@ -1260,7 +1260,7 @@ router.post(
                     callScheduleStatus = await Services.checkCallSchedule(
                         callScheduleStatus
                     );
-                    const timelineAlerts = [
+                    const timelineAlerts: $TSFixMe = [
                         ...timeline,
                         ...alerts,
                         ...incidentMessages,
@@ -1277,7 +1277,7 @@ router.post(
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
                     );
-                    const filteredMsg = incidentMessages.filter(
+                    const filteredMsg: $TSFixMe = incidentMessages.filter(
                         (a: $TSFixMe) =>
                             a.status !== 'internal notes added' &&
                             a.status !== 'internal notes updated'
@@ -1314,14 +1314,14 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { incidentSlug } = req.params;
+            const { incidentSlug }: $TSFixMe = req.params;
 
-            const incident = await IncidentService.findOneBy({
+            const incident: $TSFixMe = await IncidentService.findOneBy({
                 query: { slug: incidentSlug },
                 select: '_id',
             });
             if (incident) {
-                const { statusPages, count } =
+                const { statusPages, count }: $TSFixMe =
                     await StatusPageService.getStatusPagesForIncident(
                         incident._id,
 
@@ -1345,16 +1345,16 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { incidentId, incidentMessageId, projectId } = req.params;
-            const populateIncidentMessage = [
+            const { incidentId, incidentMessageId, projectId }: $TSFixMe = req.params;
+            const populateIncidentMessage: $TSFixMe = [
                 { path: 'incidentId', select: 'idNumber name slug' },
                 { path: 'createdById', select: 'name' },
             ];
 
-            const selectIncidentMessage =
+            const selectIncidentMessage: $TSFixMe =
                 '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
 
-            const [incident, checkMsg, incidentMessage] = await Promise.all([
+            const [incident, checkMsg, incidentMessage]: $TSFixMe = await Promise.all([
                 IncidentService.findOneBy({
                     query: { _id: incidentId },
                     select: 'idNumber slug',
@@ -1373,7 +1373,7 @@ router.delete(
                     req.user.id
                 ),
             ]);
-            const idNumber = incident.idNumber;
+            const idNumber: $TSFixMe = incident.idNumber;
             let result;
             /* eslint-disable prefer-const */
             if (incidentMessage) {
@@ -1389,16 +1389,16 @@ router.delete(
                     );
                 }
 
-                const populateAlert = [
+                const populateAlert: $TSFixMe = [
                     { path: 'userId', select: 'name' },
                     { path: 'monitorId', select: 'name' },
                     { path: 'projectId', select: 'name' },
                 ];
 
-                const selectAlert =
+                const selectAlert: $TSFixMe =
                     '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
-                const populate = [
+                const populate: $TSFixMe = [
                     { path: 'incidentId', select: 'name' },
                     { path: 'projectId', select: 'name' },
                     {
@@ -1406,13 +1406,13 @@ router.delete(
                         select: 'name contactEmail contactPhone contactWebhook countryCode',
                     },
                 ];
-                const select =
+                const select: $TSFixMe =
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
 
-                const selectOnCallScheduleStatus =
+                const selectOnCallScheduleStatus: $TSFixMe =
                     'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
-                const populateOnCallScheduleStatus = [
+                const populateOnCallScheduleStatus: $TSFixMe = [
                     { path: 'incidentId', select: 'name slug' },
                     { path: 'project', select: 'name slug' },
                     { path: 'scheduleId', select: 'name slug' },
@@ -1426,14 +1426,14 @@ router.delete(
                     },
                 ];
 
-                const populateIncTimeline = [
+                const populateIncTimeline: $TSFixMe = [
                     { path: 'createdById', select: 'name' },
                     {
                         path: 'probeId',
                         select: 'probeName probeImage',
                     },
                 ];
-                const selectIncTimeline =
+                const selectIncTimeline: $TSFixMe =
                     'incidentId createdById probeId createdByZapier createdAt status incident_state';
                 let [alerts, subscriberAlerts, callScheduleStatus] =
                     await Promise.all([
@@ -1480,7 +1480,7 @@ router.delete(
                             }),
                             Services.deduplicate(subscriberAlerts),
                         ]);
-                    const timelineAlerts = [
+                    const timelineAlerts: $TSFixMe = [
                         ...timeline,
                         ...alerts,
                         ...incidentMessages,
@@ -1497,7 +1497,7 @@ router.delete(
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
                     );
-                    const filteredMsg = incidentMessages.filter(
+                    const filteredMsg: $TSFixMe = incidentMessages.filter(
                         (a: $TSFixMe) =>
                             a.status !== 'internal notes added' &&
                             a.status !== 'internal notes updated'
@@ -1535,8 +1535,8 @@ router.get(
             let incidentMessages,
                 result = [],
                 count = 0;
-            const incidentSlug = req.params.incidentSlug;
-            const projectId = req.params.projectId;
+            const incidentSlug: $TSFixMe = req.params.incidentSlug;
+            const projectId: $TSFixMe = req.params.projectId;
             let incidentId = await IncidentService.findOneBy({
                 query: { slug: incidentSlug },
                 select: '_id',
@@ -1551,7 +1551,7 @@ router.get(
                     limit = req.query['limit'] || 10;
                 }
 
-                const populateIncidentMessage = [
+                const populateIncidentMessage: $TSFixMe = [
                     {
                         path: 'incidentId',
                         select: 'idNumber name slug',
@@ -1559,18 +1559,18 @@ router.get(
                     { path: 'createdById', select: 'name' },
                 ];
 
-                const selectIncidentMessage =
+                const selectIncidentMessage: $TSFixMe =
                     '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
-                const populateAlert = [
+                const populateAlert: $TSFixMe = [
                     { path: 'userId', select: 'name' },
                     { path: 'monitorId', select: 'name' },
                     { path: 'projectId', select: 'name' },
                 ];
 
-                const selectAlert =
+                const selectAlert: $TSFixMe =
                     '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
-                const populate = [
+                const populate: $TSFixMe = [
                     { path: 'incidentId', select: 'name' },
                     { path: 'projectId', select: 'name' },
                     {
@@ -1578,13 +1578,13 @@ router.get(
                         select: 'name contactEmail contactPhone contactWebhook countryCode',
                     },
                 ];
-                const select =
+                const select: $TSFixMe =
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
 
-                const selectOnCallScheduleStatus =
+                const selectOnCallScheduleStatus: $TSFixMe =
                     'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
-                const populateOnCallScheduleStatus = [
+                const populateOnCallScheduleStatus: $TSFixMe = [
                     { path: 'incidentId', select: 'name slug' },
                     { path: 'project', select: 'name slug' },
                     { path: 'scheduleId', select: 'name slug' },
@@ -1598,14 +1598,14 @@ router.get(
                     },
                 ];
 
-                const populateIncTimeline = [
+                const populateIncTimeline: $TSFixMe = [
                     { path: 'createdById', select: 'name' },
                     {
                         path: 'probeId',
                         select: 'probeName probeImage',
                     },
                 ];
-                const selectIncTimeline =
+                const selectIncTimeline: $TSFixMe =
                     'incidentId createdById probeId createdByZapier createdAt status incident_state';
                 const [
                     timeline,
@@ -1649,7 +1649,7 @@ router.get(
                 if (type === 'investigation') {
                     result = incidentMessages;
                 } else {
-                    const [subAlerts, scheduleStatus] = await Promise.all([
+                    const [subAlerts, scheduleStatus]: $TSFixMe = await Promise.all([
                         Services.deduplicate(subscriberAlerts),
                         onCallScheduleStatusService.findBy({
                             query: { incident: incidentId },
@@ -1657,10 +1657,10 @@ router.get(
                             populate: populateOnCallScheduleStatus,
                         }),
                     ]);
-                    const callScheduleStatus = await Services.checkCallSchedule(
+                    const callScheduleStatus: $TSFixMe = await Services.checkCallSchedule(
                         scheduleStatus
                     );
-                    const timelineAlerts = [
+                    const timelineAlerts: $TSFixMe = [
                         ...timeline,
                         ...alerts,
                         ...incidentMessages,
@@ -1677,7 +1677,7 @@ router.get(
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
                     );
-                    const filteredMsg = incidentMessages.filter(
+                    const filteredMsg: $TSFixMe = incidentMessages.filter(
                         a =>
                             a.status !== 'internal notes added' &&
                             a.status !== 'internal notes updated'
@@ -1699,8 +1699,8 @@ router.delete(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const { projectId, incidentId } = req.params;
-            const incident = await IncidentService.deleteBy(
+            const { projectId, incidentId }: $TSFixMe = req.params;
+            const incident: $TSFixMe = await IncidentService.deleteBy(
                 { _id: incidentId, projectId },
 
                 req.user.id
@@ -1726,9 +1726,9 @@ router.put(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, incidentId } = req.params;
-            const { hideIncident } = req.body;
-            const result = await IncidentService.updateOneBy(
+            const { projectId, incidentId }: $TSFixMe = req.params;
+            const { hideIncident }: $TSFixMe = req.body;
+            const result: $TSFixMe = await IncidentService.updateOneBy(
                 {
                     projectId,
                     _id: incidentId,
@@ -1757,12 +1757,12 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
             // get incident properties to build url
-            const { incidentId, projectId } = req.params;
+            const { incidentId, projectId }: $TSFixMe = req.params;
 
-            const [incident] = await Promise.all([
+            const [incident]: $TSFixMe = await Promise.all([
                 IncidentService.findOneBy({
                     query: { projectId, _id: incidentId },
                     select: 'idNumber projectId slug',
@@ -1802,12 +1802,12 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
             // get incident properties to build url
-            const { incidentId, projectId } = req.params;
+            const { incidentId, projectId }: $TSFixMe = req.params;
 
-            const [incident] = await Promise.all([
+            const [incident]: $TSFixMe = await Promise.all([
                 IncidentService.findOneBy({
                     query: { projectId, _id: incidentId },
                     select: 'idNumber projectId slug',

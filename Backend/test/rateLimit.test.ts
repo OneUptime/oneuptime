@@ -31,7 +31,7 @@ describe('API limit rate', function (): void {
             requests.push(request.get('/'));
         }
         await Promise.all(requests);
-        const response = await request.get('/');
+        const response: $TSFixMe = await request.get('/');
         expect(response.status).to.be.equal(429);
     });
 

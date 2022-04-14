@@ -5,7 +5,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const { twilioCredentials }: $TSFixMe = { ...utils };
 
@@ -15,10 +15,10 @@ const monitorName: string = 'monitor1';
 const countryCode: string = '+1';
 const phoneNumber: string = '9173976235';
 const alertPhone: string = '+19173976123';
-const incidentTitle = utils.generateRandomString();
+const incidentTitle: $TSFixMe = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(360000);
@@ -97,7 +97,7 @@ describe('Custom Twilio Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const savedAccountSid = await init.page$Eval(
+            const savedAccountSid: $TSFixMe = await init.page$Eval(
                 page,
                 '#accountSid',
                 (elem: $TSFixMe) => elem.value
@@ -175,7 +175,7 @@ describe('Custom Twilio Settings', () => {
             );
 
             await init.pageWaitForSelector(page, '#subscriber');
-            const subscriber = await init.page$Eval(
+            const subscriber: $TSFixMe = await init.page$Eval(
                 page,
                 '#subscriber',
                 (elem: $TSFixMe) => elem.textContent
@@ -234,7 +234,7 @@ describe('Custom Twilio Settings', () => {
             );
 
             await init.pageWaitForSelector(page, '#eventType');
-            const eventType = await init.page$Eval(
+            const eventType: $TSFixMe = await init.page$Eval(
                 page,
                 '#eventType',
                 (elem: $TSFixMe) => elem.textContent
@@ -292,7 +292,7 @@ describe('Custom Twilio Settings', () => {
             );
 
             await init.pageWaitForSelector(page, '#eventType');
-            const eventType = await init.page$Eval(
+            const eventType: $TSFixMe = await init.page$Eval(
                 page,
                 '#eventType',
                 (elem: $TSFixMe) => elem.textContent
@@ -330,7 +330,7 @@ describe('Custom Twilio Settings', () => {
             await init.pageClick(page, '#verify');
 
             await init.pageWaitForSelector(page, '#smsVerificationErrors');
-            const message = await init.page$Eval(
+            const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#smsVerificationErrors',
                 (e: $TSFixMe) => e.textContent
@@ -376,7 +376,7 @@ describe('Custom Twilio Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await init.page$Eval(
+            const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#successMessage',
                 (e: $TSFixMe) => e.textContent
@@ -426,7 +426,7 @@ describe('Custom Twilio Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await init.page$Eval(
+            const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#successMessage',
                 (e: $TSFixMe) => e.textContent

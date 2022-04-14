@@ -10,7 +10,7 @@ import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 
 import { createUser } from './utils/userSignUp';
@@ -24,7 +24,7 @@ import ApplicationSecurityLogService from '../backend/services/applicationSecuri
 import AirtableService from '../backend/services/airtableService';
 
 describe('Application Security API', function (): void {
-    const timeout = 300000;
+    const timeout: $TSFixMe = 300000;
     let projectId: ObjectID,
         componentId: $TSFixMe,
         userId: ObjectID,
@@ -40,7 +40,7 @@ describe('Application Security API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 

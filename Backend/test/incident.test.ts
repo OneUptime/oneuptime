@@ -10,9 +10,9 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
-const testServer = chai.request(HTTP_TEST_SERVER_URL);
+const testServer: $TSFixMe = chai.request(HTTP_TEST_SERVER_URL);
 
 import { createUser } from './utils/userSignUp';
 
@@ -41,7 +41,7 @@ import {
     markSubprojectIncidentAsAcknowledged,
     markSubprojectIncidentAsResolved,
 } from './utils/test-utils';
-const selectEmailStatus =
+const selectEmailStatus: $TSFixMe =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
 const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
@@ -74,29 +74,29 @@ describe('Incident API', function (): void {
     before(async function (): void {
         this.timeout(90000);
         await GlobalConfig.initTestConfig();
-        const res = await createUser(request, userData.user);
+        const res: $TSFixMe = await createUser(request, userData.user);
         projectId = res.body.project._id;
         userId = res.body.id;
 
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
-        const res1 = await request.post('/user/login').send({
+        const res1: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,
         });
 
         token = res1.body.tokens.jwtAccessToken;
         const authorization: string = `Basic ${token}`;
-        const component = await ComponentModel.create({
+        const component: $TSFixMe = await ComponentModel.create({
             name: 'New Component',
             projectId,
         });
         componentId = component._id;
-        const res2 = await request
+        const res2: $TSFixMe = await request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
             .send({ ...monitor, componentId });
@@ -156,26 +156,26 @@ describe('Incident API', function (): void {
 
     it('should create an incident', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const test1 = await chai
+        const test1: $TSFixMe = await chai
 
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/msteams');
         expect(test1).to.have.status(404);
-        const test2 = await chai
+        const test2: $TSFixMe = await chai
 
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/slack');
         expect(test2).to.have.status(404);
 
         // no external subscriber's webhook notification shall be sent when there's no incident
-        const webhookTest = await chai
+        const webhookTest: $TSFixMe = await chai
 
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/external_subscriber');
         expect(webhookTest).to.have.status(404);
 
         incidentData.monitors = [monitorId];
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
@@ -183,20 +183,20 @@ describe('Incident API', function (): void {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
 
-        const msTeamsEndpoint = await chai
+        const msTeamsEndpoint: $TSFixMe = await chai
 
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/msteams');
         expect(msTeamsEndpoint).to.have.status(200);
 
-        const slackEndpoint = await chai
+        const slackEndpoint: $TSFixMe = await chai
 
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/slack');
         expect(slackEndpoint).to.have.status(200);
 
         // a webhook notification shall be received after an incident
-        const webhookTestAfterIncident = await chai
+        const webhookTestAfterIncident: $TSFixMe = await chai
 
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/external_subscriber');
@@ -212,18 +212,18 @@ describe('Incident API', function (): void {
             body: '<h1>Test Server</h1>',
         });
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
             .send({ ...testServerMonitor, componentId });
         testServerMonitorId = res.body._id;
         await sleep(300000);
-        const res1 = await request
+        const res1: $TSFixMe = await request
             .post(`/incident/${projectId}/monitor/${testServerMonitorId}`)
             .set('Authorization', authorization);
 
         testServerIncidentId = res1.body.data[0]._id;
-        const res2 = await request
+        const res2: $TSFixMe = await request
             .get(`/incident/${projectId}/timeline/${testServerIncidentId}`)
             .set('Authorization', authorization);
         expect(res2).to.have.status(200);
@@ -245,7 +245,7 @@ describe('Incident API', function (): void {
         });
 
         await sleep(300000);
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incident/${projectId}/incident/${testServerIncidentId}`)
             .set('Authorization', authorization);
 
@@ -254,7 +254,7 @@ describe('Incident API', function (): void {
         expect(res.body._id).to.be.equal(testServerIncidentId);
         expect(res.body.acknowledged).to.be.equal(true);
         expect(res.body.resolved).to.be.equal(true);
-        const res1 = await request
+        const res1: $TSFixMe = await request
             .get(`/incident/${projectId}/timeline/${testServerIncidentId}`)
             .set('Authorization', authorization);
 
@@ -273,7 +273,7 @@ describe('Incident API', function (): void {
 
     it('should get incidents belonging to a monitor', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/monitor/${monitorId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -284,7 +284,7 @@ describe('Incident API', function (): void {
 
     it('should get all incidents in a project', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incident/${projectId}/incident`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -295,7 +295,7 @@ describe('Incident API', function (): void {
 
     it('should get an incident by incidentId', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incident/${projectId}/incident/${incidentId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -304,15 +304,15 @@ describe('Incident API', function (): void {
     });
 
     it('should acknowledge an incident and send email to users', async (): void => {
-        const date = moment().subtract(1, 'minutes');
+        const date: $TSFixMe = moment().subtract(1, 'minutes');
         const authorization: string = `Basic ${token}`;
-        const res = await markIncidentAsAcknowledged({
+        const res: $TSFixMe = await markIncidentAsAcknowledged({
             request,
             authorization,
             projectId,
             incidentId,
         });
-        const emailStatus = await EmailStatusService.findBy({
+        const emailStatus: $TSFixMe = await EmailStatusService.findBy({
             query: {
                 template: 'incident_acknowledged',
                 createdAt: { $gt: date },
@@ -326,15 +326,15 @@ describe('Incident API', function (): void {
     });
 
     it('should resolve an incident and send email to users', async (): void => {
-        const date = moment().subtract(1, 'minutes');
+        const date: $TSFixMe = moment().subtract(1, 'minutes');
         const authorization: string = `Basic ${token}`;
-        const res = await markIncidentAsResolved({
+        const res: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
             incidentId,
         });
-        const emailStatus = await EmailStatusService.findBy({
+        const emailStatus: $TSFixMe = await EmailStatusService.findBy({
             query: { template: 'incident_resolved', createdAt: { $gt: date } },
             select: selectEmailStatus,
         });
@@ -349,7 +349,7 @@ describe('Incident API', function (): void {
         const incidentTitle: string = 'New incident title';
         const incidentDescription: string = 'New incident description';
 
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/incident/${projectId}/incident/${incidentId}/details`)
             .set('Authorization', authorization)
             .send({
@@ -364,7 +364,7 @@ describe('Incident API', function (): void {
 
     it('should get incident timeline by incidentId', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incident/${projectId}/timeline/${incidentId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -386,7 +386,7 @@ describe('Incident API', function (): void {
 
     it('should require an incident state', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
@@ -399,7 +399,7 @@ describe('Incident API', function (): void {
 
     it('should require a valid incident message type', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
@@ -415,7 +415,7 @@ describe('Incident API', function (): void {
 
     it('should add an investigation incident message', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
@@ -432,7 +432,7 @@ describe('Incident API', function (): void {
 
     it('should add an internal incident message', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
@@ -451,7 +451,7 @@ describe('Incident API', function (): void {
 
     it('should update an investigation incident message', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
@@ -469,7 +469,7 @@ describe('Incident API', function (): void {
 
     it('should update an internal incident message', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send({
@@ -489,7 +489,7 @@ describe('Incident API', function (): void {
     it('should fetch list of investigation incident messages', async (): void => {
         const authorization: string = `Basic ${token}`;
         const type: string = 'investigation';
-        const res = await request
+        const res: $TSFixMe = await request
             .get(
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
@@ -504,7 +504,7 @@ describe('Incident API', function (): void {
 
     it('should fetch list of status pages for the incident', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incident/${projectId}/${incidentId}/statuspages`)
             .set('Authorization', authorization);
 
@@ -516,7 +516,7 @@ describe('Incident API', function (): void {
     it('should fetch list of internal incident messages', async (): void => {
         const authorization: string = `Basic ${token}`;
         const type: string = 'internal';
-        const res = await request
+        const res: $TSFixMe = await request
             .get(
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
             )
@@ -546,11 +546,11 @@ describe('Incident API', function (): void {
                 },
             },
         });
-        const user = await UserService.findOneBy({
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
         });
-        const stripeCustomerId = user.stripeCustomerId;
+        const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
         await UserService.updateOneBy(
             {
                 _id: userId,
@@ -565,20 +565,20 @@ describe('Incident API', function (): void {
                 alertPhoneNumber: Config.testphoneNumber,
             },
         });
-        const schedule = await request
+        const schedule: $TSFixMe = await request
             .post(`/schedule/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'test schedule',
             });
-        const selectMonitor = await request
+        const selectMonitor: $TSFixMe = await request
             .put(`/schedule/${projectId}/${schedule.body._id}`)
             .set('Authorization', authorization)
             .send({
                 monitorIds: [monitorId],
             });
         expect(selectMonitor).to.have.status(200);
-        const createEscalation = await request
+        const createEscalation: $TSFixMe = await request
             .post(`/schedule/${projectId}/${schedule.body._id}/addescalation`)
             .set('Authorization', authorization)
             .send([
@@ -602,19 +602,19 @@ describe('Incident API', function (): void {
             ]);
         expect(createEscalation).to.have.status(200);
         incidentData.monitors = [monitorId];
-        const createdIncident = await request
+        const createdIncident: $TSFixMe = await request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
         expect(createdIncident).to.have.status(200);
 
         await sleep(10000);
-        const smsAlert = await AlertModel.findOne({
+        const smsAlert: $TSFixMe = await AlertModel.findOne({
             incidentId: createdIncident.body._id,
             alertVia: 'sms',
         });
 
-        const callAlert = await AlertModel.findOne({
+        const callAlert: $TSFixMe = await AlertModel.findOne({
             incidentId: createdIncident.body._id,
             alertVia: 'call',
         });
@@ -639,7 +639,7 @@ describe('Incident API', function (): void {
 
     it('should not create an alert charge when an alert is not sent to a user.', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/alert/${projectId}/alert/charges`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -658,18 +658,18 @@ describe('Incident API', function (): void {
         });
         await IncidentService.hardDeleteBy({ projectId: projectId });
         incidentData.monitors = [monitorId];
-        const createdIncident = await request
+        const createdIncident: $TSFixMe = await request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
         await sleep(10000);
-        const smsAlert = await AlertModel.findOne({
+        const smsAlert: $TSFixMe = await AlertModel.findOne({
             incidentId: createdIncident.body._id,
             alertVia: 'sms',
         });
         expect(smsAlert).to.be.an('object');
         expect(smsAlert.alertStatus).to.be.equal('Success');
-        const callAlert = await AlertModel.findOne({
+        const callAlert: $TSFixMe = await AlertModel.findOne({
             incidentId: createdIncident.body._id,
             alertVia: 'call',
         });
@@ -680,7 +680,7 @@ describe('Incident API', function (): void {
 
     it('should create an alert charge when an alert is sent to a user.', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/alert/${projectId}/alert/charges`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -707,21 +707,21 @@ describe('Incident API with Sub-Projects', function (): void {
         const authorization: string = `Basic ${token}`;
         // create a subproject for parent project
         await GlobalConfig.initTestConfig();
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/project/${projectId}/subProject`)
             .set('Authorization', authorization)
             .send({ subProjectName: 'New SubProject' });
         subProjectId = res.body[0]._id;
         // sign up second user (subproject user)
-        const res1 = await createUser(request, userData.newUser);
+        const res1: $TSFixMe = await createUser(request, userData.newUser);
         userId = res1.body.id;
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
-        const res2 = await request.post('/user/login').send({
+        const res2: $TSFixMe = await request.post('/user/login').send({
             email: userData.newUser.email,
             password: userData.newUser.password,
         });
@@ -754,20 +754,20 @@ describe('Incident API with Sub-Projects', function (): void {
     });
 
     it('should not create an incident for user not present in project', async (): void => {
-        const res = await createUser(request, userData.anotherUser);
-        const verificationToken = await VerificationTokenModel.findOne({
+        const res: $TSFixMe = await createUser(request, userData.anotherUser);
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId: res.body.id,
         });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
 
-        const res1 = await request.post('/user/login').send({
+        const res1: $TSFixMe = await request.post('/user/login').send({
             email: userData.anotherUser.email,
             password: userData.anotherUser.password,
         });
         const authorization: string = `Basic ${res1.body.tokens.jwtAccessToken}`;
-        const res2 = await request
+        const res2: $TSFixMe = await request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
@@ -779,7 +779,7 @@ describe('Incident API with Sub-Projects', function (): void {
 
     it('should create an incident in parent project.', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
@@ -790,7 +790,7 @@ describe('Incident API with Sub-Projects', function (): void {
 
     it('should create an incident in sub-project.', async (): void => {
         const authorization: string = `Basic ${newUserToken}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${subProjectId}/create-incident`)
             .set('Authorization', authorization)
             .send({ ...incidentData, projectId: subProjectId });
@@ -801,7 +801,7 @@ describe('Incident API with Sub-Projects', function (): void {
 
     it("should get only sub-project's incidents for valid sub-project user", async (): void => {
         const authorization: string = `Basic ${newUserToken}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incident/${subProjectId}/incident`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -814,7 +814,7 @@ describe('Incident API with Sub-Projects', function (): void {
 
     it('should get both project and sub-project incidents for valid parent project user.', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incident/${projectId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -827,7 +827,7 @@ describe('Incident API with Sub-Projects', function (): void {
 
     it('should acknowledge subproject incident', async (): void => {
         const authorization: string = `Basic ${newUserToken}`;
-        const res = await markSubprojectIncidentAsAcknowledged({
+        const res: $TSFixMe = await markSubprojectIncidentAsAcknowledged({
             request,
             authorization,
             subProjectId,
@@ -841,7 +841,7 @@ describe('Incident API with Sub-Projects', function (): void {
 
     it('should resolve subproject incident', async (): void => {
         const authorization: string = `Basic ${newUserToken}`;
-        const res = await markSubprojectIncidentAsResolved({
+        const res: $TSFixMe = await markSubprojectIncidentAsResolved({
             request,
             authorization,
             subProjectId,

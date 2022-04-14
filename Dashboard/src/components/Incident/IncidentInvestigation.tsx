@@ -74,7 +74,7 @@ export class IncidentInvestigation extends Component<IncidentInvestigationProps>
     };
     deleteInvestigationMessage = (incidentMessageId: $TSFixMe) => {
 
-        const promise = this.props.deleteIncidentMessage(
+        const promise: $TSFixMe = this.props.deleteIncidentMessage(
 
             this.props.currentProject._id,
 
@@ -93,7 +93,7 @@ export class IncidentInvestigation extends Component<IncidentInvestigationProps>
         let canNext = false;
         let error;
 
-        const { incidentMessages, incident, openModal } = this.props;
+        const { incidentMessages, incident, openModal }: $TSFixMe = this.props;
         const {
 
             createMessageModalId,
@@ -102,7 +102,7 @@ export class IncidentInvestigation extends Component<IncidentInvestigationProps>
 
             deleteMessageModalId,
         } = this.state;
-        const numberOfPages = Math.ceil(
+        const numberOfPages: $TSFixMe = Math.ceil(
             parseInt(incidentMessages && incidentMessages.count) / 10
         );
         if (incidentMessages) {
@@ -179,14 +179,14 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const incidentMessages = state.incident.incidentMessages
+    const incidentMessages: $TSFixMe = state.incident.incidentMessages
         ? state.incident.incidentMessages[ownProps.incident.slug]
             ? state.incident.incidentMessages[ownProps.incident.slug][
             'investigation'
             ]
             : {}
         : {};
-    const currentProject = state.project.currentProject;
+    const currentProject: $TSFixMe = state.project.currentProject;
     return {
         incidentMessages,
         currentProject,

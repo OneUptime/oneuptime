@@ -37,7 +37,7 @@ const RenderSingleEscalation: Function = ({
     fields,
     rotationInterval
 }: RenderSingleEscalationProps) => {
-    const [rotationFreqVisible, setRotationFreqVisibility] = useState(
+    const [rotationFreqVisible, setRotationFreqVisibility]: $TSFixMe = useState(
         !!rotateBy
     );
 
@@ -807,7 +807,7 @@ const RenderSingleEscalation: Function = ({
                                                         className="button-as-anchor"
                                                         onClick={() => {
                                                             //remove rotation data from the object.
-                                                            const obj = fields.get(
+                                                            const obj: $TSFixMe = fields.get(
                                                                 policyIndex
                                                             );
                                                             obj.rotationInterval = null;

@@ -26,10 +26,10 @@ function BreadCrumbs({
     currentProjectId,
     closeIncident
 }: BreadCrumbsProps) {
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading]: $TSFixMe = useState(true);
 
-    const close = async () => {
-        const projectId = currentProjectId;
+    const close = async (): $TSFixMe => {
+        const projectId: $TSFixMe = currentProjectId;
         for (const incident of incidents) {
             if (incident.resolved) {
                 closeIncident(projectId, incident._id);
@@ -37,12 +37,12 @@ function BreadCrumbs({
         }
     };
 
-    const closeAllIncidents = async () => {
+    const closeAllIncidents = async (): $TSFixMe => {
         await close();
         setLoading(false);
     };
 
-    const deleteBtnStyle =
+    const deleteBtnStyle: $TSFixMe =
         ' Flex-flex Flex-justifyContent--spaceBetween Flex-alignItems--center mobile-flex-direction-breadcrumb';
 
     const showDeleteBtn = incidents.some((incident: $TSFixMe) => incident.resolved);
@@ -117,7 +117,7 @@ function BreadCrumbs({
 
 BreadCrumbs.displayName = 'BreadCrumbs';
 const mapStateToProps: Function = (state: RootState) => {
-    const currentProjectId =
+    const currentProjectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
     return {
         closeIncidentRequest: state.incident.closeincident,

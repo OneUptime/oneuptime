@@ -6,8 +6,8 @@ import mongoose, {
 
 import { RoleArray } from 'Common/Types/Role';
 
-const Schema = mongoose.Schema;
-const schema = new Schema({
+const Schema: $TSFixMe = mongoose.Schema;
+const schema: $TSFixMe = new Schema({
     domain: {
         type: Schema.Types.ObjectId,
         required: true,

@@ -6,21 +6,21 @@ import { createBrowserHistory, createMemoryHistory } from 'history';
 import rootReducer from './reducers';
 
 // A nice helper to tell us if we're on the server
-export const isApiServer = !(
+export const isApiServer: $TSFixMe = !(
     typeof window !== 'undefined' &&
     window.document &&
     window.document.createElement
 );
 
 const url: string = '/';
-export const history = isApiServer
+export const history: $TSFixMe = isApiServer
     ? createMemoryHistory({ initialEntries: [url] })
     : createBrowserHistory();
 
 const initialState: $TSFixMe = {};
-const enhancers = [];
-const logger = createLogger();
-const middleware = [thunk, routerMiddleware(history)];
+const enhancers: $TSFixMe = [];
+const logger: $TSFixMe = createLogger();
+const middleware: $TSFixMe = [thunk, routerMiddleware(history)];
 
 if (process.env['NODE_ENV'] === 'development') {
     let devToolsExtension;
@@ -34,9 +34,9 @@ if (process.env['NODE_ENV'] === 'development') {
     }
 }
 
-const composedEnhancers = compose(applyMiddleware(...middleware), ...enhancers);
+const composedEnhancers: $TSFixMe = compose(applyMiddleware(...middleware), ...enhancers);
 
-const store = createStore(rootReducer, initialState, composedEnhancers);
+const store: $TSFixMe = createStore(rootReducer, initialState, composedEnhancers);
 
 export type RootState = ReturnType<typeof store.getState>;
 

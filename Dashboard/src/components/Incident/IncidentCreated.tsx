@@ -27,10 +27,10 @@ class IncidentCreated extends Component<ComponentProps> {
                 incidentId: { slug: incidentSlug },
             },
         } = notification;
-        const project_Id =
+        const project_Id: $TSFixMe =
             typeof projectId === 'object' ? projectId._id : projectId;
 
-        const notifications = [{ notificationId }];
+        const notifications: $TSFixMe = [{ notificationId }];
 
         this.props.markAsRead(project_Id, notifications);
 
@@ -42,7 +42,7 @@ class IncidentCreated extends Component<ComponentProps> {
 
     handleCloseNotification = (notification: $TSFixMe) => {
         const { projectId, _id: notificationId } = notification;
-        const project_Id =
+        const project_Id: $TSFixMe =
             typeof projectId === 'object' ? projectId._id : projectId;
 
         this.props.closeNotification(project_Id, notificationId);
@@ -50,7 +50,7 @@ class IncidentCreated extends Component<ComponentProps> {
 
     override render() {
 
-        const { notifications } = this.props;
+        const { notifications }: $TSFixMe = this.props;
 
         return (
             <Fade>

@@ -25,18 +25,18 @@ const TimezoneSelector: Function = ({
     id,
     disabled
 }: TimezoneSelectorProps) => {
-    const options = [{ value: '', label: 'Select Timezone...' }].concat(
+    const options: $TSFixMe = [{ value: '', label: 'Select Timezone...' }].concat(
         Zones.map((zone: $TSFixMe) => ({
             value: zone.value,
             label: zone.name
         }))
     );
 
-    const filteredOpt = useRef();
+    const filteredOpt: $TSFixMe = useRef();
 
     filteredOpt.current = options.filter(opt => opt.value === input.value);
 
-    const [value, setValue] = useState({
+    const [value, setValue]: $TSFixMe = useState({
         value: input.value,
         label:
 

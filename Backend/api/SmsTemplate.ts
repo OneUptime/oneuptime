@@ -4,16 +4,16 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import SmsTemplateService from '../services/smsTemplateService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import createDOMPurify from 'dompurify';
-const jsdom = require('jsdom').jsdom;
-const window = jsdom('').defaultView;
-const DOMPurify = createDOMPurify(window);
+const jsdom: $TSFixMe = require('jsdom').jsdom;
+const window: $TSFixMe = jsdom('').defaultView;
+const DOMPurify: $TSFixMe = createDOMPurify(window);
 
 import { isAuthorized } from '../middlewares/authorization';
-const getUser = require('../middlewares/user').getUser;
-const isUserOwner = require('../middlewares/project').isUserOwner;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserOwner: $TSFixMe = require('../middlewares/project').isUserOwner;
 
 import {
     sendErrorResponse,
@@ -27,7 +27,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.projectId = req.params.projectId;
 
             if (!data.body) {
@@ -38,7 +38,7 @@ router.post(
             }
 
             data.body = await DOMPurify.sanitize(data.body);
-            const smsTemplate = await SmsTemplateService.create(data);
+            const smsTemplate: $TSFixMe = await SmsTemplateService.create(data);
             return sendItemResponse(req, res, smsTemplate);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -52,10 +52,10 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const templateId = req.params.templateId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const templateId: $TSFixMe = req.params.templateId;
             await SmsTemplateService.resetTemplate(projectId, templateId);
-            const templates = await SmsTemplateService.getTemplates(projectId);
+            const templates: $TSFixMe = await SmsTemplateService.getTemplates(projectId);
             return sendItemResponse(req, res, templates);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -69,8 +69,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const templates = await SmsTemplateService.getTemplates(projectId);
+            const projectId: $TSFixMe = req.params.projectId;
+            const templates: $TSFixMe = await SmsTemplateService.getTemplates(projectId);
             return sendItemResponse(req, res, templates);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -84,10 +84,10 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const smsTemplateId = req.params.smsTemplateId;
-            const populate = [{ path: 'projectId', select: 'name' }];
+            const smsTemplateId: $TSFixMe = req.params.smsTemplateId;
+            const populate: $TSFixMe = [{ path: 'projectId', select: 'name' }];
             const select: string = 'projectId body smsType allowedVariables';
-            const smsTemplates = await SmsTemplateService.findOneBy({
+            const smsTemplates: $TSFixMe = await SmsTemplateService.findOneBy({
                 query: { _id: smsTemplateId },
                 populate,
                 select,
@@ -105,11 +105,11 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const smsTemplateId = req.params.smsTemplateId;
+            const data: $TSFixMe = req.body;
+            const smsTemplateId: $TSFixMe = req.params.smsTemplateId;
             // Call the SMSTemplateService
             data.body = await DOMPurify.sanitize(data.body);
-            const smsTemplate = await SmsTemplateService.updateOneBy(
+            const smsTemplate: $TSFixMe = await SmsTemplateService.updateOneBy(
                 { _id: smsTemplateId },
                 data
             );
@@ -126,8 +126,8 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = [];
-            const { projectId } = req.params;
+            const data: $TSFixMe = [];
+            const { projectId }: $TSFixMe = req.params;
             for (const value of req.body) {
                 if (!value.body) {
                     return sendErrorResponse(req, res, {
@@ -141,9 +141,9 @@ router.put(
                 data.push(value);
             }
 
-            const templateData = [];
+            const templateData: $TSFixMe = [];
             for (const value of data) {
-                const smsTemplate = await SmsTemplateService.findOneBy({
+                const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
                     query: {
                         projectId: value.projectId,
                         smsType: value.smsType,
@@ -161,7 +161,7 @@ router.put(
             }
             await SmsTemplateService.createMany(templateData);
 
-            const smsTemplates = await SmsTemplateService.getTemplates(
+            const smsTemplates: $TSFixMe = await SmsTemplateService.getTemplates(
                 projectId
             );
             return sendItemResponse(req, res, smsTemplates);
@@ -177,10 +177,10 @@ router.delete(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const smsTemplateId = req.params.smsTemplateId;
+            const smsTemplateId: $TSFixMe = req.params.smsTemplateId;
 
-            const userId = req.user.id;
-            const smsTemplate = await SmsTemplateService.deleteBy(
+            const userId: $TSFixMe = req.user.id;
+            const smsTemplate: $TSFixMe = await SmsTemplateService.deleteBy(
                 { _id: smsTemplateId },
                 userId
             );

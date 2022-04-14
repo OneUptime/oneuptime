@@ -449,7 +449,7 @@ export default function incident(state = initialState, action: Action): void {
             });
 
         case types.INCIDENT_TIMELINE_SUCCESS: {
-            const incident = Object.assign({}, state.incident.incident);
+            const incident: $TSFixMe = Object.assign({}, state.incident.incident);
 
             if (incident) {
                 incident.timeline = action.payload.data;
@@ -480,7 +480,7 @@ export default function incident(state = initialState, action: Action): void {
             // let idNumber =
             //     action.payload.incidentId && action.payload.incidentId.idNumber;
             // idNumber = idNumber - 1;
-            const incidentSlug = action.payload.incidentId.slug;
+            const incidentSlug: $TSFixMe = action.payload.incidentId.slug;
             if (!action || !action.payload) {
                 return state;
             }
@@ -1001,7 +1001,7 @@ export default function incident(state = initialState, action: Action): void {
                 if (!incidentFound) {
                     incidentMessages = [action.payload, ...incidentMessages];
                 }
-                const type =
+                const type: $TSFixMe =
                     state.incidentMessages[action.payload.incidentId.slug] &&
                     state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
@@ -1010,7 +1010,7 @@ export default function incident(state = initialState, action: Action): void {
                               action.payload.incidentId.slug
                           ][action.payload.type]
                         : null;
-                const count =
+                const count: $TSFixMe =
                     state.incidentMessages[action.payload.incidentId.slug] &&
                     state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
@@ -1150,9 +1150,9 @@ export default function incident(state = initialState, action: Action): void {
             });
 
         case 'DELETE_MONITOR_BY_SOCKET': {
-            const incidents = state.unresolvedincidents.incidents.map(
+            const incidents: $TSFixMe = state.unresolvedincidents.incidents.map(
                 incident => {
-                    const monitors = incident.monitors.filter(
+                    const monitors: $TSFixMe = incident.monitors.filter(
                         (monitor: $TSFixMe) => {
                             if (monitor.monitorId._id === action.payload) {
                                 return false;

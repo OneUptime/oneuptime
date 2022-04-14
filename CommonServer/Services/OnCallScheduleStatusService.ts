@@ -31,7 +31,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const itemsQuery = OnCallScheduleStatusModel.find(query)
+        const itemsQuery: $TSFixMe = OnCallScheduleStatusModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber());
@@ -39,7 +39,7 @@ export default class Service {
         itemsQuery.select(select);
         itemsQuery.populate(populate);
 
-        const items = await itemsQuery;
+        const items: $TSFixMe = await itemsQuery;
 
         return items;
     }
@@ -78,7 +78,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await OnCallScheduleStatusModel.countDocuments(query);
+        const count: $TSFixMe = await OnCallScheduleStatusModel.countDocuments(query);
         return count;
     }
 
@@ -90,7 +90,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const item = await OnCallScheduleStatusModel.findOneAndUpdate(
+        const item: $TSFixMe = await OnCallScheduleStatusModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -114,10 +114,10 @@ export default class Service {
             $set: data,
         });
 
-        const selectOnCallScheduleStatus =
+        const selectOnCallScheduleStatus: $TSFixMe =
             'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
-        const populateOnCallScheduleStatus = [
+        const populateOnCallScheduleStatus: $TSFixMe = [
             { path: 'incidentId', select: 'name slug' },
             { path: 'project', select: 'name slug' },
             { path: 'scheduleId', select: 'name slug' },
@@ -127,7 +127,7 @@ export default class Service {
                 select: 'projectId teams scheduleId',
             },
         ];
-        const items = await this.findBy({
+        const items: $TSFixMe = await this.findBy({
             query,
             select: selectOnCallScheduleStatus,
             populate: populateOnCallScheduleStatus,
@@ -141,7 +141,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const items = await OnCallScheduleStatusModel.findOneAndUpdate(
+        const items: $TSFixMe = await OnCallScheduleStatusModel.findOneAndUpdate(
             query,
             {
                 $set: {

@@ -4,7 +4,7 @@ import ScriptModelLog from '../Models/automationScriptsLog';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BackendAPI from '../Utils/api';
 import getSlug from '../Utils/getSlug';
-const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
+const scriptBaseUrl: $TSFixMe = process.env['SCRIPT_RUNNER_URL'];
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
@@ -34,7 +34,7 @@ export default class Service {
 
         query['deleted'] = false;
 
-        const sortDataListQuery = ScriptModel.find(query)
+        const sortDataListQuery: $TSFixMe = ScriptModel.find(query)
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
@@ -42,7 +42,7 @@ export default class Service {
         sortDataListQuery.select(select);
         sortDataListQuery.populate(populate);
 
-        const sortDataList = await sortDataListQuery;
+        const sortDataList: $TSFixMe = await sortDataListQuery;
         return sortDataList;
     }
 
@@ -51,7 +51,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const count = await ScriptModel.countDocuments(query);
+        const count: $TSFixMe = await ScriptModel.countDocuments(query);
         return count;
     }
 
@@ -60,12 +60,12 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const count = await ScriptModelLog.countDocuments(query);
+        const count: $TSFixMe = await ScriptModelLog.countDocuments(query);
         return count;
     }
 
     async create(data: $TSFixMe): void {
-        const script = new ScriptModel();
+        const script: $TSFixMe = new ScriptModel();
 
         script.name = data.name || null;
 
@@ -80,13 +80,13 @@ export default class Service {
         script.projectId = data.projectId || null;
 
         script.script = data.script || null;
-        const newScript = await script.save();
+        const newScript: $TSFixMe = await script.save();
 
         return newScript;
     }
 
     async createLog(id: $TSFixMe, data: $TSFixMe): void {
-        const scriptLog = new ScriptModelLog();
+        const scriptLog: $TSFixMe = new ScriptModelLog();
 
         scriptLog.automationScriptId = id || null;
 
@@ -103,7 +103,7 @@ export default class Service {
         scriptLog.consoleLogs = data.consoleLogs || null;
 
         scriptLog.error = data.error || null;
-        const newScriptLog = await scriptLog.save();
+        const newScriptLog: $TSFixMe = await scriptLog.save();
 
         return newScriptLog;
     }
@@ -113,7 +113,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const response = ScriptModel.findOneAndUpdate(
+        const response: $TSFixMe = ScriptModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -149,7 +149,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const response = await ScriptModelLog.find(query)
+        const response: $TSFixMe = await ScriptModelLog.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .populate('automationScriptId', 'name')
@@ -165,12 +165,12 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const responseQuery = ScriptModel.findOne(query).sort(sort).lean();
+        const responseQuery: $TSFixMe = ScriptModel.findOne(query).sort(sort).lean();
 
         responseQuery.select(select);
         responseQuery.populate(populate);
 
-        const response = await responseQuery;
+        const response: $TSFixMe = await responseQuery;
         return response;
     }
 
@@ -179,12 +179,12 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        const response = await this.findAllLogs(query, skip, limit);
+        const response: $TSFixMe = await this.findAllLogs(query, skip, limit);
         return response;
     }
 
     async createScript(data: $TSFixMe): void {
-        const response = await this.create(data);
+        const response: $TSFixMe = await this.create(data);
         return response;
     }
 
@@ -195,7 +195,7 @@ export default class Service {
         stackSize = 0,
     }: $TSFixMe): void {
         if (stackSize === 3) {
-            const resource = resources[0];
+            const resource: $TSFixMe = resources[0];
             if (resource) {
                 let type;
                 if (resource.automatedScript) {
@@ -226,14 +226,14 @@ export default class Service {
             return;
         }
         const events = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
-        const eventPromises = events.map(event => {
+        const eventPromises = events.map(event: $TSFixMe => {
             let resourceType;
             if (event.automatedScript) {
                 resourceType = 'automatedScript';
             } else if (event.callSchedule) {
                 resourceType = 'callSchedule';
             }
-            const automatedScriptId = event.automatedScript;
+            const automatedScriptId: $TSFixMe = event.automatedScript;
             switch (resourceType) {
                 case 'automatedScript':
                     return this.runAutomatedScript({
@@ -256,11 +256,11 @@ export default class Service {
         triggeredBy = 'script',
         stackSize,
     }: $TSFixMe): void {
-        const selectScript =
+        const selectScript: $TSFixMe =
             'name script scriptType slug projectId successEvent failureEvent';
-        const populateScript = [{ path: 'createdById', select: 'name' }];
+        const populateScript: $TSFixMe = [{ path: 'createdById', select: 'name' }];
 
-        const { script, scriptType, successEvent, failureEvent } =
+        const { script, scriptType, successEvent, failureEvent }: $TSFixMe =
             await this.findOneBy({
                 query: { _id: automatedScriptId },
                 select: selectScript,
@@ -268,7 +268,7 @@ export default class Service {
             });
         let data = null;
         if (scriptType === 'JavaScript') {
-            const result = await BackendAPI.post(`${scriptBaseUrl}/script/js`, {
+            const result: $TSFixMe = await BackendAPI.post(`${scriptBaseUrl}/script/js`, {
                 script,
             });
             data = {
@@ -282,7 +282,7 @@ export default class Service {
                 consoleLogs: result.consoleLogs,
             };
         } else if (scriptType === 'Bash') {
-            const result = await BackendAPI.post(
+            const result: $TSFixMe = await BackendAPI.post(
                 `${scriptBaseUrl}/script/bash`,
                 {
                     script,
@@ -319,7 +319,7 @@ export default class Service {
                 stackSize,
             });
         }
-        const automatedScriptLog = await this.createLog(
+        const automatedScriptLog: $TSFixMe = await this.createLog(
             automatedScriptId,
             data
         );
@@ -331,14 +331,14 @@ export default class Service {
     }
 
     async removeScriptFromEvent({ projectId, id }: $TSFixMe): void {
-        const scripts = await ScriptModel.find({ projectId }).lean();
+        const scripts: $TSFixMe = await ScriptModel.find({ projectId }).lean();
         await Promise.all(
             scripts.map(async (script: $TSFixMe) => {
-                const successEvent = script.successEvent.filter(
+                const successEvent: $TSFixMe = script.successEvent.filter(
                     (script: $TSFixMe) =>
                         String(script.automatedScript) !== String(id)
                 );
-                const failureEvent = script.failureEvent.filter(
+                const failureEvent: $TSFixMe = script.failureEvent.filter(
                     (script: $TSFixMe) =>
                         String(script.automatedScript) !== String(id)
                 );
@@ -356,7 +356,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const response = await ScriptModel.findOneAndUpdate(
+        const response: $TSFixMe = await ScriptModel.findOneAndUpdate(
             query,
             {
                 $set: {

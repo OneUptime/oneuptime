@@ -7,8 +7,8 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
 
 /** This is a test to check:
  * No errors on page reload
@@ -16,7 +16,7 @@ const monitorName = utils.generateRandomString();
  */
 
 describe('OneUptime Monitor Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -64,7 +64,7 @@ describe('OneUptime Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#incident_title_0`,
                 {
@@ -110,7 +110,7 @@ describe('OneUptime Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#incident_0',
                 {
@@ -157,7 +157,7 @@ describe('OneUptime Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#incident_0',
                 {

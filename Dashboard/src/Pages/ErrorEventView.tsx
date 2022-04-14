@@ -93,19 +93,19 @@ class ErrorEventView extends Component<ComponentProps> {
     }
     ready = () => {
 
-        const componentId = this.props.componentId;
+        const componentId: $TSFixMe = this.props.componentId;
 
-        const projectId = this.props.currentProject
+        const projectId: $TSFixMe = this.props.currentProject
 
             ? this.props.currentProject._id
             : null;
 
-        const errorTrackerId = this.props.errorTracker
+        const errorTrackerId: $TSFixMe = this.props.errorTracker
 
             ? this.props.errorTracker[0]._id
             : null;
 
-        const errorEventId = this.props.match.params.errorEventId
+        const errorEventId: $TSFixMe = this.props.match.params.errorEventId
 
             ? this.props.match.params.errorEventId
             : null;
@@ -194,11 +194,11 @@ class ErrorEventView extends Component<ComponentProps> {
             switchToProjectViewerNav,
         } = this.props;
 
-        const componentName = component ? component.name : '';
-        const errorTrackerName =
+        const componentName: $TSFixMe = component ? component.name : '';
+        const errorTrackerName: $TSFixMe =
             errorTracker.length > 0 ? errorTracker[0].name : null;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -277,15 +277,15 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
         errorTrackerSlug,
         errorEventId,
     } = ownProps.match.params;
-    const currentErrorEvent = state.errorTracker.currentErrorEvent;
-    const currentErrorEventId =
+    const currentErrorEvent: $TSFixMe = state.errorTracker.currentErrorEvent;
+    const currentErrorEventId: $TSFixMe =
         currentErrorEvent !== errorEventId ? errorEventId : currentErrorEvent;
-    const currentProject = state.project.currentProject;
-    const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(
+    const currentProject: $TSFixMe = state.project.currentProject;
+    const errorTracker: $TSFixMe = state.errorTracker.errorTrackersList.errorTrackers.filter(
         (errorTracker: $TSFixMe) => errorTracker.slug === errorTrackerSlug
     );
     let errorEvent = {};
-    const errorEvents = state.errorTracker.errorEvents;
+    const errorEvents: $TSFixMe = state.errorTracker.errorEvents;
     if (errorEvents) {
         for (const errorEventKey in errorEvents) {
             if (

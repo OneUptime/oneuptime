@@ -41,7 +41,7 @@ export class MonitorViewSubscriberBox extends Component<MonitorViewSubscriberBox
     }
 
     prevClicked = () => {
-        const subProjectId =
+        const subProjectId: $TSFixMe =
 
             this.props.monitor.projectId._id || this.props.monitor.projectId;
 
@@ -59,7 +59,7 @@ export class MonitorViewSubscriberBox extends Component<MonitorViewSubscriberBox
     };
 
     nextClicked = () => {
-        const subProjectId =
+        const subProjectId: $TSFixMe =
 
             this.props.monitor.projectId._id || this.props.monitor.projectId;
 
@@ -78,16 +78,16 @@ export class MonitorViewSubscriberBox extends Component<MonitorViewSubscriberBox
 
     override render() {
 
-        const { createSubscriberModalId, uploadSubscriberModalId } = this.state;
+        const { createSubscriberModalId, uploadSubscriberModalId }: $TSFixMe = this.state;
 
-        const creating = this.props.create ? this.props.create : false;
+        const creating: $TSFixMe = this.props.create ? this.props.create : false;
 
-        const exporting = this.props.export ? this.props.export : false;
-        const subProjectId =
+        const exporting: $TSFixMe = this.props.export ? this.props.export : false;
+        const subProjectId: $TSFixMe =
 
             this.props.monitor.projectId._id || this.props.monitor.projectId;
 
-        const { monitorId } = this.props;
+        const { monitorId }: $TSFixMe = this.props;
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -268,7 +268,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const monitor = state.monitor.monitorsList.monitors
+    const monitor: $TSFixMe = state.monitor.monitorsList.monitors
         .map((monitor: $TSFixMe) => monitor.monitors.find((monitor: $TSFixMe) => monitor._id === props.monitorId)
         )
         .filter((monitor: $TSFixMe) => monitor)[0];

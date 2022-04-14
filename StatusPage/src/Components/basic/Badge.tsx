@@ -16,7 +16,7 @@ function Badge({
     fontColor,
     ...props
 }: BadgeProps) {
-    const shadow = fontColor
+    const shadow: $TSFixMe = fontColor
         ? { boxShadow: `inset 0 0 0 1px ${fontColor}` }
         : {};
     return (

@@ -70,9 +70,9 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
 
     override componentDidMount() {
 
-        const { fetchMonitorLogs, monitor } = this.props;
+        const { fetchMonitorLogs, monitor }: $TSFixMe = this.props;
 
-        const { startDate, endDate } = this.state;
+        const { startDate, endDate }: $TSFixMe = this.state;
 
         fetchMonitorLogs(
             monitor.projectId._id || monitor.projectId,
@@ -84,8 +84,8 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
     }
 
     // componentDidUpdate(prevProps) {
-    //     const { fetchMonitorLogs, monitor } = this.props;
-    //     const { startDate, endDate } = this.state;
+    //     const { fetchMonitorLogs, monitor }: $TSFixMe = this.props;
+    //     const { startDate, endDate }: $TSFixMe = this.state;
 
     //     if (prevProps.probes !== this.props.probes) {
     //         if (this.state.nowHandler) {
@@ -106,7 +106,7 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
     setLastAlive = () => {
         this.setState({ now: Date.now() });
 
-        const nowHandler = setTimeout(() => {
+        const nowHandler = setTimeout((): $TSFixMe => {
             this.setState({ now: Date.now() });
         }, 300000);
 
@@ -114,12 +114,12 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
     };
 
     handleStartDateTimeChange = (val: $TSFixMe) => {
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
 
         this.handleDateChange(startDate, this.state.endDate);
     };
     handleEndDateTimeChange = (val: $TSFixMe) => {
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
 
         this.handleDateChange(this.state.startDate, endDate);
     };
@@ -127,7 +127,7 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
         this.setState({ startDate, endDate });
 
 
-        const { fetchMonitorLogs, fetchMonitorStatuses, monitor } = this.props;
+        const { fetchMonitorLogs, fetchMonitorStatuses, monitor }: $TSFixMe = this.props;
 
         fetchMonitorLogs(
             monitor.projectId._id || monitor.projectId,
@@ -189,7 +189,7 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
                 3
             )
             .then(() => {
-                const numberOfPage = Math.ceil(
+                const numberOfPage: $TSFixMe = Math.ceil(
 
                     parseInt(this.props.monitor && this.props.monitor.count) / 3
                 );
@@ -212,7 +212,7 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
     };
 
     handleKeyBoard = (e: $TSFixMe) => {
-        const canNext =
+        const canNext: $TSFixMe =
 
             this.props.monitor &&
 
@@ -223,7 +223,7 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
                 this.props.monitor.skip + this.props.monitor.limit
                 ? true
                 : false;
-        const canPrev =
+        const canPrev: $TSFixMe =
 
             this.props.monitor && this.props.monitor.skip <= 0 ? false : true;
         switch (e.key) {
@@ -253,7 +253,7 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
 
     override render() {
 
-        const { createIncidentModalId, startDate, endDate } = this.state;
+        const { createIncidentModalId, startDate, endDate }: $TSFixMe = this.state;
         const {
 
             monitor,
@@ -274,41 +274,41 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
 
             componentSlug,
         } = this.props;
-        const numberOfPage = Math.ceil(
+        const numberOfPage: $TSFixMe = Math.ceil(
 
             parseInt(this.props.monitor && this.props.monitor.count) / 3
         );
-        const probe =
+        const probe: $TSFixMe =
             monitor && probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
                 : null;
-        const lastAlive = probe && probe.lastAlive ? probe.lastAlive : null;
+        const lastAlive: $TSFixMe = probe && probe.lastAlive ? probe.lastAlive : null;
 
-        const { logs, statuses } = filterProbeData(
+        const { logs, statuses }: $TSFixMe = filterProbeData(
             monitor,
             probe,
             startDate,
             endDate
         );
 
-        const requesting = monitorState.fetchMonitorLogsRequest;
-        const monitorDisabled = monitor.disabled;
-        const status = monitorDisabled
+        const requesting: $TSFixMe = monitorState.fetchMonitorLogsRequest;
+        const monitorDisabled: $TSFixMe = monitor.disabled;
+        const status: $TSFixMe = monitorDisabled
             ? 'disabled'
             : requesting
                 ? 'requesting'
 
                 : getMonitorStatus(monitor.incidents, logs);
 
-        const creating = create || false;
+        const creating: $TSFixMe = create || false;
 
-        const url =
+        const url: $TSFixMe =
             monitor && monitor.data && monitor.data.url
                 ? monitor.data.url
                 : monitor && monitor.data && monitor.data.link
                     ? monitor.data.link
                     : null;
-        const probeUrl:string = `/dashboard/project/${currentProject.slug}/settings/probe`;
+        const probeUrl:string: $TSFixMe = `/dashboard/project/${currentProject.slug}/settings/probe`;
 
         monitor.error = null;
         if (
@@ -337,7 +337,7 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
                 break;
         }
 
-        const isCurrentlyNotMonitoring =
+        const isCurrentlyNotMonitoring: $TSFixMe =
             (lastAlive &&
 
                 moment(this.state.now).diff(moment(lastAlive), 'seconds') >=
@@ -639,24 +639,24 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
                         <div className="btn-group">
                             {monitor &&
                                 probes.map((location: $TSFixMe, index: $TSFixMe) => {
-                                    const { logs } = filterProbeData(
+                                    const { logs }: $TSFixMe = filterProbeData(
                                         monitor,
                                         location,
                                         startDate,
                                         endDate
                                     );
-                                    const checkLogs = logs && logs.length > 0;
-                                    const status = checkLogs
+                                    const checkLogs: $TSFixMe = logs && logs.length > 0;
+                                    const status: $TSFixMe = checkLogs
                                         ? logs[0].status
 
                                         : getMonitorStatus(
                                             monitor.incidents,
                                             logs
                                         );
-                                    const probe = probes.filter(
+                                    const probe: $TSFixMe = probes.filter(
                                         (probe: $TSFixMe) => probe._id === location._id
                                     );
-                                    const lastAlive =
+                                    const lastAlive: $TSFixMe =
                                         probe && probe.length > 0
                                             ? probe[0].lastAlive
                                             : null;

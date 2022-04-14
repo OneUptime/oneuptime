@@ -252,7 +252,7 @@ class MonitorDashboardView extends Component<ComponentProps> {
 
     ready = () => {
 
-        const projectId = this.props.currentProject
+        const projectId: $TSFixMe = this.props.currentProject
 
             ? this.props.currentProject._id
             : null;
@@ -326,14 +326,14 @@ class MonitorDashboardView extends Component<ComponentProps> {
 
 
         if (this.props.monitors.length) {
-            const scriptElement = document.createElement('script');
+            const scriptElement: $TSFixMe = document.createElement('script');
             scriptElement.type = 'text/javascript';
             scriptElement.src = '/dashboard/assets/js/landing.base.js';
             document.head.appendChild(scriptElement);
         }
 
 
-        const monitor = this.props.monitor;
+        const monitor: $TSFixMe = this.props.monitor;
         if (component && component._id) {
             monitor.paginatedMonitorsList.monitors.forEach((item: $TSFixMe) => {
                 item.monitors = item.monitors.filter(
@@ -346,15 +346,15 @@ class MonitorDashboardView extends Component<ComponentProps> {
             .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
 
-        const currentProjectId = currentProject ? currentProject._id : null;
-        const currentProjectSlug = currentProject ? currentProject.slug : null;
+        const currentProjectId: $TSFixMe = currentProject ? currentProject._id : null;
+        const currentProjectSlug: $TSFixMe = currentProject ? currentProject.slug : null;
 
         // SubProject Monitors List
         let monitors =
             subProjects &&
             subProjects.map((subProject: $TSFixMe, i: $TSFixMe) => {
 
-                const subProjectMonitor = this.props.monitor.paginatedMonitorsList.monitors.find(
+                const subProjectMonitor: $TSFixMe = this.props.monitor.paginatedMonitorsList.monitors.find(
                     (subProjectMonitor: $TSFixMe) => subProjectMonitor._id === subProject._id
                 );
                 allMonitors = IsUserInSubProject(subProject)
@@ -474,9 +474,9 @@ class MonitorDashboardView extends Component<ComponentProps> {
         monitors = monitors.filter(
             (monitor: $TSFixMe) => monitor && typeof monitor === 'object'
         );
-        const componentName = component ? component.name : '';
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const componentName: $TSFixMe = component ? component.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -754,17 +754,17 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { componentSlug } = ownProps.match.params;
-    const projectId =
+    const { componentSlug }: $TSFixMe = ownProps.match.params;
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
-    const monitor = state.monitor;
-    const component =
+    const monitor: $TSFixMe = state.monitor;
+    const component: $TSFixMe =
         state.component && state.component.currentComponent.component;
 
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
-    const subProjectNames =
+    const subProjectNames: $TSFixMe =
         subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =
@@ -772,7 +772,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
         subProjectNames.map((name: $TSFixMe) => subProjects.find((subProject: $TSFixMe) => subProject.name === name)
         );
     // try to get custom project tutorial by project ID
-    const projectCustomTutorial = state.tutorial[projectId];
+    const projectCustomTutorial: $TSFixMe = state.tutorial[projectId];
 
     // set a default show to true for the tutorials to display
     const tutorialStat: $TSFixMe = {

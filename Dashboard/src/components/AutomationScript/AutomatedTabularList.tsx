@@ -23,11 +23,11 @@ interface AutomatedTabularListProps {
 }
 
 const AutomatedTabularList: Function = (props: AutomatedTabularListProps) => {
-    const [automatedId] = useState(uuidv4);
-    const { scripts, count, requesting } = props.scriptsObj;
+    const [automatedId]: $TSFixMe = useState(uuidv4);
+    const { scripts, count, requesting }: $TSFixMe = props.scriptsObj;
     let { skip, limit } = props.scriptsObj;
-    const projectId = props.currentProject && props.currentProject._id;
-    const pathName = props.history.location.pathname;
+    const projectId: $TSFixMe = props.currentProject && props.currentProject._id;
+    const pathName: $TSFixMe = props.history.location.pathname;
 
     const handleNewScript: Function = (e: $TSFixMe) => {
         if (e.keyCode === 78) {
@@ -60,9 +60,9 @@ const AutomatedTabularList: Function = (props: AutomatedTabularListProps) => {
         canPrev = false;
     }
 
-    const nextClicked = async () => {
-        const projectId = props.currentProject && props.currentProject._id;
-        const { skip } = props.scriptsObj;
+    const nextClicked = async (): $TSFixMe => {
+        const projectId: $TSFixMe = props.currentProject && props.currentProject._id;
+        const { skip }: $TSFixMe = props.scriptsObj;
         await props.fetchAutomatedScript(
             projectId,
             parseInt(skip, 10) + 10,
@@ -70,9 +70,9 @@ const AutomatedTabularList: Function = (props: AutomatedTabularListProps) => {
         );
     };
 
-    const prevClicked = async () => {
-        const projectId = props.currentProject && props.currentProject._id;
-        const { skip } = props.scriptsObj;
+    const prevClicked = async (): $TSFixMe => {
+        const projectId: $TSFixMe = props.currentProject && props.currentProject._id;
+        const { skip }: $TSFixMe = props.scriptsObj;
         await props.fetchAutomatedScript(
             projectId,
             parseInt(skip, 10) - 10,

@@ -5,13 +5,13 @@ import express, {
 import ReportService from '../services/reportService';
 
 import { isAuthorized } from '../middlewares/authorization';
-const getUser = require('../middlewares/user').getUser;
-const getSubProjects = require('../middlewares/subProject').getSubProjects;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 import { sendListResponse } from 'CommonServer/Utils/response';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 /**
  * @Routes
@@ -26,13 +26,13 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { startDate, endDate, skip, limit } = req.query;
+            const { startDate, endDate, skip, limit }: $TSFixMe = req.query;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call ReportService
-            const members = await ReportService.getMostActiveMembers(
+            const members: $TSFixMe = await ReportService.getMostActiveMembers(
                 subProjectIds,
                 startDate,
                 endDate,
@@ -40,7 +40,7 @@ router.get(
                 limit
             );
 
-            const count = members.count;
+            const count: $TSFixMe = members.count;
 
             return sendListResponse(req, res, members.members, count);
         } catch (error) {
@@ -62,13 +62,13 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { startDate, endDate, skip, limit } = req.query;
+            const { startDate, endDate, skip, limit }: $TSFixMe = req.query;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call Reports Service
-            const monitors = await ReportService.getMostActiveMonitors(
+            const monitors: $TSFixMe = await ReportService.getMostActiveMonitors(
                 subProjectIds,
                 startDate,
                 endDate,
@@ -76,7 +76,7 @@ router.get(
                 limit
             );
 
-            const count = monitors.count;
+            const count: $TSFixMe = monitors.count;
 
             return sendListResponse(req, res, monitors.monitors, count);
         } catch (error) {
@@ -98,13 +98,13 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { startDate, endDate, filter } = req.query;
+            const { startDate, endDate, filter }: $TSFixMe = req.query;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Reports Service
-            const resolveTime = await ReportService.getAverageTimeBy(
+            const resolveTime: $TSFixMe = await ReportService.getAverageTimeBy(
                 subProjectIds,
                 startDate,
                 endDate,
@@ -130,13 +130,13 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { startDate, endDate, filter } = req.query;
+            const { startDate, endDate, filter }: $TSFixMe = req.query;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Reports Service
-            const incidents = await ReportService.getIncidentCountBy(
+            const incidents: $TSFixMe = await ReportService.getIncidentCountBy(
                 subProjectIds,
                 startDate,
                 endDate,

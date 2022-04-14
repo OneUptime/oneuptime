@@ -21,21 +21,21 @@ export class ProjectAlertLimitBox extends Component<ComponentProps>{
     }
 
     onChange = (e: $TSFixMe) => {
-        const value = e.target.value;
+        const value: $TSFixMe = e.target.value;
         this.setState({ alertLimit: value });
     };
 
     handleClick = () => {
 
-        const { renewAlertLimit, project } = this.props;
+        const { renewAlertLimit, project }: $TSFixMe = this.props;
 
-        const { alertLimit } = this.state;
+        const { alertLimit }: $TSFixMe = this.state;
         renewAlertLimit(project._id, alertLimit);
     };
 
     override render() {
 
-        const { requesting } = this.props;
+        const { requesting }: $TSFixMe = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -110,7 +110,7 @@ ProjectAlertLimitBox.displayName = 'ProjectAlertLimitBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ renewAlertLimit }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const project = state.project.project.project;
+    const project: $TSFixMe = state.project.project.project;
     return {
         project,
         requesting:

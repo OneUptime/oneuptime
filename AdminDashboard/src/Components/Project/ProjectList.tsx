@@ -62,7 +62,7 @@ export class ProjectList extends Component<ComponentProps>{
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(
+        const numberOfPages: $TSFixMe = Math.ceil(
 
             parseInt(this.props.projects && this.props.projects.count) / 10
         );
@@ -194,7 +194,7 @@ export class ProjectList extends Component<ComponentProps>{
 
                                 this.props.projects.projects.map(
                                     (project: $TSFixMe, index: $TSFixMe) => {
-                                        const projectOwner =
+                                        const projectOwner: $TSFixMe =
                                             project.users.find(
                                                 (user: $TSFixMe) => user.role === 'Owner'
                                             ) || project.users.length > 0

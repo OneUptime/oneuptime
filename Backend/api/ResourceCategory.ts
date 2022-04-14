@@ -3,12 +3,12 @@ import express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 
-const getUser = require('../middlewares/user').getUser;
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 
 import ResourceCategoryService from '../services/resourceCategoryService';
 
@@ -31,10 +31,10 @@ router.post(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const resourceCategoryName = req.body.resourceCategoryName;
-            const projectId = req.params.projectId;
+            const resourceCategoryName: $TSFixMe = req.body.resourceCategoryName;
+            const projectId: $TSFixMe = req.params.projectId;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
             if (!resourceCategoryName) {
                 return sendErrorResponse(req, res, {
@@ -65,7 +65,7 @@ router.post(
             }
 
             // Call the ResourceCategoryService
-            const resourceCategory = await ResourceCategoryService.create({
+            const resourceCategory: $TSFixMe = await ResourceCategoryService.create({
                 projectId,
                 userId,
                 name: resourceCategoryName,
@@ -84,10 +84,10 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const resourceCategoryId = req.params.resourceCategoryId;
-            const projectId = req.params.projectId;
+            const resourceCategoryId: $TSFixMe = req.params.resourceCategoryId;
+            const projectId: $TSFixMe = req.params.projectId;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
             if (!resourceCategoryId) {
                 return sendErrorResponse(req, res, {
@@ -117,7 +117,7 @@ router.delete(
                 });
             }
             // Call the ResourceCategoryService
-            const deletedResourceCategory =
+            const deletedResourceCategory: $TSFixMe =
                 await ResourceCategoryService.deleteBy(
                     {
                         projectId,
@@ -140,9 +140,9 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const resourceCategoryId = req.params.resourceCategoryId;
-            const projectId = req.params.projectId;
-            const { name } = req.body;
+            const resourceCategoryId: $TSFixMe = req.params.resourceCategoryId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const { name }: $TSFixMe = req.body;
 
             if (!resourceCategoryId) {
                 return sendErrorResponse(req, res, {
@@ -173,7 +173,7 @@ router.put(
             }
 
             // Call the ResourceCategoryService
-            const updatedResourceCategory =
+            const updatedResourceCategory: $TSFixMe =
                 await ResourceCategoryService.updateOneBy(
                     { projectId, _id: resourceCategoryId },
                     { name, projectId, _id: resourceCategoryId }
@@ -191,8 +191,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const { limit, skip } = req.query;
+            const projectId: $TSFixMe = req.params.projectId;
+            const { limit, skip }: $TSFixMe = req.query;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -210,7 +210,7 @@ router.get(
             // Call the ResourceCategoryService
             const selectResourceCat: string =
                 'projectId name createdById createdAt';
-            const [resourceCategories, count] = await Promise.all([
+            const [resourceCategories, count]: $TSFixMe = await Promise.all([
                 ResourceCategoryService.findBy({
                     query: { projectId },
                     limit,

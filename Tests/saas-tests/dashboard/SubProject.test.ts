@@ -4,15 +4,15 @@ import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
-const teamEmail = utils.generateRandomBusinessEmail();
-const projectOwnerMail = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const teamEmail: $TSFixMe = utils.generateRandomBusinessEmail();
+const projectOwnerMail: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const newProjectName: string = 'Test';
 const subProjectName: string = 'Trial';
 
 describe('Sub-Project API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -51,7 +51,7 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, '#btn_Add_SubProjects');
 
-            const pricingPlanModal = await init.pageWaitForSelector(
+            const pricingPlanModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
                 { visible: true, timeout: init.timeout }
@@ -65,7 +65,7 @@ describe('Sub-Project API', () => {
 });
 
 describe('Member Restriction', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -121,7 +121,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, '#btn_Add_SubProjects');
-            const unauthorisedModal = await init.pageWaitForSelector(
+            const unauthorisedModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }
@@ -161,7 +161,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, deleteSubProjectBtn);
-            const unauthorisedModal = await init.pageWaitForSelector(
+            const unauthorisedModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }

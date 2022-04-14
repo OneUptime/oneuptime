@@ -10,7 +10,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import ApiStatusService from '../services/apiStatusService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 // store account details to the db
 router.get('/', async (req: ExpressRequest, res: ExpressResponse) => {
@@ -69,7 +69,7 @@ router.get('/', async (req: ExpressRequest, res: ExpressResponse) => {
                     'Redis status is online'
                 );
 
-                const value = await global.redisClient.get('status');
+                const value: $TSFixMe = await global.redisClient.get('status');
 
                 if (!value) {
                     response.redis.status = 'Down';

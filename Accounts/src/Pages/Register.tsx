@@ -58,7 +58,7 @@ class RegisterPage extends React.Component<RegisterPageProps> {
 
     override render() {
 
-        const { register } = this.props;
+        const { register }: $TSFixMe = this.props;
 
         return (
             <div id="wrap" style={{ paddingTop: 0 }}>

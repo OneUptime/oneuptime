@@ -17,13 +17,13 @@ export class UserRestoreBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { restoreUser, userId } = this.props;
+        const { restoreUser, userId }: $TSFixMe = this.props;
         return restoreUser(userId);
     };
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -72,8 +72,8 @@ UserRestoreBox.displayName = 'UserRestoreBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const user = state.user.user.user || {};
-    const userId = user._id;
+    const user: $TSFixMe = state.user.user.user || {};
+    const userId: $TSFixMe = user._id;
 
     return {
         userId,

@@ -30,7 +30,7 @@ export default class Service {
 
         feedback = feedback.toObject();
 
-        const [project, user] = await Promise.all([
+        const [project, user]: $TSFixMe = await Promise.all([
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'name',

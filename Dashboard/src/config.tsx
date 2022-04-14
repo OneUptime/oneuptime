@@ -19,7 +19,7 @@ let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
 let realtimeUrl = window.location.origin + '/realtime';
 
-const isLocalhost =
+const isLocalhost: $TSFixMe =
     window &&
     window.location &&
     window.location.host &&
@@ -28,7 +28,7 @@ const isLocalhost =
         window.location.host.includes('127.0.0.1:'));
 
 if (isLocalhost) {
-    const address = window.location.host.includes('localhost:')
+    const address: $TSFixMe = window.location.host.includes('localhost:')
         ? 'localhost'
         : window.location.host.includes('0.0.0.0:')
             ? '0.0.0.0'
@@ -41,31 +41,31 @@ if (isLocalhost) {
 
 export const env: Function = (value: $TSFixMe) => {
 
-    const { _env } = window;
+    const { _env }: $TSFixMe = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
         process.env[`REACT_APP_${value}`]
     );
 }
 
-export const API_URL = apiUrl;
+export const API_URL: $TSFixMe = apiUrl;
 
-export const REALTIME_URL = realtimeUrl;
+export const REALTIME_URL: $TSFixMe = realtimeUrl;
 
-export const DASHBOARD_URL = dashboardUrl;
+export const DASHBOARD_URL: $TSFixMe = dashboardUrl;
 
-export const ACCOUNTS_URL = accountsUrl;
+export const ACCOUNTS_URL: $TSFixMe = accountsUrl;
 
-export const DOMAIN_URL = window.location.origin;
+export const DOMAIN_URL: $TSFixMe = window.location.origin;
 
-export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
+export const IS_SAAS_SERVICE: $TSFixMe = !!env('IS_SAAS_SERVICE');
 
-export const IS_LOCALHOST = isLocalhost;
+export const IS_LOCALHOST: $TSFixMe = isLocalhost;
 
-export const STATUSPAGE_DOMAIN =
+export const STATUSPAGE_DOMAIN: $TSFixMe =
     process.env.STATUSPAGE_DOMAIN || env('STATUSPAGE_DOMAIN');
 
-export const VERSION = process.env.VERSION || env('VERSION');
+export const VERSION: $TSFixMe = process.env.VERSION || env('VERSION');
 
 export const User: $TSFixMe = {
     getAccessToken() {
@@ -220,7 +220,7 @@ export const Validate: $TSFixMe = {
     },
 
     card(cardNumber: $TSFixMe) {
-        const numberValidation = valid.number(cardNumber);
+        const numberValidation: $TSFixMe = valid.number(cardNumber);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -230,7 +230,7 @@ export const Validate: $TSFixMe = {
     },
 
     cardExpiration(expiry: $TSFixMe) {
-        const numberValidation = valid.expirationDate(expiry);
+        const numberValidation: $TSFixMe = valid.expirationDate(expiry);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -240,7 +240,7 @@ export const Validate: $TSFixMe = {
     },
 
     cvv(cvv: $TSFixMe) {
-        const numberValidation = valid.cvv(cvv);
+        const numberValidation: $TSFixMe = valid.cvv(cvv);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -250,7 +250,7 @@ export const Validate: $TSFixMe = {
     },
 
     postalCode(postalCode: $TSFixMe) {
-        const numberValidation = valid.postalCode(postalCode);
+        const numberValidation: $TSFixMe = valid.postalCode(postalCode);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -265,9 +265,9 @@ export const ValidateField: $TSFixMe = {
 
     isJson: (value: $TSFixMe) => {
         try {
-            const val = value.replace(/^,{+|},+$/g, '');
-            const r = dJSON.parse(val);
-            const jstring = JSON.stringify(r);
+            const val: $TSFixMe = value.replace(/^,{+|},+$/g, '');
+            const r: $TSFixMe = dJSON.parse(val);
+            const jstring: $TSFixMe = JSON.stringify(r);
             JSON.parse(jstring);
             return undefined;
         } catch (e) {
@@ -419,7 +419,7 @@ export const PricingPlan: $TSFixMe = {
     },
 
     getPlanById(id: $TSFixMe) {
-        const plans = this.getPlans();
+        const plans: $TSFixMe = this.getPlans();
         if (id && plans.find(plan => plan.planId === id))
             return plans.find(plan => plan.planId === id);
         else return plans[0];
@@ -621,7 +621,7 @@ export const tutorials: $TSFixMe = {
 export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
-    const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
+    const regex: $TSFixMe = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
@@ -629,13 +629,13 @@ export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
 }
 
 export const saveFile: Function = (content: $TSFixMe, filename: $TSFixMe) => {
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob: $TSFixMe = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }
 
 export const makeCriteria: Function = (val: $TSFixMe) => {
     const val2: $TSFixMe = {};
-    const criteria = [];
+    const criteria: $TSFixMe = [];
 
     for (let i = 0; i < val.length; i++) {
         const val3: $TSFixMe = {};
@@ -723,16 +723,16 @@ function innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
             }
 
             if (Object.keys(val.criteria[j]).includes('match')) {
-                const condition =
+                const condition: $TSFixMe =
                     val.criteria[j].match === 'all' ? 'and' : 'or';
-                const criteria = [innerVal];
+                const criteria: $TSFixMe = [innerVal];
                 nestVal.push({ condition, criteria });
             } else {
                 nestVal[nestVal.length - 1].criteria.push(innerVal);
             }
 
             if (val.criteria[j].criteria) {
-                const out = innerCriteria(val.criteria[j], []);
+                const out: $TSFixMe = innerCriteria(val.criteria[j], []);
                 nestVal[nestVal.length - 1].criteria.push(...out);
             }
         }
@@ -741,7 +741,7 @@ function innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
 }
 
 export const mapCriteria: Function = (val: $TSFixMe) => {
-    const val2 = [];
+    const val2: $TSFixMe = [];
     if (val && val.criteria && val.criteria.condition === 'and') {
         for (let i = 0; i < val.criteria.criteria.length; i++) {
             const val3: $TSFixMe = {};
@@ -928,7 +928,7 @@ export function renderIfSubProjectAdmin(
     subProjects: $TSFixMe,
     subProjectId: string
 ) {
-    const userId = User.getUserId();
+    const userId: $TSFixMe = User.getUserId();
     let renderItems = false;
     if (
         userId &&
@@ -981,7 +981,7 @@ export function renderIfUserInSubProject(
     subProjects: $TSFixMe,
     subProjectId: string
 ) {
-    const userId = User.getUserId();
+    const userId: $TSFixMe = User.getUserId();
     let renderItems = false;
     if (
         currentProject &&
@@ -1080,18 +1080,18 @@ export const getMonitorStatus: Function = (incidents: $TSFixMe, logs: $TSFixMe, 
             (incident: $TSFixMe) => !incident.resolved && incident.incidentType === 'degraded'
         );
 
-    const lastIncident =
+    const lastIncident: $TSFixMe =
         incidents && incidents.length > 0 ? incidents[0] : null;
 
-    const incident =
+    const incident: $TSFixMe =
         activeOfflineIncident && activeOfflineIncident.length > 0
             ? activeOfflineIncident[0]
             : activeDegradedIncident && activeDegradedIncident.length > 0
                 ? activeDegradedIncident[0]
                 : lastIncident;
 
-    const log = logs && logs.length > 0 ? logs[0] : null;
-    const statusCompare =
+    const log: $TSFixMe = logs && logs.length > 0 ? logs[0] : null;
+    const statusCompare: $TSFixMe =
         incident && log
             ? compareStatus(incident, log)
             : incident
@@ -1134,13 +1134,13 @@ export const getMonitorTypeBadgeColor: Function = (type: $TSFixMe) => {
 };
 
 export const filterProbeData: Function = (monitor: $TSFixMe, probe: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) => {
-    const monitorLogs = monitor.logs;
-    const monitorStatuses = monitor.statuses;
+    const monitorLogs: $TSFixMe = monitor.logs;
+    const monitorStatuses: $TSFixMe = monitor.statuses;
 
-    const start = moment(new Date(startDate));
-    const end = moment(new Date(endDate));
+    const start: $TSFixMe = moment(new Date(startDate));
+    const end: $TSFixMe = moment(new Date(endDate));
 
-    const probesLog =
+    const probesLog: $TSFixMe =
         monitorLogs && monitorLogs.length > 0
             ? probe
                 ? monitorLogs.filter((probeLogs: $TSFixMe) => {
@@ -1168,7 +1168,7 @@ export const filterProbeData: Function = (monitor: $TSFixMe, probe: $TSFixMe, st
             )
             : [];
 
-    const probesStatus =
+    const probesStatus: $TSFixMe =
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
@@ -1483,7 +1483,7 @@ const options: $TSFixMe = {
 };
                                                     
 // constructor                    
-const tracker = new OneUptime.ErrorTracker(                    
+const tracker: $TSFixMe = new OneUptime.ErrorTracker(                    
     '${apiUrl ? apiUrl : 'API_URL'}',
     '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
     '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
@@ -1514,7 +1514,7 @@ import OneUptime from 'oneuptime';
 import OneUptime from 'oneuptime'
                                                     
 // constructor                    
-const logger = new OneUptime.Logger(
+const logger: $TSFixMe = new OneUptime.Logger(
     '${apiUrl ? apiUrl : 'API_URL'}',
     '${applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
                         }',                    
@@ -1939,7 +1939,7 @@ fmt.PrintF("Log Info error: %v", logErr)
     },
 };
 
-export const incomingRequestVariables = [
+export const incomingRequestVariables: $TSFixMe = [
     {
         variable: '{{monitorName}}',
         description:
@@ -1971,7 +1971,7 @@ export const incomingRequestVariables = [
     },
 ];
 
-export const incidentNoteTemplateVariables = [
+export const incidentNoteTemplateVariables: $TSFixMe = [
     {
         variable: '{{incidentType}}',
         description: '{{incidentType}}: Type of incident.',

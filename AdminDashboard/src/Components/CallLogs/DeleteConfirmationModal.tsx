@@ -36,7 +36,7 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
 
     handleDelete = () => {
 
-        const { error, deleteCallLogs, closeModal, modalId } = this.props;
+        const { error, deleteCallLogs, closeModal, modalId }: $TSFixMe = this.props;
         deleteCallLogs().then(() => {
             if (!error) {
                 return closeModal({ id: modalId });
@@ -45,7 +45,7 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
     };
     override render() {
 
-        const { closeThisDialog, deleteRequest, error } = this.props;
+        const { closeThisDialog, deleteRequest, error }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

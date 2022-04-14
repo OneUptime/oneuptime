@@ -5,19 +5,19 @@ import * as types from '../constants/scheduledEvent';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
-export const fetchscheduledEvent =
+export const fetchscheduledEvent: $TSFixMe =
     (projectId: ObjectID, scheduledEventId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchscheduledEventRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `scheduledEvent/${projectId}/${scheduledEventId}`
             );
 
             dispatch(fetchscheduledEventSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -59,7 +59,7 @@ export const fetchscheduledEventFailure: Function = (
     };
 };
 
-export const fetchscheduledEvents =
+export const fetchscheduledEvents: $TSFixMe =
     (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = Number(skip);
@@ -78,10 +78,10 @@ export const fetchscheduledEvents =
                 );
             }
 
-            const { data, count } = response.data;
+            const { data, count }: $TSFixMe = response.data;
             dispatch(fetchscheduledEventsSuccess({ data, count, skip, limit }));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -141,17 +141,17 @@ export const fetchSubProjectScheduledEventsFailure: Function = (
     };
 };
 
-export const fetchSubProjectScheduledEvents =
+export const fetchSubProjectScheduledEvents: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchSubProjectScheduledEventsRequest());
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `scheduledEvent/${projectId}/scheduledEvents/all`
             );
 
             dispatch(fetchSubProjectScheduledEventsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -181,18 +181,18 @@ export const fetchOngoingScheduledEventsFailure: Function = (
     payload: error,
 });
 
-export const fetchOngoingScheduledEvents =
+export const fetchOngoingScheduledEvents: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchOngoingScheduledEventsRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `scheduledEvent/${projectId}/ongoingEvent`
             );
 
             dispatch(fetchOngoingScheduledEventsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -223,12 +223,12 @@ export const fetchSubProjectOngoingScheduledEventsFailure: Function = (
     payload: error,
 });
 
-export const fetchSubProjectOngoingScheduledEvents =
+export const fetchSubProjectOngoingScheduledEvents: $TSFixMe =
     (projectId: ObjectID): void =>
     async (dispatch: Dispatch): void => {
         try {
             dispatch(fetchSubProjectOngoingScheduledEventsRequest());
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `scheduledEvent/${projectId}/ongoingEvent/all`
             );
 
@@ -236,7 +236,7 @@ export const fetchSubProjectOngoingScheduledEvents =
                 fetchSubProjectOngoingScheduledEventsSuccess(response.data)
             );
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -248,19 +248,19 @@ export const fetchSubProjectOngoingScheduledEvents =
         }
     };
 
-export const createScheduledEvent =
+export const createScheduledEvent: $TSFixMe =
     (projectId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createScheduledEventRequest());
 
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `scheduledEvent/${projectId}`,
                 values
             );
 
             dispatch(createScheduledEventSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -296,18 +296,18 @@ export const createScheduledEventFailure: Function = (
     };
 };
 
-export const deleteScheduledEvent =
+export const deleteScheduledEvent: $TSFixMe =
     (projectId: ObjectID, scheduledEventId: $TSFixMe): void =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteScheduledEventRequest());
 
-            const response =
+            const response: $TSFixMe =
                 await delete `scheduledEvent/${projectId}/${scheduledEventId}`;
 
             dispatch(deleteScheduledEventSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -343,7 +343,7 @@ export const deleteScheduledEventFailure: Function = (
     };
 };
 
-export const cancelScheduledEvent =
+export const cancelScheduledEvent: $TSFixMe =
     (
         projectId: ObjectID,
         scheduledEventId: $TSFixMe,
@@ -356,7 +356,7 @@ export const cancelScheduledEvent =
         try {
             dispatch(cancelScheduledEventRequest());
 
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
             );
 
@@ -364,7 +364,7 @@ export const cancelScheduledEvent =
             closeModal({ id: modalId });
             history.push(redirect);
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -406,7 +406,7 @@ export function updateScheduledEvent(
     values: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `scheduledEvent/${projectId}/${scheduledEventId}`,
             values
         );
@@ -417,7 +417,7 @@ export function updateScheduledEvent(
                 dispatch(updateScheduledEventSuccess(scheduledEvent.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -476,7 +476,7 @@ export const fetchScheduledEventNotesInternalFailure: Function = (
     payload: error,
 });
 
-export const fetchScheduledEventNotesInternal =
+export const fetchScheduledEventNotesInternal: $TSFixMe =
     (
         projectId: ObjectID,
         scheduledEventId: $TSFixMe,
@@ -501,7 +501,7 @@ export const fetchScheduledEventNotesInternal =
                 );
             }
 
-            const { data, count } = response.data;
+            const { data, count }: $TSFixMe = response.data;
             dispatch(
                 fetchScheduledEventNotesInternalSuccess({
                     data,
@@ -511,7 +511,7 @@ export const fetchScheduledEventNotesInternal =
                 })
             );
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -541,20 +541,20 @@ export const createScheduledEventNoteFailure: Function = (
     payload: error,
 });
 
-export const createScheduledEventNote =
+export const createScheduledEventNote: $TSFixMe =
     (projectId: ObjectID, scheduledEventId: $TSFixMe, data: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(createScheduledEventNoteRequest());
 
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes`,
                 data
             );
 
             dispatch(createScheduledEventNoteSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -584,7 +584,7 @@ export const updateScheduledEventNoteInternalFailure: Function = (
     paylod: error,
 });
 
-export const updateScheduledEventNoteInternal =
+export const updateScheduledEventNoteInternal: $TSFixMe =
     (
         projectId: ObjectID,
         scheduledEventId: $TSFixMe,
@@ -594,14 +594,14 @@ export const updateScheduledEventNoteInternal =
     async (dispatch: Dispatch) => {
         try {
             dispatch(updateScheduledEventNoteInternalRequest());
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
                 data
             );
 
             dispatch(updateScheduledEventNoteInternalSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -632,7 +632,7 @@ export const updateScheduledEventNoteInvestigationFailure: Function = (
     paylod: error,
 });
 
-export const updateScheduledEventNoteInvestigation =
+export const updateScheduledEventNoteInvestigation: $TSFixMe =
     (
         projectId: ObjectID,
         scheduledEventId: $TSFixMe,
@@ -643,7 +643,7 @@ export const updateScheduledEventNoteInvestigation =
         try {
             dispatch(updateScheduledEventNoteInvestigationRequest());
 
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
                 data
             );
@@ -652,7 +652,7 @@ export const updateScheduledEventNoteInvestigation =
                 updateScheduledEventNoteInvestigationSuccess(response.data)
             );
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -682,7 +682,7 @@ export const deleteScheduledEventNoteFailure: Function = (
     payload: error,
 });
 
-export const deleteScheduledEventNote =
+export const deleteScheduledEventNote: $TSFixMe =
     (
         projectId: ObjectID,
         scheduledEventId: $TSFixMe,
@@ -692,12 +692,12 @@ export const deleteScheduledEventNote =
         try {
             dispatch(deleteScheduledEventNoteRequest());
 
-            const response =
+            const response: $TSFixMe =
                 await delete `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`;
 
             dispatch(deleteScheduledEventNoteSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -727,19 +727,19 @@ export const resolveScheduledEventFailure: Function = (
     payload: error,
 });
 
-export const resolveScheduledEvent =
+export const resolveScheduledEvent: $TSFixMe =
     (projectId: ObjectID, scheduledEventId: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         try {
             dispatch(resolveScheduledEventRequest());
 
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `scheduledEvent/${projectId}/resolve/${scheduledEventId}`
             );
 
             dispatch(resolveScheduledEventSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -792,7 +792,7 @@ export const fetchScheduledEvent: Function = (
     slug: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `scheduledEvent/${projectId}/slug/${slug}`
         );
         dispatch(fetchScheduledEventRequest());
@@ -802,7 +802,7 @@ export const fetchScheduledEvent: Function = (
                 dispatch(fetchScheduledEventSuccess(component.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data

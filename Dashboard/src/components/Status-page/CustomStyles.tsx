@@ -31,10 +31,10 @@ export class CustomStyles extends Component<CustomStylesProps>{
     customJS = null;
 
     override shouldComponentUpdate(nextProps: ComponentProps, nextstate: RootState) {
-        const { recent } = nextState.syntaxError;
-        const { syntaxError } = this.state;
+        const { recent }: $TSFixMe = nextState.syntaxError;
+        const { syntaxError }: $TSFixMe = this.state;
 
-        const noError = !syntaxError[recent] && !nextState.syntaxError[recent];
+        const noError: $TSFixMe = !syntaxError[recent] && !nextState.syntaxError[recent];
         if (
 
             this.props.statusPage.customHTML.requesting !==
@@ -52,8 +52,8 @@ export class CustomStyles extends Component<CustomStylesProps>{
     }
 
     validateScript = (editor: $TSFixMe) => {
-        const annotations = editor.getSession().getAnnotations();
-        const errors = annotations.filter(
+        const annotations: $TSFixMe = editor.getSession().getAnnotations();
+        const errors: $TSFixMe = annotations.filter(
             ({
                 type,
                 text
@@ -65,7 +65,7 @@ export class CustomStyles extends Component<CustomStylesProps>{
     };
 
     submitForm = (values: $TSFixMe) => {
-        const { syntaxError } = this.state;
+        const { syntaxError }: $TSFixMe = this.state;
         if (Object.values(syntaxError).includes(true)) {
             return;
         }
@@ -89,8 +89,8 @@ export class CustomStyles extends Component<CustomStylesProps>{
 
     handleChange = (onChange: $TSFixMe, script: $TSFixMe) => {
 
-        const currentEditor = this[script];
-        const value = currentEditor.getValue();
+        const currentEditor: $TSFixMe = this[script];
+        const value: $TSFixMe = currentEditor.getValue();
 
         if (this.validateScript(currentEditor)) {
             this.setState({
@@ -114,10 +114,10 @@ export class CustomStyles extends Component<CustomStylesProps>{
 
     override render() {
 
-        const { handleSubmit, statusPage } = this.props;
-        const { syntaxError } = this.state;
+        const { handleSubmit, statusPage }: $TSFixMe = this.props;
+        const { syntaxError }: $TSFixMe = this.state;
 
-        const scripts = [
+        const scripts: $TSFixMe = [
             {
                 name: 'headerHTML',
                 mode: 'html',
@@ -324,7 +324,7 @@ CustomStyles.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
 };
 
-const CustomStylesForm = reduxForm({
+const CustomStylesForm: $TSFixMe = reduxForm({
     form: 'CustomStyles', // a unique identifier for this form
     enableReinitialize: true,
 })(CustomStyles);
@@ -340,7 +340,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 const mapStateToProps: Function = ({
     statusPage
 }: $TSFixMe) => {
-    const { headerHTML, footerHTML, customCSS, customJS } = statusPage.status;
+    const { headerHTML, footerHTML, customCSS, customJS }: $TSFixMe = statusPage.status;
     return {
         initialValues: {
             headerHTML,

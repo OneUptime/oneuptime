@@ -41,7 +41,7 @@ export class SubProjectForm extends React.Component<SubProjectFormProps> {
     }
 
     submitForm = (values: $TSFixMe) => {
-        const { subProjectName } = values;
+        const { subProjectName }: $TSFixMe = values;
         const {
 
             editSubProject,
@@ -140,7 +140,7 @@ export class SubProjectForm extends React.Component<SubProjectFormProps> {
 
             createNewSubProjectReset,
         } = this.props;
-        const disabled =
+        const disabled: $TSFixMe =
             (!editSubProject && subProject.newSubProject.requesting) ||
             (editSubProject && subProject.renameSubProject.requesting);
         return (
@@ -280,13 +280,13 @@ export class SubProjectForm extends React.Component<SubProjectFormProps> {
 
 SubProjectForm.displayName = 'SubProjectForm';
 
-const CreateSubProjectForm = reduxForm({
+const CreateSubProjectForm: $TSFixMe = reduxForm({
     form: 'SubProjectModalForm',
     enableReinitialize: true,
 })(SubProjectForm);
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const initval = props.data.editSubProject
+    const initval: $TSFixMe = props.data.editSubProject
         ? { subProjectName: props.data.subProjectTitle }
         : {};
     return {

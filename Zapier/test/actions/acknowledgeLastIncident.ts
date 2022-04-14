@@ -4,7 +4,7 @@ import zapier from 'zapier-platform-core';
 
 import App from '../../index';
 
-const appTester = zapier.createAppTester(App);
+const appTester: $TSFixMe = zapier.createAppTester(App);
 
 describe('Acknowledge Last Incident', () => {
     it('passes authentication and acknowledges last incident', (done: $TSFixMe) => {

@@ -97,7 +97,7 @@ export class ProbeList extends Component<ProbeListProps>{
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(
+        const numberOfPages: $TSFixMe = Math.ceil(
 
             parseInt(this.props.probesList && this.props.probesList.count) / 10
         );

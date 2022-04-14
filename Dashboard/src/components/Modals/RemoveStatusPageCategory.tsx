@@ -60,7 +60,7 @@ class RemoveResourceCategory extends Component<ComponentProps> {
 
             fetchStatusPageCategories,
         } = this.props;
-        const { projectId, statusPageCategoryId, statusPageId } = data;
+        const { projectId, statusPageCategoryId, statusPageId }: $TSFixMe = data;
         deleteStatusPageCategory({ projectId, statusPageCategoryId }).then(
             () => {
 
@@ -79,7 +79,7 @@ class RemoveResourceCategory extends Component<ComponentProps> {
 
     override render() {
 
-        const { deletingCategory } = this.props;
+        const { deletingCategory }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

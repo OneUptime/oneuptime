@@ -10,7 +10,7 @@ chai.use(chaiSubset);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import VerificationTokenModel from '../backend/models/verificationToken';
@@ -46,7 +46,7 @@ describe('Application Log API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 

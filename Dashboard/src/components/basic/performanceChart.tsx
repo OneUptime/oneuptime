@@ -95,7 +95,7 @@ class PerformanceChart extends Component<ComponentProps> {
     }
     override render() {
 
-        const { data, name, symbol, requesting, type } = this.props;
+        const { data, name, symbol, requesting, type }: $TSFixMe = this.props;
         let processedData = [{ display: '', name: '', v: '' }];
         if (requesting) {
             return (

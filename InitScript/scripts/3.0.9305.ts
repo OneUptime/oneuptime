@@ -2,11 +2,11 @@ import { find, update } from '../util/db';
 const usersCollection: string = 'users';
 
 async function run(): void {
-    const items = await find(usersCollection, {
+    const items: $TSFixMe = await find(usersCollection, {
         email: { $regex: '[A-Z]' },
     });
     for (let i = 0; i < items.length; i++) {
-        const { email } = items[i];
+        const { email }: $TSFixMe = items[i];
         items[i].email = email.toLowerCase();
         await update(
             usersCollection,

@@ -44,7 +44,7 @@ export function createSubscriber(
     data: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `subscriber/${projectId}/subscribe/${monitorId}`,
             data
         );
@@ -102,7 +102,7 @@ export function exportCSV(
     csv: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `subscriber/${projectId}/monitor/${monitorId}?skip=${skip}&limit=${limit}&output-type=${csv}`
         );
 
@@ -160,7 +160,7 @@ export const deleteSubscriber: Function = (
     subscriberId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete (`subscriber/${projectId}/${subscriberId}`, {});
+        const promise: $TSFixMe = delete (`subscriber/${projectId}/${subscriberId}`, {});
 
         dispatch(deleteSubscriberRequest(promise));
 
@@ -208,7 +208,7 @@ export const downloadCsvTemplateSuccess: Function = (): void => {
  * Downloads a CSV template
  */
 export const downloadCsvTemplate: Function = (): void => {
-    const fields =
+    const fields: $TSFixMe =
         'alertVia,contactEmail,contactPhone,countryCode,contactWebhook\nsms,,585-364-1200,us,\nemail,sampleemail@sample.com,,,\nwebhook,sampleemail1@sample.com,,,https://sample.com/webhook';
     return function (dispatch: Dispatch): void {
         dispatch(downloadCsvTemplateRequest());
@@ -233,7 +233,7 @@ export function importSubscribersFromCsvFile(
     monitorId: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `subscriber/${projectId}/${monitorId}/csv`,
             data
         );

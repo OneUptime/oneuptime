@@ -35,7 +35,7 @@ export const alertSuccess: Function = (alert: $TSFixMe): void => {
 
 export const fetchAlert: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`alert/${projectId}`);
+        const promise: $TSFixMe = BackendAPI.get(`alert/${projectId}`);
 
         dispatch(alertRequest());
 
@@ -87,7 +87,7 @@ export function fetchProjectAlert(
     limit: PositiveNumber
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `alert/${projectId}/alert?skip=${skip}&limit=${limit}`
         );
 
@@ -95,7 +95,7 @@ export function fetchProjectAlert(
 
         promise.then(
             (payload): void => {
-                const data = payload.data;
+                const data: $TSFixMe = payload.data;
                 data.projectId = projectId;
                 dispatch(projectAlertSuccess(data));
             },
@@ -145,7 +145,7 @@ export function fetchIncidentAlert(
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `alert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
         );
 
@@ -315,7 +315,7 @@ export const downloadAlertChargesSuccess: Function = (
 
 export const downloadAlertCharges: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`alert/${projectId}/alert/charges`);
+        const promise: $TSFixMe = BackendAPI.get(`alert/${projectId}/alert/charges`);
 
         dispatch(downloadAlertChargesRequest(promise));
 

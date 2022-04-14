@@ -20,7 +20,7 @@ router.post(
         try {
             const body = req.body;
 
-            const mail: Mail: $TSFixMe = {
+            const mail: Mail = {
                 templateType: req.params['template-name'] as EmailTemplateType,
                 toEmail: body['toEmail'],
                 subject: body['subject'],

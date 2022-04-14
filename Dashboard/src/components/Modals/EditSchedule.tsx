@@ -82,9 +82,9 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
             monitors,
         } = this.props;
 
-        const projectId = this.props.currentProject._id;
+        const projectId: $TSFixMe = this.props.currentProject._id;
 
-        const scheduledEventId = this.props.initialValues._id;
+        const scheduledEventId: $TSFixMe = this.props.initialValues._id;
         const postObj: $TSFixMe = {};
         let selectedMonitors = this.state.selectedMonitors;
 
@@ -97,7 +97,7 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
         }
 
         if (selectedMonitors && selectedMonitors.length > 0) {
-            const monitors = this.state.selectedMonitors;
+            const monitors: $TSFixMe = this.state.selectedMonitors;
 
             postObj.monitors = monitors;
         } else {
@@ -127,7 +127,7 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
         postObj.interval = values.interval;
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -214,12 +214,12 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitors;
+        const monitors: $TSFixMe = this.props.monitors;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -292,7 +292,7 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -422,11 +422,11 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
             selectData,
         } = this.state;
 
-        const { requesting, scheduledEventError, startDate } = this.props;
+        const { requesting, scheduledEventError, startDate }: $TSFixMe = this.props;
 
-        const { handleSubmit, closeModal } = this.props;
+        const { handleSubmit, closeModal }: $TSFixMe = this.props;
 
-        const { formValues } = this.props;
+        const { formValues }: $TSFixMe = this.props;
 
         return (
             <div
@@ -1260,7 +1260,7 @@ UpdateSchedule.propTypes = {
     switch: PropTypes.string,
 };
 
-const NewUpdateSchedule = reduxForm({
+const NewUpdateSchedule: $TSFixMe = reduxForm({
     form: 'newUpdateSchedule',
     enableReinitialize: true,
     validate,
@@ -1276,19 +1276,19 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const selector = formValueSelector('newUpdateSchedule');
+const selector: $TSFixMe = formValueSelector('newUpdateSchedule');
 
 const mapStateToProps: Function = (state: RootState) => {
-    const scheduledEventToBeUpdated = state.modal.modals[0].event;
+    const scheduledEventToBeUpdated: $TSFixMe = state.modal.modals[0].event;
     const monitors: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((monitorObj: $TSFixMe) => {
         monitorObj.monitors.forEach((monitor: $TSFixMe) => monitors.push(monitor));
     });
 
     const initialValues: $TSFixMe = {};
-    const startDate = selector(state, 'startDate');
+    const startDate: $TSFixMe = selector(state, 'startDate');
 
-    const monitorIds =
+    const monitorIds: $TSFixMe =
         monitors.length !== scheduledEventToBeUpdated.monitors.length
             ? scheduledEventToBeUpdated
                 ? scheduledEventToBeUpdated.monitors.map(

@@ -73,9 +73,9 @@ class ProjectUpgrade extends Component<ComponentProps> {
 
     submit = (values: $TSFixMe) => {
 
-        const { project, changePlan } = this.props;
+        const { project, changePlan }: $TSFixMe = this.props;
         let oldPlan, newPlan;
-        const { _id, name, stripePlanId } = project;
+        const { _id, name, stripePlanId }: $TSFixMe = project;
 
         if (values.planId === 'enterprise') {
             // handle upgrade to enterprise plan
@@ -122,9 +122,9 @@ class ProjectUpgrade extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit, isRequesting, error, activeForm } = this.props;
+        const { handleSubmit, isRequesting, error, activeForm }: $TSFixMe = this.props;
 
-        const { isAnnual, plans } = this.state;
+        const { isAnnual, plans }: $TSFixMe = this.state;
 
         return (
             <div id="planBox" className="Box-root Margin-bottom--12">
@@ -385,7 +385,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const { requesting, error, project } =
+    const { requesting, error, project }: $TSFixMe =
         state.project && state.project.project;
     return {
         isRequesting: requesting,
@@ -400,7 +400,7 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const UpgradeProjectForm = new reduxForm({
+const UpgradeProjectForm: $TSFixMe = new reduxForm({
     form: 'UpgradeProjectForm',
     validate,
     enableReinitialize: true,

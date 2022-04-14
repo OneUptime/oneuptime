@@ -13,7 +13,7 @@ export function createErrorTracker(
     values: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/create`,
             values
         );
@@ -77,7 +77,7 @@ export const fetchErrorTrackersByProject: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`component/${projectId}/issues`);
+        const promise: $TSFixMe = BackendAPI.get(`component/${projectId}/issues`);
 
         dispatch(fetchErrorTrackersRequest());
 
@@ -104,7 +104,7 @@ export function fetchErrorTrackers(
     fetchingPage = false
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `error-tracker/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchErrorTrackersRequest(fetchingPage));
@@ -166,7 +166,7 @@ export function fetchErrorTrackerIssues(
     filters = null
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues`,
             { skip, limit, startDate, endDate, filters }
         );
@@ -237,7 +237,7 @@ export function fetchErrorEvent(
     errorEventId: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/error-events/${errorEventId}`
         );
         dispatch(fetchErrorEventRequest(errorTrackerId, errorEventId));
@@ -317,7 +317,7 @@ export function deleteErrorTracker(
     errorTrackerId: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise =
+        const promise: $TSFixMe =
             delete `error-tracker/${projectId}/${componentId}/${errorTrackerId}`;
         dispatch(deleteErrorTrackerRequest(errorTrackerId));
 
@@ -380,7 +380,7 @@ export function editErrorTracker(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}`,
             values
         );
@@ -440,7 +440,7 @@ export function resetErrorTrackerKey(
     errorTrackerId: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/reset-key`
         );
         dispatch(resetErrorTrackerKeyRequest());
@@ -496,7 +496,7 @@ export function ignoreErrorEvent(
     unIgnore: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
             { issueId, action: unIgnore } // Instead of 'Unignore' becoming UNDEFINED always because the argument is always empty. A 'ignore' or 'unignore' parameter is used
         );
@@ -561,7 +561,7 @@ export function unresolveErrorEvent(
     issueId: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
             { issueId, action: 'unresolve' }
         );
@@ -626,7 +626,7 @@ export function resolveErrorEvent(
     issueId: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
             { issueId, action: 'resolve' }
         );
@@ -693,7 +693,7 @@ export function updateErrorEventMember(
     type = 'assign'
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/${type}/${issueId}`,
             { teamMemberId }
         );
@@ -768,7 +768,7 @@ export function deleteErrorTrackerIssue(
     issueId: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise =
+        const promise: $TSFixMe =
             delete `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issue/${issueId}`;
         dispatch(deleteErrorTrackerIssueRequest(issueId));
 

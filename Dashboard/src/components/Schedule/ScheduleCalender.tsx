@@ -14,8 +14,8 @@ function ScheduleCalender({
     escalations,
     requestingEscalations
 }: ScheduleCalenderProps) {
-    const [dayOffset, setDayOffset] = useState(47);
-    const [defaultDate, setDefaultDate] = useState(new Date());
+    const [dayOffset, setDayOffset]: $TSFixMe = useState(47);
+    const [defaultDate, setDefaultDate]: $TSFixMe = useState(new Date());
 
     const teamSchedules: $TSFixMe = [];
     escalations.forEach((escalation: $TSFixMe) => {
@@ -35,8 +35,8 @@ function ScheduleCalender({
 
     teamSchedules.forEach(schedule => {
         for (let i = 0; i <= dayOffset; i++) {
-            const currentStart = new Date(schedule.startTime);
-            const currentEnd = new Date(schedule.endTime);
+            const currentStart: $TSFixMe = new Date(schedule.startTime);
+            const currentEnd: $TSFixMe = new Date(schedule.endTime);
             const scheduleData: $TSFixMe = {
                 title: `${schedule.user?.name ||
                     schedule.user
@@ -54,7 +54,7 @@ function ScheduleCalender({
 
     // Setup the localizer by providing the moment (or globalize) Object
     // to the correct localizer.
-    const localizer = momentLocalizer(moment); // or globalizeLocalizer
+    const localizer: $TSFixMe = momentLocalizer(moment); // or globalizeLocalizer
 
     const handleNavigate: Function = (date: $TSFixMe, view: $TSFixMe, action: Action) => {
         setDefaultDate(date);

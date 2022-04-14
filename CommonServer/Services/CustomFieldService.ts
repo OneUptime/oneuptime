@@ -12,14 +12,14 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const customFieldQuery = CustomFieldModel.findOne(query)
+        const customFieldQuery: $TSFixMe = CustomFieldModel.findOne(query)
             .sort(sort)
             .lean();
 
         customFieldQuery.select(select);
         customFieldQuery.populate(populate);
 
-        const customField = await customFieldQuery;
+        const customField: $TSFixMe = await customFieldQuery;
         return customField;
     }
 
@@ -28,7 +28,7 @@ export default class Service {
             ...data,
         });
 
-        const populateCustomField = [{ path: 'projectId', select: 'name' }];
+        const populateCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
         const selectCustomField: string =
             'fieldName fieldType projectId uniqueField';
         customField = await this.findOneBy({
@@ -49,20 +49,20 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const oldCustomField = await CustomFieldModel.findOneAndUpdate(query, {
+        const oldCustomField: $TSFixMe = await CustomFieldModel.findOneAndUpdate(query, {
             $set: data,
         });
 
         // fetch all the corresponding incoming request
         // and update the custom fields
 
-        const populateCustomField = [{ path: 'projectId', select: 'name' }];
+        const populateCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
         const selectCustomField: string =
             'fieldName fieldType projectId uniqueField';
-        const selectIncomingRequest =
+        const selectIncomingRequest: $TSFixMe =
             'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-        const populateIncomingRequest = [
+        const populateIncomingRequest: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name customFields componentId deleted',
@@ -70,7 +70,7 @@ export default class Service {
             },
             { path: 'projectId', select: 'name' },
         ];
-        const [customField, incomingRequests] = await Promise.all([
+        const [customField, incomingRequests]: $TSFixMe = await Promise.all([
             this.findOneBy({
                 query,
                 select: selectCustomField,
@@ -136,7 +136,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const customFieldsQuery = CustomFieldModel.find(query)
+        const customFieldsQuery: $TSFixMe = CustomFieldModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort)
@@ -145,7 +145,7 @@ export default class Service {
         customFieldsQuery.select(select);
         customFieldsQuery.populate(populate);
 
-        const customFields = await customFieldsQuery;
+        const customFields: $TSFixMe = await customFieldsQuery;
 
         return customFields;
     }
@@ -155,17 +155,17 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const count = await CustomFieldModel.countDocuments(query);
+        const count: $TSFixMe = await CustomFieldModel.countDocuments(query);
         return count;
     }
 
     async deleteBy(query: Query): void {
         // when a custom field is deleted
         // it should be removed from the corresponding incoming request
-        const select =
+        const select: $TSFixMe =
             'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name customFields componentId deleted',
@@ -173,7 +173,7 @@ export default class Service {
             },
             { path: 'projectId', select: 'name' },
         ];
-        const [customField, incomingRequests] = await Promise.all([
+        const [customField, incomingRequests]: $TSFixMe = await Promise.all([
             CustomFieldModel.findOneAndUpdate(
                 query,
                 {
@@ -228,7 +228,7 @@ export default class Service {
             $set: data,
         });
 
-        const populateCustomField = [{ path: 'projectId', select: 'name' }];
+        const populateCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
         const selectCustomField: string =
             'fieldName fieldType projectId uniqueField';
         updatedCustomField = await this.findBy({

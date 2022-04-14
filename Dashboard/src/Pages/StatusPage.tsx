@@ -77,7 +77,7 @@ class StatusPage extends Component<ComponentProps> {
         monitorError: null,
     };
     tabSelected = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         setTimeout(() => {
 
@@ -90,8 +90,8 @@ class StatusPage extends Component<ComponentProps> {
 
     async override componentDidMount() {
 
-        const projectId = this.props.projectId && this.props.projectId;
-        const statusPageSlug = history.location.pathname
+        const projectId: $TSFixMe = this.props.projectId && this.props.projectId;
+        const statusPageSlug: $TSFixMe = history.location.pathname
             .split('StatusPage/')[1]
             .split('/')[0];
         if (projectId) {
@@ -113,10 +113,10 @@ class StatusPage extends Component<ComponentProps> {
                 this.props.statusPage.subProjectStatusPages.length > 0
             ) {
 
-                const { subProjectStatusPages } = this.props.statusPage;
+                const { subProjectStatusPages }: $TSFixMe = this.props.statusPage;
                 subProjectStatusPages.forEach((subProject: $TSFixMe) => {
-                    const statusPages = subProject.statusPages;
-                    const statusPage = statusPages.find(
+                    const statusPages: $TSFixMe = subProject.statusPages;
+                    const statusPage: $TSFixMe = statusPages.find(
                         (page: $TSFixMe) => page.slug === statusPageSlug
                     );
                     if (statusPage) {
@@ -140,13 +140,13 @@ class StatusPage extends Component<ComponentProps> {
 
 
             if (this.props.statusPage.status.projectId) {
-                const projectId =
+                const projectId: $TSFixMe =
 
                     this.props.statusPage.status.projectId._id ||
 
                     this.props.statusPage.status.projectId;
 
-                const statusPageId = this.props.statusPage.status._id;
+                const statusPageId: $TSFixMe = this.props.statusPage.status._id;
 
                 this.props.fetchAllStatusPageCategories({
                     projectId,
@@ -162,8 +162,8 @@ class StatusPage extends Component<ComponentProps> {
 
             if (!this.props.statusPage.status._id) {
 
-                const projectId = this.props.projectId && this.props.projectId;
-                const statusPageSlug = history.location.pathname
+                const projectId: $TSFixMe = this.props.projectId && this.props.projectId;
+                const statusPageSlug: $TSFixMe = history.location.pathname
                     .split('StatusPage/')[1]
                     .split('/')[0];
                 if (projectId) {
@@ -183,10 +183,10 @@ class StatusPage extends Component<ComponentProps> {
                     this.props.statusPage.subProjectStatusPages.length > 0
                 ) {
 
-                    const { subProjectStatusPages } = this.props.statusPage;
+                    const { subProjectStatusPages }: $TSFixMe = this.props.statusPage;
                     subProjectStatusPages.forEach((subProject: $TSFixMe) => {
-                        const statusPages = subProject.statusPages;
-                        const statusPage = statusPages.find(
+                        const statusPages: $TSFixMe = subProject.statusPages;
+                        const statusPage: $TSFixMe = statusPages.find(
                             (page: $TSFixMe) => page.slug === statusPageSlug
                         );
                         if (statusPage) {
@@ -213,7 +213,7 @@ class StatusPage extends Component<ComponentProps> {
         let monitorError;
         const selectedMonitor: $TSFixMe = {};
         for (let i = 0; i < monitors.length; i++) {
-            const monitor = monitors[i];
+            const monitor: $TSFixMe = monitors[i];
             if (!monitor.monitor) monitorError = 'Please select a monitor.';
             else {
 
@@ -232,15 +232,15 @@ class StatusPage extends Component<ComponentProps> {
 
     updateMonitor = () => {
 
-        const { allStatusPageCategories, formState, statusPage } = this.props;
-        const { status } = statusPage;
-        const { projectId } = status;
+        const { allStatusPageCategories, formState, statusPage }: $TSFixMe = this.props;
+        const { status }: $TSFixMe = statusPage;
+        const { projectId }: $TSFixMe = status;
 
         const monitors: $TSFixMe = [];
         const groupedMonitors: $TSFixMe = {};
         allStatusPageCategories.forEach((category: $TSFixMe) => {
-            const form = formState[category.name];
-            const values = form?.values;
+            const form: $TSFixMe = formState[category.name];
+            const values: $TSFixMe = form?.values;
             if (values && values.monitors && values.monitors.length > 0) {
                 monitors.push(...values.monitors);
 
@@ -301,15 +301,15 @@ class StatusPage extends Component<ComponentProps> {
 
             activeProjectId,
         } = this.props;
-        const pageName = status ? status.name : null;
+        const pageName: $TSFixMe = status ? status.name : null;
         const data: $TSFixMe = {
             statusPageId: status._id,
             projectId:
                 status.projectId && (status.projectId._id || status.projectId),
             theme: status.theme,
         };
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = activeProjectId;
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = activeProjectId;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -841,16 +841,16 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const { statusPageSlug } = props.match.params;
-    const statusPageObject = state.statusPage;
+    const { statusPageSlug }: $TSFixMe = props.match.params;
+    const statusPageObject: $TSFixMe = state.statusPage;
     let statusPage: $TSFixMe;
     if (
         statusPageObject.subProjectStatusPages &&
         statusPageObject.subProjectStatusPages.length > 0
     ) {
-        const { subProjectStatusPages } = statusPageObject;
+        const { subProjectStatusPages }: $TSFixMe = statusPageObject;
         subProjectStatusPages.forEach((subProject: $TSFixMe) => {
-            const statusPages = subProject.statusPages;
+            const statusPages: $TSFixMe = subProject.statusPages;
             if (!statusPage) {
                 statusPage = statusPages.find(
                     (page: $TSFixMe) => page.slug === statusPageSlug
@@ -858,8 +858,8 @@ function mapStateToProps(state: RootState, props: $TSFixMe) {
             }
         });
     }
-    const subProjectId = statusPage && statusPage.projectId._id;
-    const monitors = state.monitor.monitorsList.monitors
+    const subProjectId: $TSFixMe = statusPage && statusPage.projectId._id;
+    const monitors: $TSFixMe = state.monitor.monitorsList.monitors
         .filter((monitor: $TSFixMe) => String(monitor._id) === String(subProjectId))
         .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();

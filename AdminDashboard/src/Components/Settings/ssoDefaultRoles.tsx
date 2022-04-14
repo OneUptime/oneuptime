@@ -14,7 +14,7 @@ import { CreateDefaultRoleModal } from './ssoDefaultRoles/DefaultRoleModal';
 class Box extends Component<ComponentProps> {
     async previousClicked() {
 
-        const { skip, limit } = this.props.ssoPaginate;
+        const { skip, limit }: $TSFixMe = this.props.ssoPaginate;
         if (0 <= skip - limit) {
 
             await this.props.fetchSsoDefaultRoles(skip - limit, limit);
@@ -24,9 +24,9 @@ class Box extends Component<ComponentProps> {
     }
     async nextClicked() {
 
-        const { skip, limit } = this.props.ssoPaginate;
+        const { skip, limit }: $TSFixMe = this.props.ssoPaginate;
 
-        const { count, paginate } = this.props;
+        const { count, paginate }: $TSFixMe = this.props;
         if (skip + limit < count) {
 
             await this.props.fetchSsoDefaultRoles(skip + limit, limit);
@@ -41,13 +41,13 @@ class Box extends Component<ComponentProps> {
     }
     override render() {
 
-        const { ssoDefaultRoles, openModal, count } = this.props;
+        const { ssoDefaultRoles, openModal, count }: $TSFixMe = this.props;
 
-        const canPrev = this.props.ssoPaginate.skip > 0;
-        const canNext =
+        const canPrev: $TSFixMe = this.props.ssoPaginate.skip > 0;
+        const canNext: $TSFixMe =
 
             this.props.ssoPaginate.skip + this.props.ssoPaginate.limit < count;
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
         return (
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"

@@ -40,13 +40,13 @@ export class RoutingNumberList extends Component<RoutingNumberListProps>{
     public static propTypes = {};
     removeNumber = async (callRoutingId: $TSFixMe) => {
 
-        const { currentProject, removeNumbers } = this.props;
+        const { currentProject, removeNumbers }: $TSFixMe = this.props;
         removeNumbers(currentProject._id, callRoutingId);
     };
 
     nextClicked = () => {
 
-        const { currentProject, callRoutingNumbers } = this.props;
+        const { currentProject, callRoutingNumbers }: $TSFixMe = this.props;
 
         this.props.getCallRoutingNumbers(
             currentProject._id,
@@ -56,7 +56,7 @@ export class RoutingNumberList extends Component<RoutingNumberListProps>{
     };
     prevClicked = () => {
 
-        const { currentProject, callRoutingNumbers } = this.props;
+        const { currentProject, callRoutingNumbers }: $TSFixMe = this.props;
 
         this.props.getCallRoutingNumbers(
             currentProject._id,
@@ -67,15 +67,15 @@ export class RoutingNumberList extends Component<RoutingNumberListProps>{
 
     getName = (number: $TSFixMe) => {
 
-        const { teamMembers, schedules } = this.props;
-        const type =
+        const { teamMembers, schedules }: $TSFixMe = this.props;
+        const type: $TSFixMe =
             number &&
                 number.routingSchema &&
                 number.routingSchema.type &&
                 number.routingSchema.type.length
                 ? number.routingSchema.type
                 : null;
-        const id =
+        const id: $TSFixMe =
             number &&
                 number.routingSchema &&
                 number.routingSchema.id &&
@@ -110,8 +110,8 @@ export class RoutingNumberList extends Component<RoutingNumberListProps>{
             allNumbers,
         } = this.props;
         
-        const isRequesting = allNumbers && allNumbers.requesting;
-        const count = callRoutingNumbers.count && callRoutingNumbers.count;
+        const isRequesting: $TSFixMe = allNumbers && allNumbers.requesting;
+        const count: $TSFixMe = callRoutingNumbers.count && callRoutingNumbers.count;
 
         let canNext =
             callRoutingNumbers.count &&
@@ -126,7 +126,7 @@ export class RoutingNumberList extends Component<RoutingNumberListProps>{
             canPrev = false;
         }
 
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -198,7 +198,7 @@ export class RoutingNumberList extends Component<RoutingNumberListProps>{
                                 callRoutingNumbers.numbers &&
                                 callRoutingNumbers.numbers.length > 0 ? (
                                 callRoutingNumbers.numbers.map((number: $TSFixMe, i: $TSFixMe) => {
-                                    const { result } = this.getName(number);
+                                    const { result }: $TSFixMe = this.getName(number);
                                     return (
                                         <tr
                                             id={`routing_number_${number._id}_${i}`}
@@ -512,11 +512,11 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const teamMembersAndSchedules = state.callRouting.teamMembersAndSchedules;
-    const teamMembers = teamMembersAndSchedules.teamMembers;
-    const schedules = teamMembersAndSchedules.schedules;
-    const project = state.project.currentProject;
-    const numbers =
+    const teamMembersAndSchedules: $TSFixMe = state.callRouting.teamMembersAndSchedules;
+    const teamMembers: $TSFixMe = teamMembersAndSchedules.teamMembers;
+    const schedules: $TSFixMe = teamMembersAndSchedules.schedules;
+    const project: $TSFixMe = state.project.currentProject;
+    const numbers: $TSFixMe =
         state.callRouting.allNumbers && state.callRouting.allNumbers.numbers
             ? state.callRouting.allNumbers
             : [];

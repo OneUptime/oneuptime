@@ -6,9 +6,9 @@ import mongoose, {
 
 import TeamMemberSchema from './EscalationTeamMember';
 
-const Schema = mongoose.Schema;
+const Schema: $TSFixMe = mongoose.Schema;
 
-const schema = new Schema({
+const schema: $TSFixMe = new Schema({
     projectId: {
         type: String,
         ref: 'Project',

@@ -5,14 +5,14 @@ const scheduledEventCollection: string = 'scheduledevents';
 
 // run this script once
 async function run(): void {
-    const scheduledEventNotes = await find(scheduledEventNoteCollection, {
+    const scheduledEventNotes: $TSFixMe = await find(scheduledEventNoteCollection, {
         content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
         event_state: 'Created',
         deleted: false,
     });
 
     for (const note of scheduledEventNotes) {
-        const scheduledEvent = await findOne(scheduledEventCollection, {
+        const scheduledEvent: $TSFixMe = await findOne(scheduledEventCollection, {
             _id: note.scheduledEventId,
         });
 

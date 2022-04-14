@@ -143,7 +143,7 @@ class Main extends Component<ComponentProps> {
 
             this.props.statusData.customJS
         ) {
-            const javascript = document
+            const javascript: $TSFixMe = document
                 .createRange()
 
                 .createContextualFragment(this.props.statusData.customJS);
@@ -167,7 +167,7 @@ class Main extends Component<ComponentProps> {
     setLastAlive = () => {
         this.setState({ now: Date.now() });
 
-        const nowHandler = setTimeout(() => {
+        const nowHandler = setTimeout((): $TSFixMe => {
             this.setState({ now: Date.now() });
         }, 300000);
 
@@ -209,7 +209,7 @@ class Main extends Component<ComponentProps> {
         });
         let range;
 
-        const { windowSize } = this.state;
+        const { windowSize }: $TSFixMe = this.state;
         if (windowSize <= 600) {
             range = 30;
         }
@@ -225,7 +225,7 @@ class Main extends Component<ComponentProps> {
             .catch((err: $TSFixMe) => {
                 if (err.message === 'Request failed with status code 401') {
 
-                    const { loginRequired } = this.props.login;
+                    const { loginRequired }: $TSFixMe = this.props.login;
                     if (loginRequired) {
 
                         window.location.href = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
@@ -268,11 +268,11 @@ class Main extends Component<ComponentProps> {
             monitorArrangement = monitorArrangement.map((id: $TSFixMe) => monitorData.find((data: $TSFixMe) => data._id === id)
             );
             monitorData = monitorArrangement;
-            const resourceCategories = this.getCategories(
+            const resourceCategories: $TSFixMe = this.getCategories(
                 monitorData,
                 'statusPageCategory'
             );
-            const uncategorized = monitorData.filter(
+            const uncategorized: $TSFixMe = monitorData.filter(
                 (mon: $TSFixMe) => mon.statusPageCategory === undefined ||
                     !mon.statusPageCategory
             );
@@ -284,7 +284,7 @@ class Main extends Component<ComponentProps> {
                 >
 
                     {resourceCategories.map(categoryName => {
-                        const filteredResource = monitorData.filter(
+                        const filteredResource: $TSFixMe = monitorData.filter(
                             (resource: $TSFixMe) => resource.statusPageCategory &&
                                 resource.statusPageCategory.name ===
                                 categoryName
@@ -312,23 +312,23 @@ class Main extends Component<ComponentProps> {
 
     CollapsableGroup = (categoryName: $TSFixMe, monitors: $TSFixMe, range: $TSFixMe) => {
 
-        const { probes, activeProbe, statusData } = this.props;
-        const theme = statusData.theme === 'Clean Theme' ? true : false;
+        const { probes, activeProbe, statusData }: $TSFixMe = this.props;
+        const theme = statusData.theme: $TSFixMe === 'Clean Theme' ? true : false;
 
         const categoryStatuses = monitors.map((monitor: $TSFixMe) => {
-            const probe =
+            const probe: $TSFixMe =
                 probes && probes.length > 0
                     ? probes[probes.length < 2 ? 0 : activeProbe]
                     : null;
 
-            const statuses = filterProbeData(monitor, probe);
-            const monitorStatus = monitor.status
+            const statuses: $TSFixMe = filterProbeData(monitor, probe);
+            const monitorStatus: $TSFixMe = monitor.status
                 ? monitor.status
                 : getMonitorStatus(statuses);
             return monitorStatus;
         });
 
-        const categoryStatusBk = categoryStatuses.includes('offline')
+        const categoryStatusBk: $TSFixMe = categoryStatuses.includes('offline')
             ? 'rgba(250, 109, 70, 1)'
             : categoryStatuses.includes('degraded')
                 ? 'rgba(255, 222, 36, 1)'
@@ -463,7 +463,7 @@ class Main extends Component<ComponentProps> {
 
     renderError = () => {
 
-        const { error } = this.props.status;
+        const { error }: $TSFixMe = this.props.status;
         if (error === 'Input data schema mismatch.') {
             return 'Page Not Found';
         } else if (error === 'Project Not present') {
@@ -495,9 +495,9 @@ class Main extends Component<ComponentProps> {
             degradedText = 'degraded',
 
         } = this.props.statusData;
-        const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
+        const sanitizedCSS: $TSFixMe = customCSS ? customCSS.split('↵').join('') : '';
 
-        const probes = this.props.probes;
+        const probes: $TSFixMe = this.props.probes;
         let view = false;
         let status = '';
         let newbg = '';
@@ -506,7 +506,7 @@ class Main extends Component<ComponentProps> {
             newStatusMessage = '';
         let faviconurl = '';
         let isGroupedByMonitorCategory = false;
-        const error = this.renderError();
+        const error: $TSFixMe = this.renderError();
         let heading,
             backgroundMain,
             contentBackground: $TSFixMe,
@@ -527,8 +527,8 @@ class Main extends Component<ComponentProps> {
             isGroupedByMonitorCategory = this.props.statusData
                 .isGroupedByMonitorCategory;
 
-            const colors = this.props.statusData.colors;
-            const disabledMonitors =
+            const colors: $TSFixMe = this.props.statusData.colors;
+            const disabledMonitors: $TSFixMe =
 
                 this.props.monitorState &&
 
@@ -641,14 +641,14 @@ class Main extends Component<ComponentProps> {
             emailNotification,
 
         } = this.props.statusPage;
-        const showSubscriberOption =
+        const showSubscriberOption: $TSFixMe =
             enableRSSFeed ||
             smsNotification ||
             webhookNotification ||
             emailNotification;
 
 
-        const availableMonitors = this.props.statusData.monitors;
+        const availableMonitors: $TSFixMe = this.props.statusData.monitors;
 
         const defaultLayout: $TSFixMe = {
             visible: [
@@ -686,7 +686,7 @@ class Main extends Component<ComponentProps> {
 
         let range: $TSFixMe;
 
-        const { windowSize } = this.state;
+        const { windowSize }: $TSFixMe = this.state;
         if (windowSize <= 600) {
             range = 30;
         }
@@ -1774,16 +1774,16 @@ class Main extends Component<ComponentProps> {
 Main.displayName = 'Main';
 
 const mapStateToProps: Function = (state: RootState) => {
-    const ongoing =
+    const ongoing: $TSFixMe =
         state.status &&
         state.status.ongoing &&
         state.status.ongoing.ongoing &&
         state.status.ongoing.ongoing.filter(
             (ongoingSchedule: $TSFixMe) => !ongoingSchedule.cancelled
         );
-    const futureEvents = state.status.futureEvents.events;
-    const pastEvents = state.status.pastEvents.events;
-    const tweetData = state.status.tweets.tweetList;
+    const futureEvents: $TSFixMe = state.status.futureEvents.events;
+    const pastEvents: $TSFixMe = state.status.pastEvents.events;
+    const tweetData: $TSFixMe = state.status.tweets.tweetList;
     return {
         status: state.status,
         statusData: state.status.statusPage,
@@ -2007,7 +2007,7 @@ const FooterCard: Function = ({
     secondaryText,
     theme
 }: FooterCardProps) => {
-    const [isShown, setIsShown] = useState(false);
+    const [isShown, setIsShown]: $TSFixMe = useState(false);
 
     return <>
         <div id="footer">

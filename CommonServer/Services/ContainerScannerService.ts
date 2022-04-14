@@ -6,7 +6,7 @@ export default class Service {
         } else {
             containerScannerKey = uuidv1();
         }
-        const storedContainerScanner = await this.findOneBy({
+        const storedContainerScanner: $TSFixMe = await this.findOneBy({
             containerScannerName: data.containerScannerName,
         });
         if (
@@ -15,14 +15,14 @@ export default class Service {
         ) {
             throw new BadDataException('containerScanner name already exists.');
         } else {
-            const containerScanner = new ContainerScannerModel();
+            const containerScanner: $TSFixMe = new ContainerScannerModel();
 
             containerScanner.containerScannerKey = containerScannerKey;
 
             containerScanner.containerScannerName = data.containerScannerName;
 
             containerScanner.version = data.containerScannerVersion;
-            const savedContainerScanner = await containerScanner.save();
+            const savedContainerScanner: $TSFixMe = await containerScanner.save();
             return savedContainerScanner;
         }
     }
@@ -33,7 +33,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const containerScanner = await ContainerScannerModel.findOneAndUpdate(
+        const containerScanner: $TSFixMe = await ContainerScannerModel.findOneAndUpdate(
             query,
             { $set: data },
             {
@@ -49,14 +49,14 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const containerScanner = await ContainerScannerModel.findOne(
+        const containerScanner: $TSFixMe = await ContainerScannerModel.findOne(
             query
         ).lean();
         return containerScanner;
     }
 
     async updateContainerScannerStatus(containerScannerId): void {
-        const containerScanner = await ContainerScannerModel.findOneAndUpdate(
+        const containerScanner: $TSFixMe = await ContainerScannerModel.findOneAndUpdate(
             { _id: containerScannerId },
             { $set: { lastAlive: Date.now() } },
             { new: true }

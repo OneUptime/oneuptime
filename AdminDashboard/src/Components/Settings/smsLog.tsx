@@ -38,7 +38,7 @@ class SmsLog extends Component<ComponentProps> {
     };
     override render() {
 
-        const { changeSmsLogStatus, handleSubmit } = this.props;
+        const { changeSmsLogStatus, handleSubmit }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeSmsLog"
@@ -164,8 +164,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const smsLogStatus = state.smsLogs.smsLogStatus;
-    const changeSmsLogStatus = state.smsLogs.changeSmsLogStatus;
+    const smsLogStatus: $TSFixMe = state.smsLogs.smsLogStatus;
+    const changeSmsLogStatus: $TSFixMe = state.smsLogs.changeSmsLogStatus;
     return {
         settings: state.settings,
         smsLogStatus,
@@ -177,7 +177,7 @@ function mapStateToProps(state: RootState) {
         },
     };
 }
-const ReduxFormComponent = reduxForm({
+const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'sms-log-toggle-form',
     enableReinitialize: true,
 })(SmsLog);

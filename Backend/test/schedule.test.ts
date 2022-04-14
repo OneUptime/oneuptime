@@ -8,7 +8,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 // let log = require('./data/log');

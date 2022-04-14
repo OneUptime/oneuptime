@@ -33,8 +33,8 @@ class SubscriberAdvanceOption extends React.Component<SubscriberAdvanceOptionPro
 
     submitForm = (values: $TSFixMe) => {
 
-        const { status } = this.props.statusPage;
-        const { projectId } = status;
+        const { status }: $TSFixMe = this.props.statusPage;
+        const { projectId }: $TSFixMe = status;
         this.props
 
             .updateSubscriberOption(projectId._id || projectId, {
@@ -79,9 +79,9 @@ class SubscriberAdvanceOption extends React.Component<SubscriberAdvanceOptionPro
 
     override render() {
 
-        const { requesting, error } = this.props.subscriberOption;
+        const { requesting, error }: $TSFixMe = this.props.subscriberOption;
 
-        const { handleSubmit, closeModal } = this.props;
+        const { handleSubmit, closeModal }: $TSFixMe = this.props;
 
         return (
             <div
@@ -664,7 +664,7 @@ SubscriberAdvanceOption.propTypes = {
     subscriberOption: PropTypes.object,
 };
 
-const NewUpdateSchedule = reduxForm({
+const NewUpdateSchedule: $TSFixMe = reduxForm({
     form: 'SubscriberAdvanceOptionForm',
     enableReinitialize: true,
     destroyOnUnmount: true,
@@ -684,8 +684,8 @@ const mapStateToProps: Function = (state: RootState) => {
         statusPage,
         statusPage: { status },
     } = state;
-    const { subscriberOption } = state.statusPage;
-    const subscriberAdvanceOptionModalId = state.modal.modals[0].id;
+    const { subscriberOption }: $TSFixMe = state.statusPage;
+    const subscriberAdvanceOptionModalId: $TSFixMe = state.modal.modals[0].id;
 
 
     initialValues.enableRSSFeed = status.enableRSSFeed;

@@ -6,15 +6,15 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const projectName = utils.generateRandomString();
-const callSchedule = utils.generateRandomString();
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
+const projectName: $TSFixMe = utils.generateRandomString();
+const callSchedule: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
 
 describe('Monitor API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(600000);
@@ -44,7 +44,7 @@ describe('Monitor API', () => {
             // Create Component first
             // Redirects automatically component to details page
             await init.navigateToComponentDetails(componentName, page);
-            const monitorName = utils.generateRandomString();
+            const monitorName: $TSFixMe = utils.generateRandomString();
 
             await init.pageWaitForSelector(page, '#cbMonitors');
 
@@ -94,14 +94,14 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, `#edit_${monitorName}`);
 
-            const checkboxValues = await init.page$$Eval(
+            const checkboxValues: $TSFixMe = await init.page$$Eval(
                 page,
                 '[data-testId^=callSchedules_]',
                 (schedules: $TSFixMe) =>
                     schedules.map((schedule: $TSFixMe) => schedule.checked)
             );
 
-            const areAllChecked = checkboxValues.every(
+            const areAllChecked: $TSFixMe = checkboxValues.every(
                 (checked: $TSFixMe) => checked === true
             );
             expect(areAllChecked).toEqual(true);

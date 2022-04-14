@@ -31,7 +31,7 @@ import AnnouncementLogModel from '../Models/announcementLogs';
 
 import Query from '../Types/DB/Query';
 import axios from 'axios';
-const bearer = process.env.TWITTER_BEARER_TOKEN;
+const bearer: $TSFixMe = process.env.TWITTER_BEARER_TOKEN;
 
 const publicListProps: $TSFixMe = {
     populate: [],
@@ -98,7 +98,7 @@ const publicItemProps: $TSFixMe = {
     ],
 };
 
-const StatusPageServiceBase = new ServiceBase({
+const StatusPageServiceBase: $TSFixMe = new ServiceBase({
     model: StatusPageModel,
     requiredFields,
     friendlyName: 'Status Page',
@@ -152,7 +152,7 @@ export default class Service {
 
         data.statusBubbleId = data.statusBubbleId || uuid.v4();
 
-        const statusPage = await StatusPageServiceBase.create({
+        const statusPage: $TSFixMe = await StatusPageServiceBase.create({
             data,
 
             checkDuplicatesValuesIn: ['name'],
@@ -160,7 +160,7 @@ export default class Service {
             slugifyField: 'name',
         });
 
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             { path: 'projectId', select: 'parentProjectId' },
             { path: 'monitorIds', select: 'name' },
             { path: 'monitors.monitor', select: 'name' },
@@ -169,10 +169,10 @@ export default class Service {
                 select: 'domain verificationToken verified ',
             },
         ];
-        const selectStatusPage =
+        const selectStatusPage: $TSFixMe =
             'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
 
-        const newStatusPage = await this.findOneBy({
+        const newStatusPage: $TSFixMe = await this.findOneBy({
             _id: statusPage._id,
             populate: populateStatusPage,
             select: selectStatusPage,
@@ -194,7 +194,7 @@ export default class Service {
 
         // check if domain already exist
         // only one domain in the db is allowed
-        const existingBaseDomain = await DomainVerificationService.findOneBy({
+        const existingBaseDomain: $TSFixMe = await DomainVerificationService.findOneBy({
             query: {
                 domain: subDomain,
             },
@@ -212,14 +212,14 @@ export default class Service {
             );
         }
 
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             {
                 path: 'domains.domainVerificationToken',
                 select: 'domain verificationToken verified ',
             },
         ];
 
-        const statusPage = await this.findOneBy({
+        const statusPage: $TSFixMe = await this.findOneBy({
             query: { _id: statusPageId },
             populate: populateStatusPage,
             select: 'domains',
@@ -238,17 +238,17 @@ export default class Service {
                 // trigger addition of this particular domain
                 // which should pass the acme challenge
                 // acme challenge is to be processed from status page project
-                const altnames = [subDomain];
+                const altnames: $TSFixMe = [subDomain];
 
                 // before adding any domain
                 // check if there's a certificate already created in the store
                 // if there's none, add the domain to the flow
-                const certificate = await CertificateStoreService.findOneBy({
+                const certificate: $TSFixMe = await CertificateStoreService.findOneBy({
                     query: { subject: subDomain },
                     select: 'id',
                 });
 
-                const greenlock = global.greenlock;
+                const greenlock: $TSFixMe = global.greenlock;
                 if (!certificate && greenlock) {
                     // handle this in the background
                     greenlock.add({
@@ -290,14 +290,14 @@ export default class Service {
         newDomain: $TSFixMe,
         oldDomain: $TSFixMe
     ): void {
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             {
                 path: 'domains.domainVerificationToken',
                 select: 'domain verificationToken verified ',
             },
         ];
 
-        const statusPages = await this.findBy({
+        const statusPages: $TSFixMe = await this.findBy({
             query: {
                 domains: {
                     $elemMatch: { domainVerificationToken: domainId },
@@ -308,8 +308,8 @@ export default class Service {
         });
 
         for (const statusPage of statusPages) {
-            const statusPageId = statusPage._id;
-            const domains = [];
+            const statusPageId: $TSFixMe = statusPage._id;
+            const domains: $TSFixMe = [];
             for (const eachDomain of statusPage.domains) {
                 if (
                     String(eachDomain.domainVerificationToken._id) ===
@@ -341,7 +341,7 @@ export default class Service {
     ): void {
         let createdDomain = {};
 
-        const existingBaseDomain = await DomainVerificationService.findOneBy({
+        const existingBaseDomain: $TSFixMe = await DomainVerificationService.findOneBy({
             query: { domain: newDomain },
             select: '_id',
         });
@@ -356,14 +356,14 @@ export default class Service {
                 creationData
             );
         }
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             {
                 path: 'domains.domainVerificationToken',
                 select: 'domain verificationToken verified ',
             },
         ];
 
-        const statusPage = await this.findOneBy({
+        const statusPage: $TSFixMe = await this.findOneBy({
             query: { _id: statusPageId },
             populate: populateStatusPage,
             select: 'domains',
@@ -377,8 +377,8 @@ export default class Service {
 
         let doesDomainExist = false;
 
-        const domainList = [...statusPage.domains];
-        const updatedDomainList = [];
+        const domainList: $TSFixMe = [...statusPage.domains];
+        const updatedDomainList: $TSFixMe = [];
 
         for (const eachDomain of domainList) {
             if (String(eachDomain._id) === String(domainId)) {
@@ -400,19 +400,19 @@ export default class Service {
                     // trigger addition of this particular domain
                     // which should pass the acme challenge
                     // acme challenge is to be processed from status page project
-                    const altnames = [eachDomain.domain];
+                    const altnames: $TSFixMe = [eachDomain.domain];
 
                     // before adding any domain
                     // check if there's a certificate already created in the store
                     // if there's none, add the domain to the flow
-                    const certificate = await CertificateStoreService.findOneBy(
+                    const certificate: $TSFixMe = await CertificateStoreService.findOneBy(
                         {
                             query: { subject: eachDomain.domain },
                             select: 'id',
                         }
                     );
 
-                    const greenlock = global.greenlock;
+                    const greenlock: $TSFixMe = global.greenlock;
                     if (!certificate && greenlock) {
                         // handle this in the background
                         greenlock.add({
@@ -429,7 +429,7 @@ export default class Service {
         }
 
         if (doesDomainExist) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 `This custom domain ${newDomain} already exist`
             );
 
@@ -439,7 +439,7 @@ export default class Service {
 
         statusPage.domains = updatedDomainList;
 
-        const result = await this.updateOneBy(
+        const result: $TSFixMe = await this.updateOneBy(
             { _id: statusPage._id },
 
             { domains: statusPage.domains }
@@ -448,13 +448,13 @@ export default class Service {
     }
 
     async deleteDomain(statusPageId: $TSFixMe, domainId: $TSFixMe): void {
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             {
                 path: 'domains.domainVerificationToken',
                 select: 'domain verificationToken verified ',
             },
         ];
-        const statusPage = await this.findOneBy({
+        const statusPage: $TSFixMe = await this.findOneBy({
             query: { _id: statusPageId },
             populate: populateStatusPage,
             select: 'domains',
@@ -468,7 +468,7 @@ export default class Service {
 
         let deletedDomain: $TSFixMe = null;
 
-        const remainingDomains = statusPage.domains.filter(
+        const remainingDomains: $TSFixMe = statusPage.domains.filter(
             (domain: $TSFixMe) => {
                 if (String(domain._id) === String(domainId)) {
                     deletedDomain = domain;
@@ -477,7 +477,7 @@ export default class Service {
             }
         );
 
-        const greenlock = global.greenlock;
+        const greenlock: $TSFixMe = global.greenlock;
         // delete any associated certificate (only for auto provisioned ssl)
         // handle this in the background
         if (
@@ -506,7 +506,7 @@ export default class Service {
         statusPageName: $TSFixMe,
         filterMonitors: $TSFixMe
     ): void {
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitor',
                 select: 'name',
@@ -514,9 +514,9 @@ export default class Service {
             },
         ];
 
-        const select =
+        const select: $TSFixMe =
             '_id projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist deleted incidentHistoryDays scheduleHistoryDays announcementLogsHistory onlineText offlineText degradedText deletedAt deletedById theme multipleLanguages enableMultipleLanguage twitterHandle';
-        const statusPage = await this.findOneBy({
+        const statusPage: $TSFixMe = await this.findOneBy({
             query: { slug: statusPageSlug },
             select,
             populate,
@@ -565,7 +565,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const statusPage = await StatusPageModel.findOneAndUpdate(
+        const statusPage: $TSFixMe = await StatusPageModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -580,12 +580,12 @@ export default class Service {
         );
 
         if (statusPage) {
-            const populateSubscriber = [
+            const populateSubscriber: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
                 { path: 'monitorId', select: 'name' },
                 { path: 'statusPageId', select: 'name' },
             ];
-            const subscribers = await SubscriberService.findBy({
+            const subscribers: $TSFixMe = await SubscriberService.findBy({
                 query: { statusPageId: statusPage._id },
                 select: '_id',
                 populate: populateSubscriber,
@@ -599,10 +599,10 @@ export default class Service {
                 })
             );
 
-            const greenlock = global.greenlock;
+            const greenlock: $TSFixMe = global.greenlock;
             // delete all certificate pipeline for the custom domains
             // handle this for autoprovisioned custom domains
-            const customDomains = [...statusPage.domains];
+            const customDomains: $TSFixMe = [...statusPage.domains];
             for (const eachDomain of customDomains) {
                 if (
                     eachDomain.enableHttps &&
@@ -623,7 +623,7 @@ export default class Service {
     }
 
     async removeMonitor(monitorId: $TSFixMe): void {
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             {
                 path: 'monitors.monitor',
                 select: '_id name',
@@ -632,14 +632,14 @@ export default class Service {
 
         const selectStatusPage: string = 'monitors _id';
 
-        const statusPages = await this.findBy({
+        const statusPages: $TSFixMe = await this.findBy({
             query: { 'monitors.monitor': monitorId },
             select: selectStatusPage,
             populate: populateStatusPage,
         });
 
         for (const statusPage of statusPages) {
-            const monitors = statusPage.monitors.filter(
+            const monitors: $TSFixMe = statusPage.monitors.filter(
                 (monitorData: $TSFixMe) =>
                     String(monitorData.monitor._id || monitorData.monitor) !==
                     String(monitorId)
@@ -652,7 +652,7 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe): void {
-        const existingStatusPage = await this.findBy({
+        const existingStatusPage: $TSFixMe = await this.findBy({
             query: {
                 name: data.name,
                 projectId: data.projectId,
@@ -662,7 +662,7 @@ export default class Service {
         });
 
         if (existingStatusPage && existingStatusPage.length > 0) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'StatusPage with that name already exists.'
             );
 
@@ -685,7 +685,7 @@ export default class Service {
 
         if (data && data.groupedMonitors) {
             for (const [key, value] of Object.entries(data.groupedMonitors)) {
-                const monitorIds = value.map(
+                const monitorIds: $TSFixMe = value.map(
                     (monitorObj: $TSFixMe) => monitorObj.monitor
                 );
                 MonitorService.updateBy(
@@ -705,7 +705,7 @@ export default class Service {
             }
         );
 
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             { path: 'projectId', select: 'parentProjectId' },
             { path: 'monitorIds', select: 'name' },
             { path: 'monitors.monitor', select: 'name' },
@@ -716,7 +716,7 @@ export default class Service {
             },
         ];
 
-        const selectStatusPage =
+        const selectStatusPage: $TSFixMe =
             'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
         if (updatedStatusPage) {
@@ -741,7 +741,7 @@ export default class Service {
             $set: data,
         });
 
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             {
                 path: 'projectId',
                 select: 'name parentProjectId',
@@ -757,7 +757,7 @@ export default class Service {
             },
         ];
 
-        const selectStatusPage =
+        const selectStatusPage: $TSFixMe =
             'multipleNotificationTypes domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
         updatedData = await this.findBy({
@@ -793,7 +793,7 @@ export default class Service {
             query = {};
         }
 
-        const statuspages = await this.findBy({
+        const statuspages: $TSFixMe = await this.findBy({
             query,
             skip: 0,
             limit,
@@ -806,7 +806,7 @@ export default class Service {
             ],
         });
 
-        const checkHideResolved = statuspages[0].hideResolvedIncident;
+        const checkHideResolved: $TSFixMe = statuspages[0].hideResolvedIncident;
         let option = {};
         if (checkHideResolved) {
             option = {
@@ -814,15 +814,15 @@ export default class Service {
             };
         }
 
-        const withMonitors = statuspages.filter(
+        const withMonitors: $TSFixMe = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
-        const statuspage = withMonitors[0];
-        const monitorIds = statuspage
+        const statuspage: $TSFixMe = withMonitors[0];
+        const monitorIds: $TSFixMe = statuspage
             ? statuspage.monitors.map((m: $TSFixMe) => m.monitor._id)
             : [];
         if (monitorIds && monitorIds.length) {
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -841,10 +841,10 @@ export default class Service {
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'name _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber createdAt';
 
-            const [notes, count] = await Promise.all([
+            const [notes, count]: $TSFixMe = await Promise.all([
                 IncidentService.findBy({
                     query: {
                         'monitors.monitorId': { $in: monitorIds },
@@ -870,7 +870,7 @@ export default class Service {
     }
 
     async getIncident(query: Query): void {
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -889,10 +889,10 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'name _id' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const incident = await IncidentService.findOneBy({
+        const incident: $TSFixMe = await IncidentService.findOneBy({
             query,
             select,
             populate,
@@ -927,7 +927,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const populateIncidentMessage = [
+        const populateIncidentMessage: $TSFixMe = [
             {
                 path: 'incidentId',
                 select: 'idNumber name slug',
@@ -935,10 +935,10 @@ export default class Service {
             { path: 'createdById', select: 'name' },
         ];
 
-        const selectIncidentMessage =
+        const selectIncidentMessage: $TSFixMe =
             '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
 
-        const [message, count] = await Promise.all([
+        const [message, count]: $TSFixMe = await Promise.all([
             IncidentMessageService.findBy({
                 query,
                 skip,
@@ -957,7 +957,7 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -976,10 +976,10 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'name _id' },
         ];
-        const select =
+        const select: $TSFixMe =
             'createdAt slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const [incidents, count] = await Promise.all([
+        const [incidents, count]: $TSFixMe = await Promise.all([
             IncidentService.findBy({
                 query,
                 limit,
@@ -1023,7 +1023,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const statuspages = await this.findBy({
+        const statuspages: $TSFixMe = await this.findBy({
             query,
             skip: 0,
             limit,
@@ -1036,18 +1036,18 @@ export default class Service {
             ],
         });
 
-        const withMonitors = statuspages.filter(
+        const withMonitors: $TSFixMe = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
-        const statuspage = withMonitors[0];
-        const monitorIds = statuspage
+        const statuspage: $TSFixMe = withMonitors[0];
+        const monitorIds: $TSFixMe = statuspage
             ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
             : [];
         if (monitorIds && monitorIds.length) {
-            const currentDate = moment();
+            const currentDate: $TSFixMe = moment();
             const eventIds: $TSFixMe = [];
 
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
                 { path: 'createdById', select: 'name' },
@@ -1060,12 +1060,12 @@ export default class Service {
                     },
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
             let events = await Promise.all(
                 monitorIds.map(async (monitorId: $TSFixMe) => {
-                    const scheduledEvents = await ScheduledEventsService.findBy(
+                    const scheduledEvents: $TSFixMe = await ScheduledEventsService.findBy(
                         {
                             query: {
                                 'monitors.monitorId': monitorId,
@@ -1081,7 +1081,7 @@ export default class Service {
                         }
                     );
                     scheduledEvents.map((event: $TSFixMe) => {
-                        const id = String(event._id);
+                        const id: $TSFixMe = String(event._id);
                         if (!eventIds.includes(id)) {
                             eventIds.push(id);
                         }
@@ -1098,7 +1098,7 @@ export default class Service {
             events = eventIds.map(id => {
                 return events.find(event => String(event._id) === String(id));
             });
-            const count = events.length;
+            const count: $TSFixMe = events.length;
 
             return { events, count };
         } else {
@@ -1132,7 +1132,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const statuspages = await this.findBy({
+        const statuspages: $TSFixMe = await this.findBy({
             query,
             skip: 0,
             limit,
@@ -1145,10 +1145,10 @@ export default class Service {
             ],
         });
 
-        const withMonitors = statuspages.filter(
+        const withMonitors: $TSFixMe = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
-        const statuspage = withMonitors[0];
+        const statuspage: $TSFixMe = withMonitors[0];
         let monitorIds = statuspage
             ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
             : [];
@@ -1156,9 +1156,9 @@ export default class Service {
             (monitor: $TSFixMe) => monitor._id || monitor
         );
         if (monitorIds && monitorIds.length) {
-            const currentDate = moment();
+            const currentDate: $TSFixMe = moment();
             const eventIds: $TSFixMe = [];
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
                 { path: 'createdById', select: 'name' },
@@ -1171,12 +1171,12 @@ export default class Service {
                     },
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
             let events = await Promise.all(
                 monitorIds.map(async (monitorId: $TSFixMe) => {
-                    const scheduledEvents = await ScheduledEventsService.findBy(
+                    const scheduledEvents: $TSFixMe = await ScheduledEventsService.findBy(
                         {
                             query: {
                                 'monitors.monitorId': monitorId,
@@ -1188,7 +1188,7 @@ export default class Service {
                         }
                     );
                     scheduledEvents.map((event: $TSFixMe) => {
-                        const id = String(event._id);
+                        const id: $TSFixMe = String(event._id);
                         if (!eventIds.includes(id)) {
                             eventIds.push(id);
                         }
@@ -1210,7 +1210,7 @@ export default class Service {
 
             events = events.sort((a, b) => b.startDate - a.startDate);
 
-            const count = events.length;
+            const count: $TSFixMe = events.length;
             return { events, count };
         } else {
             throw new BadDataException('No monitors on this status page');
@@ -1243,7 +1243,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const statuspages = await this.findBy({
+        const statuspages: $TSFixMe = await this.findBy({
             query,
             skip: 0,
             limit,
@@ -1256,17 +1256,17 @@ export default class Service {
             ],
         });
 
-        const withMonitors = statuspages.filter(
+        const withMonitors: $TSFixMe = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
-        const statuspage = withMonitors[0];
-        const monitorIds = statuspage
+        const statuspage: $TSFixMe = withMonitors[0];
+        const monitorIds: $TSFixMe = statuspage
             ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
             : [];
         if (monitorIds && monitorIds.length) {
-            const currentDate = moment();
+            const currentDate: $TSFixMe = moment();
             const eventIds: $TSFixMe = [];
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
                 { path: 'createdById', select: 'name' },
@@ -1279,12 +1279,12 @@ export default class Service {
                     },
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
             let events = await Promise.all(
                 monitorIds.map(async (monitorId: $TSFixMe) => {
-                    const scheduledEvents = await ScheduledEventsService.findBy(
+                    const scheduledEvents: $TSFixMe = await ScheduledEventsService.findBy(
                         {
                             query: {
                                 'monitors.monitorId': monitorId,
@@ -1296,7 +1296,7 @@ export default class Service {
                         }
                     );
                     scheduledEvents.map((event: $TSFixMe) => {
-                        const id = String(event._id);
+                        const id: $TSFixMe = String(event._id);
                         if (!eventIds.includes(id)) {
                             eventIds.push(id);
                         }
@@ -1318,7 +1318,7 @@ export default class Service {
 
             events = events.sort((a, b) => a.startDate - b.startDate);
 
-            const count = events.length;
+            const count: $TSFixMe = events.length;
             return { events: limitEvents(events, limit, skip), count };
         } else {
             throw new BadDataException('No monitors on this status page');
@@ -1326,7 +1326,7 @@ export default class Service {
     }
 
     async getEvent(query: Query): void {
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
             { path: 'createdById', select: 'name' },
@@ -1339,10 +1339,10 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const scheduledEvent = await ScheduledEventsService.findOneBy({
+        const scheduledEvent: $TSFixMe = await ScheduledEventsService.findOneBy({
             query,
             select,
             populate,
@@ -1376,7 +1376,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             {
                 path: 'scheduledEventId',
@@ -1387,10 +1387,10 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
-        const [eventNote, count] = await Promise.all([
+        const [eventNote, count]: $TSFixMe = await Promise.all([
             ScheduledEventNoteService.findBy({
                 query,
                 limit,
@@ -1409,7 +1409,7 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
             { path: 'createdById', select: 'name' },
@@ -1422,10 +1422,10 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const [scheduledEvents, count] = await Promise.all([
+        const [scheduledEvents, count]: $TSFixMe = await Promise.all([
             ScheduledEventsService.findBy({
                 query,
                 limit,
@@ -1440,19 +1440,19 @@ export default class Service {
     }
 
     async getStatusPage({ query, userId, populate, select }: $TSFixMe): void {
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
         if (!query) {
             query = {};
         }
 
         query['deleted'] = false;
 
-        const statusPagesQuery = StatusPageModel.find(query).lean();
+        const statusPagesQuery: $TSFixMe = StatusPageModel.find(query).lean();
 
         statusPagesQuery.select(select);
         statusPagesQuery.populate(populate);
 
-        const statusPages = await statusPagesQuery;
+        const statusPages: $TSFixMe = await statusPagesQuery;
 
         let statusPage = null;
 
@@ -1462,9 +1462,9 @@ export default class Service {
             query.domains.$elemMatch &&
             query.domains.$elemMatch.domain
         ) {
-            const domain = query.domains.$elemMatch.domain;
+            const domain: $TSFixMe = query.domains.$elemMatch.domain;
 
-            const verifiedStatusPages = statusPages.filter(
+            const verifiedStatusPages: $TSFixMe = statusPages.filter(
                 (page: $TSFixMe) =>
                     page &&
                     page.domains.length > 0 &&
@@ -1486,9 +1486,9 @@ export default class Service {
         }
 
         if (statusPage && (statusPage._id || statusPage.id)) {
-            const permitted = await thisObj.isPermitted(userId, statusPage);
+            const permitted: $TSFixMe = await thisObj.isPermitted(userId, statusPage);
             if (!permitted) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'You are unauthorized to access the page please login to continue.'
                 );
 
@@ -1499,23 +1499,23 @@ export default class Service {
             const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) =>
                 String(monitorObj.monitor._id || monitorObj.monitor)
             );
-            const projectId = statusPage.projectId._id || statusPage.projectId;
+            const projectId: $TSFixMe = statusPage.projectId._id || statusPage.projectId;
 
-            const subProjects = await ProjectService.findBy({
+            const subProjects: $TSFixMe = await ProjectService.findBy({
                 query: {
                     $or: [{ parentProjectId: projectId }, { _id: projectId }],
                 },
                 select: '_id',
             });
-            const subProjectIds = subProjects
+            const subProjectIds: $TSFixMe = subProjects
                 ? subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            const monitors = await MonitorService.getMonitorsBySubprojects(
+            const monitors: $TSFixMe = await MonitorService.getMonitorsBySubprojects(
                 subProjectIds,
                 0,
                 0
             );
-            const filteredMonitorData = monitors.map(subProject => {
+            const filteredMonitorData = monitors.map(subProject: $TSFixMe => {
                 return subProject.monitors.filter((monitor: $TSFixMe) =>
                     monitorIds.includes(monitor._id.toString())
                 );
@@ -1536,7 +1536,7 @@ export default class Service {
             query = {};
         }
 
-        const statuspages = await this.findBy({
+        const statuspages: $TSFixMe = await this.findBy({
             query,
             select: 'monitors',
             populate: [
@@ -1547,15 +1547,15 @@ export default class Service {
             ],
         });
 
-        const withMonitors = statuspages.filter(
+        const withMonitors: $TSFixMe = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
-        const statuspage = withMonitors[0];
-        const monitorIds =
+        const statuspage: $TSFixMe = withMonitors[0];
+        const monitorIds: $TSFixMe =
             statuspage &&
             statuspage.monitors.map((m: $TSFixMe) => m.monitor._id);
         if (monitorIds && monitorIds.length) {
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -1574,10 +1574,10 @@ export default class Service {
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'name _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'slug createdAt notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-            const [incidents, count] = await Promise.all([
+            const [incidents, count]: $TSFixMe = await Promise.all([
                 IncidentService.findBy({
                     query: { 'monitors.monitorId': { $in: monitorIds } },
                     select,
@@ -1597,7 +1597,7 @@ export default class Service {
         const fn = async (resolve: $TSFixMe): void => {
             if (statusPage.isPrivate) {
                 if (userId) {
-                    const project = await ProjectService.findOneBy({
+                    const project: $TSFixMe = await ProjectService.findOneBy({
                         query: { _id: statusPage.projectId._id },
                         select: '_id users',
                     });
@@ -1631,7 +1631,7 @@ export default class Service {
     }: $TSFixMe): void {
         const selectStatusPage: string = 'slug title name description _id';
 
-        const [data, count] = await Promise.all([
+        const [data, count]: $TSFixMe = await Promise.all([
             this.findBy({
                 query: { projectId },
                 skip: skip,
@@ -1651,7 +1651,7 @@ export default class Service {
     async restoreBy(query: Query): void {
         query.deleted = true;
 
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             {
                 path: 'projectId',
                 select: 'name parentProjectId',
@@ -1667,19 +1667,19 @@ export default class Service {
             },
         ];
 
-        const selectStatusPage =
+        const selectStatusPage: $TSFixMe =
             'multipleNotificationTypes domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-        const statusPage = await this.findBy({
+        const statusPage: $TSFixMe = await this.findBy({
             query,
             populate: populateStatusPage,
             select: selectStatusPage,
         });
 
         if (statusPage && statusPage.length > 1) {
-            const statusPages = await Promise.all(
+            const statusPages: $TSFixMe = await Promise.all(
                 statusPage.map(async (statusPage: $TSFixMe) => {
-                    const statusPageId = statusPage._id;
+                    const statusPageId: $TSFixMe = statusPage._id;
                     statusPage = await this.updateOneBy(
                         { _id: statusPageId, deleted: true },
                         {
@@ -1738,15 +1738,15 @@ export default class Service {
         if (statusPages && statusPages[0]) {
             statusPages = statusPages[0];
         }
-        const endDate = moment(Date.now());
-        const startDate = moment(Date.now()).subtract(90, 'days');
-        const monitorsIds =
+        const endDate: $TSFixMe = moment(Date.now());
+        const startDate: $TSFixMe = moment(Date.now()).subtract(90, 'days');
+        const monitorsIds: $TSFixMe =
             statusPages && statusPages.monitors
                 ? statusPages.monitors.map((m: $TSFixMe) =>
                       m.monitor && m.monitor._id ? m.monitor._id : null
                   )
                 : [];
-        const statuses = await Promise.all(
+        const statuses: $TSFixMe = await Promise.all(
             monitorsIds.map(async (m: $TSFixMe) => {
                 return await MonitorService.getMonitorStatuses(
                     m,
@@ -1755,7 +1755,7 @@ export default class Service {
                 );
             })
         );
-        const bubble = await getServiceStatus(statuses, probes);
+        const bubble: $TSFixMe = await getServiceStatus(statuses, probes);
         let statusMessage = '';
         if (bubble === 'all') {
             statusMessage = 'All services are online';
@@ -1770,7 +1770,7 @@ export default class Service {
     }
 
     async doesDomainExist(domain: $TSFixMe): void {
-        const statusPage = await this.countBy({
+        const statusPage: $TSFixMe = await this.countBy({
             query: {
                 domains: { $elemMatch: { domain } },
             },
@@ -1784,7 +1784,7 @@ export default class Service {
     }
 
     async createExternalStatusPage(data: $TSFixMe): void {
-        const externalStatusPage = new ExternalStatusPageModel();
+        const externalStatusPage: $TSFixMe = new ExternalStatusPageModel();
 
         externalStatusPage.url = data.url || null;
 
@@ -1797,7 +1797,7 @@ export default class Service {
         externalStatusPage.statusPageId = data.statusPageId || null;
 
         externalStatusPage.createdById = data.createdById || null;
-        const newExternalStatusPage = await externalStatusPage.save();
+        const newExternalStatusPage: $TSFixMe = await externalStatusPage.save();
 
         return newExternalStatusPage;
     }
@@ -1828,7 +1828,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const externalStatusPages = await ExternalStatusPageModel.find(query);
+        const externalStatusPages: $TSFixMe = await ExternalStatusPageModel.find(query);
         return externalStatusPages;
     }
 
@@ -1839,7 +1839,7 @@ export default class Service {
     ): void {
         const query: $TSFixMe = { projectId, _id };
 
-        const externalStatusPages =
+        const externalStatusPages: $TSFixMe =
             await ExternalStatusPageModel.findOneAndUpdate(
                 query,
                 {
@@ -1859,7 +1859,7 @@ export default class Service {
     ): void {
         const query: $TSFixMe = { projectId, _id };
 
-        const externalStatusPages =
+        const externalStatusPages: $TSFixMe =
             await ExternalStatusPageModel.findOneAndUpdate(
                 query,
                 {
@@ -1886,7 +1886,7 @@ export default class Service {
             data.slug = getSlug(data.name);
         }
 
-        const announcement = new AnnouncementModel();
+        const announcement: $TSFixMe = new AnnouncementModel();
 
         announcement.name = data.name || null;
 
@@ -1901,7 +1901,7 @@ export default class Service {
         announcement.createdById = data.createdById || null;
 
         announcement.slug = data.slug || null;
-        const newAnnouncement = await announcement.save();
+        const newAnnouncement: $TSFixMe = await announcement.save();
 
         return newAnnouncement;
     }
@@ -1932,7 +1932,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const allAnnouncements = await AnnouncementModel.find(query)
+        const allAnnouncements: $TSFixMe = await AnnouncementModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -1946,7 +1946,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const count = await AnnouncementModel.countDocuments(query);
+        const count: $TSFixMe = await AnnouncementModel.countDocuments(query);
         return count;
     }
 
@@ -1955,7 +1955,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const response = await AnnouncementModel.findOne(query);
+        const response: $TSFixMe = await AnnouncementModel.findOne(query);
         return response;
     }
 
@@ -1969,7 +1969,7 @@ export default class Service {
                 statusPageId: query.statusPageId,
             });
         }
-        const response = await AnnouncementModel.findOneAndUpdate(
+        const response: $TSFixMe = await AnnouncementModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -2005,7 +2005,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const response = await AnnouncementModel.updateMany(
+        const response: $TSFixMe = await AnnouncementModel.updateMany(
             query,
             {
                 $set: { hideAnnouncement: true },
@@ -2022,7 +2022,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const response = await AnnouncementModel.findOneAndUpdate(
+        const response: $TSFixMe = await AnnouncementModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -2039,7 +2039,7 @@ export default class Service {
     }
 
     async createAnnouncementLog(data: $TSFixMe): void {
-        const announcementLog = new AnnouncementLogModel();
+        const announcementLog: $TSFixMe = new AnnouncementLogModel();
 
         announcementLog.announcementId = data.announcementId || null;
 
@@ -2052,7 +2052,7 @@ export default class Service {
         announcementLog.endDate = data.endDate || null;
 
         announcementLog.active = data.active || null;
-        const newAnnouncementLog = await announcementLog.save();
+        const newAnnouncementLog: $TSFixMe = await announcementLog.save();
         return newAnnouncementLog;
     }
 
@@ -2061,7 +2061,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const response = await AnnouncementLogModel.findOneAndUpdate(
+        const response: $TSFixMe = await AnnouncementLogModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -2099,7 +2099,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const announcementLogs = await AnnouncementLogModel.find(query)
+        const announcementLogs: $TSFixMe = await AnnouncementLogModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -2116,7 +2116,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const response = await AnnouncementLogModel.findOneAndUpdate(
+        const response: $TSFixMe = await AnnouncementLogModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -2137,12 +2137,12 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const count = await AnnouncementLogModel.countDocuments(query);
+        const count: $TSFixMe = await AnnouncementLogModel.countDocuments(query);
         return count;
     }
 
     async fetchTweets(handle: $TSFixMe): void {
-        const userData = await axios.get(
+        const userData: $TSFixMe = await axios.get(
             `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
             {
                 headers: {
@@ -2151,11 +2151,11 @@ export default class Service {
             }
         );
 
-        const userId = userData?.data?.data?.id || false;
+        const userId: $TSFixMe = userData?.data?.data?.id || false;
         let response = '';
 
         if (userId) {
-            const tweetData = await axios.get(
+            const tweetData: $TSFixMe = await axios.get(
                 `https://api.twitter.com/2/users/${userId}/tweets?tweet.fields=created_at&exclude=retweets,replies`,
                 {
                     headers: {
@@ -2188,9 +2188,9 @@ const filterProbeData: Function = (
     monitor: $TSFixMe,
     probe: $TSFixMe
 ): void => {
-    const monitorStatuses = monitor && monitor.length > 0 ? monitor : null;
+    const monitorStatuses: $TSFixMe = monitor && monitor.length > 0 ? monitor : null;
 
-    const probesStatus =
+    const probesStatus: $TSFixMe =
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
@@ -2201,7 +2201,7 @@ const filterProbeData: Function = (
                   })
                 : monitorStatuses
             : [];
-    const statuses =
+    const statuses: $TSFixMe =
         probesStatus &&
         probesStatus[0] &&
         probesStatus[0].statuses &&
@@ -2216,17 +2216,17 @@ const getServiceStatus: Function = (
     monitorsData: $TSFixMe,
     probes: $TSFixMe
 ): void => {
-    const monitorsLength = monitorsData.length;
-    const probesLength = probes && probes.length;
+    const monitorsLength: $TSFixMe = monitorsData.length;
+    const probesLength: $TSFixMe = probes && probes.length;
 
-    const totalServices = monitorsLength * probesLength;
+    const totalServices: $TSFixMe = monitorsLength * probesLength;
     let onlineServices = totalServices;
     let degraded = 0;
 
     monitorsData.forEach((monitor: $TSFixMe) => {
         probes.forEach((probe: $TSFixMe) => {
-            const statuses = filterProbeData(monitor, probe);
-            const monitorStatus =
+            const statuses: $TSFixMe = filterProbeData(monitor, probe);
+            const monitorStatus: $TSFixMe =
                 statuses && statuses.length > 0
                     ? statuses[0].status || 'online'
                     : 'online';

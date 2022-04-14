@@ -12,7 +12,7 @@ export default class Service {
     async create(data: $TSFixMe, projectId: ObjectID): void {
         let scheduledEventMessage = await ScheduledEventNoteModel.create(data);
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             {
                 path: 'scheduledEventId',
@@ -23,7 +23,7 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
         scheduledEventMessage = await this.findOneBy({
@@ -86,7 +86,7 @@ export default class Service {
         }
 
         if (!eventMessage) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Scheduled Event Note not found or does not exist'
             );
 
@@ -94,7 +94,7 @@ export default class Service {
             throw error;
         }
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             {
                 path: 'scheduledEventId',
@@ -105,7 +105,7 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
         eventMessage = await this.findOneBy({ query, populate, select }); // If one of the values of query is not correct, a null is returned as such document could not be found in the DB
@@ -128,13 +128,13 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const eventMessageQuery = ScheduledEventNoteModel.findOne(query)
+        const eventMessageQuery: $TSFixMe = ScheduledEventNoteModel.findOne(query)
             .sort(sort)
             .lean();
 
         eventMessageQuery.select(select);
         eventMessageQuery.populate(populate);
-        const eventMessage = await eventMessageQuery;
+        const eventMessage: $TSFixMe = await eventMessageQuery;
         return eventMessage;
     }
 
@@ -159,7 +159,7 @@ export default class Service {
             query = {};
         }
 
-        const eventMessageQuery = ScheduledEventNoteModel.find(query)
+        const eventMessageQuery: $TSFixMe = ScheduledEventNoteModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -168,7 +168,7 @@ export default class Service {
         eventMessageQuery.select(select);
         eventMessageQuery.populate(populate);
 
-        const eventMessage = await eventMessageQuery;
+        const eventMessage: $TSFixMe = await eventMessageQuery;
         return eventMessage;
     }
 
@@ -176,7 +176,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        const count = await ScheduledEventNoteModel.countDocuments(query);
+        const count: $TSFixMe = await ScheduledEventNoteModel.countDocuments(query);
         return count;
     }
 
@@ -188,10 +188,10 @@ export default class Service {
             deletedById: userId,
         };
 
-        const deletedEventMessage = await this.updateOneBy(query, data);
+        const deletedEventMessage: $TSFixMe = await this.updateOneBy(query, data);
 
         if (!deletedEventMessage) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Scheduled Event Note not found or does not exist'
             );
 

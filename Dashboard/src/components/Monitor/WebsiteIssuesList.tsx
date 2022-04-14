@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 const ProcessedDescription: Function = (text: $TSFixMe) => {
     if (!text || typeof text !== 'string') return text;
 
-    const tempArr = text.split(/\[Learn more\]/i);
+    const tempArr: $TSFixMe = text.split(/\[Learn more\]/i);
     return (
         <a
             href={tempArr[1]?.replace(/^\(|\)|\.$/gi, '')}

@@ -6,8 +6,8 @@ import { RootState } from '../../store';
 // params 1: props
 // returns JSX.Element or NULL
 function RenderIfMember(props: $TSFixMe): void {
-    const { currentProject, children, currentUserId } = props;
-    const userId = User.getUserId();
+    const { currentProject, children, currentUserId }: $TSFixMe = props;
+    const userId: $TSFixMe = User.getUserId();
 
     let renderItems = null;
     if (

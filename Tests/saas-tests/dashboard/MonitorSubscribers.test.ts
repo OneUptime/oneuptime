@@ -8,13 +8,13 @@ const existingSubscribers: string = `${__dirname}/MOCKS/existing.csv`;
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -65,7 +65,7 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
 
-            const input = await init.page$(page, '#fileInput');
+            const input: $TSFixMe = await init.page$(page, '#fileInput');
             await input.uploadFile(csvFile);
             await input.evaluate((upload: $TSFixMe) =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
@@ -80,11 +80,11 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
-            const subscriberRows = await init.page$$(
+            const subscriberRows: $TSFixMe = await init.page$$(
                 page,
                 createdSubscriberSelector
             );
-            const countSubscribers = subscriberRows.length;
+            const countSubscribers: $TSFixMe = subscriberRows.length;
             expect(countSubscribers).toEqual(3);
             done();
         },
@@ -116,7 +116,7 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
 
-            const input = await init.page$(page, '#fileInput');
+            const input: $TSFixMe = await init.page$(page, '#fileInput');
             await input.uploadFile(emptyFile);
             await input.evaluate((upload: $TSFixMe) =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
@@ -162,7 +162,7 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
 
-            const input = await init.page$(page, '#fileInput');
+            const input: $TSFixMe = await init.page$(page, '#fileInput');
             await input.uploadFile(csvFile);
             await input.evaluate((upload: $TSFixMe) =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
@@ -176,11 +176,11 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
-            const subscriberRows = await init.page$$(
+            const subscriberRows: $TSFixMe = await init.page$$(
                 page,
                 createdSubscriberSelector
             );
-            const countSubscribers = subscriberRows.length;
+            const countSubscribers: $TSFixMe = subscriberRows.length;
             expect(countSubscribers).toEqual(3);
             done();
         },
@@ -212,7 +212,7 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
 
-            const input = await init.page$(page, '#fileInput');
+            const input: $TSFixMe = await init.page$(page, '#fileInput');
             await input.uploadFile(existingSubscribers);
             await input.evaluate((upload: $TSFixMe) =>
                 upload.dispatchEvent(new Event('change', { bubbles: true }))
@@ -226,11 +226,11 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
-            const subscriberRows = await init.page$$(
+            const subscriberRows: $TSFixMe = await init.page$$(
                 page,
                 createdSubscriberSelector
             );
-            const countSubscribers = subscriberRows.length;
+            const countSubscribers: $TSFixMe = subscriberRows.length;
             expect(countSubscribers).toEqual(4);
             done();
         },
@@ -257,7 +257,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, initialSubscribers);
 
             initialSubscribers = await init.page$$(page, initialSubscribers);
-            const initialCount = initialSubscribers.length;
+            const initialCount: $TSFixMe = initialSubscribers.length;
 
             await init.pageWaitForSelector(
                 page,
@@ -280,7 +280,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, finalSubscribers);
 
             finalSubscribers = await init.page$$(page, finalSubscribers);
-            const finalCount = finalSubscribers.length;
+            const finalCount: $TSFixMe = finalSubscribers.length;
 
             expect(finalCount).toEqual(3);
             expect(initialCount).toBeGreaterThan(finalCount);
@@ -309,7 +309,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, initialSubscribers);
 
             initialSubscribers = await init.page$$(page, initialSubscribers);
-            const initialCount = initialSubscribers.length;
+            const initialCount: $TSFixMe = initialSubscribers.length;
 
             await init.pageWaitForSelector(
                 page,
@@ -329,7 +329,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, finalSubscribers);
 
             finalSubscribers = await init.page$$(page, finalSubscribers);
-            const finalCount = finalSubscribers.length;
+            const finalCount: $TSFixMe = finalSubscribers.length;
 
             expect(finalCount).toEqual(3);
             expect(initialCount).toEqual(finalCount);

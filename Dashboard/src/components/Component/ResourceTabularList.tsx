@@ -30,8 +30,8 @@ class ResourceTabularList extends Component<ComponentProps> {
     }
     generateUrlLink(componentResource: $TSFixMe) {
 
-        const { currentProject, componentSlug } = this.props;
-        const baseUrl:string = `/dashboard/project/${currentProject.slug}/component/${componentSlug}/`;
+        const { currentProject, componentSlug }: $TSFixMe = this.props;
+        const baseUrl:string: $TSFixMe = `/dashboard/project/${currentProject.slug}/component/${componentSlug}/`;
         let route = '';
         switch (componentResource.type) {
             case 'website monitor':
@@ -72,7 +72,7 @@ class ResourceTabularList extends Component<ComponentProps> {
         let appSecurityStatus = 'currently scanning',
             containerSecurityStatus = 'currently scanning';
 
-        const { monitors } = this.props;
+        const { monitors }: $TSFixMe = this.props;
 
         let data = null;
         switch (componentResource.type) {
@@ -90,8 +90,8 @@ class ResourceTabularList extends Component<ComponentProps> {
                     (monitor: $TSFixMe) => monitor._id === componentResource._id
                 )[0];
                 if (monitor) {
-                    const incidents = monitor.incidents;
-                    const lastMatchedCriterion =
+                    const incidents: $TSFixMe = monitor.incidents;
+                    const lastMatchedCriterion: $TSFixMe =
                         monitor.lastMatchedCriterion &&
                         monitor.lastMatchedCriterion.name &&
                         monitor.lastMatchedCriterion.name.toLowerCase();
@@ -247,8 +247,8 @@ class ResourceTabularList extends Component<ComponentProps> {
 
     override render() {
 
-        const { componentResource, componentName } = this.props;
-        const componentResources =
+        const { componentResource, componentName }: $TSFixMe = this.props;
+        const componentResources: $TSFixMe =
             componentResource && componentResource.componentResources
                 ? sortByName(componentResource.componentResources)
                 : [];

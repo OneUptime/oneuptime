@@ -33,7 +33,7 @@ export class DeleteStatusPageBox extends Component<ComponentProps>{
             subProjectId,
         } = this.props;
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: deleteModalId,
@@ -63,7 +63,7 @@ export class DeleteStatusPageBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div
@@ -116,7 +116,7 @@ DeleteStatusPageBox.displayName = 'DeleteStatusPageBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { statusPageSlug } = props.match.params;
+    const { statusPageSlug }: $TSFixMe = props.match.params;
 
     return {
         projectId:

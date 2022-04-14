@@ -12,7 +12,7 @@ interface TooltipModalProps {
 class TooltipModal extends Component<ComponentProps> {
     override render() {
 
-        const { title, body, closeThisDialog } = this.props;
+        const { title, body, closeThisDialog }: $TSFixMe = this.props;
         return (
 
             <Modal

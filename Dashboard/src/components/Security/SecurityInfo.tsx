@@ -106,7 +106,7 @@ const SecurityInfo: Function = ({
     };
 
     const more: Function = () => {
-        const securitySlug = containerSecuritySlug || applicationSecuritySlug;
+        const securitySlug: $TSFixMe = containerSecuritySlug || applicationSecuritySlug;
 
         type =
             (type === 'container' && 'container') ||
@@ -146,9 +146,9 @@ const SecurityInfo: Function = ({
         return security;
     };
 
-    const security = getSecurityInfo();
+    const security: $TSFixMe = getSecurityInfo();
 
-    const status =
+    const status: $TSFixMe =
         type === 'application'
             ? applicationSecurityLog.data
                 ? threatLevel(applicationSecurityLog.data.vulnerabilities)

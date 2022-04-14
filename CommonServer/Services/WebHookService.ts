@@ -25,7 +25,7 @@ export default class Service {
         duration: $TSFixMe,
         { note, incidentState, statusNoteStatus }: $TSFixMe = {}
     ): void {
-        const [project, monitorStatus] = await Promise.all([
+        const [project, monitorStatus]: $TSFixMe = await Promise.all([
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProjectId slug name _id',
@@ -61,10 +61,10 @@ export default class Service {
         duration: $TSFixMe,
         { note, incidentState, statusNoteStatus }: $TSFixMe = {}
     ): void {
-        const self = this;
+        const self: $TSFixMe = this;
         let response;
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId slug name _id',
         });
@@ -97,9 +97,9 @@ export default class Service {
         } else {
             return;
         }
-        const select =
+        const select: $TSFixMe =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             { path: 'projectId', select: 'name' },
             {
@@ -108,7 +108,7 @@ export default class Service {
                 populate: [{ path: 'componentId', select: 'name' }],
             },
         ];
-        const [integrations, monitorStatus] = await Promise.all([
+        const [integrations, monitorStatus]: $TSFixMe = await Promise.all([
             IntegrationService.findBy({ query, select, populate }),
             MonitorStatusService.findOneBy({
                 query: { monitorId: monitor._id },
@@ -154,11 +154,11 @@ export default class Service {
         let payload;
         let webHookURL;
         let httpMethod;
-        const isStatusPageNoteNotification =
+        const isStatusPageNoteNotification: $TSFixMe =
             note && incidentState && statusNoteStatus;
         let notificationTitle = '';
         let notificationText = '';
-        const criterionCauseName = incident.criterionCause
+        const criterionCauseName: $TSFixMe = incident.criterionCause
             ? incident.criterionCause.name
             : 'Unnamed Criterion';
 
@@ -347,7 +347,7 @@ export default class Service {
         }
 
         if (webHookURL && httpMethod) {
-            const response = await axios
+            const response: $TSFixMe = await axios
                 .request({
                     method: httpMethod,
                     url: webHookURL,

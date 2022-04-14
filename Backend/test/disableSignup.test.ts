@@ -9,14 +9,14 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import AirtableService from '../backend/services/airtableService';
 import payment from '../backend/config/payment';
 import Stripe from 'stripe';
-const stripe = Stripe(payment.paymentPrivateKey);
+const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 
 describe('Disable Sign up test', function (): void {
     this.timeout(200000);
@@ -29,12 +29,12 @@ describe('Disable Sign up test', function (): void {
         await UserService.hardDeleteBy({});
         await AirtableService.deleteAll({ tableName: 'User' });
         await GlobalConfig.initTestConfig();
-        const user = await createUser(request, data.adminUser);
+        const user: $TSFixMe = await createUser(request, data.adminUser);
         await UserService.updateBy(
             { _id: user.body.id },
             { role: 'master-admin' }
         );
-        const res = await request.post('/user/login').send({
+        const res: $TSFixMe = await request.post('/user/login').send({
             email: data.adminUser.email,
             password: data.adminUser.password,
         });
@@ -50,23 +50,23 @@ describe('Disable Sign up test', function (): void {
     });
 
     it('should not sign up the user when sign up is disabled', async () => {
-        const res = await createUser(request, data.user);
+        const res: $TSFixMe = await createUser(request, data.user);
         expect(res).to.have.status(400);
         expect(res.body.message).to.be.equal('Sign up is disabled.');
     });
 
     it('should sign up a new user when user is admin', async () => {
         const authorization: string = `Basic ${token}`;
-        const res = await request.post('/stripe/checkCard').send({
+        const res: $TSFixMe = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
             email: data.anotherUser.email,
             companyName: data.anotherUser.companyName,
         });
 
-        const paymentIntent = await stripe.paymentIntents.confirm(res.body.id);
+        const paymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(res.body.id);
         expect(paymentIntent).to.have.status('succeeded');
 
-        const res2 = await request
+        const res2: $TSFixMe = await request
             .post('/user/signup')
             .set('Authorization', authorization)
             .send({

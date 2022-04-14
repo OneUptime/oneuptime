@@ -35,7 +35,7 @@ class ResetSmsTemplate extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog }: $TSFixMe = this.props;
         let deleting = false;
         if (
 

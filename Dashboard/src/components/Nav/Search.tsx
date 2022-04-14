@@ -75,10 +75,10 @@ class Search extends Component<ComponentProps> {
         window.removeEventListener('keydown', this.handleKeyBoardScroll);
     }
     scrollToViewPort() {
-        const panel = this.containerRef.current;
-        const node = this.activeRef.current;
+        const panel: $TSFixMe = this.containerRef.current;
+        const node: $TSFixMe = this.activeRef.current;
 
-        const searchObj = this.props.searcResult;
+        const searchObj: $TSFixMe = this.props.searcResult;
 
         if (
             searchObj.length > 0 &&
@@ -94,7 +94,7 @@ class Search extends Component<ComponentProps> {
     ArrowUp = () => {
         this.scrollToViewPort();
 
-        const searchObj = this.props.searcResult;
+        const searchObj: $TSFixMe = this.props.searcResult;
         for (let i = 0; i < searchObj.length; i++) {
             if (i === this.state.sectionActive) {
                 if (this.state.scroll === 0) {
@@ -123,7 +123,7 @@ class Search extends Component<ComponentProps> {
     ArrowDown = () => {
         this.scrollToViewPort();
 
-        const searchObj = this.props.searcResult;
+        const searchObj: $TSFixMe = this.props.searcResult;
         for (let i = 0; i < searchObj.length; i++) {
             if (i === this.state.sectionActive) {
                 //check if its the last section
@@ -148,8 +148,8 @@ class Search extends Component<ComponentProps> {
     //generate monitor url
     generateUrlLink(searchObj: $TSFixMe) {
 
-        const { currentProject } = this.props;
-        const baseUrl:string = `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/`;
+        const { currentProject }: $TSFixMe = this.props;
+        const baseUrl:string: $TSFixMe = `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/`;
         let route = '';
         switch (searchObj.type) {
             case 'url':
@@ -194,7 +194,7 @@ class Search extends Component<ComponentProps> {
     loadMonitor = async (currentProject: $TSFixMe, searchObj: $TSFixMe) => {
         history.push(this.generateUrlLink(searchObj));
         //fetch monitor resources as this does not load on search
-        const monitor = searchObj;
+        const monitor: $TSFixMe = searchObj;
 
         await this.props.fetchMonitors(currentProject._id);
 
@@ -258,7 +258,7 @@ class Search extends Component<ComponentProps> {
 
             this.props.animateSidebar(false);
         }, 200);
-        const notifications = [{ notificationId: searchObj.notificationId }];
+        const notifications: $TSFixMe = [{ notificationId: searchObj.notificationId }];
 
         this.props.markAsRead(this.props.currentProject._id, notifications);
 
@@ -295,7 +295,7 @@ class Search extends Component<ComponentProps> {
 
     navigate = (type: $TSFixMe, searchObj: $TSFixMe) => {
 
-        const { currentProject, componentList } = this.props;
+        const { currentProject, componentList }: $TSFixMe = this.props;
         let component, publicStatusPageUrl, path, userId;
         switch (type) {
             case 'Monitors':
@@ -382,19 +382,19 @@ class Search extends Component<ComponentProps> {
             this.props.searchValues.search !== ''
         ) {
 
-            const searchObj = this.props.searcResult[this.state.sectionActive]
+            const searchObj: $TSFixMe = this.props.searcResult[this.state.sectionActive]
                 .values[this.state.scroll];
 
-            const type = this.props.searcResult[this.state.sectionActive].title;
+            const type: $TSFixMe = this.props.searcResult[this.state.sectionActive].title;
             this.navigate(type, searchObj);
             this.handleBlur();
         }
     };
     handleSearchClick = (sectionActive: $TSFixMe, scroll: $TSFixMe) => {
 
-        const searchObj = this.props.searcResult[sectionActive].values[scroll];
+        const searchObj: $TSFixMe = this.props.searcResult[sectionActive].values[scroll];
 
-        const type = this.props.searcResult[sectionActive].title;
+        const type: $TSFixMe = this.props.searcResult[sectionActive].title;
         this.navigate(type, searchObj);
         this.handleBlur();
     };
@@ -492,9 +492,9 @@ class Search extends Component<ComponentProps> {
     };
     override render() {
 
-        const searchObj = this.props.searcResult;
+        const searchObj: $TSFixMe = this.props.searcResult;
 
-        const searchValues = this.props.searchValues;
+        const searchValues: $TSFixMe = this.props.searchValues;
         return <>
             <Field
                 className="db-BusinessSettings-input TextInput bs-TextInput search-input2 bs-padding-l-30"
@@ -667,7 +667,7 @@ class Search extends Component<ComponentProps> {
 
 Search.displayName = 'Search';
 
-const SearchBox = new reduxForm({
+const SearchBox: $TSFixMe = new reduxForm({
     form: 'search',
     enableReinitialize: true,
 })(Search);
@@ -724,8 +724,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const searcResult = state.search.search;
-    const subProject = state.subProject.subProjects;
+    const searcResult: $TSFixMe = state.search.search;
+    const subProject: $TSFixMe = state.subProject.subProjects;
     return {
         initialValues: { search: '' },
         searcResult,

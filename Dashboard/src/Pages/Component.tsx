@@ -74,7 +74,7 @@ class ComponentDashboardView extends Component<ComponentProps> {
             .then(() => {
                 this.setState(prevState => {
 
-                    const updatedPage = prevState.page;
+                    const updatedPage: $TSFixMe = prevState.page;
                     updatedPage[projectId] =
                         !updatedPage[projectId] || updatedPage[projectId] === 1
                             ? 1
@@ -96,7 +96,7 @@ class ComponentDashboardView extends Component<ComponentProps> {
             .then(() => {
                 this.setState(prevState => {
 
-                    const updatedPage = prevState.page;
+                    const updatedPage: $TSFixMe = prevState.page;
                     updatedPage[projectId] = !updatedPage[projectId]
                         ? 2
                         : updatedPage[projectId] + 1;
@@ -141,9 +141,9 @@ class ComponentDashboardView extends Component<ComponentProps> {
 
     ready = () => {
 
-        const { activeProjectId } = this.props;
+        const { activeProjectId }: $TSFixMe = this.props;
 
-        const currentProjectId = this.props.currentProject
+        const currentProjectId: $TSFixMe = this.props.currentProject
 
             ? this.props.currentProject._id
             : null;
@@ -188,7 +188,7 @@ class ComponentDashboardView extends Component<ComponentProps> {
 
 
         if (this.props.components.length) {
-            const scriptElement = document.createElement('script');
+            const scriptElement: $TSFixMe = document.createElement('script');
             scriptElement.type = 'text/javascript';
             scriptElement.src = '/dashboard/assets/js/landing.base.js';
             document.head.appendChild(scriptElement);
@@ -204,7 +204,7 @@ class ComponentDashboardView extends Component<ComponentProps> {
 
             activeProjectId,
         } = this.props;
-        const currentProjectId = activeProjectId;
+        const currentProjectId: $TSFixMe = activeProjectId;
 
         let allComponents = this.props.component.componentList.components
             .map((component: $TSFixMe) => component.components)
@@ -258,9 +258,9 @@ class ComponentDashboardView extends Component<ComponentProps> {
                 false
             );
 
-        const components = projectComponent && [projectComponent];
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const components: $TSFixMe = projectComponent && [projectComponent];
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
 
         return (
             <Fade>
@@ -515,12 +515,12 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 
 const mapStateToProps: Function = (state: RootState) => {
     // removal of unused props
-    const component = state.component;
+    const component: $TSFixMe = state.component;
     let subProjects = state.subProject.subProjects.subProjects;
     let monitors: $TSFixMe = [];
 
     // sort subprojects names for display in alphabetical order
-    const subProjectNames =
+    const subProjectNames: $TSFixMe =
         subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =
@@ -532,11 +532,11 @@ const mapStateToProps: Function = (state: RootState) => {
         return monitor;
     });
 
-    const projectId =
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
 
     // try to get custom project tutorial by project ID
-    const projectCustomTutorial = state.tutorial[projectId];
+    const projectCustomTutorial: $TSFixMe = state.tutorial[projectId];
 
     // set a default show to true for the tutorials to display
     const tutorialStat: $TSFixMe = {

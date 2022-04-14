@@ -25,9 +25,9 @@ interface EmailTemplatesBoxProps {
 class EmailTemplatesBox extends React.Component<EmailTemplatesBoxProps> {
     submitForm = (values: $TSFixMe) => {
 
-        const { currentProject } = this.props;
+        const { currentProject }: $TSFixMe = this.props;
 
-        const val = this.props.emailTemplates.emailTemplates.templates.map(
+        const val: $TSFixMe = this.props.emailTemplates.emailTemplates.templates.map(
             (tmp: $TSFixMe) => {
                 if (tmp.emailType === values.email_type) {
                     tmp.subject = values.subject;
@@ -44,7 +44,7 @@ class EmailTemplatesBox extends React.Component<EmailTemplatesBoxProps> {
 
     resetTemplate = (templateId: $TSFixMe) => {
 
-        const { currentProject } = this.props;
+        const { currentProject }: $TSFixMe = this.props;
 
         this.props.resetEmailTemplates(currentProject._id, templateId);
     };
@@ -54,7 +54,7 @@ class EmailTemplatesBox extends React.Component<EmailTemplatesBoxProps> {
         this.props.changeShowingTemplate(value);
     };
     override render() {
-        const templates =
+        const templates: $TSFixMe =
 
             this.props.emailTemplates &&
 
@@ -201,7 +201,7 @@ class EmailTemplatesBox extends React.Component<EmailTemplatesBoxProps> {
 
 EmailTemplatesBox.displayName = 'EmailTemplatesBox';
 
-const EmailTemplatesBoxForm = new reduxForm({
+const EmailTemplatesBoxForm: $TSFixMe = new reduxForm({
     form: 'EmailTemplates',
     enableReinitialize: true,
     destroyOnUnmount: false,

@@ -37,7 +37,7 @@ export class ComponentDetail extends Component<ComponentDetailProps>{
 
     prevClicked = () => {
 
-        const { component } = this.props;
+        const { component }: $TSFixMe = this.props;
 
         this.props.fetchComponentResources(
             component.projectId._id,
@@ -49,7 +49,7 @@ export class ComponentDetail extends Component<ComponentDetailProps>{
 
     nextClicked = () => {
 
-        const { component } = this.props;
+        const { component }: $TSFixMe = this.props;
 
         this.props.fetchComponentResources(
             component.projectId._id,
@@ -60,7 +60,7 @@ export class ComponentDetail extends Component<ComponentDetailProps>{
     };
 
     handleKeyBoard = (e: $TSFixMe) => {
-        const canNext =
+        const canNext: $TSFixMe =
 
             this.props.component &&
 
@@ -71,7 +71,7 @@ export class ComponentDetail extends Component<ComponentDetailProps>{
                 this.props.component.skip + this.props.component.limit
                 ? true
                 : false;
-        const canPrev =
+        const canPrev: $TSFixMe =
 
             this.props.component && this.props.component.skip <= 0
                 ? false
@@ -87,13 +87,13 @@ export class ComponentDetail extends Component<ComponentDetailProps>{
     };
 
     deleteComponent = (componentId: $TSFixMe) => {
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.component.projectId._id ||
 
             this.props.component.projectId;
 
-        const promise = this.props.deleteComponent(componentId, projectId);
+        const promise: $TSFixMe = this.props.deleteComponent(componentId, projectId);
         history.push(
 
             `/dashboard/project/${this.props.currentProject.slug}/components`
@@ -103,7 +103,7 @@ export class ComponentDetail extends Component<ComponentDetailProps>{
     };
     override componentDidMount() {
 
-        const { component } = this.props;
+        const { component }: $TSFixMe = this.props;
 
         this.props.fetchComponentResources(
             component.projectId._id,
@@ -115,7 +115,7 @@ export class ComponentDetail extends Component<ComponentDetailProps>{
 
     override render() {
 
-        const { component, componentState, currentProject } = this.props;
+        const { component, componentState, currentProject }: $TSFixMe = this.props;
         component.error = null;
         if (
             componentState.componentList.error &&

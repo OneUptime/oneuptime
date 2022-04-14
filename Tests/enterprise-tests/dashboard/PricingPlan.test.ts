@@ -5,16 +5,16 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const pageName = utils.generateRandomString();
+const pageName: $TSFixMe = utils.generateRandomString();
 const user: $TSFixMe = {
     email,
     password,
 };
 
 describe('Status Page', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -66,7 +66,7 @@ describe('Status Page', () => {
 
             await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
-            const rowItem = await init.pageWaitForSelector(
+            const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
@@ -87,7 +87,7 @@ describe('Status Page', () => {
                 (elem: $TSFixMe) => elem.click()
             );
 
-            const modal = await page.$('#pricingPlanModal');
+            const modal: $TSFixMe = await page.$('#pricingPlanModal');
 
             expect(modal).toBeNull();
             done();

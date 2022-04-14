@@ -80,7 +80,7 @@ export class ScheduleForm extends React.Component<ScheduleFormProps> {
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
                 <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -214,7 +214,7 @@ export class ScheduleForm extends React.Component<ScheduleFormProps> {
 
 ScheduleForm.displayName = 'ScheduleForm';
 
-const CreateScheduleForm = reduxForm({
+const CreateScheduleForm: $TSFixMe = reduxForm({
     form: 'ScheduleModalForm',
     validate,
 })(ScheduleForm);

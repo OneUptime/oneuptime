@@ -26,8 +26,8 @@ if (!isApiServer) {
     });
 }
 
-const cookies = new Cookies();
-const userData = cookies.get('data');
+const cookies: $TSFixMe = new Cookies();
+const userData: $TSFixMe = cookies.get('data');
 
 if (userData !== undefined) {
     User.setUserId(userData.id);
@@ -37,7 +37,7 @@ if (userData !== undefined) {
     User.setCardRegistered(userData.cardRegistered);
 } else {
     // store original destination url
-    const redirectTo = window.location.href;
+    const redirectTo: $TSFixMe = window.location.href;
 
     window.location.href = ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
     store.dispatch(loadPage('Home'));
@@ -50,9 +50,9 @@ interface AppProps {
 }
 
 const App: Function = (props: AppProps) => {
-    const hideProjectNav =
+    const hideProjectNav: $TSFixMe =
         props.currentProject?._id !== props.activesubProjectId;
-    const titleToExclude = [
+    const titleToExclude: $TSFixMe = [
         'Project Settings',
         'Resources',
         'Billing',
@@ -84,8 +84,8 @@ const App: Function = (props: AppProps) => {
     }
 
     useEffect(() => {
-        const user = User.getUserId();
-        const isViewer = isSubProjectViewer(user, props.activeProject);
+        const user: $TSFixMe = User.getUserId();
+        const isViewer: $TSFixMe = isSubProjectViewer(user, props.activeProject);
         if (isViewer && props.currentProject) {
             history.replace(
                 `/dashboard/project/${props.currentProject.slug}/StatusPages`
@@ -161,15 +161,15 @@ const App: Function = (props: AppProps) => {
 App.displayName = 'App';
 
 function mapStateToProps(state: RootState) {
-    const currentProject = state.project.currentProject;
-    const subProjects = state.subProject.subProjects.subProjects;
-    const activesubProjectId = state.subProject.activeSubProject;
-    const allProjects = [...subProjects];
+    const currentProject: $TSFixMe = state.project.currentProject;
+    const subProjects: $TSFixMe = state.subProject.subProjects.subProjects;
+    const activesubProjectId: $TSFixMe = state.subProject.activeSubProject;
+    const allProjects: $TSFixMe = [...subProjects];
     if (currentProject) {
         allProjects.push(currentProject);
     }
 
-    const activeProject = allProjects.find(
+    const activeProject: $TSFixMe = allProjects.find(
         project => String(project._id) === String(activesubProjectId)
     );
 

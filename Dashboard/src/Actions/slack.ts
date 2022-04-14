@@ -40,7 +40,7 @@ export const deleteSlackLink: Function = (
     teamId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete (`slack/${projectId}/unLink/${teamId}`, null);
+        const promise: $TSFixMe = delete (`slack/${projectId}/unLink/${teamId}`, null);
 
         dispatch(deleteSlackLinkRequest());
 

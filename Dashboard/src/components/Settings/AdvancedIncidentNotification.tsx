@@ -81,7 +81,7 @@ class AdvancedIncidentNotification extends Component<ComponentProps> {
 
             requestingSmsIncident,
         } = this.props;
-        const { showMoreOptions } = this.state;
+        const { showMoreOptions }: $TSFixMe = this.state;
 
         return (
             <div
@@ -411,7 +411,7 @@ AdvancedIncidentNotification.propTypes = {
     setWebhookNotificationSettings: PropTypes.func,
 };
 
-const IncidentNotificationForm = reduxForm({
+const IncidentNotificationForm: $TSFixMe = reduxForm({
     form: 'IncidentNotificationForm',
     enableReinitialize: true,
     destroyOnUnmount: false, // do not destroy the form state
@@ -419,7 +419,7 @@ const IncidentNotificationForm = reduxForm({
 })(AdvancedIncidentNotification);
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { type } = ownProps;
+    const { type }: $TSFixMe = ownProps;
 
     let initialValues = {};
 

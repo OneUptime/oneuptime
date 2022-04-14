@@ -21,9 +21,9 @@ export class ProjectBlockBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { blockProject, project } = this.props;
+        const { blockProject, project }: $TSFixMe = this.props;
 
-        const { blockModalId } = this.state;
+        const { blockModalId }: $TSFixMe = this.state;
 
 
         this.props.openModal({
@@ -47,7 +47,7 @@ export class ProjectBlockBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div
@@ -99,7 +99,7 @@ ProjectBlockBox.displayName = 'ProjectBlockBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ blockProject, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const project = state.project.project.project;
+    const project: $TSFixMe = state.project.project.project;
     return {
         project,
         isRequesting:

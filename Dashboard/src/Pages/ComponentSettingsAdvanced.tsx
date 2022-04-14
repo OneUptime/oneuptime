@@ -44,13 +44,13 @@ class ComponentSettingsAdvanced extends Component<ComponentProps> {
     };
 
     deleteComponent = (componentId: $TSFixMe) => {
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.component.projectId._id ||
 
             this.props.component.projectId;
 
-        const promise = this.props.deleteComponent(componentId, projectId);
+        const promise: $TSFixMe = this.props.deleteComponent(componentId, projectId);
 
         history.push(`/dashboard/project/${this.props.slug}/components`);
 
@@ -70,11 +70,11 @@ class ComponentSettingsAdvanced extends Component<ComponentProps> {
         } = this.props;
 
 
-        const { deleteComponentModalId } = this.state;
-        const componentName = component && component.name;
+        const { deleteComponentModalId }: $TSFixMe = this.state;
+        const componentName: $TSFixMe = component && component.name;
 
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem

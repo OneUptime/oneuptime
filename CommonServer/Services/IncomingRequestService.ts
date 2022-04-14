@@ -7,9 +7,9 @@ import ErrorService from '../Utils/error';
 import ProjectService from './ProjectService';
 
 import createDOMPurify from 'dompurify';
-const jsdom = require('jsdom').jsdom;
-const window = jsdom('').defaultView;
-const DOMPurify = createDOMPurify(window);
+const jsdom: $TSFixMe = require('jsdom').jsdom;
+const window: $TSFixMe = jsdom('').defaultView;
+const DOMPurify: $TSFixMe = createDOMPurify(window);
 
 import { isEmpty } from 'lodash';
 import IncidentMessageService from './IncidentMessageService';
@@ -30,13 +30,13 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const incomingRequestQuery = IncomingRequestModel.findOne(query)
+        const incomingRequestQuery: $TSFixMe = IncomingRequestModel.findOne(query)
             .sort(sort)
             .lean();
 
         incomingRequestQuery.select(select);
         incomingRequestQuery.populate(populate);
-        const result = await incomingRequestQuery;
+        const result: $TSFixMe = await incomingRequestQuery;
 
         return result;
     }
@@ -47,7 +47,7 @@ export default class Service {
             data.createIncident &&
             (!data.monitors || data.monitors.length === 0)
         ) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You need at least one monitor to create an incoming request'
             );
 
@@ -60,7 +60,7 @@ export default class Service {
             data.createIncident &&
             !isArrayUnique(data.monitors)
         ) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You cannot have multiple selection of a monitor'
             );
 
@@ -106,7 +106,7 @@ export default class Service {
         }
 
         if (data.customFields && data.customFields.length > 0) {
-            const customFields = [...data.customFields];
+            const customFields: $TSFixMe = [...data.customFields];
             data.customFields = customFields.map(field => ({
                 fieldName: field.fieldName,
                 fieldType: field.fieldType,
@@ -118,10 +118,10 @@ export default class Service {
             }));
         }
         data.enabled = true;
-        const select =
+        const select: $TSFixMe =
             'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name customFields componentId deleted',
@@ -150,7 +150,7 @@ export default class Service {
         // update incomingRequest collection with the new url
 
         const requestUrl: string = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
-        const updatedIncomingRequest = await this.updateOneBy(
+        const updatedIncomingRequest: $TSFixMe = await this.updateOneBy(
             { requestId, projectId },
             { url: requestUrl },
             true
@@ -177,7 +177,7 @@ export default class Service {
                 !data.selectAllMonitors &&
                 (!data.monitors || data.monitors.length === 0)
             ) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'You need at least one monitor to update a scheduled event'
                 );
 
@@ -186,7 +186,7 @@ export default class Service {
             }
 
             if (!data.selectAllMonitors && !isArrayUnique(data.monitors)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'You cannot have multiple selection of a monitor'
                 );
 
@@ -301,7 +301,7 @@ export default class Service {
         }
 
         if (data.customFields && data.customFields.length > 0) {
-            const customFields = [...data.customFields];
+            const customFields: $TSFixMe = [...data.customFields];
             data.customFields = customFields.map(field => ({
                 fieldName: field.fieldName,
                 fieldType: field.fieldType,
@@ -332,17 +332,17 @@ export default class Service {
         }
 
         if (!updatedIncomingRequest) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Incoming request not found or does not exist'
             );
 
             error.code = 400;
             throw error;
         }
-        const select =
+        const select: $TSFixMe =
             'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name customFields componentId deleted',
@@ -363,7 +363,7 @@ export default class Service {
     }
 
     async updateCustomFieldBy(query: Query, data: $TSFixMe): void {
-        const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
+        const incomingRequest: $TSFixMe = await IncomingRequestModel.findOneAndUpdate(
             query,
             { $set: data },
             { new: true }
@@ -393,7 +393,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const allIncomingRequest = IncomingRequestModel.find(query)
+        const allIncomingRequest: $TSFixMe = IncomingRequestModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort)
@@ -401,7 +401,7 @@ export default class Service {
 
         allIncomingRequest.select(select);
         allIncomingRequest.populate(populate);
-        const result = await allIncomingRequest;
+        const result: $TSFixMe = await allIncomingRequest;
 
         return result;
     }
@@ -411,12 +411,12 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const count = await IncomingRequestModel.countDocuments(query);
+        const count: $TSFixMe = await IncomingRequestModel.countDocuments(query);
         return count;
     }
 
     async deleteBy(query: Query): void {
-        const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
+        const incomingRequest: $TSFixMe = await IncomingRequestModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -428,7 +428,7 @@ export default class Service {
         );
 
         if (!incomingRequest) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Incoming request not found or does not exist'
             );
 
@@ -456,10 +456,10 @@ export default class Service {
             }
         );
 
-        const select =
+        const select: $TSFixMe =
             'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name customFields componentId deleted',
@@ -482,7 +482,7 @@ export default class Service {
      * @param {string} userId the id of the user
      */
     async removeMonitor(monitorId: $TSFixMe): void {
-        const allIncomingRequest = await this.findBy({
+        const allIncomingRequest: $TSFixMe = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors',
         });
@@ -545,14 +545,14 @@ export default class Service {
     }
 
     async handleIncomingRequestAction(data: $TSFixMe): void {
-        const selectIncPriority =
+        const selectIncPriority: $TSFixMe =
             'projectId name color createdAt deletedAt deleted deletedById';
-        const selectIncSettings =
+        const selectIncSettings: $TSFixMe =
             'projectId title description incidentPriority isDefault name createdAt';
-        const selectInRequest =
+        const selectInRequest: $TSFixMe =
             'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-        const populateInRequest = [
+        const populateInRequest: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name customFields componentId deleted',
@@ -560,7 +560,7 @@ export default class Service {
             },
             { path: 'projectId', select: 'name' },
         ];
-        const [incidentPriorities, incidentSettings, incomingRequest] =
+        const [incidentPriorities, incidentSettings, incomingRequest]: $TSFixMe =
             await Promise.all([
                 IncidentPrioritiesService.findBy({
                     query: { projectId: data.projectId },
@@ -582,8 +582,8 @@ export default class Service {
 
         // grab value for posting to status page
         data.post_statuspage = incomingRequest.post_statuspage ? true : false;
-        const filterMatch = incomingRequest.filterMatch;
-        const filters = incomingRequest.filters;
+        const filterMatch: $TSFixMe = incomingRequest.filterMatch;
+        const filters: $TSFixMe = incomingRequest.filters;
 
         if (incomingRequest && incomingRequest.enabled === false) {
             return {
@@ -596,7 +596,7 @@ export default class Service {
             incomingRequest.createIncident &&
             incomingRequest.enabled
         ) {
-            const incidentResponse = [],
+            const incidentResponse: $TSFixMe = [],
                 monitorsWithIncident: $TSFixMe = [];
 
             data.incidentType = incomingRequest.incidentType;
@@ -622,7 +622,7 @@ export default class Service {
 
             let monitors = [];
             if (incomingRequest.selectAllMonitors) {
-                const projectIds = await ProjectService.findBy({
+                const projectIds: $TSFixMe = await ProjectService.findBy({
                     query: { parentProjectId: data.projectId },
                     select: '_id',
                 });
@@ -659,10 +659,10 @@ export default class Service {
                 const newMonitorList: $TSFixMe = [];
                 monitors.forEach((monitor: $TSFixMe) => {
                     let matchedFields = 0;
-                    const monitorCustomFields = monitor.customFields || [];
+                    const monitorCustomFields: $TSFixMe = monitor.customFields || [];
 
                     updatedFilters.forEach((filter: $TSFixMe) => {
-                        const filterCondition = filter.filterCondition;
+                        const filterCondition: $TSFixMe = filter.filterCondition;
                         for (const field of monitorCustomFields) {
                             if (filterCondition === 'equalTo') {
                                 if (
@@ -783,7 +783,7 @@ export default class Service {
                         data.description,
                         dataConfig
                     );
-                    const incidentType = analyseVariable(
+                    const incidentType: $TSFixMe = analyseVariable(
                         data.incidentType,
                         dataConfig
                     ).toLowerCase();
@@ -795,7 +795,7 @@ export default class Service {
                         ? incidentType
                         : 'offline';
 
-                    const incidentPriority = analyseVariable(
+                    const incidentPriority: $TSFixMe = analyseVariable(
                         String(data.incidentPriority),
                         dataConfig
                     ).toLowerCase();
@@ -837,7 +837,7 @@ export default class Service {
                 }
             } else {
                 if (monitors && monitors.length > 0) {
-                    const monitorNames = monitors.map(
+                    const monitorNames: $TSFixMe = monitors.map(
                         (monitor: $TSFixMe) => monitor.name
                     );
                     const componentNames: $TSFixMe = [];
@@ -886,7 +886,7 @@ export default class Service {
                         data.description,
                         dataConfig
                     );
-                    const incidentType = analyseVariable(
+                    const incidentType: $TSFixMe = analyseVariable(
                         data.incidentType,
                         dataConfig
                     ).toLowerCase();
@@ -898,7 +898,7 @@ export default class Service {
                         ? incidentType
                         : 'offline';
 
-                    const incidentPriority = analyseVariable(
+                    const incidentPriority: $TSFixMe = analyseVariable(
                         String(data.incidentPriority),
                         dataConfig
                     ).toLowerCase();
@@ -957,7 +957,7 @@ export default class Service {
         ) {
             let subProjectIds = [];
 
-            const subProjects = await ProjectService.findBy({
+            const subProjects: $TSFixMe = await ProjectService.findBy({
                 query: {
                     parentProjectId:
                         incomingRequest.projectId._id ||
@@ -972,7 +972,7 @@ export default class Service {
             }
             subProjectIds.push(incomingRequest.projectId);
 
-            const noteResponse = [],
+            const noteResponse: $TSFixMe = [],
                 incidentsWithNote: $TSFixMe = [];
 
             data.incident_state = incomingRequest.incidentState;
@@ -983,7 +983,7 @@ export default class Service {
 
             let incidents = [],
                 updatedFilters: $TSFixMe = [];
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -1005,7 +1005,7 @@ export default class Service {
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'name _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             if (!filters || filters.length === 0) {
@@ -1030,9 +1030,9 @@ export default class Service {
                     return filter;
                 });
 
-                const incidentArray = [];
+                const incidentArray: $TSFixMe = [];
                 for (const filter of updatedFilters) {
-                    const filterCriteria = filter.filterCriteria,
+                    const filterCriteria: $TSFixMe = filter.filterCriteria,
                         filterCondition = filter.filterCondition,
                         filterText = filter.filterText;
 
@@ -1293,7 +1293,7 @@ export default class Service {
                 const newIncidentList: $TSFixMe = [];
                 incidents.forEach((incident: $TSFixMe) => {
                     let matchedFields = 0;
-                    const incidentCustomFields = incident.customFields || [];
+                    const incidentCustomFields: $TSFixMe = incident.customFields || [];
                     // automatically create incident id custom field
                     incidentCustomFields.push({
                         fieldName: 'incidentId',
@@ -1303,7 +1303,7 @@ export default class Service {
 
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
-                            const filterCriteria = filter.filterCriteria,
+                            const filterCriteria: $TSFixMe = filter.filterCriteria,
                                 filterCondition = filter.filterCondition,
                                 filterText = filter.filterText;
 
@@ -1404,10 +1404,10 @@ export default class Service {
 
             if (incidents && incidents.length > 0) {
                 for (const incident of incidents) {
-                    const monitors = incident.monitors.map(
+                    const monitors: $TSFixMe = incident.monitors.map(
                         (monitorObj: $TSFixMe) => monitorObj.monitorId
                     );
-                    const monitorNames = monitors.map(
+                    const monitorNames: $TSFixMe = monitors.map(
                         (monitor: $TSFixMe) => monitor.name
                     );
                     const componentNames: $TSFixMe = [];
@@ -1490,7 +1490,7 @@ export default class Service {
         ) {
             let subProjectIds = [];
 
-            const subProjects = await ProjectService.findBy({
+            const subProjects: $TSFixMe = await ProjectService.findBy({
                 query: {
                     parentProjectId:
                         incomingRequest.projectId._id ||
@@ -1505,7 +1505,7 @@ export default class Service {
             }
             subProjectIds.push(incomingRequest.projectId);
 
-            const resolveResponse = [],
+            const resolveResponse: $TSFixMe = [],
                 acknowledgeResponse = [],
                 resolvedIncidents: $TSFixMe = [],
                 acknowledgedIncidents: $TSFixMe = [];
@@ -1522,7 +1522,7 @@ export default class Service {
 
             let incidents = [],
                 updatedFilters: $TSFixMe = [];
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -1544,7 +1544,7 @@ export default class Service {
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'name _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             if (!filters || filters.length === 0) {
@@ -1570,9 +1570,9 @@ export default class Service {
                     return filter;
                 });
 
-                const incidentArray = [];
+                const incidentArray: $TSFixMe = [];
                 for (const filter of updatedFilters) {
-                    const filterCriteria = filter.filterCriteria,
+                    const filterCriteria: $TSFixMe = filter.filterCriteria,
                         filterCondition = filter.filterCondition,
                         filterText = filter.filterText;
 
@@ -1836,7 +1836,7 @@ export default class Service {
                 const newIncidentList: $TSFixMe = [];
                 incidents.forEach((incident: $TSFixMe) => {
                     let matchedFields = 0;
-                    const incidentCustomFields = incident.customFields || [];
+                    const incidentCustomFields: $TSFixMe = incident.customFields || [];
                     // automatically create incident id custom field
                     incidentCustomFields.push({
                         fieldName: 'incidentId',
@@ -1846,7 +1846,7 @@ export default class Service {
 
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
-                            const filterCriteria = filter.filterCriteria,
+                            const filterCriteria: $TSFixMe = filter.filterCriteria,
                                 filterCondition = filter.filterCondition,
                                 filterText = filter.filterText;
 
@@ -1953,7 +1953,7 @@ export default class Service {
                                 String(incident._id)
                             )
                         ) {
-                            const incidentData =
+                            const incidentData: $TSFixMe =
                                 await IncidentService.acknowledge(
                                     incident._id,
                                     null,
@@ -1965,7 +1965,7 @@ export default class Service {
                             acknowledgeResponse.push(incidentData);
                             acknowledgedIncidents.push(String(incident._id));
                         } else {
-                            const incidentData =
+                            const incidentData: $TSFixMe =
                                 await IncidentService.acknowledge(
                                     incident._id,
                                     null,
@@ -1979,7 +1979,7 @@ export default class Service {
                     }
                     if (incomingRequest.resolveIncident) {
                         if (!resolvedIncidents.includes(String(incident._id))) {
-                            const incidentData = await IncidentService.resolve(
+                            const incidentData: $TSFixMe = await IncidentService.resolve(
                                 incident._id,
                                 null,
                                 null,
@@ -1990,7 +1990,7 @@ export default class Service {
                             resolveResponse.push(incidentData);
                             resolvedIncidents.push(String(incident._id));
                         } else {
-                            const incidentData = await IncidentService.resolve(
+                            const incidentData: $TSFixMe = await IncidentService.resolve(
                                 incident._id,
                                 null,
                                 null,
@@ -2070,10 +2070,10 @@ function isArrayUnique(myArray: $TSFixMe): void {
 // it should work as expected and return the value
 function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
     try {
-        const matchRegex = /[^{{]+(?=}\})/g;
-        const replaceRegex = /\{\{([^}]+)\}\}/g;
+        const matchRegex: $TSFixMe = /[^{{]+(?=}\})/g;
+        const replaceRegex: $TSFixMe = /\{\{([^}]+)\}\}/g;
 
-        const matched = variable.match(matchRegex);
+        const matched: $TSFixMe = variable.match(matchRegex);
         if (!matched || matched.length === 0) {
             // handles the part where variable is passed without double curly braces
             return variable;

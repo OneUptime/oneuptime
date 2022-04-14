@@ -40,7 +40,7 @@ export class LoginForm extends Component<LoginFormProps>{
 
     override componentDidMount() {
 
-        const query = queryString.parse(this.props.location.search).status;
+        const query: $TSFixMe = queryString.parse(this.props.location.search).status;
         let serverResponse = '';
         if (query === 'already-verified') {
             serverResponse = 'Email already verified. You can now login.';
@@ -59,10 +59,10 @@ export class LoginForm extends Component<LoginFormProps>{
     }
     override render() {
 
-        const { handleSubmit } = this.props;
-        const { serverResponse } = this.state;
+        const { handleSubmit }: $TSFixMe = this.props;
+        const { serverResponse }: $TSFixMe = this.state;
 
-        const loginError = this.props.login.error;
+        const loginError: $TSFixMe = this.props.login.error;
         let header;
         if (loginError) {
             header = (
@@ -178,7 +178,7 @@ export class LoginForm extends Component<LoginFormProps>{
 
 LoginForm.displayName = 'LoginForm';
 
-const validate = function (values: $TSFixMe, props: $TSFixMe) {
+const validate: $TSFixMe = function (values: $TSFixMe, props: $TSFixMe) {
     const errors: $TSFixMe = {};
     if (!Validate.text(values.email)) {
 
@@ -198,7 +198,7 @@ const validate = function (values: $TSFixMe, props: $TSFixMe) {
     return errors;
 };
 
-const loginForm = reduxForm({
+const loginForm: $TSFixMe = reduxForm({
     form: 'LoginForm', // a unique identifier for this form
     validate,
     destroyOnUnmount: true,

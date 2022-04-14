@@ -6,7 +6,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -23,7 +23,7 @@ const resourceCategory: $TSFixMe = {
 };
 import payment from '../backend/config/payment';
 import Stripe from 'stripe';
-const stripe = Stripe(payment.paymentPrivateKey);
+const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 
 describe('Resource Category API', function (): void {
     this.timeout(20000);
@@ -32,7 +32,7 @@ describe('Resource Category API', function (): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
-                const project = res.body.project;
+                const project: $TSFixMe = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
@@ -173,7 +173,7 @@ describe('User from other project have access to read / write and delete API.', 
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
-                const project = res.body.project;
+                const project: $TSFixMe = res.body.project;
                 projectId = project._id;
 
                 createUser(request, userData.newUser, (err, res): void => {
@@ -279,7 +279,7 @@ describe('Non-admin user access to create, delete and access resource category.'
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
-                const project = res.body.project;
+                const project: $TSFixMe = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
                 VerificationTokenModel.findOne(
@@ -478,7 +478,7 @@ describe('Resource Category APIs accesible through API key', function (): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
-                const project = res.body.project;
+                const project: $TSFixMe = res.body.project;
                 projectId = project._id;
                 apiKey = project.apiKey;
                 done();
@@ -557,7 +557,7 @@ describe('Resource Category APIs accesible through API key', function (): void {
 describe('Resource Category API - Check pagination for 12 resource categories', function (): void {
     this.timeout(40000);
 
-    const monitorCategories = [
+    const monitorCategories: $TSFixMe = [
         'testPagination1',
         'testPagination2',
         'testPagination3',
@@ -575,7 +575,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
     before(async function (): void {
         this.timeout(60000);
         await GlobalConfig.initTestConfig();
-        const checkCardData = await request.post('/stripe/checkCard').send({
+        const checkCardData: $TSFixMe = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
 
             email: userData.email,
@@ -583,21 +583,21 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
             companyName: userData.companyName,
         });
 
-        const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
+        const confirmedPaymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(
             checkCardData.body.id
         );
 
-        const signUp = await request.post('/user/signup').send({
+        const signUp: $TSFixMe = await request.post('/user/signup').send({
             paymentIntent: {
                 id: confirmedPaymentIntent.id,
             },
             ...userData.user,
         });
 
-        const project = signUp.body.project;
+        const project: $TSFixMe = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         try {
@@ -607,7 +607,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         } catch (error) {
             //catch
         }
-        const login = await request.post('/user/login').send({
+        const login: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,
         });
@@ -615,9 +615,9 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
 
         const authorization: string = `Basic ${token}`;
 
-        const createdMonitorCategories = monitorCategories.map(
+        const createdMonitorCategories: $TSFixMe = monitorCategories.map(
             async resourceCategoryName => {
-                const sentRequests = await request
+                const sentRequests: $TSFixMe = await request
 
                     .post(`/resourceCategory/${projectId}`)
                     .set('Authorization', authorization)
@@ -648,7 +648,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
 
     it('should get first 10 resource categories with data length 10, skip 0, limit 10 and count 12', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .get(`/resourceCategory/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization);
@@ -667,7 +667,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
 
     it('should get 2 last resource categories with data length 2, skip 10, limit 10 and count 12', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .get(`/resourceCategory/${projectId}?skip=10&limit=10`)
             .set('Authorization', authorization);
@@ -686,7 +686,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
 
     it('should get 0 resource categories with data length 0, skip 20, limit 10 and count 12', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .get(`/resourceCategory/${projectId}?skip=20&limit=10`)
             .set('Authorization', authorization);

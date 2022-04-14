@@ -1,6 +1,6 @@
 import winston from 'winston';
 
-const consoleTransport = new winston.transports.Console({
+const consoleTransport: $TSFixMe = new winston.transports.Console({
     format: winston.format.combine(
         winston.format.colorize(),
         winston.format.cli({
@@ -17,12 +17,12 @@ const consoleTransport = new winston.transports.Console({
     handleExceptions: true,
 });
 
-const transports = [];
+const transports: $TSFixMe = [];
 
 // configure transports (defined above)
 transports.push(consoleTransport);
 
-const logger = winston.createLogger({
+const logger: $TSFixMe = winston.createLogger({
     transports,
 });
 

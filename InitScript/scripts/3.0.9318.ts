@@ -3,12 +3,12 @@ import { find, update } from '../util/db';
 const subscriberCollection: string = 'subscribers';
 
 async function run(): void {
-    const subscribers = await find(subscriberCollection, {
+    const subscribers: $TSFixMe = await find(subscriberCollection, {
         notificationType: { $exists: false },
     });
 
     for (let i = 0; i < subscribers.length; i++) {
-        const subscriber = subscribers[i];
+        const subscriber: $TSFixMe = subscribers[i];
         let notificationType = null;
         if (subscriber.statusPageId) {
             notificationType = {

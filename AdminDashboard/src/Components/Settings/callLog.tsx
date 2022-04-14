@@ -41,7 +41,7 @@ class CallLog extends Component<ComponentProps> {
     };
     override render() {
 
-        const { changeCallLogStatus, handleSubmit } = this.props;
+        const { changeCallLogStatus, handleSubmit }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeCallLog"
@@ -167,8 +167,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const callLogStatus = state.callLogs.callLogStatus;
-    const changeCallLogStatus = state.callLogs.changeCallLogStatus;
+    const callLogStatus: $TSFixMe = state.callLogs.callLogStatus;
+    const changeCallLogStatus: $TSFixMe = state.callLogs.changeCallLogStatus;
     return {
         settings: state.settings,
         callLogStatus,
@@ -180,7 +180,7 @@ function mapStateToProps(state: RootState) {
         },
     };
 }
-const ReduxFormComponent = reduxForm({
+const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'call-log-toggle-form',
     enableReinitialize: true,
 })(CallLog);

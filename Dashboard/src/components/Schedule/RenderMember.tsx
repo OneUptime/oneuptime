@@ -43,9 +43,9 @@ let RenderMember = ({
     projectGroups,
     formValues
 }: RenderMemberProps) => {
-    const [timeVisible, setTimeVisible] = useState(false);
-    const [forcedTimeHide, forceTimeHide] = useState(false);
-    const [type, setType] = useState({});
+    const [timeVisible, setTimeVisible]: $TSFixMe = useState(false);
+    const [forcedTimeHide, forceTimeHide]: $TSFixMe = useState(false);
+    const [type, setType]: $TSFixMe = useState({});
 
     const manageVisibility: Function = (timeVisible: $TSFixMe, memberHasCallTimes: $TSFixMe) => {
         setTimeVisible(timeVisible);
@@ -69,12 +69,12 @@ let RenderMember = ({
 
     useEffect(updateTypeOnMount, [inputarray, form]);
 
-    const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
-    const showTimes = memberHasCallTimes ? !forcedTimeHide : timeVisible;
+    const memberHasCallTimes: $TSFixMe = !!(memberValue.startTime && memberValue.endTime);
+    const showTimes: $TSFixMe = memberHasCallTimes ? !forcedTimeHide : timeVisible;
 
     const getCurrentTimezone: Function = () => {
-        const tz = moment.tz.guess();
-        const result:string = `${tz} GMT${moment()
+        const tz: $TSFixMe = moment.tz.guess();
+        const result:string: $TSFixMe = `${tz} GMT${moment()
             .tz(tz)
             .format('Z')}`;
         return result;
@@ -89,10 +89,10 @@ let RenderMember = ({
             change('OnCallAlertBox', `${inputarray}.userId`, '');
         }
     };
-    const renderKey =
+    const renderKey: $TSFixMe =
         'team-group' + teamIndex.toString() + nameIndex.toString();
 
-    const renderType =
+    const renderType: $TSFixMe =
         formValues[renderKey] ||
         (form[policyIndex].teams[teamIndex].teamMembers[nameIndex].groupId
             ? 'group'
@@ -344,9 +344,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const selector = formValueSelector('OnCallAlertBox');
-    const form = selector(state, 'OnCallAlertBox');
-    const formValues = state.form.OnCallAlertBox?.values;
+    const selector: $TSFixMe = formValueSelector('OnCallAlertBox');
+    const form: $TSFixMe = selector(state, 'OnCallAlertBox');
+    const formValues: $TSFixMe = state.form.OnCallAlertBox?.values;
 
     return {
         form,

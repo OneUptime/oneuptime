@@ -17,7 +17,7 @@ import PropTypes from 'prop-types';
 //Client side validation
 function validate(values: $TSFixMe) {
     const errors: $TSFixMe = {};
-    const alertArrayErrors = [];
+    const alertArrayErrors: $TSFixMe = [];
 
     if (values.OnCallAlertBox) {
         for (let i = 0; i < values.OnCallAlertBox.length; i++) {
@@ -192,7 +192,7 @@ export class OnCallAlertBox extends Component<OnCallAlertBoxProps>{
     }
     submitForm = async (values: $TSFixMe) => {
 
-        const { subProjectId, scheduleId } = this.props;
+        const { subProjectId, scheduleId }: $TSFixMe = this.props;
 
         await this.props.addEscalation(subProjectId, scheduleId, values);
 
@@ -232,7 +232,7 @@ export class OnCallAlertBox extends Component<OnCallAlertBoxProps>{
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -376,11 +376,11 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
      state.schedule.escalations.map((value)=>{
          return {escalation: [value]};
      }) : */
-    const { escalations } = state.schedule;
+    const { escalations }: $TSFixMe = state.schedule;
 
-    const { scheduleSlug } = props.match.params;
+    const { scheduleSlug }: $TSFixMe = props.match.params;
 
-    const OnCallAlertBox =
+    const OnCallAlertBox: $TSFixMe =
         escalations && escalations.length > 0
             ? escalations
             : [
@@ -429,7 +429,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const OnCallAlertForm = reduxForm({
+const OnCallAlertForm: $TSFixMe = reduxForm({
     form: 'OnCallAlertBox', // a unique identifier for this form
     validate, // <--- validation function given to redux-for
     enableReinitialize: true,

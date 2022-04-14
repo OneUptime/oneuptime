@@ -2,10 +2,10 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
-const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-const isScaleOrMasterAdmin =
+const router: $TSFixMe = express.getRouter();
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isScaleOrMasterAdmin: $TSFixMe =
     require('../middlewares/user').isScaleOrMasterAdmin;
 import { sendListResponse } from 'CommonServer/Utils/response';
 import { sendItemResponse } from 'CommonServer/Utils/response';
@@ -20,13 +20,13 @@ router.get(
     getUser,
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const skip = req.query['skip'] || 0;
-        const limit = req.query['limit'] || 10;
+        const skip: $TSFixMe = req.query['skip'] || 0;
+        const limit: $TSFixMe = req.query['limit'] || 10;
 
-        const selectSso =
+        const selectSso: $TSFixMe =
             '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
         try {
-            const [ssos, count] = await Promise.all([
+            const [ssos, count]: $TSFixMe = await Promise.all([
                 SsoService.findBy({
                     query: {},
                     limit,
@@ -49,7 +49,7 @@ router.delete(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const sso = await SsoService.deleteBy({ _id: req.params.id });
+            const sso: $TSFixMe = await SsoService.deleteBy({ _id: req.params.id });
             return sendItemResponse(req, res, sso);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -62,9 +62,9 @@ router.post(
     getUser,
     isScaleOrMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const data = req.body;
+        const data: $TSFixMe = req.body;
         try {
-            const sso = await SsoService.create(data);
+            const sso: $TSFixMe = await SsoService.create(data);
             return sendItemResponse(req, res, sso);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -77,10 +77,10 @@ router.get(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const selectSso =
+            const selectSso: $TSFixMe =
                 '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
 
-            const sso = await SsoService.findOneBy({
+            const sso: $TSFixMe = await SsoService.findOneBy({
                 query: { _id: req.params.id },
                 select: selectSso,
             });
@@ -96,8 +96,8 @@ router.put(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const sso = await SsoService.updateBy({ _id: req.params.id }, data);
+            const data: $TSFixMe = req.body;
+            const sso: $TSFixMe = await SsoService.updateBy({ _id: req.params.id }, data);
             return sendItemResponse(req, res, sso);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -112,13 +112,13 @@ router.get(
     isScaleOrMasterAdmin,
     async (req, res): void => {
         try {
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 10;
-            const { projectId } = req.params;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
+            const { projectId }: $TSFixMe = req.params;
 
-            const selectSso =
+            const selectSso: $TSFixMe =
                 '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
-            const [ssos, count] = await Promise.all([
+            const [ssos, count]: $TSFixMe = await Promise.all([
                 SsoService.findBy({
                     query: { projectId },
                     limit,

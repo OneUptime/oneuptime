@@ -19,20 +19,20 @@ export const addGitCredentialFailure: Function = (
     payload: error,
 });
 
-export const addGitCredential =
+export const addGitCredential: $TSFixMe =
     ({ projectId, data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(addGitCredentialRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `credential/${projectId}/gitCredential`,
                 data
             );
 
             dispatch(addGitCredentialSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -63,20 +63,20 @@ export const updateGitCredentialFailure: Function = (
     payload: error,
 });
 
-export const updateGitCredential =
+export const updateGitCredential: $TSFixMe =
     ({ projectId, credentialId, data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(updateGitCredentialRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `credential/${projectId}/gitCredential/${credentialId}`,
                 data
             );
 
             dispatch(updateGitCredentialSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -107,19 +107,19 @@ export const getGitCredentialsFailure: Function = (
     payload: error,
 });
 
-export const getGitCredentials =
+export const getGitCredentials: $TSFixMe =
     ({ projectId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getGitCredentialsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `credential/${projectId}/gitCredential`
             );
 
             dispatch(getGitCredentialsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -150,18 +150,18 @@ export const deleteGitCredentialFailure: Function = (
     payload: error,
 });
 
-export const deleteGitCredential =
+export const deleteGitCredential: $TSFixMe =
     ({ projectId, credentialId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(deleteGitCredentialRequest());
 
         try {
-            const response =
+            const response: $TSFixMe =
                 await delete `credential/${projectId}/gitCredential/${credentialId}`;
 
             dispatch(deleteGitCredentialSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -191,19 +191,19 @@ export const getGitSecuritiesFailure: Function = (
     payload: error,
 });
 
-export const getGitSecurities =
+export const getGitSecurities: $TSFixMe =
     ({ projectId, credentialId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getGitSecuritiesRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `security/${projectId}/application/${credentialId}`
             );
 
             dispatch(getGitSecuritiesSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -235,20 +235,20 @@ export const addDockerCredentialFailure: Function = (
     payload: error,
 });
 
-export const addDockerCredential =
+export const addDockerCredential: $TSFixMe =
     ({ projectId, data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(addDockerCredentialRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `credential/${projectId}/dockerCredential`,
                 data
             );
 
             dispatch(addDockerCredentialSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -279,20 +279,20 @@ export const updateDockerCredentialFailure: Function = (
     payload: error,
 });
 
-export const updateDockerCredential =
+export const updateDockerCredential: $TSFixMe =
     ({ projectId, credentialId, data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(updateDockerCredentialRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `credential/${projectId}/dockerCredential/${credentialId}`,
                 data
             );
 
             dispatch(updateDockerCredentialSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -323,19 +323,19 @@ export const getDockerCredentialsFailure: Function = (
     payload: error,
 });
 
-export const getDockerCredentials =
+export const getDockerCredentials: $TSFixMe =
     ({ projectId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getDockerCredentialsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `credential/${projectId}/dockerCredential`
             );
 
             dispatch(getDockerCredentialsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -366,18 +366,18 @@ export const deleteDockerCredentialFailure: Function = (
     payload: error,
 });
 
-export const deleteDockerCredential =
+export const deleteDockerCredential: $TSFixMe =
     ({ projectId, credentialId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(deleteDockerCredentialRequest());
 
         try {
-            const response =
+            const response: $TSFixMe =
                 await delete `credential/${projectId}/dockerCredential/${credentialId}`;
 
             dispatch(deleteDockerCredentialSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -409,19 +409,19 @@ export const getDockerSecuritiesFailure: Function = (
     payload: error,
 });
 
-export const getDockerSecurities =
+export const getDockerSecurities: $TSFixMe =
     ({ projectId, credentialId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getDockerSecuritiesRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `security/${projectId}/container/${credentialId}`
             );
 
             dispatch(getDockerSecuritiesSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data

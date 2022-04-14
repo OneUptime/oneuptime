@@ -17,8 +17,8 @@ const SelectLanguage: Function = ({
     setIsShown,
     theme
 }: SelectLanguageProps) => {
-    const popupReff = useRef();
-    const documentClickHandler = useRef();
+    const popupReff: $TSFixMe = useRef();
+    const documentClickHandler: $TSFixMe = useRef();
 
     useEffect(() => {
 

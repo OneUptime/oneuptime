@@ -93,7 +93,7 @@ class Monitors extends Component<ComponentProps> {
             getActiveMonitors,
         } = this.props;
 
-        const skip = this.state.skip + this.state.limit;
+        const skip: $TSFixMe = this.state.skip + this.state.limit;
         getActiveMonitors(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
@@ -115,7 +115,7 @@ class Monitors extends Component<ComponentProps> {
             getActiveMonitors,
         } = this.props;
 
-        const skip = this.state.skip - this.state.limit;
+        const skip: $TSFixMe = this.state.skip - this.state.limit;
         getActiveMonitors(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
@@ -149,7 +149,7 @@ class Monitors extends Component<ComponentProps> {
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(
+        const numberOfPages: $TSFixMe = Math.ceil(
             parseInt(
 
                 this.props.activeMonitors && this.props.activeMonitors.count

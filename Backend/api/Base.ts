@@ -28,7 +28,7 @@ export default ({
     friendlyResourceName,
     service,
 }: $TSFixMe): void => {
-    const getItemMiddleware = async (
+    const getItemMiddleware: $TSFixMe = async (
         req: ExpressRequest,
         res: ExpressResponse
     ): void => {
@@ -67,7 +67,7 @@ export default ({
         }
     };
 
-    const listItemMiddleware = async (
+    const listItemMiddleware: $TSFixMe = async (
         req: ExpressRequest,
         res: ExpressResponse
     ): void => {
@@ -93,7 +93,7 @@ export default ({
                 limit = 10;
             }
 
-            const promises = [service.countBy({ query })];
+            const promises: $TSFixMe = [service.countBy({ query })];
 
             if (req.role === 'member') {
                 promises.push(
@@ -141,7 +141,7 @@ export default ({
                 );
             }
 
-            const [count, list] = await Promise.all(promises);
+            const [count, list]: $TSFixMe = await Promise.all(promises);
 
             return sendListResponse(req, res, list, count);
         } catch (error) {
@@ -149,18 +149,18 @@ export default ({
         }
     };
 
-    const createItemMiddleware = async (
+    const createItemMiddleware: $TSFixMe = async (
         req: ExpressRequest,
         res: ExpressResponse
     ): void => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
             if (isResourceInProject) {
                 data.projectId = req.params.projectId;
             }
 
-            const item = await service.create(data);
+            const item: $TSFixMe = await service.create(data);
 
             return sendItemResponse(req, res, item);
         } catch (error) {
@@ -168,7 +168,7 @@ export default ({
         }
     };
 
-    const deleteItemMiddleware = async (
+    const deleteItemMiddleware: $TSFixMe = async (
         req: ExpressRequest,
         res: ExpressResponse
     ): void => {
@@ -197,7 +197,7 @@ export default ({
         }
     };
 
-    const updateItemMiddleware = async function (
+    const updateItemMiddleware: $TSFixMe = async function (
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
@@ -212,7 +212,7 @@ export default ({
                 });
             }
 
-            const data = req.data.data;
+            const data: $TSFixMe = req.data.data;
 
             // update
 
@@ -230,7 +230,7 @@ export default ({
     };
 
     const getMiddlewares: Function = (props: $TSFixMe): void => {
-        const functionChain = [];
+        const functionChain: $TSFixMe = [];
 
         const apiPropsMiddleware: Function = (
             req: ExpressRequest,
@@ -261,7 +261,7 @@ export default ({
             createApiPath = '/:projectId/create';
         }
 
-        const middlewares = getMiddlewares(createApiProps);
+        const middlewares: $TSFixMe = getMiddlewares(createApiProps);
 
         middlewares.push(createItemMiddleware);
 
@@ -275,7 +275,7 @@ export default ({
             getApiProps = '/:projectId/:id';
         }
 
-        const middlewares = getMiddlewares(getApiProps);
+        const middlewares: $TSFixMe = getMiddlewares(getApiProps);
 
         middlewares.push(getItemMiddleware);
 
@@ -289,7 +289,7 @@ export default ({
             listApiProps = '/:projectId/list';
         }
 
-        const middlewares = getMiddlewares(listApiProps);
+        const middlewares: $TSFixMe = getMiddlewares(listApiProps);
 
         middlewares.push(listItemMiddleware);
 
@@ -303,7 +303,7 @@ export default ({
             updateApiProps = '/:projectId/:id';
         }
 
-        const middlewares = getMiddlewares(updateApiProps);
+        const middlewares: $TSFixMe = getMiddlewares(updateApiProps);
 
         middlewares.push(updateItemMiddleware);
         middlewares.push(getItemMiddleware);
@@ -318,7 +318,7 @@ export default ({
             deleteApiProps = '/:projectId/:id';
         }
 
-        const middlewares = getMiddlewares(deleteApiProps);
+        const middlewares: $TSFixMe = getMiddlewares(deleteApiProps);
 
         middlewares.push(deleteItemMiddleware);
 

@@ -4,9 +4,9 @@ import { JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
-export const ExpressStatic = express.static;
-export const ExpressJson = express.json;
-export const ExpressUrlEncoded = express.urlencoded;
+export const ExpressStatic: $TSFixMe = express.static;
+export const ExpressJson: $TSFixMe = express.json;
+export const ExpressUrlEncoded: $TSFixMe = express.urlencoded;
 
 export type ProbeRequest = {
     id: String;

@@ -9,8 +9,8 @@ export default {
     ping: async (monitor: $TSFixMe) => {
         if (monitor && monitor.type) {
             if (monitor.data.url) {
-                const now = new Date().getTime();
-                const scanIntervalInDays = monitor.lighthouseScannedAt
+                const now: $TSFixMe = new Date().getTime();
+                const scanIntervalInDays: $TSFixMe = monitor.lighthouseScannedAt
                     ? moment(now).diff(
                           moment(monitor.lighthouseScannedAt),
                           'days'
@@ -30,10 +30,10 @@ export default {
                         resp: { lighthouseScanStatus: 'scanning' },
                     });
 
-                    const sites = monitor.siteUrls;
+                    const sites: $TSFixMe = monitor.siteUrls;
 
                     for (const url of sites) {
-                        const resp = await lighthouseFetch(url);
+                        const resp: $TSFixMe = await lighthouseFetch(url);
 
                         await UrlService.ping(monitor._id, {
                             monitor,
@@ -48,8 +48,8 @@ export default {
 
 const lighthouseFetch: Function = (url: URL): void => {
     return new Promise((resolve, reject) => {
-        const lighthouseWorker = fork('./utils/lighthouse');
-        const timeoutHandler = setTimeout(async () => {
+        const lighthouseWorker: $TSFixMe = fork('./utils/lighthouse');
+        const timeoutHandler = setTimeout(async (): $TSFixMe => {
             await processLighthouseScan({
                 data: { url },
                 error: { message: 'TIMEOUT' },

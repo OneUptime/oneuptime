@@ -33,7 +33,7 @@ class DockerCredential extends Component<ComponentProps> {
 
         if (prevProps.projectId !== this.props.projectId) {
 
-            const { projectId, getDockerCredentials } = this.props;
+            const { projectId, getDockerCredentials }: $TSFixMe = this.props;
             // load all the Docker Credentials
             getDockerCredentials({ projectId });
         }
@@ -41,7 +41,7 @@ class DockerCredential extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { projectId, getDockerCredentials } = this.props;
+        const { projectId, getDockerCredentials }: $TSFixMe = this.props;
         // load all the Docker Credentials
         getDockerCredentials({ projectId });
     }
@@ -63,7 +63,7 @@ class DockerCredential extends Component<ComponentProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
         return (
             <Fade>
                 <BreadCrumbItem

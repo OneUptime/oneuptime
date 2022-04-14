@@ -14,7 +14,7 @@ interface IncomingRequestButtonProps {
 class IncomingRequestButton extends React.Component<IncomingRequestButtonProps> {
     override render() {
 
-        const { currentProject } = this.props;
+        const { currentProject }: $TSFixMe = this.props;
 
         return (
             <button

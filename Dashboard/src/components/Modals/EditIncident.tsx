@@ -42,9 +42,9 @@ class EditIncident extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { incidentId } = this.props.data;
+        const { incidentId }: $TSFixMe = this.props.data;
 
-        const projectId = this.props.currentProject._id;
+        const projectId: $TSFixMe = this.props.currentProject._id;
         this.props
 
             .updateIncident(
@@ -268,7 +268,7 @@ EditIncident.displayName = 'EditIncident';
 EditIncident.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
 };
-const EditIncidentForm = reduxForm({
+const EditIncidentForm: $TSFixMe = reduxForm({
     form: 'editIncident',
 })(EditIncident);
 
@@ -282,7 +282,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const incident = ownProps.data.incident;
+    const incident: $TSFixMe = ownProps.data.incident;
     const initialValues: $TSFixMe = {
         title: incident.title,
         description: incident.description,

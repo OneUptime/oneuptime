@@ -59,12 +59,12 @@ export class CustomerBalance extends Component<ComponentProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const { projectId, openModal, currentProject } = this.props;
-        const userId = User.getUserId();
+        const { projectId, openModal, currentProject }: $TSFixMe = this.props;
+        const userId: $TSFixMe = User.getUserId();
 
         if (isOwnerOrAdmin(userId, currentProject)) {
-            const { createTopUpModalId } = this.state;
-            const { rechargeBalanceAmount } = values;
+            const { createTopUpModalId }: $TSFixMe = this.state;
+            const { rechargeBalanceAmount }: $TSFixMe = values;
 
             if (rechargeBalanceAmount) {
                 openModal({
@@ -98,15 +98,15 @@ export class CustomerBalance extends Component<ComponentProps>{
 
             getProjects,
         } = this.props;
-        const { MessageBoxId } = this.state;
+        const { MessageBoxId }: $TSFixMe = this.state;
         return addBalance(projectId, values)
             .then((response: $TSFixMe) => {
-                const { status, amount_received } = response.data;
+                const { status, amount_received }: $TSFixMe = response.data;
 
-                const { paymentIntent } = this.props;
+                const { paymentIntent }: $TSFixMe = this.props;
 
                 if (status === 'succeeded') {
-                    const creditedBalance = amount_received / 100;
+                    const creditedBalance: $TSFixMe = amount_received / 100;
                     getProjects().then(() =>
                         openModal({
                             id: MessageBoxId,
@@ -145,7 +145,7 @@ export class CustomerBalance extends Component<ComponentProps>{
 
             projectId,
         } = this.props;
-        const { MessageBoxId } = this.state;
+        const { MessageBoxId }: $TSFixMe = this.state;
         stripe
             .handleCardPayment(paymentIntentClientSecret)
             .then(async (result: $TSFixMe) => {
@@ -153,7 +153,7 @@ export class CustomerBalance extends Component<ComponentProps>{
                     result.paymentIntent &&
                     result.paymentIntent.status === 'succeeded'
                 ) {
-                    const creditedBalance = result.paymentIntent.amount / 100;
+                    const creditedBalance: $TSFixMe = result.paymentIntent.amount / 100;
 
                     // update the project balance at this point
                     await updateProjectBalance({
@@ -184,7 +184,7 @@ export class CustomerBalance extends Component<ComponentProps>{
 
     override render() {
 
-        const { balance } = this.props;
+        const { balance }: $TSFixMe = this.props;
         return (
             <div className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
@@ -398,7 +398,7 @@ const  formName: string = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1)
 
 const onSubmitSuccess: Function = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
-const CustomerBalanceForm = new reduxForm({
+const CustomerBalanceForm: $TSFixMe = new reduxForm({
     form: formName,
     enableReinitialize: true,
     validate,
@@ -423,7 +423,7 @@ const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject
 });
 
-const CustomerBalanceFormStripe = injectStripe(
+const CustomerBalanceFormStripe: $TSFixMe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(CustomerBalanceForm)
 );
 

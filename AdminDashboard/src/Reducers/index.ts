@@ -21,7 +21,7 @@ import ssoDefaultRoles from './ssoDefaultRoles';
 import version from './version';
 import dashboard from './dashboard';
 
-const appReducer = combineReducers({
+const appReducer: $TSFixMe = combineReducers({
     routing: routerReducer,
     form: formReducer,
     modal,

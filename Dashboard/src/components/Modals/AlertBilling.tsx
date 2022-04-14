@@ -52,7 +52,7 @@ class AlertBilling extends Component<ComponentProps> {
 
     override render() {
 
-        const { data, confirmThisDialog, isRequesting } = this.props;
+        const { data, confirmThisDialog, isRequesting }: $TSFixMe = this.props;
 
         let { title, message, messageBoxId } = this.props;
         if (data) {

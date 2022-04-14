@@ -5,7 +5,7 @@ import express, {
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -32,7 +32,7 @@ router.get(
     isAuthorizedLighthouse,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const monitors =
+            const monitors: $TSFixMe =
                 await MonitorService.getUrlMonitorsNotScannedByLightHouseInPastOneDay();
 
             return sendListResponse(
@@ -52,7 +52,7 @@ router.post(
     isAuthorizedLighthouse,
     async (req, response): void => {
         try {
-            const { monitor, resp } = req.body;
+            const { monitor, resp }: $TSFixMe = req.body;
 
             let log,
                 data = {};
@@ -82,7 +82,7 @@ router.post(
 
             data.monitorId = req.params.monitorId || monitor._id;
 
-            const probeId = await ProbeService.findBy({
+            const probeId: $TSFixMe = await ProbeService.findBy({
                 query: {},
                 select: '_id',
             });
@@ -121,35 +121,35 @@ router.post(
 
                     /* For Email Service */
 
-                    const project = await ProjectService.findOneBy({
+                    const project: $TSFixMe = await ProjectService.findOneBy({
                         query: { _id: data.monitor.projectId },
                         select: '_id name users',
                     });
 
                     project.monitor = data.monitor.name;
-                    const userIds = project.users
+                    const userIds: $TSFixMe = project.users
                         .filter((e: $TSFixMe) => e.role !== 'Viewer')
                         .map((e: $TSFixMe) => ({
                             id: e.userId,
                         })); // This cater for projects with multiple registered members
 
-                    const performance = data.performance;
+                    const performance: $TSFixMe = data.performance;
 
-                    const accessibility = data.accessibility;
+                    const accessibility: $TSFixMe = data.accessibility;
 
-                    const bestPractices = data.bestPractices;
+                    const bestPractices: $TSFixMe = data.bestPractices;
 
-                    const seo = data.seo;
+                    const seo: $TSFixMe = data.seo;
 
-                    const pwa = data.pwa;
+                    const pwa: $TSFixMe = data.pwa;
 
-                    const performanceIssues =
+                    const performanceIssues: $TSFixMe =
                         data.lighthouseData.issues.performance
                             .slice(0, 10)
                             .map((desc: $TSFixMe) => {
-                                const splitDescription =
+                                const splitDescription: $TSFixMe =
                                     desc.description.split(/\[Learn more\]/i);
-                                const url = splitDescription[1]
+                                const url: $TSFixMe = splitDescription[1]
                                     ? splitDescription[1].replace(
                                           /^\(|\)|\.$/gi,
                                           ''
@@ -161,13 +161,13 @@ router.post(
                                 return desc;
                             });
 
-                    const accessibilityIssues =
+                    const accessibilityIssues: $TSFixMe =
                         data.lighthouseData.issues.accessibility
                             .slice(0, 10)
                             .map((desc: $TSFixMe) => {
-                                const splitDescription =
+                                const splitDescription: $TSFixMe =
                                     desc.description.split(/\[Learn more\]/i);
-                                const url = splitDescription[1]
+                                const url: $TSFixMe = splitDescription[1]
                                     ? splitDescription[1].replace(
                                           /^\(|\)|\.$/gi,
                                           ''
@@ -179,14 +179,14 @@ router.post(
                                 return desc;
                             });
 
-                    const bestPracticesIssues = data.lighthouseData.issues[
+                    const bestPracticesIssues: $TSFixMe = data.lighthouseData.issues[
                         'best-practices'
                     ]
                         .slice(0, 10)
                         .map((desc: $TSFixMe) => {
-                            const splitDescription =
+                            const splitDescription: $TSFixMe =
                                 desc.description.split(/\[Learn more\]/i);
-                            const url = splitDescription[1]
+                            const url: $TSFixMe = splitDescription[1]
                                 ? splitDescription[1].replace(
                                       /^\(|\)|\.$/gi,
                                       ''
@@ -198,12 +198,12 @@ router.post(
                             return desc;
                         });
 
-                    const seoIssues = data.lighthouseData.issues.seo
+                    const seoIssues: $TSFixMe = data.lighthouseData.issues.seo
                         .slice(0, 10)
                         .map((desc: $TSFixMe) => {
-                            const splitDescription =
+                            const splitDescription: $TSFixMe =
                                 desc.description.split(/\[Learn more\]/i);
-                            const url = splitDescription[1]
+                            const url: $TSFixMe = splitDescription[1]
                                 ? splitDescription[1].replace(
                                       /^\(|\)|\.$/gi,
                                       ''
@@ -215,12 +215,12 @@ router.post(
                             return desc;
                         });
 
-                    const pwaIssues = data.lighthouseData.issues.pwa
+                    const pwaIssues: $TSFixMe = data.lighthouseData.issues.pwa
                         .slice(0, 10)
                         .map((desc: $TSFixMe) => {
-                            const splitDescription =
+                            const splitDescription: $TSFixMe =
                                 desc.description.split(/\[Learn more\]/i);
-                            const url = splitDescription[1]
+                            const url: $TSFixMe = splitDescription[1]
                                 ? splitDescription[1].replace(
                                       /^\(|\)|\.$/gi,
                                       ''
@@ -245,8 +245,8 @@ router.post(
                     project.pwaIssues = pwaIssues;
 
                     for (let i = 0; i < userIds.length; i++) {
-                        const userId = userIds[i].id;
-                        const user = await UserService.findOneBy({
+                        const userId: $TSFixMe = userIds[i].id;
+                        const user: $TSFixMe = await UserService.findOneBy({
                             query: { _id: userId },
                             select: '_id email name',
                         });

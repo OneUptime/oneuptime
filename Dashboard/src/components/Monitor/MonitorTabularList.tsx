@@ -182,7 +182,7 @@ export class MonitorTabularList extends Component<MonitorTabularListProps>{
                                 this.props.monitors.length > 0 ? (
 
                                 this.props.monitors.map((monitor: $TSFixMe, i: $TSFixMe) => {
-                                    const probe =
+                                    const probe: $TSFixMe =
                                         monitor &&
 
                                             this.props.probes &&
@@ -198,7 +198,7 @@ export class MonitorTabularList extends Component<MonitorTabularListProps>{
                                             ]
                                             : null;
 
-                                    const { logs } = filterProbeData(
+                                    const { logs }: $TSFixMe = filterProbeData(
                                         monitor,
                                         probe,
 
@@ -207,11 +207,11 @@ export class MonitorTabularList extends Component<MonitorTabularListProps>{
                                         this.props.endDate
                                     );
 
-                                    const status = getMonitorStatus(
+                                    const status: $TSFixMe = getMonitorStatus(
                                         monitor.incidents,
                                         logs
                                     );
-                                    const statusColor = getMonitorStatusColor(
+                                    const statusColor: $TSFixMe = getMonitorStatusColor(
                                         status
                                     );
                                     return (

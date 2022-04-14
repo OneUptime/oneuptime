@@ -27,7 +27,7 @@ export class ProbeList extends Component<ComponentProps>{
 
     handleClick = (probeId: $TSFixMe) => {
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: deleteModalId,
@@ -40,8 +40,8 @@ export class ProbeList extends Component<ComponentProps>{
         e.preventDefault();
 
         this.setState({ selectedProbe: probe._id });
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         // reader.onloadend = () => {
         //     this.props.logFile(reader.result);
@@ -58,7 +58,7 @@ export class ProbeList extends Component<ComponentProps>{
 
     override render() {
 
-        const { selectedProbe } = this.state;
+        const { selectedProbe }: $TSFixMe = this.state;
         const {
 
             probes,
@@ -95,7 +95,7 @@ export class ProbeList extends Component<ComponentProps>{
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(parseInt(probes.count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(probes.count) / 10);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -178,7 +178,7 @@ export class ProbeList extends Component<ComponentProps>{
                                 probes.data &&
                                 probes.data.length > 0 ? (
                                 probes.data.map((probe: $TSFixMe) => {
-                                    const fileData =
+                                    const fileData: $TSFixMe =
                                         probe && probe.probeImage
                                             ? `${API_URL}/file/${probe.probeImage}`
                                             : '/admin/assets/img/no-probe.svg';
@@ -517,7 +517,7 @@ ProbeList.propTypes = {
     page: PropTypes.number,
 };
 
-const ProbeSettingsForm = reduxForm({
+const ProbeSettingsForm: $TSFixMe = reduxForm({
     form: 'probeForm', // a unique identifier for this form,
     enableReinitialize: true,
     // validate, // <--- validation function given to redux-for

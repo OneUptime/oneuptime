@@ -21,9 +21,9 @@ const SecurityLog: Function = ({
     containerSecurityLog,
     levelToFilter
 }: SecurityLogProps) => {
-    const [page, setPage] = useState(1);
+    const [page, setPage]: $TSFixMe = useState(1);
 
-    const severityLevel = [
+    const severityLevel: $TSFixMe = [
         { label: 'Critical', value: 'critical' },
         { label: 'High', value: 'high' },
         { label: 'Moderate', value: 'moderate' },
@@ -32,7 +32,7 @@ const SecurityLog: Function = ({
 
     let applicationLogs = [];
     if (applicationSecurityLog && applicationSecurityLog.data) {
-        const data = applicationSecurityLog.data;
+        const data: $TSFixMe = applicationSecurityLog.data;
         applicationLogs = data.advisories;
 
         if (levelToFilter) {
@@ -47,7 +47,7 @@ const SecurityLog: Function = ({
 
     let containerLogs = [];
     if (containerSecurityLog && containerSecurityLog.data) {
-        const data = containerSecurityLog.data;
+        const data: $TSFixMe = containerSecurityLog.data;
         containerLogs = data.vulnerabilityData;
 
         if (levelToFilter) {
@@ -516,7 +516,7 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const NewApplicationSecurityForm = reduxForm({
+const NewApplicationSecurityForm: $TSFixMe = reduxForm({
     form: 'Filter',
     destroyOnUnmount: true,
     enableReinitialize: true,

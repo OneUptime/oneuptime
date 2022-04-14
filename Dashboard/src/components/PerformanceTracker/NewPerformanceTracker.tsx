@@ -15,7 +15,7 @@ import {
     updatePerformanceTracker,
 } from '../../actions/performanceTracker';
 
-const selector = formValueSelector('NewPerformanceTracker');
+const selector: $TSFixMe = formValueSelector('NewPerformanceTracker');
 
 interface NewPerformanceTrackerProps {
     performanceTracker?: object;
@@ -125,7 +125,7 @@ class NewPerformanceTracker extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit, edit, performanceTracker } = this.props;
+        const { handleSubmit, edit, performanceTracker }: $TSFixMe = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -357,7 +357,7 @@ class NewPerformanceTracker extends Component<ComponentProps> {
 
 NewPerformanceTracker.displayName = 'NewPerformanceTracker';
 
-const NewPerformanceTrackerForm = new reduxForm({
+const NewPerformanceTrackerForm: $TSFixMe = new reduxForm({
     form: 'NewPerformanceTracker',
     destroyOnUnmount: true,
     enableReinitialize: true,
@@ -369,9 +369,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const name = selector(state, 'name');
-    const componentId = ownProps.componentId;
-    const currentProject = state.project.currentProject;
+    const name: $TSFixMe = selector(state, 'name');
+    const componentId: $TSFixMe = ownProps.componentId;
+    const currentProject: $TSFixMe = state.project.currentProject;
     return {
         name,
         componentId,

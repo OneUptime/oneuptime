@@ -34,7 +34,7 @@ class ScheduleEventDeleteBox extends Component<ComponentProps> {
     };
     override render() {
 
-        const { deleteModalId, cancelModalId } = this.state;
+        const { deleteModalId, cancelModalId }: $TSFixMe = this.state;
         const {
 
             projectId,

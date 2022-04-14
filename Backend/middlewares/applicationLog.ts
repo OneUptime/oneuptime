@@ -15,8 +15,8 @@ const _this: $TSFixMe = {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        const data = req.body;
-        const applicationLogId = req.params.applicationLogId;
+        const data: $TSFixMe = req.body;
+        const applicationLogId: $TSFixMe = req.params.applicationLogId;
         if (!applicationLogId) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -51,7 +51,7 @@ const _this: $TSFixMe = {
                 new BadDataException('Log Type is required.')
             );
         }
-        const allowedLogType = ['info', 'warning', 'error'].filter(
+        const allowedLogType: $TSFixMe = ['info', 'warning', 'error'].filter(
             elem => elem === data.type
         );
         if (allowedLogType.length < 1) {
@@ -63,7 +63,7 @@ const _this: $TSFixMe = {
         }
 
         // try to get the application log count by the ID and key
-        const applicationLogCount = await ApplicationLogService.countBy({
+        const applicationLogCount: $TSFixMe = await ApplicationLogService.countBy({
             _id: applicationLogId,
             key: data.applicationLogKey,
         });

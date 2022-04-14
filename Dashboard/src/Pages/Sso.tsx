@@ -22,8 +22,8 @@ interface SsoPageProps {
 class SsoPage extends Component<ComponentProps> {
     override componentDidMount() {
 
-        const currentProject = JSON.parse(User.getProject());
-        const isScalePlan = currentProject?.stripePlanId
+        const currentProject: $TSFixMe = JSON.parse(User.getProject());
+        const isScalePlan: $TSFixMe = currentProject?.stripePlanId
 
             ? PricingPlan.getPlanById(currentProject.stripePlanId).category ===
             'Scale'
@@ -41,8 +41,8 @@ class SsoPage extends Component<ComponentProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem

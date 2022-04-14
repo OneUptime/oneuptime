@@ -113,7 +113,7 @@ export class IncidentList extends Component<IncidentListProps>{
             canPrev = false;
         }
 
-        const numberOfPages = this.props.numberOfPage
+        const numberOfPages: $TSFixMe = this.props.numberOfPage
 
             ? this.props.numberOfPage
 
@@ -1249,7 +1249,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const { componentSlug } = ownProps.match.params;
+    const { componentSlug }: $TSFixMe = ownProps.match.params;
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,

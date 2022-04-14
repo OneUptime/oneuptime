@@ -4,8 +4,8 @@ import mongoose, {
     EncryptedFields,
 } from '../Infrastructure/ORM';
 
-const Schema = mongoose.Schema;
-const schema = new Schema({
+const Schema: $TSFixMe = mongoose.Schema;
+const schema: $TSFixMe = new Schema({
     incidentId: { type: String, ref: 'Incident', index: true },
     createdById: { type: String, ref: 'User', index: true }, // userId
     probeId: { type: String, ref: 'Probe', index: true }, // probeId

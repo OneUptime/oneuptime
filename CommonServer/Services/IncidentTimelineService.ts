@@ -21,7 +21,7 @@ export default class Service {
 
         incidentTimeline = await incidentTimeline.save();
 
-        const populateIncTimeline = [
+        const populateIncTimeline: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             {
                 path: 'probeId',
@@ -29,10 +29,10 @@ export default class Service {
             },
             { path: 'incidentId', select: 'idNumber slug' },
         ];
-        const selectIncTimeline =
+        const selectIncTimeline: $TSFixMe =
             'incidentId createdById probeId createdByZapier createdAt status incident_state';
 
-        const [timeline, incident] = await Promise.all([
+        const [timeline, incident]: $TSFixMe = await Promise.all([
             this.findOneBy({
                 query: { _id: incidentTimeline._id },
                 select: selectIncTimeline,
@@ -46,7 +46,7 @@ export default class Service {
         incidentTimeline = timeline;
 
         if (incident && incidentTimeline) {
-            const _incidentTimeline = Object.assign({}, incidentTimeline, {
+            const _incidentTimeline: $TSFixMe = Object.assign({}, incidentTimeline, {
                 projectId: incident.projectId._id || incident.projectId,
             });
             try {
@@ -75,7 +75,7 @@ export default class Service {
                 new: true,
             }
         );
-        const populateIncTimeline = [
+        const populateIncTimeline: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             {
                 path: 'probeId',
@@ -83,7 +83,7 @@ export default class Service {
             },
             { path: 'incidentId', select: 'idNumber slug' },
         ];
-        const selectIncTimeline =
+        const selectIncTimeline: $TSFixMe =
             'incidentId createdById probeId createdByZapier createdAt status incident_state';
         incidentTimeline = await this.findOneBy({
             query,
@@ -104,14 +104,14 @@ export default class Service {
             $set: data,
         });
 
-        const populateIncTimeline = [
+        const populateIncTimeline: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             {
                 path: 'probeId',
                 select: 'probeName probeImage',
             },
         ];
-        const selectIncTimeline =
+        const selectIncTimeline: $TSFixMe =
             'incidentId createdById probeId createdByZapier createdAt status incident_state';
         incidentTimelines = await this.findBy({
             query,
@@ -142,7 +142,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const incidentTimelinesQuery = IncidentTimelineModel.find(query)
+        const incidentTimelinesQuery: $TSFixMe = IncidentTimelineModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -151,7 +151,7 @@ export default class Service {
         incidentTimelinesQuery.select(select);
         incidentTimelinesQuery.populate(populate);
 
-        const incidentTimelines = await incidentTimelinesQuery;
+        const incidentTimelines: $TSFixMe = await incidentTimelinesQuery;
 
         return incidentTimelines;
     }
@@ -162,14 +162,14 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const incidentTimelineQuery = IncidentTimelineModel.findOne(query)
+        const incidentTimelineQuery: $TSFixMe = IncidentTimelineModel.findOne(query)
             .sort(sort)
             .lean();
 
         incidentTimelineQuery.select(select);
         incidentTimelineQuery.populate(populate);
 
-        const incidentTimeline = await incidentTimelineQuery;
+        const incidentTimeline: $TSFixMe = await incidentTimelineQuery;
         return incidentTimeline;
     }
 
@@ -179,7 +179,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const count = await IncidentTimelineModel.countDocuments(query);
+        const count: $TSFixMe = await IncidentTimelineModel.countDocuments(query);
 
         return count;
     }
@@ -187,21 +187,21 @@ export default class Service {
     // fetches just the last/latest incident timeline
     // this timelines will be used in status page
     async getIncidentLastTimelines(incidents: $TSFixMe): void {
-        const skip = 0,
+        const skip: $TSFixMe = 0,
             limit = 1;
 
-        const populateIncTimeline = [
+        const populateIncTimeline: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             {
                 path: 'probeId',
                 select: 'probeName probeImage',
             },
         ];
-        const selectIncTimeline =
+        const selectIncTimeline: $TSFixMe =
             'incidentId createdById probeId createdByZapier createdAt status incident_state';
         let timelines = await Promise.all(
             incidents.map(async (incident: $TSFixMe) => {
-                const timeline = await this.findBy({
+                const timeline: $TSFixMe = await this.findBy({
                     query: { incidentId: incident._id },
                     skip,
                     limit,
@@ -222,7 +222,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const incidentTimelineModel =
+        const incidentTimelineModel: $TSFixMe =
             await IncidentTimelineModel.findOneAndUpdate(
                 query,
                 {

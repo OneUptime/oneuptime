@@ -40,8 +40,8 @@ class ThirdPartyVariables extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { currentProject, monitor, customFields } = this.props;
-        const projectId = monitor.projectId._id || monitor.projectId;
+        const { currentProject, monitor, customFields }: $TSFixMe = this.props;
+        const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
         const postObj: $TSFixMe = {
             _id: monitor._id,
             projectId,
@@ -294,7 +294,7 @@ ThirdPartyVariables.propTypes = {
     customFields: PropTypes.array,
 };
 
-const ThirdPartyVariableForm = reduxForm({
+const ThirdPartyVariableForm: $TSFixMe = reduxForm({
     form: 'ThirdPartyVariableForm', // a unique identifier for this form
     enableReinitialize: true,
     destroyOnUnmount: true,
@@ -310,7 +310,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { monitor } = ownProps;
+    const { monitor }: $TSFixMe = ownProps;
     const initialValues: $TSFixMe = {};
     if (monitor && monitor.customFields && monitor.customFields.length > 0) {
         monitor.customFields.forEach(

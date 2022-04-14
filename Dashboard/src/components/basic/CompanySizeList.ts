@@ -1,4 +1,4 @@
-export const companySize = [
+export const companySize: $TSFixMe = [
     { name: '1-10', code: '1-10' },
     { name: '11-50', code: '11-50' },
     { name: '51-200', code: '51-200' },

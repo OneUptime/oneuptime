@@ -14,7 +14,7 @@ interface MSTeamsButtonProps {
 class MSTeamsButton extends React.Component<MSTeamsButtonProps> {
     override render() {
 
-        const { monitorId } = this.props;
+        const { monitorId }: $TSFixMe = this.props;
 
         return (
             <button

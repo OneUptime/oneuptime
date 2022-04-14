@@ -24,7 +24,7 @@ export const fetchCallLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const fetchCallLogs =
+export const fetchCallLogs: $TSFixMe =
     (skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
@@ -33,11 +33,11 @@ export const fetchCallLogs =
         dispatch(fetchCallLogsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `call-logs?skip=${skip}&limit=${limit}`
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(fetchCallLogsSuccess(data));
 
@@ -80,7 +80,7 @@ export const searchCallLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const searchCallLogs =
+export const searchCallLogs: $TSFixMe =
     (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
@@ -90,12 +90,12 @@ export const searchCallLogs =
         dispatch(searchCallLogsRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `call-logs/search?skip=${skip}&limit=${limit}`,
                 values
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(searchCallLogsSuccess(data));
             return response;
@@ -137,15 +137,15 @@ export const deleteCallLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteCallLogs =
+export const deleteCallLogs: $TSFixMe =
     () =>
     async (dispatch: Dispatch): void => {
         dispatch(deleteCallLogsRequest());
 
         try {
-            const response = await delete `call-logs`;
+            const response: $TSFixMe = await delete `call-logs`;
 
-            const message = response.data.message;
+            const message: $TSFixMe = response.data.message;
 
             dispatch(deleteCallLogsSuccess(message));
         } catch (error) {
@@ -199,13 +199,13 @@ export const resetFetchCallLogStatus: Function = (): void => {
 };
 
 // Calls the API to fetch callLogStatus
-export const fetchCallLogStatus =
+export const fetchCallLogStatus: $TSFixMe =
     () =>
     async (dispatch: Dispatch): void => {
         dispatch(fetchCallLogStatusRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 'globalConfig/callLogMonitoringStatus'
             );
 
@@ -263,16 +263,16 @@ export const resetConfirmCallLogStatus: Function = (): void => {
 };
 
 // Calls the API to change callLogStatus
-export const callLogStatusChange =
+export const callLogStatusChange: $TSFixMe =
     (values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(changeCallLogStatusRequest());
 
         try {
-            const response = await BackendAPI.post(new Route('globalConfig/'), [
+            const response: $TSFixMe = await BackendAPI.post(new Route('globalConfig/'), [
                 { name: 'callLogMonitoringStatus', value: values.status },
             ]);
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
             dispatch(changeCallLogStatusSuccess(data));
             return data;
         } catch (error) {

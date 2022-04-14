@@ -73,7 +73,7 @@ class EditIncidentTemplate extends React.Component<EditIncidentTemplateProps> {
             data,
         } = this.props;
 
-        const projectId = currentProject._id;
+        const projectId: $TSFixMe = currentProject._id;
         const {
             title,
             description,
@@ -106,7 +106,7 @@ class EditIncidentTemplate extends React.Component<EditIncidentTemplateProps> {
 
     closeAndClearError = () => {
 
-        const { updateIncidentTemplateFailure, closeModal } = this.props;
+        const { updateIncidentTemplateFailure, closeModal }: $TSFixMe = this.props;
 
         updateIncidentTemplateFailure(null);
         closeModal();
@@ -540,14 +540,14 @@ EditIncidentTemplate.propTypes = {
     change: PropTypes.func,
 };
 
-const EditIncidentTemplateForm = reduxForm({
+const EditIncidentTemplateForm: $TSFixMe = reduxForm({
     form: 'EditIncidentTemplateForm', // a unique identifier for this form
     enableReinitialize: true,
 })(EditIncidentTemplate);
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { data } = ownProps;
-    const { template } = data;
+    const { data }: $TSFixMe = ownProps;
+    const { template }: $TSFixMe = data;
     const initialValues: $TSFixMe = {
         ...template,
         incidentPriority: template.incidentPriority

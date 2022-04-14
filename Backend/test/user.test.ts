@@ -1,7 +1,7 @@
 process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import data from './data/user';
-const profile = require('./data/user').profile;
+const profile: $TSFixMe = require('./data/user').profile;
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
@@ -11,7 +11,7 @@ import queryString from 'query-string';
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -43,7 +43,7 @@ describe('User API', function (): void {
                     if (err) {
                         throw err;
                     }
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -130,7 +130,7 @@ describe('User API', function (): void {
     });
 
     it('should not register with an invalid email', (done: $TSFixMe): void => {
-        const invalidMailUser = Object.assign({}, data.user);
+        const invalidMailUser: $TSFixMe = Object.assign({}, data.user);
         invalidMailUser.email = 'invalidMail';
         createUser(
             request,
@@ -143,7 +143,7 @@ describe('User API', function (): void {
     });
 
     it('should not register with a personal email', (done: $TSFixMe): void => {
-        const personalMailUser = Object.assign({}, data.user);
+        const personalMailUser: $TSFixMe = Object.assign({}, data.user);
         personalMailUser.email = 'personalAccount@gmail.com';
         createUser(
             request,
@@ -212,13 +212,13 @@ describe('User API', function (): void {
     });
 
     it('should track IP and other parameters when login in', async (): void => {
-        const res = await request.post('/user/login').send({
+        const res: $TSFixMe = await request.post('/user/login').send({
             email: data.user.email,
             password: data.user.password,
         });
         expect(res).to.have.status(200);
         expect(res.body.email).to.equal(data.user.email);
-        const log = await LoginIPLog.findOne({ userId });
+        const log: $TSFixMe = await LoginIPLog.findOne({ userId });
         expect(log).to.be.an('object');
         expect(log).to.have.property('ipLocation');
         expect(log.ipLocation).to.be.an('object');
@@ -515,7 +515,7 @@ describe('User API', function (): void {
             .set('Authorization', authorization)
             .end(async (_err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
-                const user = await UserService.findOneBy({
+                const user: $TSFixMe = await UserService.findOneBy({
                     query: { _id: userId },
                     select: 'backupCodes',
                 });
@@ -528,13 +528,13 @@ describe('User API', function (): void {
 
     it('should generate new backup codes.', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const user = await UserService.updateOneBy(
+        const user: $TSFixMe = await UserService.updateOneBy(
             { _id: userId },
             { twoFactorAuthEnabled: true }
         );
         expect(user).to.not.eql(null);
         expect(user.twoFactorAuthEnabled).to.eql(true);
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/user/generate/backupCode`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -575,7 +575,7 @@ describe('User API', function (): void {
             request,
             data.anotherUser,
             (_err: $TSFixMe, res: $TSFixMe): void => {
-                const project = res.body.project;
+                const project: $TSFixMe = res.body.project;
                 const { id: userId } = res.body;
                 VerificationTokenModel.findOne(
                     { userId },
@@ -593,7 +593,7 @@ describe('User API', function (): void {
                                         password: data.anotherUser.password,
                                     })
                                     .end((_err: $TSFixMe, res: $TSFixMe) => {
-                                        const accessToken =
+                                        const accessToken: $TSFixMe =
                                             res.body.tokens.jwtAccessToken;
                                         const authorization: string = `Basic ${accessToken}`;
                                         request
@@ -660,7 +660,7 @@ describe('SSO authentication', function (): void {
 
     before(async () => {
         await SsoModel.deleteMany({});
-        const sso = await SsoModel.create({
+        const sso: $TSFixMe = await SsoModel.create({
             'saml-enabled': true,
             domain: 'tests.hackerbay.io',
             samlSsoUrl:
@@ -734,14 +734,14 @@ describe('SSO authentication', function (): void {
         }).countDocuments();
         expect(userCount).to.eql(0);
 
-        const loginRequest = await request.get(
+        const loginRequest: $TSFixMe = await request.get(
             '/user/sso/login?email=user@tests.hackerbay.io'
         );
         expect(loginRequest).to.have.status(200);
         expect(loginRequest.body).to.have.property('url');
         const { url: SAMLRequest } = loginRequest.body;
 
-        const SAMLResponse = await fetchIdpSAMLResponse({
+        const SAMLResponse: $TSFixMe = await fetchIdpSAMLResponse({
             SAMLRequest,
             username: 'user1',
             password: 'user1pass',
@@ -761,7 +761,7 @@ describe('SSO authentication', function (): void {
         const {
             header: { location: loginLink },
         } = response;
-        const parsedQuery = queryString.parse(loginLink.split('?')[1]);
+        const parsedQuery: $TSFixMe = queryString.parse(loginLink.split('?')[1]);
 
         expect(parsedQuery).to.have.property('id');
         expect(parsedQuery).to.have.property('name');
@@ -782,14 +782,14 @@ describe('SSO authentication', function (): void {
     it('Should return the login details if the user exists in the database and login successfully.', async (): void => {
         UserService.create({ email: 'user2@tests.hackerbay.io', sso: ssoId });
 
-        const loginRequest = await request.get(
+        const loginRequest: $TSFixMe = await request.get(
             '/user/sso/login?email=user@tests.hackerbay.io'
         );
         expect(loginRequest).to.have.status(200);
         expect(loginRequest.body).to.have.property('url');
         const { url: SAMLRequest } = loginRequest.body;
 
-        const SAMLResponse = await fetchIdpSAMLResponse({
+        const SAMLResponse: $TSFixMe = await fetchIdpSAMLResponse({
             SAMLRequest,
             username: 'user2',
             password: 'user2pass',
@@ -809,7 +809,7 @@ describe('SSO authentication', function (): void {
         const {
             header: { location: loginLink },
         } = response;
-        const parsedQuery = queryString.parse(loginLink.split('?')[1]);
+        const parsedQuery: $TSFixMe = queryString.parse(loginLink.split('?')[1]);
 
         expect(parsedQuery).to.have.property('id');
         expect(parsedQuery).to.have.property('name');

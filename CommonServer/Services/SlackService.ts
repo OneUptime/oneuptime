@@ -18,10 +18,10 @@ export default class Service {
         component: $TSFixMe,
         duration: $TSFixMe
     ): void {
-        const self = this;
+        const self: $TSFixMe = this;
         let response;
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProject _id slug name',
         });
@@ -54,9 +54,9 @@ export default class Service {
         } else {
             return;
         }
-        const select =
+        const select: $TSFixMe =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             { path: 'projectId', select: 'name' },
             {
@@ -65,7 +65,7 @@ export default class Service {
                 populate: [{ path: 'componentId', select: 'name' }],
             },
         ];
-        const integrations = await IntegrationService.findBy({
+        const integrations: $TSFixMe = await IntegrationService.findBy({
             query,
             select,
             populate,
@@ -224,10 +224,10 @@ export default class Service {
         data: $TSFixMe,
         monitor: $TSFixMe
     ): void {
-        const self = this;
+        const self: $TSFixMe = this;
         let response;
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProject _id slug',
         });
@@ -242,9 +242,9 @@ export default class Service {
             'notificationOptions.incidentNoteAdded': true,
         };
 
-        const select =
+        const select: $TSFixMe =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             { path: 'projectId', select: 'name' },
             {
@@ -254,7 +254,7 @@ export default class Service {
             },
         ];
 
-        const integrations = await IntegrationService.findBy({
+        const integrations: $TSFixMe = await IntegrationService.findBy({
             query,
             select,
             populate,

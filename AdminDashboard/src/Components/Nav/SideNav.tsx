@@ -84,7 +84,7 @@ class SideNav extends Component<ComponentProps> {
                                 .filter(group => !group.isPublic)
                                 .filter(group => group.visible)
                                 .map((group, index, array) => {
-                                    const marginClass =
+                                    const marginClass: $TSFixMe =
                                         index === array.length - 1
                                             ? 'Box-root '
                                             : 'Box-root Margin-bottom--16';
@@ -118,13 +118,13 @@ class SideNav extends Component<ComponentProps> {
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function (state: RootState) {
+const mapStateToProps: $TSFixMe = function (state: RootState) {
     return {
         sidenavopen: state.page.sidenavopen,
     };
 };
 
-const mapDispatchToProps = function (dispatch: Dispatch) {
+const mapDispatchToProps: $TSFixMe = function (dispatch: Dispatch) {
     return bindActionCreators(
         {
             openModal,

@@ -116,7 +116,7 @@ export class AddScheduleModal extends Component<AddScheduleModalProps>{
             uploadCallRoutingAudio,
         } = this.props;
         if (values.introAudio && values.introAudio !== 'null') {
-            const postAudio = new FormData();
+            const postAudio: $TSFixMe = new FormData();
             if (values.introAudio && typeof values.introAudio !== 'object') {
                 postAudio.append('introAudio', values.introAudio);
             } else {
@@ -135,7 +135,7 @@ export class AddScheduleModal extends Component<AddScheduleModalProps>{
         }
 
         if (values.backup_introAudio && values.backup_introAudio !== 'null') {
-            const backupPostAudio = new FormData();
+            const backupPostAudio: $TSFixMe = new FormData();
             if (
                 values.backup_introAudio &&
                 typeof values.backup_introAudio !== 'object'
@@ -216,14 +216,14 @@ export class AddScheduleModal extends Component<AddScheduleModalProps>{
     };
     changefile = (e: $TSFixMe) => {
         e.preventDefault();
-        const file = e.target.files[0];
-        const fileName = file.name;
+        const file: $TSFixMe = e.target.files[0];
+        const fileName: $TSFixMe = file.name;
         this.setState({ fileName: fileName, fileUploaded: true });
     };
     removeIntroAudio = (backup: $TSFixMe) => {
         
 
-        const { currentProject, data, removeIntroAudio } = this.props;
+        const { currentProject, data, removeIntroAudio }: $TSFixMe = this.props;
         removeIntroAudio(currentProject._id, data.callRoutingId, backup).then(
             function () {
                 if (backup) {
@@ -244,8 +244,8 @@ export class AddScheduleModal extends Component<AddScheduleModalProps>{
     };
     changeBackupFile = (e: $TSFixMe) => {
         e.preventDefault();
-        const file = e.target.files[0];
-        const fileName = file.name;
+        const file: $TSFixMe = e.target.files[0];
+        const fileName: $TSFixMe = file.name;
         this.setState({ backupFileName: fileName, backupFileUploaded: true });
     };
     toggleShowAdvance = (e: $TSFixMe) => {
@@ -297,14 +297,14 @@ export class AddScheduleModal extends Component<AddScheduleModalProps>{
 
             removeBackupIntroAudioState,
         } = this.props;
-        const introAudioLoading =
+        const introAudioLoading: $TSFixMe =
             (uploadIntroAudioState &&
                 uploadIntroAudioState.requesting &&
                 uploadIntroAudioState.callRoutingId === data.callRoutingId) ||
             (removeIntroAudioState &&
                 removeIntroAudioState.requesting &&
                 removeIntroAudioState.callRoutingId === data.callRoutingId);
-        const backupIntroAudioLoading =
+        const backupIntroAudioLoading: $TSFixMe =
             (uploadBackupIntroAudioState &&
                 uploadBackupIntroAudioState.requesting &&
                 uploadBackupIntroAudioState.callRoutingId ===
@@ -313,11 +313,11 @@ export class AddScheduleModal extends Component<AddScheduleModalProps>{
                 removeBackupIntroAudioState.requesting &&
                 removeBackupIntroAudioState.callRoutingId ===
                 data.callRoutingId);
-        const disabled =
+        const disabled: $TSFixMe =
             introAudioLoading ||
             backupIntroAudioLoading ||
             (addCallRoutingSchedules && addCallRoutingSchedules.requesting);
-        const error =
+        const error: $TSFixMe =
             (uploadIntroAudioState &&
                 uploadIntroAudioState.error &&
                 uploadIntroAudioState.callRoutingId === data.callRoutingId) ||
@@ -584,7 +584,7 @@ export class AddScheduleModal extends Component<AddScheduleModalProps>{
 
 AddScheduleModal.displayName = 'AddScheduleModal';
 
-const AddScheduleModalForm = reduxForm({
+const AddScheduleModalForm: $TSFixMe = reduxForm({
     form: 'AttachRoutingSchedule', // a unique identifier for this form
     destroyOnUnmount: true,
     enableReinitialize: true,
@@ -604,8 +604,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const callRoutingId = props.data.callRoutingId;
-    const teamMembersAndSchedules = state.callRouting.teamMembersAndSchedules;
+    const callRoutingId: $TSFixMe = props.data.callRoutingId;
+    const teamMembersAndSchedules: $TSFixMe = state.callRouting.teamMembersAndSchedules;
     let teamMembers = teamMembersAndSchedules.teamMembers;
     teamMembers =
         teamMembers && teamMembers.length
@@ -620,63 +620,63 @@ function mapStateToProps(state: RootState, props: $TSFixMe) {
                 return { name: s.name, id: s._id };
             })
             : schedules;
-    const allNumbers =
+    const allNumbers: $TSFixMe =
         state.callRouting.allNumbers &&
             state.callRouting.allNumbers.numbers &&
             state.callRouting.allNumbers.numbers.length
             ? state.callRouting.allNumbers.numbers
             : [];
-    const currentNumber =
+    const currentNumber: $TSFixMe =
         allNumbers && allNumbers.length
             ? allNumbers.find((n: $TSFixMe) => n._id === callRoutingId)
             : null;
-    const routingSchema =
+    const routingSchema: $TSFixMe =
         currentNumber &&
             currentNumber.routingSchema &&
             currentNumber.routingSchema.type
             ? currentNumber.routingSchema
             : {};
-    const type =
+    const type: $TSFixMe =
         routingSchema.type && routingSchema.type.length
             ? routingSchema.type
             : '';
-    const id =
+    const id: $TSFixMe =
         routingSchema.id && routingSchema.id.length ? routingSchema.id : null;
-    const phoneNumber =
+    const phoneNumber: $TSFixMe =
         routingSchema.phoneNumber && routingSchema.phoneNumber.length
             ? routingSchema.phoneNumber
             : null;
-    const backup_phoneNumber =
+    const backup_phoneNumber: $TSFixMe =
         routingSchema.backup_phoneNumber &&
             routingSchema.backup_phoneNumber.length
             ? routingSchema.backup_phoneNumber
             : null;
-    const backup_type =
+    const backup_type: $TSFixMe =
         routingSchema.backup_type && routingSchema.backup_type.length
             ? routingSchema.backup_type
             : '';
-    const backup_id =
+    const backup_id: $TSFixMe =
         routingSchema.backup_id && routingSchema.backup_id.length
             ? routingSchema.backup_id
             : null;
-    const showAdvance =
+    const showAdvance: $TSFixMe =
         routingSchema && routingSchema.type ? routingSchema.showAdvance : null;
-    const fileName =
+    const fileName: $TSFixMe =
         routingSchema &&
             routingSchema.introAudioName &&
             routingSchema.introAudioName.length
             ? routingSchema.introAudioName
             : '';
-    const fileUploaded = fileName && fileName.length ? true : false;
-    const backupFileName =
+    const fileUploaded: $TSFixMe = fileName && fileName.length ? true : false;
+    const backupFileName: $TSFixMe =
         routingSchema &&
             routingSchema.backup_introAudioName &&
             routingSchema.backup_introAudioName.length
             ? routingSchema.backup_introAudioName
             : '';
-    const backupFileUploaded =
+    const backupFileUploaded: $TSFixMe =
         backupFileName && backupFileName.length ? true : false;
-    const initialValues =
+    const initialValues: $TSFixMe =
         type && id
             ? {
                 type: type,

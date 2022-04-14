@@ -7,7 +7,7 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 
 const MessageModal: Function = (props: $TSFixMe) => {
-    const { closeThisDialog, testError, email } = props;
+    const { closeThisDialog, testError, email }: $TSFixMe = props;
 
     return (
         <div

@@ -33,7 +33,7 @@ class OnCallScheduleModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

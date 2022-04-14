@@ -2,9 +2,9 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
-const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const router: $TSFixMe = express.getRouter();
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
 import { sendListResponse } from 'CommonServer/Utils/response';
 import { sendItemResponse } from 'CommonServer/Utils/response';
 
@@ -18,18 +18,18 @@ router.get(
     getUser,
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const skip = req.query['skip'] || 0;
-        const limit = req.query['limit'] || 10;
+        const skip: $TSFixMe = req.query['skip'] || 0;
+        const limit: $TSFixMe = req.query['limit'] || 10;
 
-        const populateDefaultRoleSso = [
+        const populateDefaultRoleSso: $TSFixMe = [
             { path: 'domain', select: '_id domain' },
             { path: 'project', select: '_id name' },
         ];
 
-        const selectDefaultRoleSso =
+        const selectDefaultRoleSso: $TSFixMe =
             '_id domain project role createdAt deleted deletedAt deletedById';
         try {
-            const [ssos, count] = await Promise.all([
+            const [ssos, count]: $TSFixMe = await Promise.all([
                 SsoDefaultRolesService.findBy({
                     query: {},
                     limit,
@@ -56,7 +56,7 @@ router.delete(
             if (!req.params.id) {
                 throw new Error('Id must be defined');
             }
-            const sso = await SsoDefaultRolesService.deleteBy({
+            const sso: $TSFixMe = await SsoDefaultRolesService.deleteBy({
                 _id: req.params.id,
             });
             return sendItemResponse(req, res, sso);
@@ -71,9 +71,9 @@ router.post(
     getUser,
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const data = req.body;
+        const data: $TSFixMe = req.body;
         try {
-            const ssoDefaultRole = await SsoDefaultRolesService.create(data);
+            const ssoDefaultRole: $TSFixMe = await SsoDefaultRolesService.create(data);
             return sendItemResponse(req, res, ssoDefaultRole);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -87,20 +87,20 @@ router.get(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const populateDefaultRoleSso = [
+            const populateDefaultRoleSso: $TSFixMe = [
                 { path: 'domain', select: '_id domain' },
                 { path: 'project', select: '_id name' },
             ];
 
-            const selectDefaultRoleSso =
+            const selectDefaultRoleSso: $TSFixMe =
                 '_id domain project role createdAt deleted deletedAt deletedById';
-            const sso = await SsoDefaultRolesService.findOneBy({
+            const sso: $TSFixMe = await SsoDefaultRolesService.findOneBy({
                 query: { _id: req.params.id },
                 select: selectDefaultRoleSso,
                 populate: populateDefaultRoleSso,
             });
             if (!sso) {
-                const error = new Error("Requested resource doesn't exist.");
+                const error: $TSFixMe = new Error("Requested resource doesn't exist.");
 
                 error.code = 404;
                 throw error;
@@ -118,8 +118,8 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const id = req.params.id;
-            const ssoDefaultRole = await SsoDefaultRolesService.updateById(
+            const id: $TSFixMe = req.params.id;
+            const ssoDefaultRole: $TSFixMe = await SsoDefaultRolesService.updateById(
                 id,
                 req.body
             );

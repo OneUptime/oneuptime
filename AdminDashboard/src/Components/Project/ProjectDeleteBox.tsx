@@ -21,10 +21,10 @@ export class ProjectDeleteBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { deleteProject, project } = this.props;
+        const { deleteProject, project }: $TSFixMe = this.props;
 
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: deleteModalId,
@@ -47,7 +47,7 @@ export class ProjectDeleteBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div
@@ -99,7 +99,7 @@ ProjectDeleteBox.displayName = 'ProjectDeleteBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteProject, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const project = state.project.project.project;
+    const project: $TSFixMe = state.project.project.project;
     return {
         project,
         isRequesting:

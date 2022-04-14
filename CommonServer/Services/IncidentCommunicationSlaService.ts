@@ -7,13 +7,13 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async create(data: $TSFixMe): void {
-        const incidentCommunicationSla = await this.countBy({
+        const incidentCommunicationSla: $TSFixMe = await this.countBy({
             name: data.name,
             projectId: data.projectId,
         });
 
         if (incidentCommunicationSla && incidentCommunicationSla > 0) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Incident communication SLA with the same name already exist'
             );
 
@@ -33,7 +33,7 @@ export default class Service {
             );
         }
 
-        const createdIncidentCommunicationSla =
+        const createdIncidentCommunicationSla: $TSFixMe =
             await IncidentCommunicationSlaModel.create(data);
 
         if (data.monitors && data.monitors.length > 0) {
@@ -57,14 +57,14 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const incidentCommunicationSlaQuery =
+        const incidentCommunicationSlaQuery: $TSFixMe =
             IncidentCommunicationSlaModel.findOne(query).sort(sort).lean();
 
         incidentCommunicationSlaQuery.select(select);
 
         incidentCommunicationSlaQuery.populate(populate);
 
-        const incidentCommunicationSla = await incidentCommunicationSlaQuery;
+        const incidentCommunicationSla: $TSFixMe = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
     }
 
@@ -73,7 +73,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const incidentCommunicationSlaQuery =
+        const incidentCommunicationSlaQuery: $TSFixMe =
             IncidentCommunicationSlaModel.find(query)
                 .lean()
                 .sort(sort)
@@ -84,7 +84,7 @@ export default class Service {
 
         incidentCommunicationSlaQuery.populate(populate);
 
-        const incidentCommunicationSla = await incidentCommunicationSlaQuery;
+        const incidentCommunicationSla: $TSFixMe = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
     }
 
@@ -101,7 +101,7 @@ export default class Service {
         // or using update modal for editing the details
 
         if (!data.handleDefault) {
-            const incidentCommunicationSla = await this.findOneBy({
+            const incidentCommunicationSla: $TSFixMe = await this.findOneBy({
                 query: { name: data.name, projectId: query.projectId },
                 select: '_id',
             });
@@ -110,7 +110,7 @@ export default class Service {
                 incidentCommunicationSla &&
                 String(incidentCommunicationSla._id) !== String(query._id)
             ) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Incident communication SLA with the same name already exist'
                 );
 
@@ -118,11 +118,11 @@ export default class Service {
                 throw error;
             }
 
-            const monitors = await MonitorService.findBy({
+            const monitors: $TSFixMe = await MonitorService.findBy({
                 query: { incidentCommunicationSla: query._id },
                 select: '_id',
             });
-            const initialMonitorIds = monitors.map(
+            const initialMonitorIds: $TSFixMe = monitors.map(
                 (monitor: $TSFixMe) => monitor._id
             );
 
@@ -184,7 +184,7 @@ export default class Service {
             );
 
         if (!updatedIncidentCommunicationSla) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Incident Communication SLA not found or does not exist'
             );
 
@@ -192,10 +192,10 @@ export default class Service {
             throw error;
         }
 
-        const selectIncidentComSla =
+        const selectIncidentComSla: $TSFixMe =
             'name projectId isDefault alertTime alertTime deleted duration';
 
-        const populateIncidentComSla = [
+        const populateIncidentComSla: $TSFixMe = [
             { path: 'projectId', select: 'name slug' },
         ];
 
@@ -209,7 +209,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        const deletedSla = await IncidentCommunicationSlaModel.findOneAndUpdate(
+        const deletedSla: $TSFixMe = await IncidentCommunicationSlaModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -235,7 +235,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await IncidentCommunicationSlaModel.countDocuments(query);
+        const count: $TSFixMe = await IncidentCommunicationSlaModel.countDocuments(query);
         return count;
     }
 }

@@ -75,7 +75,7 @@ export class ProjectSwitcher extends Component<ProjectSwitcherProps>{
         let projectOptions = null;
         let isHovering = false;
 
-        const { projects } = this.props.project.projects;
+        const { projects }: $TSFixMe = this.props.project.projects;
         if (projects && projects.length > 0) {
             projectOptions = projects.map(
                 (project: $TSFixMe) => <div

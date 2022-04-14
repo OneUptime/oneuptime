@@ -36,7 +36,7 @@ class ProbeDeleteModal extends Component<ComponentProps> {
 
     handleDelete = () => {
 
-        const { error, modalId, closeModal, deleteProbe, probeId } = this.props;
+        const { error, modalId, closeModal, deleteProbe, probeId }: $TSFixMe = this.props;
         deleteProbe(probeId).then(() => {
             if (!error) {
                 return closeModal({ id: modalId });
@@ -46,7 +46,7 @@ class ProbeDeleteModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { isRequesting, error, closeThisDialog } = this.props;
+        const { isRequesting, error, closeThisDialog }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

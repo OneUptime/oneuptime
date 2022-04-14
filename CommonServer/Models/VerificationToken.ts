@@ -4,11 +4,11 @@ import mongoose, {
     EncryptedFields,
 } from '../Infrastructure/ORM';
 
-const Schema = mongoose.Schema;
+const Schema: $TSFixMe = mongoose.Schema;
 
-const { EMAIL_VERIFY_TIME } = process.env;
+const { EMAIL_VERIFY_TIME }: $TSFixMe = process.env;
 
-const schema = new Schema({
+const schema: $TSFixMe = new Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,

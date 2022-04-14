@@ -12,7 +12,7 @@ import moment from 'moment';
 
 export default class Service {
     async create(data: $TSFixMe): void {
-        const Log = new MonitorLogModel();
+        const Log: $TSFixMe = new MonitorLogModel();
         let responseBody = '';
         if (data.resp && data.resp.body) {
             if (typeof data.resp.body === 'object') {
@@ -69,7 +69,7 @@ export default class Service {
 
         Log.scriptMetadata = data.scriptMetadata;
 
-        const savedLog = await Log.save();
+        const savedLog: $TSFixMe = await Log.save();
 
         // run these in background.
         this.updateAggregateLogs(data);
@@ -79,16 +79,16 @@ export default class Service {
     }
 
     async updateAggregateLogs(data: $TSFixMe): void {
-        const now = new Date();
+        const now: $TSFixMe = new Date();
 
-        const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
-        const intervalDayDate = moment(now).format('MMM Do YYYY');
-        const intervalWeekDate = moment(now).format('wo [week of] YYYY');
+        const intervalHourDate: $TSFixMe = moment(now).format('MMM Do YYYY, h A');
+        const intervalDayDate: $TSFixMe = moment(now).format('MMM Do YYYY');
+        const intervalWeekDate: $TSFixMe = moment(now).format('wo [week of] YYYY');
 
-        const selectMonitorLogBy =
+        const selectMonitorLogBy: $TSFixMe =
             'monitorId probeId status responseTime responseStatus cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp createdAt intervalDate maxResponseTime maxCpuLoad maxMemoryUsed maxStorageUsed maxMainTemp sslCertificate kubernetesLog';
 
-        const [logByHour, logByDay, logByWeek] = await Promise.all([
+        const [logByHour, logByDay, logByWeek]: $TSFixMe = await Promise.all([
             MonitorLogByHourService.findOneBy({
                 query: {
                     probeId: data.probeId,
@@ -224,7 +224,7 @@ export default class Service {
             query = {};
         }
 
-        const monitorLog = await MonitorLogModel.findOneAndUpdate(
+        const monitorLog: $TSFixMe = await MonitorLogModel.findOneAndUpdate(
             query,
             { $set: data },
             {
@@ -256,7 +256,7 @@ export default class Service {
             query = {};
         }
 
-        const monitorLogsQuery = MonitorLogModel.find(query)
+        const monitorLogsQuery: $TSFixMe = MonitorLogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -264,7 +264,7 @@ export default class Service {
         monitorLogsQuery.select(select);
         monitorLogsQuery.populate(populate);
 
-        const monitorLogs = await monitorLogsQuery;
+        const monitorLogs: $TSFixMe = await monitorLogsQuery;
         return monitorLogs;
     }
 
@@ -273,13 +273,13 @@ export default class Service {
             query = {};
         }
 
-        const monitorLogQuery = MonitorLogModel.findOne(query)
+        const monitorLogQuery: $TSFixMe = MonitorLogModel.findOne(query)
             .sort(sort)
             .lean();
         monitorLogQuery.select(select);
         monitorLogQuery.populate(populate);
 
-        const monitorLog = await monitorLogQuery;
+        const monitorLog: $TSFixMe = await monitorLogQuery;
         return monitorLog;
     }
 
@@ -288,22 +288,22 @@ export default class Service {
             query = {};
         }
 
-        const count = await MonitorLogModel.countDocuments(query);
+        const count: $TSFixMe = await MonitorLogModel.countDocuments(query);
 
         return count;
     }
 
     async sendMonitorLog(data: $TSFixMe): void {
-        const selectMonitorLog =
+        const selectMonitorLog: $TSFixMe =
             'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
 
-        const populateMonitorLog = [
+        const populateMonitorLog: $TSFixMe = [
             {
                 path: 'probeId',
                 select: 'createdAt lastAlive probeKey probeName version probeImage deleted',
             },
         ];
-        const [monitor, logData] = await Promise.all([
+        const [monitor, logData]: $TSFixMe = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: data.monitorId },
                 select: 'projectId',

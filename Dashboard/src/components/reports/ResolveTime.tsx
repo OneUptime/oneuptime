@@ -83,9 +83,9 @@ class ResolveTime extends Component<ComponentProps> {
 
     override render() {
 
-        const { resolveTime } = this.state;
+        const { resolveTime }: $TSFixMe = this.state;
 
-        const { resolveTimeReports, filter } = this.props;
+        const { resolveTimeReports, filter }: $TSFixMe = this.props;
 
         const chartData: $TSFixMe = [];
         resolveTime.map((element: $TSFixMe) => {

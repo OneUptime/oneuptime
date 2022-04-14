@@ -18,14 +18,14 @@ const SecurityDetail: Function = ({
 }: SecurityDetailProps) => {
     let vulnerabilities = null;
     if (applicationSecurityLog && applicationSecurityLog.data) {
-        const securityLog =
+        const securityLog: $TSFixMe =
             applicationSecurityLog.data && applicationSecurityLog.data;
         vulnerabilities =
             securityLog.vulnerabilities && securityLog.vulnerabilities;
     }
 
     if (containerSecurityLog && containerSecurityLog.data) {
-        const securityLog =
+        const securityLog: $TSFixMe =
             containerSecurityLog.data && containerSecurityLog.data;
         vulnerabilities =
             securityLog.vulnerabilityInfo && securityLog.vulnerabilityInfo;

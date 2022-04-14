@@ -71,7 +71,7 @@ class KubeJobData extends React.Component<KubeJobDataProps> {
 
     handleCondition = (jobData: $TSFixMe, key: $TSFixMe) => {
         return jobData[key].map((condition: $TSFixMe, index: $TSFixMe) => {
-            const dataKeys = Object.keys(condition);
+            const dataKeys: $TSFixMe = Object.keys(condition);
             return (
                 <div
                     key={index}
@@ -135,11 +135,11 @@ class KubeJobData extends React.Component<KubeJobDataProps> {
 
     override render() {
 
-        const { data } = this.props;
-        const jobData = data.data;
-        const logTitle = data.data['jobName'];
+        const { data }: $TSFixMe = this.props;
+        const jobData: $TSFixMe = data.data;
+        const logTitle: $TSFixMe = data.data['jobName'];
 
-        const dataKeys = Object.keys(jobData);
+        const dataKeys: $TSFixMe = Object.keys(jobData);
 
         return (
             <div

@@ -21,19 +21,19 @@ export const createMonitorSlaFailure: Function = (
     payload: error,
 });
 
-export const createMonitorSla =
+export const createMonitorSla: $TSFixMe =
     (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createMonitorSlaRequest());
 
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `monitorSla/${projectId}`,
                 data
             );
 
             dispatch(createMonitorSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -61,7 +61,7 @@ export const updateMonitorSlaFailure: Function = (
     payload: error,
 });
 
-export const updateMonitorSla =
+export const updateMonitorSla: $TSFixMe =
     (
         projectId: ObjectID,
         monitorSlaId: $TSFixMe,
@@ -73,14 +73,14 @@ export const updateMonitorSla =
             dispatch(updateMonitorSlaRequest());
 
             data.handleDefault = handleDefault;
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `monitorSla/${projectId}/${monitorSlaId}`,
                 data
             );
 
             dispatch(updateMonitorSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -108,19 +108,19 @@ export const fetchMonitorSlasFailure: Function = (
     payload: error,
 });
 
-export const fetchMonitorSlas =
+export const fetchMonitorSlas: $TSFixMe =
     (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchMonitorSlasRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `monitorSla/${projectId}?skip=${skip}&limit=${limit}`
             );
 
             dispatch(fetchMonitorSlasSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -148,18 +148,18 @@ export const deleteMonitorSlaFailure: Function = (
     payload: error,
 });
 
-export const deleteMonitorSla =
+export const deleteMonitorSla: $TSFixMe =
     (projectId: ObjectID, monitorSlaId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteMonitorSlaRequest());
 
-            const response =
+            const response: $TSFixMe =
                 await delete `monitorSla/${projectId}/${monitorSlaId}`;
 
             dispatch(deleteMonitorSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -197,18 +197,18 @@ export const fetchDefaultMonitorSlaFailure: Function = (
     payload: error,
 });
 
-export const fetchDefaultMonitorSla =
+export const fetchDefaultMonitorSla: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultMonitorSlaRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `monitorSla/${projectId}/defaultMonitorSla`
             );
 
             dispatch(fetchDefaultMonitorSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data

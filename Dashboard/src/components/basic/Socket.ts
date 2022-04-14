@@ -45,7 +45,7 @@ import {
 // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
 // '/realtime' is set as socket io namespace, so remove
 
-export const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+export const socket: $TSFixMe = io.connect(REALTIME_URL.replace('/realtime', ''), {
     path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
@@ -62,7 +62,7 @@ class SocketApp extends Component<ComponentProps> {
             this.props.activeProjectId !== nextProps.activeProjectId
         ) {
             if (this.props.project && this.props.activeProjectId) {
-                const projectId = this.props.activeProjectId;
+                const projectId: $TSFixMe = this.props.activeProjectId;
                 socket.removeListener(`incidentResolved-${projectId}`);
                 socket.removeListener(`incidentAcknowledged-${projectId}`);
                 socket.removeListener(`createMonitor-${projectId}`);
@@ -97,15 +97,15 @@ class SocketApp extends Component<ComponentProps> {
     }
 
     override render(): void {
-        const thisObj = this;
-        const loggedInUser = User.getUserId();
+        const thisObj: $TSFixMe = this;
+        const loggedInUser: $TSFixMe = User.getUserId();
 
         if (this.props.project && this.props.activeProjectId) {
-            const projectId = this.props.activeProjectId;
+            const projectId: $TSFixMe = this.props.activeProjectId;
             socket.on(
                 `incidentResolved-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -113,11 +113,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.incidentresolvedbysocket(data);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -133,7 +133,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `incidentAcknowledged-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -141,11 +141,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.incidentacknowledgedbysocket(data);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -159,7 +159,7 @@ class SocketApp extends Component<ComponentProps> {
                 }
             );
             socket.on(`createMonitor-${projectId}`, (data: $TSFixMe): void => {
-                const isUserInProject = thisObj.props.project
+                const isUserInProject: $TSFixMe = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
@@ -169,11 +169,11 @@ class SocketApp extends Component<ComponentProps> {
                         thisObj.props.createmonitorbysocket(data);
                     }
                 } else {
-                    const subProject = thisObj.props.subProjects.find(
+                    const subProject: $TSFixMe = thisObj.props.subProjects.find(
                         (subProject: $TSFixMe) =>
                             subProject._id === data.projectId._id
                     );
-                    const isUserInSubProject = subProject
+                    const isUserInSubProject: $TSFixMe = subProject
                         ? subProject.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -184,7 +184,7 @@ class SocketApp extends Component<ComponentProps> {
                 }
             });
             socket.on(`updateMonitor-${projectId}`, (data: $TSFixMe): void => {
-                const isUserInProject = thisObj.props.project
+                const isUserInProject: $TSFixMe = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
@@ -192,11 +192,11 @@ class SocketApp extends Component<ComponentProps> {
                 if (isUserInProject) {
                     thisObj.props.updatemonitorbysocket(data);
                 } else {
-                    const subProject = thisObj.props.subProjects.find(
+                    const subProject: $TSFixMe = thisObj.props.subProjects.find(
                         (subProject: $TSFixMe) =>
                             subProject._id === data.projectId._id
                     );
-                    const isUserInSubProject = subProject
+                    const isUserInSubProject: $TSFixMe = subProject
                         ? subProject.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -207,7 +207,7 @@ class SocketApp extends Component<ComponentProps> {
                 }
             });
             socket.on(`deleteMonitor-${projectId}`, (data: $TSFixMe): void => {
-                const isUserInProject = thisObj.props.project
+                const isUserInProject: $TSFixMe = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
@@ -215,11 +215,11 @@ class SocketApp extends Component<ComponentProps> {
                 if (isUserInProject) {
                     thisObj.props.deletemonitorbysocket(data);
                 } else {
-                    const subProject = thisObj.props.subProjects.find(
+                    const subProject: $TSFixMe = thisObj.props.subProjects.find(
                         (subProject: $TSFixMe) =>
                             subProject._id === data.projectId
                     );
-                    const isUserInSubProject = subProject
+                    const isUserInSubProject: $TSFixMe = subProject
                         ? subProject.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -232,7 +232,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `incidentCreated-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -241,11 +241,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.incidentcreatedbysocket(data);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -261,7 +261,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `updateMonitorLog-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -269,11 +269,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.updatemonitorlogbysocket(data);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -288,7 +288,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `updateMonitorStatus-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -300,11 +300,11 @@ class SocketApp extends Component<ComponentProps> {
                             thisObj.props.probes
                         );
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -323,7 +323,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `updateIncidentTimeline-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -331,11 +331,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.updateincidenttimelinebysocket(data);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -350,7 +350,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `updateLighthouseLog-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -358,11 +358,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.updatelighthouselogbysocket(data);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -377,7 +377,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `updateAllLighthouseLog-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -385,11 +385,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.updateAlllighthouselogbysocket(data);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -402,7 +402,7 @@ class SocketApp extends Component<ComponentProps> {
                 }
             );
             socket.on(`updateProbe`, (data: $TSFixMe): void => {
-                const isUserInProject = thisObj.props.project
+                const isUserInProject: $TSFixMe = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
                       )
@@ -410,11 +410,11 @@ class SocketApp extends Component<ComponentProps> {
                 if (isUserInProject) {
                     return thisObj.props.updateprobebysocket(data);
                 } else {
-                    const subProject = thisObj.props.subProjects.find(
+                    const subProject: $TSFixMe = thisObj.props.subProjects.find(
                         (subProject: $TSFixMe) =>
                             subProject._id === data.projectId
                     );
-                    const isUserInSubProject = subProject
+                    const isUserInSubProject: $TSFixMe = subProject
                         ? subProject.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -427,7 +427,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `NewNotification-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -435,11 +435,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.addnotifications(data);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -455,7 +455,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `TeamMemberRoleUpdate-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -463,11 +463,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.teamMemberRoleUpdate(data.response);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -482,7 +482,7 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `TeamMemberCreate-${projectId}`,
                 (data: $TSFixMe): void => {
-                    const isUserInProject = thisObj.props.project
+                    const isUserInProject: $TSFixMe = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
@@ -490,11 +490,11 @@ class SocketApp extends Component<ComponentProps> {
                     if (isUserInProject) {
                         thisObj.props.teamMemberCreate(data.users);
                     } else {
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === projectId
                         );
-                        const isUserInSubProject = subProject
+                        const isUserInSubProject: $TSFixMe = subProject
                             ? subProject.users.some(
                                   (user: $TSFixMe) =>
                                       user.userId === loggedInUser
@@ -511,7 +511,7 @@ class SocketApp extends Component<ComponentProps> {
                 `TeamMemberDelete-${projectId}`,
                 (data: $TSFixMe): void => {
                     if (data.projectId === thisObj.props.project._id) {
-                        const projectUser = data.teamMembers.find(
+                        const projectUser: $TSFixMe = data.teamMembers.find(
                             (member: $TSFixMe) =>
                                 member.userId === User.getUserId()
                         );
@@ -526,12 +526,12 @@ class SocketApp extends Component<ComponentProps> {
                             });
                         }
                     } else {
-                        const subProjectUser = data.teamMembers.find(
+                        const subProjectUser: $TSFixMe = data.teamMembers.find(
                             (member: $TSFixMe) =>
                                 member.userId === User.getUserId()
                         );
 
-                        const mainUser = thisObj.props.project?.users.find(
+                        const mainUser: $TSFixMe = thisObj.props.project?.users.find(
                             (user: $TSFixMe) =>
                                 (user.userId._id || user.userId) ===
                                     User.getUserId() &&
@@ -539,11 +539,11 @@ class SocketApp extends Component<ComponentProps> {
                                     user.role === 'Administrator')
                         );
 
-                        const subProject = thisObj.props.subProjects.find(
+                        const subProject: $TSFixMe = thisObj.props.subProjects.find(
                             (subProject: $TSFixMe) =>
                                 subProject._id === data.projectId
                         );
-                        const subProjectName = subProject
+                        const subProjectName: $TSFixMe = subProject
                             ? subProject.name
                             : '';
                         if (!subProjectUser && !mainUser) {

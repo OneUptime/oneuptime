@@ -1,6 +1,6 @@
 import faker from 'faker';
 
-const user = faker.helpers.createCard();
+const user: $TSFixMe = faker.helpers.createCard();
 user.email = generateRandomBusinessEmail();
 user.password = generatePassword();
 user.card = '4111111111111111';
@@ -8,7 +8,7 @@ user.cvv = '100';
 user.expiryDate = '12/23';
 user.message = 'Test message';
 
-const agent =
+const agent: $TSFixMe =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36';
 
 let slomo = 20;
@@ -41,17 +41,17 @@ const puppeteerLaunchConfig: $TSFixMe = {
     ],
 };
 
-const HOME_URL = process.env.HOME_URL || 'http://localhost:1444';
-const ACCOUNTS_URL = process.env.ACCOUNTS_URL || 'http://localhost:3003';
-const ADMIN_DASHBOARD_URL =
+const HOME_URL: $TSFixMe = process.env.HOME_URL || 'http://localhost:1444';
+const ACCOUNTS_URL: $TSFixMe = process.env.ACCOUNTS_URL || 'http://localhost:3003';
+const ADMIN_DASHBOARD_URL: $TSFixMe =
     process.env.ADMIN_DASHBOARD_URL || 'http://localhost:3100';
-const DASHBOARD_URL = process.env.DASHBOARD_URL || 'http://localhost:3000';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
-const STATUSPAGE_URL = process.env.STATUSPAGE_URL || 'http://localhost:3006';
-const APIDOCS_URL = process.env.APIDOCS_URL || 'http://localhost:1445';
-const HTTP_TEST_SERVER_URL =
+const DASHBOARD_URL: $TSFixMe = process.env.DASHBOARD_URL || 'http://localhost:3000';
+const BACKEND_URL: $TSFixMe = process.env.BACKEND_URL || 'http://localhost:3002';
+const STATUSPAGE_URL: $TSFixMe = process.env.STATUSPAGE_URL || 'http://localhost:3006';
+const APIDOCS_URL: $TSFixMe = process.env.APIDOCS_URL || 'http://localhost:1445';
+const HTTP_TEST_SERVER_URL: $TSFixMe =
     process.env.HTTP_TEST_SERVER_URL || 'http://localhost:3010';
-const INIT_SCRIPT_URL = process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
+const INIT_SCRIPT_URL: $TSFixMe = process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
 
 function generateRandomBusinessEmail(): void {
     return (
@@ -72,9 +72,9 @@ function generatePassword(): void {
  * The new generateRandomString only generate 5 lowercase alphabets with no numbers
  */
 function generateRandomString(): void {
-    const result = [];
+    const result: $TSFixMe = [];
     const characters: string = 'abcdefghijklmnopqrstuvwxyz';
-    const charactersLength = characters.length;
+    const charactersLength: $TSFixMe = characters.length;
     for (let i = 0; i < 5; i++) {
         result.push(
             characters.charAt(Math.floor(Math.random() * charactersLength))
@@ -85,7 +85,7 @@ function generateRandomString(): void {
 
 // These are other required functions, variables present in other test-utils dashboard folder.
 function parseBoolean(val: $TSFixMe): void {
-    const falsy = /^(?:f(?:alse)?|no?|0+)$/i;
+    const falsy: $TSFixMe = /^(?:f(?:alse)?|no?|0+)$/i;
     return !falsy.test(val) && !!val;
 }
 

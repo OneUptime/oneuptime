@@ -84,9 +84,9 @@ class Incidents extends Component<ComponentProps> {
 
     override render() {
 
-        const { incidents } = this.state;
+        const { incidents }: $TSFixMe = this.state;
 
-        const { incidentReports, filter } = this.props;
+        const { incidentReports, filter }: $TSFixMe = this.props;
 
         const chartData: $TSFixMe = [];
         incidents.map((element: $TSFixMe) => {

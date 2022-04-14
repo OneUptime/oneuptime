@@ -28,9 +28,9 @@ interface MSTeamsListProps {
 class MSTeamsList extends React.Component<MSTeamsListProps> {
     ready() {
 
-        const { getMsTeamsMonitor, monitorId, getMsTeams } = this.props;
+        const { getMsTeamsMonitor, monitorId, getMsTeams }: $TSFixMe = this.props;
 
-        const { projectId } = this.props;
+        const { projectId }: $TSFixMe = this.props;
 
         if (monitorId) {
             getMsTeamsMonitor(projectId, monitorId);
@@ -118,8 +118,8 @@ class MSTeamsList extends React.Component<MSTeamsListProps> {
 
     override render() {
 
-        const { msTeams, isRequesting, monitorId } = this.props;
-        const { count, skip, limit } = msTeams;
+        const { msTeams, isRequesting, monitorId }: $TSFixMe = this.props;
+        const { count, skip, limit }: $TSFixMe = msTeams;
         let { msTeams: webHooks } = msTeams;
         let canPaginateForward =
             msTeams && count && count > skip + limit ? true : false;
@@ -128,13 +128,13 @@ class MSTeamsList extends React.Component<MSTeamsListProps> {
             webHooks = webHooks.filter((hook: $TSFixMe) => hook.monitors.some((mon: $TSFixMe) => mon.monitorId._id === monitorId)
             );
         }
-        const numberOfWebHooks = webHooks ? webHooks.length : 0;
+        const numberOfWebHooks: $TSFixMe = webHooks ? webHooks.length : 0;
 
         if (msTeams && (msTeams.requesting || !msTeams.msTeams)) {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
 
         return (
             <React.Fragment>

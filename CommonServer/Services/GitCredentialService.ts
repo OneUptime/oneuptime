@@ -17,14 +17,14 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const gitCredentialQuery = GitCredentialModel.findOne(query)
+        const gitCredentialQuery: $TSFixMe = GitCredentialModel.findOne(query)
             .sort(sort)
             .lean();
 
         gitCredentialQuery.select(select);
         gitCredentialQuery.populate(populate);
 
-        const gitCredential = await gitCredentialQuery;
+        const gitCredential: $TSFixMe = await gitCredentialQuery;
 
         return gitCredential;
     }
@@ -54,7 +54,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const gitCredentialsQuery = GitCredentialModel.find(query)
+        const gitCredentialsQuery: $TSFixMe = GitCredentialModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -64,21 +64,21 @@ export default class Service {
         gitCredentialsQuery.select(select);
         gitCredentialsQuery.populate(populate);
 
-        const gitCredentials = await gitCredentialsQuery;
+        const gitCredentials: $TSFixMe = await gitCredentialsQuery;
 
         return gitCredentials;
     }
 
     async create(data: $TSFixMe): void {
-        const { gitUsername, gitPassword, projectId, sshTitle, sshPrivateKey } =
+        const { gitUsername, gitPassword, projectId, sshTitle, sshPrivateKey }: $TSFixMe =
             data;
         if (gitUsername && gitPassword) {
-            const gitCredential = await this.findOneBy({
+            const gitCredential: $TSFixMe = await this.findOneBy({
                 query: { gitUsername, projectId },
                 select: '_id',
             });
             if (gitCredential) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Git Credential already exist in this project'
                 );
 
@@ -86,10 +86,10 @@ export default class Service {
                 throw error;
             }
 
-            const iv = Crypto.randomBytes(16);
-            const encryptedPassword = await encrypt(gitPassword, iv);
+            const iv: $TSFixMe = Crypto.randomBytes(16);
+            const encryptedPassword: $TSFixMe = await encrypt(gitPassword, iv);
 
-            const response = await GitCredentialModel.create({
+            const response: $TSFixMe = await GitCredentialModel.create({
                 gitUsername,
                 gitPassword: encryptedPassword,
                 projectId,
@@ -97,12 +97,12 @@ export default class Service {
             });
             return response;
         } else if (sshTitle && sshPrivateKey) {
-            const gitSsh = await this.findOneBy({
+            const gitSsh: $TSFixMe = await this.findOneBy({
                 query: { sshTitle, projectId },
                 select: '_id',
             });
             if (gitSsh) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Git Ssh already exist in this project'
                 );
 
@@ -110,7 +110,7 @@ export default class Service {
                 throw error;
             }
 
-            const response = await GitCredentialModel.create({
+            const response: $TSFixMe = await GitCredentialModel.create({
                 sshTitle,
                 sshPrivateKey: sshPrivateKey,
                 projectId,
@@ -129,7 +129,7 @@ export default class Service {
         }
 
         if (data.gitPassword) {
-            const iv = Crypto.randomBytes(16);
+            const iv: $TSFixMe = Crypto.randomBytes(16);
             data.gitPassword = await encrypt(data.gitPassword, iv);
             data.iv = iv;
         }
@@ -143,10 +143,10 @@ export default class Service {
             },
             { new: true }
         );
-        const selectGitCredentials =
+        const selectGitCredentials: $TSFixMe =
             'sshTitle sshPrivateKey gitUsername gitPassword iv projectId deleted';
 
-        const populateGitCredentials = [
+        const populateGitCredentials: $TSFixMe = [
             { path: 'projectId', select: 'name slug' },
         ];
 
@@ -161,7 +161,7 @@ export default class Service {
         }); // This is needed for proper query. It considers deleted and non-deleted git credentials
 
         if (!gitCredential) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Git Credential not found or does not exist'
             );
 
@@ -176,7 +176,7 @@ export default class Service {
         let gitCredential = await this.findOneBy({ query, select: '_id' });
 
         if (!gitCredential) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Git Credential not found or does not exist'
             );
 

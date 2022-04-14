@@ -40,7 +40,7 @@ class removeGroup extends Component<ComponentProps> {
 
     deleteSubProject = () => {
 
-        const { deleteGroup, data, closeModal } = this.props;
+        const { deleteGroup, data, closeModal }: $TSFixMe = this.props;
         deleteGroup(data.projectId, data.groupId).then((value: $TSFixMe) => {
             if (!value.error) {
                 return closeModal({
@@ -52,7 +52,7 @@ class removeGroup extends Component<ComponentProps> {
 
     override render() {
 
-        const { groupDelete, closeModal, data, closeThisDialog } = this.props;
+        const { groupDelete, closeModal, data, closeThisDialog }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

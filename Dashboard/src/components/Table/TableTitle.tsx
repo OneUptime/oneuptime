@@ -14,7 +14,7 @@ export default class TableTitle extends Component<TableTitleProps>{
 
     override render() {
 
-        const { title } = this.props;
+        const { title }: $TSFixMe = this.props;
 
         return (
             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">

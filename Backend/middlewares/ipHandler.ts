@@ -15,8 +15,8 @@ const _this: $TSFixMe = {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        const statusPageSlug = apiMiddleware.getStatusPageSlug(req);
-        const statusPageUrl = apiMiddleware.getStatusPageUrl(req);
+        const statusPageSlug: $TSFixMe = apiMiddleware.getStatusPageSlug(req);
+        const statusPageUrl: $TSFixMe = apiMiddleware.getStatusPageUrl(req);
         let statusPage;
 
         try {
@@ -51,7 +51,7 @@ const _this: $TSFixMe = {
             return next();
         }
 
-        const ipWhitelist = statusPage.ipWhitelist
+        const ipWhitelist: $TSFixMe = statusPage.ipWhitelist
             ? [...statusPage.ipWhitelist]
             : [];
         // if ip whitelist is enabled and no ip is saved
@@ -78,7 +78,7 @@ const _this: $TSFixMe = {
         }
 
         clientIp = clientIp.trim();
-        const ipFound = ipWhitelist.some(ip => {
+        const ipFound = ipWhitelist.some(ip: $TSFixMe => {
             if (ip.indexOf('-') !== -1) {
                 const ipRange = ip.split('-').map((ip: $TSFixMe) => ip.trim());
                 return this.inRange(clientIp, ipRange);
@@ -124,10 +124,10 @@ const _this: $TSFixMe = {
     // https://www.npmjs.com/package/ip-range-check
     check_single_cidr: function (addr: $TSFixMe, cidr: $TSFixMe): void {
         try {
-            const parsed_addr = ipaddr.process(addr);
+            const parsed_addr: $TSFixMe = ipaddr.process(addr);
             if (cidr.indexOf('/') === -1) {
                 // handle case when ip is not CIDR
-                const parsed_cidr_as_ip = ipaddr.process(cidr);
+                const parsed_cidr_as_ip: $TSFixMe = ipaddr.process(cidr);
                 if (
                     parsed_addr.kind() === 'ipv6' &&
                     parsed_cidr_as_ip.kind() === 'ipv6'
@@ -139,7 +139,7 @@ const _this: $TSFixMe = {
                 }
                 return parsed_addr.toString() == parsed_cidr_as_ip.toString();
             } else {
-                const parsed_range = ipaddr.parseCIDR(cidr);
+                const parsed_range: $TSFixMe = ipaddr.parseCIDR(cidr);
                 return parsed_addr.match(parsed_range);
             }
         } catch (e) {
@@ -161,8 +161,8 @@ const _this: $TSFixMe = {
     },
 
     inRange: function (ip: $TSFixMe, range: $TSFixMe): void {
-        const min = this.IPtoNum(range[0]);
-        const max = this.IPtoNum(range[1]);
+        const min: $TSFixMe = this.IPtoNum(range[0]);
+        const max: $TSFixMe = this.IPtoNum(range[1]);
         ip = this.IPtoNum(ip);
 
         if (isNaN(min) || isNaN(max) || isNaN(ip)) {

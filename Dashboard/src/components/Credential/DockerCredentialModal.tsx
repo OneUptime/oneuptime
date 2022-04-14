@@ -53,7 +53,7 @@ class DockerCredentialModal extends Component<ComponentProps> {
 
             updateCredentialError,
         } = this.props;
-        const { projectId } = propArr[0];
+        const { projectId }: $TSFixMe = propArr[0];
 
         if (prevProps.isRequesting !== isRequesting) {
             if (!isRequesting && !addCredentialError) {
@@ -70,8 +70,8 @@ class DockerCredentialModal extends Component<ComponentProps> {
 
     handleKeyBoard = (e: $TSFixMe) => {
 
-        const { propArr } = this.props;
-        const { credentialId } = propArr[0];
+        const { propArr }: $TSFixMe = this.props;
+        const { credentialId }: $TSFixMe = propArr[0];
 
         switch (e.key) {
             case 'Escape':
@@ -91,8 +91,8 @@ class DockerCredentialModal extends Component<ComponentProps> {
 
     handleCloseModal = () => {
 
-        const { closeModal, propArr } = this.props;
-        const { projectId } = propArr[0];
+        const { closeModal, propArr }: $TSFixMe = this.props;
+        const { projectId }: $TSFixMe = propArr[0];
 
         this.props.closeModal({
             id: closeModal({ id: projectId }),
@@ -108,7 +108,7 @@ class DockerCredentialModal extends Component<ComponentProps> {
 
             updateDockerCredential,
         } = this.props;
-        const { projectId, credentialId } = propArr[0];
+        const { projectId, credentialId }: $TSFixMe = propArr[0];
 
         if (!values) return;
 
@@ -134,7 +134,7 @@ class DockerCredentialModal extends Component<ComponentProps> {
 
             updatingCredential,
         } = this.props;
-        const { projectId, credentialId } = propArr[0];
+        const { projectId, credentialId }: $TSFixMe = propArr[0];
 
         return (
             <div
@@ -469,9 +469,9 @@ DockerCredentialModal.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { propArr } = ownProps;
-    const { credentialId } = propArr[0];
-    const dockerCredential = credentialId
+    const { propArr }: $TSFixMe = ownProps;
+    const { credentialId }: $TSFixMe = propArr[0];
+    const dockerCredential: $TSFixMe = credentialId
         ? state.credential.dockerCredentials.filter(
             (dockerCredential: $TSFixMe) => String(dockerCredential._id) === String(credentialId)
         )[0]
@@ -493,7 +493,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const DockerCredentialForm = reduxForm({
+const DockerCredentialForm: $TSFixMe = reduxForm({
     form: 'DockerCredentialForm',
     enableReinitialize: true,
     destroyOnUnmount: true,

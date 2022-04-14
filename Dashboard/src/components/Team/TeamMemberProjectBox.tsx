@@ -27,7 +27,7 @@ export interface ComponentProps {
 
 const TeamMemberProjectBox: Function = (props: TeamMemberProjectBoxProps) => {
     const handleKeyboard: Function = (event: $TSFixMe) => {
-        const { modalList, allTeamLength } = props;
+        const { modalList, allTeamLength }: $TSFixMe = props;
 
         if (allTeamLength === 1) {
             if (event.target.localName === 'body' && event.key) {
@@ -57,7 +57,7 @@ const TeamMemberProjectBox: Function = (props: TeamMemberProjectBoxProps) => {
         };
     });
 
-    const numberOfPages = Math.ceil(parseInt(props.teamMembers.count) / 10);
+    const numberOfPages: $TSFixMe = Math.ceil(parseInt(props.teamMembers.count) / 10);
     return (
         <div className="Box-root">
             <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">

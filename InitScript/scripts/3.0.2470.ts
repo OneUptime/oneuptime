@@ -6,16 +6,16 @@ const statusPageCollection: string = 'statuspages';
 const domainVerificationTokenCollection: string = 'domainverificationtokens';
 
 async function run(): void {
-    const statusPages = await find(statusPageCollection, {
+    const statusPages: $TSFixMe = await find(statusPageCollection, {
         domain: { $type: 'string' },
     });
 
     for (let i = 0; i < statusPages.length; i++) {
-        const statusPage = statusPages[i];
+        const statusPage: $TSFixMe = statusPages[i];
         const token: string = `oneuptime=${randomChar()}`;
-        const now = new Date().toISOString();
+        const now: $TSFixMe = new Date().toISOString();
 
-        const { ops = [{}] } = await save(domainVerificationTokenCollection, [
+        const { ops = [{}] }: $TSFixMe = await save(domainVerificationTokenCollection, [
             {
                 domain: getDomain(statusPage.domain),
                 verified: true,
@@ -27,7 +27,7 @@ async function run(): void {
                 projectId: statusPage.projectId,
             },
         ]);
-        const domains = [
+        const domains: $TSFixMe = [
             {
                 domain: statusPage.domain,
                 domainVerificationToken: ops[0]._id,

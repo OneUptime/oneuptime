@@ -20,18 +20,18 @@ export const addGroupFailure: Function = (error: ErrorPayload): void => ({
     payload: error,
 });
 
-export const createGroup =
+export const createGroup: $TSFixMe =
     (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addGroupRequest());
 
         try {
-            const response = await BackendAPI.post(`group/${projectId}`, data);
+            const response: $TSFixMe = await BackendAPI.post(`group/${projectId}`, data);
 
             dispatch(addGroupSuccess(response.data));
             dispatch(getGroups());
             return response;
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -60,13 +60,13 @@ export const updateGroupFailure: Function = (error: ErrorPayload): void => ({
     payload: error,
 });
 
-export const updateGroup =
+export const updateGroup: $TSFixMe =
     (projectId: ObjectID, groupId: $TSFixMe, data: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(updateGroupRequest(groupId));
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `group/${projectId}/${groupId}`,
                 data
             );
@@ -74,7 +74,7 @@ export const updateGroup =
             dispatch(updateGroupSuccess(response.data));
             return response;
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -102,17 +102,17 @@ export const getGroupsFailure: Function = (error: ErrorPayload): void => ({
     payload: error,
 });
 
-export const getGroups =
+export const getGroups: $TSFixMe =
     () =>
     async (dispatch: Dispatch): void => {
         dispatch(getGroupsRequest());
-        const projectId = User.getCurrentProjectId();
+        const projectId: $TSFixMe = User.getCurrentProjectId();
         try {
-            const response = await BackendAPI.get(`group/${projectId}/groups`);
+            const response: $TSFixMe = await BackendAPI.get(`group/${projectId}/groups`);
 
             dispatch(getGroupsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -141,18 +141,18 @@ export const getProjectGroupsFailure: Function = (
     payload: error,
 });
 
-export const getProjectGroups =
+export const getProjectGroups: $TSFixMe =
     (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         dispatch(getProjectGroupsRequest());
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `group/${projectId}?skip=${skip}&limit=${limit}`
             );
 
             dispatch(getProjectGroupsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -179,18 +179,18 @@ export const deleteGroupFailure: Function = (error: ErrorPayload): void => ({
     payload: error,
 });
 
-export const deleteGroup =
+export const deleteGroup: $TSFixMe =
     (projectId: ObjectID, groupId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(deleteGroupRequest());
 
         try {
-            const response = await delete `group/${projectId}/${groupId}`;
+            const response: $TSFixMe = await delete `group/${projectId}/${groupId}`;
 
             dispatch(deleteGroupSuccess(response.data));
             dispatch(getGroups());
             return response;
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data

@@ -41,7 +41,7 @@ class Message extends Component<ComponentProps> {
     handleSubmit = (event: $TSFixMe) => {
         event.preventDefault();
 
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.statuspage &&
 
@@ -49,17 +49,17 @@ class Message extends Component<ComponentProps> {
 
             this.props.statuspage.projectId._id;
 
-        const statusPageId = this.props.statuspage._id;
+        const statusPageId: $TSFixMe = this.props.statuspage._id;
 
-        const selectIndividualMonitors = this.props.statuspage
+        const selectIndividualMonitors: $TSFixMe = this.props.statuspage
             .selectIndividualMonitors;
 
 
         if (this.state.email && this.state.email.length) {
 
-            const validemail = this.validation(this.state.email);
+            const validemail: $TSFixMe = this.validation(this.state.email);
             if (validemail) {
-                const values = this.state;
+                const values: $TSFixMe = this.state;
 
                 values.method = 'email';
 

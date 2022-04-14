@@ -40,14 +40,14 @@ class ComponentIssue extends Component<ComponentProps> {
     }
     generateUrlLink(componentIssue: $TSFixMe) {
 
-        const { component, currentProject } = this.props;
+        const { component, currentProject }: $TSFixMe = this.props;
         return `/dashboard/project/${currentProject.slug}/component/${component._id}/error-trackers/${componentIssue.errorTrackerId.slug}`;
     }
     override render() {
 
-        const { component, errorTrackers } = this.props;
+        const { component, errorTrackers }: $TSFixMe = this.props;
 
-        const errorTrackersList =
+        const errorTrackersList: $TSFixMe =
             errorTrackers && errorTrackers.length > 0 ? (
                 <div
                     id={`box_${component._id}`}
@@ -80,9 +80,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const componentIssueList =
+    const componentIssueList: $TSFixMe =
         state.component.componentIssueList[ownProps.component._id];
-    const errorTrackers = state.errorTracker.errorTrackersList.errorTrackers.filter(
+    const errorTrackers: $TSFixMe = state.errorTracker.errorTrackersList.errorTrackers.filter(
         (errorTracker: $TSFixMe) => errorTracker.componentId._id === ownProps.component._id
     );
     return {

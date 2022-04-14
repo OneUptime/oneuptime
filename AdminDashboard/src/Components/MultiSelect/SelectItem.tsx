@@ -53,21 +53,21 @@ class SelectItem extends Component<ComponentProps> {
 
     onChecked = (e: $TSFixMe) => {
 
-        const { onSelectionChanged } = this.props;
-        const { checked } = e.target;
+        const { onSelectionChanged }: $TSFixMe = this.props;
+        const { checked }: $TSFixMe = e.target;
 
         onSelectionChanged(checked);
     };
 
     toggleChecked = () => {
 
-        const { checked, onSelectionChanged } = this.props;
+        const { checked, onSelectionChanged }: $TSFixMe = this.props;
         onSelectionChanged(!checked);
     };
 
     updateFocus() {
 
-        const { focused } = this.state;
+        const { focused }: $TSFixMe = this.state;
 
         if (focused && this.labelRef) {
             this.labelRef.focus();
@@ -89,8 +89,8 @@ class SelectItem extends Component<ComponentProps> {
     };
     override render() {
 
-        const { option, checked, disabled, ItemRenderer, focused } = this.props;
-        const { hovered } = this.state;
+        const { option, checked, disabled, ItemRenderer, focused }: $TSFixMe = this.props;
+        const { hovered }: $TSFixMe = this.state;
 
         return (
             <label

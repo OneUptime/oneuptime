@@ -2,8 +2,8 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
-const getUser = require('../middlewares/user').getUser;
+const router: $TSFixMe = express.getRouter();
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -33,15 +33,15 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId } = req.params;
+            const { projectId }: $TSFixMe = req.params;
             if (!projectId) {
                 throw new BadDataException('Project Id must be present');
             }
-            const select =
+            const select: $TSFixMe =
                 'projectId title description incidentPriority isDefault name createdAt';
 
             const query: $TSFixMe = { projectId, isDefault: true };
-            const template = await IncidentSettingsService.findOne({
+            const template: $TSFixMe = await IncidentSettingsService.findOne({
                 query,
                 select,
             });
@@ -60,20 +60,20 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { skip, limit } = req.query;
+            const { projectId }: $TSFixMe = req.params;
+            const { skip, limit }: $TSFixMe = req.query;
 
             if (!projectId) {
                 throw new BadDataException('Project Id must be present');
             }
 
             const query: $TSFixMe = { projectId };
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'incidentPriority', select: 'name color' },
             ];
-            const select =
+            const select: $TSFixMe =
                 'projectId title description incidentPriority isDefault name createdAt';
-            const [templates, count] = await Promise.all([
+            const [templates, count]: $TSFixMe = await Promise.all([
                 IncidentSettingsService.findBy({
                     query,
                     limit,
@@ -96,7 +96,7 @@ router.put(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { projectId, templateId } = req.params;
+        const { projectId, templateId }: $TSFixMe = req.params;
         if (!projectId) {
             return sendErrorResponse(
                 req,
@@ -106,7 +106,7 @@ router.put(
         }
 
         try {
-            const defaultPrioritySetting =
+            const defaultPrioritySetting: $TSFixMe =
                 await IncidentSettingsService.updateOne(
                     {
                         _id: templateId,
@@ -128,8 +128,8 @@ router.put(
     getUser,
     isAuthorized,
     async (req, res): void => {
-        const { projectId, templateId } = req.params;
-        const { title, description, incidentPriority, isDefault, name } =
+        const { projectId, templateId }: $TSFixMe = req.params;
+        const { title, description, incidentPriority, isDefault, name }: $TSFixMe =
             req.body;
         if (!projectId) {
             return sendErrorResponse(
@@ -173,7 +173,7 @@ router.put(
 
         try {
             //Update should not happen if the incident priority is remove and doesn't exist.
-            const priority = await IncidentPrioritiesService.countBy({
+            const priority: $TSFixMe = await IncidentPrioritiesService.countBy({
                 _id: incidentPriority,
             });
 
@@ -184,7 +184,7 @@ router.put(
                 });
             }
 
-            const incidentSettings = await IncidentSettingsService.updateOne(
+            const incidentSettings: $TSFixMe = await IncidentSettingsService.updateOne(
                 {
                     projectId,
                     _id: templateId,
@@ -210,13 +210,13 @@ router.delete(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId, templateId } = req.params;
+            const { projectId, templateId }: $TSFixMe = req.params;
 
             if (!projectId) {
                 throw new BadDataException('Project Id must be present');
             }
             if (!templateId) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Incident settings Id must be present.'
                 );
 
@@ -224,7 +224,7 @@ router.delete(
                 throw error;
             }
 
-            const incidentSetting = await IncidentSettingsService.deleteBy({
+            const incidentSetting: $TSFixMe = await IncidentSettingsService.deleteBy({
                 _id: templateId,
                 projectId,
             });
@@ -241,7 +241,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
+            const { projectId }: $TSFixMe = req.params;
             // description is optional
             const {
                 title,
@@ -264,12 +264,12 @@ router.post(
                 throw new BadDataException('Incident priority must be present');
             }
 
-            const priority = await IncidentPrioritiesService.findOne({
+            const priority: $TSFixMe = await IncidentPrioritiesService.findOne({
                 query: { _id: incidentPriority },
                 select: '_id',
             });
             if (!priority) {
-                const error = new Error("Incident priority doesn't exist.");
+                const error: $TSFixMe = new Error("Incident priority doesn't exist.");
 
                 error.code = 400;
                 throw error;
@@ -283,7 +283,7 @@ router.post(
                 isDefault,
                 name,
             };
-            const incidentSetting = await IncidentSettingsService.create(data);
+            const incidentSetting: $TSFixMe = await IncidentSettingsService.create(data);
 
             return sendItemResponse(req, res, incidentSetting);
         } catch (error) {

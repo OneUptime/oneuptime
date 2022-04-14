@@ -60,7 +60,7 @@ class ScheduledEventDetail extends Component<ComponentProps> {
 
         // remove listeners
 
-        const scheduledEventId = this.props.scheduledEventId;
+        const scheduledEventId: $TSFixMe = this.props.scheduledEventId;
         socket.removeListener(
             `addScheduledEventInternalNote-${scheduledEventId}`
         );
@@ -81,7 +81,7 @@ class ScheduledEventDetail extends Component<ComponentProps> {
         );
     }
     tabSelected = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
     };
@@ -166,7 +166,7 @@ class ScheduledEventDetail extends Component<ComponentProps> {
 
         if (this.props.scheduledEventSlug) {
 
-            const { fetchScheduledEvent } = this.props;
+            const { fetchScheduledEvent }: $TSFixMe = this.props;
 
             //fetch scheduledEvent with slug
             fetchScheduledEvent(
@@ -209,9 +209,9 @@ class ScheduledEventDetail extends Component<ComponentProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const eventName = scheduledEvent ? scheduledEvent.name : '';
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const eventName: $TSFixMe = scheduledEvent ? scheduledEvent.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -396,7 +396,7 @@ ScheduledEventDetail.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { scheduledEventSlug } = props.match.params;
+    const { scheduledEventSlug }: $TSFixMe = props.match.params;
     const monitorList: $TSFixMe = [];
     state.monitor.monitorsList.monitors.map((data: $TSFixMe) => {
         data.monitors.map((monitor: $TSFixMe) => {

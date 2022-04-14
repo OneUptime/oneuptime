@@ -36,17 +36,17 @@ function TeamMemberProfile({
     } else if (!projectId) {
         projectId = User.getCurrentProjectId();
     }
-    const memberId = match.params.memberId;
+    const memberId: $TSFixMe = match.params.memberId;
 
     useEffect(() => {
         getTeamMember(projectId, memberId);
     }, [projectId, memberId, getTeamMember]);
 
-    const profilePic =
+    const profilePic: $TSFixMe =
         teamMember && teamMember.profilePic && teamMember.profilePic !== 'null'
             ? teamMember.profilePic
             : null;
-    const fileData = profilePic ? `${API_URL}/file/${profilePic}` : null;
+    const fileData: $TSFixMe = profilePic ? `${API_URL}/file/${profilePic}` : null;
     let profileImage = <span />;
 
     if (fileData) {
@@ -59,7 +59,7 @@ function TeamMemberProfile({
             />
         );
     }
-    const projectName = currentProject ? currentProject.name : '';
+    const projectName: $TSFixMe = currentProject ? currentProject.name : '';
 
     return (
         <Fade>
@@ -304,7 +304,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const projectId =
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
     return {
         requesting: state.team.teamMember.requesting,

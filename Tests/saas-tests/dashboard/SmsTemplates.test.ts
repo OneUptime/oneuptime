@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -13,7 +13,7 @@ const user: $TSFixMe = {
 };
 
 describe('SMS Templates API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     let initialTemplate: $TSFixMe;
 
@@ -67,7 +67,7 @@ describe('SMS Templates API', () => {
                 '#templateField',
                 (elem: $TSFixMe) => elem.value
             );
-            const resetBtn = await init.pageWaitForSelector(
+            const resetBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#templateReset',
                 {
@@ -131,7 +131,7 @@ describe('SMS Templates API', () => {
 
             await init.pageWaitForSelector(page, '#frmSmsTemplate');
 
-            const smsTemplateBody = await init.page$Eval(
+            const smsTemplateBody: $TSFixMe = await init.page$Eval(
                 page,
                 'textarea[name=body]',
                 (el: $TSFixMe) => el.value
@@ -168,7 +168,7 @@ describe('SMS Templates API', () => {
                 'Subscriber Incident Created',
                 page
             );
-            const resetBtn = await init.pageWaitForSelector(
+            const resetBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#templateReset',
                 {
@@ -230,7 +230,7 @@ describe('SMS Templates API', () => {
             );
 
             await init.pageWaitForSelector(page, '#templateField');
-            const template = await init.page$Eval(
+            const template: $TSFixMe = await init.page$Eval(
                 page,
                 '#templateField',
                 (elem: $TSFixMe) => elem.value

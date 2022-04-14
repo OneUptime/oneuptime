@@ -172,7 +172,7 @@ class EditComponent extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
@@ -203,7 +203,7 @@ class EditComponent extends Component<ComponentProps> {
 
 EditComponent.displayName = EditComponent;
 
-const UpdateComponentForm = reduxForm({
+const UpdateComponentForm: $TSFixMe = reduxForm({
     form: 'EditComponent',
     validate,
 })(EditComponent);

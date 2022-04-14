@@ -17,7 +17,7 @@ const RenderIfOwnerOrAdmin: Function = ({
     currentProject,
     children,
 }: RenderIfOwnerOrAdminProps): void => {
-    const userId = User.getUserId();
+    const userId: $TSFixMe = User.getUserId();
 
     return isOwnerOrAdmin(userId, currentProject) ? children : null;
 };

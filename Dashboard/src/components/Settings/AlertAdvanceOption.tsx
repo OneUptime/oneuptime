@@ -60,7 +60,7 @@ export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps>{
             balance,
         } = this.props;
         value._id = projectId;
-        const userId = User.getUserId();
+        const userId: $TSFixMe = User.getUserId();
         if (isOwnerOrAdmin(userId, currentProject)) {
             if (balance < parseInt(formValues.minimumBalance)) {
                 openModal({
@@ -70,7 +70,7 @@ export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps>{
                     onConfirm: () => {
                         return alertOptionsUpdate(projectId, value).then(() => {
 
-                            const { paymentIntent } = this.props;
+                            const { paymentIntent }: $TSFixMe = this.props;
                             if (paymentIntent) {
                                 //init payment
                                 this.handlePaymentIntent(paymentIntent);
@@ -84,7 +84,7 @@ export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps>{
             } else {
                 alertOptionsUpdate(projectId, value).then(() => {
 
-                    const { paymentIntent } = this.props;
+                    const { paymentIntent }: $TSFixMe = this.props;
                     if (paymentIntent) {
                         //init payment
                         this.handlePaymentIntent(paymentIntent);
@@ -101,14 +101,14 @@ export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps>{
 
     handlePaymentIntent = (paymentIntentClientSecret: $TSFixMe) => {
 
-        const { stripe, openModal, balance } = this.props;
-        const { MessageBoxId } = this.state;
+        const { stripe, openModal, balance }: $TSFixMe = this.props;
+        const { MessageBoxId }: $TSFixMe = this.state;
         stripe.handleCardPayment(paymentIntentClientSecret).then((result: $TSFixMe) => {
             if (
                 result.paymentIntent &&
                 result.paymentIntent.status === 'succeeded'
             ) {
-                const creditedBalance = result.paymentIntent.amount / 100;
+                const creditedBalance: $TSFixMe = result.paymentIntent.amount / 100;
                 openModal({
                     id: MessageBoxId,
                     content: MessageBox,
@@ -131,9 +131,9 @@ export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps>{
 
     componentDidUpdate() {
 
-        const { formValues } = this.props;
-        const rechargeToBalance = Number(formValues.rechargeToBalance);
-        const minimumBalance = Number(formValues.minimumBalance);
+        const { formValues }: $TSFixMe = this.props;
+        const rechargeToBalance: $TSFixMe = Number(formValues.rechargeToBalance);
+        const minimumBalance: $TSFixMe = Number(formValues.minimumBalance);
 
         if (formValues.billingUS && minimumBalance < 20) {
 
@@ -163,7 +163,7 @@ export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps>{
 
     override render() {
 
-        const { alertEnable, formValues } = this.props;
+        const { alertEnable, formValues }: $TSFixMe = this.props;
 
         return (
             <div
@@ -973,7 +973,7 @@ AlertAdvanceOption.propTypes = {
 
 const  formName: string = 'AlertAdvanceOption';
 
-const AlertAdvanceOptionForm = new reduxForm({
+const AlertAdvanceOptionForm: $TSFixMe = new reduxForm({
     form: formName,
 })(AlertAdvanceOption);
 
@@ -1019,7 +1019,7 @@ const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject
 });
 
-const AlertAdvanceOptionFormStripe = injectStripe(
+const AlertAdvanceOptionFormStripe: $TSFixMe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm)
 );
 

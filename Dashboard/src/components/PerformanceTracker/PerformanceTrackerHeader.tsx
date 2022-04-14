@@ -81,7 +81,7 @@ class PerformanceTrackerHeader extends Component<ComponentProps> {
             handleSubmit,
         } = this.props;
 
-        const trackerName =
+        const trackerName: $TSFixMe =
             (updateTrackerObj.performanceTracker &&
                 updateTrackerObj.performanceTracker.name) ||
             (performanceTracker && performanceTracker.name);
@@ -363,7 +363,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, updatePerformanceTracker }, dispatch);
 
-const PerformanceTrackerHeaderForm = new reduxForm({
+const PerformanceTrackerHeaderForm: $TSFixMe = new reduxForm({
     form: 'PerformanceTrackerHeaderForm',
     destroyOnUnmount: true,
     enableReinitialize: true,

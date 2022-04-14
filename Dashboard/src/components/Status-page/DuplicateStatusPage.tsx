@@ -38,7 +38,7 @@ export class DuplicateStatusPageBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}

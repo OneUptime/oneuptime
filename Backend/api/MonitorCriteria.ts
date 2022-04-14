@@ -2,9 +2,9 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import MonitorCriteriaService from '../services/monitorCriteriaService';
 
@@ -16,7 +16,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 router.get('/', getUser, (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const criteria = MonitorCriteriaService.getCriteria();
+        const criteria: $TSFixMe = MonitorCriteriaService.getCriteria();
         return sendItemResponse(req, res, criteria);
     } catch (error) {
         return sendErrorResponse(req, res, error as Exception);

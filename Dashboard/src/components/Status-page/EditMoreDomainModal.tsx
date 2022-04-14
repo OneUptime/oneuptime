@@ -24,7 +24,7 @@ import { Validate } from '../../config';
 
 
 function validate(_values: $TSFixMe) {
-    const error = undefined;
+    const error: $TSFixMe = undefined;
     return error;
 }
 
@@ -151,10 +151,10 @@ class EditMoreDomainModal extends React.Component<EditMoreDomainModalProps> {
     changeCertFile = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const { projectId, uploadCertFile } = this.props;
+        const { projectId, uploadCertFile }: $TSFixMe = this.props;
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
             uploadCertFile(projectId, file);
@@ -169,10 +169,10 @@ class EditMoreDomainModal extends React.Component<EditMoreDomainModalProps> {
     changePrivateKey = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const { projectId, uploadPrivateKey } = this.props;
+        const { projectId, uploadPrivateKey }: $TSFixMe = this.props;
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
             uploadPrivateKey(projectId, file);
@@ -714,7 +714,7 @@ EditMoreDomainModal.propTypes = {
     uploadPrivateKeySuccess: PropTypes.func,
 };
 
-const EditMoreDomainForm = reduxForm({
+const EditMoreDomainForm: $TSFixMe = reduxForm({
     form: 'EditMoreDomainForm',
     enableReinitialize: false,
     destroyOnUnmount: true,
@@ -736,7 +736,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const domainObj = state.modal.modals[0].domain;
+    const domainObj: $TSFixMe = state.modal.modals[0].domain;
     const initialValues: $TSFixMe = {
         domain: domainObj.domain,
         autoProvisioning: domainObj.autoProvisioning,

@@ -5,19 +5,19 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
 };
 
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
-const callScheduleName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const callScheduleName: $TSFixMe = utils.generateRandomString();
 
 describe('Schedule', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -27,9 +27,9 @@ describe('Schedule', () => {
         await page.setUserAgent(utils.agent);
 
         await init.registerEnterpriseUser(user, page);
-        const enableSms = true;
-        const enableCalls = true;
-        const { accountSid, authToken, phoneNumber } = utils.twilioCredentials;
+        const enableSms: $TSFixMe = true;
+        const enableCalls: $TSFixMe = true;
+        const { accountSid, authToken, phoneNumber }: $TSFixMe = utils.twilioCredentials;
         const alertLimit: string = '100';
         await init.addGlobalTwilioSettings(
             enableSms,
@@ -112,7 +112,7 @@ describe('Schedule', () => {
 
             await init.pageWaitForSelector(page, '#TeamAlertLogBox');
 
-            const firstOncallAlertStatusSelector =
+            const firstOncallAlertStatusSelector: $TSFixMe =
                 '#TeamAlertLogBox tbody tr:nth-last-of-type(1) td:last-of-type';
 
             await init.pageWaitForSelector(
@@ -120,7 +120,7 @@ describe('Schedule', () => {
                 firstOncallAlertStatusSelector
             );
 
-            const firstOncallAlertStatus = await init.page$Eval(
+            const firstOncallAlertStatus: $TSFixMe = await init.page$Eval(
                 page,
                 firstOncallAlertStatusSelector,
                 (element: $TSFixMe) => element.textContent
@@ -129,19 +129,19 @@ describe('Schedule', () => {
             expect(firstOncallAlertStatus).toEqual('Success');
 
             await init.pageWaitForSelector(page, '#subscriberAlertTable');
-            const subscriberAlertStatusSelector =
+            const subscriberAlertStatusSelector: $TSFixMe =
                 '#subscriberAlertTable tbody tr:first-of-type td:nth-last-of-type(1)';
-            const subscriberAlertTypeSelector =
+            const subscriberAlertTypeSelector: $TSFixMe =
                 '#subscriberAlertTable tbody tr:first-of-type td:nth-last-of-type(2)';
 
-            const subscriberAlertStatus = await init.page$Eval(
+            const subscriberAlertStatus: $TSFixMe = await init.page$Eval(
                 page,
                 subscriberAlertStatusSelector,
                 (element: $TSFixMe) => element.textContent
             );
             expect(subscriberAlertStatus).toEqual('Sent');
 
-            const subscriberAlertType = await init.page$Eval(
+            const subscriberAlertType: $TSFixMe = await init.page$Eval(
                 page,
                 subscriberAlertTypeSelector,
                 (element: $TSFixMe) => element.textContent

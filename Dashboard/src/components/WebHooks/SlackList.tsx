@@ -28,9 +28,9 @@ interface SlackListProps {
 class SlackList extends React.Component<SlackListProps> {
     ready() {
 
-        const { getSlackMonitor, monitorId, getSlack } = this.props;
+        const { getSlackMonitor, monitorId, getSlack }: $TSFixMe = this.props;
 
-        const { projectId } = this.props;
+        const { projectId }: $TSFixMe = this.props;
         if (monitorId) {
             getSlackMonitor(projectId, monitorId);
         } else {
@@ -120,8 +120,8 @@ class SlackList extends React.Component<SlackListProps> {
 
     override render() {
 
-        const { slacks, isRequesting, monitorId } = this.props;
-        const { count, skip, limit } = slacks;
+        const { slacks, isRequesting, monitorId }: $TSFixMe = this.props;
+        const { count, skip, limit }: $TSFixMe = slacks;
         let { slacks: webHooks } = slacks;
         let canPaginateForward =
             slacks && count && count > skip + limit ? true : false;
@@ -130,13 +130,13 @@ class SlackList extends React.Component<SlackListProps> {
             webHooks = webHooks.filter((hook: $TSFixMe) => hook.monitors.some((mon: $TSFixMe) => mon.monitorId._id === monitorId)
             );
         }
-        const numberOfWebHooks = webHooks ? webHooks.length : 0;
+        const numberOfWebHooks: $TSFixMe = webHooks ? webHooks.length : 0;
 
         if (slacks && (slacks.requesting || !slacks.slacks)) {
             canPaginateForward = false;
             canPaginateBackward = false;
         }
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
 
         return (
             <React.Fragment>

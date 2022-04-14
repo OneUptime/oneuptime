@@ -29,7 +29,7 @@ class RoleDeleteModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { confirmThisDialog, closeThisDialog } = this.props;
+        const { confirmThisDialog, closeThisDialog }: $TSFixMe = this.props;
 
         return (
             <div

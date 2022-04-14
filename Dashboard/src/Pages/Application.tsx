@@ -224,11 +224,11 @@ class Application extends Component<ComponentProps> {
             error,
         } = this.props;
 
-        const page = this.state.page;
-        const canNext =
+        const page: $TSFixMe = this.state.page;
+        const canNext: $TSFixMe =
             appSecurities && count && count > skip + limit ? true : false;
-        const canPrev = appSecurities && skip <= 0 ? false : true;
-        const numberOfPages = numberOfPage
+        const canPrev: $TSFixMe = appSecurities && skip <= 0 ? false : true;
+        const numberOfPages: $TSFixMe = numberOfPage
             ? numberOfPage
             : Math.ceil(parseInt(count) / limit);
 
@@ -240,7 +240,7 @@ class Application extends Component<ComponentProps> {
                 `/dashboard/project/${this.props.slug}/component/${componentSlug}/security/application/${data.slug}`
             );
         });
-        const applicationSecurities = appSecurities
+        const applicationSecurities: $TSFixMe = appSecurities
             ? sortByName(appSecurities)
             : [];
 
@@ -258,10 +258,10 @@ class Application extends Component<ComponentProps> {
         //         });
         //     });
 
-        const componentName = component ? component.name : '';
-        const projectName = currentProject ? currentProject.name : '';
+        const componentName: $TSFixMe = component ? component.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
 
-        const isEmpty = applicationSecurities.length === 0;
+        const isEmpty = applicationSecurities.length: $TSFixMe === 0;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -557,7 +557,7 @@ Application.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { componentSlug } = props.match.params;
+    const { componentSlug }: $TSFixMe = props.match.params;
     return {
         componentId:
             state.component.currentComponent.component &&

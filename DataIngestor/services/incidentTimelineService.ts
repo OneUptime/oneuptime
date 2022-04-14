@@ -1,6 +1,6 @@
 import IncidentService from './incidentService';
 
-const incidentTimelineCollection = global.db.collection('incidenttimelines');
+const incidentTimelineCollection: $TSFixMe = global.db.collection('incidenttimelines');
 import { ObjectId } from 'mongodb';
 
 import { post } from '../Utils/api';
@@ -34,11 +34,11 @@ export default {
 
         incidentTimeline.deleted = false;
 
-        const result = await incidentTimelineCollection.insertOne(
+        const result: $TSFixMe = await incidentTimelineCollection.insertOne(
             incidentTimeline
         );
 
-        const [timeline, incident] = await Promise.all([
+        const [timeline, incident]: $TSFixMe = await Promise.all([
             this.findOneBy({
                 _id: ObjectId(result.insertedId),
             }),
@@ -49,7 +49,7 @@ export default {
         incidentTimeline = timeline;
 
         if (incident) {
-            const _incidentTimeline = Object.assign(
+            const _incidentTimeline: $TSFixMe = Object.assign(
                 {},
 
                 incidentTimeline._doc || incidentTimeline,
@@ -58,7 +58,7 @@ export default {
                 }
             );
 
-            const project = ProjectService.findOneBy({
+            const project: $TSFixMe = ProjectService.findOneBy({
                 query: {
                     _id: ObjectId(
                         _incidentTimeline.projectId._id ||
@@ -66,7 +66,7 @@ export default {
                     ),
                 },
             });
-            const projectId = project
+            const projectId: $TSFixMe = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
@@ -95,7 +95,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const incidentTimeline = await incidentTimelineCollection.findOne(
+        const incidentTimeline: $TSFixMe = await incidentTimelineCollection.findOne(
             query
         );
 

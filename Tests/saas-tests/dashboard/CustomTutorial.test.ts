@@ -10,7 +10,7 @@ const user: $TSFixMe = {
 };
 
 describe('Custom Tutorial With SubProjects', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -38,7 +38,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await init.pageWaitForSelector(
+            const componentBoxElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#info-${customTutorialType}`
             );
@@ -52,7 +52,7 @@ describe('Custom Tutorial With SubProjects', () => {
 
             // find that same tutorial box on component page
 
-            const newComponentBoxElement = await init.pageWaitForSelector(
+            const newComponentBoxElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#info-${customTutorialType}`
             );
@@ -72,7 +72,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await init.pageWaitForSelector(
+            const componentBoxElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#info-${customTutorialType}`
             );
@@ -86,7 +86,7 @@ describe('Custom Tutorial With SubProjects', () => {
 
             // find that same tutorial box on component page
 
-            const newComponentBoxElement = await init.pageWaitForSelector(
+            const newComponentBoxElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#info-${customTutorialType}`
             );
@@ -101,7 +101,7 @@ describe('Custom Tutorial With SubProjects', () => {
             await init.pageClick(page, `#close-${customTutorialType}`);
             // find component quick tip and confirm it shows
 
-            const componentQuickTip = await init.pageWaitForSelector(
+            const componentQuickTip: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#quick-tip-${customTutorialType}`
             );
@@ -120,7 +120,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await init.pageWaitForSelector(
+            const componentBoxElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#info-${customTutorialType}`
             );
@@ -149,7 +149,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement = await init.pageWaitForSelector(
+            const componentBoxElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#info-${customTutorialType}`
             );

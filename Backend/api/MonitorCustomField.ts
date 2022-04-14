@@ -15,7 +15,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import MonitorCustomFieldService from '../services/monitorCustomField';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.post(
     '/:projectId',
@@ -23,8 +23,8 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { fieldName, fieldType, uniqueField } = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const { fieldName, fieldType, uniqueField }: $TSFixMe = req.body;
 
             if (!fieldName || !fieldName.trim()) {
                 throw new BadDataException('Field name is required');
@@ -33,10 +33,10 @@ router.post(
             if (!fieldType || !fieldType.trim()) {
                 throw new BadDataException('Field type is required');
             }
-            const selectMonCustomField =
+            const selectMonCustomField: $TSFixMe =
                 'fieldName fieldType projectId uniqueField deleted';
 
-            const populateMonCustomField = [
+            const populateMonCustomField: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
             ];
 
@@ -46,7 +46,7 @@ router.post(
                 populate: populateMonCustomField,
             });
             if (customField) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Custom field with this name already exist'
                 );
 
@@ -73,15 +73,15 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { limit, skip } = req.query;
-            const selectMonCustomField =
+            const { projectId }: $TSFixMe = req.params;
+            const { limit, skip }: $TSFixMe = req.query;
+            const selectMonCustomField: $TSFixMe =
                 'fieldName fieldType projectId uniqueField deleted';
 
-            const populateMonCustomField = [
+            const populateMonCustomField: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
             ];
-            const [customFields, count] = await Promise.all([
+            const [customFields, count]: $TSFixMe = await Promise.all([
                 MonitorCustomFieldService.findBy({
                     query: {
                         projectId,
@@ -109,8 +109,8 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId, customFieldId } = req.params;
-            const { fieldName, fieldType, uniqueField } = req.body;
+            const { projectId, customFieldId }: $TSFixMe = req.params;
+            const { fieldName, fieldType, uniqueField }: $TSFixMe = req.body;
 
             if (!fieldName || !fieldName.trim()) {
                 throw new BadDataException('Field name is required');
@@ -128,7 +128,7 @@ router.put(
                 customField &&
                 String(customField._id) !== String(customFieldId)
             ) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Custom field with this name already exist'
                 );
 
@@ -157,9 +157,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, customFieldId } = req.params;
+            const { projectId, customFieldId }: $TSFixMe = req.params;
 
-            const deletedCustomField = await MonitorCustomFieldService.deleteBy(
+            const deletedCustomField: $TSFixMe = await MonitorCustomFieldService.deleteBy(
                 {
                     _id: customFieldId,
                     projectId,

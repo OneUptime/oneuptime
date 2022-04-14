@@ -5,7 +5,7 @@ import { DateTimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
 import DateFnsUtils from '@date-io/date-fns';
 import { withStyles } from '@material-ui/core/styles';
 
-const theme = createTheme({
+const theme: $TSFixMe = createTheme({
     palette: {
         primary: {
             main: '#000000',
@@ -67,7 +67,7 @@ const DateTimeSelector: Function = ({
     if (!input.value) {
         input.value = null;
     }
-    const [value, setValue] = useState(input.value);
+    const [value, setValue]: $TSFixMe = useState(input.value);
     const handleChange: Function = (option: $TSFixMe) => {
         setValue(option);
         if (input.onChange) {

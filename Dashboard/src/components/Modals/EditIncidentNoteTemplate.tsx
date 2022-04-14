@@ -72,7 +72,7 @@ class EditIncidentNoteTemplate extends React.Component<EditIncidentNoteTemplateP
             data,
         } = this.props;
 
-        const projectId = currentProject._id;
+        const projectId: $TSFixMe = currentProject._id;
         const {
             name,
             incidentState,
@@ -110,7 +110,7 @@ class EditIncidentNoteTemplate extends React.Component<EditIncidentNoteTemplateP
 
     closeAndClearError = () => {
 
-        const { updateIncidentNoteTemplateFailure, closeModal } = this.props;
+        const { updateIncidentNoteTemplateFailure, closeModal }: $TSFixMe = this.props;
 
         updateIncidentNoteTemplateFailure(null);
         closeModal();
@@ -132,7 +132,7 @@ class EditIncidentNoteTemplate extends React.Component<EditIncidentNoteTemplateP
 
             formValues,
         } = this.props;
-        const { showVariables } = this.state;
+        const { showVariables }: $TSFixMe = this.state;
 
         return (
             <div
@@ -496,14 +496,14 @@ EditIncidentNoteTemplate.propTypes = {
     change: PropTypes.func,
 };
 
-const EditIncidentNoteTemplateForm = reduxForm({
+const EditIncidentNoteTemplateForm: $TSFixMe = reduxForm({
     form: 'EditIncidentNoteTemplateForm', // a unique identifier for this form
     enableReinitialize: true,
 })(EditIncidentNoteTemplate);
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { data } = ownProps;
-    const { template } = data;
+    const { data }: $TSFixMe = ownProps;
+    const { template }: $TSFixMe = data;
     const initialValues: $TSFixMe = {
         ...template,
     };

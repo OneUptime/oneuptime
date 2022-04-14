@@ -2,9 +2,9 @@ import BackendAPI from '../Utils/api';
 import Query from 'CommonServer/types/db/Query';
 import { scriptBaseUrl } from '../Config';
 
-const scriptLogCollection = global.db.collection('automationsriptlogs');
+const scriptLogCollection: $TSFixMe = global.db.collection('automationsriptlogs');
 
-const scriptCollection = global.db.collection('automationsripts');
+const scriptCollection: $TSFixMe = global.db.collection('automationsripts');
 import { ObjectId } from 'mongodb';
 import moment from 'moment';
 
@@ -38,8 +38,8 @@ export default {
 
         scriptLog.deleted = false;
 
-        const result = await scriptLogCollection.insertOne(scriptLog);
-        const newScriptLog = await this.findOneBy({
+        const result: $TSFixMe = await scriptLogCollection.insertOne(scriptLog);
+        const newScriptLog: $TSFixMe = await this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
 
@@ -55,7 +55,7 @@ export default {
         }
 
         await scriptCollection.updateOne(query, { $set: data });
-        const response = await scriptCollection.findOne(query);
+        const response: $TSFixMe = await scriptCollection.findOne(query);
         return response;
     },
 
@@ -68,7 +68,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const response = await scriptCollection.findOne(query);
+        const response: $TSFixMe = await scriptCollection.findOne(query);
         return response;
     },
 
@@ -79,7 +79,7 @@ export default {
         stackSize = 0,
     }: $TSFixMe): void {
         if (stackSize === 3) {
-            const resource = resources[0];
+            const resource: $TSFixMe = resources[0];
             if (resource) {
                 let type;
                 if (resource.automatedScript) {
@@ -110,14 +110,14 @@ export default {
             return;
         }
         const events = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
-        const eventPromises = events.map(event => {
+        const eventPromises = events.map(event: $TSFixMe => {
             let resourceType;
             if (event.automatedScript) {
                 resourceType = 'automatedScript';
             } else if (event.callSchedule) {
                 resourceType = 'callSchedule';
             }
-            const automatedScriptId = event.automatedScript;
+            const automatedScriptId: $TSFixMe = event.automatedScript;
             switch (resourceType) {
                 case 'automatedScript':
                     return this.runAutomatedScript({
@@ -140,13 +140,13 @@ export default {
         triggeredBy = 'script',
         stackSize,
     }: $TSFixMe): void {
-        const { script, scriptType, successEvent, failureEvent } =
+        const { script, scriptType, successEvent, failureEvent }: $TSFixMe =
             await this.findOneBy({
                 _id: ObjectId(automatedScriptId),
             });
         let data = null;
         if (scriptType === 'JavaScript') {
-            const result = await BackendAPI.post(
+            const result: $TSFixMe = await BackendAPI.post(
                 `${scriptBaseUrl}/script/js`,
                 {
                     script,
@@ -164,7 +164,7 @@ export default {
                 consoleLogs: result.consoleLogs,
             };
         } else if (scriptType === 'Bash') {
-            const result = await BackendAPI.post(
+            const result: $TSFixMe = await BackendAPI.post(
                 `${scriptBaseUrl}/script/bash`,
                 {
                     script,
@@ -202,7 +202,7 @@ export default {
                 stackSize,
             });
         }
-        const automatedScriptLog = await this.createLog(
+        const automatedScriptLog: $TSFixMe = await this.createLog(
             automatedScriptId,
             data
         );

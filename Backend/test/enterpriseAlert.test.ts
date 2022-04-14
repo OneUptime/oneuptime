@@ -9,7 +9,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createEnterpriseUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -35,7 +35,7 @@ describe('Enterprise Alert API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
 
                     ComponentModel.create({ name: 'New Component' }).then(

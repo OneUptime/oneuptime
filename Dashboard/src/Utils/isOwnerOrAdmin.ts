@@ -10,7 +10,7 @@ const isOwnerOrAdmin: Function = (
     userId: ObjectID,
     project: $TSFixMe
 ): void => {
-    const currentUser =
+    const currentUser: $TSFixMe =
         project &&
         project.users.filter(
             (user: $TSFixMe) => String(user.userId) === String(userId)

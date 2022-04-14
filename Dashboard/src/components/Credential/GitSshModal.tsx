@@ -54,7 +54,7 @@ class GitSshModal extends Component<ComponentProps> {
 
             updatingCredential,
         } = this.props;
-        const { projectId } = propArr[0];
+        const { projectId }: $TSFixMe = propArr[0];
 
         if (prevProps.isRequesting !== isRequesting) {
             if (!isRequesting && !addCredentialError) {
@@ -71,8 +71,8 @@ class GitSshModal extends Component<ComponentProps> {
 
     handleKeyBoard = (e: $TSFixMe) => {
 
-        const { propArr } = this.props;
-        const { credentialId } = propArr[0];
+        const { propArr }: $TSFixMe = this.props;
+        const { credentialId }: $TSFixMe = propArr[0];
 
         switch (e.key) {
             case 'Escape':
@@ -90,8 +90,8 @@ class GitSshModal extends Component<ComponentProps> {
 
     handleCloseModal = () => {
 
-        const { closeModal, propArr } = this.props;
-        const { projectId } = propArr[0];
+        const { closeModal, propArr }: $TSFixMe = this.props;
+        const { projectId }: $TSFixMe = propArr[0];
 
         this.props.closeModal({
             id: closeModal({ id: projectId }),
@@ -99,8 +99,8 @@ class GitSshModal extends Component<ComponentProps> {
     };
     submitForm = (values: $TSFixMe) => {
 
-        const { addGitCredential, propArr, updateGitCredential } = this.props;
-        const { projectId, credentialId } = propArr[0];
+        const { addGitCredential, propArr, updateGitCredential }: $TSFixMe = this.props;
+        const { projectId, credentialId }: $TSFixMe = propArr[0];
 
         if (!values) return;
         credentialId
@@ -125,7 +125,7 @@ class GitSshModal extends Component<ComponentProps> {
 
             updateCredentialError,
         } = this.props;
-        const { projectId, credentialId } = propArr[0];
+        const { projectId, credentialId }: $TSFixMe = propArr[0];
 
         return (
             <div
@@ -422,9 +422,9 @@ GitSshModal.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { propArr } = ownProps;
-    const { credentialId } = propArr[0];
-    const gitSsh = credentialId
+    const { propArr }: $TSFixMe = ownProps;
+    const { credentialId }: $TSFixMe = propArr[0];
+    const gitSsh: $TSFixMe = credentialId
         ? state.credential.gitCredentials.filter(
             (gitCredential: $TSFixMe) => String(gitCredential._id) === String(credentialId)
         )[0]
@@ -445,7 +445,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const GitSshForm = reduxForm({
+const GitSshForm: $TSFixMe = reduxForm({
     form: 'GitSshForm',
     enableReinitialize: true,
     destroyOnUnmount: true,

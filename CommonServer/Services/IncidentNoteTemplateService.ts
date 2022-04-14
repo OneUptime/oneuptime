@@ -43,20 +43,20 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const incidentNoteTemplate = await IncidentNoteTemplateModel.findOne(
+        const incidentNoteTemplate: $TSFixMe = await IncidentNoteTemplateModel.findOne(
             query
         ).lean();
         return incidentNoteTemplate;
     }
 
     async create(data: $TSFixMe): void {
-        const { projectId, name } = data;
+        const { projectId, name }: $TSFixMe = data;
         let incidentNoteTemplate = await this.findOneBy({
             projectId,
             name,
         });
         if (incidentNoteTemplate) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Incident note template with this name already exist in this project'
             );
 
@@ -73,7 +73,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const { projectId, _id } = query;
+        const { projectId, _id }: $TSFixMe = query;
         let incidentNoteTemplate = null;
         if (data.name) {
             incidentNoteTemplate = await this.findOneBy({
@@ -83,7 +83,7 @@ export default class Service {
             });
         }
         if (incidentNoteTemplate) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Incident note template with this name already exist in this project'
             );
 

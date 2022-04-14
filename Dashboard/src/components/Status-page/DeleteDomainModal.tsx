@@ -35,7 +35,7 @@ class DeleteDomainModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { confirmThisDialog, closeThisDialog, deleteDomain } = this.props;
+        const { confirmThisDialog, closeThisDialog, deleteDomain }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

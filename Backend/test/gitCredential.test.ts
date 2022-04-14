@@ -3,13 +3,13 @@ process.env['PORT'] = 3020;
 process.env['IS_SAAS_SERVICE'] = true;
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
-const expect = chai.expect;
+const expect: $TSFixMe = chai.expect;
 import userData from './data/user';
 import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 
 import { createUser } from './utils/userSignUp';
@@ -20,7 +20,7 @@ import GitCredentialService from '../backend/services/gitCredentialService';
 import AirtableService from '../backend/services/airtableService';
 
 describe('Git Credential API', function (): void {
-    const timeout = 30000;
+    const timeout: $TSFixMe = 30000;
     let projectId: ObjectID, userId, token: $TSFixMe, credentialId: $TSFixMe;
 
     this.timeout(timeout);
@@ -31,7 +31,7 @@ describe('Git Credential API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 

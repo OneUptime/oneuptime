@@ -50,7 +50,7 @@ class ScheduledEvent extends Component<ComponentProps> {
 
             fetchEvent,
         } = this.props;
-        const { eventId } = params;
+        const { eventId }: $TSFixMe = params;
 
         if (
             window.location.search.substring(1) &&
@@ -83,7 +83,7 @@ class ScheduledEvent extends Component<ComponentProps> {
         this.props.getStatusPage(statusPageSlug, url).catch((err: $TSFixMe) => {
             if (err.message === 'Request failed with status code 401') {
 
-                const { loginRequired } = this.props.login;
+                const { loginRequired }: $TSFixMe = this.props.login;
                 if (loginRequired) {
 
                     window.location.href = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
@@ -110,7 +110,7 @@ class ScheduledEvent extends Component<ComponentProps> {
 
             fetchEvent,
         } = this.props;
-        const { eventId } = params;
+        const { eventId }: $TSFixMe = params;
 
         if (prevProps.statusData._id !== statusData._id) {
             // fetch a particular scheduled event
@@ -131,7 +131,7 @@ class ScheduledEvent extends Component<ComponentProps> {
 
             skip,
         } = this.props;
-        const { eventId } = params;
+        const { eventId }: $TSFixMe = params;
 
         moreEventNote(
             statusData.projectId._id,
@@ -143,7 +143,7 @@ class ScheduledEvent extends Component<ComponentProps> {
 
     renderError = () => {
 
-        const { error } = this.props.status;
+        const { error }: $TSFixMe = this.props.status;
         if (error === 'Input data schema mismatch.') {
             return 'Page Not Found';
         } else if (error === 'Project Not present') {
@@ -232,12 +232,12 @@ class ScheduledEvent extends Component<ComponentProps> {
 
             statusData,
         } = this.props;
-        const error = this.renderError();
+        const error: $TSFixMe = this.renderError();
 
-        const { params } = match;
-        const statusPageUrl:string = `/StatusPage/${params.statusPageSlug}`;
+        const { params }: $TSFixMe = match;
+        const statusPageUrl:string: $TSFixMe = `/StatusPage/${params.statusPageSlug}`;
 
-        const currentTime = moment();
+        const currentTime: $TSFixMe = moment();
 
         return (
             <div

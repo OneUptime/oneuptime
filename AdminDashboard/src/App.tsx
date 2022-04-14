@@ -11,8 +11,8 @@ import 'font-awesome/css/font-awesome.min.css';
 import Dashboard from './components/Dashboard';
 import { LoadingState } from './components/basic/Loader';
 
-const cookies = new Cookies();
-const userData = cookies.get('admin-data');
+const cookies: $TSFixMe = new Cookies();
+const userData: $TSFixMe = cookies.get('admin-data');
 
 if (userData !== undefined) {
     User.setUserId(userData.id);

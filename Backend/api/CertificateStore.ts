@@ -12,14 +12,14 @@ import CertificateStoreService from '../services/certificateStoreService';
 import StatusPageService from '../services/statusPageService';
 import SiteManagerService from '../services/siteManagerService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 // store certificate details to the db
 router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const data = req.body;
+        const data: $TSFixMe = req.body;
 
-        const certificate = await CertificateStoreService.create(data);
+        const certificate: $TSFixMe = await CertificateStoreService.create(data);
         return sendItemResponse(req, res, certificate);
     } catch (error) {
         return sendErrorResponse(req, res, error as Exception);
@@ -29,8 +29,8 @@ router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
 // update certificate details in the db
 router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const { id } = req.params;
-        const certificate = await CertificateStoreService.updateOneBy(
+        const { id }: $TSFixMe = req.params;
+        const certificate: $TSFixMe = await CertificateStoreService.updateOneBy(
             { id },
             req.body
         );
@@ -44,8 +44,8 @@ router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
 // fetch a certificate detail
 router.get('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const { id } = req.params;
-        const certificate = await CertificateStoreService.findOneBy({
+        const { id }: $TSFixMe = req.params;
+        const certificate: $TSFixMe = await CertificateStoreService.findOneBy({
             query: { id },
             select: 'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
         });
@@ -62,8 +62,8 @@ router.get(
     '/store/cert/:subject',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { subject } = req.params;
-            const certificate = await CertificateStoreService.findOneBy({
+            const { subject }: $TSFixMe = req.params;
+            const certificate: $TSFixMe = await CertificateStoreService.findOneBy({
                 query: { subject },
                 select: 'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
             });
@@ -80,9 +80,9 @@ router.delete(
     '/store/:id',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { id } = req.params;
+            const { id }: $TSFixMe = req.params;
 
-            const certificate = await CertificateStoreService.deleteBy({ id });
+            const certificate: $TSFixMe = await CertificateStoreService.deleteBy({ id });
             return sendItemResponse(req, res, certificate);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -92,11 +92,11 @@ router.delete(
 
 router.post('/certOrder', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const domains = [];
+        const domains: $TSFixMe = [];
 
-        const greenlock = global.greenlock;
+        const greenlock: $TSFixMe = global.greenlock;
         // to refresh the managers set clearManager to true
-        const { domain, clearManagers } = req.body;
+        const { domain, clearManagers }: $TSFixMe = req.body;
 
         if (greenlock) {
             if (clearManagers) {
@@ -123,7 +123,7 @@ router.post('/certOrder', async (req: ExpressRequest, res: ExpressResponse) => {
                 );
             }
 
-            const statusPages = await StatusPageService.findBy({
+            const statusPages: $TSFixMe = await StatusPageService.findBy({
                 query: {
                     'domains.enableHttps': { $eq: true },
                     'domains.autoProvisioning': { $eq: true },
@@ -180,8 +180,8 @@ router.delete(
     '/certDelete/:id',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const greenlock = global.greenlock;
-            const { id } = req.body;
+            const greenlock: $TSFixMe = global.greenlock;
+            const { id }: $TSFixMe = req.body;
 
             if (greenlock) {
                 await greenlock.remove({ subject: id });

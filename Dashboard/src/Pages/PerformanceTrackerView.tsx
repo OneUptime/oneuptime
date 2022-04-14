@@ -154,7 +154,7 @@ class PerformanceTrackerView extends Component<ComponentProps> {
     }
 
     tabSelected = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
@@ -164,7 +164,7 @@ class PerformanceTrackerView extends Component<ComponentProps> {
 
     removeListeners = () => {
 
-        const { performanceTracker } = this.props;
+        const { performanceTracker }: $TSFixMe = this.props;
         if (performanceTracker) {
             socket.removeListener(`timeMetrics-${performanceTracker._id}`);
             socket.removeListener(
@@ -199,9 +199,9 @@ class PerformanceTrackerView extends Component<ComponentProps> {
             socket.emit('app_id_switch', performanceTracker._id);
         }
 
-        const componentName = component ? component.name : '';
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const componentName: $TSFixMe = component ? component.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <>
@@ -400,8 +400,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { componentSlug, performanceTrackerSlug } = ownProps.match.params;
-    const currentProject = state.project.currentProject;
+    const { componentSlug, performanceTrackerSlug }: $TSFixMe = ownProps.match.params;
+    const currentProject: $TSFixMe = state.project.currentProject;
     return {
         currentProject,
         component:

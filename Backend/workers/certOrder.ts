@@ -2,9 +2,9 @@ import StatusPageService from '../Services/statusPageService';
 import CertificateStoreService from '../Services/certificateStoreService';
 
 async function handleFetchingDomains(): void {
-    const domainsWithoutCert = [];
+    const domainsWithoutCert: $TSFixMe = [];
 
-    const statusPages = await StatusPageService.findBy({
+    const statusPages: $TSFixMe = await StatusPageService.findBy({
         query: {
             'domains.enableHttps': { $eq: true },
             'domains.autoProvisioning': { $eq: true },
@@ -23,7 +23,7 @@ async function handleFetchingDomains(): void {
                 domain.enableHttps &&
                 domain.autoProvisioning
             ) {
-                const cert = await CertificateStoreService.findOneBy({
+                const cert: $TSFixMe = await CertificateStoreService.findOneBy({
                     query: { subject: domain.domain },
                     select: 'id',
                 });
@@ -38,9 +38,9 @@ async function handleFetchingDomains(): void {
 }
 
 export default async function (): void {
-    const domains = await handleFetchingDomains();
+    const domains: $TSFixMe = await handleFetchingDomains();
 
-    const greenlock = global.greenlock;
+    const greenlock: $TSFixMe = global.greenlock;
     if (greenlock) {
         for (const domain of domains) {
             await greenlock.add({

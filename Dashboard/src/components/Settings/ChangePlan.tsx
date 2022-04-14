@@ -54,7 +54,7 @@ export class Plans extends Component<ComponentProps>{
 
     override componentDidMount() {
 
-        const { fetchTrial, currentProject } = this.props;
+        const { fetchTrial, currentProject }: $TSFixMe = this.props;
         fetchTrial(currentProject._id);
     }
 
@@ -85,8 +85,8 @@ export class Plans extends Component<ComponentProps>{
 
     submit = (values: $TSFixMe) => {
 
-        const { currentProject, openModal } = this.props;
-        const userId = User.getUserId();
+        const { currentProject, openModal }: $TSFixMe = this.props;
+        const userId: $TSFixMe = User.getUserId();
 
         const { _id: id, name } = this.props.currentProject;
         if (isOwnerOrAdmin(userId, currentProject)) {
@@ -99,7 +99,7 @@ export class Plans extends Component<ComponentProps>{
                 details: oldDetails,
 
             } = PricingPlan.getPlanById(this.props.initialValues.planId);
-            const oldPlan:string = `${oldCategory} ${oldType}ly (${oldDetails})`;
+            const oldPlan:string: $TSFixMe = `${oldCategory} ${oldType}ly (${oldDetails})`;
             const {
 
                 category: newCategory,
@@ -108,7 +108,7 @@ export class Plans extends Component<ComponentProps>{
 
                 details: newDetails,
             } = PricingPlan.getPlanById(values.planId);
-            const newPlan:string = `${newCategory} ${newType}ly (${newDetails})`;
+            const newPlan:string: $TSFixMe = `${newCategory} ${newType}ly (${newDetails})`;
 
             this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
         } else {
@@ -134,7 +134,7 @@ export class Plans extends Component<ComponentProps>{
             trialLeft,
         } = this.props;
 
-        const { isAnnual, plans } = this.state;
+        const { isAnnual, plans }: $TSFixMe = this.state;
 
         return (
             <form onSubmit={handleSubmit(this.submit)}>
@@ -296,13 +296,13 @@ Plans.propTypes = {
     openModal: PropTypes.func,
 };
 
-const ChangePlan = new reduxForm({
+const ChangePlan: $TSFixMe = new reduxForm({
     form: 'ChangePlan',
     Validate,
 })(Plans);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const planId = state.project.currentProject
+    const planId: $TSFixMe = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';
 

@@ -35,7 +35,7 @@ class StatusPages extends Component<ComponentProps> {
 
             activeProjectId,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -66,10 +66,10 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const projectId =
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
     // try to get custom project tutorial by project ID
-    const projectCustomTutorial = state.tutorial[projectId];
+    const projectCustomTutorial: $TSFixMe = state.tutorial[projectId];
 
     // set a default show to true for the tutorials to display
     const tutorialStat: $TSFixMe = {

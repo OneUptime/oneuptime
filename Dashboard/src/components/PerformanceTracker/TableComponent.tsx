@@ -83,7 +83,7 @@ class TableComponent extends Component<ComponentProps> {
         resetOutgoingDate(this.startDate, this.currentDate);
 
         if (performanceTracker && type === 'incoming') {
-            const { _id, key } = performanceTracker;
+            const { _id, key }: $TSFixMe = performanceTracker;
             fetchIncomingMetrics({
                 appId: _id,
                 key,
@@ -93,7 +93,7 @@ class TableComponent extends Component<ComponentProps> {
                 limit: 10,
             });
         } else if (performanceTracker && type === 'outgoing') {
-            const { _id, key } = performanceTracker;
+            const { _id, key }: $TSFixMe = performanceTracker;
             fetchOutgoingMetrics({
                 appId: _id,
                 key,
@@ -123,7 +123,7 @@ class TableComponent extends Component<ComponentProps> {
             } = this.props;
 
             if (performanceTracker && type === 'incoming') {
-                const { _id, key } = performanceTracker;
+                const { _id, key }: $TSFixMe = performanceTracker;
                 fetchIncomingMetrics({
                     appId: _id,
                     key,
@@ -133,7 +133,7 @@ class TableComponent extends Component<ComponentProps> {
                     limit: 10,
                 });
             } else if (performanceTracker && type === 'outgoing') {
-                const { _id, key } = performanceTracker;
+                const { _id, key }: $TSFixMe = performanceTracker;
                 fetchOutgoingMetrics({
                     appId: _id,
                     key,
@@ -353,24 +353,24 @@ class TableComponent extends Component<ComponentProps> {
 
             openModal,
         } = this.props;
-        const { page } = this.state;
-        const incomingMetricsData = paginate(incomingMetrics.metrics, page);
-        const outgoingMetricsData = paginate(outgoingMetrics.metrics, page);
+        const { page }: $TSFixMe = this.state;
+        const incomingMetricsData: $TSFixMe = paginate(incomingMetrics.metrics, page);
+        const outgoingMetricsData: $TSFixMe = paginate(outgoingMetrics.metrics, page);
 
-        // const canNextIncoming =
+        // const canNextIncoming: $TSFixMe =
         //     incomingMetrics.count >
         //     Number(incomingMetrics.skip) + Number(incomingMetrics.limit)
         //         ? true
         //         : false;
-        // const canPrevIncoming =
+        // const canPrevIncoming: $TSFixMe =
         //     Number(incomingMetrics.skip) <= 0 ? false : true;
 
-        // const canNextOutgoing =
+        // const canNextOutgoing: $TSFixMe =
         //     outgoingMetrics.count >
         //     Number(outgoingMetrics.skip) + Number(outgoingMetrics.limit)
         //         ? true
         //         : false;
-        // const canPrevOutgoing =
+        // const canPrevOutgoing: $TSFixMe =
         //     Number(outgoingMetrics.skip) <= 0 ? false : true;
 
         return (

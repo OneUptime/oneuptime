@@ -2,8 +2,8 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
-const getUser = require('../middlewares/user').getUser;
+const router: $TSFixMe = express.getRouter();
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -19,8 +19,8 @@ router.get(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { projectId } = req.params;
-        const { skip = 0, limit = 10 } = req.query;
+        const { projectId }: $TSFixMe = req.params;
+        const { skip = 0, limit = 10 }: $TSFixMe = req.query;
         if (!projectId) {
             return sendErrorResponse(
                 req,
@@ -29,9 +29,9 @@ router.get(
             );
         }
         try {
-            const selectIncPriority =
+            const selectIncPriority: $TSFixMe =
                 'projectId name color createdAt deletedAt deleted deletedById';
-            const [IncidentPriorities, count] = await Promise.all([
+            const [IncidentPriorities, count]: $TSFixMe = await Promise.all([
                 IncidentPrioritiesService.findBy(
                     { query: { projectId }, select: selectIncPriority },
 
@@ -52,8 +52,8 @@ router.post(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { projectId } = req.params;
-        const { name, color } = req.body;
+        const { projectId }: $TSFixMe = req.params;
+        const { name, color }: $TSFixMe = req.body;
         if (!projectId) {
             return sendErrorResponse(
                 req,
@@ -77,7 +77,7 @@ router.post(
         }
 
         try {
-            const IncidentPriorities = await IncidentPrioritiesService.create({
+            const IncidentPriorities: $TSFixMe = await IncidentPrioritiesService.create({
                 projectId,
                 name,
                 color,
@@ -94,8 +94,8 @@ router.put(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { projectId } = req.params;
-        const { _id, name, color } = req.body;
+        const { projectId }: $TSFixMe = req.params;
+        const { _id, name, color }: $TSFixMe = req.body;
 
         if (!projectId) {
             return sendErrorResponse(
@@ -130,7 +130,7 @@ router.put(
         }
 
         try {
-            const IncidentPriorities =
+            const IncidentPriorities: $TSFixMe =
                 await IncidentPrioritiesService.updateOne(
                     { projectId, _id },
                     { name, color }
@@ -147,8 +147,8 @@ router.delete(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { projectId } = req.params;
-        const { _id } = req.body;
+        const { projectId }: $TSFixMe = req.params;
+        const { _id }: $TSFixMe = req.body;
 
         if (!projectId) {
             return sendErrorResponse(
@@ -167,7 +167,7 @@ router.delete(
         }
 
         try {
-            const IncidentPriority = await IncidentPrioritiesService.deleteBy({
+            const IncidentPriority: $TSFixMe = await IncidentPrioritiesService.deleteBy({
                 projectId,
                 _id,
             });

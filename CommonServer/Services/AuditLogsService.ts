@@ -1,6 +1,6 @@
 export default class Service {
     async findBy({ query, skip, limit, populate, select, sort }: FindBy): void {
-        const auditLogsQuery = AuditLogsModel.find(query)
+        const auditLogsQuery: $TSFixMe = AuditLogsModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -9,7 +9,7 @@ export default class Service {
         auditLogsQuery.select(select);
         auditLogsQuery.populate(populate);
 
-        const auditLogs = await auditLogsQuery;
+        const auditLogs: $TSFixMe = await auditLogsQuery;
 
         return auditLogs;
     }
@@ -19,19 +19,19 @@ export default class Service {
             query = {};
         }
 
-        const count = await AuditLogsModel.countDocuments(query);
+        const count: $TSFixMe = await AuditLogsModel.countDocuments(query);
         return count;
     }
 
     async create(data: $TSFixMe): void {
-        const auditLogsModel = new AuditLogsModel({
+        const auditLogsModel: $TSFixMe = new AuditLogsModel({
             userId: data.userId,
             projectId: data.projectId,
             request: data.request,
             response: data.response,
         });
 
-        const auditLog = await auditLogsModel.save();
+        const auditLog: $TSFixMe = await auditLogsModel.save();
         return auditLog;
     }
 
@@ -43,7 +43,7 @@ export default class Service {
             },
         };
 
-        const populateAuditLog = [
+        const populateAuditLog: $TSFixMe = [
             { path: 'userId', select: 'name' },
             { path: 'projectId', select: 'name' },
         ];
@@ -51,7 +51,7 @@ export default class Service {
         const selectAuditLog: string =
             'userId projectId request response createdAt';
 
-        const [searchedAuditLogs, totalSearchCount] = await Promise.all([
+        const [searchedAuditLogs, totalSearchCount]: $TSFixMe = await Promise.all([
             this.findBy({
                 query,
                 skip,

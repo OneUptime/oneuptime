@@ -23,9 +23,9 @@ export class EmailLogsList extends Component<ComponentProps>{
 
     handleDelete = () => {
 
-        const { openModal } = this.props;
+        const { openModal }: $TSFixMe = this.props;
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
         openModal({
             id: deleteModalId,
             content: DeleteConfirmationModal,
@@ -100,7 +100,7 @@ export class EmailLogsList extends Component<ComponentProps>{
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(
+        const numberOfPages: $TSFixMe = Math.ceil(
 
             parseInt(this.props.emailLogs && this.props.emailLogs.count) / 10
         );

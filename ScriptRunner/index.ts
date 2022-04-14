@@ -8,7 +8,7 @@ import ScriptAPI from './api/script';
 
 app.use('/script', ScriptAPI);
 
-const cronMinuteStartTime = Math.floor(Math.random() * 50);
+const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
 // script monitor cron job
 cron.schedule('* * * * *', () => {

@@ -73,7 +73,7 @@ class KubeDeploymentData extends React.Component<KubeDeploymentDataProps> {
 
     handleCondition = (deploymentData: $TSFixMe, key: $TSFixMe) => {
         return deploymentData[key].map((condition: $TSFixMe, index: $TSFixMe) => {
-            const dataKeys = Object.keys(condition);
+            const dataKeys: $TSFixMe = Object.keys(condition);
             return (
                 <div
                     key={index}
@@ -137,11 +137,11 @@ class KubeDeploymentData extends React.Component<KubeDeploymentDataProps> {
 
     override render() {
 
-        const { data } = this.props;
-        const deploymentData = data.data;
-        const logTitle = data.data['deploymentName'];
+        const { data }: $TSFixMe = this.props;
+        const deploymentData: $TSFixMe = data.data;
+        const logTitle: $TSFixMe = data.data['deploymentName'];
 
-        const dataKeys = Object.keys(deploymentData);
+        const dataKeys: $TSFixMe = Object.keys(deploymentData);
 
         return (
             <div

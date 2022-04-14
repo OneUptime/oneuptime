@@ -9,7 +9,7 @@ export interface ComponentProps {
 class Footer extends Component<ComponentProps> {
     override render() {
 
-        const { link } = this.props;
+        const { link }: $TSFixMe = this.props;
         if (!link.url) return null;
         return (
             <li>

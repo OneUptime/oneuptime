@@ -18,13 +18,13 @@ export default {
             monitor.type === 'kubernetes' &&
             monitor.kubernetesConfig
         ) {
-            const configurationFile = monitor.kubernetesConfig;
+            const configurationFile: $TSFixMe = monitor.kubernetesConfig;
             const updatedConfigName: string = `${uuidv4()}${configurationFile}`;
-            const configPath = Path.resolve(process.cwd(), updatedConfigName);
-            const namespace = monitor.kubernetesNamespace || 'default';
+            const configPath: $TSFixMe = Path.resolve(process.cwd(), updatedConfigName);
+            const namespace: $TSFixMe = monitor.kubernetesNamespace || 'default';
 
             await fetch(`${serverUrl}/file/${configurationFile}`).then(res => {
-                const dest = fs.createWriteStream(configPath);
+                const dest: $TSFixMe = fs.createWriteStream(configPath);
 
                 res.body.pipe(dest);
                 // at this point, writing to the specified file is complete
@@ -52,7 +52,7 @@ export default {
                         ) {
                             // handle pod output
 
-                            const healthyPods = [],
+                            const healthyPods: $TSFixMe = [],
                                 healthyPodData = [],
                                 unhealthyPods = [],
                                 unhealthyPodData = [],
@@ -219,7 +219,7 @@ export default {
 
                             // handle job output
 
-                            const runningJobs = [],
+                            const runningJobs: $TSFixMe = [],
                                 succeededJobs = [],
                                 failedJobs = [],
                                 runningJobData = [],
@@ -373,7 +373,7 @@ export default {
                             let desiredDeployment = 0,
                                 readyDeployment = 0;
 
-                            const unhealthyDeployments = [],
+                            const unhealthyDeployments: $TSFixMe = [],
                                 healthyDeployments = [],
                                 allDeployments = [],
                                 unhealthyDeploymentData = [],
@@ -500,7 +500,7 @@ export default {
                             let desiredStatefulsets = 0,
                                 readyStatefulsets = 0;
 
-                            const healthyStatefulsets = [],
+                            const healthyStatefulsets: $TSFixMe = [],
                                 unhealthyStatefulsets = [],
                                 allStatefulset = [],
                                 healthyStatefulsetData = [],
@@ -658,12 +658,12 @@ function loadPodOutput(configPath, namespace): void {
         let podOutput = '';
         const podCommand: string = `kubectl get pods -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
-        const podCommandOutput = spawn(podCommand, {
+        const podCommandOutput: $TSFixMe = spawn(podCommand, {
             cwd: process.cwd(),
             shell: true,
         });
         podCommandOutput.stdout.on('data', data => {
-            const strData = data.toString();
+            const strData: $TSFixMe = data.toString();
             podOutput += strData;
         });
         podCommandOutput.on('close', () => {
@@ -681,12 +681,12 @@ function loadJobOutput(configPath, namespace): void {
         let jobOutput = '';
         const jobCommand: string = `kubectl get jobs -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
-        const jobCommandOutput = spawn(jobCommand, {
+        const jobCommandOutput: $TSFixMe = spawn(jobCommand, {
             cwd: process.cwd(),
             shell: true,
         });
         jobCommandOutput.stdout.on('data', data => {
-            const strData = data.toString();
+            const strData: $TSFixMe = data.toString();
             jobOutput += strData;
         });
         jobCommandOutput.on('close', () => {
@@ -704,12 +704,12 @@ function loadServiceOutput(configPath, namespace): void {
         let serviceOutput = '';
         const serviceCommand: string = `kubectl get services -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
-        const serviceCommandOutput = spawn(serviceCommand, {
+        const serviceCommandOutput: $TSFixMe = spawn(serviceCommand, {
             cwd: process.cwd(),
             shell: true,
         });
         serviceCommandOutput.stdout.on('data', data => {
-            const strData = data.toString();
+            const strData: $TSFixMe = data.toString();
             serviceOutput += strData;
         });
         serviceCommandOutput.on('close', () => {
@@ -727,12 +727,12 @@ function loadDeploymentOutput(configPath, namespace): void {
         let deploymentOutput = '';
         const deploymentCommand: string = `kubectl get deployments -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
-        const deploymentCommandOutput = spawn(deploymentCommand, {
+        const deploymentCommandOutput: $TSFixMe = spawn(deploymentCommand, {
             cwd: process.cwd(),
             shell: true,
         });
         deploymentCommandOutput.stdout.on('data', data => {
-            const strData = data.toString();
+            const strData: $TSFixMe = data.toString();
             deploymentOutput += strData;
         });
         deploymentCommandOutput.on('close', () => {
@@ -750,12 +750,12 @@ function loadStatefulsetOutput(configPath, namespace): void {
         let statefulsetOutput = '';
         const statefulsetCommand: string = `kubectl get statefulsets -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
-        const statefulsetCommandOutput = spawn(statefulsetCommand, {
+        const statefulsetCommandOutput: $TSFixMe = spawn(statefulsetCommand, {
             cwd: process.cwd(),
             shell: true,
         });
         statefulsetCommandOutput.stdout.on('data', data => {
-            const strData = data.toString();
+            const strData: $TSFixMe = data.toString();
             statefulsetOutput += strData;
         });
         statefulsetCommandOutput.on('close', () => {

@@ -2,11 +2,11 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import AuditLogsService from '../services/auditLogsService';
-const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
 
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -22,17 +22,17 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const query: $TSFixMe = {};
-            const skip = req.query['skip'];
-            const limit = req.query['limit'];
+            const skip: $TSFixMe = req.query['skip'];
+            const limit: $TSFixMe = req.query['limit'];
 
-            const populateAuditLog = [
+            const populateAuditLog: $TSFixMe = [
                 { path: 'userId', select: 'name' },
                 { path: 'projectId', select: 'name' },
             ];
 
-            const selectAuditLog =
+            const selectAuditLog: $TSFixMe =
                 'userId projectId request response createdAt';
-            const [auditLogs, count] = await Promise.all([
+            const [auditLogs, count]: $TSFixMe = await Promise.all([
                 AuditLogsService.findBy({
                     query,
                     skip,
@@ -56,11 +56,11 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const filter = req.body.filter;
-            const skip = req.query['skip'];
-            const limit = req.query['limit'];
+            const filter: $TSFixMe = req.body.filter;
+            const skip: $TSFixMe = req.query['skip'];
+            const limit: $TSFixMe = req.query['limit'];
 
-            const { searchedAuditLogs, totalSearchCount } =
+            const { searchedAuditLogs, totalSearchCount }: $TSFixMe =
                 await AuditLogsService.search({ filter, skip, limit });
 
             return sendListResponse(
@@ -83,7 +83,7 @@ router.delete(
         try {
             const query: $TSFixMe = {};
 
-            const msg = await AuditLogsService.hardDeleteBy({ query });
+            const msg: $TSFixMe = await AuditLogsService.hardDeleteBy({ query });
 
             return sendItemResponse(req, res, msg);
         } catch (error) {

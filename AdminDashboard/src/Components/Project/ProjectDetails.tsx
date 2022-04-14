@@ -275,7 +275,7 @@ export class ProjectDetails extends Component<ComponentProps>{
 ProjectDetails.displayName = 'ProjectDetails';
 
 const mapStateToProps: Function = (state: RootState) => {
-    const project = state.project.project.project || {};
+    const project: $TSFixMe = state.project.project.project || {};
     return {
         project,
         isRequesting: state.project.projects.requesting,

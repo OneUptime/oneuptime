@@ -35,11 +35,11 @@ const TeamMemberSelector: Function = ({
     projectGroups,
     renderType
 }: TeamMemberSelectorProps) => {
-    const allowedTeamMembers = makeAllowedTeamMembers(
+    const allowedTeamMembers: $TSFixMe = makeAllowedTeamMembers(
         form[policyIndex].teams[teamIndex].teamMembers,
         subProjectTeam
     );
-    const groups =
+    const groups: $TSFixMe =
         (projectGroups.groups &&
             projectGroups.groups.map((group: $TSFixMe) => {
                 return {
@@ -48,12 +48,12 @@ const TeamMemberSelector: Function = ({
                 };
             })) ||
         [];
-    const allowedGroups = makeAllowedGroups(
+    const allowedGroups: $TSFixMe = makeAllowedGroups(
         projectGroups.groups && projectGroups.groups,
         form[policyIndex].teams[teamIndex].teamMembers
     );
 
-    const allowedOptionsForDropdown =
+    const allowedOptionsForDropdown: $TSFixMe =
         renderType === 'team'
             ? [
                 {
@@ -92,7 +92,7 @@ const TeamMemberSelector: Function = ({
                 })
             );
 
-    const options =
+    const options: $TSFixMe =
         renderType === 'team'
             ? [{ value: '', label: 'Select Team Member...' }].concat(
                 subProjectTeam.map((member: $TSFixMe) => {
@@ -105,11 +105,11 @@ const TeamMemberSelector: Function = ({
             )
             : [{ value: '', label: 'Select Group...' }].concat(groups);
 
-    const filteredOpt = useRef();
+    const filteredOpt: $TSFixMe = useRef();
 
     filteredOpt.current = options.filter(opt => opt.value === input.value);
 
-    const [value, setValue] = useState({
+    const [value, setValue]: $TSFixMe = useState({
         value: input.value,
         label:
 
@@ -191,16 +191,16 @@ TeamMemberSelector.propTypes = {
 
 function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
 
-    const validTeamMembers = teamMembers.filter(member => member.userId);
+    const validTeamMembers = teamMembers.filter(member: $TSFixMe => member.userId);
     if (validTeamMembers.length === 0) return subProjectTeam;
 
-    const memberMap = new Map();
+    const memberMap: $TSFixMe = new Map();
     const allowedTeamMembers: $TSFixMe = [];
     validTeamMembers.forEach(member => {
 
         memberMap.set(member.userId, member);
     });
-    const memberArray = Array.from(memberMap.keys());
+    const memberArray: $TSFixMe = Array.from(memberMap.keys());
     subProjectTeam.forEach(TM => {
 
         if (!memberArray.includes(TM.userId)) allowedTeamMembers.push(TM);
@@ -211,9 +211,9 @@ function makeAllowedTeamMembers(teamMembers = [], subProjectTeam = []) {
 
 function makeAllowedGroups(groups = [], projectGroups = []) {
 
-    const validGroup = projectGroups.filter(group => group.groupId);
+    const validGroup = projectGroups.filter(group: $TSFixMe => group.groupId);
     if (validGroup.length === 0) return groups;
-    const filteredGroups = groups.filter(
+    const filteredGroups: $TSFixMe = groups.filter(
 
         group => !validGroup.some(grp => grp.groupId === group._id)
     );
@@ -221,10 +221,10 @@ function makeAllowedGroups(groups = [], projectGroups = []) {
 }
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const selector = formValueSelector('OnCallAlertBox');
-    const form = selector(state, 'OnCallAlertBox');
-    const subProjectTeams = state.team.subProjectTeamMembers;
-    const subProjectTeam =
+    const selector: $TSFixMe = formValueSelector('OnCallAlertBox');
+    const form: $TSFixMe = selector(state, 'OnCallAlertBox');
+    const subProjectTeams: $TSFixMe = state.team.subProjectTeamMembers;
+    const subProjectTeam: $TSFixMe =
         subProjectTeams.find((team: $TSFixMe) => team._id === props.subProjectId) || {};
 
     return {

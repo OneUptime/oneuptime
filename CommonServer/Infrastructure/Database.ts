@@ -17,8 +17,8 @@ export default class Database {
             return this.fileClient;
         }
 
-        const database = await this.getDatabase();
-        const mongoClient = await this.getClient();
+        const database: $TSFixMe = await this.getDatabase();
+        const mongoClient: $TSFixMe = await this.getClient();
         this.fileClient = await Grid(database, mongoClient).collection(
             'uploads'
         );

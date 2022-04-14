@@ -27,9 +27,9 @@ class CallLogs extends Component<ComponentProps> {
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchCallLogs, searchCallLogs } = this.props;
+        const { fetchCallLogs, searchCallLogs }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchCallLogs(
@@ -46,9 +46,9 @@ class CallLogs extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchCallLogs, searchCallLogs } = this.props;
+        const { fetchCallLogs, searchCallLogs }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchCallLogs(searchBox, skip + limit, 10);
@@ -67,9 +67,9 @@ class CallLogs extends Component<ComponentProps> {
     }
 
     onChange = (e: $TSFixMe) => {
-        const value = e.target.value;
+        const value: $TSFixMe = e.target.value;
 
-        const { searchCallLogs } = this.props;
+        const { searchCallLogs }: $TSFixMe = this.props;
 
         this.setState({ searchBox: value });
         searchCallLogs(value, 0, 10);
@@ -78,7 +78,7 @@ class CallLogs extends Component<ComponentProps> {
 
     override render() {
 
-        const { callLogStatus } = this.props;
+        const { callLogStatus }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeCallLog"
@@ -209,16 +209,16 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const callLogs = state.callLogs.callLogs;
-    const searchCallLogs = state.callLogs.searchCallLogs;
-    const requesting =
+    const callLogs: $TSFixMe = state.callLogs.callLogs;
+    const searchCallLogs: $TSFixMe = state.callLogs.searchCallLogs;
+    const requesting: $TSFixMe =
         callLogs && searchCallLogs
             ? callLogs.requesting || searchCallLogs.requesting
                 ? true
                 : false
             : false;
-    const callLogStatus = state.callLogs.callLogStatus;
-    const changeCallLogStatus = state.callLogs.changeCallLogStatus;
+    const callLogStatus: $TSFixMe = state.callLogs.callLogStatus;
+    const changeCallLogStatus: $TSFixMe = state.callLogs.changeCallLogStatus;
     return {
         callLogs,
         requesting,

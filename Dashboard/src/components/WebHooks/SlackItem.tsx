@@ -41,7 +41,7 @@ class SlackItem extends React.Component<SlackItemProps> {
         //if the webhook contains more than one monitor just remove the monitor from it
         //if not delete the monitor
         if (monitorId) {
-            const newMonitors = monitors
+            const newMonitors: $TSFixMe = monitors
                 .filter((monitor: $TSFixMe) => monitor.monitorId._id !== monitorId)
                 .map((monitor: $TSFixMe) => ({
                     monitorId: monitor.monitorId._id
@@ -95,11 +95,11 @@ class SlackItem extends React.Component<SlackItemProps> {
 
     override render() {
 
-        const { data, monitorId, webhooks, monitors } = this.props;
-        const { webHookName } = data.data;
+        const { data, monitorId, webhooks, monitors }: $TSFixMe = this.props;
+        const { webHookName }: $TSFixMe = data.data;
         let deleting = false;
-        const monitorName = monitors && monitors[0].monitorId.name;
-        const monitorTitle =
+        const monitorName: $TSFixMe = monitors && monitors[0].monitorId.name;
+        const monitorTitle: $TSFixMe =
             monitors && monitors.length > 1
                 ? `${monitorName} and ${monitors?.length - 1} other${monitors?.length - 1 === 1 ? '' : 's'
                 }`

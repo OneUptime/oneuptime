@@ -41,7 +41,7 @@ export class GroupForm extends Component<ComponentProps>{
                 projectTeam: this.props.teams,
                 teamMemberIds: teamId,
             });
-            const filteredTeam =
+            const filteredTeam: $TSFixMe =
                 projectTeam &&
                 projectTeam[0] &&
                 projectTeam[0].teamMembers &&
@@ -80,7 +80,7 @@ export class GroupForm extends Component<ComponentProps>{
     }
 
     submitForm = (values: $TSFixMe) => {
-        const { groupName } = values;
+        const { groupName }: $TSFixMe = values;
         const {
 
             editGroup,
@@ -110,7 +110,7 @@ export class GroupForm extends Component<ComponentProps>{
                 }
             });
         } else {
-            const { teamMemberIds } = this.state;
+            const { teamMemberIds }: $TSFixMe = this.state;
 
             updateGroup(this.props.projectId, this.props.groupId, {
                 name: groupName,
@@ -157,14 +157,14 @@ export class GroupForm extends Component<ComponentProps>{
 
     //this adds a team member to the group
     handleAddTeam = () => {
-        const { teamMemberId } = this.state;
+        const { teamMemberId }: $TSFixMe = this.state;
 
         if (teamMemberId && !this.state.teamMemberIds.includes(teamMemberId)) {
-            const newTeamMemberIds = [
+            const newTeamMemberIds: $TSFixMe = [
                 ...this.state.teamMemberIds,
                 teamMemberId,
             ];
-            const filteredTeamMember = this.state.teams
+            const filteredTeamMember: $TSFixMe = this.state.teams
 
                 .filter(user => user.userId === teamMemberId)
                 .map(user => {
@@ -174,7 +174,7 @@ export class GroupForm extends Component<ComponentProps>{
                         _id: user.userId,
                     };
                 });
-            const newTeam = this.state.teams
+            const newTeam: $TSFixMe = this.state.teams
 
                 .filter(user => user.userId !== teamMemberId)
                 .map(user => {
@@ -194,19 +194,19 @@ export class GroupForm extends Component<ComponentProps>{
     //it removes the team members from the list
     handleRemoveTeamMember = (id: $TSFixMe) => {
         //get the user being removed from the list
-        const userRemoved = this.state.projectTeam.filter(
+        const userRemoved: $TSFixMe = this.state.projectTeam.filter(
 
             user => user._id === id
         );
         //add the user back to the teams list
-        const newTeam = [...this.state.teams, ...userRemoved];
+        const newTeam: $TSFixMe = [...this.state.teams, ...userRemoved];
         //remove the user from the project teams
-        const newProjectTeam = this.state.projectTeam.filter(
+        const newProjectTeam: $TSFixMe = this.state.projectTeam.filter(
 
             user => user._id !== id
         );
         //also remove the user id from list of user id to submit
-        const newTeamMemberIds = this.state.teamMemberIds.filter(
+        const newTeamMemberIds: $TSFixMe = this.state.teamMemberIds.filter(
             userId => userId !== id
         );
         this.setState({
@@ -502,20 +502,20 @@ export class GroupForm extends Component<ComponentProps>{
 
 GroupForm.displayName = 'GroupForm';
 
-const CreateGroupForm = reduxForm({
+const CreateGroupForm: $TSFixMe = reduxForm({
     form: 'GroupModalForm',
     enableReinitialize: true,
 })(GroupForm);
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const initval = props.data.editGroup
+    const initval: $TSFixMe = props.data.editGroup
         ? { groupName: props.data.groupName }
         : {};
-    const teamMembers = state.team.subProjectTeamMembers;
-    const requesting = props.data.editGroup
+    const teamMembers: $TSFixMe = state.team.subProjectTeamMembers;
+    const requesting: $TSFixMe = props.data.editGroup
         ? state.groups.updateGroup.requesting
         : state.groups.createGroup.requesting;
-    const errorMessage = props.data.editGroup
+    const errorMessage: $TSFixMe = props.data.editGroup
         ? state.groups.updateGroup.error
         : state.groups.createGroup.error;
     return {

@@ -49,7 +49,7 @@ class TwoFactorAuthModal extends Component<ComponentProps> {
     }
 
     handleKeyBoard = (e: $TSFixMe) => {
-        const { next } = this.state;
+        const { next }: $TSFixMe = this.state;
         switch (e.key) {
             case 'Escape':
                 return this.handleCloseModal();
@@ -70,7 +70,7 @@ class TwoFactorAuthModal extends Component<ComponentProps> {
     };
 
     handleCloseModal = () => {
-        const { next } = this.state;
+        const { next }: $TSFixMe = this.state;
         if (next) {
             this.setState({ next: false });
         } else {
@@ -105,8 +105,8 @@ class TwoFactorAuthModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit, qrCode, twoFactorAuthSetting } = this.props;
-        const { next } = this.state;
+        const { handleSubmit, qrCode, twoFactorAuthSetting }: $TSFixMe = this.props;
+        const { next }: $TSFixMe = this.state;
 
         return (
             <form onSubmit={handleSubmit(this.submitForm)}>
@@ -402,7 +402,7 @@ class TwoFactorAuthModal extends Component<ComponentProps> {
 
 TwoFactorAuthModal.displayName = 'TwoFactorAuthModal';
 
-const TwoFactorAuthForm = reduxForm({
+const TwoFactorAuthForm: $TSFixMe = reduxForm({
     form: 'TwoFactorAuthForm',
 })(TwoFactorAuthModal);
 

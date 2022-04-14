@@ -4,7 +4,7 @@ const monitorCollection: string = 'monitors';
 
 async function run(): void {
     // get all monitors that have a monitorCategoryId
-    const monitors = await find(monitorCollection, {
+    const monitors: $TSFixMe = await find(monitorCollection, {
         disabled: { $exists: false },
     });
 

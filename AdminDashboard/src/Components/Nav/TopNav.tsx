@@ -16,7 +16,7 @@ class TopContent extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { getVersion } = this.props;
+        const { getVersion }: $TSFixMe = this.props;
         getVersion();
 
         this.props.getProbes(0, 10);
@@ -41,13 +41,13 @@ class TopContent extends Component<ComponentProps> {
     };
 
     override render() {
-        const IMG_URL =
+        const IMG_URL: $TSFixMe =
 
             this.props.profilePic && this.props.profilePic !== ''
 
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
-        const userId = User.getUserId();
+        const userId: $TSFixMe = User.getUserId();
         let count = 0;
         if (
 

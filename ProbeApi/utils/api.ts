@@ -12,7 +12,7 @@ const _this: $TSFixMe = {
         };
     },
     post: (url: URL, data: $TSFixMe, withBaseUrl = false) => {
-        const headers = this.getHeaders();
+        const headers: $TSFixMe = this.getHeaders();
 
         return new Promise((resolve, reject) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit

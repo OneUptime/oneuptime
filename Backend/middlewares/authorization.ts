@@ -6,7 +6,7 @@ import {
 } from 'CommonServer/Utils/Express';
 import { sendErrorResponse } from 'CommonServer/Utils/Response';
 
-const doesUserBelongToProject = require('./project').doesUserBelongToProject;
+const doesUserBelongToProject: $TSFixMe = require('./project').doesUserBelongToProject;
 
 export default {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
@@ -18,7 +18,7 @@ export default {
         res: ExpressResponse,
         next: NextFunction
     ) {
-        const projectId = apiMiddleware.getProjectId(req);
+        const projectId: $TSFixMe = apiMiddleware.getProjectId(req);
 
         if (projectId) {
             if (!apiMiddleware.isValidProjectId(projectId)) {

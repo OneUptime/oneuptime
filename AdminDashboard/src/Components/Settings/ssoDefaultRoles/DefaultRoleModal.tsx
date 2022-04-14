@@ -16,7 +16,7 @@ import {
  * project
  * Role
  */
-const fields = [
+const fields: $TSFixMe = [
     {
         key: 'domain',
         label: 'Domain',
@@ -69,7 +69,7 @@ const Form: Function = ({
     fetchSsoDefaultRoles,
     closeThisDialog
 }: $TSFixMe) => {
-    const optionsArray = [
+    const optionsArray: $TSFixMe = [
         ssos.map((sso: $TSFixMe) => ({
             value: sso._id,
             label: sso.domain
@@ -86,7 +86,7 @@ const Form: Function = ({
     ];
     const submitForm = async (data: $TSFixMe) => {
         const { _id: id } = data;
-        const success = await onSubmit({ id, data });
+        const success: $TSFixMe = await onSubmit({ id, data });
         if (!success) return;
         fetchSsoDefaultRoles();
         closeThisDialog();
@@ -212,7 +212,7 @@ const Form: Function = ({
         </div>
     );
 };
-const ReduxConnectedForm = reduxForm({
+const ReduxConnectedForm: $TSFixMe = reduxForm({
     form: 'role-modal',
     enableReinitialize: true,
     validate,
@@ -231,7 +231,7 @@ Form.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
 };
 
-export const CreateDefaultRoleModal = connect(
+export const CreateDefaultRoleModal: $TSFixMe = connect(
     state => ({
         formTitle: 'Create New Default Role',
 
@@ -251,7 +251,7 @@ export const CreateDefaultRoleModal = connect(
     })
 )(ReduxConnectedForm);
 
-export const UpdateDefaultRoleModal = connect(
+export const UpdateDefaultRoleModal: $TSFixMe = connect(
     state => {
         const initialValues: $TSFixMe = {
 

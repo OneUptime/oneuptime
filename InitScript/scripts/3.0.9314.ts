@@ -3,13 +3,13 @@ import { update, find } from '../util/db';
 const integrationsCollection: string = 'integrations';
 
 async function run(): void {
-    const integrations = await find(integrationsCollection, {
+    const integrations: $TSFixMe = await find(integrationsCollection, {
         monitors: { $exists: false },
     });
 
     for (const integration of integrations) {
         const obj: $TSFixMe = {};
-        const data = integration.data;
+        const data: $TSFixMe = integration.data;
         delete data.monitorId;
 
         obj.data = {

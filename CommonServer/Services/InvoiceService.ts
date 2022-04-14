@@ -9,14 +9,14 @@ export default class Service {
     //Returns : promise
 
     async get(userId, startingAfter, endingBefore): void {
-        const user = await UserService.findOneBy({
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
         });
         if (!user) {
             throw new BadDataException('User not found.');
         } else {
-            const invoices = await stripe.invoices.list({
+            const invoices: $TSFixMe = await stripe.invoices.list({
                 customer: user.stripeCustomerId,
                 limit: 10,
                 starting_after: startingAfter,
@@ -32,5 +32,5 @@ export default class Service {
 
 import payment from '../config/payment';
 import Stripe from 'stripe';
-const stripe = Stripe(payment.paymentPrivateKey);
+const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 import UserService from './UserService';

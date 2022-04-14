@@ -33,7 +33,7 @@ export class SubProjectTable extends Component<SubProjectTableProps>{
 
     handleRevealAPIKey = (userId: string) => {
 
-        const { openModal, subProject, currentProject } = this.props;
+        const { openModal, subProject, currentProject }: $TSFixMe = this.props;
         isOwnerOrAdmin(userId, currentProject) &&
             !isSubProjectViewer(userId, subProject)
             ? openModal({
@@ -56,7 +56,7 @@ export class SubProjectTable extends Component<SubProjectTableProps>{
 
     handleEdit = (userId: string) => {
 
-        const { openModal, subProject, currentProject } = this.props;
+        const { openModal, subProject, currentProject }: $TSFixMe = this.props;
         isOwnerOrAdmin(userId, currentProject) &&
             !isSubProjectViewer(userId, subProject)
             ? openModal({
@@ -80,7 +80,7 @@ export class SubProjectTable extends Component<SubProjectTableProps>{
 
     handleRemove = (userId: string) => {
 
-        const { openModal, subProject, currentProject } = this.props;
+        const { openModal, subProject, currentProject }: $TSFixMe = this.props;
         isOwnerOrAdmin(userId, currentProject) &&
             !isSubProjectViewer(userId, subProject)
             ? openModal({
@@ -103,12 +103,12 @@ export class SubProjectTable extends Component<SubProjectTableProps>{
 
     override render() {
 
-        const { subProject, subProjectState } = this.props;
-        const disabled =
+        const { subProject, subProjectState }: $TSFixMe = this.props;
+        const disabled: $TSFixMe =
             subProjectState.subProjects.requesting ||
             subProjectState.newSubProject.requesting ||
             subProjectState.renameSubProject.requesting;
-        const userId = User.getUserId();
+        const userId: $TSFixMe = User.getUserId();
 
         return (
             <div className="bs-ObjectList-row db-UserListRow">

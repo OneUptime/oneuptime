@@ -43,7 +43,7 @@ export class ResendTokenForm extends Component<ResendTokenFormProps>{
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
 
-        const query = queryString.parse(this.props.location.search).status;
+        const query: $TSFixMe = queryString.parse(this.props.location.search).status;
         if (query === 'link-expired') {
             this.setState({
                 serverResponse: 'Verification link expired.',
@@ -58,12 +58,12 @@ export class ResendTokenForm extends Component<ResendTokenFormProps>{
     }
     override render() {
 
-        const { masterAdminExists, requestingMasterAdmin } = this.props;
-        const { serverResponse } = this.state;
+        const { masterAdminExists, requestingMasterAdmin }: $TSFixMe = this.props;
+        const { serverResponse }: $TSFixMe = this.state;
 
-        const { success } = this.props.resendTokenState;
+        const { success }: $TSFixMe = this.props.resendTokenState;
 
-        const resendTokenError = this.props.resendTokenState.error;
+        const resendTokenError: $TSFixMe = this.props.resendTokenState.error;
 
         let header;
         if (success) {
@@ -214,7 +214,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const resendTokenForm = reduxForm({
+const resendTokenForm: $TSFixMe = reduxForm({
     form: 'resendTokenForm',
     validate,
 })(ResendTokenForm);

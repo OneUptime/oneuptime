@@ -4,7 +4,7 @@ const statusPagesCollection: string = 'statuspages';
 
 async function run(): void {
     // get all statusPages that don't have the hideProbeBar field
-    const statusPages = await find(statusPagesCollection, {
+    const statusPages: $TSFixMe = await find(statusPagesCollection, {
         hideProbeBar: { $exists: false },
     });
 

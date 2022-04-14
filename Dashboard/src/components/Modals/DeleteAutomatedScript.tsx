@@ -13,7 +13,7 @@ interface DeleteAutomatedScriptProps {
 }
 
 const DeleteAutomatedScript: Function = (props: DeleteAutomatedScriptProps) => {
-    const { confirmThisDialog, closeThisDialog } = props;
+    const { confirmThisDialog, closeThisDialog }: $TSFixMe = props;
     const handleKeyBoard: Function = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
@@ -29,7 +29,7 @@ const DeleteAutomatedScript: Function = (props: DeleteAutomatedScriptProps) => {
         window.addEventListener('keydown', handleKeyBoard);
     }, []);
 
-    const { requesting, error } = props.deleteScript;
+    const { requesting, error }: $TSFixMe = props.deleteScript;
 
     return (
         <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

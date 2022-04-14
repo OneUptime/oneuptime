@@ -39,7 +39,7 @@ class RemoveResourceCategory extends Component<ComponentProps> {
 
     handleDeleteResourceCategory = () => {
 
-        const { resourceCategoryId } = this.props.data;
+        const { resourceCategoryId }: $TSFixMe = this.props.data;
         this.props
 
             .deleteResourceCategory(resourceCategoryId, this.props.projectId)
@@ -51,7 +51,7 @@ class RemoveResourceCategory extends Component<ComponentProps> {
 
     override render() {
 
-        const { deleteResourceCategoryObj, closeModal } = this.props;
+        const { deleteResourceCategoryObj, closeModal }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

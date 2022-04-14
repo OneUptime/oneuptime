@@ -14,7 +14,7 @@ const _this: $TSFixMe = {
         };
     },
     post: (url: URL, data: $TSFixMe) => {
-        const headers = this.getHeaders();
+        const headers: $TSFixMe = this.getHeaders();
 
         return new Promise((resolve, reject) => {
             axios({
@@ -39,7 +39,7 @@ const _this: $TSFixMe = {
     },
 
     get: (url: URL) => {
-        const headers = this.getHeaders();
+        const headers: $TSFixMe = this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'GET',
@@ -62,7 +62,7 @@ const _this: $TSFixMe = {
     },
 
     put: (url: URL, data: $TSFixMe) => {
-        const headers = this.getHeaders();
+        const headers: $TSFixMe = this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'PUT',
@@ -86,7 +86,7 @@ const _this: $TSFixMe = {
     },
 
     delete: (url: URL, data: $TSFixMe) => {
-        const headers = this.getHeaders();
+        const headers: $TSFixMe = this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'DELETE',

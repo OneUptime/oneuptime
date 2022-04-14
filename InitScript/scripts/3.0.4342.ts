@@ -6,19 +6,19 @@ const incidentsCollection: string = 'incidents';
 const incidentprioritiesCollection: string = 'incidentpriorities';
 
 async function run(): void {
-    const monitors = await find(monitorCollection, {
+    const monitors: $TSFixMe = await find(monitorCollection, {
         pollTime: { $type: 'date' },
     });
     for (let i = 0; i < monitors.length; i++) {
-        const monitor = monitors[i];
+        const monitor: $TSFixMe = monitors[i];
         await update(monitorCollection, { _id: monitor._id }, { pollTime: [] });
     }
 
-    const incidentsWithoutIdNumber = await find(incidentsCollection, {
+    const incidentsWithoutIdNumber: $TSFixMe = await find(incidentsCollection, {
         idNumber: { $exists: false },
     });
 
-    const projectIds = new Set();
+    const projectIds: $TSFixMe = new Set();
     for (const incident of incidentsWithoutIdNumber) {
         projectIds.add(incident.projectId._id || incident.projectId);
     }
@@ -29,7 +29,7 @@ async function run(): void {
             projectId,
         };
 
-        const incidents = await global.db
+        const incidents: $TSFixMe = await global.db
             .collection(incidentsCollection)
             .find(query)
             .sort('createdAt', 1)
@@ -43,7 +43,7 @@ async function run(): void {
         }
     }
 
-    const allProjects = await find(projectsCollection, {
+    const allProjects: $TSFixMe = await find(projectsCollection, {
         deleted: false,
     });
 
@@ -54,7 +54,7 @@ async function run(): void {
             projectId: project._id,
         };
 
-        const incidentPriorities = await global.db
+        const incidentPriorities: $TSFixMe = await global.db
             .collection(incidentprioritiesCollection)
             .find(query)
             .toArray();

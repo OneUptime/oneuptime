@@ -121,8 +121,8 @@ class UploadFile extends Component<ComponentProps> {
 
     renderFormBody = () => {
 
-        const { files, style } = this.state;
-        const fileList =
+        const { files, style }: $TSFixMe = this.state;
+        const fileList: $TSFixMe =
             files.length > 0
                 ? files.map((file: $TSFixMe) => <li key={file.name} style={{ fontWeight: 'bold' }}>
                     {file.name}
@@ -227,7 +227,7 @@ class UploadFile extends Component<ComponentProps> {
 
     onDrop = (acceptedFiles: $TSFixMe) => {
         this.setState(() => {
-            const isLoaded = acceptedFiles.length > 0 ? true : false;
+            const isLoaded: $TSFixMe = acceptedFiles.length > 0 ? true : false;
             return {
                 files: acceptedFiles,
                 isFileLoaded: isLoaded,
@@ -237,7 +237,7 @@ class UploadFile extends Component<ComponentProps> {
 
     processCSVFile = () => {
 
-        const { files, papaparseOptions } = this.state;
+        const { files, papaparseOptions }: $TSFixMe = this.state;
         const {
 
             data: { monitorId, subProjectId },
@@ -248,16 +248,16 @@ class UploadFile extends Component<ComponentProps> {
 
             fetchMonitorsSubscribers,
         } = this.props;
-        const reader = new FileReader();
+        const reader: $TSFixMe = new FileReader();
         reader.onload = function () {
-            const csvData = PapaParse.parse(
+            const csvData: $TSFixMe = PapaParse.parse(
                 reader.result,
                 Object.assign(papaparseOptions, {
                     error: 'Error',
                     encoding: 'UTF-8',
                 })
             );
-            const { data } = csvData;
+            const { data }: $TSFixMe = csvData;
             importSubscribersFromCsvFile(
                 { data },
                 subProjectId,
@@ -272,7 +272,7 @@ class UploadFile extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         return (
             <form onSubmit={handleSubmit(this.processCSVFile)}>
@@ -303,7 +303,7 @@ class UploadFile extends Component<ComponentProps> {
 
 UploadFile.displayName = 'UploadFile';
 
-const UploadFileForm = reduxForm({
+const UploadFileForm: $TSFixMe = reduxForm({
     form: 'UploadFile',
 })(UploadFile);
 

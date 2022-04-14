@@ -1,4 +1,4 @@
-export const timezones = [
+export const timezones: $TSFixMe = [
     { name: 'ACDT/ACST - Adelaide', code: '0' },
     { name: 'ACDT/ACST - Broken Hill', code: '1' },
     { name: 'ACDT/ACST - South', code: '2' },

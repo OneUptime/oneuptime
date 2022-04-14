@@ -70,7 +70,7 @@ class DeleteCard extends Component<ComponentProps> {
 
     override render() {
 
-        const { requesting, deleteCardModalId, error } = this.props;
+        const { requesting, deleteCardModalId, error }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

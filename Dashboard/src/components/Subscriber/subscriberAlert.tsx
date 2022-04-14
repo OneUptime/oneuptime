@@ -76,7 +76,7 @@ export class SubscriberAlert extends Component<SubscriberAlertProps>{
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(
+        const numberOfPages: $TSFixMe = Math.ceil(
 
             parseInt(this.props.count && this.props.count) / 10
         );

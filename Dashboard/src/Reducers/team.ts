@@ -78,7 +78,7 @@ export default (state = initialState, action: Action): void => {
             };
 
         case TEAM_LOADING_SUCCESS: {
-            const team = action.payload;
+            const team: $TSFixMe = action.payload;
             return {
                 ...state,
                 teamLoading: {
@@ -113,7 +113,7 @@ export default (state = initialState, action: Action): void => {
             };
 
         case TEAM_SUBPROJECT_LOADING_SUCCESS: {
-            const teamMembers = action.payload;
+            const teamMembers: $TSFixMe = action.payload;
             return {
                 ...state,
                 teamLoading: {
@@ -213,7 +213,7 @@ export default (state = initialState, action: Action): void => {
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
                     subProject => {
                         if (action.payload) {
-                            const projectObj = action.payload.find(
+                            const projectObj: $TSFixMe = action.payload.find(
                                 (team: $TSFixMe) =>
                                     team.projectId === subProject._id
                             );

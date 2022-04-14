@@ -16,13 +16,13 @@ export class UserAdminModeDisableBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { disableAdminMode, userId } = this.props;
+        const { disableAdminMode, userId }: $TSFixMe = this.props;
         disableAdminMode(userId);
     };
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -72,7 +72,7 @@ UserAdminModeDisableBox.displayName = 'UserAdminModeDisableBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ disableAdminMode }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
 
     return {
         userId,

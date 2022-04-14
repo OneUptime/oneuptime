@@ -2,11 +2,11 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import SmsLogsService from '../services/smsCountService';
-const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
 
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -21,12 +21,12 @@ router.get(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const selectSmsCount =
+            const selectSmsCount: $TSFixMe =
                 'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
             const query: $TSFixMe = {};
-            const skip = req.query['skip'];
-            const limit = req.query['limit'];
-            const [smsLogs, count] = await Promise.all([
+            const skip: $TSFixMe = req.query['skip'];
+            const limit: $TSFixMe = req.query['limit'];
+            const [smsLogs, count]: $TSFixMe = await Promise.all([
                 SmsLogsService.findBy({
                     query,
                     limit,
@@ -48,7 +48,7 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -90,7 +90,7 @@ router.post(
                 });
             }
 
-            const smsLog = await SmsLogsService.create(data);
+            const smsLog: $TSFixMe = await SmsLogsService.create(data);
             return sendItemResponse(req, res, smsLog);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -104,11 +104,11 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const filter = req.body.filter;
-            const skip = req.query['skip'];
-            const limit = req.query['limit'];
+            const filter: $TSFixMe = req.body.filter;
+            const skip: $TSFixMe = req.query['skip'];
+            const limit: $TSFixMe = req.query['limit'];
 
-            const { searchedSmsLogs, totalSearchCount } =
+            const { searchedSmsLogs, totalSearchCount }: $TSFixMe =
                 await SmsLogsService.search({ filter, skip, limit });
 
             return sendListResponse(
@@ -131,7 +131,7 @@ router.delete(
         try {
             const query: $TSFixMe = {};
 
-            const msg = await SmsLogsService.hardDeleteBy({ query });
+            const msg: $TSFixMe = await SmsLogsService.hardDeleteBy({ query });
 
             return sendItemResponse(req, res, msg);
         } catch (error) {

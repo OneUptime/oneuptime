@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -14,7 +14,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import { sendListResponse } from 'CommonServer/Utils/response';
 import IncidentCommunicationSlaService from '../services/incidentCommunicationSlaService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.get(
     '/:projectId',
@@ -22,16 +22,16 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { limit, skip } = req.query;
+            const { projectId }: $TSFixMe = req.params;
+            const { limit, skip }: $TSFixMe = req.query;
 
-            const selectIncidentComSla =
+            const selectIncidentComSla: $TSFixMe =
                 'name projectId isDefault alertTime alertTime deleted duration';
 
-            const populateIncidentComSla = [
+            const populateIncidentComSla: $TSFixMe = [
                 { path: 'projectId', select: 'name slug' },
             ];
-            const [incidentSlas, count] = await Promise.all([
+            const [incidentSlas, count]: $TSFixMe = await Promise.all([
                 IncidentCommunicationSlaService.findBy({
                     query: {
                         projectId,
@@ -59,18 +59,18 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { name, alertTime, duration } = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const { name, alertTime, duration }: $TSFixMe = req.body;
 
             if (!name || !name.trim()) {
-                const error = new Error('SLA name is required');
+                const error: $TSFixMe = new Error('SLA name is required');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (duration && isNaN(duration)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please use numeric values for duration'
                 );
 
@@ -79,14 +79,14 @@ router.post(
             }
 
             if (!alertTime || !alertTime.trim()) {
-                const error = new Error('Please set alert time for this SLA');
+                const error: $TSFixMe = new Error('Please set alert time for this SLA');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (isNaN(alertTime)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please use numeric values for alert time'
                 );
 
@@ -95,7 +95,7 @@ router.post(
             }
 
             if (Number(alertTime) >= Number(duration)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Alert time should be always less than duration'
                 );
 
@@ -105,7 +105,7 @@ router.post(
 
             const data: $TSFixMe = { ...req.body };
             data.projectId = projectId;
-            const incidentSla = await IncidentCommunicationSlaService.create(
+            const incidentSla: $TSFixMe = await IncidentCommunicationSlaService.create(
                 data
             );
             return sendItemResponse(req, res, incidentSla);
@@ -121,18 +121,18 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId, incidentSlaId } = req.params;
-            const { name, handleDefault, alertTime, duration } = req.body;
+            const { projectId, incidentSlaId }: $TSFixMe = req.params;
+            const { name, handleDefault, alertTime, duration }: $TSFixMe = req.body;
 
             if (!handleDefault && (!name || !name.trim())) {
-                const error = new Error('SLA name is required');
+                const error: $TSFixMe = new Error('SLA name is required');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && duration && isNaN(duration)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please use numeric values for duration'
                 );
 
@@ -141,14 +141,14 @@ router.put(
             }
 
             if (!handleDefault && (!alertTime || !alertTime.trim())) {
-                const error = new Error('Please set alert time for this SLA');
+                const error: $TSFixMe = new Error('Please set alert time for this SLA');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && isNaN(alertTime)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please use numeric values for alert time'
                 );
 
@@ -157,7 +157,7 @@ router.put(
             }
 
             if (!handleDefault && Number(alertTime) >= Number(duration)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Alert time should be always less than duration'
                 );
 
@@ -166,7 +166,7 @@ router.put(
             }
 
             const data: $TSFixMe = { ...req.body };
-            const incidentSla =
+            const incidentSla: $TSFixMe =
                 await IncidentCommunicationSlaService.updateOneBy(
                     { projectId, _id: incidentSlaId },
                     data
@@ -184,9 +184,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, incidentSlaId } = req.params;
+            const { projectId, incidentSlaId }: $TSFixMe = req.params;
 
-            const deletedIncidentSla =
+            const deletedIncidentSla: $TSFixMe =
                 await IncidentCommunicationSlaService.deleteBy({
                     _id: incidentSlaId,
                     projectId,
@@ -204,15 +204,15 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
+            const { projectId }: $TSFixMe = req.params;
 
-            const selectIncidentComSla =
+            const selectIncidentComSla: $TSFixMe =
                 'name projectId isDefault alertTime alertTime deleted duration';
 
-            const populateIncidentComSla = [
+            const populateIncidentComSla: $TSFixMe = [
                 { path: 'projectId', select: 'name slug' },
             ];
-            const defaultSla = await IncidentCommunicationSlaService.findOneBy({
+            const defaultSla: $TSFixMe = await IncidentCommunicationSlaService.findOneBy({
                 query: { projectId, isDefault: true },
                 select: selectIncidentComSla,
                 populate: populateIncidentComSla,

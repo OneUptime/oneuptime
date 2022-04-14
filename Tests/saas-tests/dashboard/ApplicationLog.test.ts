@@ -9,11 +9,11 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
 const applicationLogName: string = 'AppLogName';
 
 describe('Log Containers', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -119,7 +119,7 @@ describe('Log Containers', () => {
 
             // find the log api key button which appears only on the details page
 
-            const logKeyElement = await init.pageWaitForSelector(
+            const logKeyElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#key_${applicationLogName}`
             );
@@ -269,7 +269,7 @@ describe('Log Containers', () => {
 
             // get the error element, Expect it to be defined
 
-            const errorElement = await init.pageWaitForSelector(
+            const errorElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#${applicationLogName}-no-log-warning`
             );

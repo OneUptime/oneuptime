@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -13,7 +13,7 @@ const user: $TSFixMe = {
 };
 
 describe('New Monitor API', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut: $TSFixMe = 1000000;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -34,7 +34,7 @@ describe('New Monitor API', () => {
     test(
         'should not show any upgrade modal if the project plan is on Scale plan and above',
         async (done: $TSFixMe) => {
-            const projectName = utils.generateRandomString();
+            const projectName: $TSFixMe = utils.generateRandomString();
             const componentName = utils.generateRandomString();
             await init.addScaleProject(projectName, page);
             // create a component

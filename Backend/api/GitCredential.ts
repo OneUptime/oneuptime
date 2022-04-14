@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -13,7 +13,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import GitCredentialService from '../services/gitCredentialService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.post(
     '/:projectId/gitCredential',
@@ -21,19 +21,19 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { gitUsername, gitPassword, sshTitle, sshPrivateKey } =
+            const { gitUsername, gitPassword, sshTitle, sshPrivateKey }: $TSFixMe =
                 req.body;
-            const { projectId } = req.params;
+            const { projectId }: $TSFixMe = req.params;
 
             if (gitUsername && gitPassword) {
-                const response = await GitCredentialService.create({
+                const response: $TSFixMe = await GitCredentialService.create({
                     gitUsername,
                     gitPassword,
                     projectId,
                 });
                 return sendItemResponse(req, res, response);
             } else if (sshTitle && sshPrivateKey) {
-                const response = await GitCredentialService.create({
+                const response: $TSFixMe = await GitCredentialService.create({
                     sshTitle,
                     sshPrivateKey,
                     projectId,
@@ -57,15 +57,15 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
+            const { projectId }: $TSFixMe = req.params;
 
-            const selectGitCredentials =
+            const selectGitCredentials: $TSFixMe =
                 'sshTitle sshPrivateKey gitUsername gitPassword iv projectId deleted';
 
-            const populateGitCredentials = [
+            const populateGitCredentials: $TSFixMe = [
                 { path: 'projectId', select: 'name slug' },
             ];
-            const gitCredentials = await GitCredentialService.findBy({
+            const gitCredentials: $TSFixMe = await GitCredentialService.findBy({
                 query: { projectId },
                 select: selectGitCredentials,
                 populate: populateGitCredentials,
@@ -83,8 +83,8 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { credentialId } = req.params;
-            const { gitUsername, gitPassword, sshTitle, sshPrivateKey } =
+            const { credentialId }: $TSFixMe = req.params;
+            const { gitUsername, gitPassword, sshTitle, sshPrivateKey }: $TSFixMe =
                 req.body;
 
             const data: $TSFixMe = {};
@@ -104,7 +104,7 @@ router.put(
                 data.sshPrivateKey = sshPrivateKey;
             }
 
-            const gitCredential = await GitCredentialService.updateOneBy(
+            const gitCredential: $TSFixMe = await GitCredentialService.updateOneBy(
                 { _id: credentialId },
                 data
             );
@@ -121,9 +121,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { credentialId } = req.params;
+            const { credentialId }: $TSFixMe = req.params;
 
-            const deletedGitCredential = await GitCredentialService.deleteBy({
+            const deletedGitCredential: $TSFixMe = await GitCredentialService.deleteBy({
                 _id: credentialId,
             });
 

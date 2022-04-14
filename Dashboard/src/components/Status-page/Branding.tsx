@@ -102,7 +102,7 @@ export class Branding extends Component<BrandingProps>{
     };
 
     handleChange = (color: $TSFixMe) => {
-        const { currentColorPicker } = this.state;
+        const { currentColorPicker }: $TSFixMe = this.state;
 
         let newColors = this.props.colors;
         newColors = { ...newColors, [currentColorPicker]: color.rgb };
@@ -113,8 +113,8 @@ export class Branding extends Component<BrandingProps>{
     changelogo = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
 
@@ -129,8 +129,8 @@ export class Branding extends Component<BrandingProps>{
 
     updloadBannerHandler = (e: $TSFixMe) => {
         e.preventDefault();
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
 
@@ -146,8 +146,8 @@ export class Branding extends Component<BrandingProps>{
     changefavicon = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
 
@@ -162,7 +162,7 @@ export class Branding extends Component<BrandingProps>{
     removeImageHandler = (e: $TSFixMe) => {
         const values: $TSFixMe = {};
 
-        const { _id } = this.props.statusPage.status;
+        const { _id }: $TSFixMe = this.props.statusPage.status;
 
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
@@ -206,7 +206,7 @@ export class Branding extends Component<BrandingProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const { _id } = this.props.statusPage.status;
+        const { _id }: $TSFixMe = this.props.statusPage.status;
 
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
@@ -250,12 +250,12 @@ export class Branding extends Component<BrandingProps>{
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
         let faviconImage = <span />;
         let logoImage = <span />;
         let bannerImage = <span />;
 
-        const logoUrl = this.props.logourl
+        const logoUrl: $TSFixMe = this.props.logourl
 
             ? this.props.logourl
 
@@ -266,7 +266,7 @@ export class Branding extends Component<BrandingProps>{
                 ? `${API_URL}/file/${this.props.statusPage.status.logoPath}`
                 : '';
 
-        const faviconUrl = this.props.faviconurl
+        const faviconUrl: $TSFixMe = this.props.faviconurl
 
             ? this.props.faviconurl
 
@@ -277,7 +277,7 @@ export class Branding extends Component<BrandingProps>{
                 ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}`
                 : '';
 
-        const bannerUrl = this.props.bannerurl
+        const bannerUrl: $TSFixMe = this.props.bannerurl
 
             ? this.props.bannerurl
 
@@ -287,7 +287,7 @@ export class Branding extends Component<BrandingProps>{
 
                 ? `${API_URL}/file/${this.props.statusPage.status.bannerPath}`
                 : '';
-        const colors =
+        const colors: $TSFixMe =
 
             this.props.colors && Object.keys(this.props.colors).length > 0
 
@@ -340,7 +340,7 @@ export class Branding extends Component<BrandingProps>{
             );
         }
 
-        const { _id } = this.props.statusPage.status;
+        const { _id }: $TSFixMe = this.props.statusPage.status;
 
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
@@ -929,7 +929,7 @@ Branding.propTypes = {
     bannerurl: PropTypes.string,
 };
 
-const BrandingForm = reduxForm({
+const BrandingForm: $TSFixMe = reduxForm({
     form: 'Branding', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for

@@ -21,7 +21,7 @@ export default class TableColumn extends Component<TableColumnProps>{
 
     getElement() {
 
-        const { title, onClick } = this.props;
+        const { title, onClick }: $TSFixMe = this.props;
 
         return (
             <td onClick={onClick}>

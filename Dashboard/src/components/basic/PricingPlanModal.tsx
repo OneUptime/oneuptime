@@ -83,7 +83,7 @@ class PricingPlanModal extends Component<ComponentProps> {
 
             details: oldDetails,
         } = PricingPlan.getPlanById(currentPlanId);
-        const oldPlan:string = `${oldCategory} ${oldType}ly (${oldDetails})`;
+        const oldPlan:string: $TSFixMe = `${oldCategory} ${oldType}ly (${oldDetails})`;
         const {
 
             category: newCategory,
@@ -93,7 +93,7 @@ class PricingPlanModal extends Component<ComponentProps> {
             details: newDetails,
         } = PricingPlan.getPlanById(values.planId);
 
-        const newPlan:string = `${newCategory} ${newType}ly (${newDetails})`;
+        const newPlan:string: $TSFixMe = `${newCategory} ${newType}ly (${newDetails})`;
 
         changePlan(id, values.planId, name, oldPlan, newPlan).then(() => {
             if (!error) {
@@ -120,7 +120,7 @@ class PricingPlanModal extends Component<ComponentProps> {
             activePlan,
         } = this.props;
 
-        const plans = PricingPlan.getPlans();
+        const plans: $TSFixMe = PricingPlan.getPlans();
         return (
             <div
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
@@ -327,7 +327,7 @@ PricingPlanModal.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const currentPlanId =
+    const currentPlanId: $TSFixMe =
         state.project &&
             state.project.currentProject &&
             state.project.currentProject.stripePlanId
@@ -351,7 +351,7 @@ const mapStateToProps: Function = (state: RootState) => {
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, changePlan }, dispatch);
 
-const PricingForm = new reduxForm({
+const PricingForm: $TSFixMe = new reduxForm({
     form: 'PricingForm',
     validate,
     enableReinitialize: true,

@@ -84,14 +84,14 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
 
             monitors,
         } = this.props;
-        const projectId = data.projectId;
+        const projectId: $TSFixMe = data.projectId;
         const postObj: $TSFixMe = {};
 
         if (
             this.state.selectedMonitors &&
             this.state.selectedMonitors.length > 0
         ) {
-            const monitors = this.state.selectedMonitors;
+            const monitors: $TSFixMe = this.state.selectedMonitors;
 
             postObj.monitors = monitors;
         } else {
@@ -130,7 +130,7 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
         postObj.interval = values.interval;
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -202,12 +202,12 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitors;
+        const monitors: $TSFixMe = this.props.monitors;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -280,7 +280,7 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -408,7 +408,7 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
             selectData,
         } = this.state;
 
-        const { formValues } = this.props;
+        const { formValues }: $TSFixMe = this.props;
         const {
 
             requesting,
@@ -1302,7 +1302,7 @@ CreateSchedule.propTypes = {
     change: PropTypes.func,
 };
 
-const NewCreateSchedule = reduxForm({
+const NewCreateSchedule: $TSFixMe = reduxForm({
     form: 'newCreateSchedule',
     enableReinitialize: false,
     validate,
@@ -1319,11 +1319,11 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const selector = formValueSelector('newCreateSchedule');
+const selector: $TSFixMe = formValueSelector('newCreateSchedule');
 
 const mapStateToProps: Function = (state: RootState) => {
-    const minStartDate = selector(state, 'startDate');
-    const currentDate = moment().format();
+    const minStartDate: $TSFixMe = selector(state, 'startDate');
+    const currentDate: $TSFixMe = moment().format();
 
     const monitors: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((monitorObj: $TSFixMe) => {

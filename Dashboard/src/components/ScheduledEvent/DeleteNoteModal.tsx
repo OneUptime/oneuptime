@@ -67,7 +67,7 @@ class DeleteNoteModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { deletingNote, closeThisDialog } = this.props;
+        const { deletingNote, closeThisDialog }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

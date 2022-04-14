@@ -24,7 +24,7 @@ export const fetchAuditLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const fetchAuditLogs =
+export const fetchAuditLogs: $TSFixMe =
     (skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
@@ -33,11 +33,11 @@ export const fetchAuditLogs =
         dispatch(fetchAuditLogsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `audit-logs?skip=${skip}&limit=${limit}`
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(fetchAuditLogsSuccess(data));
 
@@ -80,7 +80,7 @@ export const searchAuditLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const searchAuditLogs =
+export const searchAuditLogs: $TSFixMe =
     (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
@@ -90,12 +90,12 @@ export const searchAuditLogs =
         dispatch(searchAuditLogsRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `audit-logs/search?skip=${skip}&limit=${limit}`,
                 values
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(searchAuditLogsSuccess(data));
             return response;
@@ -137,15 +137,15 @@ export const deleteAuditLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteAuditLogs =
+export const deleteAuditLogs: $TSFixMe =
     () =>
     async (dispatch: Dispatch): void => {
         dispatch(deleteAuditLogsRequest());
 
         try {
-            const response = await delete `audit-logs`;
+            const response: $TSFixMe = await delete `audit-logs`;
 
-            const message = response.data.message;
+            const message: $TSFixMe = response.data.message;
 
             dispatch(deleteAuditLogsSuccess(message));
         } catch (error) {
@@ -199,13 +199,13 @@ export const resetFetchAuditLogStatus: Function = (): void => {
 };
 
 // Calls the API to fetch auditLogStatus
-export const fetchAuditLogStatus =
+export const fetchAuditLogStatus: $TSFixMe =
     () =>
     async (dispatch: Dispatch): void => {
         dispatch(fetchAuditLogStatusRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 'globalConfig/auditLogMonitoringStatus'
             );
 
@@ -263,16 +263,16 @@ export const resetConfirmAuditLogStatus: Function = (): void => {
 };
 
 // Calls the API to change auditLogStatus
-export const auditLogStatusChange =
+export const auditLogStatusChange: $TSFixMe =
     (values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(changeAuditLogStatusRequest());
 
         try {
-            const response = await BackendAPI.post(new Route('globalConfig/'), [
+            const response: $TSFixMe = await BackendAPI.post(new Route('globalConfig/'), [
                 { name: 'auditLogMonitoringStatus', value: values.status },
             ]);
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
             dispatch(changeAuditLogStatusSuccess(data));
             return data;
         } catch (error) {

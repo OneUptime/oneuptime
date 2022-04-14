@@ -41,7 +41,7 @@ class AuditLog extends Component<ComponentProps> {
     };
     override render() {
 
-        const { changeAuditLogStatus, handleSubmit } = this.props;
+        const { changeAuditLogStatus, handleSubmit }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeAuditLog"
@@ -167,8 +167,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const auditLogStatus = state.auditLogs.auditLogStatus;
-    const changeAuditLogStatus = state.auditLogs.changeAuditLogStatus;
+    const auditLogStatus: $TSFixMe = state.auditLogs.auditLogStatus;
+    const changeAuditLogStatus: $TSFixMe = state.auditLogs.changeAuditLogStatus;
     return {
         settings: state.settings,
         auditLogStatus,
@@ -180,7 +180,7 @@ function mapStateToProps(state: RootState) {
         },
     };
 }
-const ReduxFormComponent = reduxForm({
+const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'audit-log-toggle-form',
     enableReinitialize: true,
 })(AuditLog);

@@ -1,13 +1,13 @@
 import { lazy } from 'react';
 
-const Login = lazy(() => import('./Login'));
-const SsoLogin = lazy(() => import('./SsoLogin'));
-const Register = lazy(() => import('./Register'));
-const ResetPassword = lazy(() => import('./ResetPassword'));
-const ChangePassword = lazy(() => import('./ChangePassword'));
-const ResendToken = lazy(() => import('./ResendToken'));
-const VerifyAuthToken = lazy(() => import('./VerifyAuthToken'));
-const VerifyBackupCode = lazy(() => import('./VerifyBackupCode'));
+const Login = lazy((): $TSFixMe => import('./Login'));
+const SsoLogin = lazy((): $TSFixMe => import('./SsoLogin'));
+const Register = lazy((): $TSFixMe => import('./Register'));
+const ResetPassword = lazy((): $TSFixMe => import('./ResetPassword'));
+const ChangePassword = lazy((): $TSFixMe => import('./ChangePassword'));
+const ResendToken = lazy((): $TSFixMe => import('./ResendToken'));
+const VerifyAuthToken = lazy((): $TSFixMe => import('./VerifyAuthToken'));
+const VerifyBackupCode = lazy((): $TSFixMe => import('./VerifyBackupCode'));
 
 export default {
     ResetPassword,

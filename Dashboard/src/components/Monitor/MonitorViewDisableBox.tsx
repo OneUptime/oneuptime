@@ -29,11 +29,11 @@ export class MonitorViewDisableBox extends Component<MonitorViewDisableBoxProps>
     }
 
     disableMonitor = async () => {
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.monitor.projectId._id || this.props.monitor.projectId;
 
-        const promise = await this.props.disableMonitor(
+        const promise: $TSFixMe = await this.props.disableMonitor(
 
             this.props.monitor._id,
             projectId
@@ -67,8 +67,8 @@ export class MonitorViewDisableBox extends Component<MonitorViewDisableBoxProps>
             disabling = true;
         }
 
-        const { disableModalId } = this.state;
-        const disabledMonitor =
+        const { disableModalId }: $TSFixMe = this.state;
+        const disabledMonitor: $TSFixMe =
 
             this.props.monitor && this.props.monitor.disabled;
         return (

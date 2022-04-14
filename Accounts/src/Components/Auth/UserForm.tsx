@@ -29,7 +29,7 @@ class UserForm extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const query = queryString.parse(this.props.location.search);
+        const query: $TSFixMe = queryString.parse(this.props.location.search);
 
         if (query && query.status === 'user-not-found') {
             this.setState({
@@ -44,7 +44,7 @@ class UserForm extends Component<ComponentProps> {
     }
 
     override render() {
-        const { serverResponse } = this.state;
+        const { serverResponse }: $TSFixMe = this.state;
         return (
             <div id="main-body" className="box css" style={{ width: 500 }}>
                 <div className="inner">
@@ -292,7 +292,7 @@ class UserForm extends Component<ComponentProps> {
 
 UserForm.displayName = 'UserForm';
 
-const validate = function (values: $TSFixMe) {
+const validate: $TSFixMe = function (values: $TSFixMe) {
     const error: $TSFixMe = {};
 
 
@@ -354,7 +354,7 @@ const validate = function (values: $TSFixMe) {
     return error;
 };
 
-const userForm = reduxForm({
+const userForm: $TSFixMe = reduxForm({
     form: 'UserSignupForm', // <------ same form name
     destroyOnUnmount: true,
     validate,

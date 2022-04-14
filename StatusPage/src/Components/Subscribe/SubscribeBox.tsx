@@ -46,7 +46,7 @@ class SubscribeBox extends Component<ComponentProps> {
     };
     override render() {
 
-        const { statusPage } = this.props;
+        const { statusPage }: $TSFixMe = this.props;
         const {
             enableRSSFeed,
             smsNotification,
@@ -55,7 +55,7 @@ class SubscribeBox extends Component<ComponentProps> {
             selectIndividualMonitors,
         } = statusPage;
 
-        const theme = this.props.theme;
+        const theme: $TSFixMe = this.props.theme;
         return (
             <div className="subscribe-overlay">
                 <ClickOutHandler

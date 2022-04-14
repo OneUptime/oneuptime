@@ -70,7 +70,7 @@ export default function monitorCustomField(
             };
 
         case types.DELETE_CUSTOM_FIELD_SUCCESS: {
-            const fields = state.monitorCustomFields.fields.filter(
+            const fields: $TSFixMe = state.monitorCustomFields.fields.filter(
                 field => String(field._id) !== String(action.payload._id)
             );
             return {
@@ -148,7 +148,7 @@ export default function monitorCustomField(
             };
 
         case types.UPDATE_CUSTOM_FIELD_SUCCESS: {
-            const fields = state.monitorCustomFields.fields.map(field => {
+            const fields = state.monitorCustomFields.fields.map(field: $TSFixMe => {
                 if (String(field._id) === String(action.payload._id)) {
                     field = action.payload;
                 }

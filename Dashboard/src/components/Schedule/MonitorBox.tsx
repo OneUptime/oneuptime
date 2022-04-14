@@ -17,9 +17,9 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import Tooltip from '../basic/Tooltip';
 
 function submitMonitorForm(values: $TSFixMe, dispatch: Dispatch, props: $TSFixMe) {
-    const subProjectId = props && props.subProjectId;
-    const scheduleId = props && props.scheduleId;
-    const monitors = [];
+    const subProjectId: $TSFixMe = props && props.subProjectId;
+    const scheduleId: $TSFixMe = props && props.scheduleId;
+    const monitors: $TSFixMe = [];
 
     for (const id in values) {
         if (
@@ -36,9 +36,9 @@ function submitMonitorForm(values: $TSFixMe, dispatch: Dispatch, props: $TSFixMe
 }
 
 export const MonitorBox: Function = (props: $TSFixMe) => {
-    const { currentProject, subProjects, subProjectId, schedule } = props;
-    const currentProjectId = currentProject ? currentProject._id : null;
-    const slug = currentProject ? currentProject.slug : null;
+    const { currentProject, subProjects, subProjectId, schedule }: $TSFixMe = props;
+    const currentProjectId: $TSFixMe = currentProject ? currentProject._id : null;
+    const slug: $TSFixMe = currentProject ? currentProject.slug : null;
     let subProject = currentProjectId === subProjectId ? currentProject : false;
     if (!subProject && subProjectId) {
         subProject = subProjects.find(
@@ -323,13 +323,13 @@ export const MonitorBox: Function = (props: $TSFixMe) => {
 
 MonitorBox.displayName = 'MonitorBox';
 
-const AddMonitorsForm = new reduxForm({
+const AddMonitorsForm: $TSFixMe = new reduxForm({
     form: 'AddMonitorsForm',
     enableReinitialize: true,
 })(MonitorBox);
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { scheduleSlug } = props.match.params;
+    const { scheduleSlug }: $TSFixMe = props.match.params;
     const initialValues: $TSFixMe = {};
     let schedule = state.schedule.subProjectSchedules.map(
         (subProjectSchedule: $TSFixMe) => {
@@ -342,18 +342,18 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     schedule = schedule.find(
         (schedule: $TSFixMe) => schedule && schedule.slug === scheduleSlug
     );
-    const subProjectId = schedule && schedule.projectId._id;
-    const monitors = state.monitor.monitorsList.monitors
+    const subProjectId: $TSFixMe = schedule && schedule.projectId._id;
+    const monitors: $TSFixMe = state.monitor.monitorsList.monitors
         .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
-    const isRequesting = state.schedule.addMonitor.requesting;
-    const currentProject = state.project.currentProject;
+    const isRequesting: $TSFixMe = state.schedule.addMonitor.requesting;
+    const currentProject: $TSFixMe = state.project.currentProject;
 
     if (monitors.length > 0 && schedule) {
-        const scheduleMonitorIds = schedule.monitorIds.map(({
+        const scheduleMonitorIds: $TSFixMe = schedule.monitorIds.map(({
             _id
         }: $TSFixMe) => _id);
-        const monitorIds = monitors.map(({
+        const monitorIds: $TSFixMe = monitors.map(({
             _id
         }: $TSFixMe) => _id);
 
@@ -367,7 +367,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
         initialValues.isDefault = schedule.isDefault;
     }
 
-    const subProjects = state.subProject.subProjects.subProjects;
+    const subProjects: $TSFixMe = state.subProject.subProjects.subProjects;
 
     return {
         initialValues,

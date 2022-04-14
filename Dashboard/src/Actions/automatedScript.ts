@@ -43,7 +43,7 @@ export const createAutomatedScript: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`automated-scripts/${projectId}`, data);
+        const promise: $TSFixMe = BackendAPI.post(`automated-scripts/${projectId}`, data);
 
         dispatch(createAutomatedScriptRequest());
 
@@ -107,7 +107,7 @@ export function updateAutomatedScript(
     data: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `automated-scripts/${projectId}/${automatedScriptId}`,
             data
         );
@@ -175,7 +175,7 @@ export function fetchSingleAutomatedScript(
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `automated-scripts/${projectId}/${automatedSlug}?skip=${skip}&limit=${limit}`
         );
 
@@ -229,7 +229,7 @@ export function fetchAutomatedScript(
     limit: PositiveNumber
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `automated-scripts/${projectId}?skip=${skip}&limit=${limit}`
         );
 
@@ -271,7 +271,7 @@ export const runScript: Function = (
     automatedScriptId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `automated-scripts/${projectId}/${automatedScriptId}/run`
         );
         dispatch(runAutomatedScriptRequest());
@@ -316,7 +316,7 @@ export function deleteAutomatedScript(
     automatedSlug: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise =
+        const promise: $TSFixMe =
             delete `automated-scripts/${projectId}/${automatedSlug}`;
         dispatch(deleteAutomatedScriptRequest());
 

@@ -20,12 +20,12 @@ export default class Service {
             await IncidentService.refreshInterval(data.incidentId);
         }
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'incidentId', select: 'idNumber name slug' },
             { path: 'createdById', select: 'name' },
         ];
 
-        const select =
+        const select: $TSFixMe =
             '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
 
         incidentMessage = await this.findOneBy({
@@ -59,12 +59,12 @@ export default class Service {
             }
         );
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'incidentId', select: 'idNumber name slug' },
             { path: 'createdById', select: 'name' },
         ];
 
-        const select =
+        const select: $TSFixMe =
             '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
 
         incidentMessage = await this.findOneBy({ query, populate, select });
@@ -83,14 +83,14 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const incidentMessageQuery = IncidentMessageModel.findOne(query)
+        const incidentMessageQuery: $TSFixMe = IncidentMessageModel.findOne(query)
             .sort(sort)
             .lean();
 
         incidentMessageQuery.select(select);
         incidentMessageQuery.populate(populate);
 
-        const incidentMessage = await incidentMessageQuery;
+        const incidentMessage: $TSFixMe = await incidentMessageQuery;
         return incidentMessage;
     }
 
@@ -115,14 +115,14 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const incidentMessagesQuery = IncidentMessageModel.find(query)
+        const incidentMessagesQuery: $TSFixMe = IncidentMessageModel.find(query)
             .lean()
             .sort(sort) // fetch from latest to oldest
             .limit(limit.toNumber())
             .skip(skip.toNumber());
         incidentMessagesQuery.select(select);
         incidentMessagesQuery.populate(populate);
-        const incidentMessages = await incidentMessagesQuery;
+        const incidentMessages: $TSFixMe = await incidentMessagesQuery;
         return incidentMessages;
     }
 
@@ -134,7 +134,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const count = await IncidentMessageModel.countDocuments(query);
+        const count: $TSFixMe = await IncidentMessageModel.countDocuments(query);
 
         return count;
     }
@@ -145,7 +145,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const incidentMessage = await IncidentMessageModel.findOneAndUpdate(
+        const incidentMessage: $TSFixMe = await IncidentMessageModel.findOneAndUpdate(
             query,
             {
                 $set: {

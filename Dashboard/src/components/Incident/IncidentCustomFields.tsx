@@ -31,14 +31,14 @@ interface IncidentCustomFieldsProps {
 class IncidentCustomFields extends Component<ComponentProps> {
     override componentDidMount() {
 
-        const { fetchCustomFields, currentProject, limit } = this.props;
-        const projectId = currentProject._id;
+        const { fetchCustomFields, currentProject, limit }: $TSFixMe = this.props;
+        const projectId: $TSFixMe = currentProject._id;
         fetchCustomFields(projectId, 0, limit);
     }
 
     prevClicked = (projectId: string) => {
 
-        const { fetchCustomFields, skip, limit } = this.props;
+        const { fetchCustomFields, skip, limit }: $TSFixMe = this.props;
         fetchCustomFields(
             projectId,
             skip ? Number(skip) - limit : limit,
@@ -50,7 +50,7 @@ class IncidentCustomFields extends Component<ComponentProps> {
 
     nextClicked = (projectId: string) => {
 
-        const { fetchCustomFields, skip, limit } = this.props;
+        const { fetchCustomFields, skip, limit }: $TSFixMe = this.props;
         fetchCustomFields(projectId, skip ? Number(skip) + limit : limit, 10);
 
         this.props.paginate('next');
@@ -77,10 +77,10 @@ class IncidentCustomFields extends Component<ComponentProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
-        const projectName = currentProject ? currentProject.name : '';
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">

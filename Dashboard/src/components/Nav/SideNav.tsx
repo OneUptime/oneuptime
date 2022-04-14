@@ -161,7 +161,7 @@ class SideNav extends Component<ComponentProps> {
     );
 
     renderUserProfile = () => {
-        const IMG_URL =
+        const IMG_URL: $TSFixMe =
 
             this.props.profilePic &&
 
@@ -213,7 +213,7 @@ class SideNav extends Component<ComponentProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const switchToComponentDetailNav =
+        const switchToComponentDetailNav: $TSFixMe =
             location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/monitoring/
             ) ||
@@ -253,7 +253,7 @@ class SideNav extends Component<ComponentProps> {
             location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/settings\/advanced/
             );
-        const switchToProfileNav =
+        const switchToProfileNav: $TSFixMe =
             location.pathname.match(/profile\/settings/) ||
             location.pathname.match(/profile\/changePassword/) ||
             location.pathname.match(/profile\/billing/) ||
@@ -261,9 +261,9 @@ class SideNav extends Component<ComponentProps> {
 
         let groupsToRender: $TSFixMe = [];
 
-        const user = User.getUserId();
+        const user: $TSFixMe = User.getUserId();
 
-        const isViewer = isSubProjectViewer(user, this.props.activeProject);
+        const isViewer: $TSFixMe = isSubProjectViewer(user, this.props.activeProject);
 
         if ((switchToProjectViewerNav || isViewer) && !switchToProfileNav) {
             groupsToRender = groups
@@ -319,8 +319,8 @@ class SideNav extends Component<ComponentProps> {
             }
         }
 
-        const { componentSlug } = this.props.match.params;
-        const selectedComponent = allIndividualComponents.find(
+        const { componentSlug }: $TSFixMe = this.props.match.params;
+        const selectedComponent: $TSFixMe = allIndividualComponents.find(
             (component: $TSFixMe) => component.slug === componentSlug
         );
 
@@ -353,7 +353,7 @@ class SideNav extends Component<ComponentProps> {
                                 this.state.navLoading === 'noProjectShow') &&
 
                                 groupsToRender.map((group, index, array) => {
-                                    const marginClass =
+                                    const marginClass: $TSFixMe =
                                         index === array.length - 1
                                             ? 'Box-root '
                                             : 'Box-root Margin-bottom--16';
@@ -446,24 +446,24 @@ class SideNav extends Component<ComponentProps> {
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function (state: RootState) {
-    const allIndividualComponents = state.component.componentList.components.reduce(
+const mapStateToProps: $TSFixMe = function (state: RootState) {
+    const allIndividualComponents: $TSFixMe = state.component.componentList.components.reduce(
         (acc: $TSFixMe, curr: $TSFixMe) => acc.concat(curr.components || []),
         []
     );
-    const settings = state.profileSettings.profileSetting.data;
-    const profilePic = settings ? settings.profilePic : '';
-    const userName = settings ? settings.name : '';
+    const settings: $TSFixMe = state.profileSettings.profileSetting.data;
+    const profilePic: $TSFixMe = settings ? settings.profilePic : '';
+    const userName: $TSFixMe = settings ? settings.name : '';
 
-    const currentProject = state.project.currentProject;
-    const subProjects = state.subProject.subProjects.subProjects;
-    const activesubProjectId = state.subProject.activeSubProject;
-    const allProjects = [...subProjects];
+    const currentProject: $TSFixMe = state.project.currentProject;
+    const subProjects: $TSFixMe = state.subProject.subProjects.subProjects;
+    const activesubProjectId: $TSFixMe = state.subProject.activeSubProject;
+    const allProjects: $TSFixMe = [...subProjects];
     if (currentProject) {
         allProjects.push(currentProject);
     }
 
-    const activeProject = allProjects.find(
+    const activeProject: $TSFixMe = allProjects.find(
         project => String(project._id) === String(activesubProjectId)
     );
 
@@ -482,7 +482,7 @@ const mapStateToProps = function (state: RootState) {
     };
 };
 
-const mapDispatchToProps = function (dispatch: Dispatch) {
+const mapDispatchToProps: $TSFixMe = function (dispatch: Dispatch) {
     return bindActionCreators(
         {
             openModal,
@@ -529,10 +529,10 @@ interface WrappedSideNavProps {
 // we rebuild the routes here to enable access to these properties
 
 const WrappedSideNav: Function = (props: WrappedSideNavProps) => {
-    const hideProjectNav =
+    const hideProjectNav: $TSFixMe =
         props.currentProject?._id !== props.activesubProjectId;
 
-    const titleToExclude = [
+    const titleToExclude: $TSFixMe = [
         'Project Settings',
         'Resources',
         'Billing',

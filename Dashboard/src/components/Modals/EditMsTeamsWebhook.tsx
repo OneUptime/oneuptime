@@ -70,10 +70,10 @@ class EditWebHook extends React.Component<EditWebHookProps> {
         } = this.props;
 
         const postObj: $TSFixMe = {};
-        const { selectAllMonitors } = values;
-        const monitorId = data.currentMonitorId;
+        const { selectAllMonitors }: $TSFixMe = values;
+        const monitorId: $TSFixMe = data.currentMonitorId;
         let monitors = [];
-        const allMonitors = monitor.monitorsList.monitors
+        const allMonitors: $TSFixMe = monitor.monitorsList.monitors
             .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
 
@@ -123,7 +123,7 @@ class EditWebHook extends React.Component<EditWebHookProps> {
             : false;
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -160,12 +160,12 @@ class EditWebHook extends React.Component<EditWebHookProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -238,7 +238,7 @@ class EditWebHook extends React.Component<EditWebHookProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -361,10 +361,10 @@ class EditWebHook extends React.Component<EditWebHookProps> {
 
     override render() {
 
-        const { handleSubmit, closeThisDialog, data } = this.props;
+        const { handleSubmit, closeThisDialog, data }: $TSFixMe = this.props;
 
 
-        const { formValues } = this.props;
+        const { formValues }: $TSFixMe = this.props;
         const {
             selectedProjects,
             selectedComponents,
@@ -372,10 +372,10 @@ class EditWebHook extends React.Component<EditWebHookProps> {
             selectData,
         } = this.state;
 
-        const monitorList = [];
+        const monitorList: $TSFixMe = [];
 
 
-        const allMonitors = this.props.monitor.monitorsList.monitors
+        const allMonitors: $TSFixMe = this.props.monitor.monitorsList.monitors
             .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
         if (allMonitors && allMonitors.length > 0) {
@@ -986,7 +986,7 @@ EditWebHook.propTypes = {
     formValues: PropTypes.object,
 };
 
-const NewEditWebHook = compose(
+const NewEditWebHook: $TSFixMe = compose(
     reduxForm({
         form: 'NewEditMsTeamsWebHook',
         validate,

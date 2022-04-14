@@ -67,7 +67,7 @@ export class SmsTemplatesFormBox extends Component<SmsTemplatesFormBoxProps>{
     }
     resetTemplate = (id: $TSFixMe) => {
 
-        const promise = this.props.resetTemplate(id);
+        const promise: $TSFixMe = this.props.resetTemplate(id);
 
         this.props.closeModal({
 
@@ -397,7 +397,7 @@ SmsTemplatesFormBox.propTypes = {
     closeModal: PropTypes.func,
 };
 
-const SmsTemplatesFormBoxForm = reduxForm({
+const SmsTemplatesFormBoxForm: $TSFixMe = reduxForm({
     form: 'smstemplatesform', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for
@@ -415,7 +415,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const template = state.smsTemplates.showingTemplate;
+    const template: $TSFixMe = state.smsTemplates.showingTemplate;
     const val: $TSFixMe = {
         body: template.body,
         sms_type: template.smsType,

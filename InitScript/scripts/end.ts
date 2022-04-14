@@ -1,4 +1,4 @@
-const PKG_VERSION = require('../package.json').version;
+const PKG_VERSION: $TSFixMe = require('../package.json').version;
 
 import { update } from '../util/db';
 

@@ -5,7 +5,7 @@ const resolveIncident: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     const data: $TSFixMe = {
         incidents: bundle.inputData.incidents,
     };
-    const responsePromise = z.request({
+    const responsePromise: $TSFixMe = z.request({
         method: 'POST',
         url: `${bundle.authData.serverUrl}/zapier/incident/resolveIncident`,
         body: data,

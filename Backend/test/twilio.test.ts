@@ -7,7 +7,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import incidentData from './data/incident';
@@ -47,7 +47,7 @@ describe('Twilio API', function (): void {
             { role: 'master-admin' }
         );
 
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         await request
@@ -95,7 +95,7 @@ describe('Twilio API', function (): void {
 
     it('should send verification sms code for adding alert phone number', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/twilio/sms/sendVerificationToken?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -106,11 +106,11 @@ describe('Twilio API', function (): void {
 
     it('should send test sms to the provided phone number', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const configuration = await GlobalConfigService.findOneBy({
+        const configuration: $TSFixMe = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value',
         });
-        const value = configuration.value;
+        const value: $TSFixMe = configuration.value;
         const payload: $TSFixMe = {
             accountSid: value['account-sid'],
             authToken: value['authentication-token'],
@@ -118,7 +118,7 @@ describe('Twilio API', function (): void {
             testphoneNumber,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/twilio/sms/test')
             .set('Authorization', authorization)
             .send(payload);
@@ -129,11 +129,11 @@ describe('Twilio API', function (): void {
 
     it('should return status code 400 when any of the payload field is missing', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const configuration = await GlobalConfigService.findOneBy({
+        const configuration: $TSFixMe = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value',
         });
-        const value = configuration.value;
+        const value: $TSFixMe = configuration.value;
 
         const payload: $TSFixMe = {
             accountSid: value['account-sid'],
@@ -141,7 +141,7 @@ describe('Twilio API', function (): void {
             phoneNumber: '',
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/twilio/sms/test')
             .set('Authorization', authorization)
             .send(payload);
@@ -150,11 +150,11 @@ describe('Twilio API', function (): void {
 
     it('should return status code 400 when accountSid is invalid', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const configuration = await GlobalConfigService.findOneBy({
+        const configuration: $TSFixMe = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value name',
         });
-        const value = configuration.value;
+        const value: $TSFixMe = configuration.value;
 
         value['account-sid'] = 'xxuerandomsid';
         const payload: $TSFixMe = {
@@ -164,7 +164,7 @@ describe('Twilio API', function (): void {
             testphoneNumber,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/twilio/sms/test')
             .set('Authorization', authorization)
             .send(payload);
@@ -173,11 +173,11 @@ describe('Twilio API', function (): void {
 
     it('should return status code 400 when authToken is invalid', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const configuration = await GlobalConfigService.findOneBy({
+        const configuration: $TSFixMe = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value name',
         });
-        const value = configuration.value;
+        const value: $TSFixMe = configuration.value;
 
         value['authentication-token'] = 'xxuerandomsid';
         const payload: $TSFixMe = {
@@ -187,7 +187,7 @@ describe('Twilio API', function (): void {
             testphoneNumber,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/twilio/sms/test')
             .set('Authorization', authorization)
             .send(payload);

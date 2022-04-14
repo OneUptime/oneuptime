@@ -33,7 +33,7 @@ interface ContainerSecurityFormProps {
 class ContainerSecurityForm extends Component<ComponentProps> {
     override componentDidMount() {
 
-        const { projectId, getDockerCredentials } = this.props;
+        const { projectId, getDockerCredentials }: $TSFixMe = this.props;
         if (projectId) {
             getDockerCredentials({ projectId });
         }
@@ -42,7 +42,7 @@ class ContainerSecurityForm extends Component<ComponentProps> {
 
         if (prevProps.projectId !== this.props.projectId) {
 
-            const { projectId, getDockerCredentials } = this.props;
+            const { projectId, getDockerCredentials }: $TSFixMe = this.props;
             if (projectId) {
                 getDockerCredentials({ projectId });
             }
@@ -51,7 +51,7 @@ class ContainerSecurityForm extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe, dispatch: Dispatch) => {
 
-        const { componentId, projectId, addContainerSecurity } = this.props;
+        const { componentId, projectId, addContainerSecurity }: $TSFixMe = this.props;
         if (!values) return;
 
         addContainerSecurity({ projectId, componentId, data: values });
@@ -61,7 +61,7 @@ class ContainerSecurityForm extends Component<ComponentProps> {
 
     handleDockerCredential = () => {
 
-        const { openModal, projectId } = this.props;
+        const { openModal, projectId }: $TSFixMe = this.props;
 
         openModal({
             id: projectId,
@@ -409,7 +409,7 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const NewContainerSecurityForm = reduxForm({
+const NewContainerSecurityForm: $TSFixMe = reduxForm({
     form: 'ContainerSecurityForm',
     destroyOnUnmount: true,
     enableReinitialize: true,

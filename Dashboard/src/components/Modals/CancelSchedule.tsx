@@ -44,10 +44,10 @@ class CancelSchedule extends Component<ComponentProps> {
 
     handleCancel = () => {
 
-        const { cancelScheduledEvent, closeModal, modalId, data } = this.props;
-        const { projectId, eventId } = data;
+        const { cancelScheduledEvent, closeModal, modalId, data }: $TSFixMe = this.props;
+        const { projectId, eventId }: $TSFixMe = data;
 
-        const redirect:string = `/dashboard/project/${this.props.slug}/scheduledEvents`;
+        const redirect:string: $TSFixMe = `/dashboard/project/${this.props.slug}/scheduledEvents`;
 
         cancelScheduledEvent(
             projectId,
@@ -61,7 +61,7 @@ class CancelSchedule extends Component<ComponentProps> {
 
     override render() {
 
-        const { isRequesting, closeThisDialog, cancelError } = this.props;
+        const { isRequesting, closeThisDialog, cancelError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

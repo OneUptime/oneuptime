@@ -94,7 +94,7 @@ class RoutingNumberModal extends React.Component<RoutingNumberModalProps> {
             priceUnit,
         } = fetchNumber.numbers;
 
-        const { countryCode, numberType } = this.state;
+        const { countryCode, numberType }: $TSFixMe = this.state;
         const postObj: $TSFixMe = {
             projectId: currentProject._id,
             phoneNumber,
@@ -131,8 +131,8 @@ class RoutingNumberModal extends React.Component<RoutingNumberModalProps> {
     };
     getNumbers = (countryCode: $TSFixMe, numberType: $TSFixMe) => {
 
-        const { currentProject, fetchNumbers } = this.props;
-        const projectId =
+        const { currentProject, fetchNumbers }: $TSFixMe = this.props;
+        const projectId: $TSFixMe =
             currentProject && currentProject._id ? currentProject._id : null;
         fetchNumbers(projectId, countryCode, numberType);
     };
@@ -151,31 +151,31 @@ class RoutingNumberModal extends React.Component<RoutingNumberModalProps> {
 
     override render() {
 
-        const { fetchNumber, saveNumber, closeThisDialog } = this.props;
-        const isRequesting = saveNumber && saveNumber.requesting ? true : false;
-        const isFetching = fetchNumber && fetchNumber.requesting ? true : false;
-        const currentNumber =
+        const { fetchNumber, saveNumber, closeThisDialog }: $TSFixMe = this.props;
+        const isRequesting: $TSFixMe = saveNumber && saveNumber.requesting ? true : false;
+        const isFetching: $TSFixMe = fetchNumber && fetchNumber.requesting ? true : false;
+        const currentNumber: $TSFixMe =
             fetchNumber &&
                 fetchNumber.numbers &&
                 fetchNumber.numbers.phoneNumber &&
                 fetchNumber.numbers.phoneNumber.length
                 ? fetchNumber.numbers.phoneNumber
                 : null;
-        const capabilitiesMMS =
+        const capabilitiesMMS: $TSFixMe =
             fetchNumber &&
                 fetchNumber.numbers &&
                 fetchNumber.numbers.capabilities &&
                 fetchNumber.numbers.capabilities.MMS
                 ? fetchNumber.numbers.capabilities.MMS
                 : false;
-        const capabilitiesSMS =
+        const capabilitiesSMS: $TSFixMe =
             fetchNumber &&
                 fetchNumber.numbers &&
                 fetchNumber.numbers.capabilities &&
                 fetchNumber.numbers.capabilities.SMS
                 ? fetchNumber.numbers.capabilities.SMS
                 : false;
-        const capabilitiesVoice =
+        const capabilitiesVoice: $TSFixMe =
             fetchNumber &&
                 fetchNumber.numbers &&
                 fetchNumber.numbers.capabilities &&
@@ -183,11 +183,11 @@ class RoutingNumberModal extends React.Component<RoutingNumberModalProps> {
                 ? fetchNumber.numbers.capabilities.voice
                 : false;
 
-        const price =
+        const price: $TSFixMe =
             fetchNumber && fetchNumber.numbers && fetchNumber.numbers.price
                 ? fetchNumber.numbers.price
                 : 'Not available';
-        const countryCodes = countryCode();
+        const countryCodes: $TSFixMe = countryCode();
         return (
             <div
                 className="ModalLayer-contents"
@@ -826,7 +826,7 @@ class RoutingNumberModal extends React.Component<RoutingNumberModalProps> {
 
 RoutingNumberModal.displayName = 'RoutingNumberModal';
 
-const NewRoutingNumberModal = reduxForm({
+const NewRoutingNumberModal: $TSFixMe = reduxForm({
     form: 'routingNumberModal', // a unique identifier for this form
     enableReinitialize: true,
     destroyOnUnmount: true,

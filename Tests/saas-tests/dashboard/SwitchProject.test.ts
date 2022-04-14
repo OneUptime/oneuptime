@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -13,7 +13,7 @@ const user: $TSFixMe = {
 };
 
 describe('Project API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -70,10 +70,10 @@ describe('Project API', () => {
                 page.waitForNavigation(),
             ]);
 
-            const localStorageData = await page.evaluate(() => {
+            const localStorageData = await page.evaluate((): $TSFixMe => {
                 const json: $TSFixMe = {};
                 for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
+                    const key: $TSFixMe = localStorage.key(i);
 
                     json[key] = localStorage.getItem(key);
                 }
@@ -104,7 +104,7 @@ describe('Project API', () => {
                 timeout: init.timeout,
             });
 
-            const element = await init.page$(
+            const element: $TSFixMe = await init.page$(
                 page,
                 '#accountSwitcher > div[title="Unnamed Project"]'
             );
@@ -112,10 +112,10 @@ describe('Project API', () => {
             await element.click();
             await page.waitForNavigation();
 
-            const localStorageData = await page.evaluate(() => {
+            const localStorageData = await page.evaluate((): $TSFixMe => {
                 const json: $TSFixMe = {};
                 for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
+                    const key: $TSFixMe = localStorage.key(i);
 
                     json[key] = localStorage.getItem(key);
                 }

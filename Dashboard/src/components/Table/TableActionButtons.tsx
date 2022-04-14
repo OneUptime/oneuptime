@@ -16,7 +16,7 @@ export default class TableActionButtons extends Component<TableActionButtonsProp
 
     override render() {
 
-        const { actionButtons, item } = this.props;
+        const { actionButtons, item }: $TSFixMe = this.props;
 
         return (
             <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord">

@@ -21,7 +21,7 @@ export default class Service {
     //Param 1: data: ComponentModal.
     //Returns: promise with component model or error.
     async create(data: $TSFixMe): void {
-        const existingComponentCount = await this.countBy({
+        const existingComponentCount: $TSFixMe = await this.countBy({
             name: data.name,
             projectId: data.projectId,
         });
@@ -37,12 +37,12 @@ export default class Service {
             select: 'parentProjectId _id stripePlanId seats',
         });
         if (project.parentProjectId) {
-            const subProjectComponentsCount = await this.countBy({
+            const subProjectComponentsCount: $TSFixMe = await this.countBy({
                 name: data.name,
                 projectId: project.parentProjectId,
             });
             if (subProjectComponentsCount && subProjectComponentsCount > 0) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Component with that name already exists.'
                 );
 
@@ -57,7 +57,7 @@ export default class Service {
         }
         let subProjectIds = [];
 
-        const subProjects = await ProjectService.findBy({
+        const subProjects: $TSFixMe = await ProjectService.findBy({
             query: { parentProjectId: project._id },
             select: '_id',
         });
@@ -65,7 +65,7 @@ export default class Service {
             subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
         }
         subProjectIds.push(project._id);
-        const count = await this.countBy({
+        const count: $TSFixMe = await this.countBy({
             projectId: { $in: subProjectIds },
         });
         let plan = Plans.getPlanById(project.stripePlanId);
@@ -80,8 +80,8 @@ export default class Service {
         if (!plan && IS_SAAS_SERVICE) {
             throw new BadDataException('Invalid project plan.');
         } else {
-            const unlimitedComponent = ['Scale', 'Enterprise'];
-            const componentCount =
+            const unlimitedComponent: $TSFixMe = ['Scale', 'Enterprise'];
+            const componentCount: $TSFixMe =
                 plan.category === 'Startup'
                     ? 5
                     : plan.category === 'Growth'
@@ -93,7 +93,7 @@ export default class Service {
                 !IS_SAAS_SERVICE ||
                 unlimitedComponent.includes(plan.category)
             ) {
-                const component = new ComponentModel();
+                const component: $TSFixMe = new ComponentModel();
 
                 component.name = data.name;
 
@@ -105,17 +105,17 @@ export default class Service {
                 if (data && data.name) {
                     component.slug = getSlug(data.name);
                 }
-                const savedComponent = await component.save();
+                const savedComponent: $TSFixMe = await component.save();
 
-                const populateComponent = [
+                const populateComponent: $TSFixMe = [
                     { path: 'projectId', select: 'name' },
                     { path: 'componentCategoryId', select: 'name' },
                 ];
 
-                const selectComponent =
+                const selectComponent: $TSFixMe =
                     '_id createdAt name createdById projectId slug componentCategoryId';
 
-                const populatedComponent = await this.findOneBy({
+                const populatedComponent: $TSFixMe = await this.findOneBy({
                     query: { _id: savedComponent._id },
                     select: selectComponent,
                     populate: populateComponent,
@@ -123,7 +123,7 @@ export default class Service {
 
                 return populatedComponent || savedComponent;
             } else {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     "You can't add any more components. Please add an extra seat to add more components."
                 );
 
@@ -162,12 +162,12 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const populateComponent = [
+        const populateComponent: $TSFixMe = [
             { path: 'projectId', select: 'name' },
             { path: 'componentCategoryId', select: 'name' },
         ];
 
-        const selectComponent =
+        const selectComponent: $TSFixMe =
             '_id createdAt name createdById projectId slug componentCategoryId';
         component = await this.findOneBy({
             query,
@@ -192,12 +192,12 @@ export default class Service {
         let updatedData = await ComponentModel.updateMany(query, {
             $set: data,
         });
-        const populateComponent = [
+        const populateComponent: $TSFixMe = [
             { path: 'projectId', select: 'name' },
             { path: 'componentCategoryId', select: 'name' },
         ];
 
-        const selectComponent =
+        const selectComponent: $TSFixMe =
             '_id createdAt name createdById projectId slug componentCategoryId';
         updatedData = await this.findBy({
             query,
@@ -235,7 +235,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const componentsQuery = ComponentModel.find(query)
+        const componentsQuery: $TSFixMe = ComponentModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -244,7 +244,7 @@ export default class Service {
         componentsQuery.select(select);
         componentsQuery.populate(populate);
 
-        const components = await componentsQuery;
+        const components: $TSFixMe = await componentsQuery;
         return components;
     }
 
@@ -256,12 +256,12 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const componentQuery = ComponentModel.findOne(query).sort(sort).lean();
+        const componentQuery: $TSFixMe = ComponentModel.findOne(query).sort(sort).lean();
 
         componentQuery.select(select);
         componentQuery.populate(populate);
 
-        const component = await componentQuery;
+        const component: $TSFixMe = await componentQuery;
         return component;
     }
 
@@ -273,7 +273,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await ComponentModel.countDocuments(query);
+        const count: $TSFixMe = await ComponentModel.countDocuments(query);
         return count;
     }
 
@@ -283,7 +283,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const component = await ComponentModel.findOneAndUpdate(
+        const component: $TSFixMe = await ComponentModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -313,7 +313,7 @@ export default class Service {
 
             let subProjectIds = [];
 
-            const subProjects = await ProjectService.findBy({
+            const subProjects: $TSFixMe = await ProjectService.findBy({
                 query: { parentProjectId: project._id },
                 select: '_id',
             });
@@ -323,17 +323,17 @@ export default class Service {
                 );
             }
             subProjectIds.push(project._id);
-            const componentsCount = await this.countBy({
+            const componentsCount: $TSFixMe = await this.countBy({
                 projectId: { $in: subProjectIds },
             });
             let projectSeats = project.seats;
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
-            const projectUsers = await TeamService.getTeamMembersBy({
+            const projectUsers: $TSFixMe = await TeamService.getTeamMembersBy({
                 parentProjectId: project._id,
             });
-            const seats = await TeamService.getSeats(projectUsers);
+            const seats: $TSFixMe = await TeamService.getSeats(projectUsers);
             // check if project seats are more based on users in project or by count of components
             if (
                 !IS_SAAS_SERVICE ||
@@ -354,7 +354,7 @@ export default class Service {
                     { seats: projectSeats.toString() }
                 );
             }
-            const monitors = await MonitorService.findBy({
+            const monitors: $TSFixMe = await MonitorService.findBy({
                 query: { componentId: component._id },
                 select: '_id',
             });
@@ -390,24 +390,24 @@ export default class Service {
             skip = parseInt(skip);
         }
 
-        const populateComponent = [
+        const populateComponent: $TSFixMe = [
             { path: 'projectId', select: 'name' },
             { path: 'componentCategoryId', select: 'name' },
         ];
 
-        const selectComponent =
+        const selectComponent: $TSFixMe =
             '_id createdAt name createdById projectId slug componentCategoryId';
 
-        const subProjectComponents = await Promise.all(
+        const subProjectComponents: $TSFixMe = await Promise.all(
             subProjectIds.map(async (id: $TSFixMe) => {
-                const components = await this.findBy({
+                const components: $TSFixMe = await this.findBy({
                     query: { projectId: id },
                     limit,
                     skip,
                     populate: populateComponent,
                     select: selectComponent,
                 });
-                const count = await this.countBy({ projectId: id });
+                const count: $TSFixMe = await this.countBy({ projectId: id });
                 return { components, count, _id: id, skip, limit };
             })
         );
@@ -426,15 +426,15 @@ export default class Service {
             skip = parseInt(skip);
         }
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'projectId', select: 'name' },
             { path: 'componentCategoryId', select: 'name' },
         ];
 
-        const select =
+        const select: $TSFixMe =
             '_id createdAt name createdById projectId slug componentCategoryId';
 
-        const [components, count] = await Promise.all([
+        const [components, count]: $TSFixMe = await Promise.all([
             this.findBy({
                 query: { projectId },
                 limit,
@@ -448,7 +448,7 @@ export default class Service {
     }
 
     async addSeat(query: Query): void {
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
         });
@@ -472,12 +472,12 @@ export default class Service {
 
     async restoreBy(query: Query): void {
         query.deleted = true;
-        const populateComponent = [
+        const populateComponent: $TSFixMe = [
             { path: 'projectId', select: 'name' },
             { path: 'componentCategoryId', select: 'name' },
         ];
 
-        const selectComponent =
+        const selectComponent: $TSFixMe =
             '_id createdAt name createdById projectId slug componentCategoryId';
         let component = await this.findBy({
             query,
@@ -485,9 +485,9 @@ export default class Service {
             select: selectComponent,
         });
         if (component && component.length > 1) {
-            const components = await Promise.all(
+            const components: $TSFixMe = await Promise.all(
                 component.map(async (component: $TSFixMe) => {
-                    const componentId = component._id;
+                    const componentId: $TSFixMe = component._id;
 
                     component = await this.updateOneBy(
                         { _id: componentId, deleted: true },
@@ -508,7 +508,7 @@ export default class Service {
         } else {
             component = component[0];
             if (component) {
-                const componentId = component._id;
+                const componentId: $TSFixMe = component._id;
 
                 component = await this.updateOneBy(
                     { _id: componentId, deleted: true },

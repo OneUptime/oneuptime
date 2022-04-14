@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // parent user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -12,7 +12,7 @@ const user: $TSFixMe = {
 };
 
 describe('Stripe cards API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -53,11 +53,11 @@ describe('Stripe cards API', () => {
                 }
             );
 
-            const stripeIframe = await init.page$(
+            const stripeIframe: $TSFixMe = await init.page$(
                 page,
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
             );
-            const frame = await stripeIframe.contentFrame();
+            const frame: $TSFixMe = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '5555555555554444', {
                 // 4242... has been used during account reg. Similar cards number are rejected. The new number is from stripe documentations.
@@ -76,7 +76,7 @@ describe('Stripe cards API', () => {
                 timeout: operationTimeOut,
             });
 
-            const cardsCount = await init.page$Eval(
+            const cardsCount: $TSFixMe = await init.page$Eval(
                 page,
                 '#cardsCount',
                 (el: $TSFixMe) => el.textContent
@@ -105,7 +105,7 @@ describe('Stripe cards API', () => {
                 hidden: true,
             });
 
-            const cardsCount = await init.page$Eval(
+            const cardsCount: $TSFixMe = await init.page$Eval(
                 page,
                 '#cardsCount',
                 (el: $TSFixMe) => el.textContent
@@ -130,7 +130,7 @@ describe('Stripe cards API', () => {
             await init.pageWaitForSelector(page, '#deleteCardButton');
 
             await init.pageClick(page, '#deleteCardButton');
-            const deleteError = await init.pageWaitForSelector(
+            const deleteError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#deleteCardError',
                 {
@@ -142,7 +142,7 @@ describe('Stripe cards API', () => {
 
             await init.pageClick(page, '#deleteCardCancel');
 
-            const cardsCount = await init.page$Eval(
+            const cardsCount: $TSFixMe = await init.page$Eval(
                 page,
                 '#cardsCount',
                 (el: $TSFixMe) => el.textContent
@@ -171,12 +171,12 @@ describe('Stripe cards API', () => {
                 }
             );
 
-            const stripeIframe = await init.page$(
+            const stripeIframe: $TSFixMe = await init.page$(
                 page,
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
             );
 
-            const frame = await stripeIframe.contentFrame();
+            const frame: $TSFixMe = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42444242424242424242', {
                 // This is a proper invalid card
@@ -190,7 +190,7 @@ describe('Stripe cards API', () => {
             await frame.type('input[name=postal]', '11234');
 
             await init.pageClick(page, '#addCardButtonSubmit');
-            const error = await init.pageWaitForSelector(page, '#cardError', {
+            const error: $TSFixMe = await init.pageWaitForSelector(page, '#cardError', {
                 visible: true,
                 timeout: init.timeout,
             });

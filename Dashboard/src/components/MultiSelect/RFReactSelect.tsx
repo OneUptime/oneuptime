@@ -70,8 +70,8 @@ const RFReactSelect: Function = ({
     placeholder,
     disabled
 }: RFReactSelectProps) => {
-    const { name, value, onBlur, onChange, onFocus } = input;
-    const transformedValue = transformValue(value, options, isMulti);
+    const { name, value, onBlur, onChange, onFocus }: $TSFixMe = input;
+    const transformedValue: $TSFixMe = transformValue(value, options, isMulti);
     return (
         <Select
 

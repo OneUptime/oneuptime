@@ -5,7 +5,7 @@ import http from 'http';
 http.createServer(app);
 
 import { mongoUrl, databaseName } from './utils/config';
-const MongoClient = require('mongodb').MongoClient;
+const MongoClient: $TSFixMe = require('mongodb').MongoClient;
 
 // mongodb
 function getMongoClient(): void {
@@ -15,7 +15,7 @@ function getMongoClient(): void {
     });
 }
 // setup mongodb connection
-const client = getMongoClient();
+const client: $TSFixMe = getMongoClient();
 (async function (): void {
     try {
         logger.info('connecting to db');

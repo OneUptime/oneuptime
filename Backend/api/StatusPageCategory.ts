@@ -2,11 +2,11 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
-const getUser = require('../middlewares/user').getUser;
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 import StatusPageCategoryService from '../services/statusPageCategoryService';
 import {
     sendErrorResponse,
@@ -22,10 +22,10 @@ router.post(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { statusPageCategoryName } = req.body;
-            const { statusPageId } = req.params;
+            const { statusPageCategoryName }: $TSFixMe = req.body;
+            const { statusPageId }: $TSFixMe = req.params;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
             if (!statusPageCategoryName || !statusPageCategoryName.trim()) {
                 return sendErrorResponse(req, res, {
@@ -55,7 +55,7 @@ router.post(
                 });
             }
 
-            const statusPageCategory = await StatusPageCategoryService.create({
+            const statusPageCategory: $TSFixMe = await StatusPageCategoryService.create({
                 statusPageId,
                 userId,
                 name: statusPageCategoryName,
@@ -74,9 +74,9 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { statusPageCategoryId } = req.params;
+            const { statusPageCategoryId }: $TSFixMe = req.params;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
             if (!statusPageCategoryId || !statusPageCategoryId.trim()) {
                 return sendErrorResponse(req, res, {
@@ -92,7 +92,7 @@ router.delete(
                 });
             }
 
-            const deletedStatusPageCategory =
+            const deletedStatusPageCategory: $TSFixMe =
                 await StatusPageCategoryService.deleteBy(
                     {
                         _id: statusPageCategoryId,
@@ -114,8 +114,8 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { statusPageCategoryId } = req.params;
-            const { statusPageCategoryName } = req.body;
+            const { statusPageCategoryId }: $TSFixMe = req.params;
+            const { statusPageCategoryName }: $TSFixMe = req.body;
 
             if (!statusPageCategoryId || !statusPageCategoryId.trim()) {
                 return sendErrorResponse(req, res, {
@@ -146,7 +146,7 @@ router.put(
             }
 
             // Call the StatusPageCategoryService
-            const updatedStatusPageCategory =
+            const updatedStatusPageCategory: $TSFixMe =
                 await StatusPageCategoryService.updateOneBy(
                     { _id: statusPageCategoryId },
                     {
@@ -166,8 +166,8 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { statusPageId } = req.params;
-            const { limit, skip } = req.query;
+            const { statusPageId }: $TSFixMe = req.params;
+            const { limit, skip }: $TSFixMe = req.query;
 
             if (!statusPageId || !statusPageId.trim()) {
                 return sendErrorResponse(req, res, {
@@ -184,7 +184,7 @@ router.get(
             }
             // Call the StatusPageCategoryService
             const select: string = 'statusPageId name createdById createdAt';
-            const [statusPageCategories, count] = await Promise.all([
+            const [statusPageCategories, count]: $TSFixMe = await Promise.all([
                 StatusPageCategoryService.findBy({
                     query: { statusPageId },
                     limit,

@@ -3,8 +3,8 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
-const teamEmail = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const teamEmail: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const newProjectName: string = 'Test';
 
@@ -24,7 +24,7 @@ const memberUser: $TSFixMe = {
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Project Settings', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -78,7 +78,7 @@ describe('Project Settings', () => {
             });
 
             await init.pageClick(page, '#btnCreateProject');
-            const unauthorisedModal = await init.pageWaitForSelector(
+            const unauthorisedModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }
@@ -145,7 +145,7 @@ describe('Project Settings', () => {
             await init.pageClick(page, '#btnDeleteProject');
 
             // find the button for creating a project and expect it to be defined
-            const createProjectBtn = await init.pageWaitForSelector(
+            const createProjectBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#createButton',
                 {
@@ -201,7 +201,7 @@ describe('Project Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const childCount = await init.page$Eval(
+            const childCount: $TSFixMe = await init.page$Eval(
                 page,
                 parentContainer,
                 (el: $TSFixMe) => el.childElementCount

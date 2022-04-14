@@ -8,7 +8,7 @@ import AceCodeEditor from '../basic/AceCodeEditor';
 import { RenderSelect } from '../basic/RenderSelect';
 
 function renderLibraries() {
-    const list = metricsQuickStart.getLibraries().map(library => {
+    const list = metricsQuickStart.getLibraries().map(library: $TSFixMe => {
         return (
             <a
                 target="_blank"
@@ -44,7 +44,7 @@ const QuickStart: Function = ({
     close,
     library
 }: QuickStartProps) => {
-    const guide = metricsQuickStart
+    const guide: $TSFixMe = metricsQuickStart
         .getQuickStarts(appId, appKey)
         .filter(quickStart => quickStart.id === library)[0];
     return (
@@ -233,7 +233,7 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const QuickStartForm = new reduxForm({
+const QuickStartForm: $TSFixMe = new reduxForm({
     form: 'QuickStartForm',
     destroyOnUnmount: true,
     enableReinitialize: true,

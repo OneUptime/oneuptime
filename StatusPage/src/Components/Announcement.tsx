@@ -53,7 +53,7 @@ class Announcement extends Component<ComponentProps> {
 
     override render() {
 
-        const { announcement, monitorState } = this.props;
+        const { announcement, monitorState }: $TSFixMe = this.props;
         return (
             <>
                 {announcement && (

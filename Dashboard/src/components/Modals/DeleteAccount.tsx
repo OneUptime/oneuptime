@@ -79,7 +79,7 @@ class DeleteAccount extends Component<ComponentProps> {
 
     ownProjects = (userId: string) => {
 
-        const { projects } = this.props;
+        const { projects }: $TSFixMe = this.props;
         return projects.filter((project: $TSFixMe) => {
             return project.users.find(
                 (user: $TSFixMe) => user.userId === userId &&
@@ -90,9 +90,9 @@ class DeleteAccount extends Component<ComponentProps> {
     };
 
     projectsWithoutMultipleOwners = (userId: string) => {
-        const projects = this.ownProjects(userId);
+        const projects: $TSFixMe = this.ownProjects(userId);
         return projects.filter((project: $TSFixMe) => {
-            const otherOwner = project.users.find(
+            const otherOwner: $TSFixMe = project.users.find(
                 (user: $TSFixMe) => user.userId !== userId && user.role === 'Owner'
             );
             return otherOwner ? false : true;
@@ -100,38 +100,38 @@ class DeleteAccount extends Component<ComponentProps> {
     };
 
     renderOwnProjects = (userId: string) => {
-        const projects = this.projectsWithoutMultipleOwners(userId);
+        const projects: $TSFixMe = this.projectsWithoutMultipleOwners(userId);
         return projects.map((project: $TSFixMe) => {
             return <li key={project._id}>{project.name}</li>;
         });
     };
 
     onChange = (event: $TSFixMe) => {
-        const { value } = event.target;
-        const deleteMyAccount =
+        const { value }: $TSFixMe = event.target;
+        const deleteMyAccount: $TSFixMe =
             trim(value.toUpperCase()) === 'DELETE MY ACCOUNT' ? true : false;
         this.setState({ deleteMyAccount });
     };
 
     submitForm = (values: $TSFixMe) => {
 
-        const userId = this.props.profileSettings.data.id;
+        const userId: $TSFixMe = this.props.profileSettings.data.id;
         values.deleteMyAccount = values.deleteMyAccount.toUpperCase();
 
-        const promise = this.props.deleteAccount(userId, values);
+        const promise: $TSFixMe = this.props.deleteAccount(userId, values);
 
         return promise;
     };
 
     override render() {
 
-        const deleting = this.props.deleteAccountSetting.requesting;
+        const deleting: $TSFixMe = this.props.deleteAccountSetting.requesting;
 
-        const { profileSettings, handleSubmit, closeThisDialog } = this.props;
-        const userId = profileSettings.data.id;
-        const shouldRender =
+        const { profileSettings, handleSubmit, closeThisDialog }: $TSFixMe = this.props;
+        const userId: $TSFixMe = profileSettings.data.id;
+        const shouldRender: $TSFixMe =
             this.projectsWithoutMultipleOwners(userId).length > 0;
-        const { deleteMyAccount } = this.state;
+        const { deleteMyAccount }: $TSFixMe = this.state;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -428,7 +428,7 @@ class DeleteAccount extends Component<ComponentProps> {
 
 DeleteAccount.displayName = 'DeleteAccount';
 
-const DeleteAccountForm = reduxForm({
+const DeleteAccountForm: $TSFixMe = reduxForm({
     form: 'DeleteAccount',
     validate,
 })(DeleteAccount);

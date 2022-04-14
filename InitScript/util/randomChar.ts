@@ -5,7 +5,7 @@
  */
 
 export default (num = 15): void => {
-    const input =
+    const input: $TSFixMe =
         'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let output = '';
     for (let i = 0; i < num; i++) {

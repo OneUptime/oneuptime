@@ -9,11 +9,11 @@ async function run(): void {
     await rename(monitorCategoryCollection, resourceCategoryCollection);
 
     // get all monitors that have a monitorCategoryId
-    const monitors = await find(monitorCollection, {
+    const monitors: $TSFixMe = await find(monitorCollection, {
         monitorCategoryId: { $exists: true },
     });
     monitors.forEach(async (monitor: $TSFixMe) => {
-        const resourceCategory = monitor.monitorCategoryId;
+        const resourceCategory: $TSFixMe = monitor.monitorCategoryId;
 
         // set their resourceCategory as the monitorCategoryId
         await update(

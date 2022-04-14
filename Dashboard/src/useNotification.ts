@@ -1,5 +1,5 @@
 import { registerService } from './serviceWorker';
-const publicVapidKey = process.env.REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY; // URL Safe Base64 Encoded Public Key
+const publicVapidKey: $TSFixMe = process.env.REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY; // URL Safe Base64 Encoded Public Key
 
 // Adk for permission
 export async function askUserPermission(): void {
@@ -28,8 +28,8 @@ function urlBase64ToUint8Array(base64String: $TSFixMe): void {
         .replace(/-/g, '+')
         .replace(/_/g, '/');
 
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
+    const rawData: $TSFixMe = window.atob(base64);
+    const outputArray: $TSFixMe = new Uint8Array(rawData.length);
 
     for (let i = 0; i < rawData.length; ++i) {
         outputArray[i] = rawData.charCodeAt(i);

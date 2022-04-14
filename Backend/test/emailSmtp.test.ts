@@ -8,7 +8,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -28,13 +28,13 @@ describe('Email SMTP Api Test', function (): void {
     before(async function (): void {
         this.timeout(400000);
         await GlobalConfig.initTestConfig();
-        const res = await createUser(request, data.user);
+        const res: $TSFixMe = await createUser(request, data.user);
 
-        const project = res.body.project;
+        const project: $TSFixMe = res.body.project;
         projectId = project._id;
-        const userId = res.body.id;
+        const userId: $TSFixMe = res.body.id;
 
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         await request
@@ -43,7 +43,7 @@ describe('Email SMTP Api Test', function (): void {
 
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' });
 
-        const res1 = await request.post('/user/login').send({
+        const res1: $TSFixMe = await request.post('/user/login').send({
             email: data.user.email,
             password: data.user.password,
         });
@@ -64,7 +64,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should confirm that `master-admin` exists', async () => {
-        const res = await request.get('/user/masterAdminExists');
+        const res: $TSFixMe = await request.get('/user/masterAdminExists');
         expect(res).to.have.status(200);
         expect(res.body).have.property('result');
         expect(res.body.result).to.eql(true);
@@ -72,7 +72,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should send test smtp email to the provided email address', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        const { value } = await GlobalConfigService.findOneBy({
+        const { value }: $TSFixMe = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
             select: 'value name',
         });
@@ -87,7 +87,7 @@ describe('Email SMTP Api Test', function (): void {
             email: testemail,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/emailSmtp/test')
             .set('Authorization', authorization)
             .send(payload);
@@ -97,7 +97,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not send test smtp email when user or pass is not valid', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        const { value } = await GlobalConfigService.findOneBy({
+        const { value }: $TSFixMe = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
             select: 'value name',
         });
@@ -113,7 +113,7 @@ describe('Email SMTP Api Test', function (): void {
             secure: value['smtp-secure'],
             email: testemail,
         };
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/emailSmtp/test')
             .set('Authorization', authorization)
             .send(payload);
@@ -122,7 +122,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not send test smtp email when host or port is invalid', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        const { value } = await GlobalConfigService.findOneBy({
+        const { value }: $TSFixMe = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
             select: 'value',
         });
@@ -139,7 +139,7 @@ describe('Email SMTP Api Test', function (): void {
             email: testemail,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/emailSmtp/test')
             .set('Authorization', authorization)
             .send(payload);
@@ -152,7 +152,7 @@ describe('Email SMTP Api Test', function (): void {
             ...smtpCredential,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -170,7 +170,7 @@ describe('Email SMTP Api Test', function (): void {
             user,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -186,7 +186,7 @@ describe('Email SMTP Api Test', function (): void {
             pass,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -202,7 +202,7 @@ describe('Email SMTP Api Test', function (): void {
             host,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -217,7 +217,7 @@ describe('Email SMTP Api Test', function (): void {
             ...smtpCredential,
             port,
         };
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -232,7 +232,7 @@ describe('Email SMTP Api Test', function (): void {
             ...smtpCredential,
             from,
         };
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -247,7 +247,7 @@ describe('Email SMTP Api Test', function (): void {
             ...smtpCredential,
             name,
         };
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/emailSmtp/${projectId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -258,7 +258,7 @@ describe('Email SMTP Api Test', function (): void {
     it('should update a custom SMTP settings', async () => {
         const authorization: string = `Basic ${jwtToken}`;
         const data: $TSFixMe = { ...smtpCredential, from: 'info@gmail.com' };
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -273,7 +273,7 @@ describe('Email SMTP Api Test', function (): void {
             ...smtpCredential,
             user,
         };
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -289,7 +289,7 @@ describe('Email SMTP Api Test', function (): void {
             pass,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -305,7 +305,7 @@ describe('Email SMTP Api Test', function (): void {
             host,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -322,7 +322,7 @@ describe('Email SMTP Api Test', function (): void {
             port,
         };
 
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -337,7 +337,7 @@ describe('Email SMTP Api Test', function (): void {
             ...smtpCredential,
             from,
         };
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
             .send(data);
@@ -352,7 +352,7 @@ describe('Email SMTP Api Test', function (): void {
             ...smtpCredential,
             name,
         };
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
             .set('Authorization', authorization)
             .send(data);

@@ -10,11 +10,11 @@ export default {
     ping: async ({ monitor }: $TSFixMe) => {
         if (monitor && monitor.type) {
             if (monitor.data.url) {
-                const headers = await ApiService.headers(
+                const headers: $TSFixMe = await ApiService.headers(
                     monitor.headers,
                     monitor.bodyType
                 );
-                const body = await ApiService.body(
+                const body: $TSFixMe = await ApiService.body(
                     monitor && monitor.text && monitor.text.length
                         ? monitor.text
                         : monitor.formData,
@@ -26,7 +26,7 @@ export default {
                 let retry = true;
                 let retryCount = 0;
                 while (retry || retryCount > 2) {
-                    const { res, resp, rawResp } = await pingfetch(
+                    const { res, resp, rawResp }: $TSFixMe = await pingfetch(
                         monitor.data.url,
                         monitor.method,
                         body,
@@ -37,7 +37,7 @@ export default {
                         `Monitor ID ${monitor._id}: Start saving data to ingestor.`
                     );
 
-                    const response = await ApiService.ping(monitor._id, {
+                    const response: $TSFixMe = await ApiService.ping(monitor._id, {
                         monitor,
                         res,
                         resp,

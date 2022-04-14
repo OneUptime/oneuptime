@@ -73,7 +73,7 @@ export class IncidentAlert extends Component<IncidentAlertProps>{
             canPrev = false;
         }
 
-        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(this.props.count) / 10);
         return (
             <div className="db-RadarRulesLists-page">
                 <div className="Box-root Margin-bottom--12">

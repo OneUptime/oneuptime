@@ -45,7 +45,7 @@ class SubProjectApiKey extends Component<ComponentProps> {
 
     UNSAFE_componentWillReceiveProps() {
 
-        const oldApiKey = this.props.subproject.apiKey;
+        const oldApiKey: $TSFixMe = this.props.subproject.apiKey;
         this.setState({ oldApiKey });
     }
 
@@ -74,7 +74,7 @@ class SubProjectApiKey extends Component<ComponentProps> {
 
     resetSubProjectToken = () => {
 
-        const { resetSubProjectToken, data } = this.props;
+        const { resetSubProjectToken, data }: $TSFixMe = this.props;
         resetSubProjectToken(data.subProjectId);
     };
 
@@ -88,7 +88,7 @@ class SubProjectApiKey extends Component<ComponentProps> {
 
     renderAPIKey = (hidden: $TSFixMe) => {
 
-        const { subproject, subProjectResetToken } = this.props;
+        const { subproject, subProjectResetToken }: $TSFixMe = this.props;
         return hidden && !subProjectResetToken.success ? (
             <span id="apiKey" className="value">
                 Click here to reveal API key
@@ -119,7 +119,7 @@ class SubProjectApiKey extends Component<ComponentProps> {
 
             subproject,
         } = this.props;
-        const { hidden } = this.state;
+        const { hidden }: $TSFixMe = this.state;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

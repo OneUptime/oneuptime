@@ -331,7 +331,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
             });
 
         case 'UPDATE_STATUS_PAGE': {
-            const isValidMonitorNote =
+            const isValidMonitorNote: $TSFixMe =
                 state.individualnote &&
                 action.payload.monitorIds &&
                 action.payload.monitorIds.length > 0 &&
@@ -421,7 +421,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
             });
 
         case 'DELETE_MONITOR': {
-            const isIndividualNote =
+            const isIndividualNote: $TSFixMe =
                 state.individualnote &&
                 state.individualnote._id === action.payload;
             return Object.assign({}, state, {
@@ -522,9 +522,9 @@ export default (state = INITIAL_STATE, action: Action): void => {
         case 'ADD_INCIDENT_NOTE': {
             let addToIncident = false;
             let notes = [...state.incidentNotes.notes];
-            const noteData = state.notes.notes,
+            const noteData: $TSFixMe = state.notes.notes,
                 result: $TSFixMe = [];
-            const check = noteData.find(
+            const check: $TSFixMe = noteData.find(
                 note =>
                     String(note._id) === String(action.payload.incidentId._id)
             );
@@ -543,7 +543,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                         String(item._id) ===
                         String(action.payload.incidentId._id)
                     ) {
-                        const messageLog =
+                        const messageLog: $TSFixMe =
                             item.message && item.message.length > 0
                                 ? item.message
                                 : [];
@@ -602,7 +602,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
         }
 
         case 'DELETE_INCIDENT_NOTE': {
-            const notes = state.incidentNotes.notes.filter(
+            const notes: $TSFixMe = state.incidentNotes.notes.filter(
                 note => String(note._id) !== String(action.payload._id)
             );
             return {
@@ -678,7 +678,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
             });
 
         case 'RESOLVE_SCHEDULED_EVENT': {
-            const events = state.events.events.filter(
+            const events: $TSFixMe = state.events.events.filter(
                 event => String(event._id) !== String(action.payload._id)
             );
             return {
@@ -778,9 +778,9 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 return monitorData;
             });
 
-            const currentDate = moment().format();
-            const startDate = moment(action.payload.startDate).format();
-            const endDate = moment(action.payload.endDate).format();
+            const currentDate: $TSFixMe = moment().format();
+            const startDate: $TSFixMe = moment(action.payload.startDate).format();
+            const endDate: $TSFixMe = moment(action.payload.endDate).format();
             if (
                 monitorInStatusPage &&
                 startDate <= currentDate &&
@@ -816,8 +816,8 @@ export default (state = INITIAL_STATE, action: Action): void => {
         }
 
         case 'DELETE_SCHEDULED_EVENT': {
-            const currentDate = moment().format();
-            const startDate = moment(action.payload.startDate).format();
+            const currentDate: $TSFixMe = moment().format();
+            const startDate: $TSFixMe = moment(action.payload.startDate).format();
             let isFutureEvent = false;
             let events = [];
             if (startDate > currentDate) {
@@ -857,9 +857,9 @@ export default (state = INITIAL_STATE, action: Action): void => {
             let futureEventExist = false;
             let eventExist = false;
             let monitorInStatusPage = false;
-            const currentDate = moment().format();
-            const startDate = moment(action.payload.startDate).format();
-            const endDate = moment(action.payload.endDate).format();
+            const currentDate: $TSFixMe = moment().format();
+            const startDate: $TSFixMe = moment(action.payload.startDate).format();
+            const endDate: $TSFixMe = moment(action.payload.endDate).format();
 
             state.statusPage.monitors.map((monitorData: $TSFixMe) => {
                 action.payload.monitors.map((monitor: $TSFixMe) => {
@@ -874,7 +874,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 return monitorData;
             });
 
-            const updatedEvents = state.events.events.map(event => {
+            const updatedEvents = state.events.events.map(event: $TSFixMe => {
                 if (String(event._id) === String(action.payload._id)) {
                     eventExist = true;
 
@@ -883,7 +883,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 return event;
             });
 
-            const updatedFutureEvent = state.futureEvents.events.map(event => {
+            const updatedFutureEvent = state.futureEvents.events.map(event: $TSFixMe => {
                 if (String(event._id) === String(action.payload._id)) {
                     futureEventExist = true;
 
@@ -900,11 +900,11 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 updatedFutureEvent.unshift(action.payload);
             }
 
-            const removeEvent = state.events.events.filter(
+            const removeEvent: $TSFixMe = state.events.events.filter(
                 event => String(event._id) !== String(action.payload._id)
             );
 
-            const removeFutureEvent = state.futureEvents.events.filter(
+            const removeFutureEvent: $TSFixMe = state.futureEvents.events.filter(
                 event => String(event._id) !== String(action.payload._id)
             );
 
@@ -1156,12 +1156,12 @@ export default (state = INITIAL_STATE, action: Action): void => {
                             if (
                                 monitor._id === action.payload.status.monitorId
                             ) {
-                                const data = Object.assign(
+                                const data: $TSFixMe = Object.assign(
                                     {},
                                     action.payload.status.data
                                 );
-                                const probes = action.payload.probes;
-                                const isValidProbe =
+                                const probes: $TSFixMe = action.payload.probes;
+                                const isValidProbe: $TSFixMe =
                                     (monitor.type === 'url' ||
                                         monitor.type === 'api' ||
                                         monitor.type === 'ip') &&
@@ -1172,7 +1172,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                                     monitor.statuses &&
                                     monitor.statuses.length > 0
                                 ) {
-                                    const monitorProbes = monitor.statuses.map(
+                                    const monitorProbes: $TSFixMe = monitor.statuses.map(
                                         (a: $TSFixMe) => a._id
                                     );
 
@@ -1182,14 +1182,14 @@ export default (state = INITIAL_STATE, action: Action): void => {
                                     ) {
                                         monitor.statuses = monitor.statuses.map(
                                             (probeStatuses: $TSFixMe) => {
-                                                const probeId =
+                                                const probeId: $TSFixMe =
                                                     probeStatuses._id;
 
                                                 if (
                                                     probeId === data.probeId ||
                                                     !data.probeId
                                                 ) {
-                                                    const previousStatus =
+                                                    const previousStatus: $TSFixMe =
                                                         probeStatuses
                                                             .statuses[0];
                                                     previousStatus.endTime =
@@ -1687,7 +1687,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
         case 'INCIDENT_CREATED': {
             let incidentFound = false;
 
-            const statusPageMonitorIds = state.statusPage.monitors.map(
+            const statusPageMonitorIds: $TSFixMe = state.statusPage.monitors.map(
                 (monitorData: $TSFixMe) => String(monitorData.monitor._id)
             );
             let notes = state.notes.notes.map(note => {
@@ -1696,7 +1696,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 }
                 return note;
             });
-            const monitors = action.payload
+            const monitors: $TSFixMe = action.payload
                 ? action.payload.monitors.map(
                       (monitor: $TSFixMe) => monitor.monitorId
                   )
@@ -1725,7 +1725,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
         }
 
         case 'INCIDENT_DELETED': {
-            const notes = state.notes.notes.filter(
+            const notes: $TSFixMe = state.notes.notes.filter(
                 note => String(note._id) !== String(action.payload._id)
             );
             return {
@@ -1740,7 +1740,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
         }
 
         case 'INCIDENT_UPDATED': {
-            const notes = state.notes.notes.map(note => {
+            const notes = state.notes.notes.map(note: $TSFixMe => {
                 if (String(note._id) === String(action.payload._id)) {
                     note = action.payload;
                     return note;
@@ -1931,7 +1931,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
             if (!timelineIds.includes(String(action.payload.incidentId))) {
                 timelines = [...timelines, action.payload];
             }
-            const timeline =
+            const timeline: $TSFixMe =
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId)
                     ? action.payload

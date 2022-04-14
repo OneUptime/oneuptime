@@ -85,7 +85,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const selector = formValueSelector('CreateSubscriber');
+const selector: $TSFixMe = formValueSelector('CreateSubscriber');
 
 interface CreateSubscriberProps {
     closeThisDialog: Function;
@@ -129,7 +129,7 @@ class CreateSubscriber extends Component<ComponentProps> {
 
             fetchStatusPageSubscribers,
         } = this.props;
-        const { monitorId, subProjectId, statusPage, limit } = data;
+        const { monitorId, subProjectId, statusPage, limit }: $TSFixMe = data;
         createSubscriber(
             subProjectId,
             monitorId || values.monitorId,
@@ -556,7 +556,7 @@ class CreateSubscriber extends Component<ComponentProps> {
 
 CreateSubscriber.displayName = 'CreateSubscriberFormModal';
 
-const CreateSubscriberForm = reduxForm({
+const CreateSubscriberForm: $TSFixMe = reduxForm({
     form: 'CreateSubscriber', // a unique identifier for this form
     validate,
 })(CreateSubscriber);
@@ -576,12 +576,12 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const projectId = ownProps.data.subProjectId;
-    const allMonitors = state.monitor.monitorsList.monitors
+    const projectId: $TSFixMe = ownProps.data.subProjectId;
+    const allMonitors: $TSFixMe = state.monitor.monitorsList.monitors
         .filter((monitor: $TSFixMe) => String(monitor._id) === String(projectId))
         .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
-    const statusPageMonitors = ownProps.data.monitorList || [];
+    const statusPageMonitors: $TSFixMe = ownProps.data.monitorList || [];
     const mergeMonitors: $TSFixMe = [];
     allMonitors.forEach((allMon: $TSFixMe) => {
         statusPageMonitors.forEach((mon: $TSFixMe) => {

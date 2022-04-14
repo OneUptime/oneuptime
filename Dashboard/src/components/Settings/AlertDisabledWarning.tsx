@@ -27,9 +27,9 @@ class AlertDisabledWarning extends Component<ComponentProps> {
     }
     override render() {
 
-        const { alertEnable, currentProject, page } = this.props;
-        const slug = currentProject ? currentProject.slug : null;
-        const redirectTo:string = `/dashboard/project/${slug}/settings/billing`;
+        const { alertEnable, currentProject, page }: $TSFixMe = this.props;
+        const slug: $TSFixMe = currentProject ? currentProject.slug : null;
+        const redirectTo:string: $TSFixMe = `/dashboard/project/${slug}/settings/billing`;
 
         return (
             <ShouldRender
@@ -109,13 +109,13 @@ AlertDisabledWarning.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const areAlertsEnabledInCustomTwilioSettings =
+    const areAlertsEnabledInCustomTwilioSettings: $TSFixMe =
         state.smsTemplates &&
         state.smsTemplates.smsSmtpConfiguration &&
         state.smsTemplates.smsSmtpConfiguration.config &&
         state.smsTemplates.smsSmtpConfiguration.config.enabled;
 
-    const areAlertsEnabledInBillingPage =
+    const areAlertsEnabledInBillingPage: $TSFixMe =
         state.project &&
         state.project.currentProject &&
         state.project.currentProject.alertEnable;

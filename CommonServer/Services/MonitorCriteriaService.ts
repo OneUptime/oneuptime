@@ -414,11 +414,11 @@ const MonitorCriteriaService: $TSFixMe = {
     },
 
     create(monitorType: $TSFixMe) {
-        const criteria = this.getCriteria()[monitorType];
+        const criteria: $TSFixMe = this.getCriteria()[monitorType];
         const criteriaObj: $TSFixMe = {};
         if (criteria) {
             if (criteria.up_1000 && criteria.up_1000.length) {
-                const upCriteria = this.makeCriteria(criteria.up_1000);
+                const upCriteria: $TSFixMe = this.makeCriteria(criteria.up_1000);
 
                 upCriteria.scheduleIds = [];
 
@@ -437,7 +437,7 @@ const MonitorCriteriaService: $TSFixMe = {
                 criteriaObj.up = [upCriteria];
             }
             if (criteria.degraded_1000 && criteria.degraded_1000.length) {
-                const degradedCriteria = this.makeCriteria(
+                const degradedCriteria: $TSFixMe = this.makeCriteria(
                     criteria.degraded_1000
                 );
 
@@ -455,7 +455,7 @@ const MonitorCriteriaService: $TSFixMe = {
                 criteriaObj.degraded = [degradedCriteria];
             }
             if (criteria.down_1000 && criteria.down_1000.length) {
-                const downCriteria = this.makeCriteria(criteria.down_1000);
+                const downCriteria: $TSFixMe = this.makeCriteria(criteria.down_1000);
 
                 downCriteria.scheduleIds = [];
 
@@ -484,7 +484,7 @@ const MonitorCriteriaService: $TSFixMe = {
 
     makeCriteria(val: $TSFixMe) {
         const val2: $TSFixMe = {};
-        const criteria = [];
+        const criteria: $TSFixMe = [];
 
         for (let i = 0; i < val.length; i++) {
             const val3: $TSFixMe = {};
@@ -561,16 +561,16 @@ const MonitorCriteriaService: $TSFixMe = {
                 }
 
                 if (Object.keys(val.criteria[j]).includes('match')) {
-                    const condition =
+                    const condition: $TSFixMe =
                         val.criteria[j].match === 'all' ? 'and' : 'or';
-                    const criteria = [innerVal];
+                    const criteria: $TSFixMe = [innerVal];
                     nestVal.push({ condition, criteria });
                 } else {
                     nestVal[nestVal.length - 1].criteria.push(innerVal);
                 }
 
                 if (val.criteria[j].criteria) {
-                    const out = this.innerCriteria(val.criteria[j], []);
+                    const out: $TSFixMe = this.innerCriteria(val.criteria[j], []);
                     nestVal[nestVal.length - 1].criteria.push(...out);
                 }
             }
@@ -579,7 +579,7 @@ const MonitorCriteriaService: $TSFixMe = {
     },
 
     mapCriteria(val: $TSFixMe) {
-        const val2 = [];
+        const val2: $TSFixMe = [];
         if (val && val.criteria && val.criteria.condition === 'and') {
             for (let i = 0; i < val.criteria.criteria.length; i++) {
                 const val3: $TSFixMe = {};

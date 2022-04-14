@@ -5,14 +5,14 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const slaName: string = 'fxPro';
 const newSlaName: string = 'newFxPro';
 const duration: string = '15';
 const alertTime: string = '10';
-const component = utils.generateRandomString();
-const monitor = utils.generateRandomString();
+const component: $TSFixMe = utils.generateRandomString();
+const monitor: $TSFixMe = utils.generateRandomString();
 
 const user: $TSFixMe = {
     email,
@@ -20,7 +20,7 @@ const user: $TSFixMe = {
 };
 
 describe('Incident Communication SLA', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -97,7 +97,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const slaError = await init.pageWaitForSelector(
+            const slaError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#field-error',
                 {
@@ -170,7 +170,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const slaError = await init.pageWaitForSelector(
+            const slaError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#field-error',
                 {
@@ -243,7 +243,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const slaError = await init.pageWaitForSelector(
+            const slaError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#field-error',
                 {
@@ -319,7 +319,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const sla = await init.pageWaitForSelector(
+            const sla: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#incidentSla_${slaName}`,
                 {
@@ -390,7 +390,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#editSlaBtn');
 
-            const slaError = await init.pageWaitForSelector(
+            const slaError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#field-error`,
                 {
@@ -461,7 +461,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#editSlaBtn');
 
-            const sla = await init.pageWaitForSelector(
+            const sla: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#incidentSla_${newSlaName}`,
                 {
@@ -505,7 +505,7 @@ describe('Incident Communication SLA', () => {
             });
 
             await init.pageClick(page, `#incident_0`);
-            const slaIndicator = await init.pageWaitForSelector(
+            const slaIndicator: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#slaIndicatorAlert',
                 { visible: true, timeout: init.timeout }
@@ -555,7 +555,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#btnResolve_0');
 
-            const slaIndicator = await init.pageWaitForSelector(
+            const slaIndicator: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#slaIndicatorAlert',
                 { hidden: true }
@@ -620,7 +620,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#deleteIncidentSlaBtn');
 
-            const sla = await init.pageWaitForSelector(
+            const sla: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#incidentSla_${newSlaName}`,
                 {

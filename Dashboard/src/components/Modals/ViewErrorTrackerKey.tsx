@@ -67,9 +67,9 @@ class ViewErrorTrackerKey extends Component<ComponentProps> {
 
     override render() {
 
-        const { hidden } = this.state;
+        const { hidden }: $TSFixMe = this.state;
 
-        const { currentProject, closeThisDialog } = this.props;
+        const { currentProject, closeThisDialog }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

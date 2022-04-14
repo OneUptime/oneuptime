@@ -59,7 +59,7 @@ class DeleteCustomField extends Component<ComponentProps> {
 
             data,
         } = this.props;
-        const { projectId, customFieldId } = data;
+        const { projectId, customFieldId }: $TSFixMe = data;
         deleteCustomField(projectId, customFieldId).then(() => {
             if (!deleteError) {
                 closeModal({ id: modalId });
@@ -69,7 +69,7 @@ class DeleteCustomField extends Component<ComponentProps> {
 
     override render() {
 
-        const { isRequesting, modalId, closeModal, deleteError } = this.props;
+        const { isRequesting, modalId, closeModal, deleteError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

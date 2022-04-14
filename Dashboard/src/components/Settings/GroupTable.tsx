@@ -27,7 +27,7 @@ export class GroupTable extends Component<GroupTableProps>{
 
     handleEdit = () => {
 
-        const { openModal, group, projectId } = this.props;
+        const { openModal, group, projectId }: $TSFixMe = this.props;
         openModal({
 
             id: this.state.groupModalId,
@@ -45,7 +45,7 @@ export class GroupTable extends Component<GroupTableProps>{
 
     handleRemove = () => {
 
-        const { openModal, group, projectId } = this.props;
+        const { openModal, group, projectId }: $TSFixMe = this.props;
         openModal({
 
             id: this.state.groupModalId,
@@ -61,7 +61,7 @@ export class GroupTable extends Component<GroupTableProps>{
 
     override render() {
 
-        const { group, disabled, deleteDisable } = this.props;
+        const { group, disabled, deleteDisable }: $TSFixMe = this.props;
         return (
             <div className="bs-ObjectList-row db-UserListRow">
                 <div

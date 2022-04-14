@@ -9,15 +9,15 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
-const newComponentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
-const newMonitorName = utils.generateRandomString();
-const applicationLogName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const newComponentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const newMonitorName: $TSFixMe = utils.generateRandomString();
+const applicationLogName: $TSFixMe = utils.generateRandomString();
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Components', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -119,7 +119,7 @@ describe('Components', () => {
             const customTutorialType: string = 'monitor';
             // find monitor quick tip and confirm it shows
 
-            const monitorQuickTip = await init.pageWaitForSelector(
+            const monitorQuickTip: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#quick-tip-${customTutorialType}`
             );
@@ -169,7 +169,7 @@ describe('Components', () => {
 
             // check if the tabs on the details page are defined
 
-            const monitorTabsComponent = await init.pageWaitForSelector(
+            const monitorTabsComponent: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#customTabList`
             );
@@ -209,17 +209,17 @@ describe('Components', () => {
                 timeout: init.timeout,
             });
 
-            const projectBreadcrumb = await page.evaluate(
+            const projectBreadcrumb: $TSFixMe = await page.evaluate(
                 (projectSelector: $TSFixMe) =>
                     document.querySelector(projectSelector).textContent,
                 projectSelector
             );
-            const componentBreadcrumb = await page.evaluate(
+            const componentBreadcrumb: $TSFixMe = await page.evaluate(
                 (componentSelector: $TSFixMe) =>
                     document.querySelector(componentSelector).textContent,
                 componentSelector
             );
-            const monitorBreadcrumb = await page.evaluate(
+            const monitorBreadcrumb: $TSFixMe = await page.evaluate(
                 (monitorSelector: $TSFixMe) =>
                     document.querySelector(monitorSelector).textContent,
                 monitorSelector
@@ -335,7 +335,7 @@ describe('Components', () => {
             const componentSelector: string = `#count_${componentName}`;
 
             await init.pageWaitForSelector(page, newComponentSelector);
-            const newResourceCount = await init.page$Eval(
+            const newResourceCount: $TSFixMe = await init.page$Eval(
                 page,
                 newComponentSelector,
                 (elem: $TSFixMe) => elem.textContent
@@ -343,7 +343,7 @@ describe('Components', () => {
             expect(newResourceCount).toEqual('1 Resource');
 
             await init.pageWaitForSelector(page, componentSelector);
-            const firstResourceCount = await init.page$Eval(
+            const firstResourceCount: $TSFixMe = await init.page$Eval(
                 page,
                 componentSelector,
                 (elem: $TSFixMe) => elem.textContent
@@ -372,7 +372,7 @@ describe('Components', () => {
             });
 
             await init.pageWaitForSelector(page, `#count_${componentName}`);
-            const firstResourceCount = await init.page$Eval(
+            const firstResourceCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${componentName}`,
                 (elem: $TSFixMe) => elem.textContent
@@ -428,7 +428,7 @@ describe('Components', () => {
             });
 
             await init.pageWaitForSelector(page, `#count_${componentName}`);
-            const firstResourceCount = await init.page$Eval(
+            const firstResourceCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${componentName}`,
                 (elem: $TSFixMe) => elem.textContent

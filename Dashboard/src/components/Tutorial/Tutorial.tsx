@@ -89,10 +89,10 @@ class Tutorial extends React.Component<TutorialProps> {
     }
 
     loopCard() {
-        const self = this;
+        const self: $TSFixMe = this;
         setInterval(function () {
 
-            const { currentSlide } = self.state;
+            const { currentSlide }: $TSFixMe = self.state;
             if (currentSlide === 's1') self.changeSlide('s2');
 
             if (currentSlide === 's2') self.changeSlide('s3');
@@ -107,11 +107,11 @@ class Tutorial extends React.Component<TutorialProps> {
 
     override render() {
 
-        const { deprecated, type } = this.props;
+        const { deprecated, type }: $TSFixMe = this.props;
 
-        const { currentSlide } = this.state;
+        const { currentSlide }: $TSFixMe = this.state;
 
-        const note = tutorials
+        const note: $TSFixMe = tutorials
             .getTutorials()
             .filter(tutorial => tutorial.id === type);
 

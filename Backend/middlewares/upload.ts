@@ -1,7 +1,7 @@
 import { GridFsStorage } from 'multer-gridfs-storage';
 import crypto from 'crypto';
 
-const mongoUri = process.env['MONGO_URL'];
+const mongoUri: $TSFixMe = process.env['MONGO_URL'];
 
 // Description: Generating random name of files.
 // Returns: fileinfo, error.
@@ -17,7 +17,7 @@ export default new GridFsStorage({
                 if (err) {
                     return reject(err);
                 }
-                const id = random.toString('hex');
+                const id: $TSFixMe = random.toString('hex');
                 const fileInfo: $TSFixMe = {
                     _id: id,
                     bucketName: 'uploads',

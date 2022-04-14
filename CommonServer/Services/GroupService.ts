@@ -29,7 +29,7 @@ export default class Service {
             query['deleted'] = false;
         }
         const response: $TSFixMe = {};
-        const [groups, count] = await Promise.all([
+        const [groups, count]: $TSFixMe = await Promise.all([
             GroupModel.find(query)
                 .lean()
                 .sort(sort)
@@ -61,7 +61,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const group = await GroupModel.findOne(query)
+        const group: $TSFixMe = await GroupModel.findOne(query)
             .populate('projectId', 'name')
             .populate({
                 path: 'teams',
@@ -73,7 +73,7 @@ export default class Service {
     }
 
     async create(data: $TSFixMe): void {
-        const groupExist = await this.findOneBy({
+        const groupExist: $TSFixMe = await this.findOneBy({
             name: data.name,
             projectId: data.projectId,
         });
@@ -81,14 +81,14 @@ export default class Service {
         if (groupExist) {
             throw new BadDataException('Group already exist in this project');
         }
-        const createGroup = new GroupModel({
+        const createGroup: $TSFixMe = new GroupModel({
             name: data.name,
             projectId: data.projectId,
             createdById: data.createdById,
             teams: data.teams,
         });
 
-        const group = await createGroup.save();
+        const group: $TSFixMe = await createGroup.save();
         return group;
     }
 
@@ -98,12 +98,12 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const count = await GroupModel.countDocuments(query);
+        const count: $TSFixMe = await GroupModel.countDocuments(query);
         return count;
     }
 
     async deleteBy(query: Query, userId: ObjectID): void {
-        const group = await GroupModel.findOneAndUpdate(
+        const group: $TSFixMe = await GroupModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -128,7 +128,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const groupExist = await this.findOneBy({
+        const groupExist: $TSFixMe = await this.findOneBy({
             name: data.name,
             projectId,
         });
@@ -150,11 +150,11 @@ export default class Service {
     }
 
     async removeGroupMember(groupId: $TSFixMe, memberId: $TSFixMe): void {
-        const group = await this.findOneBy({ _id: groupId });
-        const teamMembers = group.teams;
+        const group: $TSFixMe = await this.findOneBy({ _id: groupId });
+        const teamMembers: $TSFixMe = group.teams;
         const data = teamMembers.filter((id: $TSFixMe) => id !== memberId);
 
-        const newGroup = await this.updateOneBy(
+        const newGroup: $TSFixMe = await this.updateOneBy(
             { _id: groupId },
             { teams: data }
         );

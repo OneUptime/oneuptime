@@ -36,7 +36,7 @@ class ProjectTeamMemberNotification extends Component<ComponentProps> {
 
     override render() {
 
-        const { team, closeThisDialog } = this.props;
+        const { team, closeThisDialog }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

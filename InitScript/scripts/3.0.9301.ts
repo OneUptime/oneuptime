@@ -4,14 +4,14 @@ import getSlug from '../util/getSlug';
 const scheduledCollection: string = 'scheduledevents';
 
 async function run(): void {
-    const items = await find(scheduledCollection, {
+    const items: $TSFixMe = await find(scheduledCollection, {
         $or: [
             { slug: { $exists: false } },
             { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < items.length; i++) {
-        const { name } = items[i];
+        const { name }: $TSFixMe = items[i];
         items[i].slug = getSlug(name);
         await update(
             scheduledCollection,

@@ -17,13 +17,13 @@ export class UserUnblockBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { unblockUser, userId } = this.props;
+        const { unblockUser, userId }: $TSFixMe = this.props;
         return unblockUser(userId);
     };
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -72,8 +72,8 @@ UserUnblockBox.displayName = 'UserUnblockBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ unblockUser, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const user = state.user.user.user || {};
-    const userId = user._id;
+    const user: $TSFixMe = state.user.user.user || {};
+    const userId: $TSFixMe = user._id;
     return {
         userId,
         user,

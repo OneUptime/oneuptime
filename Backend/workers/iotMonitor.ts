@@ -1,21 +1,21 @@
 import moment from 'moment';
-const MonitorService = require('../Services/monitorService'),
+const MonitorService: $TSFixMe = require('../Services/monitorService'),
     IncidentService = require('../Services/incidentService'),
     ZapierService = require('../Services/zapierService');
 
 export default {
     checkAllDeviceMonitor: async () => {
-        const newDate = new moment();
-        const resDate = new Date();
-        const monitors = await MonitorService.getDeviceMonitorsPing();
+        const newDate: $TSFixMe = new moment();
+        const resDate: $TSFixMe = new Date();
+        const monitors: $TSFixMe = await MonitorService.getDeviceMonitorsPing();
         if (monitors) {
             monitors.forEach(async (monitor: $TSFixMe) => {
-                const d = new moment(monitor.lastPingTime);
+                const d: $TSFixMe = new moment(monitor.lastPingTime);
 
                 if (newDate.diff(d, 'minutes') > 3) {
                     await job(monitor);
                 } else {
-                    const res = new Date().getTime() - resDate.getTime();
+                    const res: $TSFixMe = new Date().getTime() - resDate.getTime();
                     await job(monitor, res);
                 }
             });
@@ -26,7 +26,7 @@ export default {
 };
 
 const job = async (monitor: $TSFixMe, res: $TSFixMe): void => {
-    const populate = [
+    const populate: $TSFixMe = [
         {
             path: 'monitors.monitorId',
             select: 'name slug componentId projectId type',
@@ -45,7 +45,7 @@ const job = async (monitor: $TSFixMe, res: $TSFixMe): void => {
         { path: 'createdByIncomingHttpRequest', select: 'name' },
         { path: 'probes.probeId', select: 'name _id' },
     ];
-    const select =
+    const select: $TSFixMe =
         'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
     if (res) {

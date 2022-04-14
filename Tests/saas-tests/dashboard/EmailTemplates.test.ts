@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let defaultSubject: $TSFixMe;
 
@@ -15,7 +15,7 @@ const user: $TSFixMe = {
 };
 
 describe('Email Templates API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -65,7 +65,7 @@ describe('Email Templates API', () => {
                 '#name',
                 (elem: $TSFixMe) => elem.value
             );
-            const resetBtn = await init.pageWaitForSelector(
+            const resetBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#templateReset',
                 {
@@ -122,7 +122,7 @@ describe('Email Templates API', () => {
             );
 
             await init.pageWaitForSelector(page, '#name');
-            const finalSubject = await init.page$Eval(
+            const finalSubject: $TSFixMe = await init.page$Eval(
                 page,
                 '#name',
                 (elem: $TSFixMe) => elem.value
@@ -158,7 +158,7 @@ describe('Email Templates API', () => {
                 'Subscriber Incident Created',
                 page
             );
-            const resetBtn = await init.pageWaitForSelector(
+            const resetBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#templateReset',
                 {
@@ -214,7 +214,7 @@ describe('Email Templates API', () => {
             );
 
             await init.pageWaitForSelector(page, '#name');
-            const finalSubject = await init.page$Eval(
+            const finalSubject: $TSFixMe = await init.page$Eval(
                 page,
                 '#name',
                 (elem: $TSFixMe) => elem.value

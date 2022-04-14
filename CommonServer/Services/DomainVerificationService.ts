@@ -7,14 +7,14 @@ import flatten from '../Utils/flattenArray';
 import randomChar from '../Utils/randomChar';
 import StatusPageService from './StatusPageService';
 import ProjectService from './ProjectService';
-const dnsPromises = dns.promises;
+const dnsPromises: $TSFixMe = dns.promises;
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 import errorService from '../Utils/error';
 
 export default class Service {
     async create({ domain, projectId }: $TSFixMe): void {
-        const parsed = psl.parse(domain);
+        const parsed: $TSFixMe = psl.parse(domain);
         const token: string = 'oneuptime=' + randomChar();
 
         const creationData: $TSFixMe = {
@@ -51,7 +51,7 @@ export default class Service {
         query['deleted'] = false;
 
         if (query.domain) {
-            const parsed = psl.parse(query.domain);
+            const parsed: $TSFixMe = psl.parse(query.domain);
             query.domain = parsed.domain;
         }
 
@@ -62,12 +62,12 @@ export default class Service {
                 select: '_id',
             });
             subProjects = subProjects.map((project: $TSFixMe) => project._id); // grab just the project ids
-            const totalProjects = [query.projectId, ...subProjects];
+            const totalProjects: $TSFixMe = [query.projectId, ...subProjects];
 
             query = { ...query, projectId: { $in: totalProjects } };
         }
 
-        const domainsQuery = DomainVerificationTokenModel.find(query)
+        const domainsQuery: $TSFixMe = DomainVerificationTokenModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -75,7 +75,7 @@ export default class Service {
         domainsQuery.select(select);
         domainsQuery.populate(populate);
 
-        const domains = await domainsQuery;
+        const domains: $TSFixMe = await domainsQuery;
         return domains;
     }
 
@@ -85,7 +85,7 @@ export default class Service {
             verified: false,
             updatedAt: new Date(),
         };
-        const updatedDomain = await this.updateOneBy(
+        const updatedDomain: $TSFixMe = await this.updateOneBy(
             { _id: domain },
             updateObj
         );
@@ -97,31 +97,31 @@ export default class Service {
         verificationToken: $TSFixMe
     ): void {
         try {
-            const parsed = psl.parse(subDomain);
+            const parsed: $TSFixMe = psl.parse(subDomain);
             const host: string = 'oneuptime';
             const previousHost: string = 'oneuptime';
-            const domain = parsed.domain;
+            const domain: $TSFixMe = parsed.domain;
             const domainToLookup: string = `${host}.${domain}`;
             const prevDomainToLookup: string = `${previousHost}.${domain}`;
 
-            const records = await dnsPromises.resolveTxt(domainToLookup);
+            const records: $TSFixMe = await dnsPromises.resolveTxt(domainToLookup);
             // records is an array of arrays
             // flatten the array to a single array
-            const txtRecords = flatten(records);
-            const result = txtRecords.some(
+            const txtRecords: $TSFixMe = flatten(records);
+            const result: $TSFixMe = txtRecords.some(
                 txtRecord => verificationToken === txtRecord
             );
 
             if (result) {
                 return { result, txtRecords };
             } else {
-                const records = await dnsPromises.resolveTxt(
+                const records: $TSFixMe = await dnsPromises.resolveTxt(
                     prevDomainToLookup
                 );
                 // records is an array of arrays
                 // flatten the array to a single array
-                const txtRecords = flatten(records);
-                const result = txtRecords.some(
+                const txtRecords: $TSFixMe = flatten(records);
+                const result: $TSFixMe = txtRecords.some(
                     txtRecord => verificationToken === txtRecord
                 );
 
@@ -155,7 +155,7 @@ export default class Service {
         // domain added to a project should be available for both project and subProjects
         // domain added to a subProject should be available to other subProjects and project
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: '_id parentProjectId',
         });
@@ -188,9 +188,9 @@ export default class Service {
             (projectId, index) => projectList.indexOf(projectId) === index
         );
 
-        const parsed = psl.parse(subDomain);
-        const domain = parsed.domain;
-        const result = await DomainVerificationTokenModel.find({
+        const parsed: $TSFixMe = psl.parse(subDomain);
+        const domain: $TSFixMe = parsed.domain;
+        const result: $TSFixMe = await DomainVerificationTokenModel.find({
             domain,
             /**
              * USE CASE THAT WARRANT REMOVAL OF VERIFIED FIELD
@@ -212,18 +212,18 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        const domainCount = await this.countBy(query);
+        const domainCount: $TSFixMe = await this.countBy(query);
 
         if (!domainCount || domainCount === 0) {
             throw new BadDataException('Domain not found or does not exist');
         }
 
-        const domain = await this.updateOneBy(query, {
+        const domain: $TSFixMe = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),
         });
 
-        const statusPages = await StatusPageService.findBy({
+        const statusPages: $TSFixMe = await StatusPageService.findBy({
             query: {
                 domains: {
                     $elemMatch: { domainVerificationToken: domain._id },
@@ -237,7 +237,7 @@ export default class Service {
         // while all custom domains is deleted gradually in the background
 
         for (const statusPage of statusPages) {
-            const statusPageId = statusPage._id;
+            const statusPageId: $TSFixMe = statusPage._id;
             for (const eachDomain of statusPage.domains) {
                 if (
                     String(eachDomain.domainVerificationToken._id) ===
@@ -263,8 +263,8 @@ export default class Service {
     async findDomain(domainId: $TSFixMe, projectArr = []): void {
         let projectId;
         for (const pId of projectArr) {
-            const populateDomainVerify = [{ path: 'projectId', select: '_id' }];
-            const check = await this.findOneBy({
+            const populateDomainVerify: $TSFixMe = [{ path: 'projectId', select: '_id' }];
+            const check: $TSFixMe = await this.findOneBy({
                 query: { _id: domainId, projectId: pId },
                 select: 'projectId',
                 populate: populateDomainVerify,

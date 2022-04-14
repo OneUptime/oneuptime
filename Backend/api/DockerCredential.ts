@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -13,7 +13,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import DockerCredentialService from '../services/dockerCredentialService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.post(
     '/:projectId/dockerCredential',
@@ -21,9 +21,9 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { dockerRegistryUrl, dockerUsername, dockerPassword } =
+            const { dockerRegistryUrl, dockerUsername, dockerPassword }: $TSFixMe =
                 req.body;
-            const { projectId } = req.params;
+            const { projectId }: $TSFixMe = req.params;
 
             if (!dockerRegistryUrl || !dockerRegistryUrl.trim()) {
                 return sendErrorResponse(req, res, {
@@ -51,7 +51,7 @@ router.post(
                 password: dockerPassword,
             });
 
-            const response = await DockerCredentialService.create({
+            const response: $TSFixMe = await DockerCredentialService.create({
                 dockerRegistryUrl,
                 dockerUsername,
                 dockerPassword,
@@ -70,12 +70,12 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
+            const { projectId }: $TSFixMe = req.params;
 
-            const populate = [{ path: 'projectId', select: 'name slug _id' }];
-            const select =
+            const populate: $TSFixMe = [{ path: 'projectId', select: 'name slug _id' }];
+            const select: $TSFixMe =
                 'dockerRegistryUrl dockerUsername dockerPassword iv projectId';
-            const dockerCredentials = await DockerCredentialService.findBy({
+            const dockerCredentials: $TSFixMe = await DockerCredentialService.findBy({
                 query: { projectId },
                 select,
                 populate,
@@ -93,8 +93,8 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { credentialId } = req.params;
-            const { dockerRegistryUrl, dockerUsername, dockerPassword } =
+            const { credentialId }: $TSFixMe = req.params;
+            const { dockerRegistryUrl, dockerUsername, dockerPassword }: $TSFixMe =
                 req.body;
 
             const data: $TSFixMe = {};
@@ -108,7 +108,7 @@ router.put(
                 data.dockerPassword = dockerPassword;
             }
 
-            const dockerCredential = await DockerCredentialService.updateOneBy(
+            const dockerCredential: $TSFixMe = await DockerCredentialService.updateOneBy(
                 { _id: credentialId },
                 data
             );
@@ -125,9 +125,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { credentialId } = req.params;
+            const { credentialId }: $TSFixMe = req.params;
 
-            const deletedDockerCredential =
+            const deletedDockerCredential: $TSFixMe =
                 await DockerCredentialService.deleteBy({ _id: credentialId });
 
             return sendItemResponse(req, res, deletedDockerCredential);

@@ -69,8 +69,8 @@ const MultiSelectDropDown: Function = ({
     selectedProjects,
     selectedComponents
 }: MultiSelectDropDownProps) => {
-    const [open, setOpen] = useState(false);
-    const container = useRef(null);
+    const [open, setOpen]: $TSFixMe = useState(false);
+    const container: $TSFixMe = useRef(null);
 
     const handleClickOutside: Function = (event: $TSFixMe) => {
 
@@ -125,7 +125,7 @@ const MultiSelectDropDown: Function = ({
                         {options && options.length > 0 && (
                             <section>
                                 {options.map((data: $TSFixMe) => {
-                                    const isProjectSelected = selectedProjects.includes(
+                                    const isProjectSelected: $TSFixMe = selectedProjects.includes(
                                         data.projectId
                                     );
 
@@ -185,7 +185,7 @@ const MultiSelectDropDown: Function = ({
                                             {data.components &&
                                                 data.components.map(
                                                     (component: $TSFixMe) => {
-                                                        const isComponentSelected = selectedComponents.includes(
+                                                        const isComponentSelected: $TSFixMe = selectedComponents.includes(
                                                             component.componentId
                                                         );
 
@@ -263,7 +263,7 @@ const MultiSelectDropDown: Function = ({
                                                                 {component.monitors &&
                                                                     component.monitors.map(
                                                                         (monitor: $TSFixMe) => {
-                                                                            const isMonitorSelected = selectedMonitors.includes(
+                                                                            const isMonitorSelected: $TSFixMe = selectedMonitors.includes(
                                                                                 monitor.monitorId
                                                                             );
 

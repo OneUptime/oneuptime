@@ -15,8 +15,8 @@ import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderIfMember from '../basic/RenderIfMember';
 
 function submitUserForm(values: $TSFixMe, dispatch: Dispatch, props: $TSFixMe) {
-    const scheduleId = props && props.scheduleId;
-    const users = [];
+    const scheduleId: $TSFixMe = props && props.scheduleId;
+    const users: $TSFixMe = [];
 
     for (const id in values) {
         if (Object.prototype.hasOwnProperty.call(values, id)) {
@@ -221,22 +221,22 @@ UserBox.propTypes = {
     addUserRequesting: PropTypes.oneOf([null, undefined, true, false]),
 };
 
-const AddUsersForm = new reduxForm({
+const AddUsersForm: $TSFixMe = new reduxForm({
     form: 'AddUsersForm',
     enableReinitialize: true,
 })(UserBox);
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const initialValues: $TSFixMe = {};
-    const schedules = state.schedule.schedules.data;
-    const users =
+    const schedules: $TSFixMe = state.schedule.schedules.data;
+    const users: $TSFixMe =
         state.teams.teamMembers.filter((user: $TSFixMe) => user.name && user.name !== '') ||
         [];
-    const projectId =
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
-    const isRequesting = state.teams.teamLoading.requesting;
-    const addUserRequesting = state.schedule.addUser.requesting;
-    const currentProject = state.project.currentProject;
+    const isRequesting: $TSFixMe = state.teams.teamLoading.requesting;
+    const addUserRequesting: $TSFixMe = state.schedule.addUser.requesting;
+    const currentProject: $TSFixMe = state.project.currentProject;
     let schedule;
     if (schedules.length > 0 && users.length > 0) {
         schedule = schedules.find(
@@ -245,7 +245,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
             }: $TSFixMe) => slug === props.match.params.scheduleSlug
         );
 
-        const scheduleUserIds = schedule.userIds.map(({
+        const scheduleUserIds: $TSFixMe = schedule.userIds.map(({
             _id
         }: $TSFixMe) => _id);
 

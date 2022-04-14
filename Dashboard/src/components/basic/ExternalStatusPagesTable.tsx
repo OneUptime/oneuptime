@@ -22,8 +22,8 @@ export class ExternalStatusPagesTable extends Component<ExternalStatusPagesTable
     };
     override render() {
 
-        const { statusPage, openModal } = this.props;
-        const { deleteExternalStatusPageModalId } = this.state;
+        const { statusPage, openModal }: $TSFixMe = this.props;
+        const { deleteExternalStatusPageModalId }: $TSFixMe = this.state;
 
         return (
             <div className="bs-ContentSection-content Box-root">

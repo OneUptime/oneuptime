@@ -15,16 +15,16 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import { sendEmptyResponse } from 'CommonServer/Utils/response';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.get(
     '/test',
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const apiKey = req.query.apiKey;
-            const projectId = req.query.projectId;
-            const response = await ZapierService.test(projectId, apiKey);
+            const apiKey: $TSFixMe = req.query.apiKey;
+            const projectId: $TSFixMe = req.query.projectId;
+            const response: $TSFixMe = await ZapierService.test(projectId, apiKey);
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -37,9 +37,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.query.projectId;
+            const projectId: $TSFixMe = req.query.projectId;
 
-            const projects = await ProjectService.findBy({
+            const projects: $TSFixMe = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
                 },
@@ -71,8 +71,8 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const monitors = req.body.monitors || [];
-            const incident = await ZapierService.createIncident(monitors);
+            const monitors: $TSFixMe = req.body.monitors || [];
+            const incident: $TSFixMe = await ZapierService.createIncident(monitors);
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -85,9 +85,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.query.projectId;
+            const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-            const incidents = await ZapierService.getIncidents(projectId);
+            const incidents: $TSFixMe = await ZapierService.getIncidents(projectId);
             // zapier expects this as an item response and not a list response.
             return sendItemResponse(req, res, incidents);
         } catch (error) {
@@ -101,9 +101,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.query.projectId;
+            const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-            const incidents = await ZapierService.getIncidentsNotes(projectId);
+            const incidents: $TSFixMe = await ZapierService.getIncidentsNotes(projectId);
             // zapier expects this as an item response and not a list response.
             return sendItemResponse(req, res, incidents);
         } catch (error) {
@@ -117,8 +117,8 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { data } = req.body;
-            const incidentNote = await ZapierService.createIncidentNote(data);
+            const { data }: $TSFixMe = req.body;
+            const incidentNote: $TSFixMe = await ZapierService.createIncidentNote(data);
             return sendItemResponse(req, res, incidentNote);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -131,9 +131,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.query.projectId;
+            const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-            const incidents = await ZapierService.getResolvedIncidents(
+            const incidents: $TSFixMe = await ZapierService.getResolvedIncidents(
                 projectId
             );
             // zapier expects this as an item response and not a list response.
@@ -153,8 +153,8 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const monitors = req.body.monitors || [];
-            const incident = await ZapierService.resolveLastIncident(monitors);
+            const monitors: $TSFixMe = req.body.monitors || [];
+            const incident: $TSFixMe = await ZapierService.resolveLastIncident(monitors);
             if (incident) {
                 return sendItemResponse(req, res, incident);
             } else {
@@ -171,8 +171,8 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const monitors = req.body.monitors || [];
-            const incidents = await ZapierService.resolveAllIncidents(monitors);
+            const monitors: $TSFixMe = req.body.monitors || [];
+            const incidents: $TSFixMe = await ZapierService.resolveAllIncidents(monitors);
             // zapier expects this as an item response and not a list response.;
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
@@ -190,8 +190,8 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const incidents = req.body.incidents || [];
-            const resolvedIncidents = await ZapierService.resolveIncident(
+            const incidents: $TSFixMe = req.body.incidents || [];
+            const resolvedIncidents: $TSFixMe = await ZapierService.resolveIncident(
                 incidents
             );
             // zapier expects this as an item response and not a list response.
@@ -211,9 +211,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.query.projectId;
+            const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-            const incidents = await ZapierService.getAcknowledgedIncidents(
+            const incidents: $TSFixMe = await ZapierService.getAcknowledgedIncidents(
                 projectId,
 
                 true,
@@ -236,8 +236,8 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const monitors = req.body.monitors || [];
-            const incident = await ZapierService.acknowledgeLastIncident(
+            const monitors: $TSFixMe = req.body.monitors || [];
+            const incident: $TSFixMe = await ZapierService.acknowledgeLastIncident(
                 monitors
             );
             if (incident) {
@@ -256,8 +256,8 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const monitors = req.body.monitors || [];
-            const incidents = await ZapierService.acknowledgeAllIncidents(
+            const monitors: $TSFixMe = req.body.monitors || [];
+            const incidents: $TSFixMe = await ZapierService.acknowledgeAllIncidents(
                 monitors
             );
             // zapier expects this as an item response and not a list response.;
@@ -277,8 +277,8 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const incidents = req.body.incidents || [];
-            const acknowledgedIncidents =
+            const incidents: $TSFixMe = req.body.incidents || [];
+            const acknowledgedIncidents: $TSFixMe =
                 await ZapierService.acknowledgeIncident(incidents);
             // zapier expects this as an item response and not a list response.
             if (acknowledgedIncidents) {
@@ -297,13 +297,13 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const url = req.body.url;
-            const type = req.body.type;
-            const monitors =
+            const url: $TSFixMe = req.body.url;
+            const type: $TSFixMe = req.body.type;
+            const monitors: $TSFixMe =
                 req.body.input && req.body.input.monitors
                     ? req.body.input.monitors
                     : [];
-            const projectId = req.query.projectId;
+            const projectId: $TSFixMe = req.query.projectId;
             if (!url) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -319,7 +319,7 @@ router.post(
                         'We are not able to complete your subscription request because trigger type is null.',
                 });
             }
-            const response = await ZapierService.subscribe(
+            const response: $TSFixMe = await ZapierService.subscribe(
                 projectId,
                 url,
                 type,
@@ -337,7 +337,7 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const id = req.params.id;
+            const id: $TSFixMe = req.params.id;
             await ZapierService.unsubscribe(id);
             return sendEmptyResponse(req, res);
         } catch (error) {

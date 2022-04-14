@@ -16,7 +16,7 @@ import {
     editErrorTracker,
 } from '../../actions/errorTracker';
 import { RenderSelect } from '../basic/RenderSelect';
-const selector = formValueSelector('NewErrorTracker');
+const selector: $TSFixMe = formValueSelector('NewErrorTracker');
 
 interface NewErrorTrackerProps {
     createErrorTracker: Function;
@@ -57,7 +57,7 @@ class NewErrorTracker extends Component<ComponentProps> {
         }
     };
     submitForm = (values: $TSFixMe) => {
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
         const postObj: $TSFixMe = {};
 
         postObj.name = values[`name`];
@@ -122,7 +122,7 @@ class NewErrorTracker extends Component<ComponentProps> {
     };
     cancelEdit = () => {
 
-        const { editErrorTrackerSwitch, errorTracker } = this.props;
+        const { editErrorTrackerSwitch, errorTracker }: $TSFixMe = this.props;
         editErrorTrackerSwitch(errorTracker._id);
     };
     override render() {
@@ -377,7 +377,7 @@ class NewErrorTracker extends Component<ComponentProps> {
 
 NewErrorTracker.displayName = 'NewErrorTracker';
 
-const NewErrorTrackerForm = new reduxForm({
+const NewErrorTrackerForm: $TSFixMe = new reduxForm({
     form: 'NewErrorTracker',
     destroyOnUnmount: true,
     enableReinitialize: true,
@@ -393,12 +393,12 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const name = selector(state, 'name');
-    const componentId = ownProps.componentId;
-    const requesting = ownProps.edit
+    const name: $TSFixMe = selector(state, 'name');
+    const componentId: $TSFixMe = ownProps.componentId;
+    const requesting: $TSFixMe = ownProps.edit
         ? state.errorTracker.editErrorTracker.requesting
         : state.errorTracker.newErrorTracker.requesting;
-    const currentProject = state.project.currentProject;
+    const currentProject: $TSFixMe = state.project.currentProject;
     const initialValues: $TSFixMe = {
         name: ownProps.errorTracker ? ownProps.errorTracker.name : '',
         resourceCategory: ownProps.errorTracker

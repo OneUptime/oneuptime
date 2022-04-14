@@ -69,4 +69,4 @@ export default {
 
 import payment from '../../backend/config/payment';
 import Stripe from 'stripe';
-const stripe = Stripe(payment.paymentPrivateKey);
+const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);

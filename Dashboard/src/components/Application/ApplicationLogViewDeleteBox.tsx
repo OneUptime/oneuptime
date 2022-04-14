@@ -30,12 +30,12 @@ class ApplicationLogViewDeleteBox extends Component<ComponentProps> {
     }
     deleteApplicationLog = () => {
 
-        const applicationLog = this.props.applicationLog;
-        const componentId = applicationLog.componentId._id;
+        const applicationLog: $TSFixMe = this.props.applicationLog;
+        const componentId: $TSFixMe = applicationLog.componentId._id;
 
-        const currentProjectId = this.props.currentProject._id;
+        const currentProjectId: $TSFixMe = this.props.currentProject._id;
 
-        const promise = this.props.deleteApplicationLog(
+        const promise: $TSFixMe = this.props.deleteApplicationLog(
             currentProjectId,
             componentId,
 
@@ -60,7 +60,7 @@ class ApplicationLogViewDeleteBox extends Component<ComponentProps> {
     };
     override render() {
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}

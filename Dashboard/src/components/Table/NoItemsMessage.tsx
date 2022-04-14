@@ -17,7 +17,7 @@ export default class NoItemsMessage extends Component<NoItemsMessageProps>{
 
     override render() {
 
-        const { isLoading, itemsCount, noItemsMessage } = this.props;
+        const { isLoading, itemsCount, noItemsMessage }: $TSFixMe = this.props;
 
         return (
             <ShouldRender if={!isLoading && itemsCount === 0}>

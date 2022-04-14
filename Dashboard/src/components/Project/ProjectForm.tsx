@@ -100,7 +100,7 @@ class _ProjectForm extends React.Component<_ProjectFormProps> {
     };
 
     createToken = (values: $TSFixMe) => {
-        const cardRegistered =
+        const cardRegistered: $TSFixMe =
             User.isCardRegistered() === 'false' ? false : true;
         const {
 
@@ -176,7 +176,7 @@ class _ProjectForm extends React.Component<_ProjectFormProps> {
 
             activePlan,
         } = this.props;
-        const cardRegistered = User.isCardRegistered();
+        const cardRegistered: $TSFixMe = User.isCardRegistered();
 
         return (
             <form
@@ -378,7 +378,7 @@ _ProjectForm.propTypes = {
     activePlan: PropTypes.string,
 };
 
-const ProjectForm = new reduxForm({
+const ProjectForm: $TSFixMe = new reduxForm({
     form: '_ProjectForm',
     validate,
 })(_ProjectForm);
@@ -419,7 +419,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const ProjectFormStripe = injectStripe(
+const ProjectFormStripe: $TSFixMe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(ProjectForm)
 );
 
@@ -449,7 +449,7 @@ class ProjectFormWithCheckout extends Component<ComponentProps> {
 
     override render() {
 
-        const { elementFontSize } = this.state;
+        const { elementFontSize }: $TSFixMe = this.state;
         return (
             <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
                 <div className="Checkout">

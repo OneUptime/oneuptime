@@ -5,13 +5,13 @@ import * as types from '../constants/notification';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import { User } from '../config';
 
-export const openNotificationMenu = function (position: $TSFixMe): void {
+export const openNotificationMenu: $TSFixMe = function (position: $TSFixMe): void {
     return {
         type: types.OPEN_NOTIFICATION_MENU,
         payload: position,
     };
 };
-export const closeNotificationMenu = function (error: ErrorPayload): void {
+export const closeNotificationMenu: $TSFixMe = function (error: ErrorPayload): void {
     return {
         type: types.CLOSE_NOTIFICATION_MENU,
         payload: error,
@@ -80,7 +80,7 @@ export const allNotificationReadSuccess: Function = (
 export const fetchNotifications: Function = (projectId: ObjectID): void => {
     return async function (dispatch: Dispatch): void {
         try {
-            const notifications = await BackendAPI.get(
+            const notifications: $TSFixMe = await BackendAPI.get(
                 `notification/${projectId}`
             );
 
@@ -112,14 +112,14 @@ export const markAsRead: Function = (
 ): void => {
     return async function (dispatch: Dispatch): void {
         try {
-            const userId = User.getUserId();
+            const userId: $TSFixMe = User.getUserId();
             notificationIds = notificationIds.map(
                 (notification: $TSFixMe) =>
                     notification.notificationId ||
                     notification.notificaitonId._id
             );
 
-            const notifications = await BackendAPI.put(
+            const notifications: $TSFixMe = await BackendAPI.put(
                 `notification/${projectId}/read`,
                 {
                     notificationIds,
@@ -159,7 +159,7 @@ export function closeNotification(
 ): void {
     return async function (dispatch: Dispatch): void {
         try {
-            const userId = User.getUserId();
+            const userId: $TSFixMe = User.getUserId();
 
             dispatch(
                 notificationClosedSuccess({
@@ -193,7 +193,7 @@ export function closeNotification(
 export const markAllAsRead: Function = (projectId: ObjectID): void => {
     return async function (dispatch: Dispatch): void {
         try {
-            const userId = User.getUserId();
+            const userId: $TSFixMe = User.getUserId();
 
             await BackendAPI.put(`notification/${projectId}/readAll`);
 
@@ -224,7 +224,7 @@ export function billingActionTaken(
 ): void {
     return async function (dispatch: Dispatch): void {
         try {
-            const notification = BackendAPI.put(
+            const notification: $TSFixMe = BackendAPI.put(
                 `notification/${projectId}/${notificationId}`,
                 values
             );

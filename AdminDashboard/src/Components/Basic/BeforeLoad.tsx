@@ -7,16 +7,16 @@ class BeforeLoad extends Component<ComponentProps> {
     redirect: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
-        const isAuthenticated = User.isLoggedIn();
-        const initialUrl = sessionStorage.getItem('initialUrl');
+        const isAuthenticated: $TSFixMe = User.isLoggedIn();
+        const initialUrl: $TSFixMe = sessionStorage.getItem('initialUrl');
         this.isAuthenticated = isAuthenticated;
-        const redirectTo = getQueryVar('redirectTo', initialUrl);
-        const counter = getQueryVar('counter', initialUrl) || 0;
+        const redirectTo: $TSFixMe = getQueryVar('redirectTo', initialUrl);
+        const counter: $TSFixMe = getQueryVar('counter', initialUrl) || 0;
         if (redirectTo) this.redirect = redirectTo;
         if (isAuthenticated) {
             if (redirectTo) {
                 sessionStorage.removeItem('initialUrl');
-                const accessToken = User.getAccessToken();
+                const accessToken: $TSFixMe = User.getAccessToken();
 
                 window.location.href = `${redirectTo}?accessToken=${accessToken}&counter=${parseInt(
 

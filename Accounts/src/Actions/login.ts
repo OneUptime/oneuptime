@@ -34,8 +34,8 @@ export const loginSuccess: Function = (user: $TSFixMe): void => {
         };
     }
 
-    const state = store.getState();
-    const { statusPageLogin, statusPageURL } = state.login;
+    const state: $TSFixMe = store.getState();
+    const { statusPageLogin, statusPageURL }: $TSFixMe = state.login;
     if (statusPageLogin) {
         const newURL: string = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
 
@@ -43,7 +43,7 @@ export const loginSuccess: Function = (user: $TSFixMe): void => {
     }
 
     //share localStorage with dashboard app
-    const cookies = new Cookies();
+    const cookies: $TSFixMe = new Cookies();
     cookies.set('data', user, {
         path: '/',
         maxAge: 8640000,
@@ -53,7 +53,7 @@ export const loginSuccess: Function = (user: $TSFixMe): void => {
 
     if (user.role === 'master-admin') {
         //share localStorage with admin dashboard app
-        const cookies = new Cookies();
+        const cookies: $TSFixMe = new Cookies();
         cookies.set('admin-data', user, {
             path: '/',
             maxAge: 8640000,
@@ -100,13 +100,13 @@ export const verifyTokenError: Function = (error: ErrorPayload): void => {
 
 // Calls the API to register a user.
 export const loginUser: Function = (values: $TSFixMe): void => {
-    const initialUrl = User.initialUrl();
-    const redirect = getQueryVar('redirectTo', initialUrl);
+    const initialUrl: $TSFixMe = User.initialUrl();
+    const redirect: $TSFixMe = getQueryVar('redirectTo', initialUrl);
     if (redirect) {
         values.redirect = redirect;
     }
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(new Route('user/login'), values);
+        const promise: $TSFixMe = BackendAPI.post(new Route('user/login'), values);
         dispatch(loginRequest(promise));
 
         promise.then(
@@ -129,14 +129,14 @@ export const loginUser: Function = (values: $TSFixMe): void => {
     };
 };
 
-export const loginUserSso =
+export const loginUserSso: $TSFixMe =
     (values: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `user/sso/login?email=${values.email}`
             );
 
-            const { url } = response.data;
+            const { url }: $TSFixMe = response.data;
             window.location.href = url;
         } catch (error) {
             let errorMsg;
@@ -157,15 +157,15 @@ export const loginUserSso =
 
 // Calls the API to verify a user token and log them in.
 export const verifyAuthToken: Function = (values: $TSFixMe): void => {
-    const initialUrl = User.initialUrl();
-    const redirect = getQueryVar('redirectTo', initialUrl);
+    const initialUrl: $TSFixMe = User.initialUrl();
+    const redirect: $TSFixMe = getQueryVar('redirectTo', initialUrl);
     if (redirect) {
         values.redirect = redirect;
     }
-    const email = User.getEmail();
+    const email: $TSFixMe = User.getEmail();
     values.email = values.email || email;
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             new Route('user/totp/verifyToken'),
             values
         );
@@ -206,15 +206,15 @@ export const useBackupCodeError: Function = (error: ErrorPayload): void => {
 };
 
 export const verifyBackupCode: Function = (values: $TSFixMe): void => {
-    const initialUrl = User.initialUrl();
-    const redirect = getQueryVar('redirectTo', initialUrl);
+    const initialUrl: $TSFixMe = User.initialUrl();
+    const redirect: $TSFixMe = getQueryVar('redirectTo', initialUrl);
     if (redirect) {
         values.redirect = redirect;
     }
-    const email = User.getEmail();
+    const email: $TSFixMe = User.getEmail();
     values.email = values.email || email;
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             new Route('user/verify/backupCode'),
             values
         );
@@ -269,7 +269,7 @@ export const resetMasterAdminExists: Function = (): void => {
 // Calls the API to register a user.
 export const checkIfMasterAdminExists: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get('user/masterAdminExists', values);
+        const promise: $TSFixMe = BackendAPI.get('user/masterAdminExists', values);
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
             (response): void => {

@@ -16,8 +16,8 @@ export default class Service {
         limit: PositiveNumber
     ): void {
         const format: string = 'ddd MMM DD YYYY H:m:s GMT';
-        const start = moment(startDate, format).toDate();
-        const end = moment(endDate, format).toDate();
+        const start: $TSFixMe = moment(startDate, format).toDate();
+        const end: $TSFixMe = moment(endDate, format).toDate();
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -27,7 +27,7 @@ export default class Service {
             limit = parseInt(limit);
         }
         // Use aggregate to proccess data
-        const result = await IncidentModel.aggregate([
+        const result: $TSFixMe = await IncidentModel.aggregate([
             {
                 $match: {
                     $and: [
@@ -67,13 +67,13 @@ export default class Service {
             },
         ]).option({ allowDiskUse: true });
 
-        const arr = [];
+        const arr: $TSFixMe = [];
         const wrapper: $TSFixMe = {};
-        const filterMembers = result[0].members.filter(
+        const filterMembers: $TSFixMe = result[0].members.filter(
             (member: $TSFixMe) => member._id !== null
         );
         for (const member of filterMembers) {
-            const response = await UserService.findOneBy({
+            const response: $TSFixMe = await UserService.findOneBy({
                 query: { _id: member._id },
                 select: 'name',
             });
@@ -108,8 +108,8 @@ export default class Service {
         limit: PositiveNumber
     ): void {
         const format: string = 'ddd MMM DD YYYY H:m:s GMT';
-        const start = moment(startDate, format).toDate();
-        const end = moment(endDate, format).toDate();
+        const start: $TSFixMe = moment(startDate, format).toDate();
+        const end: $TSFixMe = moment(endDate, format).toDate();
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -119,7 +119,7 @@ export default class Service {
             limit = parseInt(limit);
         }
         // Use aggregate to process data
-        const result = await IncidentModel.aggregate([
+        const result: $TSFixMe = await IncidentModel.aggregate([
             { $unwind: '$monitors' },
             {
                 $match: {
@@ -160,7 +160,7 @@ export default class Service {
             },
         ]).option({ allowDiskUse: true });
 
-        const arr = [];
+        const arr: $TSFixMe = [];
         const wrapper: $TSFixMe = {};
         for (const monitor of result[0].monitors) {
             let response = await MonitorService.findOneBy({
@@ -201,8 +201,8 @@ export default class Service {
         filter: $TSFixMe
     ): void {
         const format: string = 'ddd MMM DD YYYY H:m:s GMT';
-        const start = moment(startDate, format).toDate();
-        const end = moment(endDate, format).toDate();
+        const start: $TSFixMe = moment(startDate, format).toDate();
+        const end: $TSFixMe = moment(endDate, format).toDate();
         let group, sort, inputFormat, outputFormat;
 
         if (filter === 'day') {
@@ -270,7 +270,7 @@ export default class Service {
             inputFormat = 'YYYY';
             outputFormat = 'YYYY';
         }
-        const result = await IncidentModel.aggregate([
+        const result: $TSFixMe = await IncidentModel.aggregate([
             {
                 $match: {
                     $and: [
@@ -292,7 +292,7 @@ export default class Service {
             { $sort: sort },
         ]).option({ allowDiskUse: true });
 
-        const formarted = [];
+        const formarted: $TSFixMe = [];
 
         for (const period of result) {
             const data: $TSFixMe = {
@@ -329,8 +329,8 @@ export default class Service {
         filter: $TSFixMe
     ): void {
         const format: string = 'ddd MMM DD YYYY H:m:s GMT';
-        const start = moment(startDate, format).toDate();
-        const end = moment(endDate, format).toDate();
+        const start: $TSFixMe = moment(startDate, format).toDate();
+        const end: $TSFixMe = moment(endDate, format).toDate();
         let group, sort, inputFormat, outputFormat;
 
         if (filter === 'day') {
@@ -394,7 +394,7 @@ export default class Service {
             inputFormat = 'YYYY';
             outputFormat = 'YYYY';
         }
-        const result = await IncidentModel.aggregate([
+        const result: $TSFixMe = await IncidentModel.aggregate([
             {
                 $match: {
                     $and: [
@@ -406,7 +406,7 @@ export default class Service {
             { $group: group },
             { $sort: sort },
         ]).option({ allowDiskUse: true });
-        const formarted = [];
+        const formarted: $TSFixMe = [];
 
         for (const period of result) {
             const data: $TSFixMe = {

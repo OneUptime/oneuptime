@@ -66,9 +66,9 @@ class KubePods extends React.Component<KubePodsProps> {
 
     override render() {
 
-        const { data } = this.props;
-        const podData = data.data;
-        const logTitle = data.title;
+        const { data }: $TSFixMe = this.props;
+        const podData: $TSFixMe = data.data;
+        const logTitle: $TSFixMe = data.title;
 
         return (
             <div

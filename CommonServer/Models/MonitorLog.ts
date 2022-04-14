@@ -4,8 +4,8 @@ import mongoose, {
     EncryptedFields,
 } from '../Infrastructure/ORM';
 
-const Schema = mongoose.Schema;
-const schema = new Schema({
+const Schema: $TSFixMe = mongoose.Schema;
+const schema: $TSFixMe = new Schema({
     monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this belong to.
     probeId: { type: String, ref: 'Probe', index: true }, // which probe does this belong to.
     status: String, // status based on criteria.

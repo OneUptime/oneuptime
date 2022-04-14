@@ -7,8 +7,8 @@ class ClipboardWrap extends Component<ComponentProps> {
     clipboard: $TSFixMe;
     input: $TSFixMe;
     override componentDidMount() {
-        const button = this.button;
-        const input = this.input;
+        const button: $TSFixMe = this.button;
+        const input: $TSFixMe = this.input;
 
         this.clipboard = new Clipboard(button, {
             target: () => input,
@@ -21,7 +21,7 @@ class ClipboardWrap extends Component<ComponentProps> {
 
     override render() {
 
-        const { value } = this.props;
+        const { value }: $TSFixMe = this.props;
 
         return (
             <div>

@@ -10,7 +10,7 @@ module.exports.create = function (config: $TSFixMe): void {
 
     store.accounts = {
         setKeypair: function (opts: $TSFixMe): void {
-            const id =
+            const id: $TSFixMe =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
             const url: string = `${BASE_URL}/api/account/store/${id}`;
@@ -31,7 +31,7 @@ module.exports.create = function (config: $TSFixMe): void {
                 .finally(() => null);
         },
         checkKeypair: function (opts: $TSFixMe): void {
-            const id =
+            const id: $TSFixMe =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
             const url: string = `${BASE_URL}/api/account/store/${id}`;
@@ -47,7 +47,7 @@ module.exports.create = function (config: $TSFixMe): void {
 
     store.certificates = {
         setKeypair: function (opts: $TSFixMe): void {
-            const id =
+            const id: $TSFixMe =
                 (opts.certificate &&
                     (opts.certificate.kid || opts.certificate.id)) ||
                 opts.subject;
@@ -67,7 +67,7 @@ module.exports.create = function (config: $TSFixMe): void {
                 .finally(() => null);
         },
         checkKeypair: function (opts: $TSFixMe): void {
-            const id =
+            const id: $TSFixMe =
                 (opts.certificate &&
                     (opts.certificate.kid || opts.certificate.id)) ||
                 opts.subject;
@@ -81,7 +81,7 @@ module.exports.create = function (config: $TSFixMe): void {
                 .finally(() => null);
         },
         set: function (opts: $TSFixMe): void {
-            const id =
+            const id: $TSFixMe =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
             const url: string = `${BASE_URL}/api/certificate/store/${id}`;
@@ -99,7 +99,7 @@ module.exports.create = function (config: $TSFixMe): void {
                 .finally(() => null);
         },
         check: function (opts: $TSFixMe): void {
-            const id =
+            const id: $TSFixMe =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
             const url: string = `${BASE_URL}/api/certificate/store/${id}`;

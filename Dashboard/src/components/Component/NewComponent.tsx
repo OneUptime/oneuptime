@@ -27,7 +27,7 @@ import { User } from '../../config';
 import { ValidateField } from '../../config';
 import { history, RootState } from '../../store';
 
-const selector = formValueSelector('NewComponent');
+const selector: $TSFixMe = formValueSelector('NewComponent');
 
 interface NewComponentProps {
     index?: unknown | unknown;
@@ -70,7 +70,7 @@ class NewComponent extends Component<ComponentProps> {
 
     componentDidUpdate() {
 
-        const { component } = this.props;
+        const { component }: $TSFixMe = this.props;
         if (
             component.newComponent.error ===
             "You can't add any more components. Please upgrade plan."
@@ -87,10 +87,10 @@ class NewComponent extends Component<ComponentProps> {
     };
 
     submitForm = (values: $TSFixMe) => {
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
 
 
-        const { upgradeModalId } = this.state;
+        const { upgradeModalId }: $TSFixMe = this.state;
         const postObj: $TSFixMe = { data: {}, criteria: {} };
 
         postObj.projectId = this.props.activesubProjectId;
@@ -157,9 +157,9 @@ class NewComponent extends Component<ComponentProps> {
 
             this.props.fetchSchedules(value);
         } else {
-            const userId = User.getUserId();
+            const userId: $TSFixMe = User.getUserId();
 
-            const projectMember = this.props.currentProject.users.find(
+            const projectMember: $TSFixMe = this.props.currentProject.users.find(
                 (user: $TSFixMe) => user.userId === userId
             );
             if (projectMember)
@@ -174,7 +174,7 @@ class NewComponent extends Component<ComponentProps> {
     };
 
     override render() {
-        const requesting =
+        const requesting: $TSFixMe =
 
             (this.props.component.newComponent.requesting &&
 
@@ -183,7 +183,7 @@ class NewComponent extends Component<ComponentProps> {
             (this.props.component.editComponent.requesting && this.props.edit);
 
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -387,7 +387,7 @@ class NewComponent extends Component<ComponentProps> {
 
 NewComponent.displayName = 'NewComponent';
 
-const NewComponentForm = new reduxForm({
+const NewComponentForm: $TSFixMe = new reduxForm({
     form: 'NewComponent',
     destroyOnUnmount: true,
     enableReinitialize: true,
@@ -412,11 +412,11 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const name = selector(state, 'name_1000');
-    const activesubProjectId = state.subProject.activeSubProject;
+    const name: $TSFixMe = selector(state, 'name_1000');
+    const activesubProjectId: $TSFixMe = state.subProject.activeSubProject;
 
     if (ownProps.edit) {
-        const componentSlug = ownProps.match
+        const componentSlug: $TSFixMe = ownProps.match
             ? ownProps.match.params
                 ? ownProps.match.params.componentSlug
                 : null

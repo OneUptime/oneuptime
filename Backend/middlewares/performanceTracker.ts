@@ -12,7 +12,7 @@ const _this: $TSFixMe = {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        const { key } = req.params;
+        const { key }: $TSFixMe = req.params;
         if (!key) {
             return sendErrorResponse(
                 req,
@@ -22,7 +22,7 @@ const _this: $TSFixMe = {
         }
 
         // check if there's a performance tracker with the key
-        const performanceTrackerCount = await PerformanceTrackerService.countBy(
+        const performanceTrackerCount: $TSFixMe = await PerformanceTrackerService.countBy(
             {
                 key,
             }

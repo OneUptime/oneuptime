@@ -43,7 +43,7 @@ interface ErrorEventInfoSectionProps {
 function ErrorEventInfoSection({
     errorEvent
 }: ErrorEventInfoSectionProps) {
-    const errorEventDetails = errorEvent.errorEvent;
+    const errorEventDetails: $TSFixMe = errorEvent.errorEvent;
     return (
         <div>
             {errorEventDetails &&

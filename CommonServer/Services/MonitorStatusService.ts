@@ -44,7 +44,7 @@ export default class Service {
                 );
             }
 
-            const monitorStatus = new MonitorStatusModel();
+            const monitorStatus: $TSFixMe = new MonitorStatusModel();
             if (data.lastStatus) {
                 monitorStatus.lastStatus = data.lastStatus;
             }
@@ -59,7 +59,7 @@ export default class Service {
 
             monitorStatus.status = data.status;
 
-            const savedMonitorStatus = await monitorStatus.save();
+            const savedMonitorStatus: $TSFixMe = await monitorStatus.save();
 
             await this.sendMonitorStatus(savedMonitorStatus);
 
@@ -70,7 +70,7 @@ export default class Service {
     // allData is an array of object
     // to be bulk written to the db
     async createMany(allData: $TSFixMe): void {
-        const dataList = [];
+        const dataList: $TSFixMe = [];
         for (const data of allData) {
             const query: $TSFixMe = {};
 
@@ -121,7 +121,7 @@ export default class Service {
         }
 
         if (dataList.length > 0) {
-            const docs = await MonitorStatusModel.insertMany(dataList);
+            const docs: $TSFixMe = await MonitorStatusModel.insertMany(dataList);
             // we don't want to await this ):
 
             docs.forEach((doc: $TSFixMe) => this.sendMonitorStatus(doc));
@@ -137,7 +137,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const updatedMonitorStatus = await MonitorStatusModel.findOneAndUpdate(
+        const updatedMonitorStatus: $TSFixMe = await MonitorStatusModel.findOneAndUpdate(
             query,
             { $set: data },
             {
@@ -157,7 +157,7 @@ export default class Service {
         let updatedData = await MonitorStatusModel.updateMany(query, {
             $set: data,
         });
-        const select =
+        const select: $TSFixMe =
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
         updatedData = await this.findBy({ query, select });
         return updatedData;
@@ -188,7 +188,7 @@ export default class Service {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const monitorStatusQuery = MonitorStatusModel.find(query)
+        const monitorStatusQuery: $TSFixMe = MonitorStatusModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -196,7 +196,7 @@ export default class Service {
         monitorStatusQuery.select(select);
         monitorStatusQuery.populate(populate);
 
-        const monitorStatus = await monitorStatusQuery;
+        const monitorStatus: $TSFixMe = await monitorStatusQuery;
         return monitorStatus;
     }
 
@@ -208,18 +208,18 @@ export default class Service {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const monitorStatusQuery = MonitorStatusModel.findOne(query)
+        const monitorStatusQuery: $TSFixMe = MonitorStatusModel.findOne(query)
             .sort(sort)
             .lean();
         monitorStatusQuery.select(select);
         monitorStatusQuery.populate(populate);
 
-        const monitorStatus = await monitorStatusQuery;
+        const monitorStatus: $TSFixMe = await monitorStatusQuery;
         return monitorStatus;
     }
 
     async sendMonitorStatus(data: $TSFixMe): void {
-        const monitor = await MonitorService.findOneBy({
+        const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: data.monitorId },
             select: 'projectId',
             populate: [{ path: 'projectId', select: '_id' }],
@@ -235,7 +235,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const monitorStatus = await MonitorStatusModel.findOneAndUpdate(
+        const monitorStatus: $TSFixMe = await MonitorStatusModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -249,16 +249,16 @@ export default class Service {
             }
         );
         if (monitorStatus) {
-            const { manuallyCreated, probeId, createdAt, endTime } =
+            const { manuallyCreated, probeId, createdAt, endTime }: $TSFixMe =
                 monitorStatus;
-            const previousMonitorStatuses = await MonitorStatusModel.find({
+            const previousMonitorStatuses: $TSFixMe = await MonitorStatusModel.find({
                 manuallyCreated,
                 probeId,
                 deleted: false,
                 createdAt: { $lte: createdAt },
             });
             if (previousMonitorStatuses && previousMonitorStatuses.length) {
-                const previousMonitorStatus = previousMonitorStatuses[0];
+                const previousMonitorStatus: $TSFixMe = previousMonitorStatuses[0];
                 await this.updateOneBy(
                     { _id: previousMonitorStatus._id },
                     { endTime }

@@ -37,13 +37,13 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
 
     override componentDidMount() {
 
-        const { route } = this.props;
-        const path = this.mainRoute();
+        const { route }: $TSFixMe = this.props;
+        const path: $TSFixMe = this.mainRoute();
 
         navKeyBind(route, path);
 
         route.subRoutes.map((subRoute: $TSFixMe) => {
-            const link = this.subRoute(subRoute);
+            const link: $TSFixMe = this.subRoute(subRoute);
 
             navKeyBind(subRoute, link);
             return subRoute;
@@ -52,13 +52,13 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
 
     override componentWillUnmount() {
 
-        const { route } = this.props;
-        const path = this.mainRoute();
+        const { route }: $TSFixMe = this.props;
+        const path: $TSFixMe = this.mainRoute();
 
         cleanBind(route, path);
 
         route.subRoutes.map((subRoute: $TSFixMe) => {
-            const link = this.subRoute(subRoute);
+            const link: $TSFixMe = this.subRoute(subRoute);
 
             cleanBind(subRoute, link);
             return subRoute;
@@ -67,7 +67,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
 
     mainRoute = () => {
 
-        const { match, currentProject, route } = this.props;
+        const { match, currentProject, route }: $TSFixMe = this.props;
         return route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':componentSlug', match.params.componentSlug)
@@ -86,8 +86,8 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
     };
     subRoute = (subRoute: $TSFixMe) => {
 
-        const { match, currentProject } = this.props;
-        const subRoutePath = subRoute.path
+        const { match, currentProject }: $TSFixMe = this.props;
+        const subRoutePath: $TSFixMe = subRoute.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':componentSlug', match.params.componentSlug)
             .replace(/:issueId/, match.params.issueId)
@@ -95,7 +95,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
             .replace(/:incidentSlug/, match.params.incidentSlug)
             .replace(/:monitorSlug/, match.params.monitorSlug)
             .replace(/:automatedScriptslug/, match.params.automatedScriptslug);
-        const projectSettingsSubRoutes =
+        const projectSettingsSubRoutes: $TSFixMe =
             subRoute.title === 'Monitor' ||
             subRoute.title === 'Incident Settings' ||
             subRoute.title === 'Email' ||
@@ -127,7 +127,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
     };
 
     override render() {
-        const { RenderListItems } = this;
+        const { RenderListItems }: $TSFixMe = this;
         const {
 
             route,
@@ -144,7 +144,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
 
             toggleMoreBtn,
         } = this.props;
-        const path = route.path
+        const path: $TSFixMe = route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitorSlug', match.params.monitorSlug)
@@ -155,7 +155,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
                 match.params.performanceTrackerSlug
             )
             .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
-        const isLinkActive =
+        const isLinkActive: $TSFixMe =
             location.pathname === path ||
             (location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/StatusPage\/([0-9]|[a-z]+)/
@@ -247,7 +247,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
                 match.params.automatedScriptslug
             );
 
-            const response =
+            const response: $TSFixMe =
                 newPath === match.url
                     ? true
                     : (location.pathname.match(
@@ -313,9 +313,9 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
                         : 0,
         };
 
-        const routes = route.shortcut && route.shortcut.split('+');
+        const routes: $TSFixMe = route.shortcut && route.shortcut.split('+');
 
-        const hideProjectNav =
+        const hideProjectNav: $TSFixMe =
 
             this.props.currentProject?._id !== this.props.activesubProjectId &&
             (route.title === 'Reports' || route.title === 'Project Settings');
@@ -438,8 +438,8 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
         handleShowMore
     }: $TSFixMe) {
 
-        const currentProject = JSON.parse(User.getProject());
-        const isScalePlan = currentProject?.stripePlanId
+        const currentProject: $TSFixMe = JSON.parse(User.getProject());
+        const isScalePlan: $TSFixMe = currentProject?.stripePlanId
 
             ? PricingPlan.getPlanById(currentProject.stripePlanId).category ===
             'Scale'
@@ -450,7 +450,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
                 return null;
             }
 
-            const removedLinks = [
+            const removedLinks: $TSFixMe = [
                 'Schedule',
                 'Incident',
                 'Incident detail',
@@ -468,7 +468,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
                 'Performance Tracker View',
                 'Automation Script',
             ];
-            const moreRoutes =
+            const moreRoutes: $TSFixMe =
                 child.title === 'Monitor' ||
                 child.title === 'Incident Settings' ||
                 child.title === 'Email' ||
@@ -491,29 +491,29 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
                     schedule && schedule.slug
                         ? link.replace(':scheduleSlug', schedule.slug)
                         : link;
-                const incidentLogLink = active.match(
+                const incidentLogLink: $TSFixMe = active.match(
                     /project\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
                 )
                     ? active
                     : false;
 
-                const applicationDetailLink = active.match(
+                const applicationDetailLink: $TSFixMe = active.match(
                     /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/application/
                 )
                     ? active
                     : false;
-                const containerDetailLink = active.match(
+                const containerDetailLink: $TSFixMe = active.match(
                     /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container/
                 )
                     ? active
                     : false;
-                const scheduledEventDetailLink = active.match(
+                const scheduledEventDetailLink: $TSFixMe = active.match(
                     /project\/([A-Za-z0-9-]+)\/scheduledEvents\/([A-Za-z0-9-]+)/
                 )
                     ? active
                     : false;
 
-                const isSubrouteActive =
+                const isSubrouteActive: $TSFixMe =
                     child.title === 'Application'
                         ? applicationDetailLink === active
                             ? true
@@ -527,7 +527,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
                                 ? true
                                 : false;
 
-                const routes = child.shortcut && child.shortcut.split('+');
+                const routes: $TSFixMe = child.shortcut && child.shortcut.split('+');
                 if (child.title === 'More') {
                     return (
                         <ul key={`nav ${index}`}>

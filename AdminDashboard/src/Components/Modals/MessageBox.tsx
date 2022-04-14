@@ -39,7 +39,7 @@ class MessageBox extends Component<ComponentProps> {
 
     override render() {
 
-        const { data } = this.props;
+        const { data }: $TSFixMe = this.props;
 
         let { title, message, messageBoxId } = this.props;
         if (data) {

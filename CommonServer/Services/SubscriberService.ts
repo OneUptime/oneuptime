@@ -8,7 +8,7 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async create(data: $TSFixMe): void {
-        const subscriberModel = new SubscriberModel();
+        const subscriberModel: $TSFixMe = new SubscriberModel();
 
         subscriberModel.projectId = data.projectId || null;
 
@@ -29,13 +29,13 @@ export default class Service {
         subscriberModel.notificationType = data.notificationType || null;
 
         subscriberModel.webhookMethod = data.webhookMethod || 'post';
-        const subscriber = await subscriberModel.save();
-        const populate = [
+        const subscriber: $TSFixMe = await subscriberModel.save();
+        const populate: $TSFixMe = [
             { path: 'projectId', select: 'name _id' },
             { path: 'monitorId', select: 'name _id' },
             { path: 'statusPageId', select: 'name _id' },
         ];
-        const select =
+        const select: $TSFixMe =
             '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
         return await this.findByOne({
             query: { _id: subscriber._id },
@@ -52,7 +52,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const updatedSubscriber = await SubscriberModel.findOneAndUpdate(
+        const updatedSubscriber: $TSFixMe = await SubscriberModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -76,19 +76,19 @@ export default class Service {
             $set: data,
         });
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'projectId', select: 'name _id' },
             { path: 'monitorId', select: 'name _id' },
             { path: 'statusPageId', select: 'name _id' },
         ];
-        const select =
+        const select: $TSFixMe =
             '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
     }
 
     async deleteBy(query: Query, userId: ObjectID): void {
-        const subscriber = await SubscriberModel.findOneAndUpdate(
+        const subscriber: $TSFixMe = await SubscriberModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -125,7 +125,7 @@ export default class Service {
 
         query['deleted'] = false;
 
-        const subscriberQuery = SubscriberModel.find(query)
+        const subscriberQuery: $TSFixMe = SubscriberModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -134,8 +134,8 @@ export default class Service {
         subscriberQuery.select(select);
         subscriberQuery.populate(populate);
 
-        const subscribers = await subscriberQuery;
-        const subscribersArr = [];
+        const subscribers: $TSFixMe = await subscriberQuery;
+        const subscribersArr: $TSFixMe = [];
         for (const result of subscribers) {
             const temp: $TSFixMe = {};
 
@@ -181,13 +181,13 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const subscribers = await SubscriberModel.find(query)
+        const subscribers: $TSFixMe = await SubscriberModel.find(query)
             .lean()
             .populate('projectId')
             .populate('monitorId')
             .populate('statusPageId');
 
-        const subscribersArr = [];
+        const subscribersArr: $TSFixMe = [];
         for (const result of subscribers) {
             const temp: $TSFixMe = {};
 
@@ -230,11 +230,11 @@ export default class Service {
     }
 
     async subscribe(data: $TSFixMe, monitors: $TSFixMe): void {
-        const populateStatusPage = [
+        const populateStatusPage: $TSFixMe = [
             { path: 'monitors.monitor', select: '_id' },
         ];
         if (!monitors || (monitors && monitors.length < 1)) {
-            const statusPage = await StatusPageService.findOneBy({
+            const statusPage: $TSFixMe = await StatusPageService.findOneBy({
                 query: { _id: data.statusPageId },
                 select: 'monitors',
                 populate: populateStatusPage,
@@ -246,12 +246,12 @@ export default class Service {
         }
 
         const success = monitors.map(async (monitor: $TSFixMe) => {
-            const newSubscriber = Object.assign({}, data, {
+            const newSubscriber: $TSFixMe = Object.assign({}, data, {
                 monitorId: monitor._id ?? monitor,
             });
-            const hasSubscribed = await this.subscriberCheck(newSubscriber);
+            const hasSubscribed: $TSFixMe = await this.subscriberCheck(newSubscriber);
             if (hasSubscribed) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'You are already subscribed to this monitor.'
                 );
 
@@ -260,7 +260,7 @@ export default class Service {
                 throw error;
             } else {
                 if (newSubscriber.alertVia === 'email') {
-                    const subscriberExist = await this.findByOne({
+                    const subscriberExist: $TSFixMe = await this.findByOne({
                         query: {
                             monitorId: newSubscriber.monitorId,
                             contactEmail: newSubscriber.contactEmail,
@@ -284,18 +284,18 @@ export default class Service {
                 }
             }
         });
-        const subscriber = await Promise.all(success);
+        const subscriber: $TSFixMe = await Promise.all(success);
         return subscriber;
     }
 
     async subscribeFromCSVFile(subscribers: $TSFixMe): void {
-        const { data, projectId, monitorId } = subscribers;
+        const { data, projectId, monitorId }: $TSFixMe = subscribers;
         const success = data.map(async (subscriber: $TSFixMe) => {
-            const newSubscriber = Object.assign({}, subscriber, {
+            const newSubscriber: $TSFixMe = Object.assign({}, subscriber, {
                 monitorId,
                 projectId,
             });
-            const hasSubscribed = await this.subscriberCheck(newSubscriber);
+            const hasSubscribed: $TSFixMe = await this.subscriberCheck(newSubscriber);
             if (!hasSubscribed) {
                 return await this.create(newSubscriber);
             }
@@ -305,7 +305,7 @@ export default class Service {
     }
 
     async subscriberCheck(subscriber: $TSFixMe): void {
-        const existingSubscriber = await this.findByOne({
+        const existingSubscriber: $TSFixMe = await this.findByOne({
             query: {
                 monitorId: subscriber.monitorId,
                 subscribed: true,
@@ -335,7 +335,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const subscriberQuery = SubscriberModel.findOne(query)
+        const subscriberQuery: $TSFixMe = SubscriberModel.findOne(query)
             .sort(sort)
             .lean()
             .sort(sort);
@@ -343,7 +343,7 @@ export default class Service {
         subscriberQuery.select(select);
         subscriberQuery.populate(populate);
 
-        const subscriber = await subscriberQuery;
+        const subscriber: $TSFixMe = await subscriberQuery;
         return subscriber;
     }
 
@@ -353,7 +353,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const count = await SubscriberModel.countDocuments(query);
+        const count: $TSFixMe = await SubscriberModel.countDocuments(query);
         return count;
     }
 
@@ -366,9 +366,9 @@ export default class Service {
         query.deleted = true;
         let subscriber = await this.findBy({ query, select: '_id' });
         if (subscriber && subscriber.length > 1) {
-            const subscribers = await Promise.all(
+            const subscribers: $TSFixMe = await Promise.all(
                 subscriber.map(async subscriber => {
-                    const subscriberId = subscriber._id;
+                    const subscriberId: $TSFixMe = subscriber._id;
                     subscriber = await this.updateOneBy(
                         { _id: subscriberId, deleted: true },
                         {
@@ -384,7 +384,7 @@ export default class Service {
         } else {
             subscriber = subscriber[0];
             if (subscriber) {
-                const subscriberId = subscriber._id;
+                const subscriberId: $TSFixMe = subscriber._id;
                 subscriber = await this.updateOneBy(
                     { _id: subscriberId, deleted: true },
                     {

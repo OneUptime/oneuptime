@@ -39,7 +39,7 @@ interface ScheduleProjectBoxProps {
 
 const ScheduleProjectBox: Function = (props: ScheduleProjectBoxProps) => {
     const handleKeyboard: Function = (event: $TSFixMe) => {
-        const { modalList, allScheduleLength } = props;
+        const { modalList, allScheduleLength }: $TSFixMe = props;
 
         if (allScheduleLength === 1) {
             if (event.target.localName === 'body' && event.key) {
@@ -70,7 +70,7 @@ const ScheduleProjectBox: Function = (props: ScheduleProjectBoxProps) => {
             window.removeEventListener('keydown', handleKeyboard);
         };
     });
-    const numberOfPages = Math.ceil(parseInt(props.count) / 10);
+    const numberOfPages: $TSFixMe = Math.ceil(parseInt(props.count) / 10);
     return (
         <div className="Box-root">
             <div>

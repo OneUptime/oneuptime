@@ -18,7 +18,7 @@ const RenderTeams: Function = ({
     policyIndex,
     rotateBy
 }: RenderTeamsProps) => {
-    const canAddTeams = !!rotateBy;
+    const canAddTeams: $TSFixMe = !!rotateBy;
     return (
         <ul>
             {fields.map((team: $TSFixMe, i: $TSFixMe) => {

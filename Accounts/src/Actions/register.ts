@@ -10,7 +10,7 @@ import ErrorPayload from 'CommonUI/src/payload-types/error';
 // There are three possible states for our login
 // process and we need actions for each of them
 
-const cookies = new Cookies();
+const cookies: $TSFixMe = new Cookies();
 
 export const signupError: Function = (error: ErrorPayload): void => {
     return {
@@ -76,12 +76,12 @@ export const resetSignup: Function = (): void => {
 // Calls the API to register a user.
 export const signupUser: Function = (values: $TSFixMe): void => {
     // This is basically for users redirected to oneuptime
-    const redirectSource = cookies.get('source');
+    const redirectSource: $TSFixMe = cookies.get('source');
     if (redirectSource) {
         values.source = redirectSource;
     }
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `user/signup?token=${values.token}`,
             values
         );
@@ -169,7 +169,7 @@ export const resetIsUserInvited: Function = (): void => {
 // Calls the API to register a user.
 export const isUserInvited: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(new Route('user/isInvited'), values);
+        const promise: $TSFixMe = BackendAPI.post(new Route('user/isInvited'), values);
         dispatch(isUserInvitedRequest(promise));
         promise.then(
             (response): void => {
@@ -207,7 +207,7 @@ export const addCardSuccess: Function = (card: $TSFixMe): void => {
 
 export const addCard: Function = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(new Route('stripe/checkCard'), data);
+        const promise: $TSFixMe = BackendAPI.post(new Route('stripe/checkCard'), data);
 
         dispatch(addCardRequest(promise));
 
@@ -232,7 +232,7 @@ export const getEmailSuccess: Function = (email: $TSFixMe): void => {
 
 export const getEmailFromToken: Function = (token: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`user/${token}/email`);
+        const promise: $TSFixMe = BackendAPI.get(`user/${token}/email`);
         promise.then(
             (response): void => {
                 dispatch(getEmailSuccess(response.data));

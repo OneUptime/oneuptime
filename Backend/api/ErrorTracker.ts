@@ -3,11 +3,11 @@ import express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-const router = express.getRouter();
-const getUser = require('../middlewares/user').getUser;
+const router: $TSFixMe = express.getRouter();
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 
 import {
     sendErrorResponse,
@@ -23,7 +23,7 @@ import ErrorTrackerService from '../services/errorTrackerService';
 import ResourceCategoryService from '../services/resourceCategoryService';
 
 import uuid from 'uuid';
-const isErrorTrackerValid =
+const isErrorTrackerValid: $TSFixMe =
     require('../middlewares/errorTracker').isErrorTrackerValid;
 import ErrorEventService from '../services/errorEventService';
 import { sendListResponse } from 'CommonServer/Utils/response';
@@ -44,8 +44,8 @@ router.post(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const componentId = req.params.componentId;
+            const data: $TSFixMe = req.body;
+            const componentId: $TSFixMe = req.params.componentId;
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -72,9 +72,9 @@ router.post(
 
             data.componentId = componentId;
 
-            const populateComponent = [{ path: 'projectId', select: 'name' }];
+            const populateComponent: $TSFixMe = [{ path: 'projectId', select: 'name' }];
             const selectComponent: string = ' projectId ';
-            const [errorTracker, component, user] = await Promise.all([
+            const [errorTracker, component, user]: $TSFixMe = await Promise.all([
                 ErrorTrackerService.create(data),
                 ComponentService.findOneBy({
                     query: { _id: componentId },
@@ -117,7 +117,7 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const componentId = req.params.componentId;
+            const componentId: $TSFixMe = req.params.componentId;
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -125,8 +125,8 @@ router.get(
                 });
             }
 
-            const { skip, limit } = req.query;
-            const errorTrackers =
+            const { skip, limit }: $TSFixMe = req.query;
+            const errorTrackers: $TSFixMe =
                 await ErrorTrackerService.getErrorTrackersByComponentId(
                     componentId,
                     limit,
@@ -146,9 +146,9 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { errorTrackerId, componentId } = req.params;
+        const { errorTrackerId, componentId }: $TSFixMe = req.params;
         try {
-            const errorTracker = await ErrorTrackerService.deleteBy(
+            const errorTracker: $TSFixMe = await ErrorTrackerService.deleteBy(
                 {
                     _id: errorTrackerId,
                     componentId: componentId,
@@ -177,15 +177,15 @@ router.post(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const errorTrackerId = req.params.errorTrackerId;
-        const select =
+        const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+        const select: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'componentId', select: 'name' },
             { path: 'resourceCategory', select: 'name' },
         ];
 
-        const currentErrorTracker = await ErrorTrackerService.findOneBy({
+        const currentErrorTracker: $TSFixMe = await ErrorTrackerService.findOneBy({
             query: { _id: errorTrackerId },
             select,
             populate,
@@ -203,7 +203,7 @@ router.post(
         };
 
         try {
-            const errorTracker = await ErrorTrackerService.updateOneBy(
+            const errorTracker: $TSFixMe = await ErrorTrackerService.updateOneBy(
                 { _id: currentErrorTracker._id },
                 data
             );
@@ -221,9 +221,9 @@ router.put(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { errorTrackerId, componentId } = req.params;
+        const { errorTrackerId, componentId }: $TSFixMe = req.params;
 
-        const data = req.body;
+        const data: $TSFixMe = req.body;
         if (!data) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -239,10 +239,10 @@ router.put(
                 new BadDataException('New Error Tracker Name is required.')
             );
         }
-        const select =
+        const select: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
 
-        const currentErrorTracker = await ErrorTrackerService.findOneBy({
+        const currentErrorTracker: $TSFixMe = await ErrorTrackerService.findOneBy({
             query: { _id: errorTrackerId },
             select,
             populate: [
@@ -265,7 +265,7 @@ router.put(
         if (data.resourceCategory != '') {
             existingQuery.resourceCategory = data.resourceCategory;
         }
-        const existingErrorTracking = await ErrorTrackerService.findBy({
+        const existingErrorTracking: $TSFixMe = await ErrorTrackerService.findBy({
             query: existingQuery,
             select,
             populate: [
@@ -306,7 +306,7 @@ router.put(
         if (!data.resourceCategory || data.resourceCategory === '') {
             unsetData = { resourceCategory: '' };
         } else {
-            const resourceCategoryCount = await ResourceCategoryService.countBy(
+            const resourceCategoryCount: $TSFixMe = await ResourceCategoryService.countBy(
                 {
                     _id: data.resourceCategory,
                 }
@@ -319,7 +319,7 @@ router.put(
         }
 
         try {
-            const errorTracker = await ErrorTrackerService.updateOneBy(
+            const errorTracker: $TSFixMe = await ErrorTrackerService.updateOneBy(
                 { _id: currentErrorTracker._id },
                 errorTrackerUpdate,
 
@@ -338,8 +338,8 @@ router.post(
     isErrorTrackerValid,
     async (req, res): void => {
         try {
-            const data = req.body;
-            const errorTrackerId = req.params.errorTrackerId;
+            const data: $TSFixMe = req.body;
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
             data.errorTrackerId = errorTrackerId;
 
             // try to fetch the particular issue with the fingerprint of the error event and the error tracker id
@@ -371,10 +371,10 @@ router.post(
             data.fingerprintHash = issue.fingerprintHash;
 
             // create the error event
-            const errorEvent = await ErrorEventService.create(data);
+            const errorEvent: $TSFixMe = await ErrorEventService.create(data);
 
             // get the issue in the format that the fronnted will want for the real time update
-            const errorTrackerIssue = await ErrorEventService.findDistinct(
+            const errorTrackerIssue: $TSFixMe = await ErrorEventService.findDistinct(
                 { _id: data.issueId, errorTrackerId: data.errorTrackerId },
                 1,
                 0
@@ -405,16 +405,16 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { skip, limit, startDate, endDate, filters } = req.body;
-            const errorTrackerId = req.params.errorTrackerId;
-            const select =
+            const { skip, limit, startDate, endDate, filters }: $TSFixMe = req.body;
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name' },
                 { path: 'resourceCategory', select: 'name' },
             ];
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+            const currentErrorTracker: $TSFixMe = await ErrorTrackerService.findOneBy({
                 query: { _id: errorTrackerId },
                 select,
                 populate,
@@ -441,7 +441,7 @@ router.post(
                     query[key] = value;
                 }
             }
-            const errorTrackerIssues = await ErrorEventService.findDistinct(
+            const errorTrackerIssues: $TSFixMe = await ErrorEventService.findDistinct(
                 query,
                 limit || 10,
                 skip || 0
@@ -464,17 +464,17 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const errorEventId = req.params.errorEventId;
+            const errorEventId: $TSFixMe = req.params.errorEventId;
             if (!errorEventId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Event ID is required',
                 });
             }
-            const errorTrackerId = req.params.errorTrackerId;
-            const select =
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const select: $TSFixMe =
                 'errorTrackerId issueId content type timeline tags sdk fingerprint fingerprintHash device createdAt';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'errorTrackerId', select: 'name' },
                 {
                     path: 'issueId',
@@ -484,7 +484,7 @@ router.post(
                 { path: 'ignoredById', select: 'name' },
             ];
 
-            const currentErrorEvent = await ErrorEventService.findOneBy({
+            const currentErrorEvent: $TSFixMe = await ErrorEventService.findOneBy({
                 query: { _id: errorEventId, errorTrackerId },
                 select,
                 populate,
@@ -497,7 +497,7 @@ router.post(
             }
 
             // find that current error event with the previous and next values
-            const errorEvent = await ErrorEventService.findOneWithPrevAndNext(
+            const errorEvent: $TSFixMe = await ErrorEventService.findOneWithPrevAndNext(
                 errorEventId,
                 errorTrackerId
             );
@@ -515,25 +515,25 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const issueId = req.params.issueId;
+            const issueId: $TSFixMe = req.params.issueId;
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Event ID is required',
                 });
             }
-            const errorTrackerId = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
 
-            const populateIssue = [
+            const populateIssue: $TSFixMe = [
                 { path: 'errorTrackerId', select: 'name' },
                 { path: 'resolvedById', select: 'name' },
                 { path: 'ignoredById', select: 'name' },
             ];
 
-            const selectIssue =
+            const selectIssue: $TSFixMe =
                 'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
-            const issue = await IssueService.findOneBy({
+            const issue: $TSFixMe = await IssueService.findOneBy({
                 query: { _id: issueId, errorTrackerId },
                 select: selectIssue,
                 populate: populateIssue,
@@ -558,7 +558,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { issueId, action } = req.body;
+            const { issueId, action }: $TSFixMe = req.body;
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -583,7 +583,7 @@ router.post(
                     message: 'Action is required',
                 });
             }
-            const allowedActions = [
+            const allowedActions: $TSFixMe = [
                 'ignore',
                 'unresolve',
                 'resolve',
@@ -595,28 +595,28 @@ router.post(
                     message: 'Action is not allowed',
                 });
             }
-            const componentId = req.params.componentId;
+            const componentId: $TSFixMe = req.params.componentId;
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker ID is required',
                 });
             }
-            const select =
+            const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name' },
                 { path: 'resourceCategory', select: 'name' },
             ];
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+            const currentErrorTracker: $TSFixMe = await ErrorTrackerService.findOneBy({
                 query: { _id: errorTrackerId, componentId },
                 select,
                 populate,
@@ -678,14 +678,14 @@ router.post(
                     break;
             }
 
-            const issues = [];
+            const issues: $TSFixMe = [];
             for (let index = 0; index < issueId.length; index++) {
-                const currentIssueId = issueId[index];
+                const currentIssueId: $TSFixMe = issueId[index];
                 const query: $TSFixMe = {
                     _id: currentIssueId,
                     errorTrackerId,
                 };
-                const currentIssue = await IssueService.countBy(query);
+                const currentIssue: $TSFixMe = await IssueService.countBy(query);
 
                 if (currentIssue && currentIssue > 0) {
                     // add action to timeline for this particular issue
@@ -704,12 +704,12 @@ router.post(
 
                     // get the timeline attahced to this issue annd add it to the issue
 
-                    const populateIssueTimeline = [
+                    const populateIssueTimeline: $TSFixMe = [
                         { path: 'issueId', select: 'name' },
                         { path: 'createdById', select: 'name' },
                     ];
 
-                    const selectIssueTimeline =
+                    const selectIssueTimeline: $TSFixMe =
                         'issueId createdById createdAt status deleted';
 
                     issue.timeline = await IssueTimelineService.findBy({
@@ -744,7 +744,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { skip, limit, startDate, endDate, fingerprintHash } =
+            const { skip, limit, startDate, endDate, fingerprintHash }: $TSFixMe =
                 req.body;
             if (!fingerprintHash) {
                 return sendErrorResponse(req, res, {
@@ -752,15 +752,15 @@ router.post(
                     message: 'Fingerprint Hash is required',
                 });
             }
-            const errorTrackerId = req.params.errorTrackerId;
-            const select =
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name' },
                 { path: 'resourceCategory', select: 'name' },
             ];
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+            const currentErrorTracker: $TSFixMe = await ErrorTrackerService.findOneBy({
                 query: { _id: errorTrackerId },
                 select,
                 populate,
@@ -784,7 +784,7 @@ router.post(
                 query.createdAt = { $gte: startDate, $lte: endDate };
             }
 
-            const errorEvents = await ErrorEventService.findBy({
+            const errorEvents: $TSFixMe = await ErrorEventService.findBy({
                 query,
                 limit: limit || 10,
                 skip: skip || 0,
@@ -805,35 +805,35 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const componentId = req.params.componentId;
+            const componentId: $TSFixMe = req.params.componentId;
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker ID is required',
                 });
             }
-            const issueId = req.params.issueId;
+            const issueId: $TSFixMe = req.params.issueId;
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Issue ID is required',
                 });
             }
-            const select =
+            const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name' },
                 { path: 'resourceCategory', select: 'name' },
             ];
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+            const currentErrorTracker: $TSFixMe = await ErrorTrackerService.findOneBy({
                 query: { _id: errorTrackerId, componentId },
                 select,
                 populate,
@@ -845,7 +845,7 @@ router.post(
                 });
             }
 
-            const currentIssue = await IssueService.countBy({
+            const currentIssue: $TSFixMe = await IssueService.countBy({
                 _id: issueId,
                 errorTrackerId,
             });
@@ -856,16 +856,16 @@ router.post(
                 });
             }
 
-            const selectIssueMember =
+            const selectIssueMember: $TSFixMe =
                 'issueId userId createdAt createdById removed removedAt removedById';
 
-            const populateIssueMember = [
+            const populateIssueMember: $TSFixMe = [
                 { path: 'issueId', select: 'name' },
 
                 { path: 'userId', select: 'name email' },
             ];
 
-            const issueMembers = await IssueMemberService.findBy({
+            const issueMembers: $TSFixMe = await IssueMemberService.findBy({
                 query: { issueId, removed: false },
                 select: selectIssueMember,
                 populate: populateIssueMember,
@@ -883,7 +883,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { teamMemberId } = req.body;
+            const { teamMemberId }: $TSFixMe = req.body;
             if (!teamMemberId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -903,36 +903,36 @@ router.post(
                 });
             }
 
-            const projectId = req.params.projectId;
-            const componentId = req.params.componentId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const componentId: $TSFixMe = req.params.componentId;
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker ID is required',
                 });
             }
-            const issueId = req.params.issueId;
+            const issueId: $TSFixMe = req.params.issueId;
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Issue ID is required',
                 });
             }
-            const select =
+            const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name' },
                 { path: 'resourceCategory', select: 'name' },
             ];
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+            const currentErrorTracker: $TSFixMe = await ErrorTrackerService.findOneBy({
                 query: { _id: errorTrackerId, componentId },
                 select,
                 populate,
@@ -944,7 +944,7 @@ router.post(
                 });
             }
 
-            const currentIssue = await IssueService.countBy({
+            const currentIssue: $TSFixMe = await IssueService.countBy({
                 _id: issueId,
                 errorTrackerId,
             });
@@ -1004,16 +1004,16 @@ router.post(
                     }
                 })
             );
-            const selectIssueMember =
+            const selectIssueMember: $TSFixMe =
                 'issueId userId createdAt createdById removed removedAt removedById';
 
-            const populateIssueMember = [
+            const populateIssueMember: $TSFixMe = [
                 { path: 'issueId', select: 'name' },
 
                 { path: 'userId', select: 'name email' },
             ];
 
-            const members = await IssueMemberService.findBy({
+            const members: $TSFixMe = await IssueMemberService.findBy({
                 query: { issueId, removed: false },
                 select: selectIssueMember,
                 populate: populateIssueMember,
@@ -1031,7 +1031,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { teamMemberId } = req.body;
+            const { teamMemberId }: $TSFixMe = req.body;
             if (!teamMemberId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1051,36 +1051,36 @@ router.post(
                 });
             }
 
-            const projectId = req.params.projectId;
-            const componentId = req.params.componentId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const componentId: $TSFixMe = req.params.componentId;
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker ID is required',
                 });
             }
-            const issueId = req.params.issueId;
+            const issueId: $TSFixMe = req.params.issueId;
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Issue ID is required',
                 });
             }
-            const select =
+            const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name' },
                 { path: 'resourceCategory', select: 'name' },
             ];
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+            const currentErrorTracker: $TSFixMe = await ErrorTrackerService.findOneBy({
                 query: { _id: errorTrackerId, componentId },
                 select,
                 populate,
@@ -1092,7 +1092,7 @@ router.post(
                 });
             }
 
-            const currentIssue = await IssueService.countBy({
+            const currentIssue: $TSFixMe = await IssueService.countBy({
                 _id: issueId,
                 errorTrackerId,
             });
@@ -1138,15 +1138,15 @@ router.post(
                 })
             );
 
-            const selectIssueMember =
+            const selectIssueMember: $TSFixMe =
                 'issueId userId createdAt createdById removed removedAt removedById';
 
-            const populateIssueMember = [
+            const populateIssueMember: $TSFixMe = [
                 { path: 'issueId', select: 'name' },
 
                 { path: 'userId', select: 'name email' },
             ];
-            const members = await IssueMemberService.findBy({
+            const members: $TSFixMe = await IssueMemberService.findBy({
                 query: { issueId, removed: false },
                 select: selectIssueMember,
                 populate: populateIssueMember,
@@ -1164,35 +1164,35 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const componentId = req.params.componentId;
+            const componentId: $TSFixMe = req.params.componentId;
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker ID is required',
                 });
             }
-            const issueId = req.params.issueId;
+            const issueId: $TSFixMe = req.params.issueId;
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Issue ID is required',
                 });
             }
-            const select =
+            const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name' },
                 { path: 'resourceCategory', select: 'name' },
             ];
 
-            const currentErrorTracker = await ErrorTrackerService.findOneBy({
+            const currentErrorTracker: $TSFixMe = await ErrorTrackerService.findOneBy({
                 query: { _id: errorTrackerId, componentId },
                 select,
                 populate,
@@ -1204,7 +1204,7 @@ router.delete(
                 });
             }
 
-            const issue = await IssueService.deleteBy(
+            const issue: $TSFixMe = await IssueService.deleteBy(
                 {
                     _id: issueId,
                     errorTrackerId,

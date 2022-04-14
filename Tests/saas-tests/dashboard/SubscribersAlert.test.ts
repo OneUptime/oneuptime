@@ -6,16 +6,16 @@ import 'should';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
 const countryCode: string = '+1';
 const phoneNumber: string = '9173976235';
-const subscriberEmail = utils.generateRandomBusinessEmail();
+const subscriberEmail: $TSFixMe = utils.generateRandomBusinessEmail();
 
 describe('Subscribers Alert logs API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -85,11 +85,11 @@ describe('Subscribers Alert logs API', () => {
             await init.pageWaitForSelector(page, '#createSubscriber', {
                 hidden: true,
             });
-            const subscriberPhoneNumberSelector =
+            const subscriberPhoneNumberSelector: $TSFixMe =
                 '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
 
             await init.pageWaitForSelector(page, subscriberPhoneNumberSelector);
-            const subscriberPhoneNumber = await init.page$Eval(
+            const subscriberPhoneNumber: $TSFixMe = await init.page$Eval(
                 page,
                 subscriberPhoneNumberSelector,
                 (e: $TSFixMe) => e.textContent
@@ -134,11 +134,11 @@ describe('Subscribers Alert logs API', () => {
             await page.reload({ waitUntil: 'networkidle0' });
 
             await init.pageClick(page, '.subscribers-tab');
-            const subscriberEmailSelector =
+            const subscriberEmailSelector: $TSFixMe =
                 '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
 
             await init.pageWaitForSelector(page, subscriberEmailSelector);
-            const renderedSubscriberEmail = await init.page$Eval(
+            const renderedSubscriberEmail: $TSFixMe = await init.page$Eval(
                 page,
                 subscriberEmailSelector,
                 (e: $TSFixMe) => e.textContent
@@ -191,7 +191,7 @@ describe('Subscribers Alert logs API', () => {
             ).length;
             expect(rowsCount).toEqual(2);
 
-            const firstRowIdentifier =
+            const firstRowIdentifier: $TSFixMe =
                 '#subscriberAlertTable tbody tr:nth-of-type(1)';
 
             await init.pageClick(page, firstRowIdentifier);
@@ -201,22 +201,22 @@ describe('Subscribers Alert logs API', () => {
                 '#backboneModals .bs-Modal-content'
             );
 
-            const subscriber = await init.page$Eval(
+            const subscriber: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #subscriber',
                 (e: $TSFixMe) => e.textContent
             );
-            const via = await init.page$Eval(
+            const via: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #alertVia',
                 (e: $TSFixMe) => e.textContent
             );
-            const type = await init.page$Eval(
+            const type: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #eventType',
                 (e: $TSFixMe) => e.textContent
             );
-            const alertStatus = await init.page$Eval(
+            const alertStatus: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #alertStatus',
                 (e: $TSFixMe) => e.textContent
@@ -239,7 +239,7 @@ describe('Subscribers Alert logs API', () => {
                 }
             );
 
-            const secondRowIdentifier =
+            const secondRowIdentifier: $TSFixMe =
                 '#subscriberAlertTable tbody tr:nth-of-type(2)';
 
             await init.pageClick(page, secondRowIdentifier);
@@ -249,22 +249,22 @@ describe('Subscribers Alert logs API', () => {
                 '#backboneModals .bs-Modal-content'
             );
 
-            const subscriber1 = await init.page$Eval(
+            const subscriber1: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #subscriber',
                 (e: $TSFixMe) => e.textContent
             );
-            const via1 = await init.page$Eval(
+            const via1: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #alertVia',
                 (e: $TSFixMe) => e.textContent
             );
-            const type1 = await init.page$Eval(
+            const type1: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #eventType',
                 (e: $TSFixMe) => e.textContent
             );
-            const alertStatus1 = await init.page$Eval(
+            const alertStatus1: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #alertStatus',
                 (e: $TSFixMe) => e.textContent

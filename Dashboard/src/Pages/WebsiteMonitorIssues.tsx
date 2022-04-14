@@ -97,7 +97,7 @@ class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
 
     ready = () => {
 
-        const { componentSlug, fetchComponent, projectId } = this.props;
+        const { componentSlug, fetchComponent, projectId }: $TSFixMe = this.props;
         if (projectId && componentSlug) {
             fetchComponent(projectId, componentSlug);
 
@@ -112,7 +112,7 @@ class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
 
     override render() {
 
-        const { monitorState } = this.props;
+        const { monitorState }: $TSFixMe = this.props;
 
         let variable;
         if (monitorState.monitorIssue) {
@@ -428,14 +428,14 @@ class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
 
             monitor,
         } = this.props;
-        const componentName =
+        const componentName: $TSFixMe =
             component?.length > 0
                 ? component[0]
                     ? component[0]?.name
                     : null
                 : null;
-        const monitorName = monitor ? monitor.name : null;
-        const url =
+        const monitorName: $TSFixMe = monitor ? monitor.name : null;
+        const url: $TSFixMe =
             monitorState &&
                 monitorState.monitorIssue &&
                 monitorState.monitorIssue.url
@@ -443,9 +443,9 @@ class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
                 : 'URL';
 
 
-        const monitorDetailRoute = getParentRoute(pathname);
+        const monitorDetailRoute: $TSFixMe = getParentRoute(pathname);
 
-        const componentMonitorsRoute = getParentRoute(monitorDetailRoute);
+        const componentMonitorsRoute: $TSFixMe = getParentRoute(monitorDetailRoute);
 
         return (
             <Fade>
@@ -482,19 +482,19 @@ class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
 }
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { componentSlug, monitorSlug } = props.match.params;
-    const projectId =
+    const { componentSlug, monitorSlug }: $TSFixMe = props.match.params;
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
     const monitorCollection = state.monitor.monitorsList.monitors.find((el: $TSFixMe) => {
         return projectId === el._id;
     });
-    const currentMonitor =
+    const currentMonitor: $TSFixMe =
         monitorCollection &&
         monitorCollection.monitors.find((el: $TSFixMe) => {
             return el.slug === monitorSlug;
         });
-    const monitorId = currentMonitor && currentMonitor._id;
-    const monitor = state.monitor.monitorsList.monitors
+    const monitorId: $TSFixMe = currentMonitor && currentMonitor._id;
+    const monitor: $TSFixMe = state.monitor.monitorsList.monitors
         .map((monitor: $TSFixMe) => monitor.monitors.find((monitor: $TSFixMe) => monitor._id === monitorId)
         )
         .filter((monitor: $TSFixMe) => monitor)[0];

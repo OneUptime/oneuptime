@@ -4,9 +4,9 @@ if ('function' === typeof importScripts) {
     );
 
     if (workbox) {
-        const { skipWaiting, clientsClaim } = workbox.core;
+        const { skipWaiting, clientsClaim }: $TSFixMe = workbox.core;
 
-        const { precacheAndRoute, cleanupOutdatedCaches } = workbox.precaching;
+        const { precacheAndRoute, cleanupOutdatedCaches }: $TSFixMe = workbox.precaching;
 
         // skip waiting and switch to activating stage
         skipWaiting();
@@ -23,7 +23,7 @@ if ('function' === typeof importScripts) {
         precacheAndRoute(self.__WB_MANIFEST, { cleanUrls: false });
 
         self.addEventListener('push', e => {
-            const data = e.data.json();
+            const data: $TSFixMe = e.data.json();
 
             self.registration.showNotification(data.title, {
                 body: data.body,

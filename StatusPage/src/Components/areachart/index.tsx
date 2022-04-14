@@ -103,14 +103,14 @@ class AreaChart extends Component<ComponentProps> {
 
     override render() {
 
-        const { type, data, name, symbol, colors } = this.props;
-        const { strokeChart, fillChart } = colors;
-        const stroke:string = `rgb(
+        const { type, data, name, symbol, colors }: $TSFixMe = this.props;
+        const { strokeChart, fillChart }: $TSFixMe = colors;
+        const stroke:string: $TSFixMe = `rgb(
             ${strokeChart.r},
             ${strokeChart.g},
             ${strokeChart.b}
         )`;
-        const fill:string = `rgb(
+        const fill:string: $TSFixMe = `rgb(
             ${fillChart.r},
             ${fillChart.g},
             ${fillChart.b}

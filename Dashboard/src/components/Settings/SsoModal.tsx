@@ -39,7 +39,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const fields = [
+const fields: $TSFixMe = [
     {
         key: 'saml-enabled',
         label: 'Enable SAML',
@@ -178,8 +178,8 @@ class Component extends React.Component<ComponentProps> {
 
     submitForm = async (data: $TSFixMe) => {
 
-        const { closeThisDialog, currentProject } = this.props;
-        const projectId = currentProject ? currentProject._id : '';
+        const { closeThisDialog, currentProject }: $TSFixMe = this.props;
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         data.projectId = projectId;
         const { _id: id } = data;
 
@@ -483,13 +483,13 @@ Component.propTypes = {
     formError: PropTypes.string,
 };
 
-const ReduxFormComponent = reduxForm({
+const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'sso-form',
     enableReinitialize: true,
     validate,
 })(Component);
 
-export const SsoAddModal = connect(
+export const SsoAddModal: $TSFixMe = connect(
     state => {
         return {
             formTitle: 'Create SSO',
@@ -512,7 +512,7 @@ export const SsoAddModal = connect(
     }
 )(ReduxFormComponent);
 
-export const SsoUpdateModal = connect(
+export const SsoUpdateModal: $TSFixMe = connect(
     state => {
         return {
             formTitle: 'Update SSO',

@@ -3,14 +3,14 @@ import getSlug from '../util/getSlug';
 const errortrackerCollection: string = 'errortrackers';
 
 async function run(): void {
-    const errorTrackers = await find(errortrackerCollection, {
+    const errorTrackers: $TSFixMe = await find(errortrackerCollection, {
         $or: [
             { slug: { $exists: false } },
             { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < errorTrackers.length; i++) {
-        const { name } = errorTrackers[i];
+        const { name }: $TSFixMe = errorTrackers[i];
         errorTrackers[i].slug = getSlug(name);
         await update(
             errortrackerCollection,

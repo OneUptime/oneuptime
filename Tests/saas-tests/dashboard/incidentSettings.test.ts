@@ -4,11 +4,11 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
 const newName: string = 'Another';
 const newDefaultIncidentTitle: string = 'TEST: {{monitorName}}';
 const newDefaultIncidentDescription: string = 'TEST: {{incidentType}}';
@@ -16,7 +16,7 @@ const incidentType: string = 'offline';
 const changedTitle: string = `${monitorName} is ${incidentType}.`;
 
 describe('Incident Settings API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -59,7 +59,7 @@ describe('Incident Settings API', () => {
             // when a project is created a default incident template is created automatically for it
             // the incident template name is set as Default
 
-            const defaultTemplate = await init.pageWaitForSelector(
+            const defaultTemplate: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#incident_template_Default'
             );
@@ -88,7 +88,7 @@ describe('Incident Settings API', () => {
 
             await init.pageClick(page, '#incidentSettings');
 
-            const deleteBtn = await init.pageWaitForSelector(
+            const deleteBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#deleteIncidentTemplateBtn_Default',
                 { hidden: true }
@@ -169,13 +169,13 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, `#editIncidentTemplateBtn_${newName}`);
 
             await init.pageWaitForSelector(page, '#editTemplateForm');
-            const priorityFieldValue = await init.page$Eval(
+            const priorityFieldValue: $TSFixMe = await init.page$Eval(
                 page,
                 '#incidentTemplatePriority',
                 (e: $TSFixMe) => e.textContent
             );
             expect(priorityFieldValue).toEqual('Low');
-            const titleFieldValue = await init.page$Eval(
+            const titleFieldValue: $TSFixMe = await init.page$Eval(
                 page,
                 '#title',
                 (e: $TSFixMe) => e.value
@@ -221,13 +221,13 @@ describe('Incident Settings API', () => {
             const incidentPrioritySelector: string = '#name_Low';
 
             await init.pageWaitForSelector(page, incidentTitleSelector);
-            const title = await init.page$Eval(
+            const title: $TSFixMe = await init.page$Eval(
                 page,
                 incidentTitleSelector,
                 (e: $TSFixMe) => e.textContent
             );
 
-            const incidentPriority = await init.page$Eval(
+            const incidentPriority: $TSFixMe = await init.page$Eval(
                 page,
                 incidentPrioritySelector,
                 (e: $TSFixMe) => e.textContent

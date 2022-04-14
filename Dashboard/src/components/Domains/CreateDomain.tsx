@@ -20,7 +20,7 @@ import {
 
 
 function validate(_values: $TSFixMe) {
-    const error = undefined;
+    const error: $TSFixMe = undefined;
     return error;
 }
 
@@ -285,7 +285,7 @@ CreateDomain.propTypes = {
     resetCreateProjectDomain: PropTypes.func,
 };
 
-const CreateDomainForm = reduxForm({
+const CreateDomainForm: $TSFixMe = reduxForm({
     form: 'CreateDomainForm',
     enableReinitialize: false,
     destroyOnUnmount: true,

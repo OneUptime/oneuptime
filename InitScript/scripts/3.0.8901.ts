@@ -3,14 +3,14 @@ import getSlug from '../util/getSlug';
 const projectCollection: string = 'projects';
 
 async function run(): void {
-    const projects = await find(projectCollection, {
+    const projects: $TSFixMe = await find(projectCollection, {
         $or: [
             { slug: { $exists: false } },
             { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (const project of projects) {
-        const { name } = project;
+        const { name }: $TSFixMe = project;
         project.slug = getSlug(name);
         await update(
             projectCollection,

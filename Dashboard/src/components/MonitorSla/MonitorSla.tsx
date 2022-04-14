@@ -48,7 +48,7 @@ class MonitorSla extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { projectId, fetchMonitorSlas } = this.props;
+        const { projectId, fetchMonitorSlas }: $TSFixMe = this.props;
         if (projectId) {
             fetchMonitorSlas(projectId, 0, this.limit);
         }
@@ -58,7 +58,7 @@ class MonitorSla extends Component<ComponentProps> {
 
         if (prevProps.currentProject !== this.props.currentProject) {
 
-            const { currentProject, fetchMonitorSlas } = this.props;
+            const { currentProject, fetchMonitorSlas }: $TSFixMe = this.props;
             if (currentProject) {
                 fetchMonitorSlas(currentProject._id, 0, this.limit);
             }
@@ -67,7 +67,7 @@ class MonitorSla extends Component<ComponentProps> {
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { projectId, fetchMonitorSlas } = this.props;
+        const { projectId, fetchMonitorSlas }: $TSFixMe = this.props;
         this.setState({
             flag: false,
         });
@@ -85,7 +85,7 @@ class MonitorSla extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { projectId, fetchMonitorSlas } = this.props;
+        const { projectId, fetchMonitorSlas }: $TSFixMe = this.props;
         this.setState({
             flag: false,
         });
@@ -100,7 +100,7 @@ class MonitorSla extends Component<ComponentProps> {
         monitorSlaId
     }: $TSFixMe) => {
 
-        const { updateMonitorSla, setActiveMonitorSla } = this.props;
+        const { updateMonitorSla, setActiveMonitorSla }: $TSFixMe = this.props;
         const data: $TSFixMe = { isDefault: true };
         setActiveMonitorSla(monitorSlaId);
         updateMonitorSla(projectId, monitorSlaId, data, true);
@@ -145,7 +145,7 @@ class MonitorSla extends Component<ComponentProps> {
                 {monitorSlas &&
                     monitorSlas.length > 0 &&
                     monitorSlas.map((monitorSla: $TSFixMe, index: $TSFixMe) => {
-                        const slaMonitors = monitors.filter(
+                        const slaMonitors: $TSFixMe = monitors.filter(
                             (monitor: $TSFixMe) => monitor.monitorSla &&
                                 String(monitor.monitorSla._id) ===
                                 String(monitorSla._id)
@@ -372,10 +372,10 @@ class MonitorSla extends Component<ComponentProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
-        const projectName = currentProject ? currentProject.name : '';
-        const numberOfPage = Math.ceil(parseInt(count) / 10);
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const numberOfPage: $TSFixMe = Math.ceil(parseInt(count) / 10);
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
@@ -619,10 +619,10 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const monitorData = state.monitor.monitorsList.monitors.find(
+    const monitorData: $TSFixMe = state.monitor.monitorsList.monitors.find(
         (data: $TSFixMe) => String(data._id) === String(ownProps.projectId)
     );
-    const monitors = monitorData ? monitorData.monitors : [];
+    const monitors: $TSFixMe = monitorData ? monitorData.monitors : [];
     return {
         requesting: state.monitorSla.monitorSlas.requesting,
         fetchSlaError: state.monitorSla.monitorSlas.error,

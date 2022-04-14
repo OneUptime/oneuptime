@@ -15,7 +15,7 @@ const _this: $TSFixMe = {
             return option;
         }
         for (let index = 0; index < unformattedFilters.length; index++) {
-            const element = unformattedFilters[index];
+            const element: $TSFixMe = unformattedFilters[index];
             switch (element.value) {
                 case 'is:resolved':
                     option.resolved = true;

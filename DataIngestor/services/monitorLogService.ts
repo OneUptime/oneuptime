@@ -5,7 +5,7 @@ import MonitorService from './monitorService';
 import Query from 'CommonServer/types/db/Query';
 import moment from 'moment';
 
-const monitorLogCollection = global.db.collection('monitorlogs');
+const monitorLogCollection: $TSFixMe = global.db.collection('monitorlogs');
 import { ObjectId } from 'mongodb';
 
 import { post } from '../Utils/api';
@@ -76,8 +76,8 @@ export default {
 
         Log.scriptMetadata = data.scriptMetadata;
 
-        const result = await monitorLogCollection.insertOne(Log);
-        const savedLog = await this.findOneBy({
+        const result: $TSFixMe = await monitorLogCollection.insertOne(Log);
+        const savedLog: $TSFixMe = await this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
 
@@ -89,12 +89,12 @@ export default {
     },
 
     updateAggregateLogs: async function (data: $TSFixMe): void {
-        const now = new Date();
-        const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
-        const intervalDayDate = moment(now).format('MMM Do YYYY');
-        const intervalWeekDate = moment(now).format('wo [week of] YYYY');
+        const now: $TSFixMe = new Date();
+        const intervalHourDate: $TSFixMe = moment(now).format('MMM Do YYYY, h A');
+        const intervalDayDate: $TSFixMe = moment(now).format('MMM Do YYYY');
+        const intervalWeekDate: $TSFixMe = moment(now).format('wo [week of] YYYY');
 
-        const [logByHour, logByDay, logByWeek] = await Promise.all([
+        const [logByHour, logByDay, logByWeek]: $TSFixMe = await Promise.all([
             MonitorLogByHourService.findOneBy({
                 probeId: data.probeId,
                 monitorId: data.monitorId,
@@ -224,7 +224,7 @@ export default {
         await monitorLogCollection.updateOne(query, {
             $set: data,
         });
-        const monitorLog = await this.findOneBy(query);
+        const monitorLog: $TSFixMe = await this.findOneBy(query);
 
         return monitorLog;
     },
@@ -261,7 +261,7 @@ export default {
     },
 
     async sendMonitorLog(data: $TSFixMe): void {
-        const [monitor, logData] = await Promise.all([
+        const [monitor, logData]: $TSFixMe = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: ObjectId(data.monitorId) },
                 // select: 'projectId',
@@ -272,12 +272,12 @@ export default {
         ]);
 
         if (monitor && monitor.projectId) {
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: {
                     _id: ObjectId(monitor.projectId._id || monitor.projectId),
                 },
             });
-            const parentProjectId = project
+            const parentProjectId: $TSFixMe = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id

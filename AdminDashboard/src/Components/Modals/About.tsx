@@ -29,8 +29,8 @@ class About extends Component<ComponentProps> {
 
     override render() {
 
-        const { versions, closeThisDialog, probes } = this.props;
-        const currentYear = new Date().getFullYear();
+        const { versions, closeThisDialog, probes }: $TSFixMe = this.props;
+        const currentYear: $TSFixMe = new Date().getFullYear();
         let probeVersion = null;
         if (probes && probes.length > 0) {
             probeVersion = probes.map((probe: $TSFixMe, i: $TSFixMe) => {

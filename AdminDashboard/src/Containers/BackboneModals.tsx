@@ -12,7 +12,7 @@ export class Modals extends Component<ComponentProps>{
     override render() {
 
         const modals = this.props.modals.map((item: $TSFixMe, i: $TSFixMe) => {
-            const ModalComponent = Modal(item.content);
+            const ModalComponent: $TSFixMe = Modal(item.content);
             return (
                 //  Modal(item.content)({
                 // 	item,

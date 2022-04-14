@@ -21,9 +21,9 @@ export class UserAdminModeEnableBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { enableAdminMode, userId } = this.props;
+        const { enableAdminMode, userId }: $TSFixMe = this.props;
 
-        const { AdminModeModalId } = this.state;
+        const { AdminModeModalId }: $TSFixMe = this.state;
 
 
         this.props.openModal({
@@ -50,7 +50,7 @@ export class UserAdminModeEnableBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div
@@ -104,7 +104,7 @@ UserAdminModeEnableBox.displayName = 'UserAdminModeEnableBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ enableAdminMode, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
 
     return {
         userId,

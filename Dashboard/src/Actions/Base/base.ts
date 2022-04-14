@@ -44,14 +44,14 @@ class BaseAction {
     }
 
     getConstants(): void {
-        const friendlyName = this.friendlyName.replace(' ', '_').toUpperCase();
-        const request =
+        const friendlyName: $TSFixMe = this.friendlyName.replace(' ', '_').toUpperCase();
+        const request: $TSFixMe =
             this.actionType.toUpperCase() + '_' + friendlyName + '_REQUEST';
-        const success =
+        const success: $TSFixMe =
             this.actionType.toUpperCase() + '_' + friendlyName + '_SUCCESS';
-        const failure =
+        const failure: $TSFixMe =
             this.actionType.toUpperCase() + '_' + friendlyName + '_FAILURE';
-        const reset =
+        const reset: $TSFixMe =
             this.actionType.toUpperCase() + '_' + friendlyName + '_RESET';
 
         const constants: $TSFixMe = {
@@ -87,7 +87,7 @@ class BaseAction {
     }
 
     getActions(): void {
-        const constants = this.getConstants();
+        const constants: $TSFixMe = this.getConstants();
 
         const actions: $TSFixMe = {};
 
@@ -150,7 +150,7 @@ class BaseAction {
                         response = await delete (path, data);
                     }
 
-                    const data = response.data;
+                    const data: $TSFixMe = response.data;
 
                     dispatch(actions[this.actionKeys.success](data));
                 } catch (error) {

@@ -3,13 +3,13 @@ process.env['PORT'] = 3020;
 process.env['IS_SAAS_SERVICE'] = true;
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
-const expect = chai.expect;
+const expect: $TSFixMe = chai.expect;
 import userData from './data/user';
 import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 
 import { createUser } from './utils/userSignUp';
@@ -26,7 +26,7 @@ const monitorSlaPayload: $TSFixMe = {
 };
 
 describe('Monitor SLA', function (): void {
-    const timeout = 30000;
+    const timeout: $TSFixMe = 30000;
     let projectId: ObjectID,
         userId,
         token,
@@ -37,16 +37,16 @@ describe('Monitor SLA', function (): void {
 
     before(async (): void => {
         await GlobalConfig.initTestConfig();
-        const res = await createUser(request, userData.user);
+        const res: $TSFixMe = await createUser(request, userData.user);
         projectId = res.body.project._id;
         userId = res.body.id;
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
-        const loginResponse = await request.post('/user/login').send({
+        const loginResponse: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,
         });
@@ -66,7 +66,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not create a monitor SLA if the name is missing', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -79,7 +79,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not create monitor SLA if monitor uptime is missing', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -92,7 +92,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not create monitor SLA if monitor uptime is not numeric value', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -107,7 +107,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not create monitor SLA if frequency is not a numeric value', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -122,7 +122,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not create monitor SLA if frequency is less than a day', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -135,7 +135,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not create monitor SLA if monitor uptime is zero', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -150,7 +150,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not create monitor SLA if monitor uptime is greater than 100', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -165,7 +165,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should create a monitor SLA', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
             .send(monitorSlaPayload);
@@ -176,7 +176,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not create a monitor SLA with an existing name', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
             .send(monitorSlaPayload);
@@ -188,7 +188,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not update a monitor SLA if the name is missing', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
             .send({
@@ -201,7 +201,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not update monitor SLA if monitor uptime is missing', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
             .send({
@@ -214,7 +214,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not update monitor SLA if monitor uptime is not numeric value', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
             .send({
@@ -229,7 +229,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not update monitor SLA if frequency is not a numeric value', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
             .send({
@@ -244,7 +244,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not update monitor SLA if frequency is less than a day', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
             .send({
@@ -257,7 +257,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not update monitor SLA if monitor uptime is zero', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
             .send({
@@ -272,7 +272,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should not update monitor SLA if monitor uptime is greater than 100', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
             .send({
@@ -290,7 +290,7 @@ describe('Monitor SLA', function (): void {
         monitorSlaPayload.frequency = '10';
         monitorSlaPayload.name = 'updatedFxPro';
 
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
             .send(monitorSlaPayload);
@@ -301,7 +301,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should get the list of monitor SLAs', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/monitorSla/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization);
 
@@ -311,7 +311,7 @@ describe('Monitor SLA', function (): void {
     });
 
     it('should delete a particular monitor SLA', async (): void => {
-        const res = await request
+        const res: $TSFixMe = await request
             .delete(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization);
 

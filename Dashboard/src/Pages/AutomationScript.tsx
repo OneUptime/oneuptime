@@ -33,7 +33,7 @@ class AutomationScript extends Component<ComponentProps> {
     }
     override componentDidMount() {
 
-        const projectId = this.props.activeProject;
+        const projectId: $TSFixMe = this.props.activeProject;
         if (projectId) {
 
             this.props.fetchAutomatedScript(projectId, 0, 10);
@@ -44,7 +44,7 @@ class AutomationScript extends Component<ComponentProps> {
 
         if (prevProps.activeProject !== this.props.activeProject) {
 
-            const projectId = this.props.activeProject;
+            const projectId: $TSFixMe = this.props.activeProject;
 
             this.props.fetchAutomatedScript(projectId, 0, 10);
         }
@@ -64,10 +64,10 @@ class AutomationScript extends Component<ComponentProps> {
             activeProject,
         } = this.props;
 
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
 
-        const subProjectName =
+        const subProjectName: $TSFixMe =
             subProjects.find((obj: $TSFixMe) => obj._id === activeProject)?.name ||
             currentProject.name;
 
@@ -163,7 +163,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 const mapStateToProps: Function = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
     // sort subprojects names for display in alphabetical order
-    const subProjectNames =
+    const subProjectNames: $TSFixMe =
         subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =

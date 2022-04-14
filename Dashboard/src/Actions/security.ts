@@ -21,20 +21,20 @@ export const addContainerSecurityFailure: Function = (
     payload: error,
 });
 
-export const addContainerSecurity =
+export const addContainerSecurity: $TSFixMe =
     ({ projectId, componentId, data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(addContainerSecurityRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `security/${projectId}/${componentId}/container`,
                 data
             );
 
             dispatch(addContainerSecuritySuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -65,19 +65,19 @@ export const getContainerSecurityFailure: Function = (
     payload: error,
 });
 
-export const getContainerSecurity =
+export const getContainerSecurity: $TSFixMe =
     ({ projectId, componentId, containerSecurityId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `security/${projectId}/${componentId}/container/${containerSecurityId}`
             );
 
             dispatch(getContainerSecuritySuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -89,19 +89,19 @@ export const getContainerSecurity =
         }
     };
 
-export const getContainerSecurityBySlug =
+export const getContainerSecurityBySlug: $TSFixMe =
     ({ projectId, componentId, containerSecuritySlug }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `security/${projectId}/${componentId}/containerSecuritySlug/${containerSecuritySlug}`
             );
 
             dispatch(getContainerSecuritySuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -135,7 +135,7 @@ export const getContainerSecuritiesFailure: Function = (
     payload: error,
 });
 
-export const getContainerSecurities =
+export const getContainerSecurities: $TSFixMe =
     ({
         projectId,
         componentId,
@@ -147,13 +147,13 @@ export const getContainerSecurities =
         dispatch(getContainerSecuritiesRequest(fetchingPage));
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `security/${projectId}/${componentId}/container?skip=${skip}&limit=${limit}`
             );
 
             dispatch(getContainerSecuritiesSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -184,13 +184,13 @@ export const deleteContainerSecurityFailure: Function = (
     payload: error,
 });
 
-export const deleteContainerSecurity =
+export const deleteContainerSecurity: $TSFixMe =
     ({ projectId, componentId, containerSecurityId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(deleteContainerSecurityRequest());
 
         try {
-            const response =
+            const response: $TSFixMe =
                 await delete `security/${projectId}/${componentId}/container/${containerSecurityId}`;
 
             dispatch(deleteContainerSecuritySuccess(response.data));
@@ -198,7 +198,7 @@ export const deleteContainerSecurity =
             // update the list of container securities
             dispatch(getContainerSecurities({ projectId, componentId }));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -229,7 +229,7 @@ export const scanContainerSecurityFailure: Function = (
     payload: error,
 });
 
-export const scanContainerSecurity =
+export const scanContainerSecurity: $TSFixMe =
     ({ projectId, containerSecurityId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(scanContainerSecurityRequest());
@@ -240,7 +240,7 @@ export const scanContainerSecurity =
                 `security/${projectId}/container/scan/${containerSecurityId}`
             );
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -271,19 +271,19 @@ export const getContainerSecurityLogFailure: Function = (
     payload: error,
 });
 
-export const getContainerSecurityLog =
+export const getContainerSecurityLog: $TSFixMe =
     ({ projectId, componentId, containerSecurityId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityLogRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/container/logs/${containerSecurityId}`
             );
 
             dispatch(getContainerSecurityLogSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -295,19 +295,19 @@ export const getContainerSecurityLog =
         }
     };
 
-export const getContainerSecurityLogBySlug =
+export const getContainerSecurityLogBySlug: $TSFixMe =
     ({ projectId, componentId, containerSecuritySlug }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityLogRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/containerSecuritySlug/logs/${containerSecuritySlug}`
             );
 
             dispatch(getContainerSecurityLogSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -338,19 +338,19 @@ export const getContainerSecurityLogsFailure: Function = (
     payload: error,
 });
 
-export const getContainerSecurityLogs =
+export const getContainerSecurityLogs: $TSFixMe =
     ({ projectId, componentId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityLogsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/container/logs`
             );
 
             dispatch(getContainerSecurityLogsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -388,7 +388,7 @@ export function editContainerSecurity({
     data,
 }: $TSFixMe) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`,
             data
         );
@@ -399,7 +399,7 @@ export function editContainerSecurity({
                 dispatch(editContainerSecuritySuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -434,20 +434,20 @@ export const addApplicationSecurityFailure: Function = (
     payload: error,
 });
 
-export const addApplicationSecurity =
+export const addApplicationSecurity: $TSFixMe =
     ({ projectId, componentId, data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(addApplicationSecurityRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `security/${projectId}/${componentId}/application`,
                 data
             );
 
             dispatch(addApplicationSecuritySuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -478,19 +478,19 @@ export const getApplicationSecurityFailure: Function = (
     payload: error,
 });
 
-export const getApplicationSecurity =
+export const getApplicationSecurity: $TSFixMe =
     ({ projectId, componentId, applicationSecurityId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `security/${projectId}/${componentId}/application/${applicationSecurityId}`
             );
 
             dispatch(getApplicationSecuritySuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -502,19 +502,19 @@ export const getApplicationSecurity =
         }
     };
 
-export const getApplicationSecurityBySlug =
+export const getApplicationSecurityBySlug: $TSFixMe =
     ({ projectId, componentId, applicationSecuritySlug }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `security/${projectId}/${componentId}/applicationSecuritySlug/${applicationSecuritySlug}`
             );
 
             dispatch(getApplicationSecuritySuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -548,7 +548,7 @@ export const getApplicationSecuritiesFailure: Function = (
     payload: error,
 });
 
-export const getApplicationSecurities =
+export const getApplicationSecurities: $TSFixMe =
     ({
         projectId,
         componentId,
@@ -560,13 +560,13 @@ export const getApplicationSecurities =
         dispatch(getApplicationSecuritiesRequest(fetchingPage));
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `security/${projectId}/${componentId}/application?skip=${skip}&limit=${limit}`
             );
 
             dispatch(getApplicationSecuritiesSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -597,13 +597,13 @@ export const deleteApplicationSecurityFailure: Function = (
     payload: error,
 });
 
-export const deleteApplicationSecurity =
+export const deleteApplicationSecurity: $TSFixMe =
     ({ projectId, componentId, applicationSecurityId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(deleteApplicationSecurityRequest());
 
         try {
-            const response =
+            const response: $TSFixMe =
                 await delete `security/${projectId}/${componentId}/application/${applicationSecurityId}`;
 
             dispatch(deleteApplicationSecuritySuccess(response.data));
@@ -611,7 +611,7 @@ export const deleteApplicationSecurity =
             // update the list of application securities
             dispatch(getApplicationSecurities({ projectId, componentId }));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -642,7 +642,7 @@ export const scanApplicationSecurityFailure: Function = (
     payload: error,
 });
 
-export const scanApplicationSecurity =
+export const scanApplicationSecurity: $TSFixMe =
     ({ projectId, applicationSecurityId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(scanApplicationSecurityRequest());
@@ -652,7 +652,7 @@ export const scanApplicationSecurity =
                 `security/${projectId}/application/scan/${applicationSecurityId}`
             );
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -683,19 +683,19 @@ export const getApplicationSecurityLogFailure: Function = (
     payload: error,
 });
 
-export const getApplicationSecurityLog =
+export const getApplicationSecurityLog: $TSFixMe =
     ({ projectId, componentId, applicationSecurityId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityLogRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/application/logs/${applicationSecurityId}`
             );
 
             dispatch(getApplicationSecurityLogSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -707,19 +707,19 @@ export const getApplicationSecurityLog =
         }
     };
 
-export const getApplicationSecurityLogBySlug =
+export const getApplicationSecurityLogBySlug: $TSFixMe =
     ({ projectId, componentId, applicationSecuritySlug }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityLogRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/applicationSecuritySlug/logs/${applicationSecuritySlug}`
             );
 
             dispatch(getApplicationSecurityLogSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -750,19 +750,19 @@ export const getApplicationSecurityLogsFailure: Function = (
     payload: error,
 });
 
-export const getApplicationSecurityLogs =
+export const getApplicationSecurityLogs: $TSFixMe =
     ({ projectId, componentId }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityLogsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/application/logs`
             );
 
             dispatch(getApplicationSecurityLogsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -800,7 +800,7 @@ export function editApplicationSecurity({
     data,
 }: $TSFixMe) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`,
             data
         );
@@ -811,7 +811,7 @@ export function editApplicationSecurity({
                 dispatch(editApplicationSecuritySuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data

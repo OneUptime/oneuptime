@@ -59,11 +59,11 @@ class MonitorViewChangeComponentBox extends Component<ComponentProps> {
             changingComponent = true;
         }
 
-        const { changeMonitorComponentModalId } = this.state;
+        const { changeMonitorComponentModalId }: $TSFixMe = this.state;
 
-        const oldComponentId = this.props.monitor.componentId;
+        const oldComponentId: $TSFixMe = this.props.monitor.componentId;
 
-        const newComponent = this.props.component;
+        const newComponent: $TSFixMe = this.props.component;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -140,7 +140,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { componentSlug } = props.match.params;
+    const { componentSlug }: $TSFixMe = props.match.params;
     let component;
     state.component.componentList.components.forEach((item: $TSFixMe) => {
         item.components.forEach((c: $TSFixMe) => {

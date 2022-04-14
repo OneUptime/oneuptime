@@ -10,14 +10,14 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import SslService from '../services/sslService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 // store acme challenge to the db
 router.post('/challenge', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const data = req.body;
+        const data: $TSFixMe = req.body;
 
-        const acmeChallenge = await SslService.create(data);
+        const acmeChallenge: $TSFixMe = await SslService.create(data);
         return sendItemResponse(req, res, acmeChallenge);
     } catch (error) {
         return sendErrorResponse(req, res, error as Exception);
@@ -29,8 +29,8 @@ router.get(
     '/challenge/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { token } = req.params;
-            const acmeChallenge = await SslService.findOneBy({
+            const { token }: $TSFixMe = req.params;
+            const acmeChallenge: $TSFixMe = await SslService.findOneBy({
                 query: { token },
                 select: 'token keyAuthorization challengeUrl deleted deletedAt',
             });
@@ -48,8 +48,8 @@ router.get(
     '/challenge/authorization/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { token } = req.params;
-            const acmeChallenge = await SslService.findOneBy({
+            const { token }: $TSFixMe = req.params;
+            const acmeChallenge: $TSFixMe = await SslService.findOneBy({
                 query: { token },
                 select: 'token keyAuthorization challengeUrl deleted deletedAt',
             });
@@ -68,9 +68,9 @@ router.delete(
     '/challenge/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { token } = req.params;
+            const { token }: $TSFixMe = req.params;
 
-            const acmeChallenge = await SslService.deleteBy({ token });
+            const acmeChallenge: $TSFixMe = await SslService.deleteBy({ token });
             return sendItemResponse(req, res, acmeChallenge);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

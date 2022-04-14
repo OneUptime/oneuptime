@@ -1,4 +1,4 @@
-const lighthouseLogCollection = global.db.collection('lighthouselogs');
+const lighthouseLogCollection: $TSFixMe = global.db.collection('lighthouselogs');
 import probeService from './probeService';
 import ErrorService from './errorService';
 import { ObjectId } from 'mongodb';
@@ -14,7 +14,7 @@ const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {
-        const result = await lighthouseLogCollection.insertOne({
+        const result: $TSFixMe = await lighthouseLogCollection.insertOne({
             monitorId: data.monitorId,
             probeId: data.probeId,
             data: data.lighthouseData.issues,
@@ -27,7 +27,7 @@ export default {
             scanning: data.scanning,
             createdAt: new Date(moment().format()),
         });
-        const savedLog = await this.findOneBy({
+        const savedLog: $TSFixMe = await this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
 
@@ -49,23 +49,23 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const log = await lighthouseLogCollection.findOne(query);
+        const log: $TSFixMe = await lighthouseLogCollection.findOne(query);
 
         return log;
     },
 
     async sendLighthouseLog(data: $TSFixMe): void {
-        const monitor = await MonitorService.findOneBy({
+        const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: ObjectId(data.monitorId) },
         });
 
         if (monitor && monitor.projectId) {
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: {
                     _id: ObjectId(monitor.projectId._id || monitor.projectId),
                 },
             });
-            const parentProjectId = project
+            const parentProjectId: $TSFixMe = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
@@ -99,7 +99,7 @@ export default {
             $set: data,
         });
         // fetch updated items
-        const lighthouseLog = await lighthouseLogCollection
+        const lighthouseLog: $TSFixMe = await lighthouseLogCollection
             .find(query)
             .toArray();
 

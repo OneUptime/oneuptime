@@ -28,7 +28,7 @@ class ErrorEventHeader extends Component<ComponentProps> {
     };
     handleIgnoreButton = (errorTrackerIssue: $TSFixMe) => {
 
-        const { ignoreErrorEvent } = this.props;
+        const { ignoreErrorEvent }: $TSFixMe = this.props;
         if (!errorTrackerIssue.ignored) {
             ignoreErrorEvent(errorTrackerIssue._id);
         } else {
@@ -37,7 +37,7 @@ class ErrorEventHeader extends Component<ComponentProps> {
     };
     handleResolveButton = (errorTrackerIssue: $TSFixMe) => {
 
-        const { resolveErrorEvent, unresolveErrorEvent } = this.props;
+        const { resolveErrorEvent, unresolveErrorEvent }: $TSFixMe = this.props;
         if (!errorTrackerIssue.resolved) {
             resolveErrorEvent(errorTrackerIssue._id);
         } else {
@@ -57,9 +57,9 @@ class ErrorEventHeader extends Component<ComponentProps> {
 
             errorTrackerState,
         } = this.props;
-        const errorEventDetails = errorEvent.errorEvent;
-        const canPrev = errorEvent.previous;
-        const canNext = errorEvent.next;
+        const errorEventDetails: $TSFixMe = errorEvent.errorEvent;
+        const canPrev: $TSFixMe = errorEvent.previous;
+        const canNext: $TSFixMe = errorEvent.next;
         let deleting = false;
         if (
             errorTrackerState &&

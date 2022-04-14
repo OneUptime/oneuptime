@@ -6,7 +6,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 
 import HTTPTestServerResponse from '../types/HttpTestServerResponse';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.get('/settings', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(200).render('settings.ejs', {
@@ -15,7 +15,7 @@ router.get('/settings', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 router.post('/api/settings', (req: ExpressRequest, res: ExpressResponse) => {
-    const { responseTime, statusCode, responseType, header, body } = req.body;
+    const { responseTime, statusCode, responseType, header, body }: $TSFixMe = req.body;
 
     HTTPTestServerResponse.responseTime = new PositiveNumber(responseTime);
     HTTPTestServerResponse.statusCode = new PositiveNumber(statusCode);

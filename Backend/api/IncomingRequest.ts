@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -14,7 +14,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import { sendListResponse } from 'CommonServer/Utils/response';
 import IncomingRequestService from '../services/incomingRequestService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.get(
     '/:projectId/all-incoming-request',
@@ -22,12 +22,12 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { limit, skip } = req.query;
-            const select =
+            const { projectId }: $TSFixMe = req.params;
+            const { limit, skip }: $TSFixMe = req.query;
+            const select: $TSFixMe =
                 'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name customFields componentId deleted',
@@ -35,7 +35,7 @@ router.get(
                 },
                 { path: 'projectId', select: 'name' },
             ];
-            const [allIncomingRequest, count] = await Promise.all([
+            const [allIncomingRequest, count]: $TSFixMe = await Promise.all([
                 IncomingRequestService.findBy({
                     query: {
                         projectId,
@@ -63,21 +63,21 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const data = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
 
             if (!data.name || !data.name.trim()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify a name for the incoming request'
                 );
 
                 error.code = 400;
                 throw error;
             }
-            const select =
+            const select: $TSFixMe =
                 'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name customFields componentId deleted',
@@ -91,7 +91,7 @@ router.post(
                 populate,
             });
             if (incomingRequest) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Incoming request with this name already exist'
                 );
 
@@ -102,7 +102,7 @@ router.post(
             data.projectId = projectId;
             incomingRequest = await IncomingRequestService.create(data);
             // requestUrl contains the whole incoming request object with the updated url
-            const requestUrl = await IncomingRequestService.getRequestUrl(
+            const requestUrl: $TSFixMe = await IncomingRequestService.getRequestUrl(
                 projectId,
                 incomingRequest._id
             );
@@ -120,21 +120,21 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, requestId } = req.params;
-            const data = req.body;
+            const { projectId, requestId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
 
             if (!data.name || !data.name.trim()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify a name for the incoming request'
                 );
 
                 error.code = 400;
                 throw error;
             }
-            const select =
+            const select: $TSFixMe =
                 'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name customFields componentId deleted',
@@ -152,7 +152,7 @@ router.put(
                 incomingRequest &&
                 String(incomingRequest._id) !== String(requestId)
             ) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Incoming request with this name already exist'
                 );
 
@@ -177,9 +177,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, requestId } = req.params;
+            const { projectId, requestId }: $TSFixMe = req.params;
 
-            const incomingRequest = await IncomingRequestService.deleteBy({
+            const incomingRequest: $TSFixMe = await IncomingRequestService.deleteBy({
                 _id: requestId,
                 projectId,
             });
@@ -202,10 +202,10 @@ router.post(
                 headers: { ...req.headers },
             };
 
-            const { projectId, requestId } = req.params;
+            const { projectId, requestId }: $TSFixMe = req.params;
             const data: $TSFixMe = { projectId, requestId, request };
 
-            const response =
+            const response: $TSFixMe =
                 await IncomingRequestService.handleIncomingRequestAction(data);
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -226,10 +226,10 @@ router.get(
                 headers: { ...req.headers },
             };
 
-            const { projectId, requestId } = req.params;
+            const { projectId, requestId }: $TSFixMe = req.params;
             const data: $TSFixMe = { projectId, requestId, request };
 
-            const response =
+            const response: $TSFixMe =
                 await IncomingRequestService.handleIncomingRequestAction(data);
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -244,12 +244,12 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, requestId } = req.params;
-            const data = req.body;
-            const select =
+            const { projectId, requestId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
+            const select: $TSFixMe =
                 'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name customFields componentId deleted',
@@ -267,7 +267,7 @@ router.post(
                 incomingRequest &&
                 String(incomingRequest._id) !== String(requestId)
             ) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Incoming request with this name already exist'
                 );
 

@@ -45,11 +45,11 @@ class MonitorInfo extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { monitor } = this.props;
+        const { monitor }: $TSFixMe = this.props;
 
         if (monitor) {
-            const endDate = moment(Date.now());
-            const startDate = moment(Date.now()).subtract(90, 'days');
+            const endDate: $TSFixMe = moment(Date.now());
+            const startDate: $TSFixMe = moment(Date.now()).subtract(90, 'days');
 
 
             this.props.fetchMonitorStatuses(
@@ -92,7 +92,7 @@ class MonitorInfo extends Component<ComponentProps> {
             probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
                 : null;
-        const prevProbe =
+        const prevProbe: $TSFixMe =
             prevProps.probes && prevProps.probes.length > 0
                 ? prevProps.probes[
                 prevProps.probes.length < 2 ? 0 : activeProbe
@@ -109,9 +109,9 @@ class MonitorInfo extends Component<ComponentProps> {
 
             range = !this.props.theme ? 90 : range;
 
-            const now = Date.now();
+            const now: $TSFixMe = Date.now();
 
-            const monitorData = monitorState.find(
+            const monitorData: $TSFixMe = monitorState.find(
                 (a: $TSFixMe) => String(a._id) === String(monitor._id)
             );
 
@@ -126,7 +126,7 @@ class MonitorInfo extends Component<ComponentProps> {
                         : null;
             }
 
-            const statuses = filterProbeData(
+            const statuses: $TSFixMe = filterProbeData(
                 monitorData,
                 currentProbe,
                 monitorStatus
@@ -136,8 +136,8 @@ class MonitorInfo extends Component<ComponentProps> {
 
         if (JSON.stringify(prevProps.monitor) !== JSON.stringify(monitor)) {
             if (monitor) {
-                const endDate = moment(Date.now());
-                const startDate = moment(Date.now()).subtract(90, 'days');
+                const endDate: $TSFixMe = moment(Date.now());
+                const startDate: $TSFixMe = moment(Date.now()).subtract(90, 'days');
 
                 this.props.fetchMonitorStatuses(
                     monitor.projectId._id || monitor.projectId,
@@ -160,16 +160,16 @@ class MonitorInfo extends Component<ComponentProps> {
 
     resizeHandler() {
         // block chart scroll wrapper
-        const scrollWrapper = this.scrollWrapper.current;
+        const scrollWrapper: $TSFixMe = this.scrollWrapper.current;
         if (!scrollWrapper) return;
         scrollWrapper.style.width = 'auto';
 
         // block chart scroll content
-        const scrollContent = this.scrollContent.current;
+        const scrollContent: $TSFixMe = this.scrollContent.current;
         scrollContent.style.width = 'auto';
 
         // uptime graph container
-        const container = this.container.current;
+        const container: $TSFixMe = this.container.current;
 
         setTimeout(() => {
             // adjust width
@@ -190,7 +190,7 @@ class MonitorInfo extends Component<ComponentProps> {
 
     handleMonitorStatus = (status: $TSFixMe) => {
 
-        const { onlineText, offlineText, degradedText } = this.props;
+        const { onlineText, offlineText, degradedText }: $TSFixMe = this.props;
         return status === 'online'
             ? onlineText
             : status === 'degraded'
@@ -238,7 +238,7 @@ class MonitorInfo extends Component<ComponentProps> {
 
         if (this.props.theme) {
 
-            const { windowSize } = this.state;
+            const { windowSize }: $TSFixMe = this.state;
             if (windowSize <= 600) {
                 range = 30;
             }
@@ -250,39 +250,39 @@ class MonitorInfo extends Component<ComponentProps> {
             }
         }
 
-        const monitorData = monitorState.find(
+        const monitorData: $TSFixMe = monitorState.find(
             (a: $TSFixMe) => String(a._id) === String(monitor._id)
         );
 
-        const probe =
+        const probe: $TSFixMe =
             probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
                 : null;
 
-        const statuses = filterProbeData(monitorData, probe);
+        const statuses: $TSFixMe = filterProbeData(monitorData, probe);
 
-        const calculatingTime = monitor
+        const calculatingTime: $TSFixMe = monitor
             ? monitorInfo.requesting[monitor._id]
             : true;
 
-        const info = monitor ? monitorInfo.info[monitor._id] || {} : {};
-        const timeBlock = info.timeBlock || [];
-        const uptimePercent = info.uptimePercent || 'N/A';
+        const info: $TSFixMe = monitor ? monitorInfo.info[monitor._id] || {} : {};
+        const timeBlock: $TSFixMe = info.timeBlock || [];
+        const uptimePercent: $TSFixMe = info.uptimePercent || 'N/A';
 
-        const monitorStatus = monitor.status
+        const monitorStatus: $TSFixMe = monitor.status
             ? monitor.status
             : getMonitorStatus(statuses);
 
-        const uptime =
+        const uptime: $TSFixMe =
             uptimePercent !== 100
                 ? !isNaN(uptimePercent)
                     ? uptimePercent.toFixed(3)
                     : 'N/A'
                 : '100';
 
-        const block = [];
+        const block: $TSFixMe = [];
 
-        const loadingData =
+        const loadingData: $TSFixMe =
             calculatingTime ||
             timeBlock.length !== range ||
             uptimePercent === 'N/A';
@@ -704,7 +704,7 @@ class MonitorInfo extends Component<ComponentProps> {
 MonitorInfo.displayName = 'UptimeGraphs';
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const ongoing =
+    const ongoing: $TSFixMe =
         state.status &&
         state.status.ongoing &&
         state.status.ongoing.ongoing &&
@@ -712,7 +712,7 @@ function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
             (ongoingSchedule: $TSFixMe) => !ongoingSchedule.cancelled
         );
 
-    const monitorStatus = state.status.monitorStatuses[ownProps.monitor._id];
+    const monitorStatus: $TSFixMe = state.status.monitorStatuses[ownProps.monitor._id];
 
     return {
         monitorState: state.status.statusPage.monitorsData,

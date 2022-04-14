@@ -77,7 +77,7 @@ export default function incidentCommunicationSla(
             };
 
         case types.DELETE_COMMUNICATION_SLA_SUCCESS: {
-            const incidentSlas =
+            const incidentSlas: $TSFixMe =
                 state.incidentCommunicationSlas.incidentSlas.filter(
                     sla => String(sla._id) !== String(action.payload._id)
                 );
@@ -186,7 +186,7 @@ export default function incidentCommunicationSla(
             };
 
         case types.UPDATE_COMMUNICATION_SLA_SUCCESS: {
-            const incidentSlas =
+            const incidentSlas: $TSFixMe =
                 state.incidentCommunicationSlas.incidentSlas.map(sla => {
                     if (
                         action.payload.isDefault &&

@@ -24,7 +24,7 @@ export const fetchComponents: Function = ({
     limit = 3,
 }: $TSFixMe) => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `component/${projectId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchComponentsRequest());
@@ -78,7 +78,7 @@ export function fetchPaginatedComponents({
     limit = 3,
 }: $TSFixMe) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `component/${projectId}/paginated?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchPaginatedComponentsRequest(projectId));
@@ -130,7 +130,7 @@ export const createComponent: Function = (
 ): void => {
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`component/${projectId}`, values);
+        const promise: $TSFixMe = BackendAPI.post(`component/${projectId}`, values);
         dispatch(createComponentRequest());
 
         promise.then(
@@ -192,7 +192,7 @@ export const editComponent: Function = (
     values.projectId = values.projectId._id || values.projectId;
 
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `component/${projectId}/${values._id}`,
             values
         );
@@ -264,7 +264,7 @@ export const deleteComponent: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete (`component/${projectId}/${componentId}`,
+        const promise: $TSFixMe = delete (`component/${projectId}/${componentId}`,
         {
             componentId,
         });
@@ -324,7 +324,7 @@ export const deleteProjectComponents: Function = (
 
 export const addSeat: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`component/${projectId}/addseat`, {});
+        const promise: $TSFixMe = BackendAPI.post(`component/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
 
         promise.then(
@@ -388,7 +388,7 @@ export function fetchComponentResources(
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `component/${projectId}/resources/${componentId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchComponentResourcesRequest(componentId));
@@ -447,7 +447,7 @@ export function fetchComponentSummary(
     endDate: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `component/${projectId}/summary/${componentId}`,
             { startDate, endDate }
         );
@@ -533,7 +533,7 @@ export const fetchComponent: Function = (
     slug: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`component/${projectId}/slug/${slug}`);
+        const promise: $TSFixMe = BackendAPI.get(`component/${projectId}/slug/${slug}`);
         dispatch(fetchComponentRequest());
 
         promise.then(

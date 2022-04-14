@@ -3,14 +3,14 @@ import getSlug from '../util/getSlug';
 const applicationSecurityCollection: string = 'applicationsecurities';
 
 async function run(): void {
-    const applicationSecurities = await find(applicationSecurityCollection, {
+    const applicationSecurities: $TSFixMe = await find(applicationSecurityCollection, {
         $or: [
             { slug: { $exists: false } },
             { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < applicationSecurities.length; i++) {
-        const { name } = applicationSecurities[i];
+        const { name }: $TSFixMe = applicationSecurities[i];
         applicationSecurities[i].slug = getSlug(name);
         await update(
             applicationSecurityCollection,

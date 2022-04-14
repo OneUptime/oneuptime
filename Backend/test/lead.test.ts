@@ -5,7 +5,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 import leadService from '../backend/services/leadService';
 import EmailStatusService from '../backend/services/emailStatusService';
@@ -21,7 +21,7 @@ const leadData: $TSFixMe = {
     message: 'Testing',
     type: 'demo',
 };
-const selectEmailStatus =
+const selectEmailStatus: $TSFixMe =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
 describe('Lead API', function (): void {
@@ -55,7 +55,7 @@ describe('Lead API', function (): void {
             .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 leadService.hardDeleteBy({ _id: res.body._id });
-                const emailStatuses = await EmailStatusService.findBy({
+                const emailStatuses: $TSFixMe = await EmailStatusService.findBy({
                     query: {},
                     select: selectEmailStatus,
                 });

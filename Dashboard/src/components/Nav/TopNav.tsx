@@ -95,7 +95,7 @@ class TopContent extends Component<ComponentProps> {
 
 
         this.props.fetchMonitors(value);
-        const val = history.location.pathname
+        const val: $TSFixMe = history.location.pathname
             .split('project/')[1]
             .split('/')[0];
         history.push(`/dashboard/project/${val}`);
@@ -242,7 +242,7 @@ class TopContent extends Component<ComponentProps> {
 
     handleOngoingScheduleClick = () => {
 
-        const { subProjectOngoingScheduledEvents } = this.props;
+        const { subProjectOngoingScheduledEvents }: $TSFixMe = this.props;
         const schedules: $TSFixMe = [];
         subProjectOngoingScheduledEvents.forEach((eventData: $TSFixMe) => {
             schedules.push(...eventData.ongoingScheduledEvents);
@@ -291,7 +291,7 @@ class TopContent extends Component<ComponentProps> {
 
     renderOngoingScheduledEvents = () => {
 
-        const { subProjectOngoingScheduledEvents } = this.props;
+        const { subProjectOngoingScheduledEvents }: $TSFixMe = this.props;
         let count = 0;
         subProjectOngoingScheduledEvents.forEach((eventData: $TSFixMe) => {
             count += eventData.count;
@@ -350,7 +350,7 @@ class TopContent extends Component<ComponentProps> {
     };
 
     override render() {
-        const IMG_URL =
+        const IMG_URL: $TSFixMe =
 
             this.props.profilePic &&
 
@@ -360,8 +360,8 @@ class TopContent extends Component<ComponentProps> {
 
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
-        const userId = User.getUserId();
-        const isNotViewer =
+        const userId: $TSFixMe = User.getUserId();
+        const isNotViewer: $TSFixMe =
 
             this.props.currentProject &&
 
@@ -401,13 +401,13 @@ class TopContent extends Component<ComponentProps> {
             ).length;
         }
 
-        const { escalations } = this.props;
+        const { escalations }: $TSFixMe = this.props;
 
-        const userSchedules = _.flattenDeep(
+        const userSchedules: $TSFixMe = _.flattenDeep(
             escalations.map((escalation: $TSFixMe) => {
                 return escalation.teams
                     .map((team: $TSFixMe) => {
-                        const schedule = team.teamMembers.find(
+                        const schedule: $TSFixMe = team.teamMembers.find(
                             (user: $TSFixMe) => String(user.userId) ===
                                 String(
 
@@ -425,38 +425,38 @@ class TopContent extends Component<ComponentProps> {
         );
 
         const activeSchedules: $TSFixMe = [];
-        const upcomingSchedules = [];
-        const inactiveSchedules = [];
+        const upcomingSchedules: $TSFixMe = [];
+        const inactiveSchedules: $TSFixMe = [];
 
         if (userSchedules && userSchedules.length > 0) {
             userSchedules.forEach((userSchedule: $TSFixMe) => {
                 const now: Function = (userSchedule && moment()).format('HH:mm');
-                const oncallstart = moment(userSchedule.startTime).format(
+                const oncallstart: $TSFixMe = moment(userSchedule.startTime).format(
                     'HH:mm'
                 );
-                const oncallend = moment(userSchedule.endTime).format('HH:mm');
-                const dayStart = moment().startOf('day');
-                const dayEnd = moment().endOf('day');
+                const oncallend: $TSFixMe = moment(userSchedule.endTime).format('HH:mm');
+                const dayStart: $TSFixMe = moment().startOf('day');
+                const dayEnd: $TSFixMe = moment().endOf('day');
 
-                const startTime = moment(
+                const startTime: $TSFixMe = moment(
                     (userSchedule && userSchedule.startTime) || dayStart
                 ).format('HH:mm');
 
-                const endTime = moment(
+                const endTime: $TSFixMe = moment(
                     (userSchedule && userSchedule.endTime) || dayEnd
                 ).format('HH:mm');
 
                 const compareDate: Function = (oncallstart: $TSFixMe, oncallend: $TSFixMe, now: $TSFixMe) => {
-                    const isDifferentDay = oncallstart >= oncallend;
-                    const [startHour, startMin] = oncallstart.split(':');
-                    const [endHour, endMin] = oncallend.split(':');
-                    const [nowHour, nowMin] = now.split(':');
-                    const addDay = 86400000;
+                    const isDifferentDay: $TSFixMe = oncallstart >= oncallend;
+                    const [startHour, startMin]: $TSFixMe = oncallstart.split(':');
+                    const [endHour, endMin]: $TSFixMe = oncallend.split(':');
+                    const [nowHour, nowMin]: $TSFixMe = now.split(':');
+                    const addDay: $TSFixMe = 86400000;
 
-                    const start = new Date(
+                    const start: $TSFixMe = new Date(
                         new Date().setHours(startHour, startMin)
                     ).getTime();
-                    const end = isDifferentDay
+                    const end: $TSFixMe = isDifferentDay
                         ? new Date(
                             new Date(new Date().getTime() + addDay).setHours(
                                 endHour,
@@ -486,15 +486,15 @@ class TopContent extends Component<ComponentProps> {
                     return false;
                 };
 
-                const isUserActive =
+                const isUserActive: $TSFixMe =
                     compareDate(oncallstart, oncallend, now) ||
                     oncallstart === oncallend;
 
-                const isUpcoming = moment(startTime, 'HH:mm').diff(
+                const isUpcoming: $TSFixMe = moment(startTime, 'HH:mm').diff(
                     moment(now, 'HH:mm'),
                     'minutes'
                 );
-                const isOnDutyAllTheTime =
+                const isOnDutyAllTheTime: $TSFixMe =
                     userSchedule.startTime === userSchedule.endTime;
 
                 const tempObj: $TSFixMe = { ...userSchedule, isOnDutyAllTheTime };
@@ -513,7 +513,7 @@ class TopContent extends Component<ComponentProps> {
         }
 
         let ongoingEventList, topNavCardClass;
-        const topNavCardCount = document.getElementById('myId')
+        const topNavCardCount: $TSFixMe = document.getElementById('myId')
 
             ? document.getElementById('myId').childElementCount
             : 0;
@@ -521,8 +521,8 @@ class TopContent extends Component<ComponentProps> {
         if (topNavCardCount === 5) topNavCardClass = 'twoCardClass';
         if (topNavCardCount === 6) topNavCardClass = 'threeCardClass';
 
-        const { project, searchFieldVisible, closeSearchBar } = this.props;
-        const renderSearch =
+        const { project, searchFieldVisible, closeSearchBar }: $TSFixMe = this.props;
+        const renderSearch: $TSFixMe =
             project.projects.success && project.projects.projects.length !== 0;
 
         let activeSubProject;
@@ -534,9 +534,9 @@ class TopContent extends Component<ComponentProps> {
             }
         });
 
-        const loggedInUser = User.getUserId();
+        const loggedInUser: $TSFixMe = User.getUserId();
 
-        const showMainProject = this.props.currentProject?.users.find(
+        const showMainProject: $TSFixMe = this.props.currentProject?.users.find(
             (user: $TSFixMe) => (user.userId._id || user.userId) === loggedInUser
         );
 
@@ -787,17 +787,17 @@ class TopContent extends Component<ComponentProps> {
 TopContent.displayName = 'TopContent';
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const settings = state.profileSettings.profileSetting.data;
-    const profilePic = settings ? settings.profilePic : '';
-    const { projectId } = props;
-    const monitors = projectId
+    const settings: $TSFixMe = state.profileSettings.profileSetting.data;
+    const profilePic: $TSFixMe = settings ? settings.profilePic : '';
+    const { projectId }: $TSFixMe = props;
+    const monitors: $TSFixMe = projectId
         ? state.monitor.monitorsList.monitors.find((project: $TSFixMe) => {
             return project._id === projectId;
         })
         : [];
-    const currentProjectId =
+    const currentProjectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
-    const currentProjectSlug =
+    const currentProjectSlug: $TSFixMe =
         state.project.currentProject && state.project.currentProject.slug;
 
     return {

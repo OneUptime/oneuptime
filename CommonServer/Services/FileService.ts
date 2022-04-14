@@ -3,8 +3,8 @@ import Database from '../Infrastructure/Database';
 import ObjectID from 'Common/Types/ObjectID';
 class FileService {
     async getFileById(fileId: ObjectID): void {
-        const gfs = await Database.getFileClient();
-        const file = await gfs.findOne({ _id: fileId });
+        const gfs: $TSFixMe = await Database.getFileClient();
+        const file: $TSFixMe = await gfs.findOne({ _id: fileId });
 
         if (!file) {
             throw new BadDataException('File not found');
@@ -14,7 +14,7 @@ class FileService {
     }
 
     async deleteFileById(fileId: ObjectID): void {
-        const gfs = await Database.getFileClient();
+        const gfs: $TSFixMe = await Database.getFileClient();
         await gfs.deleteOne({ _id: fileId });
     }
 }

@@ -54,7 +54,7 @@ EscalationsList.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const { escalations } = state.schedule;
+    const { escalations }: $TSFixMe = state.schedule;
     return { escalations };
 };
 

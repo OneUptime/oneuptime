@@ -30,7 +30,7 @@ export class Sso extends React.Component<SsoProps> {
 
     override componentDidMount() {
 
-        const { projectId } = this.props;
+        const { projectId }: $TSFixMe = this.props;
 
         this.props.fetchSsos({ projectId, skip: 0, limit: 10 });
 
@@ -43,8 +43,8 @@ export class Sso extends React.Component<SsoProps> {
 
     handleKeyboard = (event: $TSFixMe) => {
 
-        const { modalId, modalList } = this.props;
-        const { ssoModalId } = this.state;
+        const { modalId, modalList }: $TSFixMe = this.props;
+        const { ssoModalId }: $TSFixMe = this.state;
 
         if (event.target.localName === 'body' && event.key) {
             switch (event.key) {
@@ -73,7 +73,7 @@ export class Sso extends React.Component<SsoProps> {
 
     deleteSso = async (ssoId: $TSFixMe) => {
 
-        const { projectId, ssosObj } = this.props;
+        const { projectId, ssosObj }: $TSFixMe = this.props;
 
         this.props.openModal({
             id: ssoId,
@@ -97,7 +97,7 @@ export class Sso extends React.Component<SsoProps> {
 
         // add all the sso details here instead of fetching it separately
 
-        const { projectId, ssosObj } = this.props;
+        const { projectId, ssosObj }: $TSFixMe = this.props;
 
         this.props.openModal({
             id: ssoId,
@@ -115,8 +115,8 @@ export class Sso extends React.Component<SsoProps> {
 
     previousClicked = async () => {
 
-        const { ssosObj, projectId } = this.props;
-        const { skip, limit } = ssosObj;
+        const { ssosObj, projectId }: $TSFixMe = this.props;
+        const { skip, limit }: $TSFixMe = ssosObj;
 
         await this.props.fetchSsos({
             projectId,
@@ -128,8 +128,8 @@ export class Sso extends React.Component<SsoProps> {
 
     nextClicked = async () => {
 
-        const { ssosObj, projectId } = this.props;
-        const { skip, limit } = ssosObj;
+        const { ssosObj, projectId }: $TSFixMe = this.props;
+        const { skip, limit }: $TSFixMe = ssosObj;
 
         await this.props.fetchSsos({ projectId, skip: skip + limit, limit });
         this.setState({ page: this.state.page + 1 });
@@ -137,11 +137,11 @@ export class Sso extends React.Component<SsoProps> {
 
     override render() {
 
-        const { ssosObj } = this.props;
-        const { count, skip, limit } = ssosObj;
-        const canPrev = skip > 0;
-        const canNext = skip + limit < count;
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const { ssosObj }: $TSFixMe = this.props;
+        const { count, skip, limit }: $TSFixMe = ssosObj;
+        const canPrev: $TSFixMe = skip > 0;
+        const canNext: $TSFixMe = skip + limit < count;
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
         return (
             <div
                 id="oneuptimeSso"

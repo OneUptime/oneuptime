@@ -58,7 +58,7 @@ const {
     SsoPage,
 } = pages;
 
-export const groups = [
+export const groups: $TSFixMe = [
     {
         group: 'VisibleOnComponentDetail',
         visible: true,
@@ -758,16 +758,16 @@ const joinFn: Function = (acc = [], curr: $TSFixMe): void => {
     return acc.concat(curr);
 };
 
-export const allRoutes = groups
+export const allRoutes: $TSFixMe = groups
     .map((group): void => {
-        const { routes } = group;
-        const newRoutes = [];
+        const { routes }: $TSFixMe = group;
+        const newRoutes: $TSFixMe = [];
         for (const route of routes) {
             newRoutes.push(route);
         }
-        const subRoutes = newRoutes
+        const subRoutes: $TSFixMe = newRoutes
             .map(route => {
-                const newSubRoutes = [];
+                const newSubRoutes: $TSFixMe = [];
                 for (const subRoute of route.subRoutes) {
                     newSubRoutes.push(subRoute);
                 }

@@ -15,10 +15,10 @@ import ErrorService from '../Utils/error';
 import jwt from 'jsonwebtoken';
 
 import geoip from 'geoip-lite';
-const jwtSecretKey = process.env['JWT_SECRET'];
+const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
 
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
-const { NODE_ENV } = process.env;
+const { NODE_ENV }: $TSFixMe = process.env;
 import VerificationTokenModel from '../Models/verificationToken';
 import ObjectID from 'Common/Types/ObjectID';
 import MailService from '../../MailService/Services/MailService';
@@ -93,12 +93,12 @@ class Service extends DatabaseService<typeof Model> {
 
     // async addUserToDefaultProjects({ domain, userId }: $TSFixMe):void {
 
-    //     const populateDefaultRoleSso = [
+    //     const populateDefaultRoleSso: $TSFixMe = [
     //         { path: 'domain', select: '_id domain' },
     //         { path: 'project', select: '_id name' },
     //     ];
 
-    //     const ssoDefaultRoles = await this.findBy({
+    //     const ssoDefaultRoles: $TSFixMe = await this.findBy({
     //         query: { domain },
     //         select: 'project role',
     //         populate: populateDefaultRoleSso,
@@ -107,16 +107,16 @@ class Service extends DatabaseService<typeof Model> {
     //     if (!ssoDefaultRoles.length) return;
 
     //     for (const ssoDefaultRole of ssoDefaultRoles) {
-    //         const { project, role } = ssoDefaultRole;
+    //         const { project, role }: $TSFixMe = ssoDefaultRole;
     //         const { _id: projectId } = project;
 
-    //         const projectObj = await ProjectService.findOneBy({
+    //         const projectObj: $TSFixMe = await ProjectService.findOneBy({
     //             query: { _id: projectId },
     //             select: 'users',
     //         });
     //         if (!projectObj) continue;
 
-    //         const { users } = projectObj;
+    //         const { users }: $TSFixMe = projectObj;
     //         users.push({
     //             userId,
     //             role,
@@ -129,7 +129,7 @@ class Service extends DatabaseService<typeof Model> {
         data,
     }: CreateBy): Promise<CreateBy> {
         if (data.get('password')) {
-            const hash = await bcrypt.hash(
+            const hash: $TSFixMe = await bcrypt.hash(
                 data.get('password'),
                 constants.saltRounds
             );
@@ -142,13 +142,13 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async updatePush({ userId, data }: $TSFixMe): void {
-        const user = await UserModel.findOne({ _id: userId });
-        const checkExist = await user.identification.find(
+        const user: $TSFixMe = await UserModel.findOne({ _id: userId });
+        const checkExist: $TSFixMe = await user.identification.find(
             (user: $TSFixMe) =>
                 String(user.userAgent) === String(data.userAgent)
         );
         if (!data.checked) {
-            const findIndex = await user.identification.findIndex(
+            const findIndex: $TSFixMe = await user.identification.findIndex(
                 (user: $TSFixMe) =>
                     String(user.userAgent) === String(data.userAgent)
             );
@@ -158,7 +158,7 @@ class Service extends DatabaseService<typeof Model> {
                 await user.identification.push(data);
             }
         }
-        const userData = await this.updateOneBy(
+        const userData: $TSFixMe = await this.updateOneBy(
             { _id: user._id },
             { identification: user.identification }
         );
@@ -183,11 +183,11 @@ class Service extends DatabaseService<typeof Model> {
         });
 
         // if projectID is passed, get the current tutorial status
-        const currentStatus = data[projectId] || {};
+        const currentStatus: $TSFixMe = data[projectId] || {};
         currentStatus[type] = { show: false }; // overwrite that current type under that project
         data[projectId] = currentStatus; // update the data object then
 
-        const tutorial = await UserModel.findOneAndUpdate(
+        const tutorial: $TSFixMe = await UserModel.findOneAndUpdate(
             query,
             { $set: { tutorial: data } },
             { new: true }
@@ -196,11 +196,11 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async sendToken(user: $TSFixMe, email: $TSFixMe): void {
-        const verificationTokenModel = new VerificationTokenModel({
+        const verificationTokenModel: $TSFixMe = new VerificationTokenModel({
             userId: user._id,
             token: crypto.randomBytes(16).toString('hex'),
         });
-        const verificationToken = await verificationTokenModel.save();
+        const verificationToken: $TSFixMe = await verificationTokenModel.save();
         if (verificationToken) {
             const verificationTokenURL: string = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
             // Checking for already verified user so that he/she will not recieve another email verification
@@ -233,9 +233,9 @@ class Service extends DatabaseService<typeof Model> {
     //Param 1: data: User details.
     //Returns: promise.
     async signup(data: $TSFixMe): void {
-        const email = data.email;
-        const stripePlanId = data.planId || null;
-        const paymentIntent = data.paymentIntent || null;
+        const email: $TSFixMe = data.email;
+        const stripePlanId: $TSFixMe = data.planId || null;
+        const paymentIntent: $TSFixMe = data.paymentIntent || null;
 
         if (util.isEmailValid(email)) {
             let user = await this.findOneBy({
@@ -249,10 +249,10 @@ class Service extends DatabaseService<typeof Model> {
                 let customerId, subscription;
                 if (IS_SAAS_SERVICE && paymentIntent !== null) {
                     // Check here is the payment intent is successfully paid. If yes then create the customer else not.
-                    const processedPaymentIntent =
+                    const processedPaymentIntent: $TSFixMe =
                         await PaymentService.checkPaymentIntent(paymentIntent);
                     if (processedPaymentIntent.status !== 'succeeded') {
-                        const error = new Error(
+                        const error: $TSFixMe = new Error(
                             'Unsuccessful attempt to charge card'
                         );
 
@@ -295,7 +295,7 @@ class Service extends DatabaseService<typeof Model> {
                 };
                 await ProjectService.create(projectData);
 
-                const createdAt = new Date(user.createdAt)
+                const createdAt: $TSFixMe = new Date(user.createdAt)
                     .toISOString()
                     .split('T', 1);
 
@@ -322,7 +322,7 @@ class Service extends DatabaseService<typeof Model> {
 
     async getUserIpLocation(clientIP: $TSFixMe): void {
         try {
-            const geo = geoip.lookup(clientIP);
+            const geo: $TSFixMe = geoip.lookup(clientIP);
             if (geo) {
                 geo.ip = clientIP;
                 return geo;
@@ -339,11 +339,11 @@ class Service extends DatabaseService<typeof Model> {
         firstCounter = 0
     ): void {
         hotp.options = { digits: 8 };
-        const backupCodes = [];
+        const backupCodes: $TSFixMe = [];
 
         for (let i = 0; i < numberOfCodes; i++) {
-            const counter = firstCounter + i;
-            const token = hotp.generate(secretKey, counter);
+            const counter: $TSFixMe = firstCounter + i;
+            const token: $TSFixMe = hotp.generate(secretKey, counter);
             backupCodes.push({ code: token, counter });
         }
 
@@ -356,11 +356,11 @@ class Service extends DatabaseService<typeof Model> {
         counter: $TSFixMe
     ): void {
         hotp.options = { digits: 8 };
-        const isValid = hotp.check(code, secretKey, counter);
+        const isValid: $TSFixMe = hotp.check(code, secretKey, counter);
         if (isValid) {
-            const select =
+            const select: $TSFixMe =
                 'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-            const user = await this.findOneBy({
+            const user: $TSFixMe = await this.findOneBy({
                 query: { twoFactorSecretCode: secretKey },
                 select,
             });
@@ -380,15 +380,15 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async generateTwoFactorSecret(userId: ObjectID): void {
-        const user = await this.findOneBy({
+        const user: $TSFixMe = await this.findOneBy({
             query: { _id: userId },
             select: 'email',
         });
-        const secretCode = speakeasy.generateSecret({
+        const secretCode: $TSFixMe = speakeasy.generateSecret({
             length: 20,
             name: `OneUptime (${user.email})`,
         });
-        const backupCodes = await this.generateUserBackupCodes(
+        const backupCodes: $TSFixMe = await this.generateUserBackupCodes(
             secretCode.base32,
             8
         );
@@ -402,17 +402,17 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async verifyAuthToken(token: $TSFixMe, userId: ObjectID): void {
-        const user = await this.findOneBy({
+        const user: $TSFixMe = await this.findOneBy({
             query: { _id: userId },
             select: '_id twoFactorSecretCode',
         });
-        const isValidCode = speakeasy.totp.verify({
+        const isValidCode: $TSFixMe = speakeasy.totp.verify({
             secret: user.twoFactorSecretCode,
             encoding: 'base32',
             token: token,
         });
         if (isValidCode) {
-            const updatedUser = await this.updateOneBy(
+            const updatedUser: $TSFixMe = await this.updateOneBy(
                 { _id: user._id },
                 { twoFactorAuthEnabled: true }
             );
@@ -444,7 +444,7 @@ class Service extends DatabaseService<typeof Model> {
                 email === process.env.ADMIN_EMAIL.toLowerCase() &&
                 process.env.ADMIN_PASSWORD === password
             ) {
-                const count = await this.countBy({});
+                const count: $TSFixMe = await this.countBy({});
                 if (count === 0) {
                     //create a new admin user.
                     user = await this.create({
@@ -456,7 +456,7 @@ class Service extends DatabaseService<typeof Model> {
                 }
             }
 
-            const select =
+            const select: $TSFixMe =
                 'createdAt password cachedPassword name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
             user = await this.findOneBy({
                 query: { email: email },
@@ -466,7 +466,7 @@ class Service extends DatabaseService<typeof Model> {
             if (!user) {
                 throw new BadDataException('User does not exist.');
             } else if (user.sso) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'This domain is configured as SSO. Please use SSO to log in to your account'
                 );
 
@@ -475,8 +475,8 @@ class Service extends DatabaseService<typeof Model> {
             } else {
                 if (user.paymentFailedDate && IS_SAAS_SERVICE) {
                     // calculate number of days the subscription renewal has failed.
-                    const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
-                    const daysAfterPaymentFailed = Math.round(
+                    const oneDayInMilliSeconds: $TSFixMe = 1000 * 60 * 60 * 24;
+                    const daysAfterPaymentFailed: $TSFixMe = Math.round(
                         (new Date() - user.paymentFailedDate) /
                             oneDayInMilliSeconds
                     );
@@ -487,7 +487,7 @@ class Service extends DatabaseService<typeof Model> {
                             { disabled: true }
                         );
 
-                        const error = new Error(
+                        const error: $TSFixMe = new Error(
                             'Your account has been disabled. Kindly contact support@oneuptime.com'
                         );
 
@@ -495,10 +495,10 @@ class Service extends DatabaseService<typeof Model> {
                         throw error;
                     }
                 }
-                const encryptedPassword = user.password;
+                const encryptedPassword: $TSFixMe = user.password;
 
                 if (user.disabled) {
-                    const error = new BadDataException(
+                    const error: $TSFixMe = new BadDataException(
                         'Your account has been disabled. Kindly contact support@oneuptime.com'
                     );
                     throw error;
@@ -508,18 +508,18 @@ class Service extends DatabaseService<typeof Model> {
                     !user.isVerified &&
                     NODE_ENV !== 'development'
                 ) {
-                    const error = new Error('Verify your email first.');
+                    const error: $TSFixMe = new Error('Verify your email first.');
 
                     error.code = 401;
                     throw error;
                 }
                 if (!encryptedPassword) {
-                    const error = new BadDataException(
+                    const error: $TSFixMe = new BadDataException(
                         'Your account does not exist. Please sign up.'
                     );
                     throw error;
                 } else {
-                    const res = await bcrypt.compare(
+                    const res: $TSFixMe = await bcrypt.compare(
                         password,
                         encryptedPassword
                     );
@@ -585,13 +585,13 @@ class Service extends DatabaseService<typeof Model> {
             } else {
                 // ensure user is not in admin mode
                 if (user.isAdminMode && user.cachedPassword) {
-                    const error = new BadDataException(
+                    const error: $TSFixMe = new BadDataException(
                         'Your account is currently under maintenance. Please try again later'
                     );
                     throw error;
                 }
-                const buf = await crypto.randomBytes(20);
-                const token = buf.toString('hex');
+                const buf: $TSFixMe = await crypto.randomBytes(20);
+                const token: $TSFixMe = buf.toString('hex');
 
                 //update a user.
                 user = await this.updateOneBy(
@@ -632,7 +632,7 @@ class Service extends DatabaseService<typeof Model> {
         } else {
             // ensure user is not in admin mode
             if (user.isAdminMode && user.cachedPassword) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Your account is currently under maintenance. Please try again later'
                 );
 
@@ -640,7 +640,7 @@ class Service extends DatabaseService<typeof Model> {
                 throw error;
             }
 
-            const hash = await bcrypt.hash(password, constants.saltRounds);
+            const hash: $TSFixMe = await bcrypt.hash(password, constants.saltRounds);
 
             //update a user.
             user = await this.updateOneBy(
@@ -664,7 +664,7 @@ class Service extends DatabaseService<typeof Model> {
         temporaryPassword: $TSFixMe
     ): void {
         if (!temporaryPassword) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'A temporary password is required for admin mode'
             );
 
@@ -672,7 +672,7 @@ class Service extends DatabaseService<typeof Model> {
             throw error;
         }
 
-        const user = await this.findOneBy({
+        const user: $TSFixMe = await this.findOneBy({
             query: { _id: userId },
             select: 'isAdminMode cachedPassword password',
         });
@@ -680,7 +680,7 @@ class Service extends DatabaseService<typeof Model> {
         if (!user) {
             throw new BadDataException('User not found');
         } else {
-            const hash = await bcrypt.hash(
+            const hash: $TSFixMe = await bcrypt.hash(
                 temporaryPassword,
                 constants.saltRounds
             );
@@ -688,10 +688,10 @@ class Service extends DatabaseService<typeof Model> {
             //update the user.
             // if already in admin mode we shouldn't
             // replace the cached/original password so we don't lose it
-            const passwordToCache = user.isAdminMode
+            const passwordToCache: $TSFixMe = user.isAdminMode
                 ? user.cachedPassword
                 : user.password;
-            const updatedUser = await this.updateOneBy(
+            const updatedUser: $TSFixMe = await this.updateOneBy(
                 {
                     _id: userId,
                 },
@@ -708,7 +708,7 @@ class Service extends DatabaseService<typeof Model> {
 
     // Descripiton: revert from admin mode and replce user password
     async exitAdminMode(userId: ObjectID): void {
-        const user = await this.findOneBy({
+        const user: $TSFixMe = await this.findOneBy({
             query: { _id: userId },
             select: 'isAdminMode cachedPassword password',
         });
@@ -724,8 +724,8 @@ class Service extends DatabaseService<typeof Model> {
             }
 
             //update the user.
-            const passwordToRestore = user.cachedPassword ?? user.password; // unlikely but just in case cachedPassword is null
-            const updatedUser = await this.updateOneBy(
+            const passwordToRestore: $TSFixMe = user.cachedPassword ?? user.password; // unlikely but just in case cachedPassword is null
+            const updatedUser: $TSFixMe = await this.updateOneBy(
                 {
                     _id: userId,
                 },
@@ -758,7 +758,7 @@ class Service extends DatabaseService<typeof Model> {
             const accessToken: string = `${jwt.sign(userObj, jwtSecretKey, {
                 expiresIn: 86400,
             })}`;
-            const jwtRefreshToken = randToken.uid(256);
+            const jwtRefreshToken: $TSFixMe = randToken.uid(256);
 
             user = await this.updateOneBy(
                 { _id: user._id },
@@ -774,7 +774,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async changePassword(data: $TSFixMe): void {
-        const currentPassword = data.currentPassword;
+        const currentPassword: $TSFixMe = data.currentPassword;
         let user = await this.findOneBy({
             query: { _id: data._id },
             select: 'isAdminMode cachedPassword password',
@@ -782,7 +782,7 @@ class Service extends DatabaseService<typeof Model> {
 
         // ensure user is not in admin mode
         if (user.isAdminMode && user.cachedPassword) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Your account is currently under maintenance. Please try again later'
             );
 
@@ -790,12 +790,12 @@ class Service extends DatabaseService<typeof Model> {
             throw error;
         }
 
-        const encryptedPassword = user.password;
+        const encryptedPassword: $TSFixMe = user.password;
 
-        const check = await bcrypt.compare(currentPassword, encryptedPassword);
+        const check: $TSFixMe = await bcrypt.compare(currentPassword, encryptedPassword);
         if (check) {
-            const newPassword = data.newPassword;
-            const hash = await bcrypt.hash(newPassword, constants.saltRounds);
+            const newPassword: $TSFixMe = data.newPassword;
+            const hash: $TSFixMe = await bcrypt.hash(newPassword, constants.saltRounds);
 
             data.password = hash;
             user = await this.updateOneBy({ _id: data._id }, data);
@@ -807,7 +807,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async getAllUsers(skip: PositiveNumber, limit: PositiveNumber): void {
-        const select =
+        const select: $TSFixMe =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
         let users = await this.findBy({
             query: { _id: { $ne: null }, deleted: { $ne: null } },
@@ -826,7 +826,7 @@ class Service extends DatabaseService<typeof Model> {
                 let parentProjectIds = [];
                 let projectIds = [];
                 if (userProjects.length > 0) {
-                    const subProjects = userProjects
+                    const subProjects: $TSFixMe = userProjects
                         .map((project: $TSFixMe) =>
                             project.parentProjectId ? project : null
                         )
@@ -836,7 +836,7 @@ class Service extends DatabaseService<typeof Model> {
                             subProject.parentProjectId._id ||
                             subProject.parentProjectId
                     );
-                    const projects = userProjects
+                    const projects: $TSFixMe = userProjects
                         .map((project: $TSFixMe) =>
                             project.parentProjectId ? null : project
                         )
@@ -845,8 +845,8 @@ class Service extends DatabaseService<typeof Model> {
                         (project: $TSFixMe) => project._id
                     );
                 }
-                const populate = [{ path: 'parentProjectId', select: 'name' }];
-                const select =
+                const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+                const select: $TSFixMe =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
                 userProjects = await ProjectService.findBy({
@@ -873,7 +873,7 @@ class Service extends DatabaseService<typeof Model> {
         const select: string = '_id';
         let user = await this.findBy({ query, select });
         if (user && user.length > 1) {
-            const users = await Promise.all(
+            const users: $TSFixMe = await Promise.all(
                 user.map(async (user: $TSFixMe) => {
                     query._id = user._id;
                     user = await this.updateOneBy(query._id, {
@@ -900,7 +900,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async addNotes(userId: ObjectID, notes: $TSFixMe): void {
-        const user = await this.updateOneBy(
+        const user: $TSFixMe = await this.updateOneBy(
             {
                 _id: userId,
             },
@@ -916,7 +916,7 @@ class Service extends DatabaseService<typeof Model> {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        const select =
+        const select: $TSFixMe =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
         let users = await this.findBy({ query, skip, limit, select });
         users = await Promise.all(
@@ -930,7 +930,7 @@ class Service extends DatabaseService<typeof Model> {
                 let parentProjectIds = [];
                 let projectIds = [];
                 if (userProjects.length > 0) {
-                    const subProjects = userProjects
+                    const subProjects: $TSFixMe = userProjects
                         .map((project: $TSFixMe) =>
                             project.parentProjectId ? project : null
                         )
@@ -940,7 +940,7 @@ class Service extends DatabaseService<typeof Model> {
                             subProject.parentProjectId._id ||
                             subProject.parentProjectId
                     );
-                    const projects = userProjects
+                    const projects: $TSFixMe = userProjects
                         .map((project: $TSFixMe) =>
                             project.parentProjectId ? null : project
                         )
@@ -949,8 +949,8 @@ class Service extends DatabaseService<typeof Model> {
                         (project: $TSFixMe) => project._id
                     );
                 }
-                const populate = [{ path: 'parentProjectId', select: 'name' }];
-                const select =
+                const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+                const select: $TSFixMe =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
                 userProjects = await ProjectService.findBy({

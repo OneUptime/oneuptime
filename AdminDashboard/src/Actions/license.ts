@@ -32,19 +32,19 @@ export const resetFetchLicense: Function = (): void => {
 };
 
 // Calls the API to fetch license
-export const fetchLicense =
+export const fetchLicense: $TSFixMe =
     () =>
     async (dispatch: Dispatch): void => {
         dispatch(fetchLicenseRequest());
         dispatch(resetConfirmLicense());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 new Route('globalConfig/configs'),
                 ['licenseKey', 'licenseEmail', 'licenseToken']
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
             dispatch(fetchLicenseSuccess(data));
             return data;
         } catch (error) {
@@ -95,12 +95,12 @@ export const resetConfirmLicense: Function = (): void => {
 };
 
 // Calls the API to confirm license
-export const confirmLicense =
+export const confirmLicense: $TSFixMe =
     (values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(confirmLicenseRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 'license/validate/',
                 values,
                 true
@@ -108,7 +108,7 @@ export const confirmLicense =
 
             let data = response.data;
             if (data.token) {
-                const response = await BackendAPI.post(
+                const response: $TSFixMe = await BackendAPI.post(
                     new Route('globalConfig/'),
                     [
                         { name: 'licenseKey', value: values.license },

@@ -17,7 +17,7 @@ class SsoLoginPage extends React.Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const query = qs.parse(this.props.location.search);
+        const query: $TSFixMe = qs.parse(this.props.location.search);
         const user: $TSFixMe = {
             id: query.id,
             name: query.name,
@@ -31,16 +31,16 @@ class SsoLoginPage extends React.Component<ComponentProps> {
             cardRegistered: query.cardRegistered,
         };
 
-        const state = store.getState();
-        const { statusPageLogin, statusPageURL } = state.login;
+        const state: $TSFixMe = store.getState();
+        const { statusPageLogin, statusPageURL }: $TSFixMe = state.login;
         if (statusPageLogin) {
-            const newURL:string = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
+            const newURL:string: $TSFixMe = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
 
             return (window.location.href = newURL);
         }
 
         //share localStorage with dashboard app
-        const cookies = new Cookies();
+        const cookies: $TSFixMe = new Cookies();
         cookies.set('data', user, {
             path: '/',
             maxAge: 8640000,
@@ -48,7 +48,7 @@ class SsoLoginPage extends React.Component<ComponentProps> {
 
         if (user.role === 'master-admin') {
             //share localStorage with admin dashboard app
-            const cookies = new Cookies();
+            const cookies: $TSFixMe = new Cookies();
             cookies.set('admin-data', user, {
                 path: '/',
                 maxAge: 8640000,

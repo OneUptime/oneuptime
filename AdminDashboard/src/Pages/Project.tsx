@@ -33,7 +33,7 @@ class Project extends Component<ComponentProps> {
         }
 
 
-        const { fetchProject, slug, fetchProjectTeam, project } = this.props;
+        const { fetchProject, slug, fetchProjectTeam, project }: $TSFixMe = this.props;
         fetchProject(slug);
         if (project._id) {
             fetchProjectTeam(project._id);
@@ -286,9 +286,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const project = state.project.project.project || {};
-    const projectUsers = state.project.projectTeam;
-    const { slug } = props.match.params;
+    const project: $TSFixMe = state.project.project.project || {};
+    const projectUsers: $TSFixMe = state.project.projectTeam;
+    const { slug }: $TSFixMe = props.match.params;
     return {
         project,
         slug,

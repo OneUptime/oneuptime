@@ -22,19 +22,19 @@ export const createIncomingRequestFailure: Function = (
     payload: error,
 });
 
-export const createIncomingRequest =
+export const createIncomingRequest: $TSFixMe =
     (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createIncomingRequestRequest());
 
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `incoming-request/${projectId}/create-request-url`,
                 data
             );
 
             dispatch(createIncomingRequestSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -64,20 +64,20 @@ export const editIncomingRequestFailure: Function = (
     payload: error,
 });
 
-export const editIncomingRequest =
+export const editIncomingRequest: $TSFixMe =
     (projectId: ObjectID, requestId: $TSFixMe, data: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());
 
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `incoming-request/${projectId}/update/${requestId}`,
                 data
             );
 
             dispatch(editIncomingRequestSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -107,18 +107,18 @@ export const deleteIncomingRequestFailure: Function = (
     payload: error,
 });
 
-export const deleteIncomingRequest =
+export const deleteIncomingRequest: $TSFixMe =
     (projectId: ObjectID, requestId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteIncomingRequestRequest());
 
-            const response =
+            const response: $TSFixMe =
                 await delete `incoming-request/${projectId}/remove/${requestId}`;
 
             dispatch(deleteIncomingRequestSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -148,19 +148,19 @@ export const fetchAllIncomingRequestFailure: Function = (
     payload: error,
 });
 
-export const fetchAllIncomingRequest =
+export const fetchAllIncomingRequest: $TSFixMe =
     (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchAllIncomingRequestRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `incoming-request/${projectId}/all-incoming-request?skip=${skip}&limit=${limit}`
             );
 
             dispatch(fetchAllIncomingRequestSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -179,19 +179,19 @@ export const setActiveIncomingRequest: Function = (
     payload: requestId,
 });
 
-export const incomingRequestToggle =
+export const incomingRequestToggle: $TSFixMe =
     (projectId: ObjectID, requestId: $TSFixMe, enabled: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `incoming-request/${projectId}/toggle/${requestId}`,
                 enabled
             );
 
             dispatch(editIncomingRequestSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data

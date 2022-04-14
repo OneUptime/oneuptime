@@ -8,7 +8,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -75,7 +75,7 @@ describe('Scheduled Event Note', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     userId = res.body.id;
                     projectId = project._id;
 
@@ -150,7 +150,7 @@ describe('Scheduled Event Note', function (): void {
                                                                                 .body
                                                                                 ._id;
 
-                                                                        const scheduledEventNotes =
+                                                                        const scheduledEventNotes: $TSFixMe =
                                                                             [];
 
                                                                         for (
@@ -170,10 +170,10 @@ describe('Scheduled Event Note', function (): void {
                                                                             );
                                                                         }
 
-                                                                        const createdScheduledEventNotes =
+                                                                        const createdScheduledEventNotes: $TSFixMe =
                                                                             scheduledEventNotes.map(
                                                                                 async scheduledEventNote => {
-                                                                                    const sentRequests =
+                                                                                    const sentRequests: $TSFixMe =
                                                                                         await request
                                                                                             .post(
                                                                                                 `/scheduledEvent/${projectId}/${scheduledEventId}/notes`
@@ -386,7 +386,7 @@ describe('Scheduled Event Note', function (): void {
 
     it('should not update a note if the scheduled event note does not exist', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const noteId = projectId;
+        const noteId: $TSFixMe = projectId;
 
         request
             .put(
@@ -432,7 +432,7 @@ describe('Scheduled Event Note', function (): void {
 
     it('should note delete a scheduled event note if it does not exist', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const noteId = projectId;
+        const noteId: $TSFixMe = projectId;
 
         request
             .delete(

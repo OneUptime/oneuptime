@@ -9,8 +9,8 @@ interface ErrorEventMiniTagProps {
 class ErrorEventMiniTag extends Component<ComponentProps> {
     override render() {
 
-        const { errorEvent } = this.props;
-        const errorEventDetails = errorEvent.errorEvent;
+        const { errorEvent }: $TSFixMe = this.props;
+        const errorEventDetails: $TSFixMe = errorEvent.errorEvent;
         return (
             <ShouldRender
                 if={

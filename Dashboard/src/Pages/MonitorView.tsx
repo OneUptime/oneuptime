@@ -97,13 +97,13 @@ class MonitorView extends React.Component<MonitorViewProps> {
 
     override componentDidMount() {
 
-        const { currentProject } = this.props;
+        const { currentProject }: $TSFixMe = this.props;
 
         this.ready();
 
         if (currentProject) {
-            const userId = User.getUserId();
-            const projectMember = currentProject.users.find(
+            const userId: $TSFixMe = User.getUserId();
+            const projectMember: $TSFixMe = currentProject.users.find(
                 (user: $TSFixMe) => user.userId === userId
             );
             if (projectMember) {
@@ -115,7 +115,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
 
     componentDidUpdate(prevProps: $TSFixMe) {
 
-        const { monitor } = this.props;
+        const { monitor }: $TSFixMe = this.props;
         if (
             String(prevProps.componentSlug) !==
 
@@ -141,7 +141,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
             }
         }
         if (monitor && String(prevProps.monitor._id) !== String(monitor._id)) {
-            const subProjectId = monitor.projectId
+            const subProjectId: $TSFixMe = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
                 : '';
 
@@ -210,7 +210,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
         }
     }
     tabSelected = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
@@ -255,7 +255,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
 
                     this.props.currentProject._id || this.props.currentProject,
             });
-            const subProjectId = monitor.projectId
+            const subProjectId: $TSFixMe = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
                 : '';
 
@@ -317,7 +317,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
 
     isDefaultMonitorSlaSet = () => {
 
-        const { monitorSlas } = this.props;
+        const { monitorSlas }: $TSFixMe = this.props;
         return monitorSlas && monitorSlas.some((sla: $TSFixMe) => sla.isDefault);
     };
 
@@ -347,7 +347,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
             switchToProjectViewerNav,
         } = this.props;
 
-        const redirectTo:string = `/dashboard/project/${this.props.slug}/on-call`;
+        const redirectTo:string: $TSFixMe = `/dashboard/project/${this.props.slug}/on-call`;
         let scheduleAlert;
         if (
             scheduleWarning.includes(monitorId) === false &&
@@ -390,7 +390,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
             );
         }
 
-        const subProjectId =
+        const subProjectId: $TSFixMe =
 
             this.props.monitor && this.props.monitor.projectId
 
@@ -398,19 +398,19 @@ class MonitorView extends React.Component<MonitorViewProps> {
 
                 this.props.monitor.projectId
                 : null;
-        const componentName = component ? component.name : '';
-        const monitorName = monitor ? monitor.name : '';
-        const monitorType = monitor && monitor.type ? monitor.type : '';
-        const agentless = monitor && monitor.agentlessConfig;
+        const componentName: $TSFixMe = component ? component.name : '';
+        const monitorName: $TSFixMe = monitor ? monitor.name : '';
+        const monitorType: $TSFixMe = monitor && monitor.type ? monitor.type : '';
+        const agentless: $TSFixMe = monitor && monitor.agentlessConfig;
 
 
-        const componentMonitorsRoute = getParentRoute(pathname);
+        const componentMonitorsRoute: $TSFixMe = getParentRoute(pathname);
         const defaultMonitorSla = monitorSlas.find((sla: $TSFixMe) => sla.isDefault);
-        const disabledMonitor =
+        const disabledMonitor: $TSFixMe =
 
             this.props.monitor && this.props.monitor.disabled;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -1120,8 +1120,8 @@ class MonitorView extends React.Component<MonitorViewProps> {
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const scheduleWarning: $TSFixMe = [];
-    const { monitorSlug, componentSlug } = props.match.params;
-    const schedules = state.schedule.schedules;
+    const { monitorSlug, componentSlug }: $TSFixMe = props.match.params;
+    const schedules: $TSFixMe = state.schedule.schedules;
     state.schedule.subProjectSchedules.forEach((item: $TSFixMe) => {
         item.schedules.forEach((item: $TSFixMe) => {
             item.monitorIds.forEach((monitor: $TSFixMe) => {
@@ -1130,21 +1130,21 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
         });
     });
 
-    const component =
+    const component: $TSFixMe =
         state.component.currentComponent.component &&
         state.component.currentComponent.component;
 
-    const projectId =
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
     const monitorCollection = state.monitor.monitorsList.monitors.find((el: $TSFixMe) => {
         return component && component.projectId._id === el._id;
     });
-    const currentMonitor =
+    const currentMonitor: $TSFixMe =
         monitorCollection &&
         monitorCollection.monitors.find((el: $TSFixMe) => {
             return el.slug === monitorSlug;
         });
-    const monitorId = currentMonitor && currentMonitor._id;
+    const monitorId: $TSFixMe = currentMonitor && currentMonitor._id;
     let defaultSchedule;
     state.schedule.subProjectSchedules.forEach((item: $TSFixMe) => {
         item.schedules.forEach((item: $TSFixMe) => {
@@ -1266,13 +1266,13 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
 
                         ...monitor.criteria.down,
                     ].map((criterion, index) => {
-                        const monitorUpCriteriaCount =
+                        const monitorUpCriteriaCount: $TSFixMe =
 
                             monitor.criteria.up.length;
-                        const monitorDegradedCriteriaCount =
+                        const monitorDegradedCriteriaCount: $TSFixMe =
 
                             monitor.criteria.degraded.length;
-                        const type =
+                        const type: $TSFixMe =
                             index < monitorUpCriteriaCount
                                 ? 'up'
                                 : index <
@@ -1281,10 +1281,10 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
                                     ? 'degraded'
                                     : 'down';
 
-                        const id = criterion._id;
-                        const criterionBodyField = mapCriteria(criterion);
-                        const criterionFieldName:string = `${type}_${id}`;
-                        const scriptName =
+                        const id: $TSFixMe = criterion._id;
+                        const criterionBodyField: $TSFixMe = mapCriteria(criterion);
+                        const criterionFieldName:string: $TSFixMe = `${type}_${id}`;
+                        const scriptName: $TSFixMe =
                             criterion.scripts &&
                             criterion.scripts.map(({
                                 scriptId
@@ -1327,7 +1327,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
                         /**
                          * @type Array.<String>
                          */
-                        const criterionScheduleIds = criterion.scheduleIds;
+                        const criterionScheduleIds: $TSFixMe = criterion.scheduleIds;
                         /**
                          * @type { {data : Array}}
                          */
@@ -1342,7 +1342,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
 
                             // for each schedule, check if the criterion is already associated with it
                             schedules.data.forEach((schedule: $TSFixMe) => {
-                                const scheduleId = schedule._id;
+                                const scheduleId: $TSFixMe = schedule._id;
                                 criterionSchedules.push({
                                     [scheduleId]: criterionScheduleIds.includes(
                                         scheduleId

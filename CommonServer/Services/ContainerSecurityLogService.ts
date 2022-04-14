@@ -48,14 +48,14 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const securityLogQuery = ContainerSecurityLogModel.findOne(query)
+        const securityLogQuery: $TSFixMe = ContainerSecurityLogModel.findOne(query)
             .sort(sort)
             .lean();
 
         securityLogQuery.select(select);
         securityLogQuery.populate(populate);
 
-        const securityLog = await securityLogQuery;
+        const securityLog: $TSFixMe = await securityLogQuery;
         return securityLog;
     }
 
@@ -84,7 +84,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const securityLogsQuery = ContainerSecurityLogModel.find(query)
+        const securityLogsQuery: $TSFixMe = ContainerSecurityLogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -93,7 +93,7 @@ export default class Service {
         securityLogsQuery.select(select);
         securityLogsQuery.populate(populate);
 
-        const securityLogs = await securityLogsQuery;
+        const securityLogs: $TSFixMe = await securityLogsQuery;
         return securityLogs;
     }
 
@@ -106,7 +106,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const containerSecurityLog =
+        const containerSecurityLog: $TSFixMe =
             await ContainerSecurityLogModel.findOneAndUpdate(
                 query,
                 {
@@ -116,7 +116,7 @@ export default class Service {
             );
 
         if (!containerSecurityLog) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Container Security Log not found or does not exist'
             );
 
@@ -131,7 +131,7 @@ export default class Service {
         let securityLog = await this.findOneBy({ query, select: '_id' });
 
         if (!securityLog) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Container Security Log not found or does not exist'
             );
 

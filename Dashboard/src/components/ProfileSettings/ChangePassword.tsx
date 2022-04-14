@@ -58,8 +58,8 @@ export class ChangePasswordSetting extends Component<ChangePasswordSettingProps>
 
     submitForm = (values: $TSFixMe) => {
 
-        const { reset, openModal } = this.props;
-        const { MessageBoxId } = this.state;
+        const { reset, openModal }: $TSFixMe = this.props;
+        const { MessageBoxId }: $TSFixMe = this.state;
 
 
         this.props.updateChangePasswordSetting(values).then(
@@ -78,7 +78,7 @@ export class ChangePasswordSetting extends Component<ChangePasswordSettingProps>
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -251,7 +251,7 @@ export class ChangePasswordSetting extends Component<ChangePasswordSettingProps>
 
 ChangePasswordSetting.displayName = 'ChangePasswordSetting';
 
-const ChangePasswordSettingForm = reduxForm({
+const ChangePasswordSettingForm: $TSFixMe = reduxForm({
     form: 'ChangePasswordSetting', // a unique identifier for this form
     validate, // <--- validation function given to redux-for
 })(ChangePasswordSetting);

@@ -36,7 +36,7 @@ export class ResetPasswordForm extends Component<ResetPasswordFormProps>{
 
     override render() {
 
-        const resetPasswordError = this.props.resetPasswordState.error;
+        const resetPasswordError: $TSFixMe = this.props.resetPasswordState.error;
         let header;
         if (resetPasswordError) {
             header = (
@@ -151,7 +151,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const resetPasswordForm = reduxForm({
+const resetPasswordForm: $TSFixMe = reduxForm({
     form: 'resetPasswordForm', // a unique identifier for this form
     validate,
 })(ResetPasswordForm);

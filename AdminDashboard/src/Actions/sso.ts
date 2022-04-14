@@ -23,14 +23,14 @@ export const fetchSsosError: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const fetchSsos =
+export const fetchSsos: $TSFixMe =
     (skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchSsosRequest());
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `sso/?skip=${skip}&limit=${limit}`
             );
 
@@ -72,12 +72,12 @@ export const fetchSsoError: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const fetchSso =
+export const fetchSso: $TSFixMe =
     (ssoId: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         dispatch(fetchSsoRequest());
         try {
-            const response = await BackendAPI.get(`sso/${ssoId}`);
+            const response: $TSFixMe = await BackendAPI.get(`sso/${ssoId}`);
 
             dispatch(fetchSsoSuccess(response.data));
         } catch (error) {
@@ -116,7 +116,7 @@ export const deleteSsoError: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const deleteSso =
+export const deleteSso: $TSFixMe =
     (ssoId: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         dispatch(deleteSsoRequest());
@@ -159,7 +159,7 @@ export const addSsoError: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const addSso =
+export const addSso: $TSFixMe =
     ({ data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(addSsoRequest());
@@ -202,7 +202,7 @@ export const updateSsoError: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const updateSso =
+export const updateSso: $TSFixMe =
     ({ id, data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(updateSsoRequest());

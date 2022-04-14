@@ -3,14 +3,14 @@ import getSlug from '../util/getSlug';
 const statusPageCollection: string = 'statuspages';
 
 async function run(): void {
-    const statusPages = await find(statusPageCollection, {
+    const statusPages: $TSFixMe = await find(statusPageCollection, {
         $or: [
             { slug: { $exists: false } },
             { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < statusPages.length; i++) {
-        const { name } = statusPages[i];
+        const { name }: $TSFixMe = statusPages[i];
         statusPages[i].slug = getSlug(name);
         await update(
             statusPageCollection,

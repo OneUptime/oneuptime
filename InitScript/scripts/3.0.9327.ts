@@ -3,23 +3,23 @@ import payment from '../util/payment';
 import Stripe from 'stripe';
 import logger from 'CommonServer/utils/Logger';
 
-const stripe = Stripe(payment.paymentPrivateKey);
+const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 
 import BackendAPI from '../util/api';
 
 const projectCollection: string = 'projects';
 
 async function run(): void {
-    const projects = await find(projectCollection, {
+    const projects: $TSFixMe = await find(projectCollection, {
         deleted: false,
     });
 
     for (const project of projects) {
-        const stripeSubscriptionId = project.stripeSubscriptionId;
+        const stripeSubscriptionId: $TSFixMe = project.stripeSubscriptionId;
 
         // fetch the subscription
         if (stripeSubscriptionId) {
-            const subscription = await stripe.subscriptions.retrieve(
+            const subscription: $TSFixMe = await stripe.subscriptions.retrieve(
                 stripeSubscriptionId
             );
             // if subscription is already cancelled, then delete the project

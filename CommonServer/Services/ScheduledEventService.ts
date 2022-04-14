@@ -20,7 +20,7 @@ export default class Service {
         recurring: $TSFixMe
     ): void {
         if (!data.monitors || data.monitors.length === 0) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You need at least one monitor to create a scheduled event'
             );
 
@@ -28,7 +28,7 @@ export default class Service {
             throw error;
         }
         if (!isArrayUnique(data.monitors)) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You cannot have multiple selection of a monitor'
             );
 
@@ -50,7 +50,7 @@ export default class Service {
             ...data,
         });
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
             { path: 'createdById', select: 'name' },
@@ -63,7 +63,7 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
         scheduledEvent = await this.findOneBy({
@@ -83,9 +83,9 @@ export default class Service {
         });
 
         //Create event start note immediately if start time equal to create time
-        const currentTime = moment();
+        const currentTime: $TSFixMe = moment();
 
-        const startTime = moment(scheduledEvent.startDate);
+        const startTime: $TSFixMe = moment(scheduledEvent.startDate);
         if (startTime <= currentTime) {
             //set monitoring state of the monitor
             if (!data.monitorDuringEvent) {
@@ -116,7 +116,7 @@ export default class Service {
 
         //Create event end note immediately if end time equal to create time
 
-        const endTime = moment(scheduledEvent.endDate);
+        const endTime: $TSFixMe = moment(scheduledEvent.endDate);
         if (endTime <= currentTime) {
             // revert monitor to monitoring state
             if (!data.monitorDuringEvent) {
@@ -164,7 +164,7 @@ export default class Service {
         }
 
         if (!data.monitors || data.monitors.length === 0) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You need at least one monitor to update a scheduled event'
             );
 
@@ -173,7 +173,7 @@ export default class Service {
         }
 
         if (!isArrayUnique(data.monitors)) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You cannot have multiple selection of a monitor'
             );
 
@@ -211,7 +211,7 @@ export default class Service {
             { new: true }
         );
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
             { path: 'createdById', select: 'name' },
@@ -224,7 +224,7 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
         updatedScheduledEvent = await this.findOneBy({
@@ -234,7 +234,7 @@ export default class Service {
         });
 
         if (!updatedScheduledEvent) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Scheduled Event not found or does not exist'
             );
 
@@ -260,7 +260,7 @@ export default class Service {
             $set: data,
         });
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
             { path: 'createdById', select: 'name' },
@@ -273,7 +273,7 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
         updatedData = await this.findBy({ query, populate, select });
@@ -282,7 +282,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query, userId: ObjectID): void {
-        const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(
+        const scheduledEvent: $TSFixMe = await ScheduledEventModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -303,7 +303,7 @@ export default class Service {
         }
 
         if (!scheduledEvent) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Scheduled Event not found or does not exist'
             );
 
@@ -339,7 +339,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const scheduledEventQuery = ScheduledEventModel.find(query)
+        const scheduledEventQuery: $TSFixMe = ScheduledEventModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort)
@@ -348,7 +348,7 @@ export default class Service {
         scheduledEventQuery.select(select);
         scheduledEventQuery.populate(populate);
 
-        const scheduledEvents = await scheduledEventQuery;
+        const scheduledEvents: $TSFixMe = await scheduledEventQuery;
 
         return scheduledEvents;
     }
@@ -359,14 +359,14 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const scheduledEventQuery = ScheduledEventModel.findOne(query)
+        const scheduledEventQuery: $TSFixMe = ScheduledEventModel.findOne(query)
             .sort(sort)
             .lean();
 
         scheduledEventQuery.select(select);
         scheduledEventQuery.populate(populate);
 
-        const scheduledEvent = await scheduledEventQuery;
+        const scheduledEvent: $TSFixMe = await scheduledEventQuery;
 
         if (scheduledEvent) {
             if (scheduledEvent.createdById === 'API') {
@@ -375,7 +375,7 @@ export default class Service {
                     _id: null,
                 };
             } else {
-                const user = await UserModel.findOne({
+                const user: $TSFixMe = await UserModel.findOne({
                     _id: scheduledEvent.createdById,
                 }).lean();
 
@@ -390,7 +390,7 @@ export default class Service {
     }
 
     async getSubProjectScheduledEvents(subProjectIds: $TSFixMe): void {
-        const populateScheduledEvent = [
+        const populateScheduledEvent: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
             { path: 'createdById', select: 'name' },
@@ -400,19 +400,19 @@ export default class Service {
                 populate: { path: 'componentId', select: 'name slug' },
             },
         ];
-        const selectScheduledEvent =
+        const selectScheduledEvent: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const subProjectScheduledEvents = await Promise.all(
+        const subProjectScheduledEvents: $TSFixMe = await Promise.all(
             subProjectIds.map(async (id: $TSFixMe) => {
-                const scheduledEvents = await this.findBy({
+                const scheduledEvents: $TSFixMe = await this.findBy({
                     query: { projectId: id },
                     limit: 10,
                     skip: 0,
                     populate: populateScheduledEvent,
                     select: selectScheduledEvent,
                 });
-                const count = await this.countBy({ projectId: id });
+                const count: $TSFixMe = await this.countBy({ projectId: id });
                 return {
                     scheduledEvents,
                     count,
@@ -429,7 +429,7 @@ export default class Service {
         subProjectIds: $TSFixMe,
         query: Query
     ): void {
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
             { path: 'createdById', select: 'name' },
@@ -439,17 +439,17 @@ export default class Service {
                 populate: { path: 'componentId', select: 'name slug' },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const subProjectOngoingScheduledEvents = await Promise.all(
+        const subProjectOngoingScheduledEvents: $TSFixMe = await Promise.all(
             subProjectIds.map(async (id: $TSFixMe) => {
-                const ongoingScheduledEvents = await this.findBy({
+                const ongoingScheduledEvents: $TSFixMe = await this.findBy({
                     query: { projectId: id, ...query },
                     populate,
                     select,
                 });
-                const count = await this.countBy({
+                const count: $TSFixMe = await this.countBy({
                     projectId: id,
                     ...query,
                 });
@@ -471,7 +471,7 @@ export default class Service {
      * @param {string} userId the id of the user
      */
     async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
             { path: 'createdById', select: 'name' },
@@ -484,10 +484,10 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const scheduledEvents = await this.findBy({
+        const scheduledEvents: $TSFixMe = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             populate,
             select,
@@ -570,8 +570,8 @@ export default class Service {
         if (resolvedScheduledEvent.recurring) {
             let newStartDate;
             let newEndDate;
-            const startDate = resolvedScheduledEvent.startDate;
-            const endDate = resolvedScheduledEvent.endDate;
+            const startDate: $TSFixMe = resolvedScheduledEvent.startDate;
+            const endDate: $TSFixMe = resolvedScheduledEvent.endDate;
             if (resolvedScheduledEvent.interval === 'daily') {
                 newStartDate = moment(startDate).add(1, 'days');
                 newEndDate = moment(endDate).add(1, 'days');
@@ -610,8 +610,8 @@ export default class Service {
             postObj.interval = resolvedScheduledEvent.interval;
 
             postObj.createdById = resolvedScheduledEvent.createdById;
-            const projectId = resolvedScheduledEvent.projectId;
-            const monitors = resolvedScheduledEvent.monitors.map(
+            const projectId: $TSFixMe = resolvedScheduledEvent.projectId;
+            const monitors: $TSFixMe = resolvedScheduledEvent.monitors.map(
                 (monitor: $TSFixMe) => monitor.monitorId
             );
 
@@ -619,7 +619,7 @@ export default class Service {
             this.create({ projectId }, postObj, true);
         }
         // populate the necessary data
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
             { path: 'createdById', select: 'name' },
@@ -632,7 +632,7 @@ export default class Service {
                 },
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt';
 
         resolvedScheduledEvent = await this.findOneBy({
@@ -674,10 +674,10 @@ export default class Service {
      * @description Create Started note for all schedule events
      */
     async createScheduledEventStartedNote(): void {
-        const currentTime = moment();
+        const currentTime: $TSFixMe = moment();
 
         //fetch events that have started
-        const scheduledEventList = await this.findBy({
+        const scheduledEventList: $TSFixMe = await this.findBy({
             query: {
                 startDate: { $lte: currentTime },
                 endDate: { $gte: currentTime },
@@ -690,7 +690,7 @@ export default class Service {
         });
 
         scheduledEventList.map(async (scheduledEvent: $TSFixMe) => {
-            const scheduledEventId = scheduledEvent._id;
+            const scheduledEventId: $TSFixMe = scheduledEvent._id;
 
             // set monitoring status of the monitor
             if (!scheduledEvent.monitorDuringEvent) {
@@ -717,7 +717,7 @@ export default class Service {
                 }
             }
 
-            const scheduledEventNoteCount =
+            const scheduledEventNoteCount: $TSFixMe =
                 await ScheduledEventNoteService.countBy({
                     scheduledEventId,
                     event_state: 'Started',
@@ -736,10 +736,10 @@ export default class Service {
     /**
      * @description Create Ended note for all schedule events
 async  */ createScheduledEventEndedNote(): void {
-        const currentTime = moment();
+        const currentTime: $TSFixMe = moment();
 
         //fetch events that have ended
-        const scheduledEventList = await this.findBy({
+        const scheduledEventList: $TSFixMe = await this.findBy({
             query: {
                 endDate: { $lte: currentTime },
                 deleted: false,
@@ -750,7 +750,7 @@ async  */ createScheduledEventEndedNote(): void {
             select: '_id monitorDuringEvent monitors',
         });
         scheduledEventList.map(async (scheduledEvent: $TSFixMe) => {
-            const scheduledEventId = scheduledEvent._id;
+            const scheduledEventId: $TSFixMe = scheduledEvent._id;
 
             // revert monitor back to monitoring state
             if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
@@ -766,7 +766,7 @@ async  */ createScheduledEventEndedNote(): void {
                 }
             }
 
-            const scheduledEventNoteListCount =
+            const scheduledEventNoteListCount: $TSFixMe =
                 await ScheduledEventNoteService.countBy({
                     scheduledEventId,
                     event_state: 'Ended',

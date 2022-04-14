@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -17,7 +17,7 @@ import RealTimeService from '../services/realTimeService';
 import ResourceCategoryService from '../services/resourceCategoryService';
 import ErrorService from 'CommonServer/Utils/error';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 //Route: POST
 //Description: creates a new application security
@@ -30,7 +30,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.componentId = req.params.componentId;
 
             if (!data) {
@@ -70,7 +70,7 @@ router.post(
                 });
             }
 
-            const applicationSecurity = await ApplicationSecurityService.create(
+            const applicationSecurity: $TSFixMe = await ApplicationSecurityService.create(
                 data
             );
             try {
@@ -101,8 +101,8 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { componentId, applicationSecurityId } = req.params;
-            const { name, gitRepositoryUrl, gitCredential, resourceCategory } =
+            const { componentId, applicationSecurityId }: $TSFixMe = req.params;
+            const { name, gitRepositoryUrl, gitCredential, resourceCategory }: $TSFixMe =
                 req.body;
             const data: $TSFixMe = {};
 
@@ -121,7 +121,7 @@ router.put(
             if (!resourceCategory || resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             } else {
-                const resourceCategoryCount =
+                const resourceCategoryCount: $TSFixMe =
                     await ResourceCategoryService.countBy({
                         _id: resourceCategory,
                     });
@@ -132,7 +132,7 @@ router.put(
                 }
             }
 
-            const applicationSecurity =
+            const applicationSecurity: $TSFixMe =
                 await ApplicationSecurityService.updateOneBy(
                     { _id: applicationSecurityId, componentId },
                     data,
@@ -156,9 +156,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { applicationSecurityId } = req.params;
+            const { applicationSecurityId }: $TSFixMe = req.params;
 
-            const populateApplicationSecurity = [
+            const populateApplicationSecurity: $TSFixMe = [
                 { path: 'componentId', select: '_id slug name slug' },
 
                 { path: 'resourceCategory', select: 'name' },
@@ -168,10 +168,10 @@ router.get(
                 },
             ];
 
-            const selectApplicationSecurity =
+            const selectApplicationSecurity: $TSFixMe =
                 '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
-            const applicationSecurity =
+            const applicationSecurity: $TSFixMe =
                 await ApplicationSecurityService.findOneBy({
                     query: {
                         _id: applicationSecurityId,
@@ -204,9 +204,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { applicationSecuritySlug } = req.params;
+            const { applicationSecuritySlug }: $TSFixMe = req.params;
 
-            const populateApplicationSecurity = [
+            const populateApplicationSecurity: $TSFixMe = [
                 { path: 'componentId', select: '_id slug name slug' },
 
                 { path: 'resourceCategory', select: 'name' },
@@ -216,10 +216,10 @@ router.get(
                 },
             ];
 
-            const selectApplicationSecurity =
+            const selectApplicationSecurity: $TSFixMe =
                 '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
-            const applicationSecurity =
+            const applicationSecurity: $TSFixMe =
                 await ApplicationSecurityService.findOneBy({
                     query: {
                         slug: applicationSecuritySlug,
@@ -252,9 +252,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { componentId } = req.params;
-            const { skip, limit } = req.query;
-            const populateApplicationSecurity = [
+            const { componentId }: $TSFixMe = req.params;
+            const { skip, limit }: $TSFixMe = req.query;
+            const populateApplicationSecurity: $TSFixMe = [
                 { path: 'componentId', select: '_id slug name slug' },
 
                 { path: 'resourceCategory', select: 'name' },
@@ -264,10 +264,10 @@ router.get(
                 },
             ];
 
-            const selectApplicationSecurity =
+            const selectApplicationSecurity: $TSFixMe =
                 '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
-            const [applicationSecurities, count] = await Promise.all([
+            const [applicationSecurities, count]: $TSFixMe = await Promise.all([
                 ApplicationSecurityService.findBy({
                     query: {
                         componentId,
@@ -297,9 +297,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { applicationSecurityId } = req.params;
+            const { applicationSecurityId }: $TSFixMe = req.params;
 
-            const deletedApplicationSecurity =
+            const deletedApplicationSecurity: $TSFixMe =
                 await ApplicationSecurityService.deleteBy({
                     _id: applicationSecurityId,
                 });
@@ -320,9 +320,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { componentId } = req.params;
+            const { componentId }: $TSFixMe = req.params;
 
-            const response = await ApplicationSecurityService.hardDelete({
+            const response: $TSFixMe = await ApplicationSecurityService.hardDelete({
                 componentId,
             });
             return sendItemResponse(req, res, response);
@@ -342,8 +342,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { credentialId } = req.params;
-            const populateApplicationSecurity = [
+            const { credentialId }: $TSFixMe = req.params;
+            const populateApplicationSecurity: $TSFixMe = [
                 {
                     path: 'componentId',
                     select: '_id slug name slug',
@@ -356,10 +356,10 @@ router.get(
                 },
             ];
 
-            const selectApplicationSecurity =
+            const selectApplicationSecurity: $TSFixMe =
                 '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
-            const response = await ApplicationSecurityService.findBy({
+            const response: $TSFixMe = await ApplicationSecurityService.findBy({
                 query: { gitCredential: credentialId },
                 select: selectApplicationSecurity,
                 populate: populateApplicationSecurity,
@@ -382,21 +382,21 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { applicationSecurityId } = req.params;
-            const applicationSecurity =
+            const { applicationSecurityId }: $TSFixMe = req.params;
+            const applicationSecurity: $TSFixMe =
                 await ApplicationSecurityService.findOneBy({
                     query: { _id: applicationSecurityId },
                     select: '_id',
                 });
             if (!applicationSecurity) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Application Security not found or does not exist'
                 );
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
-            const updatedApplicationSecurity =
+            const updatedApplicationSecurity: $TSFixMe =
                 await ApplicationSecurityService.updateOneBy(
                     { _id: applicationSecurityId },
                     { scanned: false }

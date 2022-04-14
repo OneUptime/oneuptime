@@ -45,7 +45,7 @@ export class LicenseSetting extends Component<ComponentProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const { confirmLicense } = this.props;
+        const { confirmLicense }: $TSFixMe = this.props;
 
         confirmLicense(values);
     };
@@ -59,7 +59,7 @@ export class LicenseSetting extends Component<ComponentProps>{
 
             confirm: { requesting, error },
         } = this.props;
-        const isLicensed = data && data.license;
+        const isLicensed: $TSFixMe = data && data.license;
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -183,14 +183,14 @@ export class LicenseSetting extends Component<ComponentProps>{
 
 LicenseSetting.displayName = 'LicenseSetting';
 
-const LicenseSettingForm = reduxForm({
+const LicenseSettingForm: $TSFixMe = reduxForm({
     form: 'License', // a unique identifier for this form,
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for
 })(LicenseSetting);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const initValues = state.license.license
+    const initValues: $TSFixMe = state.license.license
         ? Object.assign({}, state.license.license.data)
         : {};
 

@@ -12,7 +12,7 @@ const user: $TSFixMe = {
 };
 
 describe('Enterprise Component API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -35,7 +35,7 @@ describe('Enterprise Component API', () => {
     test(
         'Should create new component',
         async (done: $TSFixMe) => {
-            const componentName = utils.generateRandomString();
+            const componentName: $TSFixMe = utils.generateRandomString();
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',

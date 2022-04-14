@@ -39,7 +39,7 @@ export class ChangePasswordForm extends Component<ChangePasswordFormProps>{
 
     override render() {
 
-        const changePasswordStateError = this.props.changePasswordState.error;
+        const changePasswordStateError: $TSFixMe = this.props.changePasswordState.error;
         let header;
         if (changePasswordStateError) {
             header = <span style={errorStyle}>{changePasswordStateError}</span>;
@@ -173,7 +173,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const changePasswordForm = reduxForm({
+const changePasswordForm: $TSFixMe = reduxForm({
     form: 'changePasswordForm', // a unique identifier for this form
     validate,
 })(ChangePasswordForm);

@@ -10,7 +10,7 @@ export default {
             // },
 
             set: function (data: $TSFixMe): void {
-                const ch = data.challenge;
+                const ch: $TSFixMe = data.challenge;
 
                 // make api call to backend to store
                 // keyAuthorization, challengeUrl, and token
@@ -28,14 +28,14 @@ export default {
             },
 
             get: function (data: $TSFixMe): void {
-                const ch = data.challenge;
+                const ch: $TSFixMe = data.challenge;
 
                 const url: string = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
                 return axios.get(url).then((result: $TSFixMe) => result);
             },
 
             remove: function (data: $TSFixMe): void {
-                const ch = data.challenge;
+                const ch: $TSFixMe = data.challenge;
 
                 const url: string = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
                 return axios({ url, method: 'delete' }).finally(() => null); // always return null

@@ -61,7 +61,7 @@ class ErrorTrackerDetail extends Component<ComponentProps> {
     }
     viewMore = () => {
 
-        const { currentProject, componentSlug, errorTracker } = this.props;
+        const { currentProject, componentSlug, errorTracker }: $TSFixMe = this.props;
         history.push(
             '/dashboard/project/' +
             currentProject.slug +
@@ -108,7 +108,7 @@ class ErrorTrackerDetail extends Component<ComponentProps> {
 
             deleteErrorTracker,
         } = this.props;
-        const promise = deleteErrorTracker(
+        const promise: $TSFixMe = deleteErrorTracker(
             currentProject._id,
             componentId,
             errorTracker._id
@@ -124,7 +124,7 @@ class ErrorTrackerDetail extends Component<ComponentProps> {
     };
     editErrorTracker = () => {
 
-        const { editErrorTrackerSwitch, errorTracker } = this.props;
+        const { editErrorTrackerSwitch, errorTracker }: $TSFixMe = this.props;
         editErrorTrackerSwitch(errorTracker._id);
     };
     ignoreErrorEvent = (issues: $TSFixMe, ignore: $TSFixMe) => {
@@ -186,17 +186,17 @@ class ErrorTrackerDetail extends Component<ComponentProps> {
         );
     };
     handleStartDateTimeChange = (val: $TSFixMe) => {
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
 
         this.fetchByDateChange(startDate, this.props.endDate);
     };
     handleEndDateTimeChange = (val: $TSFixMe) => {
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
 
         this.fetchByDateChange(this.props.startDate, endDate);
     };
     handleFilterUpdate = (val: $TSFixMe) => {
-        const filters = ErrorEventUtil.generateFilterOption(val);
+        const filters: $TSFixMe = ErrorEventUtil.generateFilterOption(val);
         this.setState(() => ({
             filters: filters,
         }));
@@ -307,7 +307,7 @@ class ErrorTrackerDetail extends Component<ComponentProps> {
         );
 
         if (!this.props.currentProject) {
-            const projectId = history.location.pathname
+            const projectId: $TSFixMe = history.location.pathname
                 .split('project/')[1]
                 .split('/')[0];
 
@@ -345,7 +345,7 @@ class ErrorTrackerDetail extends Component<ComponentProps> {
             showComponentWithIssue,
         } = this.props;
 
-        const { deleteModalId, trackerKeyModalId } = this.state;
+        const { deleteModalId, trackerKeyModalId }: $TSFixMe = this.state;
 
         if (errorTracker) {
             // join room
@@ -356,7 +356,7 @@ class ErrorTrackerDetail extends Component<ComponentProps> {
                 this.props.getErrorEventSuccess(data);
             });
         }
-        const shouldRender = showComponentWithIssue
+        const shouldRender: $TSFixMe = showComponentWithIssue
             ? errorTrackerIssue
                 ? errorTrackerIssue.errorTrackerIssues.length > 0
                 : false
@@ -494,24 +494,24 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const errorTrackerId = ownProps.index;
-    const errorTrackers = state.errorTracker.errorTrackersList.errorTrackers;
-    const currentErrorTracker = errorTrackers.filter(
+    const errorTrackerId: $TSFixMe = ownProps.index;
+    const errorTrackers: $TSFixMe = state.errorTracker.errorTrackersList.errorTrackers;
+    const currentErrorTracker: $TSFixMe = errorTrackers.filter(
         (errorTracker: $TSFixMe) => errorTracker._id === errorTrackerId
     );
-    const errorTrackerIssue =
+    const errorTrackerIssue: $TSFixMe =
         state.errorTracker.errorTrackerIssues[errorTrackerId];
-    const startDate = state.form.errorTrackerDateTimeForm
+    const startDate: $TSFixMe = state.form.errorTrackerDateTimeForm
         ? state.form.errorTrackerDateTimeForm.values
             ? state.form.errorTrackerDateTimeForm.values.startDate
             : ''
         : '';
-    const endDate = state.form.errorTrackerDateTimeForm
+    const endDate: $TSFixMe = state.form.errorTrackerDateTimeForm
         ? state.form.errorTrackerDateTimeForm.values
             ? state.form.errorTrackerDateTimeForm.values.endDate
             : ''
         : '';
-    const teamMembers = state.team.subProjectTeamMembers.find(
+    const teamMembers: $TSFixMe = state.team.subProjectTeamMembers.find(
         (subProjectTeamMember: $TSFixMe) => subProjectTeamMember._id === state.project.currentProject._id
     );
     return {

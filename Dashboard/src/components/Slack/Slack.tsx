@@ -14,8 +14,8 @@ interface SlackProps {
 class Slack extends React.Component<SlackProps> {
     override render() {
 
-        const { projectId } = this.props;
-        const userToken = User.getAccessToken();
+        const { projectId }: $TSFixMe = this.props;
+        const userToken: $TSFixMe = User.getAccessToken();
         return (
             <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">

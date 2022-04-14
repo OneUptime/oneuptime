@@ -69,7 +69,7 @@ class IncomingRequestEnabledToggle extends Component<ComponentProps> {
 
     override render() {
 
-        const { propArr, isRequesting, closeModal, projectId } = this.props;
+        const { propArr, isRequesting, closeModal, projectId }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

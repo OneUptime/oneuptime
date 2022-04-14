@@ -11,7 +11,7 @@ class NotificationMenu extends Component<ComponentProps> {
     public static propTypes = {};
 
     override render() {
-        const userId = User.getUserId();
+        const userId: $TSFixMe = User.getUserId();
 
         return this.props.visible ? (
             <div

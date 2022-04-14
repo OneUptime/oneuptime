@@ -49,17 +49,17 @@ export class MonitorLighthouseLogsList extends Component<MonitorLighthouseLogsLi
 
     override render() {
 
-        const { deleteSiteUrlModalId } = this.state;
+        const { deleteSiteUrlModalId }: $TSFixMe = this.state;
 
-        const { monitor, monitorState } = this.props;
-        const lighthouseLogs = monitor.lighthouseLogs || {};
+        const { monitor, monitorState }: $TSFixMe = this.props;
+        const lighthouseLogs: $TSFixMe = monitor.lighthouseLogs || {};
         let skip =
             lighthouseLogs && lighthouseLogs.skip ? lighthouseLogs.skip : null;
         let limit =
             lighthouseLogs && lighthouseLogs.limit
                 ? lighthouseLogs.limit
                 : null;
-        const count =
+        const count: $TSFixMe =
             lighthouseLogs && lighthouseLogs.count
                 ? lighthouseLogs.count
                 : null;
@@ -83,7 +83,7 @@ export class MonitorLighthouseLogsList extends Component<MonitorLighthouseLogsLi
             canPrev = false;
         }
 
-        const lighthouseScanStatus = monitor && monitor.lighthouseScanStatus;
+        const lighthouseScanStatus: $TSFixMe = monitor && monitor.lighthouseScanStatus;
         return (
             <div onKeyDown={this.handleKeyBoard}>
                 <div

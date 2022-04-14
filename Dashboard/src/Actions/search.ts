@@ -10,17 +10,17 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 
-export const showSearchBar = function (): void {
+export const showSearchBar: $TSFixMe = function (): void {
     return {
         type: SHOW_SEARCH_BAR,
     };
 };
-export const closeSearchBar = function (): void {
+export const closeSearchBar: $TSFixMe = function (): void {
     return {
         type: CLOSE_SEARCH_BAR,
     };
 };
-export const resetSearch =
+export const resetSearch: $TSFixMe =
     () =>
     async (dispatch: Dispatch): void =>
         dispatch({
@@ -49,10 +49,10 @@ export const search: Function = (
 ): void => {
     return function (dispatch: Dispatch): void {
         dispatch(searchRequest());
-        const promise = BackendAPI.post(`search/${projectId}`, values);
+        const promise: $TSFixMe = BackendAPI.post(`search/${projectId}`, values);
         promise.then(
             (result): void => {
-                const search = result.data;
+                const search: $TSFixMe = result.data;
                 dispatch(searchSuccess(search.data));
             },
             (error): void => {

@@ -21,8 +21,8 @@ class HideIncidentBox extends Component<ComponentProps> {
     }
     handleChange = (e: $TSFixMe) => {
 
-        const { incident, currentProject, hideIncident } = this.props;
-        const checked = e.target.checked;
+        const { incident, currentProject, hideIncident }: $TSFixMe = this.props;
+        const checked: $TSFixMe = e.target.checked;
         this.setState({ checked });
         const data: $TSFixMe = {
             hideIncident: checked,
@@ -33,7 +33,7 @@ class HideIncidentBox extends Component<ComponentProps> {
     };
     override render() {
 
-        const { hideIncidentError } = this.props;
+        const { hideIncidentError }: $TSFixMe = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">

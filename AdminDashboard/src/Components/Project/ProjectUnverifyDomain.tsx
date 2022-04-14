@@ -65,7 +65,7 @@ class ProjectUnverifyDomain extends Component<ComponentProps> {
 
     override render() {
 
-        const { requesting, unverifyError } = this.props;
+        const { requesting, unverifyError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

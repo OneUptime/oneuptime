@@ -25,10 +25,10 @@ export default {
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
             } else {
-                const userId = req.user
+                const userId: $TSFixMe = req.user
                     ? req.user.id
                     : null || url.parse(req.url, true).query.userId;
-                const projectId =
+                const projectId: $TSFixMe =
                     req.params.projectId ||
                     req.body.projectId ||
                     url.parse(req.url, true).query.projectId;
@@ -41,7 +41,7 @@ export default {
                 }
                 // Calls the ProjectService
 
-                const project = await ProjectService.findOneBy({
+                const project: $TSFixMe = await ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: '_id users',
                 });
@@ -49,7 +49,7 @@ export default {
                 let isUserPresentInProject = false;
 
                 if (project) {
-                    const projectUsers = project.users;
+                    const projectUsers: $TSFixMe = project.users;
 
                     for (let i = 0; i < projectUsers.length; i++) {
                         if (projectUsers[i].userId === userId) {
@@ -60,7 +60,7 @@ export default {
 
                     // if not in project, look at subprojects.
 
-                    const subProjects = await ProjectService.findBy({
+                    const subProjects: $TSFixMe = await ProjectService.findBy({
                         query: { parentProjectId: project._id },
                         select: 'users _id',
                     });
@@ -68,7 +68,7 @@ export default {
                     if (subProjects && subProjects.length > 0) {
                         for (const subProject of subProjects) {
                             // 'for in' iterate over the keys while 'for of' iterate over the values
-                            const subProjectUsers = subProject.users; // Using 'for in' made subProject.users === undefined
+                            const subProjectUsers = subProject.users; // Using 'for in' made subProject.users: $TSFixMe === undefined
 
                             for (let i = 0; i < subProjectUsers.length; i++) {
                                 if (subProjectUsers[i].userId === userId) {
@@ -114,7 +114,7 @@ export default {
         next: NextFunction
     ): void {
         try {
-            const projectId = apiMiddleware.getProjectId(req);
+            const projectId: $TSFixMe = apiMiddleware.getProjectId(req);
 
             if (projectId) {
                 if (!apiMiddleware.isValidProjectId(projectId)) {
@@ -138,9 +138,9 @@ export default {
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
             } else {
-                const userId = req.user ? req.user.id : null;
+                const userId: $TSFixMe = req.user ? req.user.id : null;
 
-                const project = await ProjectService.findOneBy({
+                const project: $TSFixMe = await ProjectService.findOneBy({
                     query: {
                         'users.userId': userId,
                         _id: req.params.projectId,
@@ -190,9 +190,9 @@ export default {
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
             } else {
-                const UserId = req.user ? req.user.id : null;
+                const UserId: $TSFixMe = req.user ? req.user.id : null;
 
-                const project = await ProjectService.findOneBy({
+                const project: $TSFixMe = await ProjectService.findOneBy({
                     query: {
                         'users.userId': UserId,
                         _id: req.params.projectId,
@@ -238,9 +238,9 @@ export default {
         next: NextFunction
     ): void {
         try {
-            const UserId = req.user ? req.user.id : null;
+            const UserId: $TSFixMe = req.user ? req.user.id : null;
 
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: {
                     'users.userId': UserId,
                     _id: req.params.projectId,

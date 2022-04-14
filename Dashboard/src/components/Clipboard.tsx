@@ -11,8 +11,8 @@ class ClipboardWrap extends React.Component<ClipboardWrapProps> {
     clipboard: $TSFixMe;
     input: $TSFixMe;
     override componentDidMount() {
-        const button = this.button;
-        const input = this.input;
+        const button: $TSFixMe = this.button;
+        const input: $TSFixMe = this.input;
 
         this.clipboard = new Clipboard(button, {
             target: () => input,
@@ -25,7 +25,7 @@ class ClipboardWrap extends React.Component<ClipboardWrapProps> {
 
     override render() {
 
-        const { value } = this.props;
+        const { value }: $TSFixMe = this.props;
 
         return (
             <div>

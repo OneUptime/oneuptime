@@ -34,7 +34,7 @@ const DockerCredentialList: Function = ({
     getDockerSecurities,
     modalId
 }: DockerCredentialListProps) => {
-    const [page, setPage] = useState(1);
+    const [page, setPage]: $TSFixMe = useState(1);
 
     const handleDelete: Function = (credentialId: $TSFixMe) => {
         getDockerSecurities({ projectId, credentialId });
@@ -97,14 +97,14 @@ const DockerCredentialList: Function = ({
 
     const prev: Function = () => setPage(page - 1);
     const next: Function = () => setPage(page + 1);
-    const { next_page, pre_page, data, count } = paginate(
+    const { next_page, pre_page, data, count }: $TSFixMe = paginate(
         dockerCredentials,
         page,
         10
     );
 
     dockerCredentials = data;
-    const numberOfPages = Math.ceil(parseInt(count) / 10);
+    const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
 
     return (
         <div className="Box-root  Margin-bottom--12">

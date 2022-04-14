@@ -10,7 +10,7 @@ chai.use(chaiSubset);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import VerificationTokenModel from '../backend/models/verificationToken';
@@ -36,7 +36,7 @@ describe('Error Tracker API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -166,7 +166,7 @@ describe('Error Tracker API', function (): void {
 
     it('should reset error tracker key', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const currentKey = errorTracker.key;
+        const currentKey: $TSFixMe = errorTracker.key;
         request
             .post(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/reset-key`
@@ -193,7 +193,7 @@ describe('Error Tracker API', function (): void {
             .send({ name: appName })
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
-                const updatedErrorTracker = res.body;
+                const updatedErrorTracker: $TSFixMe = res.body;
                 expect(errorTracker._id).to.be.equal(updatedErrorTracker._id); // same id
                 expect(errorTracker.key).to.be.equal(updatedErrorTracker.key); // same key
                 expect(updatedErrorTracker.name).to.be.equal(appName); // change of name
@@ -458,7 +458,7 @@ describe('Error Tracker API', function (): void {
 
     it('should return a list of issues under an error event based on limit', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const limit = 1;
+        const limit: $TSFixMe = 1;
         request
             .post(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues`
@@ -547,7 +547,7 @@ describe('Error Tracker API', function (): void {
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('issues');
-                const currentIssue = res.body.issues.filter(
+                const currentIssue: $TSFixMe = res.body.issues.filter(
                     (issue: $TSFixMe) => issue._id === errorEvent.issueId
                 )[0];
                 // expect it to have value of the user that ignored it
@@ -568,7 +568,7 @@ describe('Error Tracker API', function (): void {
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('issues');
-                const currentIssue = res.body.issues.filter(
+                const currentIssue: $TSFixMe = res.body.issues.filter(
                     (issue: $TSFixMe) => issue._id === errorEvent.issueId
                 )[0];
                 // expect it to have value of the user that resolved it
@@ -592,7 +592,7 @@ describe('Error Tracker API', function (): void {
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('issues');
-                const currentIssue = res.body.issues.filter(
+                const currentIssue: $TSFixMe = res.body.issues.filter(
                     (issue: $TSFixMe) => issue._id === errorEvent.issueId
                 )[0];
                 // expect it to null the resolved section
@@ -640,7 +640,7 @@ describe('Error Tracker API', function (): void {
 
     it('should fetch errors attached to a fingerprint successfully based on limit', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const limit = 1;
+        const limit: $TSFixMe = 1;
         request
             .post(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/error-events`

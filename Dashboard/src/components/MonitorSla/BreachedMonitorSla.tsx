@@ -20,8 +20,8 @@ const BreachedMonitorSla: Function = ({
     closeSla,
     closingSla
 }: BreachedMonitorSlaProps) => {
-    const [isClosing, setIsClosing] = useState(false);
-    const projectId = monitor.projectId._id || monitor.projectId;
+    const [isClosing, setIsClosing]: $TSFixMe = useState(false);
+    const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
 
     if (monitor.breachClosedBy && monitor.breachClosedBy.includes(userId)) {
         return null;

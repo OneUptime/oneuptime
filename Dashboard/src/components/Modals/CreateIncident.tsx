@@ -111,7 +111,7 @@ class CreateIncident extends Component<ComponentProps> {
 
             currentProjectId,
         } = this.props;
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
 
         const {
             incidentType,
@@ -141,11 +141,11 @@ class CreateIncident extends Component<ComponentProps> {
         }
 
         if (selectAllMonitors) {
-            const allMonitors = monitorsList;
+            const allMonitors: $TSFixMe = monitorsList;
             monitors = allMonitors.map((monitor: $TSFixMe) => monitor._id);
         }
 
-        const isDuplicate = monitors
+        const isDuplicate: $TSFixMe = monitors
             ? monitors.length === new Set(monitors).size
                 ? false
                 : true
@@ -158,8 +158,8 @@ class CreateIncident extends Component<ComponentProps> {
             return;
         }
 
-        // const subProjectId = data.subProjectId;
-        const subProjectMonitor = subProjectMonitors.find(
+        // const subProjectId: $TSFixMe = data.subProjectId;
+        const subProjectMonitor: $TSFixMe = subProjectMonitors.find(
             (subProjectMonitor: $TSFixMe) => subProjectMonitor._id === data.subProjectId
         );
         subProjectMonitor.monitors.forEach((monitor: $TSFixMe) => {
@@ -222,7 +222,7 @@ class CreateIncident extends Component<ComponentProps> {
 
     setTemplateValues = (value: $TSFixMe) => {
 
-        const { change, incidentTemplateObj } = this.props;
+        const { change, incidentTemplateObj }: $TSFixMe = this.props;
 
         if (value) {
             !incidentTemplateObj.requesting &&
@@ -243,12 +243,12 @@ class CreateIncident extends Component<ComponentProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -321,7 +321,7 @@ class CreateIncident extends Component<ComponentProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -463,7 +463,7 @@ class CreateIncident extends Component<ComponentProps> {
         } = this.props;
 
 
-        const { formValues } = this.props;
+        const { formValues }: $TSFixMe = this.props;
         const {
 
             selectedProjects,
@@ -475,11 +475,11 @@ class CreateIncident extends Component<ComponentProps> {
             selectData,
         } = this.state;
 
-        const subProjectMonitor = monitors.find(
+        const subProjectMonitor: $TSFixMe = monitors.find(
             (subProjectMonitor: $TSFixMe) => subProjectMonitor._id === data.subProjectId
         );
 
-        const allMonitors =
+        const allMonitors: $TSFixMe =
 
             this.state.componentId &&
             monitorsList.filter(
@@ -1065,21 +1065,21 @@ CreateIncident.propTypes = {
 
 const  formName: string = 'CreateNewIncident';
 
-const CreateIncidentForm = reduxForm({
+const CreateIncidentForm: $TSFixMe = reduxForm({
     form: formName, // a unique identifier for this form
     enableReinitialize: true,
     destroyOnUnmount: true,
 })(CreateIncident);
 
-const selector = formValueSelector(formName);
+const selector: $TSFixMe = formValueSelector(formName);
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const { data } = props;
-    const { subProjectId, componentId, componentSlug, currentProjectId } = data;
-    const { projects } = state.project.projects;
-    const { subProjects } = state.subProject.subProjects;
-    const incidentTemplateObj = state.incidentBasicSettings.incidentTemplates;
-    const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;
+    const { data }: $TSFixMe = props;
+    const { subProjectId, componentId, componentSlug, currentProjectId }: $TSFixMe = data;
+    const { projects }: $TSFixMe = state.project.projects;
+    const { subProjects }: $TSFixMe = state.subProject.subProjects;
+    const incidentTemplateObj: $TSFixMe = state.incidentBasicSettings.incidentTemplates;
+    const defaultTemplateObj: $TSFixMe = state.incidentBasicSettings.defaultTemplate;
 
     const monitorsList: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((item: $TSFixMe) => {
@@ -1103,7 +1103,7 @@ function mapStateToProps(state: RootState, props: $TSFixMe) {
         incidentType,
         selectAllMonitors: false,
     };
-    const defaultTemplate = defaultTemplateObj.template;
+    const defaultTemplate: $TSFixMe = defaultTemplateObj.template;
     if (defaultTemplate) {
 
         initialValues.incidentTemplate = defaultTemplate._id;
@@ -1117,7 +1117,7 @@ function mapStateToProps(state: RootState, props: $TSFixMe) {
             defaultTemplate.incidentPriority;
     }
 
-    const selectedIncidentType = selector(state, 'incidentType');
+    const selectedIncidentType: $TSFixMe = selector(state, 'incidentType');
     return {
         monitorsList,
         monitors: state.monitor.monitorsList.monitors,

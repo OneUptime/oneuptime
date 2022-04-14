@@ -12,9 +12,9 @@ import moment from 'moment';
 
 const formatNumber: Function = (phoneNumberString: $TSFixMe) => {
     const cleaned: Function = ('' + phoneNumberString).replace(/\D/g, '');
-    const match = cleaned.match(/^(1|)?(\d{3})(\d{3})(\d{4})$/);
+    const match: $TSFixMe = cleaned.match(/^(1|)?(\d{3})(\d{3})(\d{4})$/);
     if (match) {
-        const intlCode = match[1] ? '+1 ' : '';
+        const intlCode: $TSFixMe = match[1] ? '+1 ' : '';
         return [intlCode, '(', match[2], ') ', match[3], '-', match[4]].join(
             ''
         );
@@ -41,7 +41,7 @@ class CallRoutingLog extends Component<ComponentProps> {
 
     prevClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { getCallRoutingLogs, limit } = this.props;
+        const { getCallRoutingLogs, limit }: $TSFixMe = this.props;
         getCallRoutingLogs(
             projectId,
             skip ? Number(skip) - limit : limit,
@@ -51,7 +51,7 @@ class CallRoutingLog extends Component<ComponentProps> {
 
     nextClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { getCallRoutingLogs, limit } = this.props;
+        const { getCallRoutingLogs, limit }: $TSFixMe = this.props;
         getCallRoutingLogs(
             projectId,
             skip ? Number(skip) + limit : limit,
@@ -78,8 +78,8 @@ class CallRoutingLog extends Component<ComponentProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
@@ -137,11 +137,11 @@ class CallRoutingLog extends Component<ComponentProps> {
                                     logs.length > 0 &&
                                     logs.map((log: $TSFixMe) => {
                                         let dialedLog = {};
-                                        const dialed =
+                                        const dialed: $TSFixMe =
                                             log.dialTo && log.dialTo.length
                                                 ? log.dialTo
                                                 : [];
-                                        const newDialed = dialed.filter(
+                                        const newDialed: $TSFixMe = dialed.filter(
                                             (d: $TSFixMe) => d.status &&
                                                 d.status === 'completed'
                                         );

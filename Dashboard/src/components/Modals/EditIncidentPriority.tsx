@@ -97,7 +97,7 @@ class EditIncidentPriority extends Component<ComponentProps> {
     }
 
     submitForm(values: $TSFixMe) {
-        const { name, color } = values;
+        const { name, color }: $TSFixMe = values;
         this.props
 
             .updateIncidentPriority(this.props.currentProject._id, {
@@ -125,9 +125,9 @@ class EditIncidentPriority extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit, closeThisDialog } = this.props;
+        const { handleSubmit, closeThisDialog }: $TSFixMe = this.props;
 
-        const { displayColorPicker } = this.state;
+        const { displayColorPicker }: $TSFixMe = this.state;
 
         return (
             <div
@@ -301,7 +301,7 @@ EditIncidentPriority.propTypes = {
     currentProject: PropTypes.object.isRequired,
     updateIncidentPriority: PropTypes.func.isRequired,
 };
-const EditIncidentPriorityForm = reduxForm({
+const EditIncidentPriorityForm: $TSFixMe = reduxForm({
     form: 'EditIncidentPriorityForm',
 })(EditIncidentPriority);
 

@@ -10,14 +10,14 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import SiteManagerService from '../services/siteManagerService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 // store site details to the db
 router.post('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const data = req.body;
+        const data: $TSFixMe = req.body;
 
-        const site = await SiteManagerService.create(data);
+        const site: $TSFixMe = await SiteManagerService.create(data);
         return sendItemResponse(req, res, site);
     } catch (error) {
         return sendErrorResponse(req, res, error as Exception);
@@ -27,8 +27,8 @@ router.post('/site', async (req: ExpressRequest, res: ExpressResponse) => {
 // update site details in the db
 router.put('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const { subject } = req.query;
-        const site = await SiteManagerService.updateOneBy(
+        const { subject }: $TSFixMe = req.query;
+        const site: $TSFixMe = await SiteManagerService.updateOneBy(
             { subject },
             req.body
         );
@@ -42,8 +42,8 @@ router.put('/site', async (req: ExpressRequest, res: ExpressResponse) => {
 // fetch a site detail
 router.get('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const { servername } = req.query;
-        const site = await SiteManagerService.findOneBy({
+        const { servername }: $TSFixMe = req.query;
+        const site: $TSFixMe = await SiteManagerService.findOneBy({
             query: { subject: servername },
             select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
         });
@@ -57,7 +57,7 @@ router.get('/site', async (req: ExpressRequest, res: ExpressResponse) => {
 // fetch all sites
 router.get('/sites', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const sites = await SiteManagerService.findBy({
+        const sites: $TSFixMe = await SiteManagerService.findBy({
             query: {},
             select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
         });
@@ -72,8 +72,8 @@ router.post(
     '/site/servernames',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { servernames = [] } = req.body;
-            const sites = await SiteManagerService.findBy({
+            const { servernames = [] }: $TSFixMe = req.body;
+            const sites: $TSFixMe = await SiteManagerService.findBy({
                 query: { subject: { $in: servernames } },
                 select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
             });
@@ -87,7 +87,7 @@ router.post(
 // fetch sites base on the options
 router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const { issuedBefore, expiresBefore, renewBefore } = req.body;
+        const { issuedBefore, expiresBefore, renewBefore }: $TSFixMe = req.body;
         const query: $TSFixMe = { $or: [] };
 
         if (issuedBefore) {
@@ -113,7 +113,7 @@ router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
         }
 
         query['deleted'] = false;
-        const sites = await SiteManagerService.findBy({
+        const sites: $TSFixMe = await SiteManagerService.findBy({
             query,
             select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
         });
@@ -126,8 +126,8 @@ router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
 // delete an site detail
 router.delete('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const { subject } = req.query; // still handle this for legacy code
-        const { domains } = req.body;
+        const { subject }: $TSFixMe = req.query; // still handle this for legacy code
+        const { domains }: $TSFixMe = req.body;
 
         let site = null;
 

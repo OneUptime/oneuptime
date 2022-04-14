@@ -10,7 +10,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import DefaultManagerService from '../services/defaultManagerService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 // store default details to the db
 router.put('/default', async (req: ExpressRequest, res: ExpressResponse) => {
@@ -67,7 +67,7 @@ router.put('/default', async (req: ExpressRequest, res: ExpressResponse) => {
         // if there's no default value
         // create a default value
         // we should only have one default and update as the need arises
-        const defaultManager = await DefaultManagerService.updateOneBy(
+        const defaultManager: $TSFixMe = await DefaultManagerService.updateOneBy(
             {},
             data
         );
@@ -79,7 +79,7 @@ router.put('/default', async (req: ExpressRequest, res: ExpressResponse) => {
 
 router.get('/default', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const defaultManager = await DefaultManagerService.findOneBy({
+        const defaultManager: $TSFixMe = await DefaultManagerService.findOneBy({
             query: { deleted: false },
             select: 'store challenges renewOffset renewStagger accountKeyType serverKeyType subscriberEmail agreeToTerms deleted deletedAt',
         });

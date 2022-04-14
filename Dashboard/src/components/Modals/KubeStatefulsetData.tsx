@@ -61,11 +61,11 @@ class KubeStatefulsetData extends React.Component<KubeStatefulsetDataProps> {
 
     override render() {
 
-        const { data } = this.props;
-        const statefulsetData = data.data;
-        const logTitle = data.data['statefulsetName'];
+        const { data }: $TSFixMe = this.props;
+        const statefulsetData: $TSFixMe = data.data;
+        const logTitle: $TSFixMe = data.data['statefulsetName'];
 
-        const dataKeys = Object.keys(statefulsetData);
+        const dataKeys: $TSFixMe = Object.keys(statefulsetData);
 
         return (
             <div

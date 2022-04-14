@@ -96,7 +96,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps>{
 
     handleCreateResourceCategory = (projectId: string, statusPageId: $TSFixMe) => {
 
-        const { openModal } = this.props;
+        const { openModal }: $TSFixMe = this.props;
         openModal({
             content: DataPathHoC(CreateStatusPageCategory, {
                 projectId,
@@ -111,7 +111,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps>{
         statusPageCategoryId
     }: $TSFixMe) => {
 
-        const { openModal } = this.props;
+        const { openModal }: $TSFixMe = this.props;
         openModal({
             content: DataPathHoC(EditStatusPageCategory, {
                 projectId,
@@ -126,7 +126,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps>{
         statusPageCategoryId
     }: $TSFixMe) => {
 
-        const { openModal, statusPageId } = this.props;
+        const { openModal, statusPageId }: $TSFixMe = this.props;
         openModal({
             content: DataPathHoC(RemoveStatusPageCategory, {
                 projectId,
@@ -165,7 +165,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps>{
             canPrev = false;
         }
 
-        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(this.props.count) / 10);
 
         return (
             <div className="Box-root Margin-bottom--12">

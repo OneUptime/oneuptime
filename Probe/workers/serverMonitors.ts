@@ -22,7 +22,7 @@ export default {
                 password,
                 identityFile,
             } = monitor.agentlessConfig;
-            const ssh = new NodeSSH();
+            const ssh: $TSFixMe = new NodeSSH();
 
             const config: $TSFixMe = {
                 host,
@@ -36,7 +36,7 @@ export default {
                 await fetch(`${serverUrl}/file/${identityFile}`).then(
                     res =>
                         new Promise((resolve, reject) => {
-                            const dest = fs.createWriteStream(
+                            const dest: $TSFixMe = fs.createWriteStream(
                                 `./${identityFile}`
                             );
 
@@ -78,7 +78,7 @@ export default {
                     os = osLine.split(' ')[1];
                 }
 
-                const serverData = await execCommands(ssh, os);
+                const serverData: $TSFixMe = await execCommands(ssh, os);
 
                 ssh.dispose();
 
@@ -93,7 +93,7 @@ export default {
 };
 
 const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
-    const isSSH = exec instanceof NodeSSH;
+    const isSSH: $TSFixMe = exec instanceof NodeSSH;
 
     // TODO: complete commands and make platform specific
     let cpuLoad,
@@ -125,33 +125,33 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
             ? exec.execCommand(COMMAND.linux.temp)
             : exec(COMMAND.linux.temp));
 
-        const loadLines = load
+        const loadLines: $TSFixMe = load
             .replace(/\t|:|,|-/gi, '')
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
                 return words;
             });
-        const cpuLines = cpu
+        const cpuLines: $TSFixMe = cpu
             .replace(/\t|:/gi, '')
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => line.replace(/\s+/g, ' ').trim());
-        const memLines = mem
+        const memLines: $TSFixMe = mem
             .replace(/\t|:/gi, '')
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
                 return words[words.length - 2];
             });
-        const diskLines = disk
+        const diskLines: $TSFixMe = disk
             .replace(/\t|:|M|G|%/gi, '')
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
                 return {
                     storageUsed: words[2],
                     totalStorage: words[1],
@@ -165,7 +165,7 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
                     storageUsage: disks.storageUsage + disk.storageUsage,
                 };
             });
-        const tempLines = temp
+        const tempLines: $TSFixMe = temp
             .replace(/\t|:|\+|°|C/gi, '')
             .replace(/\s+/g, ' ')
             .trim()
@@ -205,30 +205,30 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
             ? exec.execCommand(COMMAND.darwin.temp)
             : exec(COMMAND.darwin.temp));
 
-        const loadLines = load
+        const loadLines: $TSFixMe = load
             .replace(/\t|:|,|-|%/gi, '')
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
                 return words;
             });
-        const memLines = usedMem
+        const memLines: $TSFixMe = usedMem
             .replace(/\t|:|M|G|\(|\)/gi, '')
             .replace(/\s+/g, ' ')
             .trim()
             .split(' ');
-        const swapLines = swapMem
+        const swapLines: $TSFixMe = swapMem
             .replace(/\t|:|M|G|\(|\)|=/gi, '')
             .replace(/\s+/g, ' ')
             .trim()
             .split(' ');
-        const diskLines = disk
+        const diskLines: $TSFixMe = disk
             .replace(/\t|:|Mi|Gi|%/gi, '')
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
                 return {
                     storageUsed: words[2],
                     totalStorage: words[1],
@@ -284,21 +284,21 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
             ? exec.execCommand(COMMAND.win.temp)
             : exec(COMMAND.win.temp));
 
-        const loadLines = load.replace(/\s+/g, ' ').trim().split(' ');
-        const cpuLines = cpu.replace(/\s+/g, ' ').trim().split(' ');
-        const freeMemLines = freeMem.replace(/\s+/g, ' ').trim().split(' ');
-        const totalMemLines = totalMem.replace(/\s+/g, ' ').trim().split(' ');
-        const totalSwapMemLines = totalSwapMem
+        const loadLines: $TSFixMe = load.replace(/\s+/g, ' ').trim().split(' ');
+        const cpuLines: $TSFixMe = cpu.replace(/\s+/g, ' ').trim().split(' ');
+        const freeMemLines: $TSFixMe = freeMem.replace(/\s+/g, ' ').trim().split(' ');
+        const totalMemLines: $TSFixMe = totalMem.replace(/\s+/g, ' ').trim().split(' ');
+        const totalSwapMemLines: $TSFixMe = totalSwapMem
             .replace(/\s+/g, ' ')
             .trim()
             .split(' ');
-        const freeSwapMemLines = freeSwapMem
+        const freeSwapMemLines: $TSFixMe = freeSwapMem
             .replace(/\s+/g, ' ')
             .trim()
             .split(' ');
-        const freeDiskLines = freeDisk.replace(/\s+/g, ' ').trim().split(' ');
-        const totalDiskLines = totalDisk.replace(/\s+/g, ' ').trim().split(' ');
-        const tempLines = temp.replace(/\s+/g, ' ').trim().split(' ');
+        const freeDiskLines: $TSFixMe = freeDisk.replace(/\s+/g, ' ').trim().split(' ');
+        const totalDiskLines: $TSFixMe = totalDisk.replace(/\s+/g, ' ').trim().split(' ');
+        const tempLines: $TSFixMe = temp.replace(/\s+/g, ' ').trim().split(' ');
 
         cpuLoad = loadLines[1];
         avgCpuLoad = loadLines[1];

@@ -468,7 +468,7 @@ export default function errorTracker(
                       .errorTrackerIssues
                 : [...action.payload.ignoredIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
-                const issue = action.payload.ignoredIssues.filter(
+                const issue: $TSFixMe = action.payload.ignoredIssues.filter(
                     (ignoredIssue: $TSFixMe) =>
                         ignoredIssue._id === errorTrackerIssues._id
                 );
@@ -541,7 +541,7 @@ export default function errorTracker(
                       .errorTrackerIssues
                 : [...action.payload.unresolvedIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
-                const issue = action.payload.unresolvedIssues.filter(
+                const issue: $TSFixMe = action.payload.unresolvedIssues.filter(
                     (unresolvedIssue: $TSFixMe) =>
                         unresolvedIssue._id === errorTrackerIssues._id
                 );
@@ -614,7 +614,7 @@ export default function errorTracker(
                       .errorTrackerIssues
                 : [...action.payload.resolvedIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
-                const issue = action.payload.resolvedIssues.filter(
+                const issue: $TSFixMe = action.payload.resolvedIssues.filter(
                     (resolvedIssue: $TSFixMe) =>
                         resolvedIssue._id === errorTrackerIssues._id
                 );

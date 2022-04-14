@@ -36,9 +36,9 @@ class Domains extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { fetchProjectDomains, currentProject } = this.props;
+        const { fetchProjectDomains, currentProject }: $TSFixMe = this.props;
         if (currentProject) {
-            const projectId = currentProject._id;
+            const projectId: $TSFixMe = currentProject._id;
             fetchProjectDomains(projectId, 0, this.limit);
         }
     }
@@ -61,7 +61,7 @@ class Domains extends Component<ComponentProps> {
 
     prevClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { fetchProjectDomains } = this.props;
+        const { fetchProjectDomains }: $TSFixMe = this.props;
         fetchProjectDomains(
             projectId,
             skip ? Number(skip) - this.limit : this.limit,
@@ -71,7 +71,7 @@ class Domains extends Component<ComponentProps> {
 
     nextClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { fetchProjectDomains } = this.props;
+        const { fetchProjectDomains }: $TSFixMe = this.props;
         fetchProjectDomains(
             projectId,
             skip ? Number(skip) + this.limit : this.limit,
@@ -100,9 +100,9 @@ class Domains extends Component<ComponentProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
-        const projectName = currentProject ? currentProject.name : '';
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">

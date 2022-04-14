@@ -35,7 +35,7 @@ export const smsTemplatesReset: Function = (): void => {
 // Calls the API to get sms templates
 export const getSmsTemplates: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`smsTemplate/${projectId}`);
+        const promise: $TSFixMe = BackendAPI.get(`smsTemplate/${projectId}`);
         dispatch(smsTemplatesRequest(promise));
 
         promise.then(
@@ -84,7 +84,7 @@ export const editSmsTemplates: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(`smsTemplate/${projectId}`, data);
+        const promise: $TSFixMe = BackendAPI.put(`smsTemplate/${projectId}`, data);
         dispatch(editSmsTemplateRequest());
 
         promise.then(
@@ -129,7 +129,7 @@ export const resetSmsTemplates: Function = (
     templateId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `smsTemplate/${projectId}/${templateId}/reset`
         );
         dispatch(resetSmsTemplatesRequest(promise));
@@ -170,7 +170,7 @@ export const smtpConfigSuccess: Function = (config: $TSFixMe): void => {
 // Calls the API to reset email templates
 export const getSmtpConfig: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`smsSmtp/${projectId}`);
+        const promise: $TSFixMe = BackendAPI.get(`smsSmtp/${projectId}`);
         dispatch(smtpConfigRequest(promise));
 
         promise.then(
@@ -201,7 +201,7 @@ export const postSmtpConfig: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`smsSmtp/${projectId}`, data);
+        const promise: $TSFixMe = BackendAPI.post(`smsSmtp/${projectId}`, data);
         dispatch(smtpConfigRequest(promise));
 
         promise.then(
@@ -253,7 +253,7 @@ export const deleteSmtpConfig: Function = (
     smtpId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete `smsSmtp/${projectId}/${smtpId}`;
+        const promise: $TSFixMe = delete `smsSmtp/${projectId}/${smtpId}`;
         dispatch(deleteSmtpConfigRequest(promise));
 
         promise.then(
@@ -285,7 +285,7 @@ export function updateSmtpConfig(
     data: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(`smsSmtp/${projectId}/${smtpId}`, data);
+        const promise: $TSFixMe = BackendAPI.put(`smsSmtp/${projectId}/${smtpId}`, data);
         dispatch(smtpConfigRequest(promise));
 
         promise.then(

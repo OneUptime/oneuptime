@@ -30,7 +30,7 @@ export class AlertChargesList extends Component<AlertChargesListProps>{
     }
     override componentDidMount() {
 
-        const { fetchAlertCharges, getProjectBalance } = this.props;
+        const { fetchAlertCharges, getProjectBalance }: $TSFixMe = this.props;
 
         let { projectId } = this.props;
         if (!projectId) {
@@ -46,7 +46,7 @@ export class AlertChargesList extends Component<AlertChargesListProps>{
 
     prevClicked = () => {
 
-        const { fetchAlertCharges, projectId, skip } = this.props;
+        const { fetchAlertCharges, projectId, skip }: $TSFixMe = this.props;
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) - 5 : 5, 5);
         this.setState({
 
@@ -56,7 +56,7 @@ export class AlertChargesList extends Component<AlertChargesListProps>{
 
     nextClicked = () => {
 
-        const { fetchAlertCharges, projectId, skip } = this.props;
+        const { fetchAlertCharges, projectId, skip }: $TSFixMe = this.props;
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) + 5 : 5, 5);
 
         this.setState({ page: !this.state.page ? 2 : this.state.page + 1 });
@@ -77,9 +77,9 @@ export class AlertChargesList extends Component<AlertChargesListProps>{
 
             limit,
         } = this.props;
-        const canNext = count > parseInt(skip) + parseInt(limit) ? true : false;
-        const canPrev = parseInt(skip) <= 0 ? false : true;
-        const numberOfPages = Math.ceil(parseInt(count) / 5);
+        const canNext: $TSFixMe = count > parseInt(skip) + parseInt(limit) ? true : false;
+        const canPrev: $TSFixMe = parseInt(skip) <= 0 ? false : true;
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 5);
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>

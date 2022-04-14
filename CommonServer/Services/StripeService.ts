@@ -7,14 +7,14 @@ import ObjectID from 'Common/Types/ObjectID';
 import MailService from '../../MailService/Services/MailService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { sendSlackAlert } from '../Utils/stripeHandlers';
-const stripe = require('stripe')(payment.paymentPrivateKey, {
+const stripe: $TSFixMe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
 });
 // removal of 'moment' due to declaration but not used.
 
 export default class StripeService {
     async successEvent(customerId: $TSFixMe, subscriptionId: $TSFixMe): void {
-        const [, project] = await Promise.all([
+        const [, project]: $TSFixMe = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
                 select: 'email name _id',
@@ -43,7 +43,7 @@ export default class StripeService {
         chargeAttemptCount: $TSFixMe,
         invoiceUrl: URL
     ): void {
-        const [user, project] = await Promise.all([
+        const [user, project]: $TSFixMe = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
                 select: 'email name _id',
@@ -56,7 +56,7 @@ export default class StripeService {
         ]);
 
         if (project && project.name && project._id) {
-            const chargeAttemptStage =
+            const chargeAttemptStage: $TSFixMe =
                 chargeAttemptCount === 1
                     ? 'first'
                     : chargeAttemptCount === 2
@@ -92,7 +92,7 @@ export default class StripeService {
     }
 
     async cancelEvent(customerId: $TSFixMe, subscriptionId: $TSFixMe): void {
-        const [user, project] = await Promise.all([
+        const [user, project]: $TSFixMe = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
                 select: 'name _id',
@@ -136,19 +136,19 @@ export default class StripeService {
     }
 
     async charges(userId: ObjectID): void {
-        const user = await UserService.findOneBy({
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
         });
-        const stripeCustomerId = user.stripeCustomerId;
-        const charges = await stripe.charges.list({
+        const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
+        const charges: $TSFixMe = await stripe.charges.list({
             customer: stripeCustomerId,
         });
         return charges.data;
     }
 
     async createCreditCard(tok: $TSFixMe, userId: ObjectID): void {
-        const [tokenCard, cards] = await Promise.all([
+        const [tokenCard, cards]: $TSFixMe = await Promise.all([
             stripe.tokens.retrieve(tok),
 
             this.get(userId),
@@ -170,21 +170,21 @@ export default class StripeService {
         }
 
         if (!duplicateCard) {
-            const testChargeValue = 100;
+            const testChargeValue: $TSFixMe = 100;
             const description: string = 'Verify if card is billable';
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
             });
-            const stripeCustomerId = user.stripeCustomerId;
-            const card = await stripe.customers.createSource(stripeCustomerId, {
+            const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
+            const card: $TSFixMe = await stripe.customers.createSource(stripeCustomerId, {
                 source: tok,
             });
             const metadata: $TSFixMe = {
                 description,
             };
-            const source = card.id;
-            const paymentIntent = await this.createInvoice(
+            const source: $TSFixMe = card.id;
+            const paymentIntent: $TSFixMe = await this.createInvoice(
                 testChargeValue,
                 stripeCustomerId,
                 description,
@@ -198,32 +198,32 @@ export default class StripeService {
     }
 
     async update(userId: ObjectID, cardId: $TSFixMe): void {
-        const user = await UserService.findOneBy({
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
         });
-        const stripeCustomerId = user.stripeCustomerId;
-        const card = await stripe.customers.update(stripeCustomerId, {
+        const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
+        const card: $TSFixMe = await stripe.customers.update(stripeCustomerId, {
             default_source: cardId,
         });
         return card;
     }
 
     async delete(cardId: $TSFixMe, userId: ObjectID): void {
-        const user = await UserService.findOneBy({
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
         });
-        const stripeCustomerId = user.stripeCustomerId;
+        const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
 
-        const cards = await this.get(userId);
+        const cards: $TSFixMe = await this.get(userId);
         if (cards.data.length === 1) {
-            const error = new Error('Cannot delete the only card');
+            const error: $TSFixMe = new Error('Cannot delete the only card');
 
             error.code = 403;
             throw error;
         }
-        const card = await stripe.customers.deleteSource(
+        const card: $TSFixMe = await stripe.customers.deleteSource(
             stripeCustomerId,
             cardId
         );
@@ -231,20 +231,20 @@ export default class StripeService {
     }
 
     async get(userId: ObjectID, cardId: $TSFixMe): void {
-        const user = await UserService.findOneBy({
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
         });
-        const stripeCustomerId = user.stripeCustomerId;
-        const customer = await stripe.customers.retrieve(stripeCustomerId);
+        const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
+        const customer: $TSFixMe = await stripe.customers.retrieve(stripeCustomerId);
         if (cardId) {
-            const card = await stripe.customers.retrieveSource(
+            const card: $TSFixMe = await stripe.customers.retrieveSource(
                 stripeCustomerId,
                 cardId
             );
             return card;
         } else {
-            const cards = await stripe.customers.listSources(stripeCustomerId, {
+            const cards: $TSFixMe = await stripe.customers.listSources(stripeCustomerId, {
                 object: 'card',
             });
             cards.data = await cards.data.map((card: $TSFixMe) => {
@@ -265,12 +265,12 @@ export default class StripeService {
         alertOptions: $TSFixMe
     ): void {
         const description: string = 'Recharge balance';
-        const stripechargeAmount = chargeAmount * 100;
-        const user = await UserService.findOneBy({
+        const stripechargeAmount: $TSFixMe = chargeAmount * 100;
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
         });
-        const stripeCustomerId = user.stripeCustomerId;
+        const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
         let metadata;
         if (alertOptions) {
             metadata = {
@@ -283,7 +283,7 @@ export default class StripeService {
             };
         }
 
-        const paymentIntent = await this.createInvoice(
+        const paymentIntent: $TSFixMe = await this.createInvoice(
             stripechargeAmount,
             stripeCustomerId,
             description,
@@ -294,9 +294,9 @@ export default class StripeService {
 
     async updateBalance(paymentIntent: $TSFixMe): void {
         if (paymentIntent.status === 'succeeded') {
-            const amountRechargedStripe = Number(paymentIntent.amount_received);
+            const amountRechargedStripe: $TSFixMe = Number(paymentIntent.amount_received);
             if (amountRechargedStripe) {
-                const projectId = paymentIntent.metadata.projectId,
+                const projectId: $TSFixMe = paymentIntent.metadata.projectId,
                     minimumBalance =
                         paymentIntent.metadata.minimumBalance &&
                         Number(paymentIntent.metadata.minimumBalance),
@@ -322,10 +322,10 @@ export default class StripeService {
                     billingNonUSCountries,
                     billingRiskCountries,
                 };
-                const amountRecharged = amountRechargedStripe / 100;
-                const project = await ProjectModel.findById(projectId).lean();
-                const currentBalance = project.balance;
-                const newbalance = currentBalance + amountRecharged;
+                const amountRecharged: $TSFixMe = amountRechargedStripe / 100;
+                const project: $TSFixMe = await ProjectModel.findById(projectId).lean();
+                const currentBalance: $TSFixMe = project.balance;
+                const newbalance: $TSFixMe = currentBalance + amountRecharged;
                 let updateObject = {};
                 if (!minimumBalance || !rechargeToBalance) {
                     updateObject = {
@@ -363,12 +363,12 @@ export default class StripeService {
         projectId: ObjectID
     ): void {
         const description: string = 'Recharge balance';
-        const stripechargeAmount = chargeAmount * 100;
-        const user = await UserService.findOneBy({
+        const stripechargeAmount: $TSFixMe = chargeAmount * 100;
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
         });
-        const stripeCustomerId = user.stripeCustomerId;
+        const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
         const metadata: $TSFixMe = {
             projectId,
         };
@@ -398,15 +398,15 @@ export default class StripeService {
             customer: stripeCustomerId,
             description,
         });
-        const invoice = await stripe.invoices.create({
+        const invoice: $TSFixMe = await stripe.invoices.create({
             customer: stripeCustomerId,
             collection_method: 'charge_automatically',
             description,
         });
-        const finalizedInvoice = await stripe.invoices.finalizeInvoice(
+        const finalizedInvoice: $TSFixMe = await stripe.invoices.finalizeInvoice(
             invoice.id
         );
-        const paymentIntent = await stripe.paymentIntents.retrieve(
+        const paymentIntent: $TSFixMe = await stripe.paymentIntents.retrieve(
             finalizedInvoice.payment_intent
         );
         if (source) {
@@ -436,19 +436,19 @@ export default class StripeService {
         companyName: $TSFixMe
     ): void {
         const description: string = 'Verify if card is billable';
-        const testChargeValue = 100;
-        const stripeCustomerId = await PaymentService.createCustomer(
+        const testChargeValue: $TSFixMe = 100;
+        const stripeCustomerId: $TSFixMe = await PaymentService.createCustomer(
             email,
             companyName
         );
-        const card = await stripe.customers.createSource(stripeCustomerId, {
+        const card: $TSFixMe = await stripe.customers.createSource(stripeCustomerId, {
             source: tokenId,
         });
         const metadata: $TSFixMe = {
             description,
         };
-        const source = card.id;
-        const paymentIntent = await this.createInvoice(
+        const source: $TSFixMe = card.id;
+        const paymentIntent: $TSFixMe = await this.createInvoice(
             testChargeValue,
             stripeCustomerId,
             description,
@@ -459,7 +459,7 @@ export default class StripeService {
     }
 
     async confirmPayment(paymentIntent: $TSFixMe): void {
-        const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
+        const confirmedPaymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(
             paymentIntent.id
         );
 
@@ -478,17 +478,17 @@ export default class StripeService {
     }
 
     async retrievePaymentIntent(intentId: $TSFixMe): void {
-        const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
+        const paymentIntent: $TSFixMe = await stripe.paymentIntents.retrieve(intentId);
         return paymentIntent;
     }
 
     async fetchTrialInformation(subscriptionId: $TSFixMe): void {
-        const subscription = await stripe.subscriptions.retrieve(
+        const subscription: $TSFixMe = await stripe.subscriptions.retrieve(
             subscriptionId
         );
 
         if (subscription && subscription.trial_end !== null) {
-            const chargeDate = new Date(subscription.trial_end * 1000);
+            const chargeDate: $TSFixMe = new Date(subscription.trial_end * 1000);
             return chargeDate;
         } else {
             return false;

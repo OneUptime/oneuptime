@@ -2,12 +2,12 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import SubscriberService from '../services/subscriberService';
 import MonitorService from '../services/monitorService';
 
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import {
     sendErrorResponse,
@@ -24,7 +24,7 @@ router.post(
     '/:projectId/:statusPageId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const body = req.body;
+            const body: $TSFixMe = req.body;
             const data: $TSFixMe = {};
 
             data.projectId = req.params.projectId;
@@ -154,11 +154,11 @@ router.post(
                 data.contactEmail = body.userDetails.email;
             }
 
-            const monitors = body.monitors;
+            const monitors: $TSFixMe = body.monitors;
 
             data.alertVia = body.userDetails.method;
 
-            const subscriber = await SubscriberService.subscribe(
+            const subscriber: $TSFixMe = await SubscriberService.subscribe(
                 data,
                 monitors
             );
@@ -173,7 +173,7 @@ router.post(
     '/:projectId/subscribe/:monitorId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.projectId = req.params.projectId;
             data.monitorId = req.params.monitorId;
             if (!data.alertVia) {
@@ -285,7 +285,7 @@ router.post(
                     });
                 }
             }
-            const hasSubscribed = await SubscriberService.subscriberCheck(data);
+            const hasSubscribed: $TSFixMe = await SubscriberService.subscriberCheck(data);
             if (hasSubscribed) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -294,7 +294,7 @@ router.post(
             } else {
                 let subscriber;
                 if (data.alertVia === 'email') {
-                    const subscriberExist = await SubscriberService.findByOne({
+                    const subscriberExist: $TSFixMe = await SubscriberService.findByOne({
                         query: {
                             monitorId: data.monitorId,
                             contactEmail: data.contactEmail,
@@ -329,13 +329,13 @@ router.post(
 // Returns: response subscriber, error message
 router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const projectId = req.params.projectId;
-        const skip = req.query['skip'] || 0;
-        const limit = req.query['limit'] || 10;
-        const select =
+        const projectId: $TSFixMe = req.params.projectId;
+        const skip: $TSFixMe = req.query['skip'] || 0;
+        const limit: $TSFixMe = req.query['limit'] || 10;
+        const select: $TSFixMe =
             'monitorId projectId statusPageId alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod notificationType createdAt subscribed';
 
-        const [subscribers, count] = await Promise.all([
+        const [subscribers, count]: $TSFixMe = await Promise.all([
             SubscriberService.findBy({ projectId, skip, limit, select }),
             SubscriberService.countBy({ projectId: projectId }),
         ]);
@@ -352,17 +352,17 @@ router.get(
     '/:projectId/monitor/:monitorId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const monitorId = req.params.monitorId;
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 10;
-            const populate = [
+            const monitorId: $TSFixMe = req.params.monitorId;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
+            const populate: $TSFixMe = [
                 { path: 'projectId', select: 'name _id' },
                 { path: 'monitorId', select: 'name _id' },
                 { path: 'statusPageId', select: 'name _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
-            const [subscribers, count] = await Promise.all([
+            const [subscribers, count]: $TSFixMe = await Promise.all([
                 SubscriberService.findBy({
                     query: { monitorId: monitorId, subscribed: true },
                     skip,
@@ -386,17 +386,17 @@ router.get(
     '/monitorList/:subscriberId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const subscriberId = req.params.subscriberId;
+            const subscriberId: $TSFixMe = req.params.subscriberId;
 
-            const subscriber = await SubscriberService.findBy({
+            const subscriber: $TSFixMe = await SubscriberService.findBy({
                 query: { _id: subscriberId },
                 select: 'contactEmail',
             });
 
-            const select =
+            const select: $TSFixMe =
                 '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
 
-            const subscriptions = await SubscriberService.findBy({
+            const subscriptions: $TSFixMe = await SubscriberService.findBy({
                 query: {
                     contactEmail: subscriber[0].contactEmail,
                     subscribed: true,
@@ -404,11 +404,11 @@ router.get(
                 select,
             });
 
-            const monitorIds = subscriptions.map(
+            const monitorIds: $TSFixMe = subscriptions.map(
                 subscription => subscription.monitorId
             );
 
-            const subscriberMonitors = await MonitorService.findBy({
+            const subscriberMonitors: $TSFixMe = await MonitorService.findBy({
                 query: { _id: { $in: monitorIds }, deleted: false },
                 select: '_id',
             });
@@ -442,15 +442,15 @@ router.get(
     '/:projectId/:subscriberId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const subscriberId = req.params.subscriberId;
-            const populate = [
+            const projectId: $TSFixMe = req.params.projectId;
+            const subscriberId: $TSFixMe = req.params.subscriberId;
+            const populate: $TSFixMe = [
                 { path: 'projectId', select: 'name _id' },
                 { path: 'monitorId', select: 'name _id' },
             ];
-            const select =
+            const select: $TSFixMe =
                 '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
-            const subscriber = await SubscriberService.findByOne({
+            const subscriber: $TSFixMe = await SubscriberService.findByOne({
                 query: { _id: subscriberId, projectId: projectId },
                 select,
                 populate,
@@ -469,8 +469,8 @@ router.put(
     '/unsubscribe/:monitorId/:email',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { email, monitorId } = req.params;
-            const subscriber = await SubscriberService.updateOneBy(
+            const { email, monitorId }: $TSFixMe = req.params;
+            const subscriber: $TSFixMe = await SubscriberService.updateOneBy(
                 { monitorId, contactEmail: email },
                 { subscribed: false }
             );
@@ -488,10 +488,10 @@ router.delete(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const subscriberId = req.params.subscriberId;
+            const subscriberId: $TSFixMe = req.params.subscriberId;
 
-            const userId = req.user ? req.user.id : null;
-            const subscriber = await SubscriberService.deleteBy(
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const subscriber: $TSFixMe = await SubscriberService.deleteBy(
                 { _id: subscriberId },
                 userId
             );
@@ -506,7 +506,7 @@ router.post(
     '/:projectId/:monitorId/csv',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.projectId = req.params.projectId;
             data.monitorId = req.params.monitorId;
 
@@ -516,7 +516,7 @@ router.post(
                     message: 'Empty files submitted',
                 });
             }
-            const result = await SubscriberService.subscribeFromCSVFile(data);
+            const result: $TSFixMe = await SubscriberService.subscribeFromCSVFile(data);
             return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

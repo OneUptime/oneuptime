@@ -1,4 +1,4 @@
-const generateWebToken = require('../utils/WebToken').generateWebToken;
+const generateWebToken: $TSFixMe = require('../utils/WebToken').generateWebToken;
 import AirtableService from 'CommonServer/Utils/airtable';
 import Email from 'Common/Types/email';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -7,7 +7,7 @@ import ObjectID from 'Common/Types/ObjectID';
 
 export default {
     confirm: async (license: string, email: Email, limit: PositiveNumber) => {
-        const records = await AirtableService.find(
+        const records: $TSFixMe = await AirtableService.find(
             'License',
             'Grid view',
             limit
@@ -23,7 +23,7 @@ export default {
         let licenseFound = false;
 
         for (const record of records) {
-            const fetchedLicense = record.get('License Key');
+            const fetchedLicense: $TSFixMe = record.get('License Key');
             if (license === fetchedLicense) {
                 userRecord['id'] = new ObjectID(record.id.toString());
                 userRecord['expiryDate'] = new Date(
@@ -37,9 +37,9 @@ export default {
             throw new BadDataException('Invalid Expired');
         }
 
-        const presentTime = new Date().getTime();
+        const presentTime: $TSFixMe = new Date().getTime();
 
-        const expiryTime = new Date(userRecord.expiryDate).getTime();
+        const expiryTime: $TSFixMe = new Date(userRecord.expiryDate).getTime();
 
         if (expiryTime < presentTime) {
             throw new BadDataException('License Expired');
@@ -49,7 +49,7 @@ export default {
             'Contact Email': email.toString(),
         });
 
-        const token = generateWebToken({
+        const token: $TSFixMe = generateWebToken({
             license,
             presentTime,
             expiryTime,

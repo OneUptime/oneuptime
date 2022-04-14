@@ -3,7 +3,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const schedulesQuery = ScheduleModel.find(query)
+        const schedulesQuery: $TSFixMe = ScheduleModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -12,7 +12,7 @@ export default class Service {
         schedulesQuery.select(select);
         schedulesQuery.populate(populate);
 
-        const schedules = await schedulesQuery;
+        const schedules: $TSFixMe = await schedulesQuery;
         return schedules;
     }
 
@@ -24,7 +24,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const scheduleQuery = ScheduleModel.findOne(query)
+        const scheduleQuery: $TSFixMe = ScheduleModel.findOne(query)
             .sort(sort)
             .lean()
             .sort(sort);
@@ -32,13 +32,13 @@ export default class Service {
         scheduleQuery.select(select);
         scheduleQuery.populate(populate);
 
-        const schedule = await scheduleQuery;
+        const schedule: $TSFixMe = await scheduleQuery;
 
         return schedule;
     }
 
     async create(data: $TSFixMe): void {
-        const scheduleModel = new ScheduleModel();
+        const scheduleModel: $TSFixMe = new ScheduleModel();
 
         scheduleModel.name = data.name || null;
 
@@ -65,8 +65,8 @@ export default class Service {
         if (data && data.name) {
             scheduleModel.slug = getSlug(data.name);
         }
-        const schedule = await scheduleModel.save();
-        const populate = [
+        const schedule: $TSFixMe = await scheduleModel.save();
+        const populate: $TSFixMe = [
             { path: 'userIds', select: 'name' },
             { path: 'createdById', select: 'name' },
             { path: 'monitorIds', select: 'name' },
@@ -84,10 +84,10 @@ export default class Service {
             },
         ];
 
-        const select =
+        const select: $TSFixMe =
             '_id userIds name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
-        const newSchedule = await this.findOneBy({
+        const newSchedule: $TSFixMe = await this.findOneBy({
             query: { _id: schedule._id },
             select,
             populate,
@@ -103,12 +103,12 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await ScheduleModel.countDocuments(query);
+        const count: $TSFixMe = await ScheduleModel.countDocuments(query);
         return count;
     }
 
     async deleteBy(query: Query, userId: ObjectID): void {
-        const schedule = await ScheduleModel.findOneAndUpdate(
+        const schedule: $TSFixMe = await ScheduleModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -123,7 +123,7 @@ export default class Service {
         );
 
         if (schedule && schedule._id) {
-            const escalations = await EscalationService.findBy({
+            const escalations: $TSFixMe = await EscalationService.findBy({
                 query: { scheduleId: schedule._id },
                 select: '_id',
             });
@@ -152,7 +152,7 @@ export default class Service {
     }
 
     async removeMonitor(monitorId: $TSFixMe): void {
-        const schedule = await ScheduleModel.findOneAndUpdate(
+        const schedule: $TSFixMe = await ScheduleModel.findOneAndUpdate(
             { monitorIds: monitorId },
             {
                 $pull: { monitorIds: monitorId },
@@ -221,7 +221,7 @@ export default class Service {
             }
         );
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'userIds', select: 'name' },
             { path: 'createdById', select: 'name' },
             { path: 'monitorIds', select: 'name' },
@@ -239,7 +239,7 @@ export default class Service {
             },
         ];
 
-        const select =
+        const select: $TSFixMe =
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
         schedule = await this.findBy({
@@ -264,7 +264,7 @@ export default class Service {
             $set: data,
         });
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'userIds', select: 'name' },
             { path: 'createdById', select: 'name' },
             { path: 'monitorIds', select: 'name' },
@@ -282,7 +282,7 @@ export default class Service {
             },
         ];
 
-        const select =
+        const select: $TSFixMe =
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
@@ -305,7 +305,7 @@ export default class Service {
         escalations: $TSFixMe,
         userId: ObjectID
     ): void {
-        const escalationIds = [];
+        const escalationIds: $TSFixMe = [];
         for (const data of escalations) {
             let escalation = {};
             if (!data._id) {
@@ -328,20 +328,20 @@ export default class Service {
             { escalationIds: escalationIds }
         );
 
-        const scheduleEscalation = await this.getEscalations(scheduleId);
+        const scheduleEscalation: $TSFixMe = await this.getEscalations(scheduleId);
 
         return scheduleEscalation.escalations;
     }
 
     async getEscalations(scheduleId: $TSFixMe): void {
-        const schedule = await this.findOneBy({
+        const schedule: $TSFixMe = await this.findOneBy({
             query: { _id: scheduleId },
             select: '_id escalationIds',
         });
-        const selectEscalation =
+        const selectEscalation: $TSFixMe =
             'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
 
-        const populateEscalation = [
+        const populateEscalation: $TSFixMe = [
             {
                 path: 'projectId',
                 select: '_id name slug',
@@ -364,8 +364,8 @@ export default class Service {
             },
         ];
 
-        const escalationIds = schedule.escalationIds;
-        const escalations = await Promise.all(
+        const escalationIds: $TSFixMe = schedule.escalationIds;
+        const escalations: $TSFixMe = await Promise.all(
             escalationIds.map(async (escalationId: $TSFixMe) => {
                 return await EscalationService.findOneBy({
                     query: { _id: escalationId },
@@ -378,10 +378,10 @@ export default class Service {
     }
 
     async getUserEscalations(subProjectIds: $TSFixMe, userId: ObjectID): void {
-        const selectEscalation =
+        const selectEscalation: $TSFixMe =
             'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
 
-        const populateEscalation = [
+        const populateEscalation: $TSFixMe = [
             { path: 'projectId', select: '_id name slug' },
             {
                 path: 'scheduleId',
@@ -393,7 +393,7 @@ export default class Service {
                 select: 'name email',
             },
         ];
-        const escalations = await EscalationService.findBy({
+        const escalations: $TSFixMe = await EscalationService.findBy({
             query: {
                 projectId: { $in: subProjectIds },
                 'teams.teamMembers': { $elemMatch: { userId } },
@@ -434,9 +434,9 @@ export default class Service {
     }
 
     async getSubProjectSchedules(subProjectIds: $TSFixMe): void {
-        const subProjectSchedules = await Promise.all(
+        const subProjectSchedules: $TSFixMe = await Promise.all(
             subProjectIds.map(async (id: $TSFixMe) => {
-                const populate = [
+                const populate: $TSFixMe = [
                     { path: 'userIds', select: 'name' },
                     { path: 'createdById', select: 'name' },
                     { path: 'monitorIds', select: 'name' },
@@ -462,18 +462,18 @@ export default class Service {
                     },
                 ];
 
-                const select =
+                const select: $TSFixMe =
                     '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault  userIds';
 
                 const query: $TSFixMe = { projectId: id };
-                const schedules = await this.findBy({
+                const schedules: $TSFixMe = await this.findBy({
                     query,
                     limit: 10,
                     skip: 0,
                     populate,
                     select,
                 });
-                const count = await this.countBy(query);
+                const count: $TSFixMe = await this.countBy(query);
                 return { schedules, count, _id: id, skip: 0, limit: 10 };
             })
         );
@@ -482,7 +482,7 @@ export default class Service {
 
     async restoreBy(query: Query): void {
         query.deleted = true;
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'userIds', select: 'name' },
             { path: 'createdById', select: 'name' },
             { path: 'monitorIds', select: 'name' },
@@ -500,14 +500,14 @@ export default class Service {
             },
         ];
 
-        const select =
+        const select: $TSFixMe =
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
-        const schedule = await this.findBy({ query, populate, select });
+        const schedule: $TSFixMe = await this.findBy({ query, populate, select });
         if (schedule && schedule.length > 1) {
-            const schedules = await Promise.all(
+            const schedules: $TSFixMe = await Promise.all(
                 schedule.map(async (schedule: $TSFixMe) => {
-                    const scheduleId = schedule._id;
+                    const scheduleId: $TSFixMe = schedule._id;
                     schedule = await this.updateOneBy(
                         { _id: scheduleId, deleted: true },
                         {

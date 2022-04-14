@@ -42,7 +42,7 @@ class EditStatusPageCategory extends React.Component<EditStatusPageCategoryProps
 
     submitForm = (values: $TSFixMe) => {
 
-        const { data, updateStatusPageCategory } = this.props;
+        const { data, updateStatusPageCategory }: $TSFixMe = this.props;
         const {
             statusPageCategoryId,
             projectId,
@@ -86,7 +86,7 @@ class EditStatusPageCategory extends React.Component<EditStatusPageCategoryProps
 
     override render() {
 
-        const { handleSubmit, updatingCategory, updateError } = this.props;
+        const { handleSubmit, updatingCategory, updateError }: $TSFixMe = this.props;
 
         return (
             <form onSubmit={handleSubmit(this.submitForm)}>
@@ -180,13 +180,13 @@ class EditStatusPageCategory extends React.Component<EditStatusPageCategoryProps
 
 EditStatusPageCategory.displayName = 'EditStatusPageCategory';
 
-const EditStatusPageCategoryForm = reduxForm({
+const EditStatusPageCategoryForm: $TSFixMe = reduxForm({
     form: 'EditStatusPageCategoryForm',
     validate,
 })(EditStatusPageCategory);
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { statusPageCategoryName } = ownProps.data;
+    const { statusPageCategoryName }: $TSFixMe = ownProps.data;
     return {
         initialValues: {
             statusPageCategoryName,

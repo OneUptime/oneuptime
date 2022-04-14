@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import InvoiceService from '../services/invoiceService';
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -15,7 +15,7 @@ import { sendListResponse } from 'CommonServer/Utils/response';
 // Returns: 200: "Invoice received"; 400: "Error"
 router.post('/:userId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const userId = req.params.userId;
+        const userId: $TSFixMe = req.params.userId;
         let startingAfter = req.query.startingAfter;
         let endingBefore = req.query.endingBefore;
 
@@ -25,7 +25,7 @@ router.post('/:userId', async (req: ExpressRequest, res: ExpressResponse) => {
         if (endingBefore === 'undefined') {
             endingBefore = {};
         }
-        const invoices = await InvoiceService.get(
+        const invoices: $TSFixMe = await InvoiceService.get(
             userId,
             startingAfter,
             endingBefore

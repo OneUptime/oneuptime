@@ -3,13 +3,13 @@ import express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import TeamService from '../services/teamService';
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 import RealTimeService from '../services/realTimeService';
 import NotificationService from '../services/notificationService';
-const getUser = require('../middlewares/user').getUser;
-const getSubProjects = require('../middlewares/subProject').getSubProjects;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -28,11 +28,11 @@ router.get(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId = req.params.projectId;
+        const projectId: $TSFixMe = req.params.projectId;
 
         try {
             // Call the TeamService
-            const users = await TeamService.getTeamMembersBy({
+            const users: $TSFixMe = await TeamService.getTeamMembersBy({
                 _id: projectId,
             }); // frontend expects sendItemResponse
             return sendItemResponse(req, res, users);
@@ -48,16 +48,16 @@ router.get(
     isAuthorized,
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const subProjectIds = req.user.subProjects
+        const subProjectIds: $TSFixMe = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
         try {
-            const subProjectTeamMembers = await Promise.all(
+            const subProjectTeamMembers: $TSFixMe = await Promise.all(
                 subProjectIds.map(async (id: $TSFixMe) => {
-                    const teamMembers = await TeamService.getTeamMembersBy({
+                    const teamMembers: $TSFixMe = await TeamService.getTeamMembersBy({
                         _id: id,
                     });
-                    const count = teamMembers.length;
+                    const count: $TSFixMe = teamMembers.length;
                     return { teamMembers, count, _id: id };
                 })
             );
@@ -77,11 +77,11 @@ router.get(
     getUser,
     isAuthorized,
     async (req, res): void => {
-        const projectId = req.params.projectId;
-        const teamMemberUserId = req.params.teamMemberId;
+        const projectId: $TSFixMe = req.params.projectId;
+        const teamMemberUserId: $TSFixMe = req.params.teamMemberId;
 
         try {
-            const teamMember = await TeamService.getTeamMemberBy(
+            const teamMember: $TSFixMe = await TeamService.getTeamMemberBy(
                 projectId,
                 teamMemberUserId
             );
@@ -123,10 +123,10 @@ router.post(
     isAuthorized,
     isUserAdmin,
     async (req, res): void => {
-        const data = req.body;
+        const data: $TSFixMe = req.body;
 
-        const userId = req.user ? req.user : null;
-        const { projectId } = req.params;
+        const userId: $TSFixMe = req.user ? req.user : null;
+        const { projectId }: $TSFixMe = req.params;
 
         if (!data.emails) {
             return sendErrorResponse(req, res, {
@@ -160,7 +160,7 @@ router.post(
             );
         }
 
-        const emailArray = data.emails ? data.emails.split(',') : [];
+        const emailArray: $TSFixMe = data.emails ? data.emails.split(',') : [];
         if (!TeamService.isValidBusinessEmails(emailArray)) {
             return sendErrorResponse(
                 req,
@@ -184,13 +184,13 @@ router.post(
         try {
             // If members are not Viewers, we make sure they don't exceed 100
             if (data.role !== 'Viewers') {
-                const teamMembers = await TeamService.getTeamMembers(projectId);
-                const withoutViewers = teamMembers
+                const teamMembers: $TSFixMe = await TeamService.getTeamMembers(projectId);
+                const withoutViewers: $TSFixMe = teamMembers
                     ? teamMembers.filter(
                           teamMember => teamMember.role !== 'Viewer'
                       )
                     : [];
-                const totalTeamMembers =
+                const totalTeamMembers: $TSFixMe =
                     withoutViewers.length + emailArray.length;
                 if (totalTeamMembers > 100 && data.role !== 'Viewer') {
                     return sendErrorResponse(req, res, {
@@ -200,7 +200,7 @@ router.post(
                 }
             }
             // Call the TeamService
-            const users = await TeamService.inviteTeamMembers(
+            const users: $TSFixMe = await TeamService.inviteTeamMembers(
                 req.user.id,
                 projectId,
                 data.emails,
@@ -237,9 +237,9 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const userId = req.user ? req.user.id : null;
-        const teamMemberUserId = req.params.teamMemberId;
-        const projectId = req.params.projectId;
+        const userId: $TSFixMe = req.user ? req.user.id : null;
+        const teamMemberUserId: $TSFixMe = req.params.teamMemberId;
+        const projectId: $TSFixMe = req.params.projectId;
 
         if (!teamMemberUserId) {
             return sendErrorResponse(req, res, {
@@ -259,7 +259,7 @@ router.delete(
 
         try {
             // Call the TeamService
-            const teamMembers = await TeamService.removeTeamMember(
+            const teamMembers: $TSFixMe = await TeamService.removeTeamMember(
                 projectId,
                 userId,
                 teamMemberUserId
@@ -282,8 +282,8 @@ router.put(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const data = req.body;
-        const projectId = req.params.projectId;
+        const data: $TSFixMe = req.body;
+        const projectId: $TSFixMe = req.params.projectId;
         data.teamMemberId = req.params.teamMemberId;
         if (!data.teamMemberId) {
             return sendErrorResponse(req, res, {
@@ -317,8 +317,8 @@ router.put(
             );
         }
 
-        const userId = req.user ? req.user.id : null;
-        const teamMemberId = data.teamMemberId;
+        const userId: $TSFixMe = req.user ? req.user.id : null;
+        const teamMemberId: $TSFixMe = data.teamMemberId;
 
         try {
             if (data.role === 'Owner') {
@@ -330,7 +330,7 @@ router.put(
                     teamMemberId,
                     data.role
                 );
-                const teamMembers = await TeamService.updateTeamMemberRole(
+                const teamMembers: $TSFixMe = await TeamService.updateTeamMemberRole(
                     projectId,
                     userId,
                     userId,
@@ -349,7 +349,7 @@ router.put(
                 return sendItemResponse(req, res, teamMembers);
             } else {
                 // Call the TeamService
-                const updatedTeamMembers =
+                const updatedTeamMembers: $TSFixMe =
                     await TeamService.updateTeamMemberRole(
                         projectId,
                         userId,

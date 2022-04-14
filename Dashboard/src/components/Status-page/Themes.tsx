@@ -34,7 +34,7 @@ export class Themes extends Component<ThemesProps>{
     };
     submitForm = (value: $TSFixMe) => {
 
-        const { statusPageId, projectId } = this.props.data;
+        const { statusPageId, projectId }: $TSFixMe = this.props.data;
         const data: $TSFixMe = {
             ...value,
             statusPageId,
@@ -45,10 +45,10 @@ export class Themes extends Component<ThemesProps>{
 
     override render() {
 
-        const { handleSubmit, statusPage } = this.props;
-        const requesting = statusPage.theme.requesting;
-        const error = statusPage.theme.error;
-        const themes = [
+        const { handleSubmit, statusPage }: $TSFixMe = this.props;
+        const requesting: $TSFixMe = statusPage.theme.requesting;
+        const error: $TSFixMe = statusPage.theme.error;
+        const themes: $TSFixMe = [
             {
                 value: 'Clean Theme',
                 screenshot: '/dashboard/assets/img/clean.png',
@@ -222,7 +222,7 @@ export class Themes extends Component<ThemesProps>{
 
 Themes.displayName = 'Themes';
 
-const ThemesForm = new reduxForm({
+const ThemesForm: $TSFixMe = new reduxForm({
     form: 'Themes',
     destroyOnUnmount: true,
     enableReinitialize: true,
@@ -245,7 +245,7 @@ Themes.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { theme } = ownProps.data;
+    const { theme }: $TSFixMe = ownProps.data;
     return {
         statusPage: state.statusPage,
         initialValues: { theme },

@@ -33,7 +33,7 @@ class EditExternalStatusPagesModal extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { data } = this.props;
+        const { data }: $TSFixMe = this.props;
         this.props
 
             .updateExternalStatusPage(
@@ -72,7 +72,7 @@ class EditExternalStatusPagesModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         return (
             <div
@@ -261,7 +261,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const EditExternalStatusPagesModalForm = reduxForm({
+const EditExternalStatusPagesModalForm: $TSFixMe = reduxForm({
     form: 'EditExternalStatusPagesModal',
     validate, // <--- validation function given to redux-for
 })(EditExternalStatusPagesModal);

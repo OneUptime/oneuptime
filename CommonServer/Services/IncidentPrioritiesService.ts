@@ -13,7 +13,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const incidentPrioritiesQuery = incidentPriorityModel
+        const incidentPrioritiesQuery: $TSFixMe = incidentPriorityModel
             .find(query)
             .sort(sort)
             .lean()
@@ -24,7 +24,7 @@ export default class Service {
 
         incidentPrioritiesQuery.populate(populate);
 
-        const incidentPriorities = await incidentPrioritiesQuery;
+        const incidentPriorities: $TSFixMe = await incidentPrioritiesQuery;
 
         return incidentPriorities;
     }
@@ -34,7 +34,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const incidentPrioritiesQuery = incidentPriorityModel
+        const incidentPrioritiesQuery: $TSFixMe = incidentPriorityModel
             .findOne(query)
             .sort(sort)
             .lean();
@@ -43,7 +43,7 @@ export default class Service {
 
         incidentPrioritiesQuery.populate(populate);
 
-        const incidentPriorities = await incidentPrioritiesQuery;
+        const incidentPriorities: $TSFixMe = await incidentPrioritiesQuery;
 
         return incidentPriorities;
     }
@@ -56,14 +56,14 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const count = await incidentPriorityModel.countDocuments(query);
+        const count: $TSFixMe = await incidentPriorityModel.countDocuments(query);
 
         return count;
     }
 
     async create(data: $TSFixMe): void {
-        const incidentPriority = new incidentPriorityModel();
-        const { projectId, name, color } = data;
+        const incidentPriority: $TSFixMe = new incidentPriorityModel();
+        const { projectId, name, color }: $TSFixMe = data;
 
         incidentPriority.projectId = projectId;
 
@@ -81,7 +81,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const updatedIncidentPriority =
+        const updatedIncidentPriority: $TSFixMe =
             await incidentPriorityModel.findOneAndUpdate(
                 query,
                 {
@@ -97,7 +97,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const incidentPriority = await incidentPriorityModel.findOneAndUpdate(
+        const incidentPriority: $TSFixMe = await incidentPriorityModel.findOneAndUpdate(
             query,
             {
                 $set: {

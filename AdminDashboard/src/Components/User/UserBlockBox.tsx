@@ -21,9 +21,9 @@ export class UserBlockBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { blockUser, userId } = this.props;
+        const { blockUser, userId }: $TSFixMe = this.props;
 
-        const { blockModalId } = this.state;
+        const { blockModalId }: $TSFixMe = this.state;
 
 
         this.props.openModal({
@@ -47,7 +47,7 @@ export class UserBlockBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div
@@ -99,7 +99,7 @@ UserBlockBox.displayName = 'UserBlockBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ blockUser, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
 
     return {
         userId,

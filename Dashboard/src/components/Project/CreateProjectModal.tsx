@@ -26,7 +26,7 @@ export class CreateProjectModal extends Component<CreateProjectModalProps>{
 
     createProject(values: $TSFixMe) {
 
-        const { switchProject, dispatch } = this.props;
+        const { switchProject, dispatch }: $TSFixMe = this.props;
 
         return this.props.createProject(values).then((res: ExpressResponse) => {
             if (

@@ -16,7 +16,7 @@ export default class TableLoader extends Component<TableLoaderProps>{
 
     override render() {
 
-        const { isLoading } = this.props;
+        const { isLoading }: $TSFixMe = this.props;
 
         return <div>{isLoading ? <ListLoader /> : null}</div>;
     }

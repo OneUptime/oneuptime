@@ -197,8 +197,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const user = state.user.user.user || {};
-    const history = state.user.loginHistory.history;
+    const user: $TSFixMe = state.user.user.user || {};
+    const history: $TSFixMe = state.user.loginHistory.history;
 
     return {
         user,

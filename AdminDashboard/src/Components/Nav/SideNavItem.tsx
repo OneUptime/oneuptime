@@ -20,7 +20,7 @@ export class SidebarNavItem extends Component<ComponentProps>{
 
     override componentDidMount() {
 
-        const { route } = this.props;
+        const { route }: $TSFixMe = this.props;
         navKeyBind(route);
 
         route.subRoutes.map((subRoute: $TSFixMe) => {
@@ -31,7 +31,7 @@ export class SidebarNavItem extends Component<ComponentProps>{
 
     override componentWillUnmount() {
 
-        const { route } = this.props;
+        const { route }: $TSFixMe = this.props;
         cleanBind(route);
 
         route.subRoutes.map((subRoute: $TSFixMe) => {
@@ -47,7 +47,7 @@ export class SidebarNavItem extends Component<ComponentProps>{
     };
 
     routeInnerDiv = (route: $TSFixMe, isLinkActive: $TSFixMe) => {
-        const routes = route.shortcut && route.shortcut.split('+');
+        const routes: $TSFixMe = route.shortcut && route.shortcut.split('+');
 
         return (
             <div style={{ outline: 'none' }}>
@@ -86,11 +86,11 @@ export class SidebarNavItem extends Component<ComponentProps>{
     };
 
     override render() {
-        const { RenderListItems } = this;
+        const { RenderListItems }: $TSFixMe = this;
 
-        const { route, location, match, loadPage } = this.props;
-        const path = route.path;
-        const isLinkActive =
+        const { route, location, match, loadPage }: $TSFixMe = this.props;
+        const path: $TSFixMe = route.path;
+        const isLinkActive: $TSFixMe =
             location.pathname === path ||
             (location.pathname.match(/users\/([0-9]|[a-z])*/) &&
                 route.title === 'Users') ||
@@ -147,13 +147,13 @@ export class SidebarNavItem extends Component<ComponentProps>{
     }: $TSFixMe) {
 
         return this.props.route.subRoutes.map((child: $TSFixMe, index: $TSFixMe) => {
-            const routes = child.shortcut && child.shortcut.split('+');
+            const routes: $TSFixMe = child.shortcut && child.shortcut.split('+');
 
-            const removedLinks = ['User', 'Project'];
+            const removedLinks: $TSFixMe = ['User', 'Project'];
             if (removedLinks.some(link => link === child.title)) return null;
 
             if (child.visible) {
-                const link = child.path.replace(
+                const link: $TSFixMe = child.path.replace(
                     ':userId',
 
                     this.props.match.params.userId

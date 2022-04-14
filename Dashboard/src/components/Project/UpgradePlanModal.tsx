@@ -57,7 +57,7 @@ export class UpgradePlanModal extends Component<UpgradePlanModalProps>{
             details: oldDetails,
 
         } = PricingPlan.getPlanById(this.props.initialValues.planId);
-        const oldPlan:string = `${oldCategory} ${oldType}ly (${oldDetails})`;
+        const oldPlan:string: $TSFixMe = `${oldCategory} ${oldType}ly (${oldDetails})`;
         const {
 
             category: newCategory,
@@ -66,7 +66,7 @@ export class UpgradePlanModal extends Component<UpgradePlanModalProps>{
 
             details: newDetails,
         } = PricingPlan.getPlanById(values.planId);
-        const newPlan:string = `${newCategory} ${newType}ly (${newDetails})`;
+        const newPlan:string: $TSFixMe = `${newCategory} ${newType}ly (${newDetails})`;
 
         this.props.changePlan(id, values.planId, name, oldPlan, newPlan);
 
@@ -108,7 +108,7 @@ export class UpgradePlanModal extends Component<UpgradePlanModalProps>{
 // }
 
 const mapStateToProps: Function = (state: RootState) => {
-    const planId = state.project.currentProject
+    const planId: $TSFixMe = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';
     return {

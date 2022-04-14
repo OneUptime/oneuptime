@@ -22,7 +22,7 @@ export class UserSetting extends Component<ComponentProps>{
 
     handleChange = () => {
 
-        const { user, updateTwoFactorAuthToken, setTwoFactorAuth } = this.props;
+        const { user, updateTwoFactorAuthToken, setTwoFactorAuth }: $TSFixMe = this.props;
         if (user) {
             return !user.twoFactorAuthEnabled && user.role === 'user'
 
@@ -376,7 +376,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const user = state.user.user.user || {};
+    const user: $TSFixMe = state.user.user.user || {};
     return {
         userSettings: state.user.userSetting,
         user,

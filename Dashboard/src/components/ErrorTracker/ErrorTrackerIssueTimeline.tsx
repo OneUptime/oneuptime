@@ -16,13 +16,13 @@ class ErrorTrackerIssueTimeline extends Component<ComponentProps> {
         super(props);
     }
     generateText = (status: $TSFixMe) => {
-        const capitalizedText =
+        const capitalizedText: $TSFixMe =
             status.charAt(0).toUpperCase() + status.slice(1);
         return `${capitalizedText}d by`;
     };
     override render() {
 
-        const { errorEvent, errorTrackerIssue } = this.props;
+        const { errorEvent, errorTrackerIssue }: $TSFixMe = this.props;
         return (
             <ShouldRender
                 if={

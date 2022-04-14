@@ -6,8 +6,8 @@ import { RootState } from '../../store';
 // params 1: props
 // returns JSX.Element or NULL
 function RenderIfSubProjectMember(props: $TSFixMe): void {
-    const { currentProject, subProjects, children, currentUserId } = props;
-    const userId = User.getUserId();
+    const { currentProject, subProjects, children, currentUserId }: $TSFixMe = props;
+    const userId: $TSFixMe = User.getUserId();
 
     let renderItems = null;
     if (

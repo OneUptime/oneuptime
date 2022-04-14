@@ -9,8 +9,8 @@ import ShouldRender from '../../components/basic/ShouldRender';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import moment from 'moment';
 
-const endDate = moment();
-const startDate = moment().subtract(1, 'd');
+const endDate: $TSFixMe = moment();
+const startDate: $TSFixMe = moment().subtract(1, 'd');
 
 interface MonitorViewLogsBoxProps {
     currentProject?: object;
@@ -41,13 +41,13 @@ export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps>{
 
     prevClicked = (monitorId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { currentProject, getMonitorLogs } = this.props;
+        const { currentProject, getMonitorLogs }: $TSFixMe = this.props;
 
-        const incidentId = this.props.incidentId ? this.props.incidentId : null;
+        const incidentId: $TSFixMe = this.props.incidentId ? this.props.incidentId : null;
 
-        const start = incidentId ? '' : this.state.startDate.clone().utc();
+        const start: $TSFixMe = incidentId ? '' : this.state.startDate.clone().utc();
 
-        const end = incidentId ? '' : this.state.endDate.clone().utc();
+        const end: $TSFixMe = incidentId ? '' : this.state.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -67,13 +67,13 @@ export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps>{
 
     nextClicked = (monitorId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { currentProject, getMonitorLogs } = this.props;
+        const { currentProject, getMonitorLogs }: $TSFixMe = this.props;
 
-        const incidentId = this.props.incidentId ? this.props.incidentId : null;
+        const incidentId: $TSFixMe = this.props.incidentId ? this.props.incidentId : null;
 
-        const start = incidentId ? '' : this.state.startDate.clone().utc();
+        const start: $TSFixMe = incidentId ? '' : this.state.startDate.clone().utc();
 
-        const end = incidentId ? '' : this.state.endDate.clone().utc();
+        const end: $TSFixMe = incidentId ? '' : this.state.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -91,19 +91,19 @@ export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps>{
         this.setState({ page: this.state.page + 1 });
     };
     handleStartDateTimeChange = (val: $TSFixMe) => {
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
 
         this.handleDateChange(startDate, this.state.endDate);
     };
     handleEndDateTimeChange = (val: $TSFixMe) => {
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
 
         this.handleDateChange(this.state.startDate, endDate);
     };
 
     handleDateChange = (startDate: $TSFixMe, endDate: $TSFixMe) => {
 
-        const { currentProject, getMonitorLogs, monitorId } = this.props;
+        const { currentProject, getMonitorLogs, monitorId }: $TSFixMe = this.props;
         this.setState({
             startDate,
             endDate,
@@ -125,7 +125,7 @@ export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps>{
 
     handleTimeChange = (startDate: $TSFixMe, endDate: $TSFixMe) => {
 
-        const { currentProject, getMonitorLogs, monitorId } = this.props;
+        const { currentProject, getMonitorLogs, monitorId }: $TSFixMe = this.props;
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -144,7 +144,7 @@ export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps>{
     handleProbeChange = (data: $TSFixMe) => {
         this.setState({ probeValue: data });
 
-        const { currentProject, getMonitorLogs, monitorId } = this.props;
+        const { currentProject, getMonitorLogs, monitorId }: $TSFixMe = this.props;
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -162,7 +162,7 @@ export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps>{
     };
 
     override render() {
-        const probeOptions =
+        const probeOptions: $TSFixMe =
 
             this.props.probes && this.props.probes.length > 0
 
@@ -325,7 +325,7 @@ MonitorViewLogsBox.propTypes = {
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getMonitorLogs }, dispatch);
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const monitorId = props.monitorId ? props.monitorId : null;
+    const monitorId: $TSFixMe = props.monitorId ? props.monitorId : null;
     return {
         monitorLogs: monitorId ? state.monitor.monitorLogs[monitorId] : {},
         probes: state.probe.probes.data,

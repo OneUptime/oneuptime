@@ -6,7 +6,7 @@ const format: Function = (number: $TSFixMe): void => {
     }
     let formattedValue = '';
     let index = 0;
-    const formats = [
+    const formats: $TSFixMe = [
         { index: 'T', value: 1e12 },
         { index: 'B', value: 1e9 },
         { index: 'M', value: 1e6 },
@@ -18,12 +18,12 @@ const format: Function = (number: $TSFixMe): void => {
     }
     // terminate if we have a formatted value or the next index is not defined
     while (formattedValue === '' && formats[index]) {
-        const currentFormat = formats[index];
+        const currentFormat: $TSFixMe = formats[index];
 
         let val = (number / currentFormat.value).toFixed(2);
-        const remainder = number % currentFormat.value;
+        const remainder: $TSFixMe = number % currentFormat.value;
 
-        const isValueLessThanOne = val < 1;
+        const isValueLessThanOne: $TSFixMe = val < 1;
         let formattedRemainder = '';
 
         if (!isValueLessThanOne) {
@@ -31,15 +31,15 @@ const format: Function = (number: $TSFixMe): void => {
             if (remainder !== 0) {
                 // value has remainder
                 // convert value to string and fetch the digit after the decimal
-                const stringVal = val.toString();
+                const stringVal: $TSFixMe = val.toString();
                 formattedRemainder = stringVal.substr(
                     stringVal.indexOf('.') + 1
                 );
 
                 // if the formatted remainder is divisible by 10, without a remainder, we return just the first digit
                 // this is to avoid .50 instead we have .5
-                const intFormattedRemainder = parseInt(formattedRemainder);
-                const tenthRemainder = intFormattedRemainder % 10;
+                const intFormattedRemainder: $TSFixMe = parseInt(formattedRemainder);
+                const tenthRemainder: $TSFixMe = intFormattedRemainder % 10;
                 if (tenthRemainder === 0) {
                     formattedRemainder = formattedRemainder.substr(0, 1);
                 }

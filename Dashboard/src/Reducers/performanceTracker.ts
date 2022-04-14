@@ -386,7 +386,7 @@ export default function (state = INITIAL_STATE, action: Action): void {
             };
 
         case types.FETCH_LAST_METRICS_SUCCESS: {
-            const metrics = state.lastMetrics.metrics
+            const metrics: $TSFixMe = state.lastMetrics.metrics
                 .filter(
                     metric =>
                         String(metric.performanceTrackerId) !==

@@ -21,7 +21,7 @@ import ScheduleInput from '../schedule/ScheduleInput';
 import { ValidateField } from '../../config';
 import MultiSelectField from '../multiSelect/MultiSelectField';
 
-const newSelector = formValueSelector('NewMonitor');
+const newSelector: $TSFixMe = formValueSelector('NewMonitor');
 
 const responsestyle: $TSFixMe = {
     marginTop: '10px',
@@ -76,7 +76,7 @@ export class ResponseComponent extends Component<ResponseComponentProps>{
     }
     handleAddFilterCriteria() {
 
-        const criterionFieldName:string = `${this.props.criterion.type}_${this.props.criterion.id}`;
+        const criterionFieldName:string: $TSFixMe = `${this.props.criterion.type}_${this.props.criterion.id}`;
 
 
         this.props.arrayPush('NewMonitor', criterionFieldName, {
@@ -142,7 +142,7 @@ export class ResponseComponent extends Component<ResponseComponentProps>{
         };
 
         const { id: criterionId, type: criterionType } = criterion;
-        const criterionFieldName:string = `${criterionType}_${criterionId}`;
+        const criterionFieldName:string: $TSFixMe = `${criterionType}_${criterionId}`;
         let head;
         let tagline;
 

@@ -135,7 +135,7 @@ const _this: $TSFixMe = {
 
     //This will change the date to today and will retain the time.
     moveDateToToday(date: $TSFixMe) {
-        const today = new Date();
+        const today: $TSFixMe = new Date();
 
         if (typeof date === 'string') {
             date = new Date(date);
@@ -156,7 +156,7 @@ const _this: $TSFixMe = {
             date = new Date(date);
         }
 
-        const current = new Date();
+        const current: $TSFixMe = new Date();
         date = moment(date).add(1, 'minutes').toDate();
 
         return this.lessThan(date, current);

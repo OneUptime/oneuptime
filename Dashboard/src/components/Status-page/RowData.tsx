@@ -18,15 +18,15 @@ export class RowData extends Component<RowDataProps>{
     public static propTypes = {};
     override render() {
 
-        const { statusPage, project } = this.props;
-        const userId = User.getUserId();
-        const monitorIds = statusPage.monitorNames;
+        const { statusPage, project }: $TSFixMe = this.props;
+        const userId: $TSFixMe = User.getUserId();
+        const monitorIds: $TSFixMe = statusPage.monitorNames;
         const gt: Function = (i: $TSFixMe) => monitorIds && monitorIds.length > i;
         let monitors = gt(0) ? monitorIds[0] : 'Not Yet Added';
         monitors += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
-        const path:string = `/dashboard/project/${project.slug}/StatusPage/${statusPage.slug}`;
+        const path:string: $TSFixMe = `/dashboard/project/${project.slug}/StatusPage/${statusPage.slug}`;
         let publicStatusPageurl: URL, statusPageSlug;
         if (statusPage) {
             statusPageSlug = statusPage.slug;

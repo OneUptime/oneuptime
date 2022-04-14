@@ -3,7 +3,7 @@ import express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import FileService from '../services/fileService';
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -17,7 +17,7 @@ import { sendFileResponse } from 'CommonServer/Utils/response';
 
 router.get('/:filename', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const file = await FileService.findOneBy({
+        const file: $TSFixMe = await FileService.findOneBy({
             filename: req.params.filename,
         });
         return sendFileResponse(req, res, file);

@@ -29,9 +29,9 @@ class AuditLogs extends Component<ComponentProps> {
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchAuditLogs, searchAuditLogs } = this.props;
+        const { fetchAuditLogs, searchAuditLogs }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchAuditLogs(
@@ -48,9 +48,9 @@ class AuditLogs extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchAuditLogs, searchAuditLogs } = this.props;
+        const { fetchAuditLogs, searchAuditLogs }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchAuditLogs(searchBox, skip + limit, 10);
@@ -69,9 +69,9 @@ class AuditLogs extends Component<ComponentProps> {
     }
 
     onChange = (e: $TSFixMe) => {
-        const value = e.target.value;
+        const value: $TSFixMe = e.target.value;
 
-        const { searchAuditLogs } = this.props;
+        const { searchAuditLogs }: $TSFixMe = this.props;
 
         this.setState({ searchBox: value });
         searchAuditLogs(value, 0, 10);
@@ -80,7 +80,7 @@ class AuditLogs extends Component<ComponentProps> {
 
     override render() {
 
-        const { auditLogStatus } = this.props;
+        const { auditLogStatus }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeAuditLog"
@@ -216,16 +216,16 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const auditLogs = state.auditLogs.auditLogs;
-    const searchAuditLogs = state.auditLogs.searchAuditLogs;
-    const requesting =
+    const auditLogs: $TSFixMe = state.auditLogs.auditLogs;
+    const searchAuditLogs: $TSFixMe = state.auditLogs.searchAuditLogs;
+    const requesting: $TSFixMe =
         auditLogs && searchAuditLogs
             ? auditLogs.requesting || searchAuditLogs.requesting
                 ? true
                 : false
             : false;
-    const auditLogStatus = state.auditLogs.auditLogStatus;
-    const changeAuditLogStatus = state.auditLogs.changeAuditLogStatus;
+    const auditLogStatus: $TSFixMe = state.auditLogs.auditLogStatus;
+    const changeAuditLogStatus: $TSFixMe = state.auditLogs.changeAuditLogStatus;
     return {
         auditLogs,
         requesting,

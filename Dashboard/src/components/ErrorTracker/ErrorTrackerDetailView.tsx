@@ -47,7 +47,7 @@ class ErrorTrackerDetailView extends Component<ComponentProps> {
     };
     removeOrAdd(selectedErrorEvents: $TSFixMe, errorEventId: $TSFixMe) {
         let response;
-        const index = selectedErrorEvents.indexOf(errorEventId);
+        const index: $TSFixMe = selectedErrorEvents.indexOf(errorEventId);
         if (index === -1) {
             // it doesnt exist add it
             response = [...selectedErrorEvents, errorEventId];
@@ -77,7 +77,7 @@ class ErrorTrackerDetailView extends Component<ComponentProps> {
         });
     };
     ignoreErrorEvent = (ignore: $TSFixMe) => {
-        const promise = this.props
+        const promise: $TSFixMe = this.props
 
             .ignoreErrorEvent(this.state.selectedErrorEvents, ignore)
             .then();
@@ -87,7 +87,7 @@ class ErrorTrackerDetailView extends Component<ComponentProps> {
         return promise;
     };
     resolveErrorEvent = () => {
-        const promise = this.props
+        const promise: $TSFixMe = this.props
 
             .resolveErrorEvent(this.state.selectedErrorEvents)
             .then();
@@ -98,25 +98,25 @@ class ErrorTrackerDetailView extends Component<ComponentProps> {
     };
     resolveSingleIssue = (issueId: $TSFixMe) => {
 
-        const promise = this.props.resolveErrorEvent([issueId]).then();
+        const promise: $TSFixMe = this.props.resolveErrorEvent([issueId]).then();
         return promise;
     };
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { handleNavigationButtonClick } = this.props;
+        const { handleNavigationButtonClick }: $TSFixMe = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { handleNavigationButtonClick } = this.props;
+        const { handleNavigationButtonClick }: $TSFixMe = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
     };
     openEventMemberModal = (errorTrackerIssue: $TSFixMe) => {
 
-        const { openModal, updateErrorEventMember, teamMembers } = this.props;
+        const { openModal, updateErrorEventMember, teamMembers }: $TSFixMe = this.props;
 
-        const { memberModalId } = this.state;
+        const { memberModalId }: $TSFixMe = this.state;
 
         openModal({
             id: memberModalId,
@@ -131,7 +131,7 @@ class ErrorTrackerDetailView extends Component<ComponentProps> {
     };
     override render() {
 
-        const { selectedErrorEvents, ignoreModalId } = this.state;
+        const { selectedErrorEvents, ignoreModalId }: $TSFixMe = this.state;
         const {
 
             errorTrackerIssues,
@@ -158,7 +158,7 @@ class ErrorTrackerDetailView extends Component<ComponentProps> {
             errorTrackerIssues && errorTrackerIssues.limit
                 ? errorTrackerIssues.limit
                 : null;
-        const count =
+        const count: $TSFixMe =
             errorTrackerIssues && errorTrackerIssues.count
                 ? errorTrackerIssues.count
                 : null;
@@ -577,18 +577,18 @@ class ErrorTrackerDetailView extends Component<ComponentProps> {
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     // get current error event tracker
-    const errorTracker = ownProps.errorTracker;
+    const errorTracker: $TSFixMe = ownProps.errorTracker;
     // get its list of error tracker issues
-    const errorTrackerIssues =
+    const errorTrackerIssues: $TSFixMe =
         state.errorTracker.errorTrackerIssues[errorTracker._id];
-    const { teamMembers } = ownProps;
+    const { teamMembers }: $TSFixMe = ownProps;
 
     if (errorTrackerIssues) {
         errorTrackerIssues.errorTrackerIssues.map((errorTrackerIssue: $TSFixMe) => {
-            const issueMembers = errorTrackerIssue.members;
+            const issueMembers: $TSFixMe = errorTrackerIssue.members;
             const differentialTeamMember: $TSFixMe = [];
             teamMembers.forEach((teamMember: $TSFixMe) => {
-                const exist = issueMembers.filter(
+                const exist: $TSFixMe = issueMembers.filter(
                     (issueMember: $TSFixMe) => issueMember.userId._id === teamMember.userId
                 );
                 if (exist.length < 1) {

@@ -5,12 +5,12 @@ import moment from 'moment';
 function ProbeStatus({
     lastAlive
 }: $TSFixMe) {
-    const [now, setNow] = useState(Date.now());
+    const [now, setNow]: $TSFixMe = useState(Date.now());
 
     useEffect(() => {
         setNow(Date.now());
 
-        const nowHandler = setTimeout(() => {
+        const nowHandler = setTimeout((): $TSFixMe => {
             setNow(Date.now());
         }, 300000);
 

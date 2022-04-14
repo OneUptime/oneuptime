@@ -182,7 +182,7 @@ export default function incomingRequest(
             };
 
         case types.DELETE_INCOMING_REQUEST_SUCCESS: {
-            const incomingRequests =
+            const incomingRequests: $TSFixMe =
                 state.incomingRequests.incomingRequests.filter(
                     request =>
                         String(request._id) !== String(action.payload._id)

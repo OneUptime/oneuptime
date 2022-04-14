@@ -83,7 +83,7 @@ class Notes extends Component<ComponentProps> {
     };
     handleNavigation = (statusPageSlug: $TSFixMe, noteSlug: $TSFixMe) => {
 
-        const { history } = this.props;
+        const { history }: $TSFixMe = this.props;
 
         history.push(`/StatusPage/${statusPageSlug}/incident/${noteSlug}`);
     };

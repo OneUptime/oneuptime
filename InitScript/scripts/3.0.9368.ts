@@ -3,7 +3,7 @@ import { find, updateMany } from '../util/db';
 const monitorCollection: string = 'monitors';
 
 async function run(): void {
-    const monitors = await find(monitorCollection, {
+    const monitors: $TSFixMe = await find(monitorCollection, {
         deleted: false,
         regions: { $exists: false },
     });

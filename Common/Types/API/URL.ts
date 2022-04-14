@@ -73,12 +73,12 @@ export default class URL {
             url = url.replace('mongodb://', '');
         }
 
-        const hostname = new Hostname(url.split('/')[0] || '');
+        const hostname: $TSFixMe = new Hostname(url.split('/')[0] || '');
 
         let route;
 
         if (url.split('/').length > 1) {
-            const paths = url.split('/');
+            const paths: $TSFixMe = url.split('/');
             paths.shift();
             route = new Route(paths.join('/'));
         }

@@ -5,17 +5,17 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
-const webHookName = utils.generateRandomString();
-const newWebHookName = utils.generateRandomString();
-const webhookEndpoint = utils.generateRandomWebsite();
-const priorityName = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const webHookName: $TSFixMe = utils.generateRandomString();
+const newWebHookName: $TSFixMe = utils.generateRandomString();
+const webhookEndpoint: $TSFixMe = utils.generateRandomWebsite();
+const priorityName: $TSFixMe = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -84,7 +84,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            const createdWebhookName = await init.page$Eval(
+            const createdWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 createdWebhookSelector,
                 (el: $TSFixMe) => el.textContent
@@ -112,7 +112,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, existingWebhookSelector);
 
-            const existingWebhookName = await init.page$Eval(
+            const existingWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 existingWebhookSelector,
                 (el: $TSFixMe) => el.textContent
@@ -127,7 +127,7 @@ describe('Monitor Detail API', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            const newWebhookEndpoint = utils.generateRandomWebsite();
+            const newWebhookEndpoint: $TSFixMe = utils.generateRandomWebsite();
             await init.pageClick(page, '#webHookName', { clickCount: 3 });
 
             await init.pageType(page, '#webHookName', newWebHookName);
@@ -145,7 +145,7 @@ describe('Monitor Detail API', () => {
                 page,
                 `#name_slack_${newWebHookName}`
             );
-            const updatedWebhookName = await init.page$Eval(
+            const updatedWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 `#name_slack_${newWebHookName}`,
                 (el: $TSFixMe) => el.textContent
@@ -172,8 +172,8 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            const webhookRows = await init.page$$(page, createdWebhookSelector);
-            const countWebhooks = webhookRows.length;
+            const webhookRows: $TSFixMe = await init.page$$(page, createdWebhookSelector);
+            const countWebhooks: $TSFixMe = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
 
@@ -271,7 +271,7 @@ describe('Monitor Detail API', () => {
 
             expect(countWebhooks).toEqual(10);
 
-            const nextSelector = await init.page$(page, '#btnNextSlack');
+            const nextSelector: $TSFixMe = await init.page$(page, '#btnNextSlack');
 
             await nextSelector.click();
 
@@ -282,7 +282,7 @@ describe('Monitor Detail API', () => {
 
             expect(countWebhooks).toEqual(1);
 
-            const prevSelector = await init.page$(page, '#btnPrevSlack');
+            const prevSelector: $TSFixMe = await init.page$(page, '#btnPrevSlack');
 
             await prevSelector.click();
 

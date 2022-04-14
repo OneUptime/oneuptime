@@ -121,7 +121,7 @@ class ErrorEventDetail extends Component<ComponentProps> {
 
             componentSlug,
         } = this.props;
-        const promise = deleteErrorTrackerIssue(
+        const promise: $TSFixMe = deleteErrorTrackerIssue(
             projectId,
             componentId,
             errorTrackerId,
@@ -229,18 +229,18 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const errorTrackerId = ownProps.errorTrackerId;
-    const errorTrackers = state.errorTracker.errorTrackersList.errorTrackers;
-    const currentErrorTracker = errorTrackers.filter(
+    const errorTrackerId: $TSFixMe = ownProps.errorTrackerId;
+    const errorTrackers: $TSFixMe = state.errorTracker.errorTrackersList.errorTrackers;
+    const currentErrorTracker: $TSFixMe = errorTrackers.filter(
         (errorTracker: $TSFixMe) => errorTracker._id === errorTrackerId
     );
-    const errorTrackerIssues = state.errorTracker.errorTrackerIssues[
+    const errorTrackerIssues: $TSFixMe = state.errorTracker.errorTrackerIssues[
         errorTrackerId
     ]
         ? state.errorTracker.errorTrackerIssues[errorTrackerId]
             .errorTrackerIssues
         : [];
-    const errorEvent = ownProps.errorEvent.errorEvent;
+    const errorEvent: $TSFixMe = ownProps.errorEvent.errorEvent;
     // check if issue id exist in the redux state first, before using the issue details in the error event
     let errorEventIssue;
     if (errorEvent) {
@@ -248,13 +248,13 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
             (errorTrackerIssue: $TSFixMe) => errorTrackerIssue._id === errorEvent.issueId._id
         )[0];
     }
-    const errorTrackerIssueStatus = errorEventIssue
+    const errorTrackerIssueStatus: $TSFixMe = errorEventIssue
         ? errorEventIssue
         : errorEvent
             ? errorEvent.issueId
             : {};
 
-    const errorTrackerStatus =
+    const errorTrackerStatus: $TSFixMe =
         state.errorTracker.errorTrackerStatus[ownProps.errorTrackerId];
 
     return {

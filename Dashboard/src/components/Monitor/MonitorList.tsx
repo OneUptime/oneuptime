@@ -30,20 +30,20 @@ interface MonitorListProps {
 }
 
 function MonitorList(props: MonitorListProps) {
-    const monitors = props.monitors ? props.monitors : [];
-    const skip = props.skip;
-    const limit = props.limit;
-    const count = props.count;
-    const page = props.page;
-    const canNext = monitors && count && count > skip + limit ? true : false;
-    const canPrev = monitors && skip <= 0 ? false : true;
-    const numberOfPages = props.numberOfPage
+    const monitors: $TSFixMe = props.monitors ? props.monitors : [];
+    const skip: $TSFixMe = props.skip;
+    const limit: $TSFixMe = props.limit;
+    const count: $TSFixMe = props.count;
+    const page: $TSFixMe = props.page;
+    const canNext: $TSFixMe = monitors && count && count > skip + limit ? true : false;
+    const canPrev: $TSFixMe = monitors && skip <= 0 ? false : true;
+    const numberOfPages: $TSFixMe = props.numberOfPage
         ? props.numberOfPage
         : Math.ceil(parseInt(count) / limit);
 
     let monitorDetails = null;
     if (props.monitors && props.monitors.length > 0) {
-        const monitors = props.monitors;
+        const monitors: $TSFixMe = props.monitors;
         monitorDetails = monitors.map((monitor: $TSFixMe, i: $TSFixMe) => (
             <div id={`monitor${i}`} key={monitor._id}>
                 <RenderIfUserInSubProject
@@ -206,7 +206,7 @@ MonitorList.propTypes = {
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ updateprobebysocket }, dispatch);
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { componentSlug } = ownProps.match.params;
+    const { componentSlug }: $TSFixMe = ownProps.match.params;
 
     return {
         currentProject: state.project.currentProject,

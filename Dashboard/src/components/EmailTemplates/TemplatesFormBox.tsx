@@ -368,7 +368,7 @@ TemplatesFormBox.propTypes = {
     resetTemplate: PropTypes.func.isRequired,
 };
 
-const TemplatesFormBoxForm = reduxForm({
+const TemplatesFormBoxForm: $TSFixMe = reduxForm({
     form: 'templatesform', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for
@@ -384,7 +384,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const template = state.emailTemplates.showingTemplate;
+    const template: $TSFixMe = state.emailTemplates.showingTemplate;
     const val: $TSFixMe = {
         subject: template.subject,
         body: template.body,

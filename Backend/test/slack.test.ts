@@ -7,7 +7,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 import GlobalConfig from './utils/globalConfig';

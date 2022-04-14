@@ -4,7 +4,7 @@ import mongoose, {
     EncryptedFields,
 } from '../Infrastructure/ORM';
 
-const Schema = mongoose.Schema;
+const Schema: $TSFixMe = mongoose.Schema;
 
 /**
  * Represents the Zapier Schema in the database.
@@ -15,7 +15,7 @@ const Schema = mongoose.Schema;
  * @property {number} counter - The number of incidents send to the zapier `url`.
  *
  */
-const schema = new Schema({
+const schema: $TSFixMe = new Schema({
     projectId: String,
     url: URL,
     type: String,

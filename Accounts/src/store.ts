@@ -9,15 +9,15 @@ import queryString from 'query-string';
 import rootReducer from './reducers';
 
 // A nice helper to tell us if we're on the server
-export const isApiServer = !(
+export const isApiServer: $TSFixMe = !(
     typeof window !== 'undefined' &&
     window.document &&
     window.document.createElement
 );
 
 export const removeQuery: Function = (removeField: string): void => {
-    const location = Object.assign({}, history.location);
-    const query = queryString.parse(location.search);
+    const location: $TSFixMe = Object.assign({}, history.location);
+    const query: $TSFixMe = queryString.parse(location.search);
     if (query[removeField]) {
         delete query[removeField];
     }
@@ -32,9 +32,9 @@ export const removeQuery: Function = (removeField: string): void => {
 };
 
 const initialState: $TSFixMe = {};
-const enhancers = [];
-const logger = createLogger();
-const middleware = [thunk, routerMiddleware(history)];
+const enhancers: $TSFixMe = [];
+const logger: $TSFixMe = createLogger();
+const middleware: $TSFixMe = [thunk, routerMiddleware(history)];
 
 if (process.env['NODE_ENV'] === 'development') {
     let devToolsExtension;
@@ -48,9 +48,9 @@ if (process.env['NODE_ENV'] === 'development') {
     }
 }
 
-const composedEnhancers = compose(applyMiddleware(...middleware), ...enhancers);
+const composedEnhancers: $TSFixMe = compose(applyMiddleware(...middleware), ...enhancers);
 
-const store = createStore(rootReducer, initialState, composedEnhancers);
+const store: $TSFixMe = createStore(rootReducer, initialState, composedEnhancers);
 
 export type RootState = ReturnType<typeof store.getState>;
 

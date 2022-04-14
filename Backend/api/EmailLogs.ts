@@ -2,11 +2,11 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import EmailLogsService from '../services/emailStatusService';
-const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
 
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -22,12 +22,12 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const query: $TSFixMe = {};
-            const skip = req.query['skip'];
-            const limit = req.query['limit'];
-            const selectEmailStatus =
+            const skip: $TSFixMe = req.query['skip'];
+            const limit: $TSFixMe = req.query['limit'];
+            const selectEmailStatus: $TSFixMe =
                 'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-            const [emailLogs, count] = await Promise.all([
+            const [emailLogs, count]: $TSFixMe = await Promise.all([
                 EmailLogsService.findBy({
                     query,
                     skip,
@@ -50,7 +50,7 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -100,7 +100,7 @@ router.post(
                     message: 'Email Log Template is required',
                 });
             }
-            const emailLog = await EmailLogsService.create(data);
+            const emailLog: $TSFixMe = await EmailLogsService.create(data);
             return sendItemResponse(req, res, emailLog);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -114,8 +114,8 @@ router.put(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const data = req.body;
-            const emailLogsId = req.params.emailLogsId;
+            const data: $TSFixMe = req.body;
+            const emailLogsId: $TSFixMe = req.params.emailLogsId;
 
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -166,7 +166,7 @@ router.put(
                 });
             }
 
-            const emailLog = await EmailLogsService.updateOneBy(
+            const emailLog: $TSFixMe = await EmailLogsService.updateOneBy(
                 { _id: emailLogsId },
                 data
             );
@@ -183,11 +183,11 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const filter = req.body.filter;
-            const skip = req.query['skip'];
-            const limit = req.query['limit'];
+            const filter: $TSFixMe = req.body.filter;
+            const skip: $TSFixMe = req.query['skip'];
+            const limit: $TSFixMe = req.query['limit'];
 
-            const { searchedEmailLogs, totalSearchCount } =
+            const { searchedEmailLogs, totalSearchCount }: $TSFixMe =
                 await EmailLogsService.search({ filter, skip, limit });
 
             return sendListResponse(
@@ -210,7 +210,7 @@ router.delete(
         try {
             const query: $TSFixMe = {};
 
-            const msg = await EmailLogsService.hardDeleteBy({ query });
+            const msg: $TSFixMe = await EmailLogsService.hardDeleteBy({ query });
 
             return sendItemResponse(req, res, msg);
         } catch (error) {

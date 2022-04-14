@@ -95,7 +95,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
         }
 
         if (componentSlug && component && componentId) {
-            const projectId = component.projectId._id || component.projectId;
+            const projectId: $TSFixMe = component.projectId._id || component.projectId;
 
             this.props.getComponentIncidents(projectId, componentId);
         } else {
@@ -156,7 +156,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
 
             if (this.props.component && this.props.component.projectId) {
-                const projectId =
+                const projectId: $TSFixMe =
 
                     this.props.component.projectId._id ||
 
@@ -201,7 +201,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
 
     prevClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { componentId } = this.props;
+        const { componentId }: $TSFixMe = this.props;
         if (componentId) {
 
             this.props.getProjectComponentIncidents(
@@ -220,7 +220,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
         }
 
 
-        const newPageState = Object.assign({}, this.state.page, {
+        const newPageState: $TSFixMe = Object.assign({}, this.state.page, {
             [projectId]:
 
                 this.state.page[projectId] === 1
@@ -235,7 +235,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
 
     nextClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { componentId } = this.props;
+        const { componentId }: $TSFixMe = this.props;
         if (componentId) {
 
             this.props.getProjectComponentIncidents(
@@ -249,7 +249,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
             this.props.getProjectIncidents(projectId, skip + limit, 10);
         }
 
-        const newPageState = Object.assign({}, this.state.page, {
+        const newPageState: $TSFixMe = Object.assign({}, this.state.page, {
 
             [projectId]: !this.state.page[projectId]
                 ? 2
@@ -263,9 +263,9 @@ class IncidentLog extends React.Component<IncidentLogProps> {
 
     override render() {
 
-        const { createIncidentModalId } = this.state;
+        const { createIncidentModalId }: $TSFixMe = this.state;
 
-        const creating = this.props.create ? this.props.create : false;
+        const creating: $TSFixMe = this.props.create ? this.props.create : false;
         const {
 
             subProjects,
@@ -286,7 +286,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
 
             activeProjectId,
         } = this.props;
-        const currentProjectId = activeProjectId;
+        const currentProjectId: $TSFixMe = activeProjectId;
 
         // Add Project Incidents to All Incidents List
         let projectIncident =
@@ -300,7 +300,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
             projectIncident.success = incidents.success;
         }
 
-        const subProjectName =
+        const subProjectName: $TSFixMe =
             subProjects.find((obj: $TSFixMe) => obj._id === currentProjectId)?.name ||
             currentProject.name;
         projectIncident =
@@ -356,10 +356,10 @@ class IncidentLog extends React.Component<IncidentLogProps> {
                 false
             );
 
-        const allIncidents = projectIncident && [projectIncident];
-        const componentName = component ? component.name : '';
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const allIncidents: $TSFixMe = projectIncident && [projectIncident];
+        const componentName: $TSFixMe = component ? component.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
 
         return (
             <Fade>
@@ -410,13 +410,13 @@ class IncidentLog extends React.Component<IncidentLogProps> {
 }
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { componentSlug } = ownProps.match.params;
-    const projectId =
+    const { componentSlug }: $TSFixMe = ownProps.match.params;
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
-    const subProjectNames =
+    const subProjectNames: $TSFixMe =
         subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =
@@ -425,7 +425,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
         );
 
     // try to get custom project tutorial by project ID
-    const projectCustomTutorial = state.tutorial[projectId];
+    const projectCustomTutorial: $TSFixMe = state.tutorial[projectId];
 
     // set a default show to true for the tutorials to display
     const tutorialStat: $TSFixMe = {

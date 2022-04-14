@@ -36,7 +36,7 @@ class DisableMonitor extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog }: $TSFixMe = this.props;
         let disabling = false;
         if (
 
@@ -50,7 +50,7 @@ class DisableMonitor extends Component<ComponentProps> {
         ) {
             disabling = true;
         }
-        const monitorOption =
+        const monitorOption: $TSFixMe =
 
             this.props.data &&
 

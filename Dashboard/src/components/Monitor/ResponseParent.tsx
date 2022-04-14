@@ -28,7 +28,7 @@ export class ResponseParent extends Component<ResponseParentProps>{
     }
     override render() {
 
-        const { fields, bodyfield, level, type, criterionType } = this.props;
+        const { fields, bodyfield, level, type, criterionType }: $TSFixMe = this.props;
         return (
             <ul id={fields.name} data-testId={`${criterionType}_criteria_list`}>
                 {bodyfield && bodyfield.length
@@ -107,7 +107,7 @@ export class ResponseParent extends Component<ResponseParentProps>{
                                             removeArrayField: $TSFixMe,
                                             updateCriteriaField: $TSFixMe
                                         ) => {
-                                            const lastCriteriaIndex = fields.name.lastIndexOf(
+                                            const lastCriteriaIndex: $TSFixMe = fields.name.lastIndexOf(
                                                 'criteria'
                                             );
 
@@ -118,7 +118,7 @@ export class ResponseParent extends Component<ResponseParentProps>{
                                                 ).includes('match')
                                             ) {
                                                 if (bodyfield[j + 1]) {
-                                                    const updateVal = bodyfield.map(
+                                                    const updateVal: $TSFixMe = bodyfield.map(
                                                         (field: $TSFixMe, i: $TSFixMe) => {
                                                             if (i === j + 1) {
                                                                 if (
@@ -204,7 +204,7 @@ export class ResponseParent extends Component<ResponseParentProps>{
                                                 0
                                             ) {
                                                 if (bodyfield[j + 1]) {
-                                                    const updateVal = bodyfield.map(
+                                                    const updateVal: $TSFixMe = bodyfield.map(
                                                         (field: $TSFixMe, i: $TSFixMe) => {
                                                             if (i === j + 1) {
                                                                 field = {
@@ -264,7 +264,7 @@ export class ResponseParent extends Component<ResponseParentProps>{
                                                         );
                                                     }
                                                 } else if (bodyfield[j - 1]) {
-                                                    const updateVal = bodyfield.map(
+                                                    const updateVal: $TSFixMe = bodyfield.map(
                                                         (field: $TSFixMe, i: $TSFixMe) => {
                                                             if (i === j - 1) {
                                                                 field = {

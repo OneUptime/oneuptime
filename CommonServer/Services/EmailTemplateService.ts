@@ -1,6 +1,6 @@
 export default class Service {
     async create(data: $TSFixMe): void {
-        const emailTemplateModel = new EmailTemplateModel();
+        const emailTemplateModel: $TSFixMe = new EmailTemplateModel();
 
         emailTemplateModel.projectId = data.projectId || null;
 
@@ -12,7 +12,7 @@ export default class Service {
 
         emailTemplateModel.allowedVariables =
             emailTemplateVariables[[data.emailType]];
-        const emailTemplate = await emailTemplateModel.save();
+        const emailTemplate: $TSFixMe = await emailTemplateModel.save();
         return emailTemplate;
     }
 
@@ -28,7 +28,7 @@ export default class Service {
         if (data.emailType && !data.allowedVariables) {
             data.allowedVariables = emailTemplateVariables[[data.emailType]];
         }
-        const updatedEmailTemplate = await EmailTemplateModel.findOneAndUpdate(
+        const updatedEmailTemplate: $TSFixMe = await EmailTemplateModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -62,7 +62,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query, userId: ObjectID): void {
-        const emailTemplate = await EmailTemplateModel.findOneAndUpdate(
+        const emailTemplate: $TSFixMe = await EmailTemplateModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -80,14 +80,14 @@ export default class Service {
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         query['deleted'] = false;
-        const emailTemplates = EmailTemplateModel.find(query)
+        const emailTemplates: $TSFixMe = EmailTemplateModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
         emailTemplates.select(select);
         emailTemplates.populate(populate);
-        const result = await emailTemplates;
+        const result: $TSFixMe = await emailTemplates;
 
         return result;
     }
@@ -98,14 +98,14 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const emailTemplate = EmailTemplateModel.findOne(query)
+        const emailTemplate: $TSFixMe = EmailTemplateModel.findOne(query)
             .sort(sort)
             .lean()
             .sort(sort);
 
         emailTemplate.select(select);
         emailTemplate.populate(populate);
-        const result = await emailTemplate;
+        const result: $TSFixMe = await emailTemplate;
         return result;
     }
 
@@ -115,16 +115,16 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const count = await EmailTemplateModel.countDocuments(query);
+        const count: $TSFixMe = await EmailTemplateModel.countDocuments(query);
         return count;
     }
 
     async getTemplates(projectId: ObjectID): void {
         const select: string =
             'projectId subject body emailType allowedVariables';
-        const templates = await Promise.all(
+        const templates: $TSFixMe = await Promise.all(
             defaultTemplate.map(async template => {
-                const emailTemplate = await this.findOneBy({
+                const emailTemplate: $TSFixMe = await this.findOneBy({
                     query: {
                         projectId: projectId,
                         emailType: template.emailType,
@@ -143,15 +143,15 @@ export default class Service {
     async resetTemplate(projectId: ObjectID, templateId: $TSFixMe): void {
         const select: string =
             'projectId subject body emailType allowedVariables';
-        const oldTemplate = await this.findOneBy({
+        const oldTemplate: $TSFixMe = await this.findOneBy({
             query: { _id: templateId },
             select,
             populate: [{ path: 'projectId', select: 'nmae' }],
         });
-        const newTemplate = defaultTemplate.filter(
+        const newTemplate: $TSFixMe = defaultTemplate.filter(
             template => template.emailType === oldTemplate.emailType
         )[0];
-        const resetTemplate = await this.updateOneBy(
+        const resetTemplate: $TSFixMe = await this.updateOneBy(
             {
                 _id: oldTemplate._id,
             },

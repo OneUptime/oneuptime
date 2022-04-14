@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -13,10 +13,10 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import { sendListResponse } from 'CommonServer/Utils/response';
 import GroupService from '../services/groupService';
-const getSubProjects = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
 import EscalationService from '../services/escalationService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.post(
     '/:projectId',
@@ -24,10 +24,10 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { name, teams } = req.body;
-            const { projectId } = req.params;
+            const { name, teams }: $TSFixMe = req.body;
+            const { projectId }: $TSFixMe = req.params;
 
-            const userId = req.user.id;
+            const userId: $TSFixMe = req.user.id;
 
             if (!name) {
                 return sendErrorResponse(req, res, {
@@ -36,7 +36,7 @@ router.post(
                 });
             }
 
-            const response = await GroupService.create({
+            const response: $TSFixMe = await GroupService.create({
                 projectId,
                 name,
                 teams,
@@ -55,15 +55,15 @@ router.get(
     isAuthorized,
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const subProjectIds = req.user.subProjects
+        const subProjectIds: $TSFixMe = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => {
                   return { id: project._id, name: project.name };
               })
             : null;
         try {
-            const groups = await Promise.all(
+            const groups: $TSFixMe = await Promise.all(
                 subProjectIds.map(async (project: $TSFixMe) => {
-                    const groups = await GroupService.findBy({
+                    const groups: $TSFixMe = await GroupService.findBy({
                         projectId: project.id,
                     });
                     return {
@@ -85,9 +85,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { skip, limit } = req.query;
-            const groups = await GroupService.findBy(
+            const { projectId }: $TSFixMe = req.params;
+            const { skip, limit }: $TSFixMe = req.query;
+            const groups: $TSFixMe = await GroupService.findBy(
                 {
                     projectId: projectId,
                 },
@@ -107,8 +107,8 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { groupId, projectId } = req.params;
-            const { name, teams } = req.body;
+            const { groupId, projectId }: $TSFixMe = req.params;
+            const { name, teams }: $TSFixMe = req.body;
 
             const data: $TSFixMe = {};
             if (name) {
@@ -118,7 +118,7 @@ router.put(
                 data.teams = teams;
             }
 
-            const groups = await GroupService.updateOneBy(
+            const groups: $TSFixMe = await GroupService.updateOneBy(
                 { _id: groupId },
                 data,
                 projectId
@@ -136,11 +136,11 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { groupId, projectId } = req.params;
+            const { groupId, projectId }: $TSFixMe = req.params;
 
-            const userId = req.user.id;
+            const userId: $TSFixMe = req.user.id;
 
-            const [deleteGroup] = await Promise.all([
+            const [deleteGroup]: $TSFixMe = await Promise.all([
                 GroupService.deleteBy(
                     {
                         _id: groupId,

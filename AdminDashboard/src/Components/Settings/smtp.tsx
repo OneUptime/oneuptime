@@ -53,7 +53,7 @@ function validate(values: $TSFixMe) {
 
 const  settingsType: string = 'smtp';
 
-const fields = [
+const fields: $TSFixMe = [
     {
         key: 'email',
         label: 'Email',
@@ -119,7 +119,7 @@ const fields = [
     },
 ];
 
-const emailEnableField = [
+const emailEnableField: $TSFixMe = [
     {
         key: 'email-enabled',
         label: 'Enable Emails',
@@ -141,7 +141,7 @@ const emailEnableField = [
     },
 ];
 
-const smtpOptions = [
+const smtpOptions: $TSFixMe = [
     {
         key: 'internalSmtp',
         label: 'Enable internal SMTP server',
@@ -205,16 +205,16 @@ export class Component extends Component<ComponentProps>{
     handleTestSmtp = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const { testSmtp, smtpForm } = this.props;
+        const { testSmtp, smtpForm }: $TSFixMe = this.props;
 
-        const { testModalId } = this.state;
+        const { testModalId }: $TSFixMe = this.state;
 
 
         this.props.openModal({
             id: testModalId,
             onConfirm: (testForm: $TSFixMe) => {
 
-                const { smtpToUse } = this.props.smtpTestForm.values;
+                const { smtpToUse }: $TSFixMe = this.props.smtpTestForm.values;
                 const { 'test-email': email } = testForm;
                 const {
                     email: user,
@@ -288,7 +288,7 @@ export class Component extends Component<ComponentProps>{
 
     override render() {
 
-        const { settings, handleSubmit, smtpForm } = this.props;
+        const { settings, handleSubmit, smtpForm }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeSmtp"
@@ -558,7 +558,7 @@ function mapStateToProps(state: RootState) {
     };
 }
 
-const ReduxFormComponent = reduxForm({
+const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'smtp-form',
     enableReinitialize: true,
     validate,

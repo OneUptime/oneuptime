@@ -53,7 +53,7 @@ class DeleteMonitorSlaModal extends Component<ComponentProps> {
 
             deleteMonitorSla,
         } = this.props;
-        const { projectId, monitorSlaId } = data;
+        const { projectId, monitorSlaId }: $TSFixMe = data;
         deleteMonitorSla(projectId, monitorSlaId).then(() => {
             if (!deleteError) {
                 closeModal({ id: modalId });
@@ -63,7 +63,7 @@ class DeleteMonitorSlaModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { isRequesting, closeThisDialog, deleteError } = this.props;
+        const { isRequesting, closeThisDialog, deleteError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

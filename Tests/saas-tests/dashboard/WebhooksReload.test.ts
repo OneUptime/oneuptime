@@ -14,7 +14,7 @@ const user: $TSFixMe = {
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut: $TSFixMe = 100000;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(100000);
@@ -58,7 +58,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#enableInvestigationNoteNotificationWebhook',
                 { visible: true, timeout: init.timeout }

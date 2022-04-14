@@ -13,8 +13,8 @@ const _this: $TSFixMe = {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        const data = req.body;
-        const errorTrackerId = req.params.errorTrackerId;
+        const data: $TSFixMe = req.body;
+        const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
         if (!errorTrackerId) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -49,7 +49,7 @@ const _this: $TSFixMe = {
                 new BadDataException('Fingerprint is to be of type Array.')
             );
         }
-        const allowedLogType = ['exception', 'message', 'error'].filter(
+        const allowedLogType: $TSFixMe = ['exception', 'message', 'error'].filter(
             elem => elem === data.type
         );
         if (allowedLogType.length < 1) {
@@ -102,7 +102,7 @@ const _this: $TSFixMe = {
             );
         }
         // try to get the error tracker by the ID and key
-        const errorTrackerCount = await ErrorTrackerService.countBy({
+        const errorTrackerCount: $TSFixMe = await ErrorTrackerService.countBy({
             _id: errorTrackerId,
             key: data.errorTrackerKey,
         });

@@ -11,7 +11,7 @@ chai.use(require('chai-subset'));
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -32,8 +32,8 @@ let token: $TSFixMe,
     monitorId: $TSFixMe,
     resourceCategoryId: $TSFixMe,
     monitor2Id: $TSFixMe;
-const httpMonitorId = uuid.v4();
-const httpMonitor2Id = uuid.v4();
+const httpMonitorId: $TSFixMe = uuid.v4();
+const httpMonitor2Id: $TSFixMe = uuid.v4();
 const resourceCategory: $TSFixMe = {
     resourceCategoryName: 'New Monitor Category',
 };
@@ -89,7 +89,7 @@ describe('Monitor API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -288,7 +288,7 @@ describe('Monitor API', function (): void {
     });
 
     it('should not create a new monitor with invalid call schedule', (done: $TSFixMe): void => {
-        const scheduleId = 20;
+        const scheduleId: $TSFixMe = 20;
         const authorization: string = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -467,7 +467,7 @@ describe('Monitor API', function (): void {
 const BACKEND_URL: string = `http://localhost:${process.env['PORT']}/api`;
 const HTTP_TEST_SERVER_URL: string = 'http://localhost:3010';
 
-const testServer = chai.request(HTTP_TEST_SERVER_URL);
+const testServer: $TSFixMe = chai.request(HTTP_TEST_SERVER_URL);
 
 describe('API Monitor API', function (): void {
     this.timeout(30000);
@@ -479,7 +479,7 @@ describe('API Monitor API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -703,7 +703,7 @@ describe('IncomingHttpRequest Monitor', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -899,7 +899,7 @@ describe('Monitor API with resource Category', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
                     VerificationTokenModel.findOne(
@@ -1256,7 +1256,7 @@ describe('Monitor API with Sub-Projects', function (): void {
 describe('Monitor API - Tests Project Seats With SubProjects', function (): void {
     this.timeout(30000);
 
-    const monitorDataArray = [
+    const monitorDataArray: $TSFixMe = [
         {
             name: 'New Monitor1',
             type: 'url',
@@ -1368,7 +1368,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function (): void
         const authorization: string = `Basic ${token}`;
         const growthPlan: string = 'plan_GoWKgxRnPPBJWy';
 
-        const project = ProjectService.changePlan(
+        const project: $TSFixMe = ProjectService.changePlan(
             projectId,
             userId,
             growthPlan
@@ -1415,7 +1415,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function (): void
 
     it('should delete a monitor', async () => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);

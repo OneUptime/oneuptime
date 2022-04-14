@@ -183,7 +183,7 @@ class ContainerSecurityDetail extends Component<ComponentProps> {
     }
 
     tabSelected = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
@@ -246,9 +246,9 @@ class ContainerSecurityDetail extends Component<ComponentProps> {
             });
         }
 
-        const componentName =
+        const componentName: $TSFixMe =
             components.length > 0 ? components[0].name : 'loading...';
-        const projectName = currentProject ? currentProject.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -443,7 +443,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { componentSlug, containerSecuritySlug } = ownProps.match.params;
+    const { componentSlug, containerSecuritySlug }: $TSFixMe = ownProps.match.params;
     const components: $TSFixMe = [];
     // filter to get the actual component
     state.component.componentList.components.map((item: $TSFixMe) => item.components.map((component: $TSFixMe) => {

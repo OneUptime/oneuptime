@@ -3,12 +3,12 @@ import { find, update, removeField } from '../util/db';
 const statusPageCollection: string = 'statuspages';
 
 async function run(): void {
-    const statusPages = await find(statusPageCollection, {
+    const statusPages: $TSFixMe = await find(statusPageCollection, {
         monitorIds: { $exists: true },
     });
     for (let i = 0; i < statusPages.length; i++) {
-        const statusPage = statusPages[i];
-        const monitors = [];
+        const statusPage: $TSFixMe = statusPages[i];
+        const monitors: $TSFixMe = [];
         for (let j = 0; j < statusPage.monitorIds.length; j++) {
             monitors.push({
                 monitor: statusPage.monitorIds[j],

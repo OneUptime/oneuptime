@@ -10,7 +10,7 @@ interface CheckboxGroupProps {
 class CheckboxGroup extends React.Component<CheckboxGroupProps> {
     checkboxGroup() {
 
-        const { monitors } = this.props;
+        const { monitors }: $TSFixMe = this.props;
 
         return monitors.map((monitor: $TSFixMe, index: $TSFixMe) => {
             return (

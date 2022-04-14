@@ -1,22 +1,22 @@
 import { find, update, save } from '../util/db';
 
 import bcrypt from 'bcrypt';
-const { IS_TESTING, IS_SAAS_SERVICE } = process.env;
+const { IS_TESTING, IS_SAAS_SERVICE }: $TSFixMe = process.env;
 
 const userCollection: string = 'users';
 const projectCollection: string = 'projects';
 const incidentPriorityCollection: string = 'incidentpriorities';
 const email: string = 'masteradmin@hackerbay.io';
 const plainPassword: string = '1234567890';
-const saltRounds = 10;
+const saltRounds: $TSFixMe = 10;
 
 async function run(): void {
     if (IS_TESTING === 'true' && IS_SAAS_SERVICE === 'true') {
-        const password = await bcrypt.hash(plainPassword, saltRounds);
+        const password: $TSFixMe = await bcrypt.hash(plainPassword, saltRounds);
         let result = await find(userCollection, { email });
         if (result.length > 0) {
-            const masterAdmin = result[0];
-            const { _id } = masterAdmin;
+            const masterAdmin: $TSFixMe = result[0];
+            const { _id }: $TSFixMe = masterAdmin;
             update(userCollection, { _id }, { password });
         } else {
             result = await save(userCollection, [
@@ -34,8 +34,8 @@ async function run(): void {
                     companyPhoneNumber: '+19173976235',
                 },
             ]);
-            const userId = result?.ops[0]?._id;
-            const project = await save(projectCollection, [
+            const userId: $TSFixMe = result?.ops[0]?._id;
+            const project: $TSFixMe = await save(projectCollection, [
                 {
                     name: 'Test Project',
                     apiKey: 'd7309ae0-cddf-11eb-9f6e-b7f55589eea9',
@@ -55,7 +55,7 @@ async function run(): void {
                     ],
                 },
             ]);
-            const projectId = project?.ops[0]?._id;
+            const projectId: $TSFixMe = project?.ops[0]?._id;
 
             await save(incidentPriorityCollection, [
                 {

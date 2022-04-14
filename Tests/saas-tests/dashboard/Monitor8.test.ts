@@ -9,10 +9,10 @@ import 'should';
 const password: string = '1234567890';
 
 describe('API Monitor API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
-    const componentName = utils.generateRandomString();
-    const monitorName = utils.generateRandomString();
+    const componentName: $TSFixMe = utils.generateRandomString();
+    const monitorName: $TSFixMe = utils.generateRandomString();
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -172,7 +172,7 @@ describe('API Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#formNewMonitorError'
             );
@@ -254,7 +254,7 @@ describe('API Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#formNewMonitorError'
             );

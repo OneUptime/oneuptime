@@ -3,7 +3,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Tooltip from '@material-ui/core/Tooltip';
 import PropTypes from 'prop-types';
 
-const TooltipDesign = withStyles(theme => ({
+const TooltipDesign = withStyles(theme: $TSFixMe => ({
     tooltip: {
         backgroundColor: '#f5f5f9',
         color: 'rgba(0, 0, 0, 0.87)',

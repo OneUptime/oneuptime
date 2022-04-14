@@ -88,7 +88,7 @@ class EventBox extends Component<ComponentProps> {
 
     handleKeyboard = (event: $TSFixMe) => {
 
-        const { modalList, allScheduleEventLength } = this.props;
+        const { modalList, allScheduleEventLength }: $TSFixMe = this.props;
 
         if (allScheduleEventLength === 1) {
             if (event.target.localName === 'body' && event.key) {
@@ -112,7 +112,7 @@ class EventBox extends Component<ComponentProps> {
 
     override render() {
 
-        const { createScheduledEventModalId } = this.state;
+        const { createScheduledEventModalId }: $TSFixMe = this.state;
         const {
 
             scheduledEvents,
@@ -149,10 +149,10 @@ class EventBox extends Component<ComponentProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(this.props.count) / 10);
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
         let projectName = subProjects.find((obj: $TSFixMe) => obj._id === projectId)?.name;
         projectName = projectName
             ? projectName
@@ -352,7 +352,7 @@ class EventBox extends Component<ComponentProps> {
                                     {scheduledEvents.length > 0 &&
                                         scheduledEvents.map(
                                             (scheduledEvent: $TSFixMe, index: $TSFixMe) => {
-                                                const scheduleStatus = scheduledEvent.resolved ? (
+                                                const scheduleStatus: $TSFixMe = scheduledEvent.resolved ? (
                                                     <Badge color={'green'}>
                                                         Completed
                                                     </Badge>
@@ -726,10 +726,10 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const monitorData = state.monitor.monitorsList.monitors.find(
+    const monitorData: $TSFixMe = state.monitor.monitorsList.monitors.find(
         (data: $TSFixMe) => String(data._id) === String(ownProps.projectId)
     );
-    const monitors = monitorData.monitors;
+    const monitors: $TSFixMe = monitorData.monitors;
 
     return {
         monitors,

@@ -70,13 +70,13 @@ function ScheduledEventDescription({
     };
 
     const handleResolve: Function = () => {
-        const { _id } = scheduledEvent;
+        const { _id }: $TSFixMe = scheduledEvent;
         resolveScheduledEvent(projectId, _id);
     };
 
-    const startDate = moment(scheduledEvent.startDate).format();
-    const currentDate = moment().format();
-    const isFutureScheduledEvent = startDate > currentDate;
+    const startDate: $TSFixMe = moment(scheduledEvent.startDate).format();
+    const currentDate: $TSFixMe = moment().format();
+    const isFutureScheduledEvent: $TSFixMe = startDate > currentDate;
     return (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">

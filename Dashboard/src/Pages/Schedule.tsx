@@ -120,7 +120,7 @@ class Schedule extends Component<ComponentProps> {
 
     override render() {
 
-        const { editSchedule, error } = this.state;
+        const { editSchedule, error }: $TSFixMe = this.state;
         const {
 
             escalations,
@@ -141,12 +141,12 @@ class Schedule extends Component<ComponentProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const name = schedule ? schedule.name : null;
+        const name: $TSFixMe = schedule ? schedule.name : null;
         if (error) {
             return <div></div>;
         }
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -242,7 +242,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { scheduleSlug } = props.match.params;
+    const { scheduleSlug }: $TSFixMe = props.match.params;
 
     let schedule =
         state.schedule.subProjectSchedules &&
@@ -255,7 +255,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     schedule = schedule.find(
         (schedule: $TSFixMe) => schedule && schedule.slug === scheduleSlug
     );
-    const escalations = state.schedule.scheduleEscalations;
+    const escalations: $TSFixMe = state.schedule.scheduleEscalations;
     return {
         schedule,
         escalations,

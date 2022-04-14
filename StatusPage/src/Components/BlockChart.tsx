@@ -33,7 +33,7 @@ class BlockChart extends Component<ComponentProps> {
 
         this.props.showIncidentCard(false);
 
-        const theme = this.props.theme ? true : false;
+        const theme: $TSFixMe = this.props.theme ? true : false;
         if (need) {
 
             this.props.getStatusPageIndividualNote(
@@ -93,7 +93,7 @@ class BlockChart extends Component<ComponentProps> {
         let backgroundColor;
 
 
-        const { colors } = this.props.statusData;
+        const { colors }: $TSFixMe = this.props.statusData;
 
         if (this.props.time && this.props.time.status) {
 
@@ -211,7 +211,7 @@ class BlockChart extends Component<ComponentProps> {
                 backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`;
         }
 
-        const dateId = title.replace(/, | /g, '');
+        const dateId: $TSFixMe = title.replace(/, | /g, '');
         const  extra: string = ' resize-style';
         let style, classes, content;
 

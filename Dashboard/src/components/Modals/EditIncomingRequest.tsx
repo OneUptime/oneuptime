@@ -101,7 +101,7 @@ class EditIncomingRequest extends Component<ComponentProps> {
 
             customFields,
         } = this.props;
-        const requestId = initialValues._id;
+        const requestId: $TSFixMe = initialValues._id;
         const postObj: $TSFixMe = {};
 
 
@@ -187,13 +187,13 @@ class EditIncomingRequest extends Component<ComponentProps> {
                     this.state.selectedMonitors &&
                     this.state.selectedMonitors.length > 0
                 ) {
-                    const monitors = this.state.selectedMonitors;
+                    const monitors: $TSFixMe = this.state.selectedMonitors;
 
                     postObj.monitors = monitors;
                 }
 
 
-                const isDuplicate = postObj.monitors
+                const isDuplicate: $TSFixMe = postObj.monitors
 
                     ? postObj.monitors.length === new Set(postObj.monitors).size
                         ? false
@@ -263,12 +263,12 @@ class EditIncomingRequest extends Component<ComponentProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -341,7 +341,7 @@ class EditIncomingRequest extends Component<ComponentProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -466,7 +466,7 @@ class EditIncomingRequest extends Component<ComponentProps> {
         fields
     }: $TSFixMe) => {
 
-        const { formValues, customFields } = this.props;
+        const { formValues, customFields }: $TSFixMe = this.props;
         return <>
             <div
                 style={{
@@ -571,9 +571,9 @@ class EditIncomingRequest extends Component<ComponentProps> {
         fields
     }: $TSFixMe) => {
 
-        const { filterShowing } = this.state;
+        const { filterShowing }: $TSFixMe = this.state;
 
-        const { formValues, monitorCustomFields, customFields } = this.props;
+        const { formValues, monitorCustomFields, customFields }: $TSFixMe = this.props;
 
         if (
             !filterShowing &&
@@ -3265,7 +3265,7 @@ EditIncomingRequest.propTypes = {
     monitorsList: PropTypes.array,
 };
 
-const EditIncomingRequestForm = reduxForm({
+const EditIncomingRequestForm: $TSFixMe = reduxForm({
     form: 'editIncomingRequestForm', // a unique identifier for this form
     enableReinitialize: false,
     validate, // <--- validation function given to redux-form
@@ -3283,9 +3283,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const incomingRequestToBeUpdated = state.modal.modals[0].incomingRequest;
-    const projectId = state.modal.modals[0].projectId;
-    const incidentPriorities =
+    const incomingRequestToBeUpdated: $TSFixMe = state.modal.modals[0].incomingRequest;
+    const projectId: $TSFixMe = state.modal.modals[0].projectId;
+    const incidentPriorities: $TSFixMe =
         state.incidentPriorities.incidentPrioritiesList.incidentPriorities;
 
     const initialValues: $TSFixMe = {};

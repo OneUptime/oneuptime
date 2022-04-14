@@ -33,7 +33,7 @@ function validate(values: $TSFixMe) {
 
     // remove white spaces
     values.emails = values.emails ? values.emails.replace(/\s/g, '') : '';
-    const emails = values.emails ? values.emails.split(',') : [];
+    const emails: $TSFixMe = values.emails ? values.emails.split(',') : [];
     if (!Validate.isValidBusinessEmails(emails)) {
 
         errors.emails = 'Please enter business emails of the members.';
@@ -92,11 +92,11 @@ export class FormModal extends Component<FormModalProps>{
             openModal,
         } = this.props;
 
-        const { notificationModalId } = this.state;
+        const { notificationModalId }: $TSFixMe = this.state;
         values.projectId = data.subProjectId;
 
-        const { role, emails } = values;
-        const emailArray = emails ? emails.split(',') : [];
+        const { role, emails }: $TSFixMe = values;
+        const emailArray: $TSFixMe = emails ? emails.split(',') : [];
 
         if (role !== 'Viewer' && emailArray.length > 100) {
             this.showMessageBox();
@@ -184,7 +184,7 @@ export class FormModal extends Component<FormModalProps>{
 
     override render() {
 
-        const { handleSubmit, closeThisDialog, data } = this.props;
+        const { handleSubmit, closeThisDialog, data }: $TSFixMe = this.props;
         return (
             <div
                 className="ModalLayer-contents"
@@ -610,7 +610,7 @@ export class FormModal extends Component<FormModalProps>{
 
 FormModal.displayName = 'InviteMemberFormModal';
 
-const InviteTeamMemberForm = reduxForm({
+const InviteTeamMemberForm: $TSFixMe = reduxForm({
     form: 'InviteTeamMember', // a unique identifier for this form
     validate,
 })(FormModal);

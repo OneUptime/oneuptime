@@ -43,8 +43,8 @@ class Monitors extends Component<ComponentProps> {
     }
 
     handleChange = (event: $TSFixMe) => {
-        const value = event.target.checked;
-        const name = event.target.name;
+        const value: $TSFixMe = event.target.checked;
+        const name: $TSFixMe = event.target.name;
 
         this.setState({
             [name]: value,
@@ -67,7 +67,7 @@ class Monitors extends Component<ComponentProps> {
     handleSubmit = (event: $TSFixMe) => {
         event.preventDefault();
 
-        const { announcement, incident, scheduledEvent } = this.state;
+        const { announcement, incident, scheduledEvent }: $TSFixMe = this.state;
         let notificationType = { announcement, incident, scheduledEvent };
 
         // if multiple notificaiton types is not selected then set everything to true.
@@ -84,7 +84,7 @@ class Monitors extends Component<ComponentProps> {
             };
         }
 
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.statuspage &&
 
@@ -92,7 +92,7 @@ class Monitors extends Component<ComponentProps> {
 
             this.props.statuspage.projectId._id;
 
-        const statusPageId = this.props.statuspage._id;
+        const statusPageId: $TSFixMe = this.props.statuspage._id;
         if (this.state) {
             let monitors = Object.keys(this.state).filter(
 
@@ -133,7 +133,7 @@ class Monitors extends Component<ComponentProps> {
         this.props.handleCloseButtonClick();
     };
     override render() {
-        const multipleNotificationTypes =
+        const multipleNotificationTypes: $TSFixMe =
 
             this.props.statuspage &&
 

@@ -2,12 +2,12 @@ import SocketIO from 'socket.io';
 import http from 'http';
 import Express from '../Utils/Express';
 
-const app = Express.getExpressApp();
-const server = http.createServer(app);
+const app: $TSFixMe = Express.getExpressApp();
+const server: $TSFixMe = http.createServer(app);
 
 export type Socket = SocketIO.Socket;
 
-const io = new SocketIO.Server(server, {
+const io: $TSFixMe = new SocketIO.Server(server, {
     path: '/realtime/socket.io',
     transports: ['websocket', 'polling'], // using websocket does not require sticky session
     perMessageDeflate: {

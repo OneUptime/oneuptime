@@ -6,7 +6,7 @@ let accountsUrl = window.location.origin + '/accounts';
 let realtimeUrl = window.location.origin + '/realtime';
 
 export const env: Function = (value: $TSFixMe): void => {
-    const { _env } = window;
+    const { _env }: $TSFixMe = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
         process.env[`REACT_APP_${value}`]
@@ -31,7 +31,7 @@ if (
     accountsUrl = protocol + '//localhost:3003/accounts';
     realtimeUrl = protocol + '//localhost:3300/realtime';
 } else if (env('ONEUPTIME_HOST')) {
-    const ONEUPTIME_HOST = env('ONEUPTIME_HOST').replace(
+    const ONEUPTIME_HOST: $TSFixMe = env('ONEUPTIME_HOST').replace(
         /(http:\/\/|https:\/\/)/,
         ''
     ); // remove any protocol that might have been added
@@ -41,17 +41,17 @@ if (
     realtimeUrl = protocol + `//${ONEUPTIME_HOST}/realtime`;
 }
 
-export const API_URL = apiUrl;
+export const API_URL: $TSFixMe = apiUrl;
 
-export const REALTIME_URL = realtimeUrl;
+export const REALTIME_URL: $TSFixMe = realtimeUrl;
 
-export const DASHBOARD_URL = dashboardUrl;
+export const DASHBOARD_URL: $TSFixMe = dashboardUrl;
 
-export const ACCOUNTS_URL = accountsUrl;
+export const ACCOUNTS_URL: $TSFixMe = accountsUrl;
 
-export const DOMAIN = window.location.origin;
+export const DOMAIN: $TSFixMe = window.location.origin;
 
-export const VERSION = process.env.VERSION || env('VERSION');
+export const VERSION: $TSFixMe = process.env.VERSION || env('VERSION');
 
 export const User: $TSFixMe = {
     getAccessToken() {
@@ -123,7 +123,7 @@ export const getQueryVar: Function = (variable: $TSFixMe, url: URL): void => {
         url = window.location.href;
     }
     variable = variable.replace(/[[\]]/g, '\\$&');
-    const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
+    const regex: $TSFixMe = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
     if (!results) {
         return null;
@@ -160,9 +160,9 @@ export const filterProbeData: Function = (
     probe: $TSFixMe,
     backupStatus: $TSFixMe
 ): void => {
-    const monitorStatuses = monitor.statuses || backupStatus;
+    const monitorStatuses: $TSFixMe = monitor.statuses || backupStatus;
 
-    const probesStatus =
+    const probesStatus: $TSFixMe =
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
@@ -173,7 +173,7 @@ export const filterProbeData: Function = (
                   })
                 : monitorStatuses
             : [];
-    const statuses =
+    const statuses: $TSFixMe =
         probesStatus &&
         probesStatus[0] &&
         probesStatus[0].statuses &&
@@ -191,17 +191,17 @@ export const getServiceStatus: Function = (
     monitorsData: $TSFixMe,
     probes: $TSFixMe
 ): void => {
-    const monitorsLength = monitorsData.length;
-    const probesLength = probes && probes.length;
+    const monitorsLength: $TSFixMe = monitorsData.length;
+    const probesLength: $TSFixMe = probes && probes.length;
 
-    const totalServices = monitorsLength * probesLength;
+    const totalServices: $TSFixMe = monitorsLength * probesLength;
     let onlineServices = totalServices;
     let degraded = 0;
 
     monitorsData.forEach((monitor: $TSFixMe) => {
         probes.forEach((probe: $TSFixMe) => {
-            const statuses = filterProbeData(monitor, probe);
-            const monitorStatus = monitor.status
+            const statuses: $TSFixMe = filterProbeData(monitor, probe);
+            const monitorStatus: $TSFixMe = monitor.status
                 ? monitor.status
                 : getMonitorStatus(statuses);
             if (monitorStatus === 'offline') {
@@ -305,7 +305,7 @@ export const handleResources: Function = (
     if (monitorCount === monitorState.length) {
         return 'All resources are affected';
     } else {
-        const result = affectedMonitors
+        const result: $TSFixMe = affectedMonitors
 
             .map(monitor => capitalize(monitor.name))
             .join(', ')
@@ -320,7 +320,7 @@ export const cacheProvider: $TSFixMe = {
             language
         ],
     set: (language: $TSFixMe, key: $TSFixMe, value: $TSFixMe) => {
-        const existing = JSON.parse(localStorage.getItem('translations')) || {
+        const existing: $TSFixMe = JSON.parse(localStorage.getItem('translations')) || {
             [key]: {},
         };
         existing[key] = { ...existing[key], [language]: value };

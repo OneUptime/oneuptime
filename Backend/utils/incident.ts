@@ -2,7 +2,7 @@ import moment from 'moment';
 
 export default {
     calculateHumanReadableDownTime: function (comparedTime: $TSFixMe): void {
-        const downTime =
+        const downTime: $TSFixMe =
             (new Date().getTime() - new Date(comparedTime).getTime()) /
             (1000 * 60);
         let downTimeString: string = `${Math.ceil(downTime)} minutes`;
@@ -27,7 +27,7 @@ export default {
         createdAt: $TSFixMe,
         actionPerformedAt: $TSFixMe
     ) {
-        const downtime = moment(actionPerformedAt).diff(
+        const downtime: $TSFixMe = moment(actionPerformedAt).diff(
             moment(createdAt),
             'minutes'
         );

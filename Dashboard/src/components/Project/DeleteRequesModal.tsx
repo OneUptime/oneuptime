@@ -31,7 +31,7 @@ class DeleteRequestModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeNotice, requesting } = this.props;
+        const { closeNotice, requesting }: $TSFixMe = this.props;
 
         return (
             <div className="bs-Modal bs-Modal--medium">

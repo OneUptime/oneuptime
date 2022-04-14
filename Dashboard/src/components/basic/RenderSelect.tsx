@@ -27,11 +27,11 @@ const RenderSelect: Function = ({
     id,
     autoFocus
 }: RenderSelectProps) => {
-    const filteredOpt = useRef();
+    const filteredOpt: $TSFixMe = useRef();
 
     filteredOpt.current = options.filter(opt => opt.value === input.value);
 
-    const [value, setValue] = useState({
+    const [value, setValue]: $TSFixMe = useState({
         value: input.value,
         label:
 

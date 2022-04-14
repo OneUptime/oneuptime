@@ -25,13 +25,13 @@ interface IncidentProjectBoxProps {
 }
 
 const IncidentProjectBox: Function = (props: IncidentProjectBoxProps) => {
-    const [incidents, setIncidents] = useState({});
-    const [filteredIncidents, setFilteredIncidents] = useState([]);
-    const [filterOption, setFilterOption] = useState('Filter By');
-    const [isFiltered, setIsFiltered] = useState(false);
+    const [incidents, setIncidents]: $TSFixMe = useState({});
+    const [filteredIncidents, setFilteredIncidents]: $TSFixMe = useState([]);
+    const [filterOption, setFilterOption]: $TSFixMe = useState('Filter By');
+    const [isFiltered, setIsFiltered]: $TSFixMe = useState(false);
 
     const filterIncidentLogs: Function = (status: $TSFixMe) => {
-        const unFilteredIncidents = props.subProjectIncident;
+        const unFilteredIncidents: $TSFixMe = props.subProjectIncident;
         const filtered: $TSFixMe = [];
         switch (status) {
             case 'unacknowledged':
@@ -61,7 +61,7 @@ const IncidentProjectBox: Function = (props: IncidentProjectBoxProps) => {
 
     useEffect(() => {
         const handleKeyboard: Function = (event: $TSFixMe) => {
-            const { modalList, allProjectLength } = props;
+            const { modalList, allProjectLength }: $TSFixMe = props;
 
             if (allProjectLength === 1) {
                 if (event.target.localName === 'body' && event.key) {

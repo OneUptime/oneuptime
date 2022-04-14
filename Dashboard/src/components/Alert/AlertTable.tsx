@@ -405,7 +405,7 @@ function TD8({
         acknowledged: 'yellow',
         resolved: 'green',
     };
-    const isIncidentStatus = Object.keys(incidentStatusColor).includes(text);
+    const isIncidentStatus: $TSFixMe = Object.keys(incidentStatusColor).includes(text);
 
     return (
         <td

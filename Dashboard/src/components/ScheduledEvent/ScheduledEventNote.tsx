@@ -46,7 +46,7 @@ export class ScheduledEventNote extends Component<ScheduledEventNoteProps>{
     }
     handleAddNote = () => {
 
-        const { openModal, projectId, scheduledEventId, type } = this.props;
+        const { openModal, projectId, scheduledEventId, type }: $TSFixMe = this.props;
         openModal({
             id: scheduledEventId,
             content: DataPathHoC(AddNoteModal, {
@@ -59,7 +59,7 @@ export class ScheduledEventNote extends Component<ScheduledEventNoteProps>{
 
     handleDeleteNote = (scheduledEventNoteId: $TSFixMe) => {
 
-        const { openModal, projectId, scheduledEventId, type } = this.props;
+        const { openModal, projectId, scheduledEventId, type }: $TSFixMe = this.props;
         openModal({
             id: scheduledEventNoteId,
             content: DataPathHoC(DeleteNoteModal, {
@@ -73,7 +73,7 @@ export class ScheduledEventNote extends Component<ScheduledEventNoteProps>{
 
     handleEditNote = (note: $TSFixMe) => {
 
-        const { openModal, projectId, scheduledEventId, type } = this.props;
+        const { openModal, projectId, scheduledEventId, type }: $TSFixMe = this.props;
         openModal({
             id: note._id,
             content: DataPathHoC(EditNoteModal, {
@@ -142,11 +142,11 @@ export class ScheduledEventNote extends Component<ScheduledEventNoteProps>{
 
     override render() {
 
-        const { type, count, notes, skip, limit } = this.props;
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
-        const page =
+        const { type, count, notes, skip, limit }: $TSFixMe = this.props;
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
+        const page: $TSFixMe =
             type.toLowerCase() === 'investigation'
 
                 ? this.props.pages[
@@ -195,7 +195,7 @@ export class ScheduledEventNote extends Component<ScheduledEventNoteProps>{
                     <div className="bs-thread-container">
                         {notes && notes.length > 0
                             ? notes.map((note: $TSFixMe, i: $TSFixMe) => {
-                                const eventStartDate =
+                                const eventStartDate: $TSFixMe =
 
                                     this.props.scheduledEvent &&
 
@@ -203,7 +203,7 @@ export class ScheduledEventNote extends Component<ScheduledEventNoteProps>{
 
                                         ? this.props.scheduledEvent.startDate
                                         : note.createdAt;
-                                const eventEndDate =
+                                const eventEndDate: $TSFixMe =
 
                                     this.props.scheduledEvent &&
 

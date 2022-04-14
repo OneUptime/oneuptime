@@ -62,9 +62,9 @@ class KubeDeployment extends React.Component<KubeDeploymentProps> {
 
     override render() {
 
-        const { data } = this.props;
-        const deploymentData = data.data;
-        const logTitle = data.title;
+        const { data }: $TSFixMe = this.props;
+        const deploymentData: $TSFixMe = data.data;
+        const logTitle: $TSFixMe = data.title;
 
         return (
             <div

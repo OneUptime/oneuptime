@@ -33,7 +33,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const escalationsQuery = EscalationModel.find(query)
+        const escalationsQuery: $TSFixMe = EscalationModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -42,7 +42,7 @@ export default class Service {
         escalationsQuery.select(select);
         escalationsQuery.populate(populate);
 
-        const escalations = await escalationsQuery;
+        const escalations: $TSFixMe = await escalationsQuery;
         return escalations;
     }
 
@@ -54,16 +54,16 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const escalationQuery = EscalationModel.findOne(query)
+        const escalationQuery: $TSFixMe = EscalationModel.findOne(query)
             .sort(sort)
             .lean();
 
         escalationQuery.select(select);
         escalationQuery.populate(populate);
 
-        const escalation = await escalationQuery;
+        const escalation: $TSFixMe = await escalationQuery;
 
-        const { activeTeam, nextActiveTeam } = computeActiveTeams(escalation);
+        const { activeTeam, nextActiveTeam }: $TSFixMe = computeActiveTeams(escalation);
         escalation.activeTeam = activeTeam;
         escalation.nextActiveTeam = nextActiveTeam;
 
@@ -71,7 +71,7 @@ export default class Service {
     }
 
     async create(data: $TSFixMe): void {
-        const escalationModel = new EscalationModel({
+        const escalationModel: $TSFixMe = new EscalationModel({
             call: data.call,
             email: data.email,
             sms: data.sms,
@@ -91,7 +91,7 @@ export default class Service {
             groups: data.groups,
         });
 
-        const escalation = await escalationModel.save();
+        const escalation: $TSFixMe = await escalationModel.save();
         return escalation;
     }
 
@@ -101,12 +101,12 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const count = await EscalationModel.countDocuments(query);
+        const count: $TSFixMe = await EscalationModel.countDocuments(query);
         return count;
     }
 
     async deleteBy(query: Query, userId: ObjectID): void {
-        const escalation = await EscalationModel.findOneAndUpdate(
+        const escalation: $TSFixMe = await EscalationModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -130,7 +130,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const escalation = await EscalationModel.findOneAndUpdate(
+        const escalation: $TSFixMe = await EscalationModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -154,7 +154,7 @@ export default class Service {
             $set: data,
         });
 
-        const populateEscalation = [
+        const populateEscalation: $TSFixMe = [
             { path: 'projectId', select: '_id name slug' },
             {
                 path: 'scheduleId',
@@ -166,7 +166,7 @@ export default class Service {
                 select: 'name email',
             },
         ];
-        const selectEscalation =
+        const selectEscalation: $TSFixMe =
             'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
 
         updatedData = await this.findBy({
@@ -182,18 +182,18 @@ export default class Service {
         memberId: $TSFixMe,
         deletedById: $TSFixMe
     ): void {
-        const escalations = await this.findBy({
+        const escalations: $TSFixMe = await this.findBy({
             query: { projectId },
             select: '_id teams scheduleId',
         });
 
         if (escalations && escalations.length > 0) {
             for (const escalation of escalations) {
-                const teams = escalation.teams;
-                const newTeams = [];
+                const teams: $TSFixMe = escalation.teams;
+                const newTeams: $TSFixMe = [];
                 for (const team of teams) {
-                    const teamMembers = team.teamMembers;
-                    const filtered = teamMembers
+                    const teamMembers: $TSFixMe = team.teamMembers;
+                    const filtered: $TSFixMe = teamMembers
                         .filter(
                             (meamber: $TSFixMe) =>
                                 meamber['groupId'] !== memberId
@@ -206,7 +206,7 @@ export default class Service {
                         teamMembers: filtered,
                     });
                     if (filtered.length < 1) {
-                        const populateSchedule = [
+                        const populateSchedule: $TSFixMe = [
                             { path: 'userIds', select: 'name' },
                             { path: 'createdById', select: 'name' },
                             { path: 'monitorIds', select: 'name' },
@@ -224,14 +224,14 @@ export default class Service {
                             },
                         ];
 
-                        const selectSchedule =
+                        const selectSchedule: $TSFixMe =
                             '_id userIds name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-                        const schedule = await ScheduleService.findOneBy({
+                        const schedule: $TSFixMe = await ScheduleService.findOneBy({
                             query: { _id: escalation.scheduleId },
                             select: selectSchedule,
                             populate: populateSchedule,
                         });
-                        const rmEscalation = schedule.escalationIds.filter(
+                        const rmEscalation: $TSFixMe = schedule.escalationIds.filter(
                             (escalationId: $TSFixMe) =>
                                 String(escalationId._id) !==
                                 String(escalation._id)
@@ -260,9 +260,9 @@ export default class Service {
         query.deleted = true;
         let escalation = await this.findBy({ query, select: '_id' });
         if (escalation && escalation.length > 1) {
-            const escalations = await Promise.all(
+            const escalations: $TSFixMe = await Promise.all(
                 escalation.map(async (escalation: $TSFixMe) => {
-                    const escalationId = escalation._id;
+                    const escalationId: $TSFixMe = escalation._id;
                     escalation = await this.updateOneBy(
                         { _id: escalationId, deleted: true },
                         {
@@ -278,7 +278,7 @@ export default class Service {
         } else {
             escalation = escalation[0];
             if (escalation) {
-                const escalationId = escalation._id;
+                const escalationId: $TSFixMe = escalation._id;
                 escalation = await this.updateOneBy(
                     { _id: escalationId, deleted: true },
                     {
@@ -298,17 +298,17 @@ function computeActiveTeamIndex(
     intervalDifference: $TSFixMe,
     rotationInterval: $TSFixMe
 ): void {
-    const difference = Math.floor(intervalDifference / rotationInterval);
+    const difference: $TSFixMe = Math.floor(intervalDifference / rotationInterval);
     return difference % numberOfTeams;
 }
 
 function computeActiveTeams(escalation: $TSFixMe): void {
-    const { teams, rotationInterval, rotateBy, createdAt, rotationTimezone } =
+    const { teams, rotationInterval, rotateBy, createdAt, rotationTimezone }: $TSFixMe =
         escalation;
 
     let firstRotationOn = escalation.firstRotationOn;
 
-    const currentDate = new Date();
+    const currentDate: $TSFixMe = new Date();
 
     if (rotateBy && rotateBy != '') {
         let intervalDifference = 0;
@@ -340,7 +340,7 @@ function computeActiveTeams(escalation: $TSFixMe): void {
             );
         }
 
-        const activeTeamIndex = computeActiveTeamIndex(
+        const activeTeamIndex: $TSFixMe = computeActiveTeamIndex(
             teams.length,
             intervalDifference,
             rotationInterval
@@ -357,7 +357,7 @@ function computeActiveTeams(escalation: $TSFixMe): void {
             );
         }
 
-        const activeTeamRotationEndTime = moment(
+        const activeTeamRotationEndTime: $TSFixMe = moment(
             activeTeamRotationStartTime
         ).add(rotationInterval, rotateBy);
         const activeTeam: $TSFixMe = {
@@ -373,8 +373,8 @@ function computeActiveTeams(escalation: $TSFixMe): void {
             nextActiveTeamIndex = 0;
         }
 
-        const nextActiveTeamRotationStartTime = activeTeamRotationEndTime;
-        const nextActiveTeamRotationEndTime = moment(
+        const nextActiveTeamRotationStartTime: $TSFixMe = activeTeamRotationEndTime;
+        const nextActiveTeamRotationEndTime: $TSFixMe = moment(
             nextActiveTeamRotationStartTime
         ).add(rotationInterval, rotateBy);
         const nextActiveTeam: $TSFixMe = {

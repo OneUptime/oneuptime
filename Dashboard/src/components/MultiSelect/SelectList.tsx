@@ -15,15 +15,15 @@ interface SelectListProps {
 class SelectList extends React.Component<SelectListProps> {
     handleSelectionChanged = (option: $TSFixMe, checked: $TSFixMe) => {
 
-        const { selected, onSelectedChanged, disabled } = this.props;
+        const { selected, onSelectedChanged, disabled }: $TSFixMe = this.props;
 
         if (disabled) return true;
 
         if (checked) {
             onSelectedChanged({ selected, onSelectedChanged, disabled });
         } else {
-            const index = selected.indexOf(option.value);
-            const removed = [
+            const index: $TSFixMe = selected.indexOf(option.value);
+            const removed: $TSFixMe = [
                 ...selected.slice(0, index),
                 ...selected.slice(index, 1),
             ];

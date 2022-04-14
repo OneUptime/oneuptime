@@ -9,7 +9,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -19,7 +19,7 @@ import AirtableService from '../backend/services/airtableService';
 
 import payment from '../backend/config/payment';
 import Stripe from 'stripe';
-const stripe = Stripe(payment.paymentPrivateKey);
+const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 
 import VerificationTokenModel from '../backend/models/verificationToken';
 
@@ -32,12 +32,12 @@ describe('Team API', function (): void {
     before(async function (): void {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
-        const res = await createUser(request, userData.user);
-        const project = res.body.project;
+        const res: $TSFixMe = await createUser(request, userData.user);
+        const project: $TSFixMe = res.body.project;
         projectId = project._id;
         userId = res.body.id;
 
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         await request
@@ -60,7 +60,7 @@ describe('Team API', function (): void {
     // 'post /monitor/:projectId/monitor'
 
     it('should reject the request of an unauthenticated user', async (): void => {
-        const res = await request.get(`/team/${projectId}`).send({
+        const res: $TSFixMe = await request.get(`/team/${projectId}`).send({
             name: 'New Schedule',
         });
         expect(res).to.have.status(401);
@@ -68,7 +68,7 @@ describe('Team API', function (): void {
 
     it('should get an array of users', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .get(`/team/${projectId}`)
             .set('Authorization', authorization);
@@ -78,7 +78,7 @@ describe('Team API', function (): void {
 
     it('should not add new users when the `emails` field is invalid', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -91,7 +91,7 @@ describe('Team API', function (): void {
 
     it('should not add new users when the `role` field is invalid', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -104,7 +104,7 @@ describe('Team API', function (): void {
 
     it('should add new users when the `role` and `emails` field are valid', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -119,7 +119,7 @@ describe('Team API', function (): void {
 
     it('should not change user roles when the `role` field is invalid', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .put(`/team/${projectId}/${anotherUser}/changerole`)
             .set('Authorization', authorization)
@@ -131,7 +131,7 @@ describe('Team API', function (): void {
 
     it('should not change user roles when the `teamMemberId` field is invalid', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .put(`/team/${projectId}/team/changerole`)
             .set('Authorization', authorization)
@@ -143,7 +143,7 @@ describe('Team API', function (): void {
 
     it('should change user roles', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .put(`/team/${projectId}/${anotherUser}/changerole`)
             .set('Authorization', authorization)
@@ -158,7 +158,7 @@ describe('Team API', function (): void {
 
     it('should not delete users when the `teamId` is not valid', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .delete(`/team/${projectId}/xxx`)
             .set('Authorization', authorization);
@@ -167,7 +167,7 @@ describe('Team API', function (): void {
 
     it('should delete users', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .delete(`/team/${projectId}/${anotherUser}`)
             .set('Authorization', authorization);
@@ -177,7 +177,7 @@ describe('Team API', function (): void {
 
     it('should get unregistered user email from the token', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -185,14 +185,14 @@ describe('Team API', function (): void {
                 emails: 'noreply4@oneuptime.com',
                 role: 'Member',
             });
-        const { userId } = res.body[0].team[0];
-        const verificationToken = await VerificationTokenModel.findOne({
+        const { userId }: $TSFixMe = res.body[0].team[0];
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
 
-        const res1 = await request.get(
+        const res1: $TSFixMe = await request.get(
             `/user/${verificationToken.token}/email`
         );
         expect(res1).to.have.status(200);
@@ -217,14 +217,14 @@ describe('Team API with Sub-Projects', async function (): void {
 
         const authorization: string = `Basic ${token}`;
         // create a subproject for parent project
-        const res1 = await request
+        const res1: $TSFixMe = await request
 
             .post(`/project/${projectId}/subProject`)
             .set('Authorization', authorization)
             .send({ subProjectName: 'New SubProject' });
         subProjectId = res1.body[0]._id;
         // sign up second user (subproject user)
-        const checkCardData = await request.post('/stripe/checkCard').send({
+        const checkCardData: $TSFixMe = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
 
             email: userData.email,
@@ -232,11 +232,11 @@ describe('Team API with Sub-Projects', async function (): void {
             companyName: userData.companyName,
         });
 
-        const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
+        const confirmedPaymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(
             checkCardData.body.id
         );
 
-        const res2 = await request.post('/user/signup').send({
+        const res2: $TSFixMe = await request.post('/user/signup').send({
             paymentIntent: {
                 id: confirmedPaymentIntent.id,
             },
@@ -244,13 +244,13 @@ describe('Team API with Sub-Projects', async function (): void {
         });
 
         subProjectUserId = res2.body.id;
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId: subProjectUserId,
         });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
-        const res3 = await request.post('/user/login').send({
+        const res3: $TSFixMe = await request.post('/user/login').send({
             email: userData.newUser.email,
             password: userData.newUser.password,
         });
@@ -277,7 +277,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should add a new user to sub-project (role -> `Member`, project seat -> 4)', async () => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${subProjectId}`)
             .set('Authorization', authorization)
@@ -285,12 +285,12 @@ describe('Team API with Sub-Projects', async function (): void {
                 emails: userData.newUser.email,
                 role: 'Member',
             });
-        const subProjectTeamMembers = res.body.find(
+        const subProjectTeamMembers: $TSFixMe = res.body.find(
             teamMembers => teamMembers.projectId === subProjectId
         ).team;
         subProjectTeamMemberId = subProjectTeamMembers[0].userId;
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'seats',
         });
@@ -302,7 +302,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should add a new user to parent project and all sub-projects (role -> `Administrator`, project seat -> 4)', async () => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -310,15 +310,15 @@ describe('Team API with Sub-Projects', async function (): void {
                 emails: userData.anotherUser.email,
                 role: 'Administrator',
             });
-        const subProjectTeamMembers = res.body.find(
+        const subProjectTeamMembers: $TSFixMe = res.body.find(
             teamMembers => teamMembers.projectId === subProjectId
         ).team;
-        const projectTeamMembers = res.body.find(
+        const projectTeamMembers: $TSFixMe = res.body.find(
             teamMembers => teamMembers.projectId === projectId
         ).team;
         projectTeamMemberId = projectTeamMembers[0].userId;
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'seats',
         });
@@ -335,7 +335,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should update existing user role in sub-project (old role -> member, new role -> administrator)', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .put(`/team/${subProjectId}/${subProjectTeamMemberId}/changerole`)
             .set('Authorization', authorization)
@@ -343,7 +343,7 @@ describe('Team API with Sub-Projects', async function (): void {
                 role: 'Administrator',
             });
 
-        const subProjectTeamMembers = res.body.find(
+        const subProjectTeamMembers: $TSFixMe = res.body.find(
             teamMembers => teamMembers.projectId === subProjectId
         ).team;
         expect(res).to.have.status(200);
@@ -353,14 +353,14 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .put(`/team/${projectId}/${projectTeamMemberId}/changerole`)
             .set('Authorization', authorization)
             .send({
                 role: 'Member',
             });
-        const projectTeamMembers = res.body.find(
+        const projectTeamMembers: $TSFixMe = res.body.find(
             teamMembers => teamMembers.projectId === projectId
         ).team;
         expect(res).to.have.status(200);
@@ -370,7 +370,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it("should get only sub-project's team members for valid sub-project user", async (): void => {
         const authorization: string = `Basic ${newUserToken}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .get(`/team/${subProjectId}`)
             .set('Authorization', authorization);
@@ -381,7 +381,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should get both project and sub-project Team Members.', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .get(`/team/${projectId}/teamMembers`)
             .set('Authorization', authorization);
@@ -397,15 +397,15 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should remove user from sub-project Team Members (project team members count -> 2, project seat -> 3)', async () => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .delete(`/team/${subProjectId}/${subProjectTeamMemberId}`)
             .set('Authorization', authorization);
-        const subProjectTeamMembers = res.body.find(
+        const subProjectTeamMembers: $TSFixMe = res.body.find(
             teamMembers => teamMembers.projectId === subProjectId
         ).team;
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'seats',
         });
@@ -416,15 +416,15 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should remove user from project Team Members and all sub-projects (sub-project team members count -> 1, project seat -> 2)', async () => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .delete(`/team/${projectId}/${projectTeamMemberId}`)
             .set('Authorization', authorization);
-        const projectTeamMembers = res.body.find(
+        const projectTeamMembers: $TSFixMe = res.body.find(
             teamMembers => teamMembers.projectId === projectId
         ).team;
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'seats',
         });
@@ -435,7 +435,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should not add members that are more than 100 on a project (role -> `Member`)', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -448,7 +448,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should not add members on a project if sum of new and old members exceeds 100 (role -> `Member`)', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -462,7 +462,7 @@ describe('Team API with Sub-Projects', async function (): void {
     it('should not add members without business emails (role -> `Member`)', async (): void => {
         const authorization: string = `Basic ${token}`;
         const emails: string = 'sample.yahoo.com,sample@gmail.com';
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -475,7 +475,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should add members on a project if the number does not exceeds 100 (role -> `Member`)', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -489,7 +489,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should add unlimited members for the Viewer role (role -> `Viewer`)', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
 
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)

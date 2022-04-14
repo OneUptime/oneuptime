@@ -1,7 +1,7 @@
 import moment from 'moment';
 import payment from '../config/payment';
 import Stripe from 'stripe';
-const stripe = Stripe(payment.paymentPrivateKey);
+const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 import ProjectService from '../Services/projectService';
 import UserService from '../Services/userService';
 import AlertService from '../Services/alertService';
@@ -36,7 +36,7 @@ const _this: $TSFixMe = {
 
     handleUnpaidSubscription: async startAfter => {
         if (IS_SAAS_SERVICE) {
-            const subscriptions = await handleFetchingUnpaidSubscriptions(
+            const subscriptions: $TSFixMe = await handleFetchingUnpaidSubscriptions(
                 startAfter
             );
             // apply recursion here in order to fetch all the unpaid subscriptions and store it in data array
@@ -46,20 +46,20 @@ const _this: $TSFixMe = {
 
             data = [...data, ...subscriptions.data];
             if (subscriptions && subscriptions.has_more) {
-                const lastIndex = subscriptions.data.length - 1;
-                const subscriptionId = subscriptions.data[lastIndex].id;
+                const lastIndex: $TSFixMe = subscriptions.data.length - 1;
+                const subscriptionId: $TSFixMe = subscriptions.data[lastIndex].id;
                 await this.handleUnpaidSubscription(subscriptionId);
             }
 
-            const unpaidSubscriptions = [...data];
+            const unpaidSubscriptions: $TSFixMe = [...data];
             for (const unpaidSubscription of unpaidSubscriptions) {
-                const stripeCustomerId = unpaidSubscription.customer;
-                const stripeSubscriptionId = unpaidSubscription.id;
+                const stripeCustomerId: $TSFixMe = unpaidSubscription.customer;
+                const stripeSubscriptionId: $TSFixMe = unpaidSubscription.id;
                 let subscriptionEndDate = unpaidSubscription.ended_at; // unix timestamp
                 subscriptionEndDate = moment(subscriptionEndDate * 1000);
-                const timeDiff = moment().diff(subscriptionEndDate, 'days');
+                const timeDiff: $TSFixMe = moment().diff(subscriptionEndDate, 'days');
 
-                const [user, project] = await Promise.all([
+                const [user, project]: $TSFixMe = await Promise.all([
                     UserService.findOneBy({
                         query: { stripeCustomerId },
                         select: 'name email',

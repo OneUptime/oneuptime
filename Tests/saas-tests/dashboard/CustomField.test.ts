@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -21,7 +21,7 @@ const incidentFieldText: $TSFixMe = {
     };
 
 describe('Incident Custom Field', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -45,7 +45,7 @@ describe('Incident Custom Field', () => {
         async (done: $TSFixMe) => {
             await init.addCustomField(page, incidentFieldText, 'incident');
             await init.navigateToCustomField(page);
-            const firstCustomField = await init.pageWaitForSelector(
+            const firstCustomField: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#customfield_${incidentFieldText.fieldName}`,
                 { visible: true, timeout: init.timeout }
@@ -93,7 +93,7 @@ describe('Incident Custom Field', () => {
             });
 
             await init.navigateToCustomField(page);
-            const updatedField = await init.pageWaitForSelector(
+            const updatedField: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#customfield_${incidentFieldNumber.fieldName}`,
                 { visible: true, timeout: init.timeout }
@@ -125,7 +125,7 @@ describe('Incident Custom Field', () => {
             });
 
             await init.navigateToCustomField(page);
-            const noCustomFields = await init.pageWaitForSelector(
+            const noCustomFields: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#noCustomFields',
                 { visible: true, timeout: init.timeout }

@@ -4,7 +4,7 @@ import ContainerSecurity from './containerSecurity';
 
 export default {
     runContainerScan: async function (): void {
-        const securities = await BackendAPI.get(
+        const securities: $TSFixMe = await BackendAPI.get(
             'container/containerSecurities'
         );
         if (securities && securities.length > 0) {

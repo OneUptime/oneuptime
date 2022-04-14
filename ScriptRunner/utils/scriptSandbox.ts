@@ -23,23 +23,23 @@ class ScriptError extends Error {
     }
 }
 
-const { availableImports, maxScriptRunTime, maxSyncStatementDuration } =
+const { availableImports, maxScriptRunTime, maxSyncStatementDuration }: $TSFixMe =
     runConfig;
 
-const run = async (
+const run: $TSFixMe = async (
     functionCode: $TSFixMe,
     isCalled: $TSFixMe, // skip IIFE calls
     options = { maxScriptRunTime, maxSyncStatementDuration }
 ): void => {
     if (isMainThread) {
         // modifiable option in development mode only
-        const { maxScriptRunTime, maxSyncStatementDuration } = options;
+        const { maxScriptRunTime, maxSyncStatementDuration }: $TSFixMe = options;
         if (!isCalled) {
             return;
         }
-        const start = performance.now();
+        const start: $TSFixMe = performance.now();
         return new Promise(resolve => {
-            const worker = new Worker(__filename, {
+            const worker: $TSFixMe = new Worker(__filename, {
                 workerData: { functionCode },
                 execArgv: [
                     ...process.execArgv,
@@ -89,7 +89,7 @@ const run = async (
                         });
                         break;
                     case 1: {
-                        const message = statementTimeExceeded
+                        const message: $TSFixMe = statementTimeExceeded
                             ? `Max. synchronous statement execution time exceeded (${maxSyncStatementDuration}ms)`
                             : scriptTimeExceeded
                             ? `Max. script execution time exceeded (${maxScriptRunTime}ms)`
@@ -150,7 +150,7 @@ const run = async (
                 statementTimeExceeded = false,
                 scriptTimeExceeded = false;
 
-            const checker = setInterval(
+            const checker: $TSFixMe = setInterval(
                 () => {
                     totalRuntime += 1000;
                     if (totalRuntime > maxScriptRunTime) {
@@ -176,7 +176,7 @@ const run = async (
         // worker_threads code
 
         import { NodeVM } from 'vm2';
-        const vm = new NodeVM({
+        const vm: $TSFixMe = new NodeVM({
             eval: false,
             wasm: false,
             require: {
@@ -224,9 +224,9 @@ const run = async (
             }
         };
 
-        const code = workerData.functionCode;
+        const code: $TSFixMe = workerData.functionCode;
         setInterval(() => parentPort.postMessage({ type: 'ping' }), 500);
-        const sandboxFunction = await vm.run(
+        const sandboxFunction: $TSFixMe = await vm.run(
             `export default ${code}`,
             join(process.cwd(), 'node_modules')
         );

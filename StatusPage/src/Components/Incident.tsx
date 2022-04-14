@@ -55,7 +55,7 @@ class Incident extends Component<ComponentProps> {
 
             fetchLastIncidentTimeline,
         } = this.props;
-        const { incidentSlug } = params;
+        const { incidentSlug }: $TSFixMe = params;
 
         if (
             window.location.search.substring(1) &&
@@ -88,7 +88,7 @@ class Incident extends Component<ComponentProps> {
         this.props.getStatusPage(statusPageSlug, url).catch((err: $TSFixMe) => {
             if (err.message === 'Request failed with status code 401') {
 
-                const { loginRequired } = this.props.login;
+                const { loginRequired }: $TSFixMe = this.props.login;
                 if (loginRequired) {
 
                     window.location.href = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
@@ -116,7 +116,7 @@ class Incident extends Component<ComponentProps> {
 
             fetchLastIncidentTimeline,
         } = this.props;
-        const { incidentSlug } = params;
+        const { incidentSlug }: $TSFixMe = params;
 
         if (prevProps.statusData._id !== statusData._id) {
             fetchLastIncidentTimeline(statusData.projectId._id, incidentSlug);
@@ -136,7 +136,7 @@ class Incident extends Component<ComponentProps> {
 
             moreIncidentNotes,
         } = this.props;
-        const { incidentSlug } = params;
+        const { incidentSlug }: $TSFixMe = params;
 
         moreIncidentNotes(
             statusData.projectId._id,
@@ -148,7 +148,7 @@ class Incident extends Component<ComponentProps> {
 
     renderError = () => {
 
-        const { error } = this.props.status;
+        const { error }: $TSFixMe = this.props.status;
         if (error === 'Input data schema mismatch.') {
             return 'Page Not Found';
         } else if (error === 'Project Not present') {
@@ -193,7 +193,7 @@ class Incident extends Component<ComponentProps> {
 
             statusData,
         } = this.props;
-        const error = this.renderError();
+        const error: $TSFixMe = this.renderError();
 
         let downtimeColor, uptimeColor, degradedColor;
         if (
@@ -205,7 +205,7 @@ class Incident extends Component<ComponentProps> {
             this.props.statusData.colors
         ) {
 
-            const colors = this.props.statusData.colors;
+            const colors: $TSFixMe = this.props.statusData.colors;
             downtimeColor = {
                 backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`,
             };

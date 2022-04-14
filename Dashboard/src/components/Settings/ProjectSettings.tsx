@@ -31,7 +31,7 @@ export class ProjectSettings extends Component<ComponentProps>{
     public static propTypes = {};
 
     submitForm = (values: $TSFixMe) => {
-        const projectName = values.project_name;
+        const projectName: $TSFixMe = values.project_name;
         const {
 
             currentProject,
@@ -42,7 +42,7 @@ export class ProjectSettings extends Component<ComponentProps>{
 
             projectId,
         } = this.props;
-        const userId = User.getUserId();
+        const userId: $TSFixMe = User.getUserId();
 
         if (isOwnerOrAdmin(userId, currentProject)) {
             if (projectName) {
@@ -185,7 +185,7 @@ const  formName: string = 'ProjectSettings' + Math.floor(Math.random() * 10 + 1)
 
 const onSubmitSuccess: Function = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
-const ProjectSettingsForm = new reduxForm({
+const ProjectSettingsForm: $TSFixMe = new reduxForm({
     form: formName,
     enableReinitialize: true,
     validate,

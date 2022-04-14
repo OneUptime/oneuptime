@@ -4,13 +4,13 @@ import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let subProjectName = utils.generateRandomString();
-const newSubProjectName = utils.generateRandomString();
+const newSubProjectName: $TSFixMe = utils.generateRandomString();
 
 describe('Sub-Project API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -53,7 +53,7 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, '#btnAddSubProjects');
 
-            const spanSelector = await init.pageWaitForSelector(
+            const spanSelector: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#subProjectCreateErrorMessage',
                 { visible: true, timeout: init.timeout }
@@ -90,7 +90,7 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
-            const subProjectSelector = await init.pageWaitForSelector(
+            const subProjectSelector: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#sub_project_name_${subProjectName}`,
                 { visible: true, timeout: init.timeout }
@@ -116,17 +116,17 @@ describe('Sub-Project API', () => {
             await init.pageWaitForSelector(page, '#projectSettings');
 
             await init.pageClick(page, '#projectSettings');
-            const editSubProjectName = utils.generateRandomString();
+            const editSubProjectName: $TSFixMe = utils.generateRandomString();
 
             await init.pageClick(page, `#sub_project_edit_${subProjectName}`);
 
-            const input = await init.page$(page, '#title');
+            const input: $TSFixMe = await init.page$(page, '#title');
             await input.click({ clickCount: 3 });
             await input.type(editSubProjectName);
 
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
-            const subProjectSelector = await init.pageWaitForSelector(
+            const subProjectSelector: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#sub_project_name_${editSubProjectName}`,
                 { visible: true, timeout: init.timeout }
@@ -156,12 +156,12 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, '#btn_Add_SubProjects');
 
-            const input = await init.page$(page, '#title');
+            const input: $TSFixMe = await init.page$(page, '#title');
             await input.click({ clickCount: 3 });
             await input.type(subProjectName);
 
             await init.pageClick(page, '#btnAddSubProjects');
-            const spanSelector = await init.pageWaitForSelector(
+            const spanSelector: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#subProjectCreateErrorMessage',
                 { visible: true, timeout: init.timeout }
@@ -198,7 +198,7 @@ describe('Sub-Project API', () => {
             await init.pageWaitForSelector(page, '#removeSubProject');
 
             await init.pageClick(page, '#removeSubProject');
-            const subProjectSelector = await init.pageWaitForSelector(
+            const subProjectSelector: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#sub_project_name_${subProjectName}`,
                 { hidden: true }

@@ -2,10 +2,10 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import ContainerSecurityService from '../services/containerSecurityService';
 import ContainerSecurityLogService from '../services//containerSecurityLogService';
-const isAuthorizedContainerScanner =
+const isAuthorizedContainerScanner: $TSFixMe =
     require('../middlewares/containerScannerAuthorization').isAuthorizedContainerScanner;
 import {
     sendErrorResponse,
@@ -23,7 +23,7 @@ router.get(
     isAuthorizedContainerScanner,
     async (req, res): void => {
         try {
-            const response =
+            const response: $TSFixMe =
                 await ContainerSecurityService.getSecuritiesToScan();
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -36,8 +36,8 @@ router.post(
     isAuthorizedContainerScanner,
     async (req, res): void => {
         try {
-            const security = req.body.security;
-            const containerSecurity =
+            const security: $TSFixMe = req.body.security;
+            const containerSecurity: $TSFixMe =
                 await ContainerSecurityService.updateOneBy(
                     {
                         _id: security._id,
@@ -59,8 +59,8 @@ router.post(
     isAuthorizedContainerScanner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const security = req.body;
-            const containerSecurity =
+            const security: $TSFixMe = req.body;
+            const containerSecurity: $TSFixMe =
                 await ContainerSecurityService.updateOneBy(
                     {
                         _id: security._id,
@@ -78,31 +78,31 @@ router.post(
     isAuthorizedContainerScanner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const security = req.body;
-            const securityLog = await ContainerSecurityLogService.create({
+            const security: $TSFixMe = req.body;
+            const securityLog: $TSFixMe = await ContainerSecurityLogService.create({
                 securityId: security.securityId,
                 componentId: security.componentId,
                 data: security.data,
             });
 
-            const selectContainerLog =
+            const selectContainerLog: $TSFixMe =
                 'securityId componentId data deleted deleteAt';
 
-            const populateContainerLog = [
+            const populateContainerLog: $TSFixMe = [
                 { path: 'securityId', select: 'name slug' },
                 { path: 'componentId', select: 'name slug projectId' },
             ];
-            const findLog = await ContainerSecurityLogService.findOneBy({
+            const findLog: $TSFixMe = await ContainerSecurityLogService.findOneBy({
                 query: { _id: securityLog._id },
                 select: selectContainerLog,
                 populate: populateContainerLog,
             });
 
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: findLog.componentId.projectId },
                 select: '_id name users',
             });
-            const userIds = project.users
+            const userIds: $TSFixMe = project.users
                 .filter((e: $TSFixMe) => e.role !== 'Viewer')
                 .map((e: $TSFixMe) => ({
                     id: e.userId,
@@ -116,19 +116,19 @@ router.post(
 
             project.low = findLog.data.vulnerabilityInfo.low;
 
-            const critical = findLog.data.vulnerabilityData
+            const critical: $TSFixMe = findLog.data.vulnerabilityData
                 .filter((e: $TSFixMe) => e.severity === 'critical')
                 .slice(0, 10);
 
-            const high = findLog.data.vulnerabilityData
+            const high: $TSFixMe = findLog.data.vulnerabilityData
                 .filter((e: $TSFixMe) => e.severity === 'high')
                 .slice(0, 10);
 
-            const moderate = findLog.data.vulnerabilityData
+            const moderate: $TSFixMe = findLog.data.vulnerabilityData
                 .filter((e: $TSFixMe) => e.severity === 'moderate')
                 .slice(0, 5);
 
-            const low = findLog.data.vulnerabilityData
+            const low: $TSFixMe = findLog.data.vulnerabilityData
                 .filter((e: $TSFixMe) => e.severity === 'low')
                 .slice(0, 5);
             project.criticalIssues = critical;
@@ -137,8 +137,8 @@ router.post(
             project.lowIssues = low;
 
             for (let i = 0; i < userIds.length; i++) {
-                const userId = userIds[i].id;
-                const user = await UserService.findOneBy({
+                const userId: $TSFixMe = userIds[i].id;
+                const user: $TSFixMe = await UserService.findOneBy({
                     query: { _id: userId },
                     select: '_id email name',
                 });
@@ -163,8 +163,8 @@ router.post(
     isAuthorizedContainerScanner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const security = req.body;
-            const updatedTime = await ContainerSecurityService.updateScanTime({
+            const security: $TSFixMe = req.body;
+            const updatedTime: $TSFixMe = await ContainerSecurityService.updateScanTime({
                 _id: security._id,
             });
             return sendItemResponse(req, res, updatedTime);

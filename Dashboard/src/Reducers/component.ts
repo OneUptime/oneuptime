@@ -199,7 +199,7 @@ export default function component(state = INITIAL_STATE, action: Action): void {
             });
 
         case FETCH_PAGINATED_COMPONENTS_SUCCESS: {
-            const updatedComponents = state.componentList.components.map(
+            const updatedComponents: $TSFixMe = state.componentList.components.map(
                 componentObj => {
                     if (componentObj._id === action.payload._id) {
                         componentObj = action.payload;
@@ -277,24 +277,24 @@ export default function component(state = INITIAL_STATE, action: Action): void {
                     error: null,
                     success: false,
                     components: state.componentList.components.map(project => {
-                        const subProject = Object.assign({}, project);
-                        const subProjectComponents =
+                        const subProject: $TSFixMe = Object.assign({}, project);
+                        const subProjectComponents: $TSFixMe =
                             subProject.components &&
                             subProject.components.slice();
 
-                        const newComponent = Object.assign({}, action.payload);
+                        const newComponent: $TSFixMe = Object.assign({}, action.payload);
 
-                        const componentIndex =
+                        const componentIndex: $TSFixMe =
                             subProjectComponents &&
                             subProjectComponents.findIndex(
                                 (component: $TSFixMe) =>
                                     component._id === newComponent._id
                             );
-                        const isSubProjectComponent = componentIndex > -1;
+                        const isSubProjectComponent: $TSFixMe = componentIndex > -1;
 
                         if (subProject._id === newComponent.projectId._id) {
                             if (isSubProjectComponent) {
-                                const oldComponent = Object.assign(
+                                const oldComponent: $TSFixMe = Object.assign(
                                     {},
                                     subProjectComponents[componentIndex]
                                 );

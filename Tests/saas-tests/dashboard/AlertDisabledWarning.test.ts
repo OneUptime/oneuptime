@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 const user: $TSFixMe = {
@@ -14,7 +14,7 @@ const user: $TSFixMe = {
 };
 
 describe('Alert Warning', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -51,7 +51,7 @@ describe('Alert Warning', () => {
 
             await init.pageClick(page, '#billing');
 
-            const element = await init.pageWaitForSelector(
+            const element: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#alertWarning',
                 {
@@ -88,7 +88,7 @@ describe('Alert Warning', () => {
                 timeout: init.timeout,
             });
 
-            const rowLength = await init.page$$Eval(
+            const rowLength: $TSFixMe = await init.page$$Eval(
                 page,
                 '#alertOptionRow > div.bs-Fieldset-row',
                 (rows: $TSFixMe) => rows.length
@@ -103,7 +103,7 @@ describe('Alert Warning', () => {
                     document.querySelector('#alertOptionSave').click();
                 });
             }
-            const element = await init.pageWaitForSelector(
+            const element: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#alertWarning',
                 {

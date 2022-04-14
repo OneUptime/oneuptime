@@ -50,8 +50,8 @@ class Billing extends Component<ComponentProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -94,7 +94,7 @@ class Billing extends Component<ComponentProps> {
 Billing.displayName = 'Billing';
 
 const mapStateToProps: Function = (state: RootState) => {
-    const projectId =
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
     return {
         currentProjectId: projectId,

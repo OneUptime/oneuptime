@@ -152,7 +152,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-export const IncidentPrioritiesList = connect(
+export const IncidentPrioritiesList: $TSFixMe = connect(
     null,
     mapDispatchToProps
 )(IncidentPrioritiesListClass);

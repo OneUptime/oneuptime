@@ -50,7 +50,7 @@ class DeleteIncident extends Component<ComponentProps> {
         } = this.props.data;
 
 
-        const promise = this.props.deleteIncident(projectId, incidentId);
+        const promise: $TSFixMe = this.props.deleteIncident(projectId, incidentId);
         promise.then(() => {
 
             this.props.closeModal();
@@ -76,7 +76,7 @@ class DeleteIncident extends Component<ComponentProps> {
 
     override render() {
 
-        const { deleting, closeModal } = this.props;
+        const { deleting, closeModal }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

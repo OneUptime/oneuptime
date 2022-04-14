@@ -17,7 +17,7 @@ if (!isApiServer) {
     ReactGA.initialize('UA-115085157-1');
 }
 
-const target = document.getElementById('root');
+const target: $TSFixMe = document.getElementById('root');
 
 render(
     <ThroughProvider>

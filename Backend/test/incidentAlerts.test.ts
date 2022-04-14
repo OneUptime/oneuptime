@@ -10,7 +10,7 @@ chai.use(chaiSubset);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 const {
@@ -84,8 +84,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
     before(async function (): void {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
-        const user = await createUser(request, userData.user);
-        const project = user.body.project;
+        const user: $TSFixMe = await createUser(request, userData.user);
+        const project: $TSFixMe = user.body.project;
         projectId = project._id;
         userId = user.body.id;
 
@@ -94,17 +94,17 @@ describe('SMS/Calls Incident Alerts', function (): void {
             { alertPhoneNumber: '+19173976235' }
         );
 
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
-        const token = verificationToken.token;
+        const token: $TSFixMe = verificationToken.token;
         await verifyToken({ request, token });
-        const { email, password } = userData.user;
-        const userLogin = await login({ request, email, password });
-        const jwtToken = userLogin.body.tokens.jwtAccessToken;
+        const { email, password }: $TSFixMe = userData.user;
+        const userLogin: $TSFixMe = await login({ request, email, password });
+        const jwtToken: $TSFixMe = userLogin.body.tokens.jwtAccessToken;
         authorization = getAuthorizationHeader({ jwtToken });
 
-        const component = await createComponent({
+        const component: $TSFixMe = await createComponent({
             request,
             authorization,
             projectId,
@@ -117,7 +117,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
         });
         componentId = component.body._id;
 
-        const monitor = await createMonitor({
+        const monitor: $TSFixMe = await createMonitor({
             request,
             authorization,
             projectId,
@@ -152,7 +152,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             },
         });
 
-        const schedule = await createSchedule({
+        const schedule: $TSFixMe = await createSchedule({
             request,
             authorization,
             projectId,
@@ -235,17 +235,17 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should send SMS/Call alerts to on-call teams and subscribers if project balance is 0, and custom twilio settings are not set.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -260,7 +260,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(billingEndpointResponse).to.have.status(200);
             await ProjectService.updateBy({ _id: projectId }, { balance: 0 });
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -276,7 +276,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -287,7 +287,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -300,7 +300,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
 
             // because the project balance recharges, the alerts should be sent
             for (const event of subscribersAlerts.body.data) {
@@ -320,7 +320,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -332,9 +332,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
                 expect(errorMessage).to.be.undefined;
@@ -356,17 +356,17 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from US, the US numbers are disabled, and the custom twilio settings are not set.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -380,7 +380,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -396,7 +396,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -407,7 +407,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -420,7 +420,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -440,7 +440,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -452,9 +452,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 expect(alertStatus).to.equal(null);
                 if (alertVia === 'sms') {
                     expect(error).to.equal(true);
@@ -482,17 +482,17 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from high risk countries, the high risk countries numbers are disabled, and the custom twilio settings are not set.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -517,7 +517,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 }
             );
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -533,7 +533,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -544,7 +544,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -557,7 +557,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -577,7 +577,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -589,9 +589,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 expect(alertStatus).to.equal(null);
                 if (alertVia === 'sms') {
                     expect(error).to.equal(true);
@@ -630,17 +630,17 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are outside US, the outside US numbers are disabled, and the custom twilio settings are not set.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -665,7 +665,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 }
             );
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -681,7 +681,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -692,7 +692,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -705,7 +705,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -725,7 +725,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -737,9 +737,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 expect(alertStatus).to.equal(null);
                 if (alertVia === 'sms') {
                     expect(error).to.equal(true);
@@ -777,10 +777,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally and for the project.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
@@ -788,7 +788,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 { value }
             );
 
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -802,7 +802,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -818,7 +818,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -829,7 +829,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -842,7 +842,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -860,7 +860,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -872,9 +872,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error } = event;
+                const { alertVia, alertStatus, error }: $TSFixMe = event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
                 alertsSentList.push(alertVia);
@@ -901,15 +901,15 @@ describe('SMS/Calls Incident Alerts', function (): void {
             const userData: $TSFixMe = {
                 email: `${generateRandomString()}@oneuptime.com`,
             };
-            const newUser = await UserService.create(userData);
+            const newUser: $TSFixMe = await UserService.create(userData);
 
-            const newUserId = newUser._id.toString();
+            const newUserId: $TSFixMe = newUser._id.toString();
             await UserModel.updateOne(
                 { _id: newUserId },
                 { alertPhoneNumber: `+251921615223`, isVerified: true }
             );
 
-            const members = [
+            const members: $TSFixMe = [
                 {
                     userId: newUserId,
                     role: 'Member',
@@ -925,7 +925,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(updatedProject.users).to.have.lengthOf(2);
 
             // create a new schedule
-            const newSchedule = await createSchedule({
+            const newSchedule: $TSFixMe = await createSchedule({
                 request,
                 authorization,
                 projectId,
@@ -933,10 +933,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(newSchedule).to.have.status(200);
 
-            const newScheduleId = newSchedule.body._id;
+            const newScheduleId: $TSFixMe = newSchedule.body._id;
 
             // add escalation for the new schedule, for the new member
-            const escalations = await addEscalation({
+            const escalations: $TSFixMe = await addEscalation({
                 request,
                 authorization,
                 projectId,
@@ -968,7 +968,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(escalations).to.have.status(200);
 
             // create criteria, add a schedule to a new down criterion (non-default)
-            const criteria = MonitorCriteriaService.create('url');
+            const criteria: $TSFixMe = MonitorCriteriaService.create('url');
 
             criteria.down.push({
                 ...criteria.down[0],
@@ -979,7 +979,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             // create a new URL monitor, with a resource that will fail
             const url: string = 'https://httpbin.org/status/500';
-            const newMonitor = await createMonitor({
+            const newMonitor: $TSFixMe = await createMonitor({
                 request,
                 authorization,
                 projectId,
@@ -994,7 +994,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             });
             expect(newMonitor).to.have.status(200);
-            const newMonitorId = newMonitor.body._id;
+            const newMonitorId: $TSFixMe = newMonitor.body._id;
 
             // let the probe server generate incident
             await sleep(120 * 1000);
@@ -1004,7 +1004,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 select: '_id',
             });
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1032,7 +1032,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             );
             expect(updatedProject.users).to.have.lengthOf(1);
             // remove the monitor
-            const removedMonitor = await MonitorService.deleteBy(
+            const removedMonitor: $TSFixMe = await MonitorService.deleteBy(
                 {
                     _id: newMonitorId,
                 },
@@ -1052,15 +1052,15 @@ describe('SMS/Calls Incident Alerts', function (): void {
             const userData: $TSFixMe = {
                 email: `${generateRandomString()}@oneuptime.com`,
             };
-            const newUser = await UserService.create(userData);
+            const newUser: $TSFixMe = await UserService.create(userData);
 
-            const newUserId = newUser._id.toString();
+            const newUserId: $TSFixMe = newUser._id.toString();
             await UserModel.updateOne(
                 { _id: newUserId },
                 { alertPhoneNumber: `+251921615223`, isVerified: true }
             );
 
-            const members = [
+            const members: $TSFixMe = [
                 {
                     userId: newUserId,
                     role: 'Member',
@@ -1076,7 +1076,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(updatedProject.users).to.have.lengthOf(2);
 
             // create a new schedule
-            const newSchedule = await createSchedule({
+            const newSchedule: $TSFixMe = await createSchedule({
                 request,
                 authorization,
                 projectId,
@@ -1084,10 +1084,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(newSchedule).to.have.status(200);
 
-            const newScheduleId = newSchedule.body._id;
+            const newScheduleId: $TSFixMe = newSchedule.body._id;
 
             // add escalation for the new schedule, for the new member
-            const escalations = await addEscalation({
+            const escalations: $TSFixMe = await addEscalation({
                 request,
                 authorization,
                 projectId,
@@ -1119,22 +1119,22 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(escalations).to.have.status(200);
 
             // create criteria, add a schedule to a down criterion
-            const criteria = MonitorCriteriaService.create(
+            const criteria: $TSFixMe = MonitorCriteriaService.create(
                 'incomingHttpRequest'
             );
 
-            const degradedCriterion = criteria.degraded[0];
+            const degradedCriterion: $TSFixMe = criteria.degraded[0];
 
             degradedCriterion.scheduleIds = [newScheduleId];
 
-            const randomId = uuid.v4();
+            const randomId: $TSFixMe = uuid.v4();
 
             const link: string = `http://localhost:${
                 process.env['PORT'] || 3002
             }/api/incomingHttpRequest/${randomId}`;
 
             // create a new incomingHttp monitor, with a resource that will fail
-            const newMonitor = await createMonitor({
+            const newMonitor: $TSFixMe = await createMonitor({
                 request,
                 authorization,
                 projectId,
@@ -1151,10 +1151,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(newMonitor).to.have.status(200);
 
-            const newMonitorId = newMonitor.body._id;
+            const newMonitorId: $TSFixMe = newMonitor.body._id;
 
             // create a degraded incident by sending an http request with no body
-            const incomingHttpResponse = await axios.get(link);
+            const incomingHttpResponse: $TSFixMe = await axios.get(link);
             expect(incomingHttpResponse)
                 .to.have.property('data')
                 .that.has.property('status')
@@ -1168,7 +1168,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 select: '_id',
             });
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1196,7 +1196,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             );
             expect(updatedProject.users).to.have.lengthOf(1);
             // remove the monitor
-            const removedMonitor = await MonitorService.deleteBy(
+            const removedMonitor: $TSFixMe = await MonitorService.deleteBy(
                 {
                     _id: newMonitorId,
                 },
@@ -1223,15 +1223,15 @@ describe('SMS/Calls Incident Alerts', function (): void {
             const userData: $TSFixMe = {
                 email: `${generateRandomString}@oneuptime.com`,
             };
-            const newUser = await UserService.create(userData);
+            const newUser: $TSFixMe = await UserService.create(userData);
 
-            const newUserId = newUser._id.toString();
+            const newUserId: $TSFixMe = newUser._id.toString();
             await UserModel.updateOne(
                 { _id: newUserId },
                 { alertPhoneNumber: `+251921615223`, isVerified: true }
             );
 
-            const members = [
+            const members: $TSFixMe = [
                 {
                     userId: newUserId,
                     role: 'Member',
@@ -1247,7 +1247,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(updatedProject.users).to.have.lengthOf(2);
 
             // create a new schedule
-            const newSchedule = await createSchedule({
+            const newSchedule: $TSFixMe = await createSchedule({
                 request,
                 authorization,
                 projectId,
@@ -1255,10 +1255,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(newSchedule).to.have.status(200);
 
-            const newScheduleId = newSchedule.body._id;
+            const newScheduleId: $TSFixMe = newSchedule.body._id;
 
             // add escalation for the new schedule, for the new member
-            const escalations = await addEscalation({
+            const escalations: $TSFixMe = await addEscalation({
                 request,
                 authorization,
                 projectId,
@@ -1290,13 +1290,13 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(escalations).to.have.status(200);
 
             // create criteria, but remove the all other down criteria so we only have default criteria
-            const criteria = MonitorCriteriaService.create('url');
+            const criteria: $TSFixMe = MonitorCriteriaService.create('url');
             // add a schedule to the default criterion
 
             criteria.down[0].scheduleIds = [newScheduleId];
             // create a new URL monitor, with a resource that will fail
             const url: string = 'https://httpbin.org/status/500';
-            const newMonitor = await createMonitor({
+            const newMonitor: $TSFixMe = await createMonitor({
                 request,
                 authorization,
                 projectId,
@@ -1311,7 +1311,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             });
             expect(newMonitor).to.have.status(200);
-            const newMonitorId = newMonitor.body._id;
+            const newMonitorId: $TSFixMe = newMonitor.body._id;
 
             // let the probe server generate incident
             await sleep(120 * 1000);
@@ -1321,7 +1321,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 select: '_id',
             });
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1350,7 +1350,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(updatedProject.users).to.have.lengthOf(1);
 
             // remove the monitor
-            const removedMonitor = await MonitorService.deleteBy(
+            const removedMonitor: $TSFixMe = await MonitorService.deleteBy(
                 {
                     _id: newMonitorId,
                 },
@@ -1369,17 +1369,17 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should create billing details of subscriber  when sms is sent on the chargeAlert', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
 
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -1396,7 +1396,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             // remove prior charge alerts (if created)
             await AlertChargeService.hardDeleteBy({});
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -1412,7 +1412,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const chargeResponse = await getChargedAlerts({
+            const chargeResponse: $TSFixMe = await getChargedAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1427,7 +1427,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(chargeResponse.body.data.length).to.equal(3);
 
             const { _id: incidentId } = newIncident.body;
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -1436,7 +1436,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(incidentResolved).to.have.status(200);
             await sleep(10 * 1000);
-            const chargeResponseAfterResolvedIncident = await getChargedAlerts({
+            const chargeResponseAfterResolvedIncident: $TSFixMe = await getChargedAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1455,10 +1455,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
         });
 
         it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = false;
             await GlobalConfigModel.findOneAndUpdate(
@@ -1466,7 +1466,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 { value }
             );
 
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -1480,7 +1480,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -1496,7 +1496,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -1507,7 +1507,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1520,7 +1520,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -1538,7 +1538,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1550,9 +1550,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 if (alertVia === 'sms') {
                     expect(alertStatus).to.equal('Success');
                     expect(error).to.equal(false);
@@ -1578,10 +1578,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = false;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
@@ -1589,7 +1589,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 { value }
             );
 
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -1603,7 +1603,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -1619,7 +1619,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -1630,7 +1630,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1643,7 +1643,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -1663,7 +1663,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1675,9 +1675,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 if (alertVia === 'call') {
                     expect(alertStatus).to.equal('Success');
                     expect(error).to.equal(false);
@@ -1702,10 +1702,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should not send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
@@ -1713,7 +1713,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 { value }
             );
 
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -1727,7 +1727,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -1743,7 +1743,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -1754,7 +1754,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1767,7 +1767,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -1787,7 +1787,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1799,9 +1799,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 expect(alertStatus).to.equal(null);
                 expect(error).to.equal(true);
                 expect(errorMessage).to.equal(
@@ -1823,10 +1823,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
         it('should not send statusPageNote(investigation note) SMS notification when disabled', async (): void => {
             // update global setting to enable SMS
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = false;
 
@@ -1836,7 +1836,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             );
 
             // enable billing for the project
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -1851,7 +1851,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(billingEndpointResponse).to.have.status(200);
 
             // disable status page note (investigation note) on the project
-            const { enableInvestigationNoteNotificationSMS } =
+            const { enableInvestigationNoteNotificationSMS }: $TSFixMe =
                 await ProjectService.updateOneBy(
                     { _id: projectId },
                     {
@@ -1862,7 +1862,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(enableInvestigationNoteNotificationSMS).to.be.false;
 
             // create an incident
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -1876,7 +1876,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(newIncident).to.have.status(200);
 
-            const incidentId = newIncident.body._id;
+            const incidentId: $TSFixMe = newIncident.body._id;
 
             // create a status page note (investiagation note)
             const statusPageNotePayload: $TSFixMe = {
@@ -1885,7 +1885,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 type: 'investigation',
             };
 
-            const newStatusPageNote = await request
+            const newStatusPageNote: $TSFixMe = await request
                 .post(`/incident/${projectId}/incident/${incidentId}/message`)
                 .set('Authorization', authorization)
                 .send(statusPageNotePayload);
@@ -1893,7 +1893,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(newStatusPageNote).to.have.status(200);
 
             // resolve the incident
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -1904,7 +1904,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscriberAlerts = await getSubscribersAlerts({
+            const subscriberAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -1913,7 +1913,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(subscriberAlerts.body.data).to.be.an('array');
 
-            const statusPageNoteNotificationAlert =
+            const statusPageNoteNotificationAlert: $TSFixMe =
                 subscriberAlerts.body.data.find(
                     (subscriberAlert: $TSFixMe) =>
                         subscriberAlert.alertVia === 'sms' &&
@@ -1933,14 +1933,14 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
         it('should not cut project balance for invalid twilio settings', async (): void => {
             // update global setting to enable call and sms
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             // add a wrong config to twilio
-            const originalPhone = value.phone;
+            const originalPhone: $TSFixMe = value.phone;
             value.phone = '+111111111';
 
             await GlobalConfigModel.findOneAndUpdate(
@@ -1949,7 +1949,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             );
 
             // enable billing for the project
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -1970,7 +1970,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                     select: 'balance',
                 });
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -1985,7 +1985,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(newIncident).to.have.status(200);
 
             // resolve the incident
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -2006,7 +2006,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             // revert twilio settings
             value.phone = originalPhone;
-            const revertedTwilioSettings =
+            const revertedTwilioSettings: $TSFixMe =
                 await GlobalConfigModel.findOneAndUpdate(
                     { name: 'twilio' },
                     { value },
@@ -2027,10 +2027,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
         it('should recharge project balance when low', async (): void => {
             // update global setting to enable call and sms
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
 
@@ -2040,7 +2040,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             );
 
             // enable billing for the project
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -2061,7 +2061,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             );
 
             // send notification
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -2079,17 +2079,17 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             // check the balance again
 
-            const { balance, alertOptions } = await ProjectService.findOneBy({
+            const { balance, alertOptions }: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'balance alertOptions',
             });
 
-            const { rechargeToBalance, minimumBalance } = alertOptions;
+            const { rechargeToBalance, minimumBalance }: $TSFixMe = alertOptions;
 
             expect(balance).to.be.lessThan(rechargeToBalance);
             expect(balance).to.be.greaterThan(minimumBalance);
             // resolve the incident
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -2111,10 +2111,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             this.timeout(60 * 1000);
 
             // update global setting to enable call and sms
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
 
@@ -2124,7 +2124,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             );
 
             // enable billing for the project
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -2141,7 +2141,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             // create multiple subscribers
             for (let i = 0; i < 10; i++) {
-                const newSubscriber = await addSubscriberToMonitor({
+                const newSubscriber: $TSFixMe = await addSubscriberToMonitor({
                     request,
                     authorization,
                     monitorId,
@@ -2167,7 +2167,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
 
             // send notification
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -2185,7 +2185,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             await sleep(25 * 1000);
 
             // get all alert charges sorted by date in descending order
-            const alertCharges = await AlertChargeService.findBy(
+            const alertCharges: $TSFixMe = await AlertChargeService.findBy(
                 {
                     incidentId: newIncident.body._id,
                     projectId,
@@ -2200,7 +2200,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             let calculatedBalance = originalProjectBalance;
             // calculate balance for each alert charge amount and compare it with
             // alert charge's closing balance
-            const allAlertChargesCorrect = alertCharges.every(
+            const allAlertChargesCorrect: $TSFixMe = alertCharges.every(
                 (alertCharge: $TSFixMe) => {
                     calculatedBalance = formatBalance(
                         calculatedBalance - alertCharge.chargeAmount
@@ -2215,7 +2215,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(allAlertChargesCorrect).to.be.true;
 
             // resolve the incident
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -2242,17 +2242,17 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -2266,7 +2266,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const customTwilioSettingResponse = await request
+            const customTwilioSettingResponse: $TSFixMe = await request
                 .post(`/smsSmtp/${projectId}`)
                 .set('Authorization', authorization)
                 .send({
@@ -2277,7 +2277,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(customTwilioSettingResponse).to.have.status(200);
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -2293,7 +2293,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -2304,7 +2304,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -2317,7 +2317,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -2335,7 +2335,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -2347,9 +2347,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error } = event;
+                const { alertVia, alertStatus, error }: $TSFixMe = event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
                 alertsSentList.push(alertVia);
@@ -2367,17 +2367,17 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled in the global twilio settings.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = false;
             value['call-enabled'] = false;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -2391,7 +2391,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const getCustomTwilioSettingResponse = await request
+            const getCustomTwilioSettingResponse: $TSFixMe = await request
                 .get(`/smsSmtp/${projectId}/`)
                 .set('Authorization', authorization);
             expect(getCustomTwilioSettingResponse).to.have.status(200);
@@ -2399,7 +2399,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: smsSmtpId } = getCustomTwilioSettingResponse.body;
 
-            const customTwilioSettingResponse = await request
+            const customTwilioSettingResponse: $TSFixMe = await request
                 .put(`/smsSmtp/${projectId}/${smsSmtpId}`)
                 .set('Authorization', authorization)
                 .send({
@@ -2410,7 +2410,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(customTwilioSettingResponse).to.have.status(200);
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -2426,7 +2426,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -2437,7 +2437,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -2450,7 +2450,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -2468,7 +2468,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -2480,9 +2480,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error } = event;
+                const { alertVia, alertStatus, error }: $TSFixMe = event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
                 alertsSentList.push(alertVia);
@@ -2497,7 +2497,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
         it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async (): void => {
             await GlobalConfigModel.deleteMany({ name: 'twilio' });
-            const billingEndpointResponse = await request
+            const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
                 .send({
@@ -2511,7 +2511,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            const getCustomTwilioSettingResponse = await request
+            const getCustomTwilioSettingResponse: $TSFixMe = await request
                 .get(`/smsSmtp/${projectId}/`)
                 .set('Authorization', authorization);
             expect(getCustomTwilioSettingResponse).to.have.status(200);
@@ -2520,13 +2520,13 @@ describe('SMS/Calls Incident Alerts', function (): void {
             const { _id: smsSmtpId } = getCustomTwilioSettingResponse.body;
 
             if (smsSmtpId) {
-                const deleteCustomTwilioSettingResponse = await request
+                const deleteCustomTwilioSettingResponse: $TSFixMe = await request
                     .delete(`/smsSmtp/${projectId}/${smsSmtpId}`)
                     .set('Authorization', authorization);
                 expect(deleteCustomTwilioSettingResponse).to.have.status(200);
             }
 
-            const newIncident = await createIncident({
+            const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
                 projectId,
@@ -2542,7 +2542,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const { _id: incidentId } = newIncident.body;
 
-            const incidentResolved = await markIncidentAsResolved({
+            const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
                 projectId,
@@ -2553,7 +2553,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            const subscribersAlerts = await getSubscribersAlerts({
+            const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
                 request,
                 authorization,
                 projectId,
@@ -2566,7 +2566,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscribersAlerts.body.data).to.an('array');
             expect(subscribersAlerts.body.data.length).to.equal(2);
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -2586,7 +2586,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const onCallAlerts = await getOnCallAlerts({
+            const onCallAlerts: $TSFixMe = await getOnCallAlerts({
                 request,
                 authorization,
                 projectId,
@@ -2598,9 +2598,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
             expect(onCallAlerts.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 expect(alertStatus).to.equal(null);
                 expect(error).to.equal(true);
                 expect(errorMessage).to.equal(
@@ -2617,20 +2617,20 @@ describe('SMS/Calls Incident Alerts', function (): void {
 describe('Email Incident Alerts', (): void => {
     before(async function (): void {
         this.timeout(30000);
-        const createdUser = await createUser(request, userData.user);
-        const project = createdUser.body.project;
+        const createdUser: $TSFixMe = await createUser(request, userData.user);
+        const project: $TSFixMe = createdUser.body.project;
         projectId = project._id;
         userId = createdUser.body.id;
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
-        const token = verificationToken.token;
+        const token: $TSFixMe = verificationToken.token;
         await verifyToken({ request, token });
-        const { email, password } = userData.user;
-        const userLogin = await login({ request, email, password });
-        const jwtToken = userLogin.body.tokens.jwtAccessToken;
+        const { email, password }: $TSFixMe = userData.user;
+        const userLogin: $TSFixMe = await login({ request, email, password });
+        const jwtToken: $TSFixMe = userLogin.body.tokens.jwtAccessToken;
         authorization = getAuthorizationHeader({ jwtToken });
-        const component = await createComponent({
+        const component: $TSFixMe = await createComponent({
             request,
             authorization,
             projectId,
@@ -2642,7 +2642,7 @@ describe('Email Incident Alerts', (): void => {
             },
         });
         componentId = component.body._id;
-        const monitor = await createMonitor({
+        const monitor: $TSFixMe = await createMonitor({
             request,
             authorization,
             projectId,
@@ -2667,7 +2667,7 @@ describe('Email Incident Alerts', (): void => {
                 contactEmail: 'test@hackerbay.io',
             },
         });
-        const schedule = await createSchedule({
+        const schedule: $TSFixMe = await createSchedule({
             request,
             authorization,
             projectId,
@@ -2746,7 +2746,7 @@ describe('Email Incident Alerts', (): void => {
 
     it('should not send Email alerts if no SMTP configurations are set.', async function (): void {
         this.timeout(30000);
-        const newIncident = await createIncident({
+        const newIncident: $TSFixMe = await createIncident({
             request,
             authorization,
             projectId,
@@ -2760,7 +2760,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(newIncident).to.have.status(200);
         const { _id: incidentId } = newIncident.body;
-        const incidentResolved = await markIncidentAsResolved({
+        const incidentResolved: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
@@ -2768,7 +2768,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(incidentResolved).to.have.status(200);
         await sleep(15 * 1000);
-        const subscribersAlerts = await getSubscribersAlerts({
+        const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
             request,
             authorization,
             projectId,
@@ -2779,9 +2779,9 @@ describe('Email Incident Alerts', (): void => {
         expect(subscribersAlerts.body.count).to.equal(2);
         expect(subscribersAlerts.body.data).to.an('array');
         expect(subscribersAlerts.body.data.length).to.equal(2);
-        const eventTypesSent = [];
+        const eventTypesSent: $TSFixMe = [];
         for (const event of subscribersAlerts.body.data) {
-            const { alertStatus, alertVia, eventType, error, errorMessage } =
+            const { alertStatus, alertVia, eventType, error, errorMessage }: $TSFixMe =
                 event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal(null);
@@ -2794,7 +2794,7 @@ describe('Email Incident Alerts', (): void => {
         expect(eventTypesSent.includes('resolved')).to.equal(true);
         expect(eventTypesSent.includes('identified')).to.equal(true);
 
-        const onCallAlerts = await getOnCallAlerts({
+        const onCallAlerts: $TSFixMe = await getOnCallAlerts({
             request,
             authorization,
             projectId,
@@ -2806,9 +2806,9 @@ describe('Email Incident Alerts', (): void => {
         expect(onCallAlerts.body.data).to.an('array');
         expect(onCallAlerts.body.data.length).to.equal(2);
 
-        const eventTypesSentToTeamMembers = [];
+        const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage } =
+            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
                 onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
@@ -2846,7 +2846,7 @@ describe('Email Incident Alerts', (): void => {
                 'smtp-secure': true,
             },
         });
-        const newIncident = await createIncident({
+        const newIncident: $TSFixMe = await createIncident({
             request,
             authorization,
             projectId,
@@ -2860,7 +2860,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(newIncident).to.have.status(200);
         const { _id: incidentId } = newIncident.body;
-        const incidentResolved = await markIncidentAsResolved({
+        const incidentResolved: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
@@ -2868,7 +2868,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(incidentResolved).to.have.status(200);
         await sleep(15 * 1000);
-        const subscribersAlerts = await getSubscribersAlerts({
+        const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
             request,
             authorization,
             projectId,
@@ -2879,9 +2879,9 @@ describe('Email Incident Alerts', (): void => {
         expect(subscribersAlerts.body.count).to.equal(2);
         expect(subscribersAlerts.body.data).to.an('array');
         expect(subscribersAlerts.body.data.length).to.equal(2);
-        const eventTypesSent = [];
+        const eventTypesSent: $TSFixMe = [];
         for (const event of subscribersAlerts.body.data) {
-            const { alertStatus, alertVia, eventType, error, errorMessage } =
+            const { alertStatus, alertVia, eventType, error, errorMessage }: $TSFixMe =
                 event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal(null);
@@ -2891,7 +2891,7 @@ describe('Email Incident Alerts', (): void => {
         }
         expect(eventTypesSent.includes('resolved')).to.equal(true);
         expect(eventTypesSent.includes('identified')).to.equal(true);
-        const onCallAlerts = await getOnCallAlerts({
+        const onCallAlerts: $TSFixMe = await getOnCallAlerts({
             request,
             authorization,
             projectId,
@@ -2903,9 +2903,9 @@ describe('Email Incident Alerts', (): void => {
         expect(onCallAlerts.body.data).to.an('array');
         expect(onCallAlerts.body.data.length).to.equal(2);
 
-        const eventTypesSentToTeamMembers = [];
+        const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage } =
+            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
                 onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
@@ -2942,7 +2942,7 @@ describe('Email Incident Alerts', (): void => {
                 'smtp-secure': true,
             },
         });
-        const newIncident = await createIncident({
+        const newIncident: $TSFixMe = await createIncident({
             request,
             authorization,
             projectId,
@@ -2956,7 +2956,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(newIncident).to.have.status(200);
         const { _id: incidentId } = newIncident.body;
-        const incidentResolved = await markIncidentAsResolved({
+        const incidentResolved: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
@@ -2964,7 +2964,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(incidentResolved).to.have.status(200);
         await sleep(15 * 1000);
-        const subscribersAlerts = await getSubscribersAlerts({
+        const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
             request,
             authorization,
             projectId,
@@ -2975,9 +2975,9 @@ describe('Email Incident Alerts', (): void => {
         expect(subscribersAlerts.body.count).to.equal(2);
         expect(subscribersAlerts.body.data).to.an('array');
         expect(subscribersAlerts.body.data.length).to.equal(2);
-        const eventTypesSent = [];
+        const eventTypesSent: $TSFixMe = [];
         for (const event of subscribersAlerts.body.data) {
-            const { alertStatus, alertVia, eventType, error } = event;
+            const { alertStatus, alertVia, eventType, error }: $TSFixMe = event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal('Sent');
             expect(alertVia).to.equal('email');
@@ -2985,7 +2985,7 @@ describe('Email Incident Alerts', (): void => {
         }
         expect(eventTypesSent.includes('resolved')).to.equal(true);
         expect(eventTypesSent.includes('identified')).to.equal(true);
-        const onCallAlerts = await getOnCallAlerts({
+        const onCallAlerts: $TSFixMe = await getOnCallAlerts({
             request,
             authorization,
             projectId,
@@ -2997,9 +2997,9 @@ describe('Email Incident Alerts', (): void => {
         expect(onCallAlerts.body.data).to.an('array');
         expect(onCallAlerts.body.data.length).to.equal(2);
 
-        const eventTypesSentToTeamMembers = [];
+        const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage } =
+            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
                 onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
@@ -3040,7 +3040,7 @@ describe('Email Incident Alerts', (): void => {
         });
 
         // disable status page note (investigation note) Email notification on the project
-        const { enableInvestigationNoteNotificationEmail } =
+        const { enableInvestigationNoteNotificationEmail }: $TSFixMe =
             await ProjectService.updateOneBy(
                 { _id: projectId },
                 {
@@ -3051,7 +3051,7 @@ describe('Email Incident Alerts', (): void => {
         expect(enableInvestigationNoteNotificationEmail).to.be.false;
 
         // create an incident
-        const newIncident = await createIncident({
+        const newIncident: $TSFixMe = await createIncident({
             request,
             authorization,
             projectId,
@@ -3065,7 +3065,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(newIncident).to.have.status(200);
 
-        const incidentId = newIncident.body._id;
+        const incidentId: $TSFixMe = newIncident.body._id;
 
         // create a status page note (investigation note)
         const statusPageNotePayload: $TSFixMe = {
@@ -3074,7 +3074,7 @@ describe('Email Incident Alerts', (): void => {
             type: 'investigation',
         };
 
-        const newStatusPageNote = await request
+        const newStatusPageNote: $TSFixMe = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send(statusPageNotePayload);
@@ -3082,7 +3082,7 @@ describe('Email Incident Alerts', (): void => {
         expect(newStatusPageNote).to.have.status(200);
 
         // resolve the incident
-        const incidentResolved = await markIncidentAsResolved({
+        const incidentResolved: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
@@ -3093,7 +3093,7 @@ describe('Email Incident Alerts', (): void => {
 
         await sleep(10 * 1000);
 
-        const subscriberAlerts = await getSubscribersAlerts({
+        const subscriberAlerts: $TSFixMe = await getSubscribersAlerts({
             request,
             authorization,
             projectId,
@@ -3102,7 +3102,7 @@ describe('Email Incident Alerts', (): void => {
 
         expect(subscriberAlerts.body.data).to.be.an('array');
 
-        const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
+        const statusPageNoteNotificationAlert: $TSFixMe = subscriberAlerts.body.data.find(
             (subscriberAlert: $TSFixMe) =>
                 subscriberAlert.alertVia === 'email' &&
                 subscriberAlert.errorMessage ===
@@ -3142,7 +3142,7 @@ describe('Email Incident Alerts', (): void => {
             name: 'Ibukun',
             secure: true,
         });
-        const newIncident = await createIncident({
+        const newIncident: $TSFixMe = await createIncident({
             request,
             authorization,
             projectId,
@@ -3156,7 +3156,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(newIncident).to.have.status(200);
         const { _id: incidentId } = newIncident.body;
-        const incidentResolved = await markIncidentAsResolved({
+        const incidentResolved: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
@@ -3164,7 +3164,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(incidentResolved).to.have.status(200);
         await sleep(15 * 1000);
-        const subscribersAlerts = await getSubscribersAlerts({
+        const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
             request,
             authorization,
             projectId,
@@ -3175,9 +3175,9 @@ describe('Email Incident Alerts', (): void => {
         expect(subscribersAlerts.body.count).to.equal(2);
         expect(subscribersAlerts.body.data).to.an('array');
         expect(subscribersAlerts.body.data.length).to.equal(2);
-        const eventTypesSent = [];
+        const eventTypesSent: $TSFixMe = [];
         for (const event of subscribersAlerts.body.data) {
-            const { alertStatus, alertVia, eventType, error } = event;
+            const { alertStatus, alertVia, eventType, error }: $TSFixMe = event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal('Sent');
             expect(alertVia).to.equal('email');
@@ -3185,7 +3185,7 @@ describe('Email Incident Alerts', (): void => {
         }
         expect(eventTypesSent.includes('resolved')).to.equal(true);
         expect(eventTypesSent.includes('identified')).to.equal(true);
-        const onCallAlerts = await getOnCallAlerts({
+        const onCallAlerts: $TSFixMe = await getOnCallAlerts({
             request,
             authorization,
             projectId,
@@ -3197,9 +3197,9 @@ describe('Email Incident Alerts', (): void => {
         expect(onCallAlerts.body.data).to.an('array');
         expect(onCallAlerts.body.data.length).to.equal(2);
 
-        const eventTypesSentToTeamMembers = [];
+        const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage } =
+            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
                 onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
@@ -3235,7 +3235,7 @@ describe('Email Incident Alerts', (): void => {
             name: 'Ibukun',
             secure: true,
         });
-        const newIncident = await createIncident({
+        const newIncident: $TSFixMe = await createIncident({
             request,
             authorization,
             projectId,
@@ -3249,7 +3249,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(newIncident).to.have.status(200);
         const { _id: incidentId } = newIncident.body;
-        const incidentResolved = await markIncidentAsResolved({
+        const incidentResolved: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
@@ -3257,7 +3257,7 @@ describe('Email Incident Alerts', (): void => {
         });
         expect(incidentResolved).to.have.status(200);
         await sleep(15 * 1000);
-        const subscribersAlerts = await getSubscribersAlerts({
+        const subscribersAlerts: $TSFixMe = await getSubscribersAlerts({
             request,
             authorization,
             projectId,
@@ -3268,9 +3268,9 @@ describe('Email Incident Alerts', (): void => {
         expect(subscribersAlerts.body.count).to.equal(2);
         expect(subscribersAlerts.body.data).to.an('array');
         expect(subscribersAlerts.body.data.length).to.equal(2);
-        const eventTypesSent = [];
+        const eventTypesSent: $TSFixMe = [];
         for (const event of subscribersAlerts.body.data) {
-            const { alertStatus, alertVia, eventType, error } = event;
+            const { alertStatus, alertVia, eventType, error }: $TSFixMe = event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal('Sent');
             expect(alertVia).to.equal('email');
@@ -3278,7 +3278,7 @@ describe('Email Incident Alerts', (): void => {
         }
         expect(eventTypesSent.includes('resolved')).to.equal(true);
         expect(eventTypesSent.includes('identified')).to.equal(true);
-        const onCallAlerts = await getOnCallAlerts({
+        const onCallAlerts: $TSFixMe = await getOnCallAlerts({
             request,
             authorization,
             projectId,
@@ -3290,9 +3290,9 @@ describe('Email Incident Alerts', (): void => {
         expect(onCallAlerts.body.data).to.an('array');
         expect(onCallAlerts.body.data.length).to.equal(2);
 
-        const eventTypesSentToTeamMembers = [];
+        const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage } =
+            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
                 onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
@@ -3314,20 +3314,20 @@ describe('Webhook Incident Alerts', function (): void {
 
     before(async function (): void {
         this.timeout(30000);
-        const createdUser = await createUser(request, userData.user);
-        const project = createdUser.body.project;
+        const createdUser: $TSFixMe = await createUser(request, userData.user);
+        const project: $TSFixMe = createdUser.body.project;
         projectId = project._id;
         userId = createdUser.body.id;
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
-        const token = verificationToken.token;
+        const token: $TSFixMe = verificationToken.token;
         await verifyToken({ request, token });
-        const { email, password } = userData.user;
-        const userLogin = await login({ request, email, password });
-        const jwtToken = userLogin.body.tokens.jwtAccessToken;
+        const { email, password }: $TSFixMe = userData.user;
+        const userLogin: $TSFixMe = await login({ request, email, password });
+        const jwtToken: $TSFixMe = userLogin.body.tokens.jwtAccessToken;
         authorization = getAuthorizationHeader({ jwtToken });
-        const component = await createComponent({
+        const component: $TSFixMe = await createComponent({
             request,
             authorization,
             projectId,
@@ -3339,7 +3339,7 @@ describe('Webhook Incident Alerts', function (): void {
             },
         });
         componentId = component.body._id;
-        const monitor = await createMonitor({
+        const monitor: $TSFixMe = await createMonitor({
             request,
             authorization,
             projectId,
@@ -3368,7 +3368,7 @@ describe('Webhook Incident Alerts', function (): void {
             },
         });
 
-        const schedule = await createSchedule({
+        const schedule: $TSFixMe = await createSchedule({
             request,
             authorization,
             projectId,
@@ -3442,7 +3442,7 @@ describe('Webhook Incident Alerts', function (): void {
 
     it('should not send statusPageNote(investigation note) Webhook notification when disabled', async () => {
         // disable status page note (investigation note) notification for webhooks
-        const { enableInvestigationNoteNotificationWebhook } =
+        const { enableInvestigationNoteNotificationWebhook }: $TSFixMe =
             await ProjectService.updateOneBy(
                 { _id: projectId },
                 {
@@ -3453,7 +3453,7 @@ describe('Webhook Incident Alerts', function (): void {
         expect(enableInvestigationNoteNotificationWebhook).to.be.false;
 
         // create an incident
-        const newIncident = await createIncident({
+        const newIncident: $TSFixMe = await createIncident({
             request,
             authorization,
             projectId,
@@ -3467,7 +3467,7 @@ describe('Webhook Incident Alerts', function (): void {
         });
         expect(newIncident).to.have.status(200);
 
-        const incidentId = newIncident.body._id;
+        const incidentId: $TSFixMe = newIncident.body._id;
 
         // create a status page note (investigation note)
         const statusPageNotePayload: $TSFixMe = {
@@ -3476,7 +3476,7 @@ describe('Webhook Incident Alerts', function (): void {
             type: 'investigation',
         };
 
-        const newStatusPageNote = await request
+        const newStatusPageNote: $TSFixMe = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
             .set('Authorization', authorization)
             .send(statusPageNotePayload);
@@ -3484,7 +3484,7 @@ describe('Webhook Incident Alerts', function (): void {
         expect(newStatusPageNote).to.have.status(200);
 
         // resolve the incident
-        const incidentResolved = await markIncidentAsResolved({
+        const incidentResolved: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,
             projectId,
@@ -3495,7 +3495,7 @@ describe('Webhook Incident Alerts', function (): void {
 
         await sleep(10 * 1000);
 
-        const subscriberAlerts = await getSubscribersAlerts({
+        const subscriberAlerts: $TSFixMe = await getSubscribersAlerts({
             request,
             authorization,
             projectId,
@@ -3504,7 +3504,7 @@ describe('Webhook Incident Alerts', function (): void {
 
         expect(subscriberAlerts.body.data).to.be.an('array');
 
-        const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
+        const statusPageNoteNotificationAlert: $TSFixMe = subscriberAlerts.body.data.find(
             (subscriberAlert: $TSFixMe) =>
                 subscriberAlert.alertVia === 'webhook' &&
                 subscriberAlert.errorMessage ===

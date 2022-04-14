@@ -3,7 +3,7 @@ import { find, update } from '../util/db';
 const MONITOR_COLLECTION: string = 'monitors';
 
 async function run(): void {
-    const monitorsWithOldCriteria = await find(MONITOR_COLLECTION, {
+    const monitorsWithOldCriteria: $TSFixMe = await find(MONITOR_COLLECTION, {
         $or: [
             { 'criteria.up': { $not: { $type: 'array' } } },
             { 'criteria.degraded': { $not: { $type: 'array' } } },
@@ -12,9 +12,9 @@ async function run(): void {
     });
 
     monitorsWithOldCriteria.forEach((monitor: $TSFixMe) => {
-        const newUpCriteria = [];
-        const newDegradedCriteria = [];
-        const newDownCriteria = [];
+        const newUpCriteria: $TSFixMe = [];
+        const newDegradedCriteria: $TSFixMe = [];
+        const newDownCriteria: $TSFixMe = [];
 
         const newFields: $TSFixMe = {
             scheduleIds: [],

@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import ProbeService from '../services/probeService';
 import {
     sendErrorResponse,
@@ -12,16 +12,16 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import { isValidMonitor } from '../middlewares/api';
 
-const incomingHttpRequest = async (
+const incomingHttpRequest: $TSFixMe = async (
     req: ExpressRequest,
     res: ExpressResponse
 ): void => {
     try {
-        const monitor = req.monitor;
-        const body = req.body;
-        const queryParams = req.query;
-        const headers = req.headers;
-        const response = await ProbeService.processHttpRequest({
+        const monitor: $TSFixMe = req.monitor;
+        const body: $TSFixMe = req.body;
+        const queryParams: $TSFixMe = req.query;
+        const headers: $TSFixMe = req.headers;
+        const response: $TSFixMe = await ProbeService.processHttpRequest({
             monitor,
             body,
             queryParams,

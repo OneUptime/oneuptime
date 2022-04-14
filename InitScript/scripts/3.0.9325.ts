@@ -4,7 +4,7 @@ import getSlug from '../util/getSlug';
 const incidentCollection: string = 'incidents';
 
 async function run(): void {
-    const incidents = await find(
+    const incidents: $TSFixMe = await find(
         incidentCollection,
         {
             deleted: false,
@@ -15,7 +15,7 @@ async function run(): void {
     );
 
     for (const incident of incidents) {
-        const slug = getSlug(incident.idNumber);
+        const slug: $TSFixMe = getSlug(incident.idNumber);
         await update(incidentCollection, { _id: incident._id }, { slug });
     }
 

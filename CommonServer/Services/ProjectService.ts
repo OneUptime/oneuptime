@@ -22,13 +22,13 @@ import IncidentSettingsService from './IncidentSettingsService';
 
 export default class Service {
     async create(data): void {
-        const projectModel = new ProjectModel();
-        const adminUser = await UserService.findOneBy({
+        const projectModel: $TSFixMe = new ProjectModel();
+        const adminUser: $TSFixMe = await UserService.findOneBy({
             query: { role: 'master-admin' },
             select: '_id',
         });
         if (data.parentProjectId) {
-            const parentProject = await this.findOneBy({
+            const parentProject: $TSFixMe = await this.findOneBy({
                 query: { _id: data.parentProjectId },
                 select: 'users',
             });
@@ -81,7 +81,7 @@ export default class Service {
         projectModel.isBlocked = data.isBlocked || false;
 
         projectModel.adminNotes = data.adminNotes || null;
-        const project = await projectModel.save();
+        const project: $TSFixMe = await projectModel.save();
 
         const prioritiesData: $TSFixMe = {
             high: {
@@ -105,7 +105,7 @@ export default class Service {
                 },
             },
         };
-        const [priority] = await Promise.all([
+        const [priority]: $TSFixMe = await Promise.all([
             IncidentPrioritiesService.create(prioritiesData.high),
             IncidentPrioritiesService.create(prioritiesData.low),
         ]);
@@ -134,7 +134,7 @@ export default class Service {
                     project.stripeSubscriptionId
                 );
             }
-            const populateSchedule = [
+            const populateSchedule: $TSFixMe = [
                 { path: 'userIds', select: 'name' },
                 { path: 'createdById', select: 'name' },
                 { path: 'monitorIds', select: 'name' },
@@ -152,18 +152,18 @@ export default class Service {
                 },
             ];
 
-            const selectSchedule =
+            const selectSchedule: $TSFixMe =
                 '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
-            const populateComponent = [
+            const populateComponent: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
                 { path: 'componentCategoryId', select: 'name' },
             ];
 
-            const selectComponent =
+            const selectComponent: $TSFixMe =
                 '_id createdAt name createdById projectId slug componentCategoryId';
 
-            const populateStatusPage = [
+            const populateStatusPage: $TSFixMe = [
                 {
                     path: 'projectId',
                     select: 'name parentProjectId',
@@ -179,15 +179,15 @@ export default class Service {
                 },
             ];
 
-            const selectStatusPage =
+            const selectStatusPage: $TSFixMe =
                 '_id projectId domains monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-            const populateDefaultRoleSso = [
+            const populateDefaultRoleSso: $TSFixMe = [
                 { path: 'domain', select: '_id domain' },
                 { path: 'project', select: '_id name' },
             ];
 
-            const selectDefaultRoleSso =
+            const selectDefaultRoleSso: $TSFixMe =
                 '_id domain project role createdAt deleted deletedAt deletedById';
             const [
                 monitors,
@@ -264,7 +264,7 @@ export default class Service {
             );
 
             for (const ssoDefaultRole of ssoDefaultRoles) {
-                const { _id } = ssoDefaultRole;
+                const { _id }: $TSFixMe = ssoDefaultRole;
                 await SsoDefaultRolesService.deleteBy({ _id });
             }
 
@@ -286,11 +286,11 @@ export default class Service {
     }
 
     async updateAlertOptions(data): void {
-        const projectId = data._id;
-        const userId = data.userId;
-        const project = await ProjectModel.findById(projectId).lean();
-        const currentBalance = project.balance;
-        const { minimumBalance, rechargeToBalance } = data.alertOptions;
+        const projectId: $TSFixMe = data._id;
+        const userId: $TSFixMe = data.userId;
+        const project: $TSFixMe = await ProjectModel.findById(projectId).lean();
+        const currentBalance: $TSFixMe = project.balance;
+        const { minimumBalance, rechargeToBalance }: $TSFixMe = data.alertOptions;
         let updatedProject = {};
 
         if (!data.alertEnable) {
@@ -320,14 +320,14 @@ export default class Service {
             );
             return updatedProject;
         }
-        const chargeForBalance = await StripeService.chargeCustomerForBalance(
+        const chargeForBalance: $TSFixMe = await StripeService.chargeCustomerForBalance(
             userId,
             rechargeToBalance,
             projectId,
             data.alertOptions
         );
         if (chargeForBalance) {
-            const newBalance = rechargeToBalance + currentBalance;
+            const newBalance: $TSFixMe = rechargeToBalance + currentBalance;
             updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,
                 {
@@ -344,7 +344,7 @@ export default class Service {
             }
             return updatedProject;
         } else {
-            const error = new Error('Cannot save project settings');
+            const error: $TSFixMe = new Error('Cannot save project settings');
 
             error.code = 403;
             throw error;
@@ -352,8 +352,8 @@ export default class Service {
     }
 
     async getProjectIdsBy(query): void {
-        const projects = await this.findBy({ query, select: '_id' });
-        const projectsId = [];
+        const projects: $TSFixMe = await this.findBy({ query, select: '_id' });
+        const projectsId: $TSFixMe = [];
 
         for (let i = 0; i < projects.length; i++) {
             projectsId.push(projects[i]._id);
@@ -362,13 +362,13 @@ export default class Service {
     }
 
     async getBalance(query): void {
-        const project = await ProjectModel.findOne(query).select('balance');
+        const project: $TSFixMe = await ProjectModel.findOne(query).select('balance');
         return project;
     }
 
     async resetApiKey(projectId): void {
-        const apiKey = uuidv1();
-        const project = await this.updateOneBy(
+        const apiKey: $TSFixMe = uuidv1();
+        const project: $TSFixMe = await this.updateOneBy(
             { _id: projectId },
             { apiKey: apiKey }
         );
@@ -381,7 +381,7 @@ export default class Service {
             stripeSubscriptionId: null,
         };
 
-        const project = await this.findOneBy({
+        const project: $TSFixMe = await this.findOneBy({
             query: { _id: projectId },
             select: 'stripeSubscriptionId',
         });
@@ -390,7 +390,7 @@ export default class Service {
                 project.stripeSubscriptionId
             );
         }
-        const updatedProject = await this.updateOneBy({ _id: projectId }, data);
+        const updatedProject: $TSFixMe = await this.updateOneBy({ _id: projectId }, data);
         return updatedProject;
     }
 
@@ -403,12 +403,12 @@ export default class Service {
         if (!project.stripeSubscriptionId) {
             //on enterprise plan stripeSubscriptionId is null
             //downgrading from enterprise plan
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
             });
 
-            const { stripeSubscriptionId } = await PaymentService.subscribePlan(
+            const { stripeSubscriptionId }: $TSFixMe = await PaymentService.subscribePlan(
                 planId,
                 user.stripeCustomerId
             );
@@ -419,7 +419,7 @@ export default class Service {
             );
             return project;
         } else {
-            const stripeSubscriptionId = await PaymentService.changePlan(
+            const stripeSubscriptionId: $TSFixMe = await PaymentService.changePlan(
                 project.stripeSubscriptionId,
                 planId,
                 project.users.length
@@ -434,13 +434,13 @@ export default class Service {
     }
 
     async findsubProjectId(projectId): void {
-        const subProject = await this.findBy({
+        const subProject: $TSFixMe = await this.findBy({
             query: { parentProjectId: projectId },
             select: '_id',
         });
 
-        const subProjectId = subProject.map(sub => String(sub._id));
-        const projectIdArr = [projectId, ...subProjectId];
+        const subProjectId = subProject.map(sub: $TSFixMe => String(sub._id));
+        const projectIdArr: $TSFixMe = [projectId, ...subProjectId];
         return projectIdArr;
     }
 
@@ -475,7 +475,7 @@ export default class Service {
         const returnVal: string = 'User successfully exited the project';
         let teamMember = {};
 
-        const userProject = await this.findOneBy({
+        const userProject: $TSFixMe = await this.findOneBy({
             query: { _id: projectId },
             select: 'users',
         });
@@ -502,32 +502,32 @@ export default class Service {
             query: { parentProjectId: project?._id },
             select: 'users _id seats',
         });
-        const allMembers = subProjects.concat(project);
+        const allMembers: $TSFixMe = subProjects.concat(project);
 
         let subMembers = subProjects.map(user => user.users);
         subMembers = await this.getUniqueMembersIndividualProject({
             members: subMembers,
             isFlatenArr: false,
         });
-        const projectMembers = await this.getUniqueMembersIndividualProject({
+        const projectMembers: $TSFixMe = await this.getUniqueMembersIndividualProject({
             members: project?.users || [],
             isFlatenArr: true,
         });
-        const flatSubMembers = flattenArray(subMembers);
-        const teams = flatSubMembers.concat(projectMembers);
-        const filteredTeam = teams.filter(
+        const flatSubMembers: $TSFixMe = flattenArray(subMembers);
+        const teams: $TSFixMe = flatSubMembers.concat(projectMembers);
+        const filteredTeam: $TSFixMe = teams.filter(
             user =>
                 String(user.userId) === String(userId) &&
                 String(user._id) !== String(teamMember?._id)
         );
-        const teamByUserId = teams.filter(
+        const teamByUserId: $TSFixMe = teams.filter(
             user => String(user.userId) === String(userId)
         );
-        const isViewer = filteredTeam.every(data => data.role === 'Viewer');
+        const isViewer = filteredTeam.every(data => data.role: $TSFixMe === 'Viewer');
         if (project) {
-            const users = subProject ? subProject.users : project.users;
+            const users: $TSFixMe = subProject ? subProject.users : project.users;
             projectId = subProject ? subProject._id : project._id;
-            const remainingUsers = [];
+            const remainingUsers: $TSFixMe = [];
             for (const user of users) {
                 if (user.userId != userId) {
                     remainingUsers.push(user);
@@ -542,7 +542,7 @@ export default class Service {
                 ),
             ]);
 
-            const countUserInSubProjects = await this.findBy({
+            const countUserInSubProjects: $TSFixMe = await this.findBy({
                 query: {
                     parentProjectId: project._id,
                     'users.userId': userId,
@@ -559,7 +559,7 @@ export default class Service {
                     countUserInSubProjects.length < 1
                 ) {
                     let count = 0;
-                    const user_member = await UserService.findOneBy({
+                    const user_member: $TSFixMe = await UserService.findOneBy({
                         query: { _id: userId },
                         select: 'email',
                     });
@@ -573,7 +573,7 @@ export default class Service {
                         subProjectIds = subProjects.map(project => project._id);
                     }
                     subProjectIds.push(project._id);
-                    const countMonitor = await MonitorService.countBy({
+                    const countMonitor: $TSFixMe = await MonitorService.countBy({
                         projectId: { $in: subProjectIds },
                     });
                     // check if project seat after reduction still caters for monitors.
@@ -584,7 +584,7 @@ export default class Service {
                         // check if project seat after reduction still caters for monitors.
                     }
                 }
-                const confirmParentProject =
+                const confirmParentProject: $TSFixMe =
                     allMembers[allMembers.length - 1]._id === projectId;
                 if (confirmParentProject) {
                     if (!teamByUserId.every(data => data.role === 'Viewer')) {
@@ -616,8 +616,8 @@ export default class Service {
     }
 
     async getAllProjects(skip, limit): void {
-        const populate = [{ path: 'parentProjectId', select: 'name' }];
-        const select =
+        const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+        const select: $TSFixMe =
             '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
         let projects = await this.findBy({
@@ -639,7 +639,7 @@ export default class Service {
                         _id: project._id,
                     });
                 }
-                const projectObj = Object.assign({}, project._doc || project, {
+                const projectObj: $TSFixMe = Object.assign({}, project._doc || project, {
                     users,
                 });
                 return projectObj;
@@ -651,14 +651,14 @@ export default class Service {
     async getUserProjects(userId, skip, limit): void {
         // find user subprojects and parent projects
 
-        const userProjects = await this.findBy({
+        const userProjects: $TSFixMe = await this.findBy({
             query: { 'users.userId': userId, deleted: { $ne: null } },
             select: 'parentProjectId',
         });
         let parentProjectIds = [];
         let projectIds = [];
         if (userProjects.length > 0) {
-            const subProjects = userProjects
+            const subProjects: $TSFixMe = userProjects
 
                 .map(project => (project.parentProjectId ? project : null))
 
@@ -667,7 +667,7 @@ export default class Service {
                 subProject =>
                     subProject.parentProjectId._id || subProject.parentProjectId
             );
-            const projects = userProjects
+            const projects: $TSFixMe = userProjects
 
                 .map(project => (project.parentProjectId ? null : project))
 
@@ -684,11 +684,11 @@ export default class Service {
             ],
             deleted: { $ne: null },
         };
-        const populate = [{ path: 'parentProjectId', select: 'name' }];
-        const select =
+        const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+        const select: $TSFixMe =
             '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes createdAt';
 
-        const [allProjects, count] = await Promise.all([
+        const [allProjects, count]: $TSFixMe = await Promise.all([
             this.findBy({
                 query,
                 limit: limit || 10,
@@ -700,7 +700,7 @@ export default class Service {
         ]);
 
         // add project monitors
-        const projects = await Promise.all(
+        const projects: $TSFixMe = await Promise.all(
             allProjects.map(async project => {
                 // get both sub-project users and project users
                 let users = [];
@@ -712,11 +712,11 @@ export default class Service {
                     });
                     project.users = users;
                 } else {
-                    const select =
+                    const select: $TSFixMe =
                         'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
                     users = await Promise.all(
                         project.users.map(async user => {
-                            const foundUser = await UserService.findOneBy({
+                            const foundUser: $TSFixMe = await UserService.findOneBy({
                                 query: {
                                     _id: user.userId,
                                     deleted: { $ne: null },
@@ -750,14 +750,14 @@ export default class Service {
             throw new BadDataException('Project not found or no longer exist');
         }
 
-        const projectId = project._id;
-        const projectOwners = project.users.filter(
+        const projectId: $TSFixMe = project._id;
+        const projectOwners: $TSFixMe = project.users.filter(
             user => user.role === 'Owner'
         );
         let subscription;
         await Promise.all(
             projectOwners.map(async projectOwner => {
-                const owner = await UserService.findOneBy({
+                const owner: $TSFixMe = await UserService.findOneBy({
                     query: { _id: projectOwner.userId },
                     select: 'stripeCustomerId',
                 });
@@ -782,7 +782,7 @@ export default class Service {
             }
         );
 
-        const projectSeats = project.seats;
+        const projectSeats: $TSFixMe = project.seats;
         if (IS_SAAS_SERVICE) {
             await PaymentService.changeSeats(
                 project.stripeSubscriptionId,
@@ -815,7 +815,7 @@ export default class Service {
     }
 
     async addNotes(projectId, notes): void {
-        const project = await this.updateOneBy(
+        const project: $TSFixMe = await this.updateOneBy(
             { _id: projectId },
             {
                 adminNotes: notes,
@@ -840,7 +840,7 @@ export default class Service {
                         _id: project._id,
                     });
                 }
-                const projectObj = Object.assign({}, project._doc || project, {
+                const projectObj: $TSFixMe = Object.assign({}, project._doc || project, {
                     users,
                 });
                 return projectObj;

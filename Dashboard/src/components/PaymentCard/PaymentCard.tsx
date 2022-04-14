@@ -36,7 +36,7 @@ class PaymentCard extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { userId } = this.props;
+        const { userId }: $TSFixMe = this.props;
 
         this.props.fetchCards(userId);
 
@@ -49,9 +49,9 @@ class PaymentCard extends Component<ComponentProps> {
 
     handleKeyboard = (event: $TSFixMe) => {
 
-        const { modalId } = this.props;
+        const { modalId }: $TSFixMe = this.props;
 
-        const { createCardModalId } = this.state;
+        const { createCardModalId }: $TSFixMe = this.state;
 
         switch (event.key) {
             case 'N':
@@ -68,7 +68,7 @@ class PaymentCard extends Component<ComponentProps> {
 
     override render() {
 
-        const { createCardModalId, confirmCardDeleteModalId } = this.state;
+        const { createCardModalId, confirmCardDeleteModalId }: $TSFixMe = this.state;
         const {
 
             cards,

@@ -7,10 +7,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Usage: node ./test.js example.com username xxxxxxxxx
-const record = process.argv[2] || process.env.RECORD;
+const record: $TSFixMe = process.argv[2] || process.env.RECORD;
 
 import Challenger from './index.ts';
-const challenger = Challenger.create({});
+const challenger: $TSFixMe = Challenger.create({});
 
 // The dry-run tests can pass on, literally, 'example.com'
 // but the integration tests require that you have control over the domain

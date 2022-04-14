@@ -8,7 +8,7 @@ const acknowledgeAllIncidents: Function = (
     const data: $TSFixMe = {
         monitors: bundle.inputData.monitors,
     };
-    const responsePromise = z.request({
+    const responsePromise: $TSFixMe = z.request({
         method: 'POST',
         url: `${bundle.authData.serverUrl}/zapier/incident/acknowledgeAllIncidents`,
         body: data,

@@ -25,7 +25,7 @@ interface SmsTemplatesBoxProps {
 class SmsTemplatesBox extends React.Component<SmsTemplatesBoxProps> {
     submitForm = (values: $TSFixMe) => {
 
-        const { currentProject } = this.props;
+        const { currentProject }: $TSFixMe = this.props;
 
         const val = this.props.smsTemplates.smsTemplates.templates.map((tmp: $TSFixMe) => {
             if (tmp.smsType === values.sms_type) {
@@ -41,7 +41,7 @@ class SmsTemplatesBox extends React.Component<SmsTemplatesBoxProps> {
 
     resetTemplate = (templateId: $TSFixMe) => {
 
-        const { currentProject } = this.props;
+        const { currentProject }: $TSFixMe = this.props;
 
         return this.props.resetSmsTemplates(currentProject._id, templateId);
     };
@@ -51,7 +51,7 @@ class SmsTemplatesBox extends React.Component<SmsTemplatesBoxProps> {
         this.props.changeShowingTemplate(value);
     };
     override render() {
-        const templates =
+        const templates: $TSFixMe =
 
             this.props.smsTemplates &&
 
@@ -203,7 +203,7 @@ class SmsTemplatesBox extends React.Component<SmsTemplatesBoxProps> {
 
 SmsTemplatesBox.displayName = 'SmsTemplatesBox';
 
-const SmsTemplatesBoxForm = new reduxForm({
+const SmsTemplatesBoxForm: $TSFixMe = new reduxForm({
     form: 'SmsTemplates',
     enableReinitialize: true,
     destroyOnUnmount: false,

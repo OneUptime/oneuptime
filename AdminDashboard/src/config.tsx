@@ -12,7 +12,7 @@ import booleanParser from './utils/booleanParser';
 
 export const env: Function = (value: $TSFixMe) => {
 
-    const { _env } = window;
+    const { _env }: $TSFixMe = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
         process.env[`REACT_APP_${value}`]
@@ -25,7 +25,7 @@ let adminDashboardUrl = window.location.origin + '/admin';
 let accountsUrl = window.location.origin + '/accounts';
 let helmChartUrl = window.location.origin + '/chart';
 let docsUrl = window.location.origin + '/docs';
-const licensingUrl = env('LICENSE_URL');
+const licensingUrl: $TSFixMe = env('LICENSE_URL');
 
 if (
     window &&
@@ -35,7 +35,7 @@ if (
         window.location.host.includes('0.0.0.0:') ||
         window.location.host.includes('127.0.0.1:'))
 ) {
-    const address = window.location.host.includes('localhost:')
+    const address: $TSFixMe = window.location.host.includes('localhost:')
         ? 'localhost'
         : window.location.host.includes('0.0.0.0:')
             ? '0.0.0.0'
@@ -48,30 +48,30 @@ if (
     docsUrl = window.location.protocol + `//${address}:1445`;
 }
 
-export const API_URL = apiUrl;
+export const API_URL: $TSFixMe = apiUrl;
 
-export const DASHBOARD_URL = dashboardUrl;
+export const DASHBOARD_URL: $TSFixMe = dashboardUrl;
 
-export const ACCOUNTS_URL = accountsUrl;
+export const ACCOUNTS_URL: $TSFixMe = accountsUrl;
 
-export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
+export const ADMIN_DASHBOARD_URL: $TSFixMe = adminDashboardUrl;
 
-export const HELM_CHART_URL = helmChartUrl;
+export const HELM_CHART_URL: $TSFixMe = helmChartUrl;
 
-export const API_DOCS_URL = docsUrl;
+export const API_DOCS_URL: $TSFixMe = docsUrl;
 
-export const IS_SAAS_SERVICE = booleanParser(env('IS_SAAS_SERVICE'));
+export const IS_SAAS_SERVICE: $TSFixMe = booleanParser(env('IS_SAAS_SERVICE'));
 
-export const IS_INTERNAL_SMTP_DEPLOYED = booleanParser(
+export const IS_INTERNAL_SMTP_DEPLOYED: $TSFixMe = booleanParser(
     env('INTERNAL_SMTP_SERVER')
 );
 
-export const IS_THIRD_PARTY_BILLING =
+export const IS_THIRD_PARTY_BILLING: $TSFixMe =
     env('IS_THIRD_PARTY_BILLING') === 'true' ? true : false;
 
-export const LICENSING_URL = licensingUrl;
+export const LICENSING_URL: $TSFixMe = licensingUrl;
 
-export const VERSION = process.env.VERSION || env('VERSION');
+export const VERSION: $TSFixMe = process.env.VERSION || env('VERSION');
 
 export const User: $TSFixMe = {
     getAccessToken() {
@@ -212,7 +212,7 @@ export const Validate: $TSFixMe = {
     },
 
     card(cardNumber: $TSFixMe) {
-        const numberValidation = valid.number(cardNumber);
+        const numberValidation: $TSFixMe = valid.number(cardNumber);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -222,7 +222,7 @@ export const Validate: $TSFixMe = {
     },
 
     cardExpiration(expiry: $TSFixMe) {
-        const numberValidation = valid.expirationDate(expiry);
+        const numberValidation: $TSFixMe = valid.expirationDate(expiry);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -232,7 +232,7 @@ export const Validate: $TSFixMe = {
     },
 
     cvv(cvv: $TSFixMe) {
-        const numberValidation = valid.cvv(cvv);
+        const numberValidation: $TSFixMe = valid.cvv(cvv);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -242,7 +242,7 @@ export const Validate: $TSFixMe = {
     },
 
     postalCode(postalCode: $TSFixMe) {
-        const numberValidation = valid.postalCode(postalCode);
+        const numberValidation: $TSFixMe = valid.postalCode(postalCode);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -397,7 +397,7 @@ export const PricingPlan: $TSFixMe = {
     },
 
     getPlanById(id: $TSFixMe) {
-        const plans = this.getPlans();
+        const plans: $TSFixMe = this.getPlans();
         if (id) return plans.find(plan => plan.planId === id);
         else return plans[0];
     },
@@ -478,7 +478,7 @@ export const tutorials: $TSFixMe = {
 export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
-    const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
+    const regex: $TSFixMe = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
@@ -486,14 +486,14 @@ export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
 }
 
 export const saveFile: Function = (content: $TSFixMe, filename: $TSFixMe) => {
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob: $TSFixMe = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }
 
 export const makeCriteria: Function = (val: $TSFixMe) => {
     const val2: $TSFixMe = {};
-    const and = [];
-    const or = [];
+    const and: $TSFixMe = [];
+    const or: $TSFixMe = [];
 
     for (let i = 0; i < val.length; i++) {
         const val3: $TSFixMe = {};
@@ -532,7 +532,7 @@ export const makeCriteria: Function = (val: $TSFixMe) => {
 }
 
 export const mapCriteria: Function = (val: $TSFixMe) => {
-    const val2 = [];
+    const val2: $TSFixMe = [];
     if (val && val.and && val.and.length) {
         for (let i = 0; i < val.and.length; i++) {
             const val3: $TSFixMe = {};

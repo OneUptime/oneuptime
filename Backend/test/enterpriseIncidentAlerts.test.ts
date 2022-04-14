@@ -10,7 +10,7 @@ chai.use(chaiSubset);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createEnterpriseUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -59,7 +59,7 @@ describe('Incident Alerts', function (): void {
                 request,
                 userData.user,
                 async (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -77,7 +77,7 @@ describe('Incident Alerts', function (): void {
                             token = res.body.tokens.jwtAccessToken;
                             authorization = `Basic ${token}`;
 
-                            const component = await request
+                            const component: $TSFixMe = await request
                                 .post(`/component/${projectId}`)
                                 .set('Authorization', authorization)
                                 .send({
@@ -88,7 +88,7 @@ describe('Incident Alerts', function (): void {
                                 });
                             componentId = component.body._id;
 
-                            const monitor = await request
+                            const monitor: $TSFixMe = await request
                                 .post(`/monitor/${projectId}`)
                                 .set('Authorization', authorization)
                                 .send({
@@ -113,7 +113,7 @@ describe('Incident Alerts', function (): void {
                                     countryCode: 'us',
                                 });
 
-                            const schedule = await request
+                            const schedule: $TSFixMe = await request
                                 .post(`/schedule/${projectId}`)
                                 .set('Authorization', authorization)
                                 .send({ name: 'test schedule' });
@@ -194,17 +194,17 @@ describe('Incident Alerts', function (): void {
          */
 
         it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
-            const incidentCreationEndpointResponse = await request
+            const incidentCreationEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
                 .send({
@@ -216,15 +216,15 @@ describe('Incident Alerts', function (): void {
                 });
             expect(incidentCreationEndpointResponse).to.have.status(200);
             const { _id: incidentId } = incidentCreationEndpointResponse.body;
-            const incidentResolveEndpointResponse = await request
+            const incidentResolveEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/resolve/${incidentId}`)
                 .set('Authorization', authorization);
             expect(incidentResolveEndpointResponse).to.have.status(200);
             await sleep(10 * 1000);
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug = incidentResolveEndpointResponse.body.incident.slug;
-            const subscribersAlertsEndpointReponse = await request
+            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
+            const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
                     `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
@@ -236,7 +236,7 @@ describe('Incident Alerts', function (): void {
             expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
                 2
             );
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlertsEndpointReponse.body.data) {
                 const {
                     alertStatus,
@@ -253,7 +253,7 @@ describe('Incident Alerts', function (): void {
             }
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
-            const oncallAlertsEndpointReponse = await request
+            const oncallAlertsEndpointReponse: $TSFixMe = await request
                 .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
             expect(oncallAlertsEndpointReponse).to.have.status(200);
@@ -261,9 +261,9 @@ describe('Incident Alerts', function (): void {
             expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
             expect(oncallAlertsEndpointReponse.body.data).to.an('array');
             expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of oncallAlertsEndpointReponse.body.data) {
-                const { alertVia, alertStatus, error } = event;
+                const { alertVia, alertStatus, error }: $TSFixMe = event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
                 alertsSentList.push(alertVia);
@@ -279,17 +279,17 @@ describe('Incident Alerts', function (): void {
          */
 
         it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = false;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
-            const incidentCreationEndpointResponse = await request
+            const incidentCreationEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
                 .send({
@@ -301,15 +301,15 @@ describe('Incident Alerts', function (): void {
                 });
             expect(incidentCreationEndpointResponse).to.have.status(200);
             const { _id: incidentId } = incidentCreationEndpointResponse.body;
-            const incidentResolveEndpointResponse = await request
+            const incidentResolveEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/resolve/${incidentId}`)
                 .set('Authorization', authorization);
             expect(incidentResolveEndpointResponse).to.have.status(200);
             await sleep(10 * 1000);
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug = incidentResolveEndpointResponse.body.incident.slug;
-            const subscribersAlertsEndpointReponse = await request
+            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
+            const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
                     `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
@@ -321,7 +321,7 @@ describe('Incident Alerts', function (): void {
             expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
                 2
             );
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlertsEndpointReponse.body.data) {
                 const {
                     alertStatus,
@@ -338,7 +338,7 @@ describe('Incident Alerts', function (): void {
             }
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
-            const oncallAlertsEndpointReponse = await request
+            const oncallAlertsEndpointReponse: $TSFixMe = await request
                 .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
             expect(oncallAlertsEndpointReponse).to.have.status(200);
@@ -346,9 +346,9 @@ describe('Incident Alerts', function (): void {
             expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
             expect(oncallAlertsEndpointReponse.body.data).to.an('array');
             expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of oncallAlertsEndpointReponse.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 if (alertVia === 'sms') {
                     expect(alertStatus).to.equal('Success');
                     expect(error).to.equal(false);
@@ -372,17 +372,17 @@ describe('Incident Alerts', function (): void {
          */
 
         it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = false;
             value['call-enabled'] = true;
             await GlobalConfigModel.findOneAndUpdate(
                 { name: 'twilio' },
                 { value }
             );
-            const incidentCreationEndpointResponse = await request
+            const incidentCreationEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
                 .send({
@@ -394,15 +394,15 @@ describe('Incident Alerts', function (): void {
                 });
             expect(incidentCreationEndpointResponse).to.have.status(200);
             const { _id: incidentId } = incidentCreationEndpointResponse.body;
-            const incidentResolveEndpointResponse = await request
+            const incidentResolveEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/resolve/${incidentId}`)
                 .set('Authorization', authorization);
             expect(incidentResolveEndpointResponse).to.have.status(200);
             await sleep(10 * 1000);
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug = incidentResolveEndpointResponse.body.incident.slug;
-            const subscribersAlertsEndpointReponse = await request
+            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
+            const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
                     `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
@@ -414,7 +414,7 @@ describe('Incident Alerts', function (): void {
             expect(subscribersAlertsEndpointReponse.body.data.length).to.equal(
                 2
             );
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlertsEndpointReponse.body.data) {
                 const {
                     alertStatus,
@@ -433,7 +433,7 @@ describe('Incident Alerts', function (): void {
             }
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
-            const oncallAlertsEndpointReponse = await request
+            const oncallAlertsEndpointReponse: $TSFixMe = await request
                 .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
             expect(oncallAlertsEndpointReponse).to.have.status(200);
@@ -441,9 +441,9 @@ describe('Incident Alerts', function (): void {
             expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
             expect(oncallAlertsEndpointReponse.body.data).to.an('array');
             expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of oncallAlertsEndpointReponse.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 if (alertVia === 'call') {
                     expect(alertStatus).to.equal('Success');
                     expect(error).to.equal(false);
@@ -470,10 +470,10 @@ describe('Incident Alerts', function (): void {
          */
 
         it('should send SMS/Call alerts to on-call teams and subscriber even if the alerts are disabled in the global twilio settings.', async (): void => {
-            const globalSettings = await GlobalConfigModel.findOne({
+            const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
-            const { value } = globalSettings;
+            const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = false;
             value['call-enabled'] = false;
             await GlobalConfigModel.findOneAndUpdate(
@@ -481,7 +481,7 @@ describe('Incident Alerts', function (): void {
                 { value }
             );
 
-            const customTwilioSettingResponse = await request
+            const customTwilioSettingResponse: $TSFixMe = await request
                 .post(`/smsSmtp/${projectId}`)
                 .set('Authorization', authorization)
                 .send({
@@ -492,7 +492,7 @@ describe('Incident Alerts', function (): void {
                 });
             expect(customTwilioSettingResponse).to.have.status(200);
 
-            const incidentCreationEndpointResponse = await request
+            const incidentCreationEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
                 .send({
@@ -506,7 +506,7 @@ describe('Incident Alerts', function (): void {
 
             const { _id: incidentId } = incidentCreationEndpointResponse.body;
 
-            const incidentResolveEndpointResponse = await request
+            const incidentResolveEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/resolve/${incidentId}`)
                 .set('Authorization', authorization);
 
@@ -516,9 +516,9 @@ describe('Incident Alerts', function (): void {
 
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug = incidentResolveEndpointResponse.body.incident.slug;
+            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
 
-            const subscribersAlertsEndpointReponse = await request
+            const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
                     `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
@@ -532,7 +532,7 @@ describe('Incident Alerts', function (): void {
                 2
             );
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlertsEndpointReponse.body.data) {
                 const {
                     alertStatus,
@@ -550,7 +550,7 @@ describe('Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
+            const oncallAlertsEndpointReponse: $TSFixMe = await request
                 .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
 
@@ -561,9 +561,9 @@ describe('Incident Alerts', function (): void {
             expect(
                 oncallAlertsEndpointReponse.body.data.length
             ).to.be.greaterThan(0);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of oncallAlertsEndpointReponse.body.data) {
-                const { alertVia, alertStatus, error } = event;
+                const { alertVia, alertStatus, error }: $TSFixMe = event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
                 alertsSentList.push(alertVia);
@@ -580,7 +580,7 @@ describe('Incident Alerts', function (): void {
                 name: 'twilio',
             });
 
-            const getCustomTwilioSettingResponse = await request
+            const getCustomTwilioSettingResponse: $TSFixMe = await request
                 .get(`/smsSmtp/${projectId}/`)
                 .set('Authorization', authorization);
             expect(getCustomTwilioSettingResponse).to.have.status(200);
@@ -589,13 +589,13 @@ describe('Incident Alerts', function (): void {
             const { _id: smsSmtpId } = getCustomTwilioSettingResponse.body;
 
             if (smsSmtpId) {
-                const deleteCustomTwilioSettingResponse = await request
+                const deleteCustomTwilioSettingResponse: $TSFixMe = await request
                     .delete(`/smsSmtp/${projectId}/${smsSmtpId}`)
                     .set('Authorization', authorization);
                 expect(deleteCustomTwilioSettingResponse).to.have.status(200);
             }
 
-            const incidentCreationEndpointResponse = await request
+            const incidentCreationEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
                 .send({
@@ -609,7 +609,7 @@ describe('Incident Alerts', function (): void {
 
             const { _id: incidentId } = incidentCreationEndpointResponse.body;
 
-            const incidentResolveEndpointResponse = await request
+            const incidentResolveEndpointResponse: $TSFixMe = await request
                 .post(`/incident/${projectId}/resolve/${incidentId}`)
                 .set('Authorization', authorization);
 
@@ -619,9 +619,9 @@ describe('Incident Alerts', function (): void {
 
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug = incidentResolveEndpointResponse.body.incident.slug;
+            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
 
-            const subscribersAlertsEndpointReponse = await request
+            const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
                     `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
                 )
@@ -635,7 +635,7 @@ describe('Incident Alerts', function (): void {
                 2
             );
 
-            const eventTypesSent = [];
+            const eventTypesSent: $TSFixMe = [];
             for (const event of subscribersAlertsEndpointReponse.body.data) {
                 const {
                     alertStatus,
@@ -655,7 +655,7 @@ describe('Incident Alerts', function (): void {
             expect(eventTypesSent.includes('resolved')).to.equal(true);
             expect(eventTypesSent.includes('identified')).to.equal(true);
 
-            const oncallAlertsEndpointReponse = await request
+            const oncallAlertsEndpointReponse: $TSFixMe = await request
                 .get(`/alert/${projectId}/incident/${slug}?skip=0&limit=999`)
                 .set('Authorization', authorization);
 
@@ -664,9 +664,9 @@ describe('Incident Alerts', function (): void {
             expect(oncallAlertsEndpointReponse.body.count).to.equal(2);
             expect(oncallAlertsEndpointReponse.body.data).to.an('array');
             expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
-            const alertsSentList = [];
+            const alertsSentList: $TSFixMe = [];
             for (const event of oncallAlertsEndpointReponse.body.data) {
-                const { alertVia, alertStatus, error, errorMessage } = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
                 expect(alertStatus).to.equal(null);
                 expect(error).to.equal(true);
                 expect(errorMessage).to.equal(

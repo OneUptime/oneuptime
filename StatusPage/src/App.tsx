@@ -11,15 +11,15 @@ import {
 import { User } from './config';
 import queryString from 'query-string';
 import { removeQuery } from './store';
-const Main = lazy(() => import('./components/Main'));
-const ScheduledEvent = lazy(() => import('./components/ScheduledEvent'));
-const Incident = lazy(() => import('./components/Incident'));
-const SingleAnnouncement = lazy(() =>
+const Main = lazy((): $TSFixMe => import('./components/Main'));
+const ScheduledEvent = lazy((): $TSFixMe => import('./components/ScheduledEvent'));
+const Incident = lazy((): $TSFixMe => import('./components/Incident'));
+const SingleAnnouncement = lazy((): $TSFixMe =>
     import('./components/SingleAnnouncement')
 );
 
-const userId = queryString.parse(window.location.search).userId;
-const accessToken = queryString.parse(window.location.search).accessToken;
+const userId: $TSFixMe = queryString.parse(window.location.search).userId;
+const accessToken: $TSFixMe = queryString.parse(window.location.search).accessToken;
 
 if (userId && accessToken) {
     User.setUserId(userId);

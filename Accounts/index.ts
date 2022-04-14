@@ -44,7 +44,7 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-const PORT = process.env['PORT'] || 3003;
+const PORT: $TSFixMe = process.env['PORT'] || 3003;
 
 logger.info(`This project is running on port ${PORT}`);
 app.listen(PORT);

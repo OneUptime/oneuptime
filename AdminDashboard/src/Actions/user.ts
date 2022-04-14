@@ -24,7 +24,7 @@ export const fetchUsersError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch all users.
-export const fetchUsers =
+export const fetchUsers: $TSFixMe =
     (skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
@@ -32,11 +32,11 @@ export const fetchUsers =
         dispatch(fetchUsersRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `user/users?skip=${skip}&limit=${limit}`
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(fetchUsersSuccess(data));
             return response;
@@ -78,15 +78,15 @@ export const fetchUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch a user.
-export const fetchUser =
+export const fetchUser: $TSFixMe =
     (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(fetchUserRequest());
 
         try {
-            const response = await BackendAPI.get(`user/users/${userId}`);
+            const response: $TSFixMe = await BackendAPI.get(`user/users/${userId}`);
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(fetchUserSuccess(data));
             return response;
@@ -136,15 +136,15 @@ export const resetAddUser: Function = (): void => {
 };
 
 // Calls the API to add user.
-export const addUser =
+export const addUser: $TSFixMe =
     (user: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         try {
             dispatch(addUserRequest());
 
-            const response = await BackendAPI.post(`user/signup`, user);
+            const response: $TSFixMe = await BackendAPI.post(`user/signup`, user);
 
-            const userResponse = await BackendAPI.get(
+            const userResponse: $TSFixMe = await BackendAPI.get(
                 `user/users/${response.data.id}`
             );
 
@@ -192,9 +192,9 @@ export const updateUserSettingError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to update user setting.
-export const updateUserSetting =
+export const updateUserSetting: $TSFixMe =
     (values: $TSFixMe) => async (dispatch: Dispatch) => {
-        const data = new FormData();
+        const data: $TSFixMe = new FormData();
         if (values.profilePic && values.profilePic[0]) {
             data.append(
                 'profilePic',
@@ -210,12 +210,12 @@ export const updateUserSetting =
         dispatch(updateUserSettingRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `user/profile/${values._id}`,
                 data
             );
 
-            const user = response.data;
+            const user: $TSFixMe = response.data;
 
             dispatch(updateUserSettingSuccess(user));
             return response;
@@ -276,15 +276,15 @@ export const deleteUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to delete a user.
-export const deleteUser =
+export const deleteUser: $TSFixMe =
     (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(deleteUserRequest());
 
         try {
-            const response = await delete `user/${userId}`;
+            const response: $TSFixMe = await delete `user/${userId}`;
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(deleteUserSuccess(data));
             return response;
@@ -333,15 +333,15 @@ export const restoreUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to restore a user
-export const restoreUser =
+export const restoreUser: $TSFixMe =
     (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(restoreUserRequest());
 
         try {
-            const response = await BackendAPI.put(`user/${userId}/restoreUser`);
+            const response: $TSFixMe = await BackendAPI.put(`user/${userId}/restoreUser`);
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(restoreUserSuccess(data));
             return response;
@@ -390,15 +390,15 @@ export const blockUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to restore a user
-export const blockUser =
+export const blockUser: $TSFixMe =
     (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(blockUserRequest());
 
         try {
-            const response = await BackendAPI.put(`user/${userId}/blockUser`);
+            const response: $TSFixMe = await BackendAPI.put(`user/${userId}/blockUser`);
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(blockUserSuccess(data));
             return response;
@@ -447,17 +447,17 @@ export const enableAdminModeReset: Function = (): void => {
 };
 
 // Enable admin mode
-export const enableAdminMode =
+export const enableAdminMode: $TSFixMe =
     (userId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(enableAdminModeRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `user/${userId}/switchToAdminMode`,
                 values
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(enableAdminModeSuccess(data));
             return response;
@@ -506,16 +506,16 @@ export const disableAdminModeReset: Function = (): void => {
 };
 
 // Disable admin mode
-export const disableAdminMode =
+export const disableAdminMode: $TSFixMe =
     (userId: ObjectID) => async (dispatch: Dispatch) => {
         dispatch(disableAdminModeRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `user/${userId}/exitAdminMode`
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(disableAdminModeSuccess(data));
             return response;
@@ -564,15 +564,15 @@ export const unblockUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to unblock a user
-export const unblockUser =
+export const unblockUser: $TSFixMe =
     (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(unblockUserRequest());
 
         try {
-            const response = await BackendAPI.put(`user/${userId}/unblockUser`);
+            const response: $TSFixMe = await BackendAPI.put(`user/${userId}/unblockUser`);
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(unblockUserSuccess(data));
             return response;
@@ -621,17 +621,17 @@ export const addUserNoteError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to add Admin Note
-export const addUserNote =
+export const addUserNote: $TSFixMe =
     (userId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addUserNoteRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `user/${userId}/addNote`,
                 values
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(addUserNoteSuccess(data));
             return response;
@@ -680,7 +680,7 @@ export const searchUsersError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the search users api
-export const searchUsers =
+export const searchUsers: $TSFixMe =
     (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
@@ -692,12 +692,12 @@ export const searchUsers =
         dispatch(searchUsersRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `user/users/search?skip=${skip}&limit=${limit}`,
                 values
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(searchUsersSuccess(data));
             return response;
@@ -746,11 +746,11 @@ export const updateTwoFactorAuthToken: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(`user/${userId}/2fa`, data);
+        const promise: $TSFixMe = BackendAPI.put(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             (response): void => {
-                const payload = response.data;
+                const payload: $TSFixMe = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
@@ -798,13 +798,13 @@ export function fetchUserloginHistory(
     limit = 10
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `history/${userId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchUserHistoryRequest());
         promise.then(
             (response): void => {
-                const payload = response.data;
+                const payload: $TSFixMe = response.data;
                 dispatch(fetchUserHistorySuccess(payload));
                 return payload;
             },

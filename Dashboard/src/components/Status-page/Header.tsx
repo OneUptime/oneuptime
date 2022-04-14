@@ -13,7 +13,7 @@ export class StatusHeader extends Component<StatusHeaderProps>{
     public static propTypes = {};
     override render() {
 
-        const { statusPage } = this.props;
+        const { statusPage }: $TSFixMe = this.props;
         let publicStatusPageUrl, statusPageSlug;
         if (statusPage && statusPage.status && statusPage.status.slug) {
 
@@ -79,7 +79,7 @@ StatusHeader.propTypes = {
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const { statusPage } = state;
+    const { statusPage }: $TSFixMe = state;
     return { statusPage };
 };
 

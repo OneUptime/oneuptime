@@ -11,14 +11,14 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const customFieldQuery = MonitorCustomFieldModel.findOne(query)
+        const customFieldQuery: $TSFixMe = MonitorCustomFieldModel.findOne(query)
             .sort(sort)
             .lean();
 
         customFieldQuery.select(select);
         customFieldQuery.populate(populate);
 
-        const customField = await customFieldQuery;
+        const customField: $TSFixMe = await customFieldQuery;
         return customField;
     }
 
@@ -27,10 +27,10 @@ export default class Service {
             ...data,
         });
 
-        const selectMonCustomField =
+        const selectMonCustomField: $TSFixMe =
             'fieldName fieldType projectId uniqueField deleted';
 
-        const populateMonCustomField = [{ path: 'projectId', select: 'name' }];
+        const populateMonCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
         customField = await this.findOneBy({
             query: { _id: customField._id },
             populate: populateMonCustomField,
@@ -57,10 +57,10 @@ export default class Service {
             { new: true }
         );
 
-        const selectMonCustomField =
+        const selectMonCustomField: $TSFixMe =
             'fieldName fieldType projectId uniqueField deleted';
 
-        const populateMonCustomField = [{ path: 'projectId', select: 'name' }];
+        const populateMonCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
         customField = await this.findOneBy({
             query,
             select: selectMonCustomField,
@@ -98,7 +98,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const customFieldsQuery = MonitorCustomFieldModel.find(query)
+        const customFieldsQuery: $TSFixMe = MonitorCustomFieldModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort)
@@ -107,7 +107,7 @@ export default class Service {
         customFieldsQuery.select(select);
         customFieldsQuery.populate(populate);
 
-        const customFields = await customFieldsQuery;
+        const customFields: $TSFixMe = await customFieldsQuery;
 
         return customFields;
     }
@@ -117,12 +117,12 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const count = await MonitorCustomFieldModel.countDocuments(query);
+        const count: $TSFixMe = await MonitorCustomFieldModel.countDocuments(query);
         return count;
     }
 
     async deleteBy(query: Query): void {
-        const customField = await MonitorCustomFieldModel.findOneAndUpdate(
+        const customField: $TSFixMe = await MonitorCustomFieldModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -157,10 +157,10 @@ export default class Service {
             }
         );
 
-        const selectMonCustomField =
+        const selectMonCustomField: $TSFixMe =
             'fieldName fieldType projectId uniqueField deleted';
 
-        const populateMonCustomField = [{ path: 'projectId', select: 'name' }];
+        const populateMonCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
         updatedCustomField = await this.findBy({
             query,
             select: selectMonCustomField,

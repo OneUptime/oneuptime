@@ -87,7 +87,7 @@ export default class API {
     }
 
     public static getDefaultHeaders(): Headers {
-        const defaultHeaders: Headers: $TSFixMe = {
+        const defaultHeaders: Headers = {
             'Access-Control-Allow-Origin': '*',
             Accept: 'application/json',
             'Content-Type': 'application/json;charset=UTF-8',
@@ -150,17 +150,17 @@ export default class API {
         const apiHeaders: Headers = this.getHeaders(headers);
 
         try {
-            const result = await axios({
+            const result: $TSFixMe = await axios({
                 method: method,
                 url: url.toString(),
                 headers: apiHeaders,
                 data,
             });
 
-            const response = new HTTPResponse(result.status, result.data);
+            const response: $TSFixMe = new HTTPResponse(result.status, result.data);
             return response;
         } catch (e) {
-            const error = e as Error | AxiosError;
+            const error: $TSFixMe = e as Error | AxiosError;
             let errorResponse: HTTPErrorResponse | APIException;
             if (axios.isAxiosError(error)) {
                 // do whatever you want with native error

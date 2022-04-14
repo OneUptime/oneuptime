@@ -24,7 +24,7 @@ class ErrorEventStackTrace extends Component<ComponentProps> {
     };
     renderCodeSnippet = (frame: $TSFixMe) => {
         let codeSnippet = null;
-        const { linesBeforeError, errorLine, linesAfterError } = frame;
+        const { linesBeforeError, errorLine, linesAfterError }: $TSFixMe = frame;
         if (linesAfterError && linesBeforeError && errorLine) {
             let codeContent = '\n';
             linesBeforeError.map((line: $TSFixMe) => {
@@ -63,8 +63,8 @@ class ErrorEventStackTrace extends Component<ComponentProps> {
     };
     override render() {
 
-        const { errorEvent } = this.props;
-        const errorEventDetails = errorEvent.errorEvent;
+        const { errorEvent }: $TSFixMe = this.props;
+        const errorEventDetails: $TSFixMe = errorEvent.errorEvent;
         return (
             <ShouldRender
                 if={

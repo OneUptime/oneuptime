@@ -8,17 +8,17 @@ const incidentPriorityCollection: string = 'incidentpriorities';
 
 // run this script once
 async function run(): void {
-    const projects = await find(projectCollection, {
+    const projects: $TSFixMe = await find(projectCollection, {
         deleted: false,
     });
 
     for (const project of projects) {
-        const incidentPriority = await findOne(incidentPriorityCollection, {
+        const incidentPriority: $TSFixMe = await findOne(incidentPriorityCollection, {
             projectId: project._id,
             name: 'High',
             deleted: false,
         });
-        const templates = await find(incidentSettingsCollection, {
+        const templates: $TSFixMe = await find(incidentSettingsCollection, {
             projectId: ObjectId(project._id),
             name: { $exists: true },
             deleted: false,

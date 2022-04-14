@@ -1,4 +1,4 @@
-export const Times = [
+export const Times: $TSFixMe = [
     '12:00 AM',
     '1:00 AM',
     '2:00 AM',

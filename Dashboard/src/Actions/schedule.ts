@@ -157,7 +157,7 @@ export function fetchProjectSchedule(
         );
         promise.then(
             (schedule): void => {
-                const data = schedule.data;
+                const data: $TSFixMe = schedule.data;
                 data.projectId = projectId;
                 dispatch(projectScheduleSuccess(data));
             },
@@ -199,7 +199,7 @@ export const createSchedule: Function = (
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`schedule/${projectId}`, values);
+        const promise: $TSFixMe = BackendAPI.post(`schedule/${projectId}`, values);
 
         dispatch(createScheduleRequest());
 
@@ -250,7 +250,7 @@ export function renameSchedule(
     scheduleName: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(`schedule/${projectId}/${scheduleId}`, {
+        const promise: $TSFixMe = BackendAPI.put(`schedule/${projectId}/${scheduleId}`, {
             name: scheduleName,
         });
 
@@ -325,14 +325,14 @@ export const deleteSchedule: Function = (
     scheduleId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete `schedule/${projectId}/${scheduleId}`;
+        const promise: $TSFixMe = delete `schedule/${projectId}/${scheduleId}`;
 
         dispatch(deleteScheduleRequest());
 
         promise
             .then(
                 (schedule): void => {
-                    const data = Object.assign(
+                    const data: $TSFixMe = Object.assign(
                         {},
                         { scheduleId },
 
@@ -400,7 +400,7 @@ export function addMonitors(
     data: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `schedule/${projectId}/${scheduleId}`,
             data
         );
@@ -470,7 +470,7 @@ export function addUsers(
     data: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `schedule/${projectId}/${scheduleId}/addUsers`,
             data
         );
@@ -542,7 +542,7 @@ export function addEscalation(
     data = data.OnCallAlertBox;
 
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `schedule/${projectId}/${scheduleId}/addescalation`,
             data
         );
@@ -567,7 +567,7 @@ export const getEscalation: Function = (
     scheduleId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `schedule/${projectId}/${scheduleId}/getescalation`
         );
 
@@ -645,7 +645,7 @@ export const fetchUserSchedule: Function = (
     userId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `schedule/${projectId}/${userId}/getescalations`
         );
 

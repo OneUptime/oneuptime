@@ -42,7 +42,7 @@ class ViewJsonLogs extends Component<ComponentProps> {
 
     override render() {
 
-        const { viewJsonModalId, title, jsonLog, rootName } = this.props.data;
+        const { viewJsonModalId, title, jsonLog, rootName }: $TSFixMe = this.props.data;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

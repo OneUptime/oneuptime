@@ -49,7 +49,7 @@ import {
     getUserAgent,
 } from '../../useNotification';
 
-const selector = formValueSelector('Profile');
+const selector: $TSFixMe = formValueSelector('Profile');
 
 //Client side validation
 function validate(values: $TSFixMe) {
@@ -108,7 +108,7 @@ export class ProfileSetting extends Component<ComponentProps>{
         };
     }
     handleOnChange = (value: $TSFixMe) => {
-        const internationalNumber = value.startsWith('+') ? value : '+' + value;
+        const internationalNumber: $TSFixMe = value.startsWith('+') ? value : '+' + value;
 
         this.props.setAlertPhoneNumber(internationalNumber);
     };
@@ -133,9 +133,9 @@ export class ProfileSetting extends Component<ComponentProps>{
 
     handleVerifySMSCode = () => {
 
-        const { projectId, verifySMSCode, otp, setVerified } = this.props;
+        const { projectId, verifySMSCode, otp, setVerified }: $TSFixMe = this.props;
 
-        const { alertPhoneNumber } = this.props.profileSettingState;
+        const { alertPhoneNumber }: $TSFixMe = this.props.profileSettingState;
 
         verifySMSCode(projectId, {
             to: alertPhoneNumber,
@@ -161,8 +161,8 @@ export class ProfileSetting extends Component<ComponentProps>{
             setResendTimer,
         } = this.props;
 
-        const { alertPhoneNumber } = this.props.profileSettingState;
-        const StartTimer = this.startTimer;
+        const { alertPhoneNumber }: $TSFixMe = this.props.profileSettingState;
+        const StartTimer: $TSFixMe = this.startTimer;
         clearInterval(this.timer);
 
         this.props.setResendTimer(null);
@@ -180,7 +180,7 @@ export class ProfileSetting extends Component<ComponentProps>{
     async override componentDidMount() {
 
         await this.props.userSettings();
-        const profilePic =
+        const profilePic: $TSFixMe =
 
             this.props.profileSettings &&
 
@@ -220,13 +220,13 @@ export class ProfileSetting extends Component<ComponentProps>{
     }
 
     componentDidUpdate(prevProps: $TSFixMe) {
-        const prevProfilePic =
+        const prevProfilePic: $TSFixMe =
             prevProps.profileSettings &&
                 prevProps.profileSettings.data &&
                 prevProps.profileSettings.data.profilePic
                 ? prevProps.profileSettings.data.profilePic
                 : null;
-        const currentProfilePic =
+        const currentProfilePic: $TSFixMe =
 
             this.props.profileSettings &&
 
@@ -244,7 +244,7 @@ export class ProfileSetting extends Component<ComponentProps>{
 
     updateProfilePic(profilePic: $TSFixMe) {
 
-        const { resetFile, setProfilePic } = this.props;
+        const { resetFile, setProfilePic }: $TSFixMe = this.props;
 
         setProfilePic(profilePic);
         resetFile();
@@ -253,8 +253,8 @@ export class ProfileSetting extends Component<ComponentProps>{
     changefile = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
 
@@ -299,11 +299,11 @@ export class ProfileSetting extends Component<ComponentProps>{
     };
 
     checkPush = async () => {
-        const userAgent = await getUserAgent();
+        const userAgent: $TSFixMe = await getUserAgent();
 
-        const identification = this.props.profileSettings.data.identification;
+        const identification: $TSFixMe = this.props.profileSettings.data.identification;
         if (identification && identification.length > 0) {
-            const check = identification.find(
+            const check: $TSFixMe = identification.find(
                 (id: $TSFixMe) => String(id.userAgent) === String(userAgent)
             );
             if (check) {
@@ -318,10 +318,10 @@ export class ProfileSetting extends Component<ComponentProps>{
 
     handlePush = async (e: $TSFixMe) => {
 
-        const { isBackendChecked } = this.state;
+        const { isBackendChecked }: $TSFixMe = this.state;
         this.setState({ isBackendChecked: !isBackendChecked });
-        const checked = e.target.checked;
-        const subscription = await getTheSubscription();
+        const checked: $TSFixMe = e.target.checked;
+        const subscription: $TSFixMe = await getTheSubscription();
         if (!subscription) {
             this.setState({
                 error: 'This works only on development build and production',
@@ -339,10 +339,10 @@ export class ProfileSetting extends Component<ComponentProps>{
 
     submitPush = async () => {
 
-        const { updatePushNotification } = this.props;
-        const userAgent = await getUserAgent();
+        const { updatePushNotification }: $TSFixMe = this.props;
+        const userAgent: $TSFixMe = await getUserAgent();
 
-        const { subscription, checked } = this.state;
+        const { subscription, checked }: $TSFixMe = this.state;
         if (subscription) {
             updatePushNotification({ subscription, userAgent, checked });
         }
@@ -364,7 +364,7 @@ export class ProfileSetting extends Component<ComponentProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const initialAlertPhoneNumber = this.props.initialValues
+        const initialAlertPhoneNumber: $TSFixMe = this.props.initialValues
             .alertPhoneNumber;
         const {
             alertPhoneNumber,
@@ -391,7 +391,7 @@ export class ProfileSetting extends Component<ComponentProps>{
             this.handleSendVerificationSMS();
         }
 
-        const { updateProfileSetting, resetFile } = this.props;
+        const { updateProfileSetting, resetFile }: $TSFixMe = this.props;
 
         values.removedPic = removedPic;
         updateProfileSetting(values).then(function () {
@@ -421,7 +421,7 @@ export class ProfileSetting extends Component<ComponentProps>{
 
     handleSendEmailVerification = () => {
 
-        const { emailValue, initialValues } = this.props;
+        const { emailValue, initialValues }: $TSFixMe = this.props;
 
         this.props.sendEmailVerificationLink({
             email: emailValue,
@@ -508,7 +508,7 @@ export class ProfileSetting extends Component<ComponentProps>{
         profilePic = profilePic === 'null' ? null : profilePic;
 
 
-        const fileData = this.props.fileUrl
+        const fileData: $TSFixMe = this.props.fileUrl
 
             ? this.props.fileUrl
             : profilePic
@@ -527,12 +527,12 @@ export class ProfileSetting extends Component<ComponentProps>{
                 />
             );
         }
-        const verifiedEmail =
+        const verifiedEmail: $TSFixMe =
             isVerified &&
             emailValue === profileSettingState.userEmail &&
             profileSettings.data &&
             emailValue !== profileSettings.data.tempEmail;
-        const verifiedPhone =
+        const verifiedPhone: $TSFixMe =
             (verified &&
                 profileSettingState.alertPhoneNumber ===
                 profileSettingState.initPhoneVerificationNumber) ||
@@ -540,10 +540,10 @@ export class ProfileSetting extends Component<ComponentProps>{
                 profileSettings.data &&
                 profileSettingState.alertPhoneNumber !==
                 profileSettings.data.tempAlertPhoneNumber);
-        const showPhoneVerifyTools = !verifiedPhone;
-        const showSendVerification =
+        const showPhoneVerifyTools: $TSFixMe = !verifiedPhone;
+        const showSendVerification: $TSFixMe =
             showPhoneVerifyTools && !initPhoneVerification;
-        const showError =
+        const showError: $TSFixMe =
             !verified &&
             (verifySMSCodeError || sendVerificationSMSError) &&
             profileSettingState.alertPhoneNumber ===
@@ -1620,7 +1620,7 @@ export class ProfileSetting extends Component<ComponentProps>{
 
 ProfileSetting.displayName = 'ProfileSetting';
 
-const ProfileSettingForm = reduxForm({
+const ProfileSettingForm: $TSFixMe = reduxForm({
     form: 'Profile', // a unique identifier for this form,
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for
@@ -1663,7 +1663,7 @@ function mapStateToProps(state: RootState) {
     if (!Validate.number(resendTimer)) {
         resendTimer = parseInt(resendTimer, 10);
     }
-    const initValues = state.profileSettings.profileSetting
+    const initValues: $TSFixMe = state.profileSettings.profileSetting
         ? Object.assign({}, state.profileSettings.profileSetting.data)
         : {};
     if (initValues && initValues.tempAlertPhoneNumber) {

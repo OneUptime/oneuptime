@@ -31,7 +31,7 @@ class ProjectDomain extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const projectId = this.props.projectId;
+        const projectId: $TSFixMe = this.props.projectId;
         if (projectId) {
 
             this.props.fetchProjectDomains(this.props.projectId, 0, this.limit);
@@ -42,7 +42,7 @@ class ProjectDomain extends Component<ComponentProps> {
 
         if (prevProps.projectId !== this.props.projectId) {
 
-            const projectId = this.props.projectId;
+            const projectId: $TSFixMe = this.props.projectId;
             if (projectId) {
 
                 this.props.fetchProjectDomains(projectId, 0, this.limit);
@@ -52,7 +52,7 @@ class ProjectDomain extends Component<ComponentProps> {
 
     prevClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { fetchProjectDomains } = this.props;
+        const { fetchProjectDomains }: $TSFixMe = this.props;
         fetchProjectDomains(
             projectId,
             skip ? Number(skip) - this.limit : this.limit,
@@ -62,7 +62,7 @@ class ProjectDomain extends Component<ComponentProps> {
 
     nextClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { fetchProjectDomains } = this.props;
+        const { fetchProjectDomains }: $TSFixMe = this.props;
         fetchProjectDomains(
             projectId,
             skip ? Number(skip) + this.limit : this.limit,
@@ -91,8 +91,8 @@ class ProjectDomain extends Component<ComponentProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">

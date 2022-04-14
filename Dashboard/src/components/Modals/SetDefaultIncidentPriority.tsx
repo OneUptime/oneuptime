@@ -28,8 +28,8 @@ class SetDefaultIncidentPriority extends Component<ComponentProps> {
 
     handleSubmit() {
 
-        const { data } = this.props;
-        const incidentPriorityId = data.incidentPriorityId;
+        const { data }: $TSFixMe = this.props;
+        const incidentPriorityId: $TSFixMe = data.incidentPriorityId;
         this.props
 
             .updateDefaultIncidentSettings(
@@ -55,7 +55,7 @@ class SetDefaultIncidentPriority extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeThisDialog, data } = this.props;
+        const { closeThisDialog, data }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

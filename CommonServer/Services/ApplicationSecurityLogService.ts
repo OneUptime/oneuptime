@@ -48,14 +48,14 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const securityLogQuery = ApplicationSecurityLogModel.findOne(query)
+        const securityLogQuery: $TSFixMe = ApplicationSecurityLogModel.findOne(query)
             .sort(sort)
             .lean();
 
         securityLogQuery.select(select);
         securityLogQuery.populate(populate);
 
-        const securityLog = await securityLogQuery;
+        const securityLog: $TSFixMe = await securityLogQuery;
         return securityLog;
     }
 
@@ -64,7 +64,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const securityLogsQuery = ApplicationSecurityLogModel.find(query)
+        const securityLogsQuery: $TSFixMe = ApplicationSecurityLogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -73,7 +73,7 @@ export default class Service {
         securityLogsQuery.select(select);
         securityLogsQuery.populate(populate);
 
-        const securityLogs = await securityLogsQuery;
+        const securityLogs: $TSFixMe = await securityLogsQuery;
         return securityLogs;
     }
 
@@ -86,7 +86,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const applicationSecurityLog =
+        const applicationSecurityLog: $TSFixMe =
             await ApplicationSecurityLogModel.findOneAndUpdate(
                 query,
                 {
@@ -96,7 +96,7 @@ export default class Service {
             );
 
         if (!applicationSecurityLog) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Application Security Log not found or does not exist'
             );
 
@@ -111,7 +111,7 @@ export default class Service {
         let securityLog = this.findOneBy({ query, select: '_id' });
 
         if (!securityLog) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Application Security Log not found or does not exist'
             );
 

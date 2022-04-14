@@ -98,8 +98,8 @@ class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
 
             data,
         } = this.props;
-        const { setCustomFrequency, setCustomMonitorUptime } = this.state;
-        const projectId = data.projectId;
+        const { setCustomFrequency, setCustomMonitorUptime }: $TSFixMe = this.state;
+        const projectId: $TSFixMe = data.projectId;
         const postObj: $TSFixMe = {};
 
         if (
@@ -111,7 +111,7 @@ class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
         }
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -180,12 +180,12 @@ class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -258,7 +258,7 @@ class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -392,7 +392,7 @@ class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
 
             formValues,
         } = this.props;
-        const { setCustomFrequency, setCustomMonitorUptime } = this.state;
+        const { setCustomFrequency, setCustomMonitorUptime }: $TSFixMe = this.state;
 
         const {
             selectedProjects,
@@ -938,7 +938,7 @@ MonitorSlaModal.propTypes = {
     fetchMonitors: PropTypes.func,
 };
 
-const MonitorSlaForm = reduxForm({
+const MonitorSlaForm: $TSFixMe = reduxForm({
     form: 'monitorSlaForm',
     enableReinitialize: false,
     validate,
@@ -956,10 +956,10 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const monitorData = state.monitor.monitorsList.monitors.find(
+    const monitorData: $TSFixMe = state.monitor.monitorsList.monitors.find(
         (data: $TSFixMe) => String(data._id) === String(ownProps.data.projectId)
     );
-    const monitors = monitorData ? monitorData.monitors : [];
+    const monitors: $TSFixMe = monitorData ? monitorData.monitors : [];
 
     return {
         createMonitorSlaModalId: state.modal.modals[0].id,

@@ -23,12 +23,12 @@ let RenderMembers = ({
     teamIndex,
     form
 }: RenderMembersProps) => {
-    const policyRotation = form[policyIndex].teams[teamIndex];
+    const policyRotation: $TSFixMe = form[policyIndex].teams[teamIndex];
 
     return (
         <ul>
             {fields.map((inputarray: $TSFixMe, i: $TSFixMe) => {
-                const memberValue = policyRotation.teamMembers[i];
+                const memberValue: $TSFixMe = policyRotation.teamMembers[i];
                 return (
                     <RenderMember
                         memberValue={memberValue}
@@ -102,8 +102,8 @@ RenderMembers.propTypes = {
 };
 
 function mapStateToProps(state: RootState) {
-    const selector = formValueSelector('OnCallAlertBox');
-    const form = selector(state, 'OnCallAlertBox');
+    const selector: $TSFixMe = formValueSelector('OnCallAlertBox');
+    const form: $TSFixMe = selector(state, 'OnCallAlertBox');
 
     return {
         form,

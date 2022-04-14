@@ -37,7 +37,7 @@ export class DeleteScheduleBox extends Component<ComponentProps>{
             userId,
         } = this.props;
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: deleteModalId,
@@ -57,7 +57,7 @@ export class DeleteScheduleBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -114,7 +114,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { scheduleSlug, userId } = props.match.params;
+    const { scheduleSlug, userId }: $TSFixMe = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         (subProjectSchedule: $TSFixMe) => {
@@ -128,7 +128,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
         (schedule: $TSFixMe) => schedule && schedule.slug === scheduleSlug
     );
 
-    const scheduleName = schedule && schedule.name;
+    const scheduleName: $TSFixMe = schedule && schedule.name;
 
     return {
         scheduleName,

@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import AutomatedScriptService from '../services/automatedScriptService';
 import { sendErrorResponse } from 'CommonServer/Utils/response';
@@ -22,11 +22,11 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { skip, limit } = req.query;
-            const selectScript =
+            const { projectId }: $TSFixMe = req.params;
+            const { skip, limit }: $TSFixMe = req.query;
+            const selectScript: $TSFixMe =
                 'name script scriptType slug projectId successEvent failureEvent';
-            const [scripts, count] = await Promise.all([
+            const [scripts, count]: $TSFixMe = await Promise.all([
                 AutomatedScriptService.findBy({
                     query: { projectId },
                     skip,
@@ -48,13 +48,13 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { automatedSlug } = req.params;
-            const { skip, limit } = req.query;
+            const { automatedSlug }: $TSFixMe = req.params;
+            const { skip, limit }: $TSFixMe = req.query;
 
-            const selectScript =
+            const selectScript: $TSFixMe =
                 'name script scriptType slug projectId successEvent failureEvent';
-            const populateScript = [{ path: 'createdById', select: 'name' }];
-            const details = await AutomatedScriptService.findOneBy({
+            const populateScript: $TSFixMe = [{ path: 'createdById', select: 'name' }];
+            const details: $TSFixMe = await AutomatedScriptService.findOneBy({
                 query: { slug: automatedSlug },
                 select: selectScript,
                 populate: populateScript,
@@ -68,7 +68,7 @@ router.get(
                 details.failureEvent = formatEvent(details.failureEvent);
             }
 
-            const [logs, count] = await Promise.all([
+            const [logs, count]: $TSFixMe = await Promise.all([
                 AutomatedScriptService.getAutomatedLogs(
                     {
                         automationScriptId: details._id,
@@ -101,7 +101,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.projectId = req.params.projectId;
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -131,7 +131,7 @@ router.post(
             }
 
             // check if name already exists
-            const uniqueName = await AutomatedScriptService.countBy({
+            const uniqueName: $TSFixMe = await AutomatedScriptService.countBy({
                 projectId: data.projectId,
                 name: data.name,
             });
@@ -149,7 +149,7 @@ router.post(
             if (data.failureEvent.length > 0) {
                 data.failureEvent = formatEvent(data.failureEvent, true);
             }
-            const response = await AutomatedScriptService.createScript(data);
+            const response: $TSFixMe = await AutomatedScriptService.createScript(data);
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -166,8 +166,8 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const automatedScriptId = req.params.automatedScriptId;
-            const data = req.body;
+            const automatedScriptId: $TSFixMe = req.params.automatedScriptId;
+            const data: $TSFixMe = req.body;
             data.projectId = req.params.projectId;
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -197,7 +197,7 @@ router.put(
             }
 
             // check if name already exist
-            const scriptCount = await AutomatedScriptService.countBy({
+            const scriptCount: $TSFixMe = await AutomatedScriptService.countBy({
                 projectId: data.projectId,
                 name: data.name,
                 _id: { $ne: automatedScriptId },
@@ -216,7 +216,7 @@ router.put(
             if (data.failureEvent.length > 0) {
                 data.failureEvent = formatEvent(data.failureEvent, true);
             }
-            const response = await AutomatedScriptService.updateOne(
+            const response: $TSFixMe = await AutomatedScriptService.updateOne(
                 { _id: automatedScriptId },
                 data
             );
@@ -233,10 +233,10 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { automatedScriptId } = req.params;
+            const { automatedScriptId }: $TSFixMe = req.params;
 
-            const triggeredId = req.user ? req.user.id : null;
-            const response = await AutomatedScriptService.runResource({
+            const triggeredId: $TSFixMe = req.user ? req.user.id : null;
+            const response: $TSFixMe = await AutomatedScriptService.runResource({
                 triggeredId,
                 triggeredBy: 'user',
                 resources: { automatedScript: automatedScriptId },
@@ -254,21 +254,21 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, automatedSlug } = req.params;
+            const { projectId, automatedSlug }: $TSFixMe = req.params;
             const query: $TSFixMe = {
                 slug: automatedSlug,
             };
-            const populate = [{ path: 'createdById', select: 'name' }];
-            const select =
+            const populate: $TSFixMe = [{ path: 'createdById', select: 'name' }];
+            const select: $TSFixMe =
                 'name script scriptType slug projectId successEvent failureEvent';
-            const { _id } = await AutomatedScriptService.findOneBy({
+            const { _id }: $TSFixMe = await AutomatedScriptService.findOneBy({
                 query,
                 select,
                 populate,
             });
 
-            const userId = req.user ? req.user.id : null;
-            const response = await AutomatedScriptService.deleteBy(
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const response: $TSFixMe = await AutomatedScriptService.deleteBy(
                 {
                     slug: automatedSlug,
                 },
@@ -286,7 +286,7 @@ router.delete(
 );
 
 const formatEvent: Function = (arr: $TSFixMe, type: $TSFixMe): void => {
-    const result = [];
+    const result: $TSFixMe = [];
     for (const item of arr) {
         if (type) {
             result.push({ [item.type]: item.resource });

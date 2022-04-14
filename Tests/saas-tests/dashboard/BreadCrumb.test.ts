@@ -6,7 +6,7 @@ import 'should';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 const user: $TSFixMe = {
@@ -15,7 +15,7 @@ const user: $TSFixMe = {
 };
 
 describe('BreadCrumb Component test', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -36,15 +36,15 @@ describe('BreadCrumb Component test', () => {
     test(
         'Should navigate between pages from the breadcrumbs',
         async (done: $TSFixMe) => {
-            const componentName = utils.generateRandomString();
-            const monitorName = utils.generateRandomString();
+            const componentName: $TSFixMe = utils.generateRandomString();
+            const monitorName: $TSFixMe = utils.generateRandomString();
 
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
             await init.addMonitorToComponent(componentName, monitorName, page);
 
-            const monitorBreadcrumb = await init.pageWaitForSelector(
+            const monitorBreadcrumb: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#cb${monitorName}`,
                 {
@@ -52,7 +52,7 @@ describe('BreadCrumb Component test', () => {
                 }
             );
 
-            const componentBreadcrumb = await init.pageWaitForSelector(
+            const componentBreadcrumb: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#cbMonitors'
             );
@@ -61,7 +61,7 @@ describe('BreadCrumb Component test', () => {
 
             await init.pageClick(page, '#cbMonitors');
 
-            const monitorTitle = await init.pageWaitForSelector(
+            const monitorTitle: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }

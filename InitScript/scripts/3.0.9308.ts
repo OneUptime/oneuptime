@@ -4,7 +4,7 @@ import { ObjectId } from 'mongodb';
 const incidentCollection: string = 'incidents';
 
 async function run(): void {
-    const incidents = await find(incidentCollection, {
+    const incidents: $TSFixMe = await find(incidentCollection, {
         monitors: { $exists: false },
         notifications: { $exists: false },
     });
@@ -15,12 +15,12 @@ async function run(): void {
         };
 
         if (incident.monitorId) {
-            const monitors = [{ monitorId: ObjectId(incident.monitorId) }];
+            const monitors: $TSFixMe = [{ monitorId: ObjectId(incident.monitorId) }];
 
             data.monitors = monitors;
         }
         if (incident.notificationId) {
-            const notifications = [
+            const notifications: $TSFixMe = [
                 { notificationId: ObjectId(incident.notificationId) },
             ];
 

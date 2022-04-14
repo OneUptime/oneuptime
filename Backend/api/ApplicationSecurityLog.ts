@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -13,7 +13,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import ApplicationSecurityLogService from '../services/applicationSecurityLogService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 //Route: GET
 //Description: get an application security log
@@ -25,9 +25,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { applicationSecurityId, componentId } = req.params;
+            const { applicationSecurityId, componentId }: $TSFixMe = req.params;
 
-            const populateApplicationSecurityLog = [
+            const populateApplicationSecurityLog: $TSFixMe = [
                 { path: 'componentId', select: '_id slug name slug' },
                 {
                     path: 'securityId',
@@ -35,10 +35,10 @@ router.get(
                 },
             ];
 
-            const selectApplicationSecurityLog =
+            const selectApplicationSecurityLog: $TSFixMe =
                 '_id securityId componentId data';
 
-            const securityLog = await ApplicationSecurityLogService.findOneBy({
+            const securityLog: $TSFixMe = await ApplicationSecurityLogService.findOneBy({
                 query: { securityId: applicationSecurityId, componentId },
                 select: selectApplicationSecurityLog,
                 populate: populateApplicationSecurityLog,
@@ -60,9 +60,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { applicationSecuritySlug, componentId } = req.params;
+            const { applicationSecuritySlug, componentId }: $TSFixMe = req.params;
 
-            const populateApplicationSecurityLog = [
+            const populateApplicationSecurityLog: $TSFixMe = [
                 { path: 'componentId', select: '_id slug name slug' },
                 {
                     path: 'securityId',
@@ -70,10 +70,10 @@ router.get(
                 },
             ];
 
-            const selectApplicationSecurityLog =
+            const selectApplicationSecurityLog: $TSFixMe =
                 '_id securityId componentId data';
 
-            const securityLog = await ApplicationSecurityLogService.findOneBy({
+            const securityLog: $TSFixMe = await ApplicationSecurityLogService.findOneBy({
                 query: { slug: applicationSecuritySlug, componentId },
                 select: selectApplicationSecurityLog,
                 populate: populateApplicationSecurityLog,
@@ -95,8 +95,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { componentId } = req.params;
-            const populateApplicationSecurityLog = [
+            const { componentId }: $TSFixMe = req.params;
+            const populateApplicationSecurityLog: $TSFixMe = [
                 { path: 'componentId', select: '_id slug name slug' },
                 {
                     path: 'securityId',
@@ -104,9 +104,9 @@ router.get(
                 },
             ];
 
-            const selectApplicationSecurityLog =
+            const selectApplicationSecurityLog: $TSFixMe =
                 '_id securityId componentId data';
-            const securityLogs = await ApplicationSecurityLogService.findBy({
+            const securityLogs: $TSFixMe = await ApplicationSecurityLogService.findBy({
                 query: { componentId },
                 select: selectApplicationSecurityLog,
                 populate: populateApplicationSecurityLog,

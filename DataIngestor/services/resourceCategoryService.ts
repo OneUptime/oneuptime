@@ -1,4 +1,4 @@
-const resourceCategoryCollection = global.db.collection('resourcecategories');
+const resourceCategoryCollection: $TSFixMe = global.db.collection('resourcecategories');
 import { ObjectId } from 'mongodb';
 
 export default {

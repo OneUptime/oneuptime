@@ -33,8 +33,8 @@ export class Component extends Component<ComponentProps>{
 
     handleKeyboard = (event: $TSFixMe) => {
 
-        const { modalId, modalList } = this.props;
-        const { ssoModalId } = this.state;
+        const { modalId, modalList }: $TSFixMe = this.props;
+        const { ssoModalId }: $TSFixMe = this.state;
 
         if (event.target.localName === 'body' && event.key) {
             switch (event.key) {
@@ -93,8 +93,8 @@ export class Component extends Component<ComponentProps>{
 
     previousClicked = async () => {
 
-        const { ssos } = this.props;
-        const { skip, limit } = ssos;
+        const { ssos }: $TSFixMe = this.props;
+        const { skip, limit }: $TSFixMe = ssos;
 
         await this.props.fetchSsos(skip - limit >= 0 ? skip - limit : 0, limit);
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
@@ -102,8 +102,8 @@ export class Component extends Component<ComponentProps>{
 
     nextClicked = async () => {
 
-        const { ssos } = this.props;
-        const { skip, limit } = ssos;
+        const { ssos }: $TSFixMe = this.props;
+        const { skip, limit }: $TSFixMe = ssos;
 
         await this.props.fetchSsos(skip + limit, limit);
         this.setState({ page: this.state.page + 1 });
@@ -111,11 +111,11 @@ export class Component extends Component<ComponentProps>{
 
     override render() {
 
-        const { ssos } = this.props;
-        const { count, skip, limit } = ssos;
-        const canPrev = skip > 0;
-        const canNext = skip + limit < count;
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const { ssos }: $TSFixMe = this.props;
+        const { count, skip, limit }: $TSFixMe = ssos;
+        const canPrev: $TSFixMe = skip > 0;
+        const canNext: $TSFixMe = skip + limit < count;
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
         return (
             <div
                 id="oneuptimeSso"

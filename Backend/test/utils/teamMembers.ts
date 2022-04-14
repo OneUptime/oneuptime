@@ -19,7 +19,7 @@ export default {
                 teamMembers.length &&
                 mongoose.isValidObjectId(projectId)
             ) {
-                const updatedProject = await ProjectModel.findOneAndUpdate(
+                const updatedProject: $TSFixMe = await ProjectModel.findOneAndUpdate(
                     {
                         _id: projectId,
                     },
@@ -57,7 +57,7 @@ export default {
                 teamMembers.length &&
                 mongoose.isValidObjectId(projectId)
             ) {
-                const updatedProject = await ProjectModel.findOneAndUpdate(
+                const updatedProject: $TSFixMe = await ProjectModel.findOneAndUpdate(
                     {
                         _id: projectId,
                     },

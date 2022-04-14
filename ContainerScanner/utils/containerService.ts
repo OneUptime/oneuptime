@@ -1,13 +1,13 @@
 import crypto from 'crypto';
 import EncryptionKeys from './encryptionKeys';
-const algorithm = EncryptionKeys.algorithm;
-const key = EncryptionKeys.key;
+const algorithm: $TSFixMe = EncryptionKeys.algorithm;
+const key: $TSFixMe = EncryptionKeys.key;
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { v1 as uuidv1 } from 'uuid';
 import fs from 'fs';
 import Path from 'path';
 import { promisify } from 'util';
-const unlink = promisify(fs.unlink);
+const unlink: $TSFixMe = promisify(fs.unlink);
 import { spawn } from 'child_process';
 import {
     updateContainerSecurityToScanning,
@@ -19,16 +19,16 @@ import flattenArray from './flattenArray';
 
 export default {
     scan: async function (security): void {
-        const decryptedSecurity = await this.decryptPassword(security);
+        const decryptedSecurity: $TSFixMe = await this.decryptPassword(security);
         await this.scanContainerSecurity(decryptedSecurity);
     },
 
     decryptPassword: async function (security): void {
-        const values = [];
+        const values: $TSFixMe = [];
         for (let i = 0; i <= 15; i++) {
             values.push(security.dockerCredential.iv[i]);
         }
-        const iv = Buffer.from(values);
+        const iv: $TSFixMe = Buffer.from(values);
         security.dockerCredential.dockerPassword = await this.decrypt(
             security.dockerCredential.dockerPassword,
             iv
@@ -37,9 +37,9 @@ export default {
     },
 
     decrypt: (encText, iv) => {
-        const promise = new Promise((resolve, reject) => {
+        const promise = new Promise((resolve, reject): $TSFixMe => {
             try {
-                const decipher = crypto.createDecipheriv(algorithm, key, iv);
+                const decipher: $TSFixMe = crypto.createDecipheriv(algorithm, key, iv);
                 let decoded = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');
                 resolve(decoded);
@@ -51,13 +51,13 @@ export default {
     },
 
     scanContainerSecurity: async security => {
-        const { imagePath, imageTags } = security;
-        const testPath = imageTags ? `${imagePath}:${imageTags}` : imagePath;
+        const { imagePath, imageTags }: $TSFixMe = security;
+        const testPath: $TSFixMe = imageTags ? `${imagePath}:${imageTags}` : imagePath;
         const outputFile: string = `${uuidv1()}result.json`;
         let securityDir = 'container_security_dir';
 
         securityDir = await createDir(securityDir);
-        const exactFilePath = Path.resolve(securityDir, outputFile);
+        const exactFilePath: $TSFixMe = Path.resolve(securityDir, outputFile);
         // update container security to scanning true
         // so the cron job does not pull it multiple times due to network delays
         // since the cron job runs every minute
@@ -68,13 +68,13 @@ export default {
             const scanCommand: string = `trivy image -f json -o ${outputFile} ${testPath}`;
             const clearCommand: string = `trivy image --clear-cache ${testPath}`;
 
-            const output = spawn(scanCommand, {
+            const output: $TSFixMe = spawn(scanCommand, {
                 cwd: securityDir,
                 shell: true,
             });
 
             output.on('error', async error => {
-                const errorMessage =
+                const errorMessage: $TSFixMe =
                     'Scanning failed please check your docker credential or image path/tag';
 
                 error.code = 400;
@@ -104,7 +104,7 @@ export default {
                     (typeof auditLogs === 'string' &&
                         !JSON.stringify(auditLogs).trim())
                 ) {
-                    const error = new BadDataException(
+                    const error: $TSFixMe = new BadDataException(
                         'Scanning failed please check your docker credential or image path/tag'
                     );
 
@@ -127,7 +127,7 @@ export default {
                     auditLogs = JSON.parse(auditLogs); // parse the stringified logs
                 }
 
-                const clearCache = spawn('trivy', [clearCommand], {
+                const clearCache: $TSFixMe = spawn('trivy', [clearCommand], {
                     cwd: securityDir,
                     shell: true,
                 });
@@ -212,13 +212,13 @@ export default {
 
                     auditData.vulnerabilityInfo = counter;
 
-                    const arrayData = auditData.vulnerabilityData.map(
+                    const arrayData: $TSFixMe = auditData.vulnerabilityData.map(
                         log => log.vulnerabilities
                     );
 
                     auditData.vulnerabilityData = flattenArray(arrayData);
 
-                    const criticalArr = [],
+                    const criticalArr: $TSFixMe = [],
                         highArr = [],
                         moderateArr = [],
                         lowArr = [];
@@ -251,7 +251,7 @@ export default {
                         ...lowArr,
                     ];
 
-                    const securityLog = await updateContainerSecurityLogService(
+                    const securityLog: $TSFixMe = await updateContainerSecurityLogService(
                         {
                             securityId: security._id,
                             componentId: security.componentId._id,
@@ -274,7 +274,7 @@ export default {
 
 function createDir(dirPath): void {
     return new Promise((resolve, reject) => {
-        const workPath = Path.resolve(process.cwd(), dirPath);
+        const workPath: $TSFixMe = Path.resolve(process.cwd(), dirPath);
         if (fs.existsSync(workPath)) {
             resolve(workPath);
         }

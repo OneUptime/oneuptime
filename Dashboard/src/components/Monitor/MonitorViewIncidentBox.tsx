@@ -91,7 +91,7 @@ export class MonitorViewIncidentBox extends Component<MonitorViewIncidentBoxProp
 
     filterIncidentLogs = (status: $TSFixMe) => {
 
-        const { monitor } = this.props;
+        const { monitor }: $TSFixMe = this.props;
         const filteredIncidents: $TSFixMe = [];
         switch (status) {
             case 'unacknowledged':
@@ -131,7 +131,7 @@ export class MonitorViewIncidentBox extends Component<MonitorViewIncidentBoxProp
             filterOption,
         } = this.state;
 
-        const creating = this.props.create ? this.props.create : false;
+        const creating: $TSFixMe = this.props.create ? this.props.create : false;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}

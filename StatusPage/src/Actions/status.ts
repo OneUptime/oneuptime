@@ -33,7 +33,7 @@ export const getStatusPage: Function = (
     url: URL
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${statusPageSlug}?url=${url}`
         );
 
@@ -79,7 +79,7 @@ export const getAllStatusPageResource: Function = (
     range: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promises = [];
+        const promises: $TSFixMe = [];
 
         promises.push(
             BackendAPI.get(
@@ -293,7 +293,7 @@ export const getStatusPageNote: Function = (
     newTheme = false
 ) => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}&newTheme=${newTheme}`
         );
 
@@ -334,7 +334,7 @@ export const getStatusPageIndividualNote: Function = (
     theme: $TSFixMe
 ) => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}&theme=${theme}`
         );
 
@@ -408,7 +408,7 @@ export const getScheduledEvent: Function = (
     days: $TSFixMe
 ) => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&days=${days}`
         );
 
@@ -472,7 +472,7 @@ export const getOngoingScheduledEvent: Function = (
     limit: PositiveNumber
 ) => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&limit=${limit}`
         );
 
@@ -526,7 +526,7 @@ export const getIndividualEvent: Function = (
     theme: $TSFixMe
 ) => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/${monitorId}/individualevents?date=${date}&theme=${theme}`
         );
 
@@ -575,7 +575,7 @@ export const futureEventsFailure: Function = (error: ErrorPayload): void => ({
     payload: error,
 });
 
-export const fetchFutureEvents =
+export const fetchFutureEvents: $TSFixMe =
     (
         projectId: ObjectID,
         statusPageSlug: $TSFixMe,
@@ -586,13 +586,13 @@ export const fetchFutureEvents =
     async (dispatch: Dispatch) => {
         try {
             dispatch(futureEventsRequest());
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
             );
 
             dispatch(futureEventsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -618,7 +618,7 @@ export const pastEventsFailure: Function = (error: ErrorPayload): void => ({
     payload: error,
 });
 
-export const fetchPastEvents =
+export const fetchPastEvents: $TSFixMe =
     (
         projectId: ObjectID,
         statusPageSlug: $TSFixMe,
@@ -629,13 +629,13 @@ export const fetchPastEvents =
     async (dispatch: Dispatch) => {
         try {
             dispatch(pastEventsRequest());
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
             );
 
             dispatch(pastEventsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -694,7 +694,7 @@ export const getMoreNote: Function = (
     skip: PositiveNumber
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}`
         );
 
@@ -748,7 +748,7 @@ export const getMoreEvent: Function = (
     skip: PositiveNumber
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/events?skip=${skip}`
         );
 
@@ -792,7 +792,7 @@ export const moreFutureEventsFailure: Function = (
     payload: error,
 });
 
-export const fetchMoreFutureEvents =
+export const fetchMoreFutureEvents: $TSFixMe =
     (
         projectId: ObjectID,
         statusPageSlug: $TSFixMe,
@@ -802,13 +802,13 @@ export const fetchMoreFutureEvents =
     async (dispatch: Dispatch) => {
         try {
             dispatch(moreFutureEventsRequest());
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
             );
 
             dispatch(moreFutureEventsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -834,18 +834,18 @@ export const morePastEventsFailure: Function = (error: ErrorPayload): void => ({
     payload: error,
 });
 
-export const fetchMorePastEvents =
+export const fetchMorePastEvents: $TSFixMe =
     (projectId: ObjectID, statusPageSlug: $TSFixMe, skip: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(morePastEventsRequest());
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
             );
 
             dispatch(morePastEventsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -874,7 +874,7 @@ export function fetchMonitorStatuses(
     endDate: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `StatusPage/${projectId}/${monitorId}/monitorStatuses`,
             { startDate, endDate }
         );
@@ -942,7 +942,7 @@ export function fetchMonitorLogs(
     data: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `StatusPage/${projectId}/${monitorId}/monitorLogs`,
             data
         );
@@ -1027,13 +1027,13 @@ export const fetchEvent: Function = (
         dispatch(fetchEventRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/scheduledEvent/${scheduledEventId}`
             );
 
             dispatch(fetchEventSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1076,13 +1076,13 @@ export function fetchEventNote(
         dispatch(fetchEventNoteRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/notes/${scheduledEventSlug}?type=${type}`
             );
 
             dispatch(fetchEventNoteSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1125,13 +1125,13 @@ export function moreEventNote(
         try {
             dispatch(moreEventNoteRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/notes/${scheduledEventId}?type=${type}&skip=${skip}`
             );
 
             dispatch(moreEventNoteSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1172,13 +1172,13 @@ export const fetchIncident: Function = (
     return async function (dispatch: Dispatch): void {
         try {
             dispatch(fetchIncidentRequest());
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/incident/${incidentSlug}`
             );
 
             dispatch(fetchIncidentSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1224,13 +1224,13 @@ export function fetchIncidentNotes(
         try {
             dispatch(fetchIncidentNotesRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/${incidentId}/incidentNotes?postOnStatusPage=${postOnStatusPage}`
             );
 
             dispatch(fetchIncidentNotesSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1275,13 +1275,13 @@ export function moreIncidentNotes(
         try {
             dispatch(moreIncidentNotesRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/${incidentSlug}/incidentNotes?postOnStatusPage=${postOnStatusPage}&skip=${skip}`
             );
 
             dispatch(moreIncidentNotesSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1326,13 +1326,13 @@ export function fetchLastIncidentTimeline(
         try {
             dispatch(fetchLastIncidentTimelineRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/timeline/${incidentSlug}`
             );
 
             dispatch(fetchLastIncidentTimelineSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1377,13 +1377,13 @@ export function fetchLastIncidentTimelines(
         try {
             dispatch(fetchLastIncidentTimelinesRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `StatusPage/${projectId}/${statusPageSlug}/timelines`
             );
 
             dispatch(fetchLastIncidentTimelinesSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1431,7 +1431,7 @@ export function getAnnouncements(
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}&show=true`
         );
         dispatch(getAnnouncementsRequest());
@@ -1440,7 +1440,7 @@ export function getAnnouncements(
                 dispatch(getAnnouncementsSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -1485,7 +1485,7 @@ export function getSingleAnnouncement(
     announcementSlug: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         dispatch(getSingleAnnouncementRequest());
@@ -1494,7 +1494,7 @@ export function getSingleAnnouncement(
                 dispatch(getSingleAnnouncementSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -1540,7 +1540,7 @@ export function fetchAnnouncementLogs(
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}&theme=${true}`
         );
         dispatch(fetchAnnouncementLogsRequest());
@@ -1584,7 +1584,7 @@ export function calculateTime(
     monitorId: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`monitor/${monitorId}/calculate-time`, {
+        const promise: $TSFixMe = BackendAPI.post(`monitor/${monitorId}/calculate-time`, {
             statuses,
             start,
             range,
@@ -1628,7 +1628,7 @@ export const fetchTweets: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`StatusPage/${projectId}/tweets`, {
+        const promise: $TSFixMe = BackendAPI.post(`StatusPage/${projectId}/tweets`, {
             handle,
         });
 
@@ -1674,7 +1674,7 @@ export function fetchExternalStatusPages(
     statusPageId: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `StatusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`
         );
 

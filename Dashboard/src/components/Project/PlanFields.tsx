@@ -6,7 +6,7 @@ export default function PlanFields({
     activePlan
 }: $TSFixMe) {
     let list = [];
-    const plans = PricingPlan.getPlans();
+    const plans: $TSFixMe = PricingPlan.getPlans();
     list = plans.reverse().map(plan => (
         <label
             key={plan.planId}

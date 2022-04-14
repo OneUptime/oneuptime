@@ -30,7 +30,7 @@ export function fetchIncidentPriorities(
     limit: PositiveNumber
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${
                 limit || 10
             }`
@@ -54,7 +54,7 @@ export const createIncidentPriority: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `incidentPriorities/${projectId}`,
             data
         );
@@ -96,7 +96,7 @@ export const updateIncidentPriority: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(`incidentPriorities/${projectId}`, data);
+        const promise: $TSFixMe = BackendAPI.put(`incidentPriorities/${projectId}`, data);
         dispatch(updateIncidentPriorityRequest());
         promise.then(
             (incidentPriority): void => {
@@ -135,7 +135,7 @@ export const deleteIncidentPriority: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete (`incidentPriorities/${projectId}`, data);
+        const promise: $TSFixMe = delete (`incidentPriorities/${projectId}`, data);
         dispatch(deleteIncidentPriorityRequest());
         promise.then(
             (incidentPriority): void => {

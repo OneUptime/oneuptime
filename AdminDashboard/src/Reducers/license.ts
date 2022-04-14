@@ -40,7 +40,7 @@ export default (state = initialState, action: Action): void => {
         case FETCH_LICENSE_SUCCESS: {
             const data: $TSFixMe = {};
             for (const config of action.payload.data) {
-                const { name, value } = config;
+                const { name, value }: $TSFixMe = config;
 
                 data[name] = value;
             }
@@ -92,7 +92,7 @@ export default (state = initialState, action: Action): void => {
         case CONFIRM_LICENSE_SUCCESS: {
             const data: $TSFixMe = {};
             for (const config of action.payload.data) {
-                const { name, value } = config;
+                const { name, value }: $TSFixMe = config;
 
                 data[name] = value;
             }

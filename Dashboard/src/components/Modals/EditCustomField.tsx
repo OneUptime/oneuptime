@@ -356,7 +356,7 @@ UpdateCustomField.propTypes = {
     projectId: PropTypes.string,
 };
 
-const UpdateCustomFieldForm = reduxForm({
+const UpdateCustomFieldForm: $TSFixMe = reduxForm({
     form: 'UpdateCustomFieldForm',
     enableReinitialize: false,
     validate,
@@ -372,7 +372,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const customFieldToBeUpdated = state.modal.modals[0].customField;
+    const customFieldToBeUpdated: $TSFixMe = state.modal.modals[0].customField;
     const initialValues: $TSFixMe = {};
 
     if (customFieldToBeUpdated) {

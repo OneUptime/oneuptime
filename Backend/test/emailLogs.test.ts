@@ -8,7 +8,7 @@ import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 
 import { createUser } from './utils/userSignUp';
@@ -32,7 +32,7 @@ describe('Email Logs API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -139,7 +139,7 @@ describe('Email Logs API', function (): void {
         const authorization: string = `Basic ${token}`;
         await UserService.updateBy({ _id: userId }, { role: 'user' }); // Assigning user role
 
-        const res = await request
+        const res: $TSFixMe = await request
             .get('/email-logs/')
             .set('Authorization', authorization)
             .send();
@@ -151,7 +151,7 @@ describe('Email Logs API', function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization: string = `Basic ${token}`;
 
-        const res = await request
+        const res: $TSFixMe = await request
             .get('/email-logs/')
             .set('Authorization', authorization)
             .send();
@@ -172,7 +172,7 @@ describe('Email Logs API', function (): void {
         await GlobalConfig.enableEmailLog();
         await createUser(request, userData.newUser);
         await createUser(request, userData.anotherUser);
-        const res = await request
+        const res: $TSFixMe = await request
             .get('/email-logs/')
             .query({ limit: 2 })
             .set('Authorization', authorization)
@@ -196,9 +196,9 @@ describe('Email Logs API', function (): void {
         await createUser(request, userData.newUser);
         await createUser(request, userData.anotherUser);
 
-        const noOfEmailLogsNow = await EmailLogsService.countBy({});
+        const noOfEmailLogsNow: $TSFixMe = await EmailLogsService.countBy({});
 
-        const res = await request
+        const res: $TSFixMe = await request
             .get('/email-logs/')
             .query({ skip: noOfEmailLogsNow - 2 })
             .set('Authorization', authorization)
@@ -241,7 +241,7 @@ describe('Email Logs API', function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization: string = `Basic ${token}`;
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/email-logs/search')
             .set('Authorization', authorization)
             .send();
@@ -267,7 +267,7 @@ describe('Email Logs API', function (): void {
             .send();
 
         const searchString: string = '/vers';
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/email-logs/search')
             .set('Authorization', authorization)
             .send({
@@ -280,7 +280,7 @@ describe('Email Logs API', function (): void {
         expect(res.body).to.have.property('count');
 
         // Checking searchResult match provided searchString.
-        const isEverySearchedApiUrlMatch = res.body.data.every(
+        const isEverySearchedApiUrlMatch: $TSFixMe = res.body.data.every(
             (result: $TSFixMe) => {
                 return result.request.apiUrl.includes(searchString);
             }

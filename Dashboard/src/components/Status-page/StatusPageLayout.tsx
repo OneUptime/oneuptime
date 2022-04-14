@@ -13,7 +13,7 @@ import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';
 
-const grid = 8;
+const grid: $TSFixMe = 8;
 
 
 const getItemStyle: Function = (isDragging, draggableStyle) => ({
@@ -79,8 +79,8 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
 
     override componentDidMount() {
 
-        const { statusPage } = this.props;
-        const { layout } = statusPage.status;
+        const { statusPage }: $TSFixMe = this.props;
+        const { layout }: $TSFixMe = statusPage.status;
 
         const visible: Function = (layout && layout.visible) || [];
         const invisible: Function = (layout && layout.invisible) || [];
@@ -94,8 +94,8 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
     }
     handleSubmit = () => {
 
-        const { statusPage } = this.props;
-        const { _id } = statusPage.status;
+        const { statusPage }: $TSFixMe = this.props;
+        const { _id }: $TSFixMe = statusPage.status;
         let { projectId } = statusPage.status;
         projectId = projectId._id ?? projectId;
         const layout: $TSFixMe = {
@@ -112,7 +112,7 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
 
     onDragEnd = (result: $TSFixMe) => {
         // dropped outside the list
-        const { destination, source } = result;
+        const { destination, source }: $TSFixMe = result;
 
         if (!destination) {
             return;
@@ -125,13 +125,13 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
             return;
         }
 
-        const start = source.droppableId;
-        const finish = destination.droppableId;
+        const start: $TSFixMe = source.droppableId;
+        const finish: $TSFixMe = destination.droppableId;
 
         if (start === finish) {
 
-            const result = Array.from(this.state[start]);
-            const [removed] = result.splice(source.index, 1);
+            const result: $TSFixMe = Array.from(this.state[start]);
+            const [removed]: $TSFixMe = result.splice(source.index, 1);
             result.splice(destination.index, 0, removed);
 
             this.setState({
@@ -142,11 +142,11 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
 
         // Moving from one list to another
 
-        const startTask = Array.from(this.state[start]);
-        const [removed] = startTask.splice(source.index, 1);
+        const startTask: $TSFixMe = Array.from(this.state[start]);
+        const [removed]: $TSFixMe = startTask.splice(source.index, 1);
 
 
-        const finishTask = Array.from(this.state[finish]);
+        const finishTask: $TSFixMe = Array.from(this.state[finish]);
         finishTask.splice(destination.index, 0, removed);
 
         this.setState({
@@ -193,8 +193,8 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
 
     resetLayoutToDefault = async () => {
 
-        const { statusPage } = this.props;
-        const { _id } = statusPage.status;
+        const { statusPage }: $TSFixMe = this.props;
+        const { _id }: $TSFixMe = statusPage.status;
         let { projectId } = statusPage.status;
         projectId = projectId._id ?? projectId;
         const layout: $TSFixMe = {
@@ -242,8 +242,8 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
     };
     override render() {
 
-        const { statusPage } = this.props;
-        const pageLayout = statusPage && statusPage.updateLayout;
+        const { statusPage }: $TSFixMe = this.props;
+        const pageLayout: $TSFixMe = statusPage && statusPage.updateLayout;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">

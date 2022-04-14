@@ -6,7 +6,7 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import path from 'path';
-const app = express.getExpressApp();
+const app: $TSFixMe = express.getExpressApp();
 
 import https from 'https';
 import http from 'http';
@@ -20,11 +20,11 @@ import axios from 'axios';
 import cors from 'cors';
 
 // mongodb
-const MongoClient = require('mongodb').MongoClient;
-const mongoUrl =
+const MongoClient: $TSFixMe = require('mongodb').MongoClient;
+const mongoUrl: $TSFixMe =
     process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
 
-const { NODE_ENV } = process.env;
+const { NODE_ENV }: $TSFixMe = process.env;
 
 function getMongoClient(): void {
     return new MongoClient(mongoUrl, {
@@ -34,7 +34,7 @@ function getMongoClient(): void {
 }
 
 // setup mongodb connection
-const client = getMongoClient();
+const client: $TSFixMe = getMongoClient();
 (async function (): void {
     try {
         logger.info('connecting to db');
@@ -89,7 +89,7 @@ app.get(
         ) {
             apiHost = 'http://localhost:3002/api';
         } else if (REACT_APP_ONEUPTIME_HOST) {
-            const ONEUPTIME_HOST = REACT_APP_ONEUPTIME_HOST.replace(
+            const ONEUPTIME_HOST: $TSFixMe = REACT_APP_ONEUPTIME_HOST.replace(
                 /(http:\/\/|https:\/\/)/,
                 ''
             ); // remove any protocol that might have been added
@@ -122,9 +122,9 @@ app.use(
     '/.well-known/acme-challenge/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
         // make api call to backend and fetch keyAuthorization
-        const { token } = req.params;
+        const { token }: $TSFixMe = req.params;
         const url: string = `${apiHost}/ssl/challenge/authorization/${token}`;
-        const response = await axios.get(url);
+        const response: $TSFixMe = await axios.get(url);
         res.send(response.data);
     }
 );
@@ -135,7 +135,7 @@ async function handleCustomDomain(
     collection: $TSFixMe,
     domain: $TSFixMe
 ): void {
-    const statusPage = await client
+    const statusPage: $TSFixMe = await client
         .db(process.env['DB_NAME'])
         .collection(collection)
         .findOne({
@@ -171,7 +171,7 @@ async function handleCertificate(
     collection: $TSFixMe,
     domain: $TSFixMe
 ): void {
-    const certificate = await client
+    const certificate: $TSFixMe = await client
         .db(process.env['DB_NAME'])
         .collection(collection)
         .findOne({ id: domain });
@@ -186,7 +186,7 @@ app.use(
         res: ExpressResponse,
         next: NextFunction
     ): void => {
-        const host = req.hostname;
+        const host: $TSFixMe = req.hostname;
         if (
             host &&
             (host === 'oneuptime.com' ||
@@ -199,13 +199,13 @@ app.use(
         }
 
         try {
-            const response = await handleCustomDomain(
+            const response: $TSFixMe = await handleCustomDomain(
                 client,
                 'statuspages',
                 host
             );
 
-            const { enableHttps } = response;
+            const { enableHttps }: $TSFixMe = response;
             if (enableHttps) {
                 if (!req.secure) {
                     res.writeHead(301, {
@@ -263,7 +263,7 @@ async function fetchCredential(
     return new Promise((resolve, reject) => {
         fetch(`${apiHost}/file/${credentialName}`).then(
             (res: ExpressResponse) => {
-                const dest = fs.createWriteStream(configPath);
+                const dest: $TSFixMe = fs.createWriteStream(configPath);
                 res.body.pipe(dest);
                 // at this point, writing to the specified file is complete
                 dest.on('finish', async () => {
@@ -283,12 +283,12 @@ function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe): void {
         const command: string = `echo ${content} | base64 -d`;
         let output = '';
 
-        const commandOutput = spawn(command, {
+        const commandOutput: $TSFixMe = spawn(command, {
             cwd: process.cwd(),
             shell: true,
         });
         commandOutput.stdout.on('data', data => {
-            const strData = data.toString();
+            const strData: $TSFixMe = data.toString();
             output += strData;
         });
         commandOutput.on('close', () => {
@@ -301,7 +301,7 @@ function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe): void {
 
 function createDir(dirPath: $TSFixMe): void {
     return new Promise((resolve, reject) => {
-        const workPath = path.resolve(process.cwd(), 'src', dirPath);
+        const workPath: $TSFixMe = path.resolve(process.cwd(), 'src', dirPath);
         if (fs.existsSync(workPath)) {
             resolve(workPath);
         }
@@ -316,8 +316,8 @@ function createDir(dirPath: $TSFixMe): void {
 }
 
 function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
-    const M = pat.length;
-    const N = txt.length;
+    const M: $TSFixMe = pat.length;
+    const N: $TSFixMe = txt.length;
     let res = 0;
 
     // A loop to slide pat[] one by one
@@ -352,15 +352,15 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
         await createDir('credentials');
         // decode base64 of the cert and private key
         // store the value to disc
-        const cert = process.env.STATUSPAGE_CERT;
-        const certPath = path.resolve(
+        const cert: $TSFixMe = process.env.STATUSPAGE_CERT;
+        const certPath: $TSFixMe = path.resolve(
             process.cwd(),
             'src',
             'credentials',
             'certificate.crt'
         );
-        const privateKey = process.env.STATUSPAGE_PRIVATEKEY;
-        const privateKeyPath = path.resolve(
+        const privateKey: $TSFixMe = process.env.STATUSPAGE_PRIVATEKEY;
+        const privateKeyPath: $TSFixMe = path.resolve(
             process.cwd(),
             'src',
             'credentials',
@@ -384,7 +384,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
             SNICallback: async function (domain: $TSFixMe, cb: $TSFixMe): void {
-                const res = await handleCustomDomain(
+                const res: $TSFixMe = await handleCustomDomain(
                     client,
                     'statuspages',
                     domain
@@ -405,7 +405,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
                     // cert and private key is a string
                     // store it to a file on disk
                     if (enableHttps && autoProvisioning) {
-                        const certificate = await handleCertificate(
+                        const certificate: $TSFixMe = await handleCertificate(
                             client,
                             'certificates',
                             domain

@@ -62,7 +62,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async validateResend(userId: ObjectID): void {
-        const smsCount = await this.countBy({
+        const smsCount: $TSFixMe = await this.countBy({
             query: {
                 userId: userId,
                 createdAt: {

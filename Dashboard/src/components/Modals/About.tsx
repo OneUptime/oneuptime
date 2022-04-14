@@ -31,8 +31,8 @@ class About extends Component<ComponentProps> {
 
     override render() {
 
-        const { versions } = this.props;
-        const currentYear = new Date().getFullYear();
+        const { versions }: $TSFixMe = this.props;
+        const currentYear: $TSFixMe = new Date().getFullYear();
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

@@ -13,7 +13,7 @@ class UserHistory extends Component<ComponentProps> {
     }
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { userId } = this.props;
+        const { userId }: $TSFixMe = this.props;
 
         this.props.fetchUserloginHistory(
             userId,
@@ -26,7 +26,7 @@ class UserHistory extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { userId } = this.props;
+        const { userId }: $TSFixMe = this.props;
 
         this.props.fetchUserloginHistory(userId, skip + limit, 10);
 

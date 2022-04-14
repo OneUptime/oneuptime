@@ -19,8 +19,8 @@ function ComponentSummary({
     summary,
     loading
 }: ComponentSummaryProps) {
-    const [startDate, setStartDate] = useState(moment().subtract(30, 'd'));
-    const [endDate, setEndDate] = useState(moment());
+    const [startDate, setStartDate]: $TSFixMe = useState(moment().subtract(30, 'd'));
+    const [endDate, setEndDate]: $TSFixMe = useState(moment());
 
     useEffect(() => {
         if (projectId && componentId) {

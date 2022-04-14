@@ -8,7 +8,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -27,17 +27,17 @@ describe('SMS Template API', function (): void {
     before(async function (): void {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
-        const res = await createUser(request, userData.user);
-        const project = res.body.project;
+        const res: $TSFixMe = await createUser(request, userData.user);
+        const project: $TSFixMe = res.body.project;
         projectId = project._id;
         userId = res.body.id;
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
-        const res1 = await request.post('/user/login').send({
+        const res1: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,
         });
@@ -65,7 +65,7 @@ describe('SMS Template API', function (): void {
 
     it('should create an sms template with valid data', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/smsTemplate/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -80,7 +80,7 @@ describe('SMS Template API', function (): void {
 
     it('should sanitize dirty template data sent to endpoint', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/smsTemplate/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -93,7 +93,7 @@ describe('SMS Template API', function (): void {
 
     it('should get an array of sms templates by valid projectId', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/smsTemplate/${projectId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -102,7 +102,7 @@ describe('SMS Template API', function (): void {
 
     it('should get an sms template by valid smsTemplateId', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -111,7 +111,7 @@ describe('SMS Template API', function (): void {
 
     it('should update an sms template by valid smsTemplateId', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
             .send({
                 body: 'New SMS Body',
@@ -124,7 +124,7 @@ describe('SMS Template API', function (): void {
 
     it('should update default sms template', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/smsTemplate/${projectId}`)
             .send([
                 {
@@ -140,7 +140,7 @@ describe('SMS Template API', function (): void {
 
     it('should deleted an sms template', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .delete(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);

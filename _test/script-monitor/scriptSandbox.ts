@@ -36,7 +36,7 @@ const {
     maxSyncStatementDuration,
 } = runConfig;
 
-const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options: $TSFixMe = { maxScriptRunTime, maxSyncStatementDuration }): void => {
+const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = { maxScriptRunTime, maxSyncStatementDuration }): void => {
 
 
     if (isMainThread) {

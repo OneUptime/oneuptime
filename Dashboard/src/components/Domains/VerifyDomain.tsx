@@ -87,7 +87,7 @@ class VerifyDomain extends Component<ComponentProps> {
 
     override render() {
 
-        const { requesting, verificationToken, verifyError } = this.props;
+        const { requesting, verificationToken, verifyError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

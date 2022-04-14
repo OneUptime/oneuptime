@@ -8,7 +8,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createEnterpriseUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -29,7 +29,7 @@ describe('Enterprise User API', function (): void {
                 request,
                 data.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userRole = res.body.role;
 
@@ -85,7 +85,7 @@ describe('Enterprise User API', function (): void {
             request,
             data.newUser,
             (err: $TSFixMe, res: $TSFixMe): void => {
-                const project = res.body.project;
+                const project: $TSFixMe = res.body.project;
                 newProjectId = project._id;
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(
@@ -144,7 +144,7 @@ describe('Enterprise User API', function (): void {
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
                 expect(res.body.data.length).to.eql(2);
-                const { data } = res.body;
+                const { data }: $TSFixMe = res.body;
                 for (const element of data) {
                     expect(element).to.be.an('object');
                     expect(element).to.not.have.property('password');
@@ -161,7 +161,7 @@ describe('Enterprise User API', function (): void {
                 password: data.newUser.password,
             })
             .then((res: $TSFixMe): void => {
-                const jwtToken = res.body.tokens.jwtAccessToken;
+                const jwtToken: $TSFixMe = res.body.tokens.jwtAccessToken;
                 request
                     .put('/user/profile')
                     .set('Authorization', `Basic ${jwtToken}`)
@@ -196,7 +196,7 @@ describe('Enterprise User API', function (): void {
                 password: data.newUser.password,
             })
             .then((res: $TSFixMe): void => {
-                const jwtToken = res.body.tokens.jwtAccessToken;
+                const jwtToken: $TSFixMe = res.body.tokens.jwtAccessToken;
                 request
                     .put('/user/profile')
                     .set('Authorization', `Basic ${jwtToken}`)

@@ -27,7 +27,7 @@ export const receiveLogout: Function = (): void => {
 export const logoutUser: Function = (): void => {
     return (dispatch: Dispatch) => {
         dispatch(requestLogout());
-        const cookies = new Cookies();
+        const cookies: $TSFixMe = new Cookies();
         cookies.remove('admin-data', { path: '/' });
         cookies.remove('data', { path: '/' });
         localStorage.clear();

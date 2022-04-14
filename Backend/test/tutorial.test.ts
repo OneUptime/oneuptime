@@ -10,7 +10,7 @@ chai.use(chaiSubset);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -27,19 +27,19 @@ describe('Tutorial API', function (): void {
     before(async function (): void {
         this.timeout(120000);
         await GlobalConfig.initTestConfig();
-        const res = await createUser(request, userData.user);
-        const project = res.body.project;
+        const res: $TSFixMe = await createUser(request, userData.user);
+        const project: $TSFixMe = res.body.project;
         projectId = project._id;
         userId = res.body.id;
 
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
 
-        const res1 = await request.post('/user/login').send({
+        const res1: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,
         });
@@ -63,7 +63,7 @@ describe('Tutorial API', function (): void {
 
     it('should get the user tutorial status', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get('/tutorial')
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -74,7 +74,7 @@ describe('Tutorial API', function (): void {
 
     it('should not update the user tutorial status if project id is not given', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .put('/tutorial')
             .set('Authorization', authorization)
             .send({
@@ -87,7 +87,7 @@ describe('Tutorial API', function (): void {
     it('should update the user custom component tutorial status per project', async (): void => {
         const authorization: string = `Basic ${token}`;
         const type: string = 'component';
-        const res = await request
+        const res: $TSFixMe = await request
             .put('/tutorial')
             .set('Authorization', authorization)
             .send({
@@ -105,7 +105,7 @@ describe('Tutorial API', function (): void {
     it('should update the user custom team memb er tutorial status per project', async (): void => {
         const authorization: string = `Basic ${token}`;
         const type: string = 'teamMember';
-        const res = await request
+        const res: $TSFixMe = await request
             .put('/tutorial')
             .set('Authorization', authorization)
             .send({
@@ -122,7 +122,7 @@ describe('Tutorial API', function (): void {
 
     it('should get the user tutorial status for a project', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get('/tutorial')
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -137,7 +137,7 @@ describe('Tutorial API', function (): void {
     it('should update the user status page tutorial status per project', async (): void => {
         const authorization: string = `Basic ${token}`;
         const type: string = 'statusPage';
-        const res = await request
+        const res: $TSFixMe = await request
             .put('/tutorial')
             .set('Authorization', authorization)
             .send({

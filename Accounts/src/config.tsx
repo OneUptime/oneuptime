@@ -62,7 +62,7 @@ export const Validate: $TSFixMe = {
     },
 
     card(cardNumber: $TSFixMe) {
-        const numberValidation = valid.number(cardNumber);
+        const numberValidation: $TSFixMe = valid.number(cardNumber);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -72,7 +72,7 @@ export const Validate: $TSFixMe = {
     },
 
     cardExpiration(expiry: $TSFixMe) {
-        const numberValidation = valid.expirationDate(expiry);
+        const numberValidation: $TSFixMe = valid.expirationDate(expiry);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -82,7 +82,7 @@ export const Validate: $TSFixMe = {
     },
 
     cvv(cvv: $TSFixMe) {
-        const numberValidation = valid.cvv(cvv);
+        const numberValidation: $TSFixMe = valid.cvv(cvv);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -92,7 +92,7 @@ export const Validate: $TSFixMe = {
     },
 
     postalCode(postalCode: $TSFixMe) {
-        const numberValidation = valid.postalCode(postalCode);
+        const numberValidation: $TSFixMe = valid.postalCode(postalCode);
 
         if (!numberValidation.isPotentiallyValid) {
             return false;
@@ -186,7 +186,7 @@ export const tutorials: $TSFixMe = {
 export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
-    const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
+    const regex: $TSFixMe = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
@@ -194,6 +194,6 @@ export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
 }
 
 export const saveFile: Function = (content: $TSFixMe, filename: $TSFixMe) => {
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob: $TSFixMe = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }

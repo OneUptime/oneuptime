@@ -7,7 +7,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -74,7 +74,7 @@ describe('Incident Priority API', function (): void {
 
     it('Should return the list of the available variables.', async () => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);

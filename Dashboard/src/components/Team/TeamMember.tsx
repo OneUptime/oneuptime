@@ -72,7 +72,7 @@ export class TeamMember extends Component<ComponentProps>{
             data.role = to;
         }
 
-        const { changeProjectRoles } = this.props;
+        const { changeProjectRoles }: $TSFixMe = this.props;
         this.props
 
             .teamUpdateRole(this.props.subProjectId, data)
@@ -126,23 +126,23 @@ export class TeamMember extends Component<ComponentProps>{
             return teamMembers.teamMembers;
         });
         teamMembers = teamMembers.flat();
-        const loggedInUser = User.getUserId();
-        const loggedInUserIsOwner = teamMembers.some(
+        const loggedInUser: $TSFixMe = User.getUserId();
+        const loggedInUserIsOwner: $TSFixMe = teamMembers.some(
             (user: $TSFixMe) => user.userId === loggedInUser && user.role === 'Owner'
         );
 
-        const isOwner = teamMembers.find(
+        const isOwner: $TSFixMe = teamMembers.find(
             (user: $TSFixMe) => user.userId === loggedInUser &&
                 user.role === 'Owner' &&
                 user.name
         );
-        const isAdmin = teamMembers.find(
+        const isAdmin: $TSFixMe = teamMembers.find(
             (user: $TSFixMe) => user.userId === loggedInUser &&
                 user.role === 'Administrator' &&
                 user.name
         );
 
-        const mainUser = currentProject?.users.find(
+        const mainUser: $TSFixMe = currentProject?.users.find(
             (user: $TSFixMe) => (user.userId._id || user.userId) === loggedInUser &&
                 (user.role === 'Owner' || user.role === 'Administrator')
         );
@@ -425,7 +425,7 @@ TeamMember.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const TeamMemberForm = reduxForm({
+const TeamMemberForm: $TSFixMe = reduxForm({
     form: 'TeamMember',
 })(TeamMember);
 
@@ -445,13 +445,13 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const userId = User.getUserId();
-    const projectId =
+    const userId: $TSFixMe = User.getUserId();
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
 
-    const { projects } = state.project.projects;
+    const { projects }: $TSFixMe = state.project.projects;
 
-    const nextProject =
+    const nextProject: $TSFixMe =
         projects.length > 0
             ? projects.find(
                 (project: $TSFixMe) => project._id !== projectId &&

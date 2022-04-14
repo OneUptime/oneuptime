@@ -27,9 +27,9 @@ class SmsLogs extends Component<ComponentProps> {
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchSmsLogs, searchSmsLogs } = this.props;
+        const { fetchSmsLogs, searchSmsLogs }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchSmsLogs(
@@ -46,9 +46,9 @@ class SmsLogs extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchSmsLogs, searchSmsLogs } = this.props;
+        const { fetchSmsLogs, searchSmsLogs }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchSmsLogs(searchBox, skip + limit, 10);
@@ -67,9 +67,9 @@ class SmsLogs extends Component<ComponentProps> {
     };
 
     onChange = (e: $TSFixMe) => {
-        const value = e.target.value;
+        const value: $TSFixMe = e.target.value;
 
-        const { searchSmsLogs } = this.props;
+        const { searchSmsLogs }: $TSFixMe = this.props;
 
         this.setState({ searchBox: value });
         searchSmsLogs(value, 0, 10);
@@ -78,7 +78,7 @@ class SmsLogs extends Component<ComponentProps> {
 
     override render() {
 
-        const { smsLogStatus } = this.props;
+        const { smsLogStatus }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeSmsLog"
@@ -208,16 +208,16 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const smsLogs = state.smsLogs.smsLogs;
-    const searchSmsLogs = state.smsLogs.searchSmsLogs;
-    const requesting =
+    const smsLogs: $TSFixMe = state.smsLogs.smsLogs;
+    const searchSmsLogs: $TSFixMe = state.smsLogs.searchSmsLogs;
+    const requesting: $TSFixMe =
         smsLogs && searchSmsLogs
             ? smsLogs.requesting || searchSmsLogs.requesting
                 ? true
                 : false
             : false;
-    const smsLogStatus = state.smsLogs.smsLogStatus;
-    const changeSmsLogStatus = state.smsLogs.changeSmsLogStatus;
+    const smsLogStatus: $TSFixMe = state.smsLogs.smsLogStatus;
+    const changeSmsLogStatus: $TSFixMe = state.smsLogs.changeSmsLogStatus;
     return {
         smsLogs,
         requesting,

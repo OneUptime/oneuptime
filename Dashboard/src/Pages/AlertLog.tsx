@@ -141,7 +141,7 @@ class AlertLog extends Component<ComponentProps> {
             canPrev = false;
         }
 
-        const subProjectName =
+        const subProjectName: $TSFixMe =
             subProjects.find((obj: $TSFixMe) => obj._id === activeProjectId)?.name ||
             currentProject.name;
         projectAlert =
@@ -179,9 +179,9 @@ class AlertLog extends Component<ComponentProps> {
             ) : (
                 false
             );
-        const allAlerts = projectAlert && [projectAlert];
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = activeProjectId;
+        const allAlerts: $TSFixMe = projectAlert && [projectAlert];
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = activeProjectId;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -228,7 +228,7 @@ const mapStateToProps: Function = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
-    const subProjectNames =
+    const subProjectNames: $TSFixMe =
         subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =

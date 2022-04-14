@@ -15,7 +15,7 @@ describe('Version API', (): void => {
     });
 
     test('should get status ok from backend', async (done: $TSFixMe) => {
-        const response = await axios(utils.APIDOCS_URL + '/docs/version');
+        const response: $TSFixMe = await axios(utils.APIDOCS_URL + '/docs/version');
         expect(response.data.docsVersion).toBeDefined();
         done();
     });

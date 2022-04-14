@@ -90,8 +90,8 @@ class EditIncidentCommunicationSlaModal extends React.Component<EditIncidentComm
 
             fetchMonitors,
         } = this.props;
-        const projectId = currentProject._id;
-        const incidentSlaId = initialValues._id;
+        const projectId: $TSFixMe = currentProject._id;
+        const incidentSlaId: $TSFixMe = initialValues._id;
         const postObj: $TSFixMe = {};
 
         if (
@@ -103,7 +103,7 @@ class EditIncidentCommunicationSlaModal extends React.Component<EditIncidentComm
         }
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -158,12 +158,12 @@ class EditIncidentCommunicationSlaModal extends React.Component<EditIncidentComm
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -236,7 +236,7 @@ class EditIncidentCommunicationSlaModal extends React.Component<EditIncidentComm
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -787,7 +787,7 @@ EditIncidentCommunicationSlaModal.propTypes = {
     fetchMonitors: PropTypes.func,
 };
 
-const EditIncidentSlaForm = reduxForm({
+const EditIncidentSlaForm: $TSFixMe = reduxForm({
     form: 'editIncidentSlaForm',
     enableReinitialize: false,
     validate,
@@ -804,8 +804,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const incidentSlaToBeUpdated = state.modal.modals[0].sla;
-    const projectId = state.modal.modals[0].projectId;
+    const incidentSlaToBeUpdated: $TSFixMe = state.modal.modals[0].sla;
+    const projectId: $TSFixMe = state.modal.modals[0].projectId;
 
     const initialValues: $TSFixMe = {};
     if (incidentSlaToBeUpdated) {
@@ -821,10 +821,10 @@ const mapStateToProps: Function = (state: RootState) => {
         initialValues._id = incidentSlaToBeUpdated._id;
     }
 
-    const monitorData = state.monitor.monitorsList.monitors.find(
+    const monitorData: $TSFixMe = state.monitor.monitorsList.monitors.find(
         (data: $TSFixMe) => String(data._id) === String(projectId)
     );
-    const monitors = monitorData ? monitorData.monitors : [];
+    const monitors: $TSFixMe = monitorData ? monitorData.monitors : [];
 
     if (!initialValues.isDefault) {
 

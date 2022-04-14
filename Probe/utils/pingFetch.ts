@@ -5,19 +5,19 @@ import sslCert from 'get-ssl-certificate';
 import https from 'https';
 import http from 'http';
 
-const httpsAgent = new https.Agent({
+const httpsAgent: $TSFixMe = new https.Agent({
     rejectUnauthorized: false,
 });
 
-const httpAgent = new http.Agent();
+const httpAgent: $TSFixMe = new http.Agent();
 
-const pingfetch = async (
+const pingfetch: $TSFixMe = async (
     url: URL,
     method: $TSFixMe,
     body: $TSFixMe,
     headers: $TSFixMe
 ): void => {
-    const now = new Date().getTime();
+    const now: $TSFixMe = new Date().getTime();
     let resp, res, response;
 
     if (!method) {
@@ -27,7 +27,7 @@ const pingfetch = async (
     try {
         logger.info(`Ping Start: ${method} ${url}`);
         let sslCertificate, data;
-        const urlObject = new URL(url);
+        const urlObject: $TSFixMe = new URL(url);
         const payload: $TSFixMe = {
             method: method,
             timeout: 30000,
@@ -60,7 +60,7 @@ const pingfetch = async (
                 //
             }
             if (urlObject.protocol === 'https:') {
-                const certificate = await sslCert.get(urlObject.hostname);
+                const certificate: $TSFixMe = await sslCert.get(urlObject.hostname);
                 if (certificate) {
                     sslCertificate = {
                         issuer: certificate.issuer,
@@ -99,7 +99,7 @@ const pingfetch = async (
                 //
             }
             if (urlObject.protocol === 'https:') {
-                const certificate = await sslCert.get(urlObject.hostname);
+                const certificate: $TSFixMe = await sslCert.get(urlObject.hostname);
                 if (certificate) {
                     sslCertificate = {
                         issuer: certificate.issuer,

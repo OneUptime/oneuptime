@@ -87,7 +87,7 @@ class KubePodData extends React.Component<KubePodDataProps> {
 
     handleContainerStatuses = (podData: $TSFixMe, key: $TSFixMe) => {
         return podData[key].map((container: $TSFixMe, index: $TSFixMe) => {
-            const dataKeys = Object.keys(container);
+            const dataKeys: $TSFixMe = Object.keys(container);
             return (
                 <div
                     key={index}
@@ -105,10 +105,10 @@ class KubePodData extends React.Component<KubePodDataProps> {
                             return null;
                         }
                         if (key === 'state') {
-                            const containerKeys = Object.keys(container[key]);
+                            const containerKeys: $TSFixMe = Object.keys(container[key]);
                             return containerKeys.map(eachKey => {
-                                const stateObj = container[key][eachKey];
-                                const valueKeys = Object.keys(stateObj);
+                                const stateObj: $TSFixMe = container[key][eachKey];
+                                const valueKeys: $TSFixMe = Object.keys(stateObj);
 
                                 return valueKeys.map(key => {
                                     let output = moment(stateObj[key]);
@@ -224,10 +224,10 @@ class KubePodData extends React.Component<KubePodDataProps> {
 
     handlePorts = (ports: $TSFixMe) => {
         return ports.map((port: $TSFixMe) => {
-            const portKeys = Object.keys(port);
+            const portKeys: $TSFixMe = Object.keys(port);
 
             return portKeys.map(key => {
-                const output = port[key];
+                const output: $TSFixMe = port[key];
                 if (
                     key === 'containerPort' ||
                     key === 'hostPort' ||
@@ -324,7 +324,7 @@ class KubePodData extends React.Component<KubePodDataProps> {
 
     handleContainer = (podData: $TSFixMe, key: $TSFixMe) => {
         return podData[key].map((container: $TSFixMe, index: $TSFixMe) => {
-            const dataKeys = Object.keys(container);
+            const dataKeys: $TSFixMe = Object.keys(container);
             return (
                 <div
                     key={index}
@@ -461,11 +461,11 @@ class KubePodData extends React.Component<KubePodDataProps> {
 
     override render() {
 
-        const { data } = this.props;
-        const podData = data.data;
-        const logTitle = data.data['podName'];
+        const { data }: $TSFixMe = this.props;
+        const podData: $TSFixMe = data.data;
+        const logTitle: $TSFixMe = data.data['podName'];
 
-        const dataKeys = Object.keys(podData);
+        const dataKeys: $TSFixMe = Object.keys(podData);
 
         return (
             <div

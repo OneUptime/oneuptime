@@ -56,7 +56,7 @@ class ApplicationLogDetail extends Component<ComponentProps> {
     }
     deleteApplicationLog = () => {
 
-        const promise = this.props.deleteApplicationLog(
+        const promise: $TSFixMe = this.props.deleteApplicationLog(
 
             this.props.currentProject._id,
 
@@ -101,13 +101,13 @@ class ApplicationLogDetail extends Component<ComponentProps> {
     };
     editApplicationLog = () => {
 
-        const { applicationLog } = this.props;
+        const { applicationLog }: $TSFixMe = this.props;
 
         this.props.editApplicationLogSwitch(applicationLog._id);
     };
     viewMore = () => {
 
-        const { currentProject, componentSlug, applicationLog } = this.props;
+        const { currentProject, componentSlug, applicationLog }: $TSFixMe = this.props;
         history.push(
             '/dashboard/project/' +
             currentProject.slug +
@@ -119,13 +119,13 @@ class ApplicationLogDetail extends Component<ComponentProps> {
     };
     handleStartDateTimeChange = (val: $TSFixMe) => {
 
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
 
         this.fetchByDateChange(startDate, this.props.endDate);
     };
     handleEndDateTimeChange = (val: $TSFixMe) => {
 
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
 
         this.fetchByDateChange(this.props.startDate, endDate);
     };
@@ -141,7 +141,7 @@ class ApplicationLogDetail extends Component<ComponentProps> {
             fetchLogs,
         } = this.props;
 
-        const { filter, logType } = this.state;
+        const { filter, logType }: $TSFixMe = this.state;
 
         if (moment(startDate).isBefore(endDate)) {
             fetchLogs(
@@ -180,7 +180,7 @@ class ApplicationLogDetail extends Component<ComponentProps> {
         }
         this.setState({ logType });
 
-        const { filter } = this.state;
+        const { filter }: $TSFixMe = this.state;
         fetchLogs(
             currentProject._id,
             componentId,
@@ -210,7 +210,7 @@ class ApplicationLogDetail extends Component<ComponentProps> {
             fetchLogs,
         } = this.props;
 
-        const { logType } = this.state;
+        const { logType }: $TSFixMe = this.state;
         fetchLogs(
             currentProject._id,
             componentId,
@@ -239,7 +239,7 @@ class ApplicationLogDetail extends Component<ComponentProps> {
             fetchLogs,
         } = this.props;
 
-        const { logType, filter } = this.state;
+        const { logType, filter }: $TSFixMe = this.state;
         fetchLogs(
             currentProject._id,
             componentId,
@@ -266,7 +266,7 @@ class ApplicationLogDetail extends Component<ComponentProps> {
         fetchStats(currentProject._id, componentId, applicationLog._id);
     }
     override render() {
-        const logOptions = [
+        const logOptions: $TSFixMe = [
             { value: '', label: 'All Logs' },
             { value: 'error', label: 'Error' },
             { value: 'warning', label: 'Warning' },
@@ -393,22 +393,22 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const applicationLogId = ownProps.index;
-    const applicationLogs =
+    const applicationLogId: $TSFixMe = ownProps.index;
+    const applicationLogs: $TSFixMe =
         state.applicationLog.applicationLogsList.applicationLogs;
-    const applicationLogFromRedux = applicationLogs.filter(
+    const applicationLogFromRedux: $TSFixMe = applicationLogs.filter(
         (applicationLog: $TSFixMe) => applicationLog._id === applicationLogId
     );
-    const stats = state.applicationLog.stats[applicationLogId];
-    const currentDateRange = state.applicationLog.logs[applicationLogId]
+    const stats: $TSFixMe = state.applicationLog.stats[applicationLogId];
+    const currentDateRange: $TSFixMe = state.applicationLog.logs[applicationLogId]
         ? state.applicationLog.logs[applicationLogId].dateRange
         : null;
-    const startDate = state.form.applicationLogDateTimeForm
+    const startDate: $TSFixMe = state.form.applicationLogDateTimeForm
         ? state.form.applicationLogDateTimeForm.values
             ? state.form.applicationLogDateTimeForm.values.startDate
             : ''
         : '';
-    const endDate = state.form.applicationLogDateTimeForm
+    const endDate: $TSFixMe = state.form.applicationLogDateTimeForm
         ? state.form.applicationLogDateTimeForm.values
             ? state.form.applicationLogDateTimeForm.values.endDate
             : ''

@@ -5,18 +5,18 @@ import init from '../../test-init';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
 };
 
-const projectName = utils.generateRandomString();
-const statusPageName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
-const subscriberEmail = utils.generateRandomBusinessEmail();
+const projectName: $TSFixMe = utils.generateRandomString();
+const statusPageName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const subscriberEmail: $TSFixMe = utils.generateRandomBusinessEmail();
 const customDomainWebsite: string = `www.${utils.generateRandomString()}.com`;
 
 describe('StatusPage Advanced Options', () => {
@@ -261,7 +261,7 @@ describe('StatusPage Advanced Options', () => {
             await init.pageClick(page, '#createSubscriber');
             // To confirm that the subscriber is created.
 
-            const subscriberContact = await init.pageWaitForSelector(
+            const subscriberContact: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#subscriber_contact'
             );
@@ -297,7 +297,7 @@ describe('StatusPage Advanced Options', () => {
             );
             // To confirm that the subscriber created is present.
 
-            const subscriberContact = await init.pageWaitForSelector(
+            const subscriberContact: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#subscriber_contact'
             );
@@ -348,7 +348,7 @@ describe('StatusPage Advanced Options', () => {
             await init.pageClick(page, '#createCustomDomainBtn');
             // To confirm that custom domain is created.
 
-            const customDomain = await init.pageWaitForSelector(
+            const customDomain: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#publicStatusPageUrl'
             );
@@ -402,7 +402,7 @@ describe('StatusPage Advanced Options', () => {
             await page.goto(link);
             // To confirm subscribe button is present in StatusPage
 
-            const subscriberButton = await init.pageWaitForSelector(
+            const subscriberButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#subscriber-button'
             );
@@ -488,7 +488,7 @@ describe('StatusPage Advanced Options', () => {
 
             // To confirm StatusPage has been deleted.
 
-            const deletedStatusPage = await init.pageWaitForSelector(
+            const deletedStatusPage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer'
             );

@@ -38,7 +38,7 @@ function validate(values: $TSFixMe) {
 
 const  settingsType: string = 'twilio';
 
-const fields = [
+const fields: $TSFixMe = [
     {
         key: 'call-enabled',
         label: 'Enable Call Alerts',
@@ -122,7 +122,7 @@ export class Component extends Component<ComponentProps>{
 
     override render() {
 
-        const { settings, handleSubmit } = this.props;
+        const { settings, handleSubmit }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeTwilio"
@@ -263,7 +263,7 @@ function mapStateToProps(state: RootState) {
     };
 }
 
-const ReduxFormComponent = reduxForm({
+const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'twilio-form',
     enableReinitialize: true,
     validate,

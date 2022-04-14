@@ -4,10 +4,10 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import loginHistoryService from '../services/loginHistoryService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -20,7 +20,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.params.userId;
+            const userId: $TSFixMe = req.params.userId;
             let { skip, limit } = req.query;
             if (!skip) {
                 skip = 0;
@@ -29,7 +29,7 @@ router.get(
                 limit = 10;
             }
             const select: string = 'userId createdAt ipLocation device status';
-            const historyLogs = await loginHistoryService.findBy({
+            const historyLogs: $TSFixMe = await loginHistoryService.findBy({
                 query: { userId },
                 skip,
                 limit,

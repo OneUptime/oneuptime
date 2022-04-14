@@ -21,10 +21,10 @@ export const createStatusPageCategoryFailure: Function = (
     payload: error,
 });
 
-export const createStatusPageCategory =
+export const createStatusPageCategory: $TSFixMe =
     ({ projectId, statusPageId, statusPageCategoryName }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `statusPageCategory/${projectId}/${statusPageId}`,
             {
                 statusPageCategoryName,
@@ -62,10 +62,10 @@ export const updateStatusPageCategoryFailure: Function = (
     payload: error,
 });
 
-export const updateStatusPageCategory =
+export const updateStatusPageCategory: $TSFixMe =
     ({ projectId, statusPageCategoryId, statusPageCategoryName }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `statusPageCategory/${projectId}/${statusPageCategoryId}`,
             {
                 statusPageCategoryName,
@@ -103,7 +103,7 @@ export const fetchStatusPageCategoriesFailure: Function = (
     payload: error,
 });
 
-export const fetchStatusPageCategories =
+export const fetchStatusPageCategories: $TSFixMe =
     ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         if (!skip) {
@@ -112,7 +112,7 @@ export const fetchStatusPageCategories =
         if (!limit) {
             limit = 0;
         }
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchStatusPageCategoriesRequest());
@@ -147,7 +147,7 @@ export const fetchAllStatusPageCategoriesFailure: Function = (
     payload: error,
 });
 
-export const fetchAllStatusPageCategories =
+export const fetchAllStatusPageCategories: $TSFixMe =
     ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         if (!skip) {
@@ -156,7 +156,7 @@ export const fetchAllStatusPageCategories =
         if (!limit) {
             limit = 0;
         }
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchAllStatusPageCategoriesRequest());
@@ -191,10 +191,10 @@ export const deleteStatusPageCategoryFailure: Function = (
     payload: error,
 });
 
-export const deleteStatusPageCategory =
+export const deleteStatusPageCategory: $TSFixMe =
     ({ projectId, statusPageCategoryId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const promise =
+        const promise: $TSFixMe =
             delete `statusPageCategory/${projectId}/${statusPageCategoryId}`;
         dispatch(updateStatusPageCategoryRequest());
 

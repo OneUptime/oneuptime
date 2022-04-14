@@ -4,9 +4,9 @@ import mongoose, {
     EncryptedFields,
 } from '../Infrastructure/ORM';
 
-const Schema = mongoose.Schema;
+const Schema: $TSFixMe = mongoose.Schema;
 
-const schema = new Schema({
+const schema: $TSFixMe = new Schema({
     incidentId: { type: String, ref: 'Incident', index: true }, //which project this incident belongs to.
     userId: { type: String, ref: 'User', index: true }, // which User will perfom this action.
     number: { type: String },

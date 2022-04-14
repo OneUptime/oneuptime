@@ -3,14 +3,14 @@ import getSlug from '../util/getSlug';
 const logContainerCollection: string = 'applicationlogs';
 
 async function run(): void {
-    const logContainers = await find(logContainerCollection, {
+    const logContainers: $TSFixMe = await find(logContainerCollection, {
         $or: [
             { slug: { $exists: false } },
             { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < logContainers.length; i++) {
-        const { name } = logContainers[i];
+        const { name }: $TSFixMe = logContainers[i];
         logContainers[i].slug = getSlug(name);
         await update(
             logContainerCollection,

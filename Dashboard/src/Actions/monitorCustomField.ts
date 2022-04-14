@@ -21,19 +21,19 @@ export const createCustomFieldFailure: Function = (
     payload: error,
 });
 
-export const createCustomField =
+export const createCustomField: $TSFixMe =
     (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createCustomFieldRequest());
 
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `monitorCustomField/${projectId}`,
                 data
             );
 
             dispatch(createCustomFieldSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -63,20 +63,20 @@ export const updateCustomFieldFailure: Function = (
     payload: error,
 });
 
-export const updateCustomField =
+export const updateCustomField: $TSFixMe =
     ({ projectId, customFieldId, data }: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(updateCustomFieldRequest());
 
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `monitorCustomField/${projectId}/${customFieldId}`,
                 data
             );
 
             dispatch(updateCustomFieldSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -106,7 +106,7 @@ export const fetchCustomFieldsFailure: Function = (
     payload: error,
 });
 
-export const fetchCustomFields =
+export const fetchCustomFields: $TSFixMe =
     (projectId: ObjectID, skip = 0, limit = 0) =>
     async (dispatch: Dispatch) => {
         try {
@@ -125,7 +125,7 @@ export const fetchCustomFields =
 
             dispatch(fetchCustomFieldsSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -155,18 +155,18 @@ export const deleteCustomFieldFailure: Function = (
     payload: error,
 });
 
-export const deleteCustomField =
+export const deleteCustomField: $TSFixMe =
     (projectId: ObjectID, customFieldId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCustomFieldRequest());
 
-            const response =
+            const response: $TSFixMe =
                 await delete `monitorCustomField/${projectId}/${customFieldId}`;
 
             dispatch(deleteCustomFieldSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data

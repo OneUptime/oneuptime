@@ -88,7 +88,7 @@ export class ChartComponent extends Component<ChartComponentProps>{
         resetErrorDate(this.startDate, this.currentDate);
 
         if (performanceTracker && type === 'throughput') {
-            const { _id, key } = performanceTracker;
+            const { _id, key }: $TSFixMe = performanceTracker;
             fetchTimeMetrics({
                 appId: _id,
                 key,
@@ -96,7 +96,7 @@ export class ChartComponent extends Component<ChartComponentProps>{
                 endDate: this.currentDate,
             });
         } else if (performanceTracker && type === 'transactionTime') {
-            const { _id, key } = performanceTracker;
+            const { _id, key }: $TSFixMe = performanceTracker;
             fetchThroughputMetrics({
                 appId: _id,
                 key,
@@ -104,7 +104,7 @@ export class ChartComponent extends Component<ChartComponentProps>{
                 endDate: this.currentDate,
             });
         } else if (performanceTracker && type === 'errorRate') {
-            const { _id, key } = performanceTracker;
+            const { _id, key }: $TSFixMe = performanceTracker;
             fetchErrorMetrics({
                 appId: _id,
                 key,
@@ -134,7 +134,7 @@ export class ChartComponent extends Component<ChartComponentProps>{
             } = this.props;
 
             if (performanceTracker && type === 'throughput') {
-                const { _id, key } = performanceTracker;
+                const { _id, key }: $TSFixMe = performanceTracker;
                 fetchTimeMetrics({
                     appId: _id,
                     key,
@@ -142,7 +142,7 @@ export class ChartComponent extends Component<ChartComponentProps>{
                     endDate: this.currentDate,
                 });
             } else if (performanceTracker && type === 'transactionTime') {
-                const { _id, key } = performanceTracker;
+                const { _id, key }: $TSFixMe = performanceTracker;
                 fetchThroughputMetrics({
                     appId: _id,
                     key,
@@ -150,7 +150,7 @@ export class ChartComponent extends Component<ChartComponentProps>{
                     endDate: this.currentDate,
                 });
             } else if (performanceTracker && type === 'errorRate') {
-                const { _id, key } = performanceTracker;
+                const { _id, key }: $TSFixMe = performanceTracker;
                 fetchErrorMetrics({
                     appId: _id,
                     key,

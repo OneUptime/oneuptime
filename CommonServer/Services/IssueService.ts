@@ -19,7 +19,7 @@ export default class Service {
         issue.description = data.exception ? data.exception.message : '';
 
         // generate hash from fingerprint
-        const hash = sha256(data.fingerprint.join('')).toString();
+        const hash: $TSFixMe = sha256(data.fingerprint.join('')).toString();
 
         issue.fingerprintHash = hash;
 
@@ -29,14 +29,14 @@ export default class Service {
 
         issue.errorTrackerId = data.errorTrackerId;
 
-        const savedIssue = await issue.save();
-        const populateIssue = [
+        const savedIssue: $TSFixMe = await issue.save();
+        const populateIssue: $TSFixMe = [
             { path: 'errorTrackerId', select: 'name' },
             { path: 'resolvedById', select: 'name' },
             { path: 'ignoredById', select: 'name' },
         ];
 
-        const selectIssue =
+        const selectIssue: $TSFixMe =
             'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
         issue = await this.findOneBy({
@@ -71,7 +71,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const issuesQuery = IssueModel.find(query)
+        const issuesQuery: $TSFixMe = IssueModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -80,7 +80,7 @@ export default class Service {
         issuesQuery.select(select);
         issuesQuery.populate(populate);
 
-        const issues = await issuesQuery;
+        const issues: $TSFixMe = await issuesQuery;
 
         return issues;
     }
@@ -93,12 +93,12 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const issueQuery = IssueModel.findOne(query).sort(sort).lean();
+        const issueQuery: $TSFixMe = IssueModel.findOne(query).sort(sort).lean();
 
         issueQuery.select(select);
         issueQuery.populate(populate);
 
-        const issue = await issueQuery;
+        const issue: $TSFixMe = await issueQuery;
         return issue;
     }
 
@@ -107,7 +107,7 @@ export default class Service {
         errorTrackerId: $TSFixMe
     ): void {
         const query: $TSFixMe = {};
-        const hash = sha256(fingerprint.join('')).toString();
+        const hash: $TSFixMe = sha256(fingerprint.join('')).toString();
 
         if (!query['deleted']) {
             query['deleted'] = false;
@@ -116,7 +116,7 @@ export default class Service {
         query.fingerprintHash = hash;
 
         query.errorTrackerId = errorTrackerId;
-        const issue = await IssueModel.findOne(query)
+        const issue: $TSFixMe = await IssueModel.findOne(query)
             .lean()
             .populate('resolvedById', 'name')
             .populate('ignoredById', 'name');
@@ -149,13 +149,13 @@ export default class Service {
             );
         }
 
-        const populateIssue = [
+        const populateIssue: $TSFixMe = [
             { path: 'errorTrackerId', select: 'name' },
             { path: 'resolvedById', select: 'name' },
             { path: 'ignoredById', select: 'name' },
         ];
 
-        const selectIssue =
+        const selectIssue: $TSFixMe =
             'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
         issue = await this.findOneBy({
@@ -177,7 +177,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const issue = await IssueModel.findOneAndUpdate(
+        const issue: $TSFixMe = await IssueModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -189,7 +189,7 @@ export default class Service {
             { new: true }
         ).populate('deletedById', 'name');
         if (issue) {
-            const component = await ComponentService.findOneBy({
+            const component: $TSFixMe = await ComponentService.findOneBy({
                 query: { _id: componentId },
                 select: 'projectId',
             });
@@ -216,7 +216,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await IssueModel.countDocuments(query);
+        const count: $TSFixMe = await IssueModel.countDocuments(query);
         return count;
     }
 }

@@ -7,10 +7,10 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
-const statusPageName = utils.generateRandomString();
-const projectName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const statusPageName: $TSFixMe = utils.generateRandomString();
+const projectName: $TSFixMe = utils.generateRandomString();
 
 /** This is a test to check:
  * No errors on page reload
@@ -18,7 +18,7 @@ const projectName = utils.generateRandomString();
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -53,7 +53,7 @@ describe('OneUptime Page Reload', () => {
             await init.page$Eval(page, '#statusPages', (e: $TSFixMe) =>
                 e.click()
             );
-            const rowItem = await init.pageWaitForSelector(
+            const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
@@ -91,7 +91,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const elem = await init.pageWaitForSelector(page, '#monitor-0', {
+            const elem: $TSFixMe = await init.pageWaitForSelector(page, '#monitor-0', {
                 visible: true,
                 timeout: init.timeout,
             });

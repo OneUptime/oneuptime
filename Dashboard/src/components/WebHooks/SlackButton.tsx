@@ -14,7 +14,7 @@ interface SlackButtonProps {
 class SlackButton extends React.Component<SlackButtonProps> {
     override render() {
 
-        const { monitorId } = this.props;
+        const { monitorId }: $TSFixMe = this.props;
 
         return (
             <button

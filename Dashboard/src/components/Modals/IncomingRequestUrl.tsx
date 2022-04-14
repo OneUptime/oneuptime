@@ -51,7 +51,7 @@ export class IncomingRequestUrl extends React.Component<IncomingRequestUrlProps>
 
     override render() {
 
-        const { closeModal, currentProject, incomingRequest } = this.props;
+        const { closeModal, currentProject, incomingRequest }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

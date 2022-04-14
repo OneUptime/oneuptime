@@ -3,7 +3,7 @@ import { find, update } from '../util/db';
 const projectCollection: string = 'projects';
 
 async function run(): void {
-    const projects = await find(projectCollection, {
+    const projects: $TSFixMe = await find(projectCollection, {
         deleted: false,
         sendCreatedIncidentNotificationSms: { $exists: false },
         sendAcknowledgedIncidentNotificationSms: { $exists: false },

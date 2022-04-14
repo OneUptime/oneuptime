@@ -4,7 +4,7 @@ import mongoose, {
     EncryptedFields,
 } from '../Infrastructure/ORM';
 
-const Schema = mongoose.Schema;
+const Schema: $TSFixMe = mongoose.Schema;
 
 // a schema definition for a criterion event, i.e up, down, or degraded
 const criterionEventSchema: $TSFixMe = {
@@ -73,7 +73,7 @@ const criterionEventSchema: $TSFixMe = {
  * }
  */
 
-const schema = new Schema({
+const schema: $TSFixMe = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',

@@ -28,14 +28,14 @@ interface ComponentListProps {
 function ComponentList(props: ComponentListProps) {
     let componentDetails = null;
 
-    const components = props.components ? props.components : [];
-    const skip = props.skip;
-    const limit = props.limit;
-    const count = props.count;
-    const page = props.page;
-    const canNext = components && count && count > skip + limit ? true : false;
-    const canPrev = components && skip <= 0 ? false : true;
-    const numberOfPages = props.numberOfPage
+    const components: $TSFixMe = props.components ? props.components : [];
+    const skip: $TSFixMe = props.skip;
+    const limit: $TSFixMe = props.limit;
+    const count: $TSFixMe = props.count;
+    const page: $TSFixMe = props.page;
+    const canNext: $TSFixMe = components && count && count > skip + limit ? true : false;
+    const canPrev: $TSFixMe = components && skip <= 0 ? false : true;
+    const numberOfPages: $TSFixMe = props.numberOfPage
         ? props.numberOfPage
         : Math.ceil(parseInt(count) / limit);
 

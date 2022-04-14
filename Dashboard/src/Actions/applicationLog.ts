@@ -12,7 +12,7 @@ export function createApplicationLog(
     values: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `application-log/${projectId}/${componentId}/create`,
             values
         );
@@ -80,7 +80,7 @@ export function fetchApplicationLogs(
     paginated = false
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `application-log/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchApplicationLogsRequest(paginated));
@@ -139,7 +139,7 @@ export function deleteApplicationLog(
     applicationLogId: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise =
+        const promise: $TSFixMe =
             delete (`application-log/${projectId}/${componentId}/${applicationLogId}`,
             {
                 applicationLogId,
@@ -212,7 +212,7 @@ export function fetchLogs(
     filter: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/logs`,
             {
                 skip,
@@ -284,7 +284,7 @@ export function resetApplicationLogKey(
     applicationLogId: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`
         );
         dispatch(resetApplicationLogKeyRequest());
@@ -345,7 +345,7 @@ export function editApplicationLog(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
             values
         );
@@ -405,7 +405,7 @@ export function fetchStats(
     applicationLogId: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/stats`,
             {}
         );
@@ -476,7 +476,7 @@ export function searchLog(
     payload: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/search`,
             payload
         );

@@ -27,9 +27,9 @@ class EmailLogs extends Component<ComponentProps> {
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchEmailLogs, searchEmailLogs } = this.props;
+        const { fetchEmailLogs, searchEmailLogs }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchEmailLogs(
@@ -46,9 +46,9 @@ class EmailLogs extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchEmailLogs, searchEmailLogs } = this.props;
+        const { fetchEmailLogs, searchEmailLogs }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchEmailLogs(searchBox, skip + limit, 10);
@@ -67,9 +67,9 @@ class EmailLogs extends Component<ComponentProps> {
     }
 
     onChange = (e: $TSFixMe) => {
-        const value = e.target.value;
+        const value: $TSFixMe = e.target.value;
 
-        const { searchEmailLogs } = this.props;
+        const { searchEmailLogs }: $TSFixMe = this.props;
 
         this.setState({ searchBox: value });
         searchEmailLogs(value, 0, 10);
@@ -78,7 +78,7 @@ class EmailLogs extends Component<ComponentProps> {
 
     override render() {
 
-        const { emailLogStatus } = this.props;
+        const { emailLogStatus }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeEmailLog"
@@ -213,16 +213,16 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const emailLogs = state.emailLogs.emailLogs;
-    const searchEmailLogs = state.emailLogs.searchEmailLogs;
-    const requesting =
+    const emailLogs: $TSFixMe = state.emailLogs.emailLogs;
+    const searchEmailLogs: $TSFixMe = state.emailLogs.searchEmailLogs;
+    const requesting: $TSFixMe =
         emailLogs && searchEmailLogs
             ? emailLogs.requesting || searchEmailLogs.requesting
                 ? true
                 : false
             : false;
-    const emailLogStatus = state.emailLogs.emailLogStatus;
-    const changeEmailLogStatus = state.emailLogs.changeEmailLogStatus;
+    const emailLogStatus: $TSFixMe = state.emailLogs.emailLogStatus;
+    const changeEmailLogStatus: $TSFixMe = state.emailLogs.changeEmailLogStatus;
     return {
         emailLogs,
         requesting,

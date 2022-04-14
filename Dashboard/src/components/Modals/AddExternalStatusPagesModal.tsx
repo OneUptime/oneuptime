@@ -33,7 +33,7 @@ class AddExternalStatusPagesModal extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { statusPage } = this.props.data;
+        const { statusPage }: $TSFixMe = this.props.data;
         this.props
 
             .createExternalStatusPage(
@@ -72,7 +72,7 @@ class AddExternalStatusPagesModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-contents" style={{ marginTop: '40px' }}>
@@ -261,7 +261,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const AddExternalStatusPagesModalForm = reduxForm({
+const AddExternalStatusPagesModalForm: $TSFixMe = reduxForm({
     form: 'AddExternalStatusPagesModal',
     validate, // <--- validation function given to redux-for
 })(AddExternalStatusPagesModal);

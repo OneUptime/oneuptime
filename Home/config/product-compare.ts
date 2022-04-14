@@ -1,7 +1,7 @@
 import { JSONObject } from 'Common/Types/JSON';
 
 export default (product: string): JSONObject => {
-    const products: JSONObject: $TSFixMe = {
+    const products: JSONObject = {
         pagerduty: {
             productName: 'PagerDuty',
             iconUrl: '/img/pagerduty.jpeg',

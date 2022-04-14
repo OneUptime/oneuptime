@@ -5,8 +5,8 @@ import express, {
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
-const router = express.getRouter();
-const isAuthorizedAdmin =
+const router: $TSFixMe = express.getRouter();
+const isAuthorizedAdmin: $TSFixMe =
     require('../middlewares/clusterAuthorization').isAuthorizedAdmin;
 import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import {
@@ -16,7 +16,7 @@ import {
 import Exception from 'Common/Types/Exception/Exception';
 
 import { sendListResponse } from 'CommonServer/Utils/response';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import multer from 'multer';
@@ -28,8 +28,8 @@ router.post(
     isAuthorizedAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const probe = await ProbeService.create(data);
+            const data: $TSFixMe = req.body;
+            const probe: $TSFixMe = await ProbeService.create(data);
             return sendItemResponse(req, res, probe);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -43,11 +43,11 @@ router.get(
     isAuthorizedAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 0;
-            const selectProbe =
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 0;
+            const selectProbe: $TSFixMe =
                 'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-            const [probe, count] = await Promise.all([
+            const [probe, count]: $TSFixMe = await Promise.all([
                 ProbeService.findBy({
                     query: {},
                     limit,
@@ -69,8 +69,8 @@ router.put(
     isAuthorizedAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const probe = await ProbeService.updateOneBy(
+            const data: $TSFixMe = req.body;
+            const probe: $TSFixMe = await ProbeService.updateOneBy(
                 { _id: req.params.id },
                 data
             );
@@ -87,7 +87,7 @@ router.delete(
     isAuthorizedAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const probe = await ProbeService.deleteBy({ _id: req.params.id });
+            const probe: $TSFixMe = await ProbeService.deleteBy({ _id: req.params.id });
             return sendItemResponse(req, res, probe);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -106,7 +106,7 @@ router.put(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const upload = multer({
+            const upload: $TSFixMe = multer({
                 storage,
             }).fields([
                 {
@@ -115,8 +115,8 @@ router.put(
                 },
             ]);
             upload(req, res, async (error: $TSFixMe): void => {
-                const probeId = req.body.id;
-                const data = req.body;
+                const probeId: $TSFixMe = req.body.id;
+                const data: $TSFixMe = req.body;
 
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
@@ -130,7 +130,7 @@ router.put(
                 }
 
                 // Call the ProbeService
-                const save = await ProbeService.updateOneBy(
+                const save: $TSFixMe = await ProbeService.updateOneBy(
                     { _id: probeId },
                     data
                 );
@@ -147,7 +147,7 @@ router.get(
     isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const monitors = await MonitorService.getProbeMonitors(
+            const monitors: $TSFixMe = await MonitorService.getProbeMonitors(
                 req.probe.id,
                 new Date(new Date().getTime() - 60 * 1000)
             );
@@ -179,7 +179,7 @@ router.post(
                 retryCount,
                 kubernetesData,
             } = req.body;
-            const { monitorId } = req.params;
+            const { monitorId }: $TSFixMe = req.params;
 
             let status,
                 log,
@@ -188,12 +188,12 @@ router.post(
             let matchedCriterion;
 
             if (type === 'incomingHttpRequest') {
-                const newMonitor = await MonitorService.findOneBy({
+                const newMonitor: $TSFixMe = await MonitorService.findOneBy({
                     query: { _id: monitor._id },
                     select: 'lastPingTime _id criteria',
                 });
 
-                const probeId = req.probe && req.probe.id ? req.probe.id : null;
+                const probeId: $TSFixMe = req.probe && req.probe.id ? req.probe.id : null;
                 log = await ProbeService.probeHttpRequest(newMonitor, probeId);
             } else {
                 if (type === 'api' || type === 'url') {
@@ -748,7 +748,7 @@ router.post(
                                   self.indexOf(item) === pos
                           )
                         : data.reason;
-                const index =
+                const index: $TSFixMe =
                     data.reason && data.reason.indexOf('Request Timed out');
                 if (index > -1) {
                     data.reason =
@@ -826,11 +826,11 @@ router.post(
     isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
             data.probeId = req.probe.id;
             data.monitorId = req.params.monitorId;
-            const log = await ProbeService.saveMonitorLog(data);
+            const log: $TSFixMe = await ProbeService.saveMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -843,11 +843,11 @@ router.post(
     isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
             data.probeId = req.probe.id;
             data.monitorId = req.params.monitorId;
-            const log = await ProbeService.getMonitorLog(data);
+            const log: $TSFixMe = await ProbeService.getMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -861,11 +861,11 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const limit = req.query['limit'] || null;
-            const skip = req.query['skip'] || null;
-            const selectProbe =
+            const limit: $TSFixMe = req.query['limit'] || null;
+            const skip: $TSFixMe = req.query['skip'] || null;
+            const selectProbe: $TSFixMe =
                 'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-            const [probe, count] = await Promise.all([
+            const [probe, count]: $TSFixMe = await Promise.all([
                 ProbeService.findBy({
                     query: {},
                     limit,

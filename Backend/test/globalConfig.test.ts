@@ -7,7 +7,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -28,7 +28,7 @@ describe('Global Config API', function (): void {
                 request,
                 data.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -99,7 +99,7 @@ describe('Global Config API', function (): void {
 
     it('should create multiple global configs when details are valid', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const globalConfigs = [
+        const globalConfigs: $TSFixMe = [
             {
                 name: 'TestName',
                 value: 'TestValue',
@@ -145,7 +145,7 @@ describe('Global Config API', function (): void {
 
     it('should get multiple global configs when names are provided', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const globalConfigs = ['TestName', 'Other TestName'];
+        const globalConfigs: $TSFixMe = ['TestName', 'Other TestName'];
         request
             .post('/globalConfig/configs')
             .set('Authorization', authorization)

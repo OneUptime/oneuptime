@@ -2,11 +2,11 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import UserService from '../services/userService';
 
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -15,8 +15,8 @@ import Exception from 'Common/Types/Exception/Exception';
 
 router.get('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const userId = req.user ? req.user.id : null;
-        const user = await UserService.findOneBy({
+        const userId: $TSFixMe = req.user ? req.user.id : null;
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: '_id tutorial',
         });
@@ -33,13 +33,13 @@ router.get('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
 
 router.put('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const userId = req.user ? req.user.id : null;
+        const userId: $TSFixMe = req.user ? req.user.id : null;
         let user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'tutorial _id',
         });
         // validate that project ID is passed
-        const projectId = req.body.projectId;
+        const projectId: $TSFixMe = req.body.projectId;
         if (!projectId) {
             return sendErrorResponse(req, res, {
                 code: 400,

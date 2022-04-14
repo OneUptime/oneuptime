@@ -3,7 +3,7 @@ import { EncryptionSecret } from '../Config';
 
 export default class Encryption {
     public static encrypt(text: string, iv: Buffer): string {
-        const cipher = Crypto.createCipheriv(
+        const cipher: $TSFixMe = Crypto.createCipheriv(
             'aes-256-cbc',
             EncryptionSecret,
             iv
@@ -12,7 +12,7 @@ export default class Encryption {
     }
 
     public static decrypt(encrypted: string, iv: Buffer): string {
-        const decipher = Crypto.createDecipheriv(
+        const decipher: $TSFixMe = Crypto.createDecipheriv(
             'aes-256-cbc',
             EncryptionSecret,
             iv
@@ -23,7 +23,7 @@ export default class Encryption {
     }
 
     public static getIV(): Buffer {
-        const iv = Crypto.randomBytes(16);
+        const iv: $TSFixMe = Crypto.randomBytes(16);
         return iv;
     }
 }

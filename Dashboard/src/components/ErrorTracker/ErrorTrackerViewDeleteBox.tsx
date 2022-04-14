@@ -29,9 +29,9 @@ class ErrorTrackerViewDeleteBox extends Component<ComponentProps> {
     }
     deleteErrorTracker = () => {
 
-        const { currentProject, errorTracker, deleteErrorTracker } = this.props;
-        const componentId = errorTracker.componentId._id;
-        const promise = deleteErrorTracker(
+        const { currentProject, errorTracker, deleteErrorTracker }: $TSFixMe = this.props;
+        const componentId: $TSFixMe = errorTracker.componentId._id;
+        const promise: $TSFixMe = deleteErrorTracker(
             currentProject._id,
             componentId,
             errorTracker._id
@@ -46,9 +46,9 @@ class ErrorTrackerViewDeleteBox extends Component<ComponentProps> {
     };
     override render() {
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
-        const { openModal, errorTracker } = this.props;
+        const { openModal, errorTracker }: $TSFixMe = this.props;
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -103,7 +103,7 @@ class ErrorTrackerViewDeleteBox extends Component<ComponentProps> {
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteErrorTracker }, dispatch);
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const componentId = props.errorTracker.componentId._id;
+    const componentId: $TSFixMe = props.errorTracker.componentId._id;
     let component;
     state.component.componentList.components.forEach((item: $TSFixMe) => {
         item.components.forEach((c: $TSFixMe) => {

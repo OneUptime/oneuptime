@@ -9,7 +9,7 @@ import app from '../server';
 import moment from 'moment';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 
@@ -29,8 +29,8 @@ const monitor: $TSFixMe = {
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
-const endDate = moment().format('YYYY-MM-DD');
-const startDate = moment().subtract(7, 'd').format('YYYY-MM-DD');
+const endDate: $TSFixMe = moment().format('YYYY-MM-DD');
+const startDate: $TSFixMe = moment().subtract(7, 'd').format('YYYY-MM-DD');
 const filter: string = 'month';
 
 describe('Reports API', function (): void {
@@ -43,7 +43,7 @@ describe('Reports API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 

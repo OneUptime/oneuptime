@@ -23,9 +23,9 @@ interface SearchInputProps {
 }
 
 const SearchInput: Function = (props: SearchInputProps) => {
-    const [open, setOpen] = useState(false);
-    const container = useRef(null);
-    const [error, setError] = useState(null);
+    const [open, setOpen]: $TSFixMe = useState(false);
+    const container: $TSFixMe = useRef(null);
+    const [error, setError]: $TSFixMe = useState(null);
 
     const handleClickOutside: Function = (event: $TSFixMe) => {
 
@@ -43,7 +43,7 @@ const SearchInput: Function = (props: SearchInputProps) => {
         };
     });
 
-    const items = [
+    const items: $TSFixMe = [
         {
             time: 'Last 30 minutes',
             timeDiff: -30, // subtract 30 minutes
@@ -94,30 +94,30 @@ const SearchInput: Function = (props: SearchInputProps) => {
     ];
 
     const fetchLogs: Function = () => {
-        const { projectId, componentId, applicationLogId } = props;
+        const { projectId, componentId, applicationLogId }: $TSFixMe = props;
         props.fetchLogs(projectId, componentId, applicationLogId, 0, 10);
         props.setDisplay(null);
         setOpen(false);
     };
 
     const handleSearch: Function = (val: $TSFixMe, bool: $TSFixMe) => {
-        const { projectId, componentId, applicationLogId } = props;
+        const { projectId, componentId, applicationLogId }: $TSFixMe = props;
         if (!val) {
             fetchLogs();
         }
         if (typeof val === 'object') {
-            const testRegex = /^now(-\d{1,2}h)?$/;
+            const testRegex: $TSFixMe = /^now(-\d{1,2}h)?$/;
             if (!testRegex.test(val.log_from) || !testRegex.test(val.log_to)) {
 
                 setError('The input does not match format');
             } else {
-                const log_from = val.log_from.split('-');
-                const log_to = val.log_to.split('-');
-                const nowDate = new Date();
-                const extendFrom = log_from[1]
+                const log_from: $TSFixMe = val.log_from.split('-');
+                const log_to: $TSFixMe = val.log_to.split('-');
+                const nowDate: $TSFixMe = new Date();
+                const extendFrom: $TSFixMe = log_from[1]
                     ? log_from[1].split('h').join('')
                     : 0;
-                const extendTo = log_to[1] ? log_to[1].split('h').join('') : 0;
+                const extendTo: $TSFixMe = log_to[1] ? log_to[1].split('h').join('') : 0;
                 const payload: $TSFixMe = {};
 
                 payload.log_from = new Date(
@@ -152,7 +152,7 @@ const SearchInput: Function = (props: SearchInputProps) => {
                     duration: val,
                 });
 
-                const { time } = items.find(
+                const { time }: $TSFixMe = items.find(
                     item => String(item.timeDiff) === String(val)
                 );
                 props.setDisplay(`The ${time}`);
@@ -325,7 +325,7 @@ const SearchInput: Function = (props: SearchInputProps) => {
     );
 };
 
-const SearchInputForm = new reduxForm({
+const SearchInputForm: $TSFixMe = new reduxForm({
     form: 'searchlog',
     enableReinitialize: true,
 })(SearchInput);

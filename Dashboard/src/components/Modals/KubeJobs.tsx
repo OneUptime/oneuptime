@@ -63,9 +63,9 @@ class KubeJobs extends React.Component<KubeJobsProps> {
 
     override render() {
 
-        const { data } = this.props;
-        const jobData = data.data;
-        const logTitle = data.title;
+        const { data }: $TSFixMe = this.props;
+        const jobData: $TSFixMe = data.data;
+        const logTitle: $TSFixMe = data.title;
 
         return (
             <div

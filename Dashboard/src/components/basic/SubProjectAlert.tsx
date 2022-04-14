@@ -12,9 +12,9 @@ interface SubProjectAlertProps {
 class SubProjectAlert extends Component<ComponentProps> {
     override render() {
 
-        const { currentProject, subProjects, activesubProjectId } = this.props;
+        const { currentProject, subProjects, activesubProjectId }: $TSFixMe = this.props;
 
-        const isSubProject = currentProject?._id !== activesubProjectId;
+        const isSubProject: $TSFixMe = currentProject?._id !== activesubProjectId;
         let subProjectName;
         if (isSubProject) {
             subProjectName = subProjects.find(
@@ -71,7 +71,7 @@ const mapStateToProps: Function = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
-    const subProjectNames =
+    const subProjectNames: $TSFixMe =
         subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =

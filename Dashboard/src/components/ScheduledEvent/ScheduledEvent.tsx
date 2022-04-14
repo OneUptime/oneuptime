@@ -64,7 +64,7 @@ class ScheduledEventBox extends Component<ComponentProps> {
     }
     prevClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { fetchscheduledEvents } = this.props;
+        const { fetchscheduledEvents }: $TSFixMe = this.props;
         fetchscheduledEvents(
             projectId,
             skip ? Number(skip) - this.limit : this.limit,
@@ -80,7 +80,7 @@ class ScheduledEventBox extends Component<ComponentProps> {
 
     nextClicked = (projectId: string, skip: PositiveNumber) => {
 
-        const { fetchscheduledEvents } = this.props;
+        const { fetchscheduledEvents }: $TSFixMe = this.props;
         fetchscheduledEvents(
             projectId,
             skip ? Number(skip) + this.limit : this.limit,
@@ -116,7 +116,7 @@ class ScheduledEventBox extends Component<ComponentProps> {
             modalList,
         } = this.props;
 
-        const projectEvent = subProjectScheduledEvents.find(
+        const projectEvent: $TSFixMe = subProjectScheduledEvents.find(
             (event: $TSFixMe) => String(event.project) === String(projectId)
         );
 
@@ -193,8 +193,8 @@ const mapStateToProps: Function = (state: RootState) => {
         return data;
     });
 
-    const subProjects = state.subProject.subProjects.subProjects;
-    const subProjectScheduledEvents =
+    const subProjects: $TSFixMe = state.subProject.subProjects.subProjects;
+    const subProjectScheduledEvents: $TSFixMe =
         state.scheduledEvent.subProjectScheduledEventList.scheduledEvents;
 
     return {

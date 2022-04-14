@@ -8,7 +8,7 @@ chai.use(chaihttp);
 import app from '../server';
 import EmailStatusService from '../backend/services/emailStatusService';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -17,7 +17,7 @@ import ProjectService from '../backend/services/projectService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
-const selectEmailStatus =
+const selectEmailStatus: $TSFixMe =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
 let token: $TSFixMe, projectId: ObjectID, userId: ObjectID;
@@ -33,7 +33,7 @@ describe('Feedback API', function (): void {
                     request,
                     userData.user,
                     (err: $TSFixMe, res: $TSFixMe): void => {
-                        const project = res.body.project;
+                        const project: $TSFixMe = res.body.project;
                         projectId = project._id;
                         userId = res.body.id;
 
@@ -95,14 +95,14 @@ describe('Feedback API', function (): void {
             feedback: 'test feedback',
             page: 'test page',
         };
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/feedback/${projectId}`)
             .set('Authorization', authorization)
             .send(testFeedback);
         expect(res).to.have.status(200);
         await FeedbackService.hardDeleteBy({ _id: res.body._id });
         await AirtableService.deleteFeedback(res.body.airtableId);
-        const emailStatuses = await EmailStatusService.findBy({
+        const emailStatuses: $TSFixMe = await EmailStatusService.findBy({
             query: {},
             select: selectEmailStatus,
         });
@@ -112,7 +112,7 @@ describe('Feedback API', function (): void {
             );
         } else {
             const subject: string = 'Welcome to OneUptime.';
-            const status = emailStatuses.find(
+            const status: $TSFixMe = emailStatuses.find(
                 (status: $TSFixMe) => status.subject === subject
             );
             expect(status.subject).to.equal(subject);

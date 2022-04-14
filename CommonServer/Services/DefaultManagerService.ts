@@ -6,7 +6,7 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async create(data: $TSFixMe): void {
-        const defaultManager = await DefaultManagerModel.create(data);
+        const defaultManager: $TSFixMe = await DefaultManagerModel.create(data);
         return defaultManager;
     }
 
@@ -19,13 +19,13 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const defaultManagerQuery =
+        const defaultManagerQuery: $TSFixMe =
             DefaultManagerModel.findOne(query).sort(sort);
 
         defaultManagerQuery.select(select);
         defaultManagerQuery.populate(populate);
 
-        const defaultManager = await defaultManagerQuery;
+        const defaultManager: $TSFixMe = await defaultManagerQuery;
         return defaultManager;
     }
 
@@ -54,7 +54,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const defaultManagerQuery = DefaultManagerModel.find(query)
+        const defaultManagerQuery: $TSFixMe = DefaultManagerModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -63,7 +63,7 @@ export default class Service {
         defaultManagerQuery.select(select);
         defaultManagerQuery.populate(populate);
 
-        const defaultManagers = await defaultManagerQuery;
+        const defaultManagers: $TSFixMe = await defaultManagerQuery;
         return defaultManagers;
     }
 

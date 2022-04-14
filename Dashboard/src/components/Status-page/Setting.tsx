@@ -21,7 +21,7 @@ import EditMoreDomainModal from './EditMoreDomainModal';
 //Client side validation
 
 function validate(_values: $TSFixMe) {
-    const error = undefined;
+    const error: $TSFixMe = undefined;
     return error;
 }
 
@@ -41,10 +41,10 @@ export class Setting extends Component<ComponentProps>{
     }: $TSFixMe) => {
         e.preventDefault();
 
-        const { verifyDomain } = this.props;
+        const { verifyDomain }: $TSFixMe = this.props;
 
-        const { projectId } = this.props.statusPage.status;
-        const token = domainVerificationToken.verificationToken; // get the verification token
+        const { projectId }: $TSFixMe = this.props.statusPage.status;
+        const token: $TSFixMe = domainVerificationToken.verificationToken; // get the verification token
 
         const data: $TSFixMe = {
             projectId: projectId._id || projectId,
@@ -87,9 +87,9 @@ export class Setting extends Component<ComponentProps>{
     handleDeleteDomain = (e: $TSFixMe, domain: $TSFixMe) => {
         e.preventDefault();
 
-        const { deleteDomain } = this.props;
+        const { deleteDomain }: $TSFixMe = this.props;
 
-        const { _id, projectId } = this.props.statusPage.status;
+        const { _id, projectId }: $TSFixMe = this.props.statusPage.status;
 
         const data: $TSFixMe = {
             projectId: projectId._id || projectId,
@@ -133,8 +133,8 @@ export class Setting extends Component<ComponentProps>{
 
     addMoreDomain = (statusPageId: $TSFixMe) => {
 
-        const { openModal, statusPage } = this.props;
-        const { projectId } = statusPage.status;
+        const { openModal, statusPage }: $TSFixMe = this.props;
+        const { projectId }: $TSFixMe = statusPage.status;
 
         openModal({
             id: statusPageId,
@@ -146,8 +146,8 @@ export class Setting extends Component<ComponentProps>{
 
     editDomain = (statusPageId: $TSFixMe, domain: $TSFixMe) => {
 
-        const { openModal, statusPage } = this.props;
-        const { projectId } = statusPage.status;
+        const { openModal, statusPage }: $TSFixMe = this.props;
+        const { projectId }: $TSFixMe = statusPage.status;
 
         openModal({
             id: statusPageId,
@@ -208,8 +208,8 @@ export class Setting extends Component<ComponentProps>{
         }
 
 
-        const { subProjects, currentProject } = this.props;
-        const currentProjectId = currentProject ? currentProject._id : null;
+        const { subProjects, currentProject }: $TSFixMe = this.props;
+        const currentProjectId: $TSFixMe = currentProject ? currentProject._id : null;
         let subProject =
             currentProjectId === projectId ? currentProject : false;
         if (!subProject)
@@ -694,7 +694,7 @@ Setting.propTypes = {
     ]),
 };
 
-const SettingForm = reduxForm({
+const SettingForm: $TSFixMe = reduxForm({
     form: 'Setting', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for
@@ -713,7 +713,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const domainsContainer =
+    const domainsContainer: $TSFixMe =
         state.statusPage &&
             state.statusPage.status &&
             state.statusPage.status.domains

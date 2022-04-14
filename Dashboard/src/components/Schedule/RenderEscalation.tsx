@@ -71,11 +71,11 @@ let RenderEscalation = ({
 
 RenderEscalation.displayName = 'RenderEscalation';
 
-const selector = formValueSelector('OnCallAlertBox');
+const selector: $TSFixMe = formValueSelector('OnCallAlertBox');
 
 
 RenderEscalation = connect(state => {
-    const form = selector(state, 'OnCallAlertBox');
+    const form: $TSFixMe = selector(state, 'OnCallAlertBox');
     return {
         form,
     };

@@ -118,7 +118,7 @@ class Collapsible extends Component<ComponentProps> {
     }
 
     closeCollapsible() {
-        const { innerRef } = this;
+        const { innerRef }: $TSFixMe = this;
 
         this.setState({
             shouldSwitchAutoOnNextCycle: true,
@@ -142,7 +142,7 @@ class Collapsible extends Component<ComponentProps> {
     }
 
     continueOpenCollapsible = () => {
-        const { innerRef } = this;
+        const { innerRef }: $TSFixMe = this;
 
         this.setState({
             height: innerRef.scrollHeight,
@@ -258,12 +258,12 @@ class Collapsible extends Component<ComponentProps> {
         };
 
 
-        const openClass = this.state.isClosed ? 'is-closed' : 'is-open';
+        const openClass: $TSFixMe = this.state.isClosed ? 'is-closed' : 'is-open';
 
-        const disabledClass = this.props.triggerDisabled ? 'is-disabled' : '';
+        const disabledClass: $TSFixMe = this.props.triggerDisabled ? 'is-disabled' : '';
 
         //If user wants different text when tray is open
-        const trigger =
+        const trigger: $TSFixMe =
 
             this.state.isClosed === false &&
 
@@ -274,14 +274,14 @@ class Collapsible extends Component<ComponentProps> {
                 : this.props.trigger;
 
 
-        const ContentContainerElement = this.props.contentContainerTagName;
+        const ContentContainerElement: $TSFixMe = this.props.contentContainerTagName;
 
         // If user wants a trigger wrapping element different than 'span'
 
-        const TriggerElement = this.props.triggerTagName;
+        const TriggerElement: $TSFixMe = this.props.triggerTagName;
 
         // Don't render children until the first opening of the Collapsible if lazy rendering is enabled
-        const children =
+        const children: $TSFixMe =
 
             this.props.lazyRender &&
 
@@ -294,7 +294,7 @@ class Collapsible extends Component<ComponentProps> {
                 : this.props.children;
 
         // Construct CSS classes strings
-        const triggerClassString:string = `${this.props.classParentString
+        const triggerClassString:string: $TSFixMe = `${this.props.classParentString
             }__trigger ${openClass} ${disabledClass} ${this.state.isClosed
 
                 ? this.props.triggerClassName
@@ -302,16 +302,16 @@ class Collapsible extends Component<ComponentProps> {
                 : this.props.triggerOpenedClassName
             }`;
 
-        const parentClassString:string = `${this.props.classParentString} ${this.state.isClosed
+        const parentClassString:string: $TSFixMe = `${this.props.classParentString} ${this.state.isClosed
 
             ? this.props.className
 
             : this.props.openedClassName
             }`;
 
-        const outerClassString:string = `${this.props.classParentString}__contentOuter ${this.props.contentOuterClassName}`;
+        const outerClassString:string: $TSFixMe = `${this.props.classParentString}__contentOuter ${this.props.contentOuterClassName}`;
 
-        const innerClassString:string = `${this.props.classParentString}__contentInner ${this.props.contentInnerClassName}`;
+        const innerClassString:string: $TSFixMe = `${this.props.classParentString}__contentInner ${this.props.contentInnerClassName}`;
 
         return (
             <ContentContainerElement
@@ -332,7 +332,7 @@ class Collapsible extends Component<ComponentProps> {
                             : this.props.triggerStyle
                     }
                     onKeyPress={(event: $TSFixMe) => {
-                        const { key } = event;
+                        const { key }: $TSFixMe = event;
                         if (
                             (key === ' ' &&
 

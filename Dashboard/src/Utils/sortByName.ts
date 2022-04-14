@@ -7,8 +7,8 @@ const compare: Function = (a: $TSFixMe, b: $TSFixMe): void => {
         return 0;
     }
 
-    const objectA = a.name.toLowerCase();
-    const objectB = b.name.toLowerCase();
+    const objectA: $TSFixMe = a.name.toLowerCase();
+    const objectB: $TSFixMe = b.name.toLowerCase();
 
     if (objectA > objectB) {
         return 1;

@@ -32,8 +32,8 @@ class ErrorEventIssueMember extends Component<ComponentProps> {
     };
     manageMemberInIssue = (member: $TSFixMe) => {
 
-        const { updateErrorEventMember, errorTrackerIssue } = this.props.data;
-        const memberInIssue = this.isTeamMemberAssigned(member);
+        const { updateErrorEventMember, errorTrackerIssue }: $TSFixMe = this.props.data;
+        const memberInIssue: $TSFixMe = this.isTeamMemberAssigned(member);
         updateErrorEventMember(
             errorTrackerIssue._id,
             member.userId,
@@ -42,15 +42,15 @@ class ErrorEventIssueMember extends Component<ComponentProps> {
     };
     isTeamMemberAssigned = (teamMember: $TSFixMe) => {
 
-        const { errorTrackerIssue } = this.props.data;
-        const memberExist = errorTrackerIssue.members.find(
+        const { errorTrackerIssue }: $TSFixMe = this.props.data;
+        const memberExist: $TSFixMe = errorTrackerIssue.members.find(
             (member: $TSFixMe) => member.userId._id === teamMember.userId
         );
         return memberExist ? true : false;
     };
     override render() {
 
-        const { data, closeThisDialog, errorTrackerIssueMembers } = this.props;
+        const { data, closeThisDialog, errorTrackerIssueMembers }: $TSFixMe = this.props;
 
         return (
             <div
@@ -302,7 +302,7 @@ class ErrorEventIssueMember extends Component<ComponentProps> {
     }
 }
 const mapStateToProp: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const errorTrackerIssueMembers =
+    const errorTrackerIssueMembers: $TSFixMe =
         state.errorTracker.errorTrackerIssueMembers[
         ownProps.data.errorTrackerIssue._id
         ];

@@ -7,7 +7,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -171,7 +171,7 @@ describe('SSO API', function (): void {
                     expect(res.body).to.have.property('samlSsoUrl');
                     expect(res.body).to.have.property('remoteLogoutUrl');
 
-                    const sso = await SsoService.findOneBy({
+                    const sso: $TSFixMe = await SsoService.findOneBy({
                         query: { _id: res.body._id },
                         select: ' _id domain samlUrl remoteLogoutUrl',
                     });
@@ -250,7 +250,7 @@ describe('SSO API', function (): void {
                         expect(res.body).to.have.property('domain');
                         expect(res.body).to.have.property('samlSsoUrl');
                         expect(res.body).to.have.property('remoteLogoutUrl');
-                        const deletedSso = await SsoService.findOneBy({
+                        const deletedSso: $TSFixMe = await SsoService.findOneBy({
                             query: { _id: res.body._id, deleted: true },
                             select: 'deleted',
                         });
@@ -286,7 +286,7 @@ describe('SSO API', function (): void {
                             updatedSsoObject.domain
                         );
 
-                        const sso = await SsoService.findOneBy({
+                        const sso: $TSFixMe = await SsoService.findOneBy({
                             query: { _id: ssoId },
                             select: 'domain samlSsoUrl remoteLogoutUrl ',
                         });

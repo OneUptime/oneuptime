@@ -7,7 +7,7 @@
 const secondsToHms: Function = (value: $TSFixMe): void => {
     if (!isNaN(value)) {
         value = Number(value);
-        const hr = Math.floor(value / 3600),
+        const hr: $TSFixMe = Math.floor(value / 3600),
             min = Math.floor((value % 3600) / 60),
             sec = Math.floor((value % 3600) % 60);
 

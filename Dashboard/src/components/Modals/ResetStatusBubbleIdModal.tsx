@@ -33,7 +33,7 @@ class ResetStatusBubbleIdModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeThisDialog } = this.props;
+        const { closeThisDialog }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -108,9 +108,9 @@ class ResetStatusBubbleIdModal extends Component<ComponentProps> {
 
 ResetStatusBubbleIdModal.displayName = 'ResetStatusBubbleIdModal';
 
-const mapDispatchToProps = null;
+const mapDispatchToProps: $TSFixMe = null;
 
-const mapStateToProps = null;
+const mapStateToProps: $TSFixMe = null;
 
 
 ResetStatusBubbleIdModal.propTypes = {

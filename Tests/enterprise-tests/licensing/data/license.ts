@@ -1,9 +1,9 @@
 import moment from 'moment';
 
-const validDate = new Date(moment(new Date()).add(10, 'days'))
+const validDate: $TSFixMe = new Date(moment(new Date()).add(10, 'days'))
     .toISOString()
     .split('T')[0];
-const expiredDate = new Date().toISOString().split('T')[0];
+const expiredDate: $TSFixMe = new Date().toISOString().split('T')[0];
 
 const validLicense: $TSFixMe = {
     'License Key': 'valid-license',

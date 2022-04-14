@@ -14,7 +14,7 @@ import Express, {
 // connect common api's.
 import '../API/Index';
 
-const app = Express.getExpressApp();
+const app: $TSFixMe = Express.getExpressApp();
 
 app.set('port', process.env['PORT']);
 
@@ -23,8 +23,8 @@ const logRequest: Function = (
     res: ExpressResponse,
     next: NextFunction
 ): void => {
-    const current_datetime = new Date();
-    const formatted_date =
+    const current_datetime: $TSFixMe = new Date();
+    const formatted_date: $TSFixMe =
         current_datetime.getFullYear() +
         '-' +
         (current_datetime.getMonth() + 1) +
@@ -37,9 +37,9 @@ const logRequest: Function = (
         ':' +
         current_datetime.getSeconds();
 
-    const method = req.method;
-    const url = req.url;
-    const status = res.statusCode;
+    const method: $TSFixMe = req.method;
+    const url: $TSFixMe = req.url;
+    const status: $TSFixMe = res.statusCode;
 
     const log: string = `[${formatted_date}] ${method}:${url} ${status}`;
     logger.info(log);

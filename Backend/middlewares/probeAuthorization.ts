@@ -6,7 +6,7 @@ import {
     NextFunction,
 } from 'CommonServer/Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-const CLUSTER_KEY = process.env['CLUSTER_KEY'];
+const CLUSTER_KEY: $TSFixMe = process.env['CLUSTER_KEY'];
 
 // TODO: Make sure this is stored in redis.
 // Structure:
@@ -103,7 +103,7 @@ export default {
 
                 probeId = global.probes[probeName]._id;
             } else {
-                const probe = await ProbeService.findOneBy({
+                const probe: $TSFixMe = await ProbeService.findOneBy({
                     query: { probeName },
                     select: selectProbe,
                 });
@@ -129,7 +129,7 @@ export default {
             if (global.probes[probeName]) {
                 probeId = global.probes[probeName]._id;
             } else {
-                const probe = await ProbeService.findOneBy({
+                const probe: $TSFixMe = await ProbeService.findOneBy({
                     query: { probeKey, probeName },
                     select: selectProbe,
                 });
@@ -155,7 +155,7 @@ export default {
         //This executes if clusterKey && CLUSTER_KEY is false and Probes could not be found in DB. Hence, probe is created.
         if (!probeId) {
             //create a new probe.
-            const probe = await ProbeService.create({
+            const probe: $TSFixMe = await ProbeService.create({
                 probeKey,
                 probeName,
                 probeVersion,
@@ -179,7 +179,7 @@ export default {
                 { probeKey }
             );
 
-            const probe = await ProbeService.findOneBy({
+            const probe: $TSFixMe = await ProbeService.findOneBy({
                 query: { probeKey, probeName },
                 select: selectProbe,
             });

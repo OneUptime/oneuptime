@@ -34,7 +34,7 @@ class DeleteWebhook extends Component<ComponentProps> {
 
     override render() {
 
-        const { data, closeThisDialog } = this.props;
+        const { data, closeThisDialog }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

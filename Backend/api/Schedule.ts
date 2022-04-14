@@ -4,10 +4,10 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import ObjectID from 'Common/Types/ObjectID';
 import ScheduleService from '../services/scheduleService';
-const router = express.getRouter();
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const getUser = require('../middlewares/user').getUser;
-const getSubProjects = require('../middlewares/subProject').getSubProjects;
+const router: $TSFixMe = express.getRouter();
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -24,9 +24,9 @@ router.post(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
             data.createdById = userId;
             data.projectId = req.params.projectId;
 
@@ -36,7 +36,7 @@ router.post(
                     message: 'Name is required',
                 });
             }
-            const schedule = await ScheduleService.create(data);
+            const schedule: $TSFixMe = await ScheduleService.create(data);
             return sendItemResponse(req, res, schedule);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -50,8 +50,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const populate = [
+            const projectId: $TSFixMe = req.params.projectId;
+            const populate: $TSFixMe = [
                 { path: 'userIds', select: 'name' },
                 { path: 'createdById', select: 'name' },
                 { path: 'monitorIds', select: 'name' },
@@ -77,9 +77,9 @@ router.get(
                 },
             ];
 
-            const select =
+            const select: $TSFixMe =
                 '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-            const [schedules, count] = await Promise.all([
+            const [schedules, count]: $TSFixMe = await Promise.all([
                 ScheduleService.findBy({
                     query: { projectId: projectId },
                     limit: req.query['limit'] || 10,
@@ -103,10 +103,10 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            const schedules = await ScheduleService.getSubProjectSchedules(
+            const schedules: $TSFixMe = await ScheduleService.getSubProjectSchedules(
                 subProjectIds
             );
             return sendItemResponse(req, res, schedules); // frontend expects sendItemResponse
@@ -122,8 +122,8 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const projectId = req.params.projectId;
-            const populate = [
+            const projectId: $TSFixMe = req.params.projectId;
+            const populate: $TSFixMe = [
                 { path: 'userIds', select: 'name' },
                 { path: 'createdById', select: 'name' },
                 { path: 'monitorIds', select: 'name' },
@@ -141,9 +141,9 @@ router.get(
                 },
             ];
 
-            const select =
+            const select: $TSFixMe =
                 '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-            const [schedule, count] = await Promise.all([
+            const [schedule, count]: $TSFixMe = await Promise.all([
                 ScheduleService.findBy({
                     query: { projectId },
                     limit: req.query['limit'] || 10,
@@ -167,9 +167,9 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, scheduleId } = req.params;
-            const data = req.body;
-            const schedule = await ScheduleService.updateOneBy(
+            const { projectId, scheduleId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
+            const schedule: $TSFixMe = await ScheduleService.updateOneBy(
                 { _id: scheduleId, projectId },
                 data
             );
@@ -187,9 +187,9 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const scheduleId = req.params.scheduleId;
+            const scheduleId: $TSFixMe = req.params.scheduleId;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
             if (!scheduleId) {
                 return sendErrorResponse(req, res, {
@@ -197,7 +197,7 @@ router.delete(
                     message: 'ScheduleId must be present.',
                 });
             }
-            const schedule = await ScheduleService.deleteBy(
+            const schedule: $TSFixMe = await ScheduleService.deleteBy(
                 { _id: scheduleId },
                 userId
             );
@@ -215,11 +215,11 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            const userId = req.params.userId;
-            const escalations = await ScheduleService.getUserEscalations(
+            const userId: $TSFixMe = req.params.userId;
+            const escalations: $TSFixMe = await ScheduleService.getUserEscalations(
                 subProjectIds,
                 userId
             );
@@ -236,8 +236,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const scheduleId = req.params.scheduleId;
-            const response = await ScheduleService.getEscalations(scheduleId);
+            const scheduleId: $TSFixMe = req.params.scheduleId;
+            const response: $TSFixMe = await ScheduleService.getEscalations(scheduleId);
             return sendListResponse(
                 req,
                 res,
@@ -257,14 +257,14 @@ router.post(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.user ? req.user.id : null;
-            const scheduleId = req.params.scheduleId;
-            const escalations = [];
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const scheduleId: $TSFixMe = req.params.scheduleId;
+            const escalations: $TSFixMe = [];
             let escalationPolicyCount = 0;
             for (const value of req.body) {
                 escalationPolicyCount++;
                 const storagevalue: $TSFixMe = {};
-                const tempTeam = [];
+                const tempTeam: $TSFixMe = [];
 
                 if (!value.email && !value.call && !value.sms && !value.push) {
                     return sendErrorResponse(req, res, {
@@ -454,7 +454,7 @@ router.post(
 
                 for (const team of value.teams) {
                     const rotationData: $TSFixMe = {};
-                    const teamMembers = [];
+                    const teamMembers: $TSFixMe = [];
                     if (!team.teamMembers || team.teamMembers.length === 0) {
                         return sendErrorResponse(req, res, {
                             code: 400,
@@ -467,7 +467,7 @@ router.post(
                         });
                     }
 
-                    const teamMemberUserIds = team.teamMembers
+                    const teamMemberUserIds: $TSFixMe = team.teamMembers
                         .map((member: $TSFixMe) => member.userId)
                         .filter((team: $TSFixMe) => team !== undefined);
 
@@ -546,7 +546,7 @@ router.post(
                 storagevalue.teams = tempTeam;
                 escalations.push(storagevalue);
             }
-            const escalation = await ScheduleService.addEscalation(
+            const escalation: $TSFixMe = await ScheduleService.addEscalation(
                 scheduleId,
                 escalations,
                 userId

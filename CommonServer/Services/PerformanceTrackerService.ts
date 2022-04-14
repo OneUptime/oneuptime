@@ -17,19 +17,19 @@ import Query from '../Types/DB/Query';
 export default class Service {
     async create(data: $TSFixMe): void {
         // check if component exists
-        const componentCount = await ComponentService.countBy({
+        const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: data.componentId,
         });
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
-            const error = new Error('Component does not exist.');
+            const error: $TSFixMe = new Error('Component does not exist.');
 
             error.code = 400;
 
             throw error;
         }
         // check if a performance tracker already exist with the same name for a particular component
-        const existingPerformanceTracker = await this.findBy({
+        const existingPerformanceTracker: $TSFixMe = await this.findBy({
             query: { name: data.name, componentId: data.componentId },
             select: '_id',
         });
@@ -37,7 +37,7 @@ export default class Service {
             existingPerformanceTracker &&
             existingPerformanceTracker.length > 0
         ) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Performance tracker with that name already exists.'
             );
 
@@ -57,7 +57,7 @@ export default class Service {
 
         const select: string =
             'componentId name slug key showQuickStart createdById';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name email' },
             {
                 path: 'componentId',
@@ -97,7 +97,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const performanceTrackerQuery = PerformanceTrackerModel.find(query)
+        const performanceTrackerQuery: $TSFixMe = PerformanceTrackerModel.find(query)
             .lean()
             .sort(sort)
             .skip(skip.toNumber())
@@ -105,7 +105,7 @@ export default class Service {
         performanceTrackerQuery.select(select);
         performanceTrackerQuery.populate(populate);
 
-        const performanceTracker = await performanceTrackerQuery;
+        const performanceTracker: $TSFixMe = await performanceTrackerQuery;
         return performanceTracker;
     }
 
@@ -127,14 +127,14 @@ export default class Service {
         // })
         // .populate('createdById', 'name email');
 
-        const performanceTrackerQuery = PerformanceTrackerModel.findOne(query)
+        const performanceTrackerQuery: $TSFixMe = PerformanceTrackerModel.findOne(query)
             .sort(sort)
             .lean();
 
         performanceTrackerQuery.select(select);
         performanceTrackerQuery.populate(populate);
 
-        const performanceTracker = await performanceTrackerQuery;
+        const performanceTracker: $TSFixMe = await performanceTrackerQuery;
         return performanceTracker;
     }
 
@@ -144,7 +144,7 @@ export default class Service {
         skip: PositiveNumber
     ): void {
         // Check if component exists
-        const componentCount = await ComponentService.countBy({
+        const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: componentId,
         });
         // send an error if the component doesnt exist
@@ -161,7 +161,7 @@ export default class Service {
 
         const select: string =
             'componentId name slug key showQuickStart createdById';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name email' },
             {
                 path: 'componentId',
@@ -169,7 +169,7 @@ export default class Service {
                 populate: { path: 'projectId', select: 'name slug' },
             },
         ];
-        const performanceTracker = await this.findBy({
+        const performanceTracker: $TSFixMe = await this.findBy({
             query: { componentId },
             limit,
             skip,
@@ -185,7 +185,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const performanceTracker =
+        const performanceTracker: $TSFixMe =
             await PerformanceTrackerModel.findOneAndUpdate(
                 query,
                 {
@@ -258,7 +258,7 @@ export default class Service {
 
         const select: string =
             'componentId name slug key showQuickStart createdById';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name email' },
             {
                 path: 'componentId',
@@ -287,7 +287,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const count = await PerformanceTrackerModel.countDocuments(query);
+        const count: $TSFixMe = await PerformanceTrackerModel.countDocuments(query);
         return count;
     }
 }

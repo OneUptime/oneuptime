@@ -40,7 +40,7 @@ class Invoice extends Component<ComponentProps> {
 
             invoices: { data },
         } = this.props;
-        const startingAfter = data[data.length - 1].id;
+        const startingAfter: $TSFixMe = data[data.length - 1].id;
 
         this.props.getInvoice(this.props.userId, startingAfter);
     };
@@ -50,8 +50,8 @@ class Invoice extends Component<ComponentProps> {
 
             invoices: { data },
         } = this.props;
-        const endingBefore = data[0].id;
-        const startingAfter = data[data.length - 1].id;
+        const endingBefore: $TSFixMe = data[0].id;
+        const startingAfter: $TSFixMe = data[data.length - 1].id;
 
         this.props.getInvoice(this.props.userId, startingAfter, endingBefore);
     };
@@ -117,10 +117,10 @@ class Invoice extends Component<ComponentProps> {
 }
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId = User.getUserId();
-    const invoices = state.invoice.invoices;
-    const isRequesting = state.invoice.requesting;
-    const isSuccessful = state.invoice.success;
+    const userId: $TSFixMe = User.getUserId();
+    const invoices: $TSFixMe = state.invoice.invoices;
+    const isRequesting: $TSFixMe = state.invoice.requesting;
+    const isSuccessful: $TSFixMe = state.invoice.success;
 
     return { userId, invoices, isRequesting, isSuccessful };
 };

@@ -59,7 +59,7 @@ class CreateCustomField extends React.Component<CreateCustomFieldProps> {
 
             fetchCustomFields,
         } = this.props;
-        const projectId = data.projectId;
+        const projectId: $TSFixMe = data.projectId;
         const postObj: $TSFixMe = {
             fieldName: values.fieldName,
             fieldType: values.fieldType,
@@ -365,7 +365,7 @@ CreateCustomField.propTypes = {
     createFieldError: PropTypes.string,
 };
 
-const CreateCustomFieldForm = reduxForm({
+const CreateCustomFieldForm: $TSFixMe = reduxForm({
     form: 'CreateCustomFieldForm',
     enableReinitialize: false,
     validate,

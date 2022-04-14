@@ -36,12 +36,12 @@ export default class Service {
         log.tags = data.tags;
 
         log.createdById = data.createdById;
-        const savedlog = await log.save();
+        const savedlog: $TSFixMe = await log.save();
 
-        const selectLog =
+        const selectLog: $TSFixMe =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
 
-        const populateLog = [{ path: 'applicationLogId', select: 'name' }];
+        const populateLog: $TSFixMe = [{ path: 'applicationLogId', select: 'name' }];
         log = await this.findOneBy({
             query: { _id: savedlog._id },
             select: selectLog,
@@ -57,12 +57,12 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const logQuery = LogModel.findOne(query).sort(sort).lean();
+        const logQuery: $TSFixMe = LogModel.findOne(query).sort(sort).lean();
 
         logQuery.select(select);
         logQuery.populate(populate);
 
-        const log = await logQuery;
+        const log: $TSFixMe = await logQuery;
 
         return log;
     }
@@ -90,7 +90,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const logsQuery = LogModel.find(query)
+        const logsQuery: $TSFixMe = LogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -99,7 +99,7 @@ export default class Service {
         logsQuery.select(select);
         logsQuery.populate(populate);
 
-        const logs = await logsQuery;
+        const logs: $TSFixMe = await logsQuery;
 
         return logs.reverse();
     }
@@ -110,7 +110,7 @@ export default class Service {
     ): void {
         // try to get the application log by the ID
 
-        const applicationLogCount = await ApplicationLogService.countBy({
+        const applicationLogCount: $TSFixMe = await ApplicationLogService.countBy({
             _id: applicationLogId,
         });
         // send an error if the component doesnt exist
@@ -125,12 +125,12 @@ export default class Service {
             skip = parseInt(skip);
         }
 
-        const selectLog =
+        const selectLog: $TSFixMe =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
 
-        const populateLog = [{ path: 'applicationLogId', select: 'name' }];
+        const populateLog: $TSFixMe = [{ path: 'applicationLogId', select: 'name' }];
 
-        const logs = await this.findBy({
+        const logs: $TSFixMe = await this.findBy({
             query: { applicationLogId: applicationLogId },
             limit,
             skip,
@@ -144,7 +144,7 @@ export default class Service {
             query = {};
         }
 
-        const count = await LogModel.countDocuments(query);
+        const count: $TSFixMe = await LogModel.countDocuments(query);
 
         return count;
     }
@@ -159,11 +159,11 @@ export default class Service {
             $regex: new RegExp(filter),
             $options: 'i',
         };
-        const selectLog =
+        const selectLog: $TSFixMe =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
 
-        const populateLog = [{ path: 'applicationLogId', select: 'name' }];
-        const [searchedLogs, totalSearchCount] = await Promise.all([
+        const populateLog: $TSFixMe = [{ path: 'applicationLogId', select: 'name' }];
+        const [searchedLogs, totalSearchCount]: $TSFixMe = await Promise.all([
             this.findBy({
                 query,
                 skip,
@@ -185,7 +185,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const { startTime, endTime } = query;
+        const { startTime, endTime }: $TSFixMe = query;
         query = {
             ...query,
             createdAt: {
@@ -195,11 +195,11 @@ export default class Service {
         };
         delete query.startTime;
         delete query.endTime;
-        const selectLog =
+        const selectLog: $TSFixMe =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
-        const populateLog = [{ path: 'applicationLogId', select: 'name' }];
+        const populateLog: $TSFixMe = [{ path: 'applicationLogId', select: 'name' }];
 
-        const [searchedLogs, totalSearchCount] = await Promise.all([
+        const [searchedLogs, totalSearchCount]: $TSFixMe = await Promise.all([
             this.findBy({
                 query,
                 select: selectLog,
@@ -228,7 +228,7 @@ export default class Service {
             };
         } else {
             // first and last log based on the query is fetched
-            const [start_date, end_date] = await Promise.all([
+            const [start_date, end_date]: $TSFixMe = await Promise.all([
                 LogModel.find(query).limit(1),
                 LogModel.find(query).limit(1),
             ]);

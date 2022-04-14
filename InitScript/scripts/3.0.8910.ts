@@ -4,7 +4,7 @@ const statusPageCollection: string = 'statuspages';
 
 async function run(): void {
     // get all statuspages with cert and private key set to the custom domain
-    const statusPages = await find(statusPageCollection, {
+    const statusPages: $TSFixMe = await find(statusPageCollection, {
         'domains.cert': { $type: 'string' },
         'domains.privateKey': { $type: 'string' },
         'domains.enableHttps': { $exists: false },

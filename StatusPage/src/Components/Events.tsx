@@ -21,7 +21,7 @@ interface EventsProps {
 class Events extends Component<ComponentProps> {
     handleNavigation = (statusPageSlug: $TSFixMe, eventSlug: $TSFixMe) => {
 
-        const { history } = this.props;
+        const { history }: $TSFixMe = this.props;
 
         history.push(
             `/StatusPage/${statusPageSlug}/scheduledEvent/${eventSlug}`
@@ -30,7 +30,7 @@ class Events extends Component<ComponentProps> {
 
     override render() {
 
-        const { statusPageSlug } = this.props;
+        const { statusPageSlug }: $TSFixMe = this.props;
         return (
 
             <ShouldRender if={this.props.events}>

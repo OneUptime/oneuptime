@@ -78,7 +78,7 @@ export class AddSiteUrl extends React.Component<AddSiteUrlProps> {
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
@@ -210,7 +210,7 @@ export class AddSiteUrl extends React.Component<AddSiteUrlProps> {
 
 AddSiteUrl.displayName = 'AddSiteUrl';
 
-const AddSiteUrlForm = reduxForm({
+const AddSiteUrlForm: $TSFixMe = reduxForm({
     form: 'AddSiteUrlForm',
     destroyOnUnmount: true,
     enableReinitialize: true,

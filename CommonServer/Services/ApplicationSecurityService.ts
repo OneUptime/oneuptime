@@ -37,7 +37,7 @@ export default class Service {
         ]);
 
         if (applicationNameExist) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Application security with this name already exist in this component'
             );
 
@@ -46,7 +46,7 @@ export default class Service {
         }
 
         if (gitRepositoryUrlExist) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Application security with this git repository url already exist in this component'
             );
 
@@ -55,21 +55,21 @@ export default class Service {
         }
 
         if (!gitCredentialExist) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Git Credential not found or does not exist'
             );
 
             error.code = 400;
             throw error;
         }
-        const resourceCategoryCount = await ResourceCategoryService.countBy({
+        const resourceCategoryCount: $TSFixMe = await ResourceCategoryService.countBy({
             _id: data.resourceCategory,
         });
         if (!resourceCategoryCount || resourceCategoryCount === 0) {
             delete data.resourceCategory;
         }
         data.slug = getSlug(data.name);
-        const applicationSecurity = await ApplicationSecurityModel.create(data);
+        const applicationSecurity: $TSFixMe = await ApplicationSecurityModel.create(data);
         return applicationSecurity;
     }
 
@@ -83,14 +83,14 @@ export default class Service {
         }
 
         // won't be using lean() here because of iv cypher for password
-        const applicationSecurityQuery =
+        const applicationSecurityQuery: $TSFixMe =
             ApplicationSecurityModel.findOne(query).sort(sort);
 
         applicationSecurityQuery.select(select);
 
         applicationSecurityQuery.populate(populate);
 
-        const applicationSecurity = await applicationSecurityQuery;
+        const applicationSecurity: $TSFixMe = await applicationSecurityQuery;
         return applicationSecurity;
     }
 
@@ -100,7 +100,7 @@ export default class Service {
         }
 
         // won't be using lean() here because of iv cypher for password
-        const applicationSecuritiesQuery = ApplicationSecurityModel.find(query)
+        const applicationSecuritiesQuery: $TSFixMe = ApplicationSecurityModel.find(query)
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
@@ -108,7 +108,7 @@ export default class Service {
         applicationSecuritiesQuery.select(select);
         applicationSecuritiesQuery.populate(populate);
 
-        const applicationSecurities = await applicationSecuritiesQuery;
+        const applicationSecurities: $TSFixMe = await applicationSecuritiesQuery;
         return applicationSecurities;
     }
 
@@ -143,7 +143,7 @@ export default class Service {
                 );
         }
         if (!applicationSecurity) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Application Security not found or does not exist'
             );
 
@@ -151,7 +151,7 @@ export default class Service {
             throw error;
         }
 
-        const populateApplicationSecurity = [
+        const populateApplicationSecurity: $TSFixMe = [
             { path: 'componentId', select: '_id slug name slug' },
 
             { path: 'resourceCategory', select: 'name' },
@@ -161,7 +161,7 @@ export default class Service {
             },
         ];
 
-        const selectApplicationSecurity =
+        const selectApplicationSecurity: $TSFixMe =
             '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
         applicationSecurity = this.findOneBy({
@@ -176,7 +176,7 @@ export default class Service {
         let applicationSecurity = await this.countBy(query);
 
         if (!applicationSecurity) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Application Security not found or does not exist'
             );
 
@@ -184,7 +184,7 @@ export default class Service {
             throw error;
         }
 
-        const securityLog = await ApplicationSecurityLogService.findOneBy({
+        const securityLog: $TSFixMe = await ApplicationSecurityLogService.findOneBy({
             query: { securityId: applicationSecurity._id },
             select: '_id',
         });
@@ -201,7 +201,7 @@ export default class Service {
             deletedAt: Date.now(),
         });
 
-        const populateApplicationSecurity = [
+        const populateApplicationSecurity: $TSFixMe = [
             { path: 'componentId', select: '_id slug name slug' },
 
             { path: 'resourceCategory', select: 'name' },
@@ -211,7 +211,7 @@ export default class Service {
             },
         ];
 
-        const selectApplicationSecurity =
+        const selectApplicationSecurity: $TSFixMe =
             '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
         applicationSecurity = await this.findOneBy({
@@ -228,9 +228,9 @@ export default class Service {
     }
 
     async getSecuritiesToScan(): void {
-        const oneDay = moment().subtract(1, 'days').toDate();
+        const oneDay: $TSFixMe = moment().subtract(1, 'days').toDate();
 
-        const populateApplicationSecurity = [
+        const populateApplicationSecurity: $TSFixMe = [
             {
                 path: 'componentId',
                 select: '_id slug name slug',
@@ -243,10 +243,10 @@ export default class Service {
             },
         ];
 
-        const selectApplicationSecurity =
+        const selectApplicationSecurity: $TSFixMe =
             '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
-        const securities = await this.findBy({
+        const securities: $TSFixMe = await this.findBy({
             query: {
                 $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
                 scanning: false,
@@ -258,11 +258,11 @@ export default class Service {
     }
 
     async decryptPassword(security: $TSFixMe): void {
-        const values = [];
+        const values: $TSFixMe = [];
         for (let i = 0; i <= 15; i++) {
             values.push(security.gitCredential.iv[i]);
         }
-        const iv = Buffer.from(values);
+        const iv: $TSFixMe = Buffer.from(values);
         security.gitCredential.gitPassword = await decrypt(
             security.gitCredential.gitPassword,
             iv
@@ -271,8 +271,8 @@ export default class Service {
     }
 
     async updateScanTime(query: Query): void {
-        const newDate = new Date();
-        const applicationSecurity = await this.updateOneBy(query, {
+        const newDate: $TSFixMe = new Date();
+        const applicationSecurity: $TSFixMe = await this.updateOneBy(query, {
             lastScan: newDate,
             scanned: true,
             scanning: false,
@@ -291,7 +291,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await ApplicationSecurityModel.countDocuments(query);
+        const count: $TSFixMe = await ApplicationSecurityModel.countDocuments(query);
         return count;
     }
 }

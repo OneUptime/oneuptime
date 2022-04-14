@@ -68,7 +68,7 @@ class DeleteIncomingRequest extends Component<ComponentProps> {
 
     override render() {
 
-        const { isRequesting, closeModal, deleteError, projectId } = this.props;
+        const { isRequesting, closeModal, deleteError, projectId }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

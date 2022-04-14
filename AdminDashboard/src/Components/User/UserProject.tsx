@@ -13,7 +13,7 @@ class UserProject extends Component<ComponentProps> {
     }
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { userId } = this.props;
+        const { userId }: $TSFixMe = this.props;
 
         this.props.fetchUserProjects(
             userId,
@@ -26,7 +26,7 @@ class UserProject extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { userId } = this.props;
+        const { userId }: $TSFixMe = this.props;
 
         this.props.fetchUserProjects(userId, skip + limit, 10);
 
@@ -80,7 +80,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
 
     return {
         userId,

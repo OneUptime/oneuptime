@@ -98,8 +98,8 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
 
             fetchMonitors,
         } = this.props;
-        const { setCustom } = this.state;
-        const projectId = data.projectId;
+        const { setCustom }: $TSFixMe = this.state;
+        const projectId: $TSFixMe = data.projectId;
         const postObj: $TSFixMe = {};
 
         if (
@@ -111,7 +111,7 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
         }
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -174,12 +174,12 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -252,7 +252,7 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -386,7 +386,7 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
 
             formValues,
         } = this.props;
-        const { setCustom } = this.state;
+        const { setCustom }: $TSFixMe = this.state;
 
         const {
             selectedProjects,
@@ -949,7 +949,7 @@ IncidentCommunicationSlaModal.propTypes = {
     fetchMonitors: PropTypes.func,
 };
 
-const IncidentSlaForm = reduxForm({
+const IncidentSlaForm: $TSFixMe = reduxForm({
     form: 'incidentSlaForm',
     enableReinitialize: false,
     validate,
@@ -967,10 +967,10 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const monitorData = state.monitor.monitorsList.monitors.find(
+    const monitorData: $TSFixMe = state.monitor.monitorsList.monitors.find(
         (data: $TSFixMe) => String(data._id) === String(ownProps.data.projectId)
     );
-    const monitors = monitorData ? monitorData.monitors : [];
+    const monitors: $TSFixMe = monitorData ? monitorData.monitors : [];
 
     return {
         createIncidentSlaModalId: state.modal.modals[0].id,

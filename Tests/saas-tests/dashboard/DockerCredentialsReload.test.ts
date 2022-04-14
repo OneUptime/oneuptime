@@ -8,9 +8,9 @@ const user: $TSFixMe = {
     password: '1234567890',
 };
 
-const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
-const dockerUsername = utils.dockerCredential.dockerUsername;
-const dockerPassword = utils.dockerCredential.dockerPassword;
+const dockerRegistryUrl: $TSFixMe = utils.dockerCredential.dockerRegistryUrl;
+const dockerUsername: $TSFixMe = utils.dockerCredential.dockerUsername;
+const dockerPassword: $TSFixMe = utils.dockerCredential.dockerPassword;
 
 /** This is a test to check:
  * No errors on page reload
@@ -18,7 +18,7 @@ const dockerPassword = utils.dockerCredential.dockerPassword;
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut: $TSFixMe = 100000;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(100000);
@@ -57,7 +57,7 @@ describe('OneUptime Page Reload', () => {
             await init.pageType(page, '#dockerPassword', dockerPassword);
 
             await init.pageClick(page, '#addCredentialModalBtn');
-            const spanElement = await page.waitForSelector(
+            const spanElement: $TSFixMe = await page.waitForSelector(
                 `#dockerUsername_${dockerUsername}`
             );
             expect(spanElement).toBeDefined();
@@ -67,7 +67,7 @@ describe('OneUptime Page Reload', () => {
             await page.waitForSelector('#cbDockerCredentials', {
                 visible: true,
             });
-            const spanElement2 = await page.waitForSelector(
+            const spanElement2: $TSFixMe = await page.waitForSelector(
                 `#dockerUsername_${dockerUsername}`
             );
             expect(spanElement2).toBeDefined();

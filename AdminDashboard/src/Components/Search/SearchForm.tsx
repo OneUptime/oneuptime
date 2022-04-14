@@ -44,7 +44,7 @@ const mapStateToProps: Function = () => {
     return {};
 };
 
-const SearchForm = reduxForm({
+const SearchForm: $TSFixMe = reduxForm({
     form: 'Search',
 })(Search);
 

@@ -15,7 +15,7 @@ export default class TableColumns extends Component<TableColumnsProps>{
 
     override render() {
 
-        const { columns } = this.props;
+        const { columns }: $TSFixMe = this.props;
 
         return (
             <thead className="Table-body">

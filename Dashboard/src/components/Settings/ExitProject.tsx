@@ -52,7 +52,7 @@ export class ExitProjectBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -110,13 +110,13 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId = User.getUserId();
-    const projectId =
+    const userId: $TSFixMe = User.getUserId();
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
 
-    const { projects } = state.project.projects;
+    const { projects }: $TSFixMe = state.project.projects;
 
-    const nextProject =
+    const nextProject: $TSFixMe =
         projects.length > 0
             ? projects.find(
                 (project: $TSFixMe) => project._id !== projectId &&
@@ -124,7 +124,7 @@ const mapStateToProps: Function = (state: RootState) => {
             )
             : null;
 
-    const isRequesting = state.project.exitProject.requesting;
+    const isRequesting: $TSFixMe = state.project.exitProject.requesting;
 
     return { projectId, userId, nextProject, isRequesting };
 };

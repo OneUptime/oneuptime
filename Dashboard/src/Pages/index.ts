@@ -1,70 +1,70 @@
 import { lazy } from 'react';
 
-const Home = lazy(() => import('./Home'));
+const Home = lazy((): $TSFixMe => import('./Home'));
 
-const Monitor = lazy(() => import('./Monitor'));
-const IncidentLog = lazy(() => import('./IncidentLog'));
-const Incident = lazy(() => import('./Incident'));
-const IncidentSettings = lazy(() => import('./IncidentSettings'));
-const MonitorSettings = lazy(() => import('./MonitorSettings'));
+const Monitor = lazy((): $TSFixMe => import('./Monitor'));
+const IncidentLog = lazy((): $TSFixMe => import('./IncidentLog'));
+const Incident = lazy((): $TSFixMe => import('./Incident'));
+const IncidentSettings = lazy((): $TSFixMe => import('./IncidentSettings'));
+const MonitorSettings = lazy((): $TSFixMe => import('./MonitorSettings'));
 
-const StatusPage = lazy(() => import('./StatusPage'));
-const StatusPagesList = lazy(() => import('./StatusPage/list'));
+const StatusPage = lazy((): $TSFixMe => import('./StatusPage'));
+const StatusPagesList = lazy((): $TSFixMe => import('./StatusPage/list'));
 
-const OnCall = lazy(() => import('./OnCall'));
-const AlertLog = lazy(() => import('./AlertLog'));
-const Schedule = lazy(() => import('./Schedule'));
+const OnCall = lazy((): $TSFixMe => import('./OnCall'));
+const AlertLog = lazy((): $TSFixMe => import('./AlertLog'));
+const Schedule = lazy((): $TSFixMe => import('./Schedule'));
 
-const ScheduledEvent = lazy(() => import('./ScheduledEvent'));
-const ScheduledEventDetail = lazy(() => import('./ScheduledEventDetail'));
+const ScheduledEvent = lazy((): $TSFixMe => import('./ScheduledEvent'));
+const ScheduledEventDetail = lazy((): $TSFixMe => import('./ScheduledEventDetail'));
 
-const ChangePassword = lazy(() => import('./ChangePassword'));
+const ChangePassword = lazy((): $TSFixMe => import('./ChangePassword'));
 
-const TeamMembers = lazy(() => import('./TeamMembers'));
-const TeamMemberProfile = lazy(() => import('./TeamMemberProfile'));
-const Profile = lazy(() => import('./Profile'));
-const Settings = lazy(() => import('./Settings'));
+const TeamMembers = lazy((): $TSFixMe => import('./TeamMembers'));
+const TeamMemberProfile = lazy((): $TSFixMe => import('./TeamMemberProfile'));
+const Profile = lazy((): $TSFixMe => import('./Profile'));
+const Settings = lazy((): $TSFixMe => import('./Settings'));
 
-const Billing = lazy(() => import('./Billing'));
-const Resources = lazy(() => import('./Resources'));
-const Component = lazy(() => import('./Component'));
-const Integrations = lazy(() => import('./Integrations'));
+const Billing = lazy((): $TSFixMe => import('./Billing'));
+const Resources = lazy((): $TSFixMe => import('./Resources'));
+const Component = lazy((): $TSFixMe => import('./Component'));
+const Integrations = lazy((): $TSFixMe => import('./Integrations'));
 
-const EmailTemplates = lazy(() => import('./EmailTemplates'));
-const SmsTemplates = lazy(() => import('./SmsTemplates'));
+const EmailTemplates = lazy((): $TSFixMe => import('./EmailTemplates'));
+const SmsTemplates = lazy((): $TSFixMe => import('./SmsTemplates'));
 
-const MonitorView = lazy(() => import('./MonitorView'));
-const WebsiteMonitorIssues = lazy(() => import('./WebsiteMonitorIssues'));
-const Reports = lazy(() => import('./Reports'));
+const MonitorView = lazy((): $TSFixMe => import('./MonitorView'));
+const WebsiteMonitorIssues = lazy((): $TSFixMe => import('./WebsiteMonitorIssues'));
+const Reports = lazy((): $TSFixMe => import('./Reports'));
 
-const Probe = lazy(() => import('./Probe'));
-const ProfileBilling = lazy(() => import('./ProfileBilling'));
+const Probe = lazy((): $TSFixMe => import('./Probe'));
+const ProfileBilling = lazy((): $TSFixMe => import('./ProfileBilling'));
 
-const ApplicationLog = lazy(() => import('./ApplicationLog'));
-const ApplicationLogView = lazy(() => import('./ApplicationLogView'));
-const Container = lazy(() => import('./Container'));
-const Application = lazy(() => import('./Application'));
-const ApplicationDetail = lazy(() => import('./ApplicationDetail'));
-const ContainerDetail = lazy(() => import('./ContainerDetail'));
-const GitCredential = lazy(() => import('./GitCredential'));
-const DockerCredential = lazy(() => import('./DockerCredential'));
-const OneUptimeApi = lazy(() => import('./OneUptimeApi'));
-const ChangePasswordSetting = lazy(() => import('./ChangePasswordSetting'));
-const DeleteAccountPage = lazy(() => import('./DeleteAccountPage'));
-const Consulting = lazy(() => import('./Consulting'));
-const ErrorTracking = lazy(() => import('./ErrorTracking'));
-const Advanced = lazy(() => import('./Advanced'));
-const ComponentSettings = lazy(() => import('./ComponentSettings'));
-const ComponentSettingsAdvanced = lazy(
+const ApplicationLog = lazy((): $TSFixMe => import('./ApplicationLog'));
+const ApplicationLogView = lazy((): $TSFixMe => import('./ApplicationLogView'));
+const Container = lazy((): $TSFixMe => import('./Container'));
+const Application = lazy((): $TSFixMe => import('./Application'));
+const ApplicationDetail = lazy((): $TSFixMe => import('./ApplicationDetail'));
+const ContainerDetail = lazy((): $TSFixMe => import('./ContainerDetail'));
+const GitCredential = lazy((): $TSFixMe => import('./GitCredential'));
+const DockerCredential = lazy((): $TSFixMe => import('./DockerCredential'));
+const OneUptimeApi = lazy((): $TSFixMe => import('./OneUptimeApi'));
+const ChangePasswordSetting = lazy((): $TSFixMe => import('./ChangePasswordSetting'));
+const DeleteAccountPage = lazy((): $TSFixMe => import('./DeleteAccountPage'));
+const Consulting = lazy((): $TSFixMe => import('./Consulting'));
+const ErrorTracking = lazy((): $TSFixMe => import('./ErrorTracking'));
+const Advanced = lazy((): $TSFixMe => import('./Advanced'));
+const ComponentSettings = lazy((): $TSFixMe => import('./ComponentSettings'));
+const ComponentSettingsAdvanced: $TSFixMe = lazy(
     () => import('./ComponentSettingsAdvanced')
 );
-const CallRouting = lazy(() => import('./CallRouting'));
-const DomainSettings = lazy(() => import('./DomainSettings'));
-const Groups = lazy(() => import('./Group'));
-const PerformanceTrackerView = lazy(() => import('./PerformanceTrackerView'));
-const PerformanceTracker = lazy(() => import('./PerformanceTracker'));
-const AutomationScript = lazy(() => import('./AutomationScript'));
-const SsoPage = lazy(() => import('./Sso'));
+const CallRouting = lazy((): $TSFixMe => import('./CallRouting'));
+const DomainSettings = lazy((): $TSFixMe => import('./DomainSettings'));
+const Groups = lazy((): $TSFixMe => import('./Group'));
+const PerformanceTrackerView = lazy((): $TSFixMe => import('./PerformanceTrackerView'));
+const PerformanceTracker = lazy((): $TSFixMe => import('./PerformanceTracker'));
+const AutomationScript = lazy((): $TSFixMe => import('./AutomationScript'));
+const SsoPage = lazy((): $TSFixMe => import('./Sso'));
 
 export default {
     ChangePassword,

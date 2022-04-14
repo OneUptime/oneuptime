@@ -9,7 +9,7 @@ import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 import AuditLogsService from '../backend/services/auditLogsService';
 import UserService from '../backend/services/userService';

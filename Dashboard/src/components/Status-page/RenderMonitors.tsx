@@ -4,7 +4,7 @@ import { RenderMonitor } from './RenderMonitor';
 
 import { Draggable } from 'react-beautiful-dnd';
 
-const grid = 8;
+const grid: $TSFixMe = 8;
 
 const getItemStyle: Function = (isDragging: $TSFixMe, draggableStyle: $TSFixMe) => {
     return {

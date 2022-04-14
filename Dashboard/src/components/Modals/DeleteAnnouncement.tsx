@@ -78,7 +78,7 @@ class DeleteAnnouncement extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeThisDialog, isRequesting, deleteError } = this.props;
+        const { closeThisDialog, isRequesting, deleteError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

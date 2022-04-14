@@ -3,8 +3,8 @@ import express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 import IntegrationService from '../services/integrationService';
-const getUser = require('../middlewares/user').getUser;
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 import {
     sendErrorResponse,
     sendListResponse,
@@ -12,7 +12,7 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.post(
     '/:projectId/create',
@@ -20,23 +20,23 @@ router.post(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const projectId = req.params.projectId;
-            const body = req.body;
+            const projectId: $TSFixMe = req.params.projectId;
+            const body: $TSFixMe = req.body;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
-            const monitors = body.monitors;
-            const endpoint = body.endpoint;
-            const webHookName = body.webHookName;
-            const endpointType = body.endpointType;
-            const incidentCreated = body.incidentCreated;
-            const incidentResolved = body.incidentResolved;
-            const incidentAcknowledged = body.incidentAcknowledged;
-            const incidentNoteAdded = body.incidentNoteAdded;
-            const integrationType = body.type;
-            const select =
+            const monitors: $TSFixMe = body.monitors;
+            const endpoint: $TSFixMe = body.endpoint;
+            const webHookName: $TSFixMe = body.webHookName;
+            const endpointType: $TSFixMe = body.endpointType;
+            const incidentCreated: $TSFixMe = body.incidentCreated;
+            const incidentResolved: $TSFixMe = body.incidentResolved;
+            const incidentAcknowledged: $TSFixMe = body.incidentAcknowledged;
+            const incidentNoteAdded: $TSFixMe = body.incidentNoteAdded;
+            const integrationType: $TSFixMe = body.type;
+            const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 { path: 'projectId', select: 'name' },
                 {
@@ -86,7 +86,7 @@ router.post(
                     deleted: { $ne: null },
                 };
 
-                const existingName = await IntegrationService.findOneBy({
+                const existingName: $TSFixMe = await IntegrationService.findOneBy({
                     query,
                     select,
                     populate,
@@ -100,7 +100,7 @@ router.post(
                 }
             }
 
-            const existingWebhook = await IntegrationService.findOneBy({
+            const existingWebhook: $TSFixMe = await IntegrationService.findOneBy({
                 query: {
                     'data.endpoint': endpoint,
                     'data.endpointType': endpointType,
@@ -131,7 +131,7 @@ router.post(
                 incidentNoteAdded,
             };
 
-            const webhook = await IntegrationService.create(
+            const webhook: $TSFixMe = await IntegrationService.create(
                 projectId,
                 userId,
                 data,
@@ -152,15 +152,15 @@ router.put(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const data = req.body;
-            const integrationId = req.params.integrationId;
+            const data: $TSFixMe = req.body;
+            const integrationId: $TSFixMe = req.params.integrationId;
             data.projectId = req.params.projectId;
 
             data.userId = req.user ? req.user.id : null;
             data._id = integrationId;
-            const select =
+            const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 { path: 'projectId', select: 'name' },
                 {
@@ -205,7 +205,7 @@ router.put(
                         message: 'name missing in body, must be present',
                     });
                 }
-                const existingName = await IntegrationService.findOneBy({
+                const existingName: $TSFixMe = await IntegrationService.findOneBy({
                     query: {
                         monitorId: data.monitorId,
                         webHookName: data.webHookName,
@@ -234,7 +234,7 @@ router.put(
                     monitorId: monitor,
                 }));
 
-            const existingWebhook = await IntegrationService.findOneBy({
+            const existingWebhook: $TSFixMe = await IntegrationService.findOneBy({
                 query: {
                     _id: data._id, // If the data to be updated changes, it returns null as it does not exist in the DB. Quering by _id and deleted returns the correct value
                     deleted: { $ne: null },
@@ -252,7 +252,7 @@ router.put(
                 });
             }
 
-            const webhook = await IntegrationService.updateOneBy(
+            const webhook: $TSFixMe = await IntegrationService.updateOneBy(
                 { _id: integrationId },
                 data
             );
@@ -270,11 +270,11 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const integrationId = req.params.integrationId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const integrationId: $TSFixMe = req.params.integrationId;
 
-            const userId = req.user ? req.user.id : null;
-            const data = await IntegrationService.deleteBy(
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const data: $TSFixMe = await IntegrationService.deleteBy(
                 { _id: integrationId, projectId: projectId },
                 userId
             );
@@ -291,11 +291,11 @@ router.get(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const integrationType = req.query.type || 'webhook';
-            const select =
+            const projectId: $TSFixMe = req.params.projectId;
+            const integrationType: $TSFixMe = req.query.type || 'webhook';
+            const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 { path: 'projectId', select: 'name' },
                 {
@@ -304,7 +304,7 @@ router.get(
                     populate: [{ path: 'componentId', select: 'name' }],
                 },
             ];
-            const integrations = await IntegrationService.findBy({
+            const integrations: $TSFixMe = await IntegrationService.findBy({
                 query: {
                     projectId: projectId,
                     integrationType: integrationType,
@@ -314,7 +314,7 @@ router.get(
                 select,
                 populate,
             });
-            const count = await IntegrationService.countBy({
+            const count: $TSFixMe = await IntegrationService.countBy({
                 projectId: projectId,
                 integrationType: integrationType,
             });
@@ -331,11 +331,11 @@ router.get(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // const projectId = req.params.projectId;
-            const integrationType = req.query.type || 'webhook';
-            const select =
+            // const projectId: $TSFixMe = req.params.projectId;
+            const integrationType: $TSFixMe = req.query.type || 'webhook';
+            const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 { path: 'projectId', select: 'name' },
                 {
@@ -345,8 +345,8 @@ router.get(
                 },
             ];
 
-            const { monitorId } = req.params;
-            const integrations = await IntegrationService.findBy({
+            const { monitorId }: $TSFixMe = req.params;
+            const integrations: $TSFixMe = await IntegrationService.findBy({
                 query: {
                     'monitors.monitorId': { $in: [monitorId] },
                     integrationType: integrationType,
@@ -356,7 +356,7 @@ router.get(
                 select,
                 populate,
             });
-            const count = await IntegrationService.countBy({
+            const count: $TSFixMe = await IntegrationService.countBy({
                 'monitors.monitorId': { $in: [monitorId] },
                 integrationType: integrationType,
             });

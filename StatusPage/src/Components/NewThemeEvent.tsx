@@ -103,10 +103,10 @@ class NewThemeEvent extends Component<ComponentProps> {
         const checkDuplicateDates: Function = (items: $TSFixMe) => {
             const track: $TSFixMe = {};
 
-            const result = [];
+            const result: $TSFixMe = [];
 
             for (const item of items) {
-                const date = String(item.createdAt).slice(0, 10);
+                const date: $TSFixMe = String(item.createdAt).slice(0, 10);
 
 
                 if (!track[date]) {
@@ -124,7 +124,7 @@ class NewThemeEvent extends Component<ComponentProps> {
         };
 
         const formatMsg: Function = (data: $TSFixMe) => {
-            const result = data.reduce(function (r: $TSFixMe, a: $TSFixMe) {
+            const result: $TSFixMe = data.reduce(function (r: $TSFixMe, a: $TSFixMe) {
                 r[a.event_state] = r[a.event_state] || [];
                 r[a.event_state].push(a);
                 return r;
@@ -134,16 +134,16 @@ class NewThemeEvent extends Component<ComponentProps> {
         };
 
 
-        const data = this.props.filteredEvents.success
+        const data: $TSFixMe = this.props.filteredEvents.success
 
             ? this.props.filteredEvents.events
 
             : this.props.events;
 
 
-        const noteBackgroundColor = this.props.noteBackgroundColor;
+        const noteBackgroundColor: $TSFixMe = this.props.noteBackgroundColor;
 
-        const currentTime = moment();
+        const currentTime: $TSFixMe = moment();
 
         return data && data.length > 0 ? (
             checkDuplicateDates(data).map((event, i) => {
@@ -449,17 +449,17 @@ NewThemeEvent.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { type } = ownProps;
-    const futureEvents = state.status.futureEvents.events;
-    const pastEvents = state.status.pastEvents.events;
-    const ongoing =
+    const { type }: $TSFixMe = ownProps;
+    const futureEvents: $TSFixMe = state.status.futureEvents.events;
+    const pastEvents: $TSFixMe = state.status.pastEvents.events;
+    const ongoing: $TSFixMe =
         state.status &&
         state.status.ongoing &&
         state.status.ongoing.ongoing &&
         state.status.ongoing.ongoing.filter(
             (ongoingSchedule: $TSFixMe) => !ongoingSchedule.cancelled
         );
-    const events =
+    const events: $TSFixMe =
         type === 'future'
             ? futureEvents
             : type === 'past'

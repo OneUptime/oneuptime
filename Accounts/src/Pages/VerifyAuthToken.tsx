@@ -34,7 +34,7 @@ export class VerifyAuthToken extends Component<VerifyAuthTokenProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const email = this.props.login.user.email;
+        const email: $TSFixMe = this.props.login.user.email;
 
         this.props.verifyAuthToken({ ...values, email });
     };
@@ -45,7 +45,7 @@ export class VerifyAuthToken extends Component<VerifyAuthTokenProps>{
 
             window.location.href = ACCOUNTS_URL + '/login';
 
-        const { error } = this.props.login.authToken;
+        const { error }: $TSFixMe = this.props.login.authToken;
         let header;
 
         if (error) {
@@ -164,7 +164,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const verifyAuthTokenForm = reduxForm({
+const verifyAuthTokenForm: $TSFixMe = reduxForm({
     form: 'verifyAuthToken',
     validate,
 })(VerifyAuthToken);

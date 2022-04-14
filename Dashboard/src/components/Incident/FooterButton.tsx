@@ -17,7 +17,7 @@ interface FooterButtonProps {
 }
 
 const FooterButton: Function = (props: FooterButtonProps) => {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading]: $TSFixMe = useState(false);
     return (
         <>
             <button

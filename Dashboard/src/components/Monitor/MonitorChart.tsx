@@ -19,17 +19,17 @@ import KubeDeployment from '../modals/KubeDeployment';
 import DataPathHoC from '../DataPathHoC';
 
 const calculateTime: Function = (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) => {
-    const timeBlock = [];
+    const timeBlock: $TSFixMe = [];
     let totalUptime = 0;
     let totalTime = 0;
 
     let dayStart = moment(start).startOf('day');
 
-    const reversedStatuses = statuses.slice().reverse();
+    const reversedStatuses: $TSFixMe = statuses.slice().reverse();
 
     for (let i = 0; i < range; i++) {
-        const dayStartIn = dayStart;
-        const dayEnd =
+        const dayStartIn: $TSFixMe = dayStart;
+        const dayEnd: $TSFixMe =
             i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
 
         const timeObj: $TSFixMe = {
@@ -65,12 +65,12 @@ const calculateTime: Function = (statuses: $TSFixMe, start: $TSFixMe, range: $TS
                 moment(monitorStatus.startTime).isBefore(dayEnd) &&
                 moment(monitorStatus.endTime).isAfter(dayStartIn)
             ) {
-                const start = moment(monitorStatus.startTime).isBefore(
+                const start: $TSFixMe = moment(monitorStatus.startTime).isBefore(
                     dayStartIn
                 )
                     ? dayStartIn
                     : moment(monitorStatus.startTime);
-                const end = moment(monitorStatus.endTime).isAfter(dayEnd)
+                const end: $TSFixMe = moment(monitorStatus.endTime).isAfter(dayEnd)
                     ? dayEnd
                     : moment(monitorStatus.endTime);
                 incidentsHappenedDuringTheDay.push({
@@ -91,17 +91,17 @@ const calculateTime: Function = (statuses: $TSFixMe, start: $TSFixMe, range: $TS
         );
         //Third step
         for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
-            const firstIncidentIndex = i;
-            const nextIncidentIndex = i + 1;
-            const firstIncident =
+            const firstIncidentIndex: $TSFixMe = i;
+            const nextIncidentIndex: $TSFixMe = i + 1;
+            const firstIncident: $TSFixMe =
                 incidentsHappenedDuringTheDay[firstIncidentIndex];
-            const nextIncident =
+            const nextIncident: $TSFixMe =
                 incidentsHappenedDuringTheDay[nextIncidentIndex];
             if (moment(firstIncident.end).isSameOrBefore(nextIncident.start))
                 continue;
 
             if (firstIncident.status === nextIncident.status) {
-                const end = moment(firstIncident.end).isAfter(nextIncident.end)
+                const end: $TSFixMe = moment(firstIncident.end).isAfter(nextIncident.end)
                     ? firstIncident.end
                     : nextIncident.end;
                 firstIncident.end = end;
@@ -181,7 +181,7 @@ const calculateTime: Function = (statuses: $TSFixMe, start: $TSFixMe, range: $TS
         );
         //Last step
         for (const incident of incidentsHappenedDuringTheDay) {
-            const { start, end, status } = incident;
+            const { start, end, status }: $TSFixMe = incident;
             if (status === 'offline') {
                 timeObj.downTime =
                     timeObj.downTime + end.diff(start, 'seconds');
@@ -238,40 +238,40 @@ export function MonitorChart({
     requesting,
     openModal
 }: MonitorChartProps) {
-    const [now, setNow] = useState(Date.now());
-    const [kubeMonitoring] = useState(true);
+    const [now, setNow]: $TSFixMe = useState(Date.now());
+    const [kubeMonitoring]: $TSFixMe = useState(true);
 
-    const activeProbeObj =
+    const activeProbeObj: $TSFixMe =
         probes && probes.length > 0 && probes[activeProbe || 0]
             ? probes[activeProbe || 0]
             : null;
-    const lastAlive =
+    const lastAlive: $TSFixMe =
         activeProbeObj && activeProbeObj.lastAlive
             ? activeProbeObj.lastAlive
             : null;
 
-    const range = moment(end).diff(moment(start), 'days');
-    const { timeBlock, uptimePercent } =
+    const range: $TSFixMe = moment(end).diff(moment(start), 'days');
+    const { timeBlock, uptimePercent }: $TSFixMe =
         statuses && statuses.length > 0
             ? calculateTime(statuses, end, range)
             : calculateTime([], end, range);
 
-    const type = monitor.type;
-    const checkLogs = data && data.length > 0;
+    const type: $TSFixMe = monitor.type;
+    const checkLogs: $TSFixMe = data && data.length > 0;
 
-    const lighthouseLog = monitor.currentLighthouseLog;
+    const lighthouseLog: $TSFixMe = monitor.currentLighthouseLog;
 
-    const sslCertificate = checkLogs ? data[0].sslCertificate : null;
-    const sslCertExpiringIn = moment(
+    const sslCertificate: $TSFixMe = checkLogs ? data[0].sslCertificate : null;
+    const sslCertExpiringIn: $TSFixMe = moment(
         new Date(
             sslCertificate && sslCertificate.expires
                 ? sslCertificate.expires
                 : now
         ).getTime()
     ).diff(now, 'days');
-    const responseTime = checkLogs ? data[0].responseTime : '0';
-    const monitorStatus = toPascalCase(checkLogs ? data[0].status : status);
-    const uptime =
+    const responseTime: $TSFixMe = checkLogs ? data[0].responseTime : '0';
+    const monitorStatus: $TSFixMe = toPascalCase(checkLogs ? data[0].status : status);
+    const uptime: $TSFixMe =
         uptimePercent !== 100 && !isNaN(uptimePercent)
             ? uptimePercent.toFixed(3)
             : '100';
@@ -279,7 +279,7 @@ export function MonitorChart({
     useEffect(() => {
         setNow(Date.now());
 
-        const nowHandler = setTimeout(() => {
+        const nowHandler = setTimeout((): $TSFixMe => {
             setNow(Date.now());
         }, 300000);
 
@@ -288,7 +288,7 @@ export function MonitorChart({
         };
     }, [lastAlive]);
 
-    const block = [];
+    const block: $TSFixMe = [];
     for (let i = 0; i < range; i++) {
 
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
@@ -397,10 +397,10 @@ export function MonitorChart({
         });
     }
 
-    const isCurrentlyNotMonitoring =
+    const isCurrentlyNotMonitoring: $TSFixMe =
         (lastAlive && moment(now).diff(moment(lastAlive), 'seconds') >= 300) ||
         !lastAlive;
-    const isDisabled = monitor && monitor.disabled;
+    const isDisabled: $TSFixMe = monitor && monitor.disabled;
     let monitorInfo;
     if (isDisabled) {
         monitorInfo = (

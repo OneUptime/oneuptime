@@ -160,7 +160,7 @@ export default {
     },
 
     getPlanById(id: $TSFixMe) {
-        const plans = this.getPlans();
+        const plans: $TSFixMe = this.getPlans();
         if (id) {
             return plans.find(plan => plan.planId === id) || null;
         } else {
@@ -169,7 +169,7 @@ export default {
     },
 
     getPlanByExtraUserId(id: $TSFixMe) {
-        const plans = this.getPlans();
+        const plans: $TSFixMe = this.getPlans();
         if (id) {
             return plans.find(plan => plan.extraUserPlanId === id) || null;
         } else {

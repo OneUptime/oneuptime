@@ -25,9 +25,9 @@ export const EXPORT_CSV_REQUEST: string = 'subscriber/EXPORT_CSV_REQUEST';
 export const EXPORT_CSV_RESET: string = 'subscriber/EXPORT_CSV_RESET';
 
 // Download CSV template
-export const DOWNLOAD_CSV_TEMPLATE_SUCCESS =
+export const DOWNLOAD_CSV_TEMPLATE_SUCCESS: $TSFixMe =
     'subscriber/DOWNLOAD_CSV_TEMPLATE_SUCCESS';
-export const DOWNLOAD_CSV_TEMPLATE_FAILED =
+export const DOWNLOAD_CSV_TEMPLATE_FAILED: $TSFixMe =
     'subscriber/DOWNLOAD_CSV_TEMPLATE_FAILED';
-export const DOWNLOAD_CSV_TEMPLATE_REQUEST =
+export const DOWNLOAD_CSV_TEMPLATE_REQUEST: $TSFixMe =
     'subscriber/DOWNLOAD_CSV_TEMPLATE_REQUEST';

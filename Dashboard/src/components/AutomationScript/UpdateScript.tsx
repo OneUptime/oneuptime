@@ -20,7 +20,7 @@ import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-github';
 import DropDownMenu from '../basic/DropDownMenu';
 
-const defaultScript =
+const defaultScript: $TSFixMe =
     '// To inspect your script or add comments, use logger.info\n\n' +
     'async function (done) {\n' +
     '   // write any javascript here \n' +
@@ -57,7 +57,7 @@ class UpdateScript extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const projectId = this.props.activeProject;
+        const projectId: $TSFixMe = this.props.activeProject;
         if (projectId) {
 
             this.props.fetchAutomatedScript(projectId, 0, 10);
@@ -81,7 +81,7 @@ class UpdateScript extends Component<ComponentProps> {
         values.successEvent = successEvent;
         values.failureEvent = failureEvent;
         const successEventIds = successEvent.map((data: $TSFixMe) => data.resource);
-        const isSuccessDuplicate = values.successEvent
+        const isSuccessDuplicate: $TSFixMe = values.successEvent
             ? values.successEvent.length === new Set(successEventIds).size
                 ? false
                 : true
@@ -95,7 +95,7 @@ class UpdateScript extends Component<ComponentProps> {
         }
 
         const failureEventIds = failureEvent.map((data: $TSFixMe) => data.resource);
-        const isFailureDuplicate = values.failureEvent
+        const isFailureDuplicate: $TSFixMe = values.failureEvent
             ? values.failureEvent.length === new Set(failureEventIds).size
                 ? false
                 : true
@@ -109,14 +109,14 @@ class UpdateScript extends Component<ComponentProps> {
         }
 
 
-        const { type, script } = this.state;
+        const { type, script }: $TSFixMe = this.state;
         const {
 
             activeProject,
 
             details: { _id, slug },
         } = this.props;
-        const automatedScriptId = _id;
+        const automatedScriptId: $TSFixMe = _id;
         const payload: $TSFixMe = { ...values, scriptType: type, script };
         this.props
 
@@ -136,17 +136,17 @@ class UpdateScript extends Component<ComponentProps> {
         fields
     }: $TSFixMe) => {
 
-        const { script, schedules, successEventValues } = this.props;
+        const { script, schedules, successEventValues }: $TSFixMe = this.props;
 
-        const currentScript = this.props.details._id;
-        const scheduleOption =
+        const currentScript: $TSFixMe = this.props.details._id;
+        const scheduleOption: $TSFixMe =
             schedules && schedules.length > 0
                 ? schedules.map((schedule: $TSFixMe) => ({
                     value: schedule._id,
                     label: schedule.name
                 }))
                 : [];
-        const scriptOption =
+        const scriptOption: $TSFixMe =
             script && script.length > 0
                 ? script
                     .filter((s: $TSFixMe) => s._id !== currentScript)
@@ -160,7 +160,7 @@ class UpdateScript extends Component<ComponentProps> {
         }
         return <>
             {fields.map((field: $TSFixMe, index: $TSFixMe) => {
-                const optionObj =
+                const optionObj: $TSFixMe =
                     successEventValues &&
                         successEventValues[index] &&
                         successEventValues[index].type === 'callSchedule'
@@ -292,17 +292,17 @@ class UpdateScript extends Component<ComponentProps> {
         fields
     }: $TSFixMe) => {
 
-        const { script, schedules, failureEventValues } = this.props;
+        const { script, schedules, failureEventValues }: $TSFixMe = this.props;
 
-        const currentScript = this.props.details._id;
-        const scheduleOption =
+        const currentScript: $TSFixMe = this.props.details._id;
+        const scheduleOption: $TSFixMe =
             schedules && schedules.length > 0
                 ? schedules.map((schedule: $TSFixMe) => ({
                     value: schedule._id,
                     label: schedule.name
                 }))
                 : [];
-        const scriptOption =
+        const scriptOption: $TSFixMe =
             script && script.length > 0
                 ? script
                     .filter((s: $TSFixMe) => s._id !== currentScript)
@@ -316,7 +316,7 @@ class UpdateScript extends Component<ComponentProps> {
         }
         return <>
             {fields.map((field: $TSFixMe, index: $TSFixMe) => {
-                const optionObj =
+                const optionObj: $TSFixMe =
                     failureEventValues &&
                         failureEventValues[index] &&
                         failureEventValues[index].type === 'callSchedule'
@@ -446,7 +446,7 @@ class UpdateScript extends Component<ComponentProps> {
 
     override render() {
 
-        const { addScriptsError, requesting } = this.props;
+        const { addScriptsError, requesting }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -823,7 +823,7 @@ class UpdateScript extends Component<ComponentProps> {
 
 UpdateScript.displayName = 'UpdateScript';
 
-const UpdateScriptForm = new reduxForm({
+const UpdateScriptForm: $TSFixMe = new reduxForm({
     form: 'newScript',
     destroyOnUnmount: true,
     enableReinitialize: true,

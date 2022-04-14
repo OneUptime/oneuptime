@@ -8,7 +8,7 @@ import { connect } from 'react-redux';
 import AceCodeEditor from '../basic/AceCodeEditor';
 
 function renderLibraries() {
-    const list = logLibraries.getLibraries().map(library => {
+    const list = logLibraries.getLibraries().map(library: $TSFixMe => {
         return (
             <a
                 target="_blank"
@@ -37,10 +37,10 @@ function renderLanguageQuickStart(
     applicationLog: $TSFixMe,
     setShow: $TSFixMe
 ) {
-    const currentLibrary = logLibraries
+    const currentLibrary: $TSFixMe = logLibraries
         .getQuickStarts(errorTracker, applicationLog)
         .filter(quickStart => quickStart.id === library);
-    const libraryDoc = currentLibrary[0]
+    const libraryDoc: $TSFixMe = currentLibrary[0]
 
         ? currentLibrary[0][type]
 
@@ -238,7 +238,7 @@ const LibraryList: Function = ({
 );
 
 LibraryList.displayName = 'LibraryList';
-const LibraryListForm = new reduxForm({
+const LibraryListForm: $TSFixMe = new reduxForm({
     form: 'QuickStart',
     destroyOnUnmount: true,
     enableReinitialize: true,

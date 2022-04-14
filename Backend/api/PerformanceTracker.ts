@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import NotificationService from '../services/notificationService';
 import PerformanceTrackerService from '../services/performanceTrackerService';
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
@@ -16,10 +16,10 @@ import {
 import Exception from 'Common/Types/Exception/Exception';
 
 import { sendListResponse } from 'CommonServer/Utils/response';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 
 import uuid from 'uuid';
 
@@ -34,8 +34,8 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const { componentId } = req.params;
+            const data: $TSFixMe = req.body;
+            const { componentId }: $TSFixMe = req.params;
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -53,7 +53,7 @@ router.post(
 
             data.componentId = componentId;
 
-            const performanceTracker = await PerformanceTrackerService.create(
+            const performanceTracker: $TSFixMe = await PerformanceTrackerService.create(
                 data
             );
 
@@ -81,15 +81,15 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { componentId } = req.params;
-            const { limit, skip } = req.query;
+            const { componentId }: $TSFixMe = req.params;
+            const { limit, skip }: $TSFixMe = req.query;
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: "Component ID can't be null",
                 });
             }
-            const [performanceTracker, count] = await Promise.all([
+            const [performanceTracker, count]: $TSFixMe = await Promise.all([
                 PerformanceTrackerService.getPerformanceTrackerByComponentId(
                     componentId,
                     limit || 0,
@@ -110,13 +110,13 @@ router.get(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { performanceTrackerId } = req.params;
-        const { slug } = req.query;
+        const { performanceTrackerId }: $TSFixMe = req.params;
+        const { slug }: $TSFixMe = req.query;
         try {
             let performanceTracker = null;
-            const select =
+            const select: $TSFixMe =
                 'componentId name slug key showQuickStart createdById';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'createdById', select: 'name email' },
                 {
                     path: 'componentId',
@@ -137,7 +137,7 @@ router.get(
                     populate,
                 });
             } else {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify the performance tracker ID or attach the slug as a query parameter'
                 );
 
@@ -158,9 +158,9 @@ router.delete(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { performanceTrackerId } = req.params;
+        const { performanceTrackerId }: $TSFixMe = req.params;
         try {
-            const performanceTracker = await PerformanceTrackerService.deleteBy(
+            const performanceTracker: $TSFixMe = await PerformanceTrackerService.deleteBy(
                 {
                     _id: performanceTrackerId,
                 },
@@ -188,11 +188,11 @@ router.put(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { performanceTrackerId } = req.params;
+        const { performanceTrackerId }: $TSFixMe = req.params;
 
         const select: string =
             'componentId name slug key showQuickStart createdById';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name email' },
             {
                 path: 'componentId',
@@ -200,7 +200,7 @@ router.put(
                 populate: { path: 'projectId', select: 'name slug' },
             },
         ];
-        const currentPerformanceTracker =
+        const currentPerformanceTracker: $TSFixMe =
             await PerformanceTrackerService.findOneBy({
                 query: { _id: performanceTrackerId },
                 select,
@@ -218,7 +218,7 @@ router.put(
         };
 
         try {
-            const performanceTracker =
+            const performanceTracker: $TSFixMe =
                 await PerformanceTrackerService.updateOneBy(
                     { _id: currentPerformanceTracker._id },
                     data
@@ -236,9 +236,9 @@ router.put(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { performanceTrackerId } = req.params;
+        const { performanceTrackerId }: $TSFixMe = req.params;
 
-        const currentPerformanceTracker =
+        const currentPerformanceTracker: $TSFixMe =
             await PerformanceTrackerService.findOneBy({
                 query: { _id: performanceTrackerId },
                 select: '_id',
@@ -255,7 +255,7 @@ router.put(
         };
 
         try {
-            const performanceTracker =
+            const performanceTracker: $TSFixMe =
                 await PerformanceTrackerService.updateOneBy(
                     { _id: currentPerformanceTracker._id },
                     data
@@ -274,8 +274,8 @@ router.put(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { performanceTrackerId, componentId } = req.params;
-        const data = req.body;
+        const { performanceTrackerId, componentId }: $TSFixMe = req.params;
+        const data: $TSFixMe = req.body;
 
         if (!data) {
             return sendErrorResponse(req, res, {
@@ -292,7 +292,7 @@ router.put(
             );
         }
 
-        const currentPerformanceTracker =
+        const currentPerformanceTracker: $TSFixMe =
             await PerformanceTrackerService.findOneBy({
                 query: { _id: performanceTrackerId },
                 select: '_id',
@@ -305,7 +305,7 @@ router.put(
         }
 
         // try to find in the performance tracker if the name already exist for that component
-        const existingPerformanceTracker =
+        const existingPerformanceTracker: $TSFixMe =
             await PerformanceTrackerService.findBy({
                 query: { name: data.name, componentId: { $ne: componentId } },
                 select: '_id',
@@ -334,7 +334,7 @@ router.put(
         }
 
         try {
-            const performanceTracker =
+            const performanceTracker: $TSFixMe =
                 await PerformanceTrackerService.updateOneBy(
                     { _id: currentPerformanceTracker._id },
                     performanceTrackerData
@@ -354,7 +354,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { performanceTrackerId } = req.params;
+            const { performanceTrackerId }: $TSFixMe = req.params;
             let { startDate, endDate } = req.query;
 
             startDate = decode(startDate);
@@ -363,7 +363,7 @@ router.get(
 
             // get each of the individual metrics
             // for web transaction, throughput and error rate
-            const [time, throughput, errorRate] = await Promise.all([
+            const [time, throughput, errorRate]: $TSFixMe = await Promise.all([
                 PerformanceTrackerMetricService.structureMetricsTime(
                     performanceTrackerId,
                     startDate,

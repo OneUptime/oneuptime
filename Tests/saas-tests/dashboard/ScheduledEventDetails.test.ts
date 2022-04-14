@@ -4,13 +4,13 @@ import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
-const anotherEmail = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const anotherEmail: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
-const scheduledEventName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const scheduledEventName: $TSFixMe = utils.generateRandomString();
 
 const user: $TSFixMe = {
     email,
@@ -19,7 +19,7 @@ const user: $TSFixMe = {
 import 'should';
 
 describe('Scheduled Event Note', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -109,7 +109,7 @@ describe('Scheduled Event Note', () => {
                 '#form-new-schedule-investigation-message',
                 { hidden: true }
             );
-            const note = await init.pageWaitForSelector(
+            const note: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#Internal_incident_message_0',
                 { visible: true, timeout: init.timeout }
@@ -172,7 +172,7 @@ describe('Scheduled Event Note', () => {
                 '#form-update-schedule-internal-message',
                 { hidden: true }
             );
-            const edited = await init.pageWaitForSelector(
+            const edited: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#edited_Internal_incident_message_0',
                 { visible: true, timeout: init.timeout }
@@ -225,7 +225,7 @@ describe('Scheduled Event Note', () => {
                 hidden: true,
             });
 
-            const note = await init.pageWaitForSelector(
+            const note: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#delete_Internal_incident_message_0',
                 { hidden: true }
@@ -239,7 +239,7 @@ describe('Scheduled Event Note', () => {
 });
 
 describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(1000000); // This requires custom timeout
@@ -267,7 +267,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         );
         // create multiple notes
         for (let i = 0; i < 15; i++) {
-            const noteDescription = utils.generateRandomString();
+            const noteDescription: $TSFixMe = utils.generateRandomString();
             await init.addScheduledMaintenanceNote(
                 page,
                 'internal',
@@ -306,7 +306,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             // navigate to the note tab section
 
             await init.pageClick(page, '.timeline-tab');
-            const tenthItem = await init.pageWaitForSelector(
+            const tenthItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#Internal_incident_message_9',
                 { visible: true, timeout: init.timeout }
@@ -346,12 +346,12 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
 
             await init.pageClick(page, '#nextBtn');
 
-            const fifthItem = await init.pageWaitForSelector(
+            const fifthItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#Internal_incident_message_4',
                 { visible: true, timeout: init.timeout }
             );
-            const sixthItem = await init.pageWaitForSelector(
+            const sixthItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#Internal_incident_message_5',
                 { hidden: true }
@@ -406,7 +406,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 hidden: true,
             });
-            const scheduledEventList = await init.pageWaitForSelector(
+            const scheduledEventList: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '.scheduled-event-list-item',
                 {

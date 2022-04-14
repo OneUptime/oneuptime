@@ -19,7 +19,7 @@ export default class TableItem extends Component<TableItemProps>{
 
     override render() {
 
-        const { item, columns, onClick, actionButtons } = this.props;
+        const { item, columns, onClick, actionButtons }: $TSFixMe = this.props;
 
         return (
             <tr

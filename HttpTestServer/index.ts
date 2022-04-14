@@ -20,7 +20,7 @@ app.use(require('./api/webhooks'));
 
 app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(HTTPTestServerResponse.statusCode.toNumber());
-    const header = HTTPTestServerResponse.headers;
+    const header: $TSFixMe = HTTPTestServerResponse.headers;
 
     for (const key in header) {
         res.setHeader(key, header[key] as string);

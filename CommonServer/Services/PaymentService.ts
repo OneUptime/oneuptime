@@ -2,7 +2,7 @@ import Email from 'Common/Types/email';
 import payment from '../config/payment';
 import Stripe from 'stripe';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-const stripe = Stripe(payment.paymentPrivateKey);
+const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 import Plans from '../config/plans';
 import ProjectService from './ProjectService';
 import ProjectModel from '../Models/project';
@@ -40,23 +40,23 @@ export default class Service {
     ): string {
         // let release;
         try {
-            // const mutex = getMutex(
+            // const mutex: $TSFixMe = getMutex(
             //     MUTEX_RESOURCES.PROJECT,
             //     project._id.toString()
             // );
             // release = await mutex.acquire();
 
-            const countryType = getCountryType(alertPhoneNumber);
-            const alertChargeAmount = getAlertChargeAmount(
+            const countryType: $TSFixMe = getCountryType(alertPhoneNumber);
+            const alertChargeAmount: $TSFixMe = getAlertChargeAmount(
                 alertType,
                 countryType
             );
-            const chargeAmount =
+            const chargeAmount: $TSFixMe =
                 alertType === Call
                     ? alertChargeAmount.price
                     : alertChargeAmount.price * segments;
 
-            const updatedProject = await this.chargeAlert(
+            const updatedProject: $TSFixMe = await this.chargeAlert(
                 userId,
                 project._id,
                 chargeAmount
@@ -93,25 +93,25 @@ export default class Service {
         alertType
     ): void {
         try {
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'balance alertOptions',
             });
-            const balance = project.balance;
-            const countryType = getCountryType(alertPhoneNumber);
-            const alertChargeAmount = getAlertChargeAmount(
+            const balance: $TSFixMe = project.balance;
+            const countryType: $TSFixMe = getCountryType(alertPhoneNumber);
+            const alertChargeAmount: $TSFixMe = getAlertChargeAmount(
                 alertType,
                 countryType
             );
 
-            const customThresholdAmount = project.alertOptions
+            const customThresholdAmount: $TSFixMe = project.alertOptions
                 ? project.alertOptions.minimumBalance
                 : null;
 
-            const isBalanceMoreThanMinimum =
+            const isBalanceMoreThanMinimum: $TSFixMe =
                 balance > alertChargeAmount.minimumBalance;
             if (customThresholdAmount) {
-                const isBalanceMoreThanCustomThresholdAmount =
+                const isBalanceMoreThanCustomThresholdAmount: $TSFixMe =
                     balance > customThresholdAmount;
                 return (
                     isBalanceMoreThanMinimum &&
@@ -135,7 +135,7 @@ export default class Service {
         try {
             let balanceRecharged;
 
-            const rechargeAmount = project.alertOptions
+            const rechargeAmount: $TSFixMe = project.alertOptions
                 ? project.alertOptions.rechargeToBalance
                 : null;
             if (rechargeAmount) {
@@ -172,13 +172,13 @@ export default class Service {
     ): void {
         // let release;
         const status: $TSFixMe = {};
-        // const mutex = getMutex(
+        // const mutex: $TSFixMe = getMutex(
         //     MUTEX_RESOURCES.PROJECT,
         //     project._id.toString()
         // );
         // release = await mutex.acquire();
         // check balance
-        const isBalanceEnough = await this.hasEnoughBalance(
+        const isBalanceEnough: $TSFixMe = await this.hasEnoughBalance(
             project._id,
             alertPhoneNumber,
             userId,
@@ -186,7 +186,7 @@ export default class Service {
         );
 
         if (!isBalanceEnough) {
-            const lowBalanceRecharged = await this.fillProjectBalance(
+            const lowBalanceRecharged: $TSFixMe = await this.fillProjectBalance(
                 userId,
                 project
             );
@@ -214,7 +214,7 @@ export default class Service {
     //Returns: promise
 
     async checkPaymentIntent(paymentIntent): void {
-        const processedPaymentIntent = await stripe.paymentIntents.retrieve(
+        const processedPaymentIntent: $TSFixMe = await stripe.paymentIntents.retrieve(
             paymentIntent.id
         );
         return processedPaymentIntent;
@@ -227,7 +227,7 @@ export default class Service {
     //Returns: promise
 
     async createCustomer(email: Email, companyName: string): void {
-        const customer = await stripe.customers.create({
+        const customer: $TSFixMe = await stripe.customers.create({
             email: email,
             description: companyName,
         });
@@ -235,7 +235,7 @@ export default class Service {
     }
 
     async addPayment(customerId: ObjectID): void {
-        const card = await stripe.customers.createSource(customerId);
+        const card: $TSFixMe = await stripe.customers.createSource(customerId);
         return card;
     }
 
@@ -250,7 +250,7 @@ export default class Service {
         stripeCustomerId: ObjectID,
         coupon: string
     ): void {
-        const items = [];
+        const items: $TSFixMe = [];
         items.push({
             plan: stripePlanId,
             quantity: 1,
@@ -273,7 +273,7 @@ export default class Service {
             };
         }
 
-        const subscription = await stripe.subscriptions.create(subscriptionObj);
+        const subscription: $TSFixMe = await stripe.subscriptions.create(subscriptionObj);
         return {
             stripeSubscriptionId: subscription.id,
         };
@@ -293,7 +293,7 @@ export default class Service {
         let subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
         let plan = null;
-        const items = [];
+        const items: $TSFixMe = [];
         if (
             !subscription ||
             !subscription.items ||
@@ -345,9 +345,9 @@ export default class Service {
     }
 
     async createSubscription(stripeCustomerId, amount): void {
-        const productId = Plans.getReserveNumberProductId();
+        const productId: $TSFixMe = Plans.getReserveNumberProductId();
 
-        const subscriptions = await stripe.subscriptions.create({
+        const subscriptions: $TSFixMe = await stripe.subscriptions.create({
             customer: stripeCustomerId,
             items: [
                 {
@@ -366,7 +366,7 @@ export default class Service {
     }
 
     async removeSubscription(stripeSubscriptionId): void {
-        const confirmations = [];
+        const confirmations: $TSFixMe = [];
 
         confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
         return confirmations;
@@ -375,14 +375,14 @@ export default class Service {
     async changePlan(subscriptionId, planId, seats): void {
         let subscriptionObj = {};
 
-        const subscription = await stripe.subscriptions.retrieve(
+        const subscription: $TSFixMe = await stripe.subscriptions.retrieve(
             subscriptionId
         );
-        const trial_end = subscription.trial_end;
+        const trial_end: $TSFixMe = subscription.trial_end;
 
         await stripe.subscriptions.del(subscriptionId);
 
-        const items = [];
+        const items: $TSFixMe = [];
         items.push({
             plan: planId,
             quantity: seats,
@@ -402,7 +402,7 @@ export default class Service {
             };
         }
 
-        const subscriptions = await stripe.subscriptions.create(
+        const subscriptions: $TSFixMe = await stripe.subscriptions.create(
             subscriptionObj
         );
 
@@ -414,17 +414,17 @@ export default class Service {
             query: { _id: projectId },
             select: 'balance alertOptions _id',
         });
-        const { balance } = project;
-        const { minimumBalance, rechargeToBalance } = project.alertOptions;
+        const { balance }: $TSFixMe = project;
+        const { minimumBalance, rechargeToBalance }: $TSFixMe = project.alertOptions;
         if (balance < minimumBalance) {
-            const paymentIntent = await StripeService.chargeCustomerForBalance(
+            const paymentIntent: $TSFixMe = await StripeService.chargeCustomerForBalance(
                 userId,
                 rechargeToBalance,
                 project.id
             );
             if (!paymentIntent.paid) {
                 //create notification
-                const message =
+                const message: $TSFixMe =
                     'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
                 const meta: $TSFixMe = {
                     type: 'action',
@@ -450,11 +450,11 @@ export default class Service {
             query: { _id: projectId },
             select: 'balance',
         });
-        const balanceAfterAlertSent = formatBalance(
+        const balanceAfterAlertSent: $TSFixMe = formatBalance(
             project.balance - chargeAmount
         );
 
-        const updatedProject = await ProjectModel.findByIdAndUpdate(
+        const updatedProject: $TSFixMe = await ProjectModel.findByIdAndUpdate(
             projectId,
             {
                 $set: {
@@ -477,7 +477,7 @@ export default class Service {
 
         extraUsersToAdd
     ): void {
-        const subscription = await stripe.subscriptions.create({
+        const subscription: $TSFixMe = await stripe.subscriptions.create({
             customer: stripeCustomerId,
             items: [
                 {

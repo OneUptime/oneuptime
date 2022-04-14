@@ -15,7 +15,7 @@ class BackendAPI extends API {
     protected static override getHeaders(): Headers {
         let defaultHeaders: Headers = this.getDefaultHeaders();
 
-        const headers: Headers: $TSFixMe = {};
+        const headers: Headers = {};
         if (User.isLoggedIn()) {
             headers['Authorization'] = 'Basic ' + User.getAccessToken();
         }
@@ -32,7 +32,7 @@ class BackendAPI extends API {
         error: HTTPErrorResponse | APIException
     ): HTTPErrorResponse | APIException {
         if (error instanceof HTTPErrorResponse && error.statusCode === 401) {
-            const cookies = new Cookies();
+            const cookies: $TSFixMe = new Cookies();
             cookies.remove('admin-data', { path: '/' });
             cookies.remove('data', { path: '/' });
             User.clear();

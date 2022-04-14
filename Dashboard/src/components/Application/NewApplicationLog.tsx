@@ -18,7 +18,7 @@ import {
     editApplicationLog,
 } from '../../actions/applicationLog';
 import { RenderSelect } from '../basic/RenderSelect';
-const selector = formValueSelector('NewApplicationLog');
+const selector: $TSFixMe = formValueSelector('NewApplicationLog');
 
 interface NewApplicationLogProps {
     index?: unknown | unknown;
@@ -72,7 +72,7 @@ class NewApplicationLog extends Component<ComponentProps> {
         }
     };
     submitForm = (values: $TSFixMe) => {
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
         const postObj: $TSFixMe = {};
 
         postObj.name = values[`name`];
@@ -387,7 +387,7 @@ class NewApplicationLog extends Component<ComponentProps> {
 
 NewApplicationLog.displayName = 'NewApplicationLog';
 
-const NewApplicationLogForm = new reduxForm({
+const NewApplicationLogForm: $TSFixMe = new reduxForm({
     form: 'NewApplicationLog',
     destroyOnUnmount: true,
     enableReinitialize: true,
@@ -405,10 +405,10 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const name = selector(state, 'name');
-    const componentId = ownProps.componentId;
-    const requesting = state.applicationLog.newApplicationLog.requesting;
-    const currentProject = state.project.currentProject;
+    const name: $TSFixMe = selector(state, 'name');
+    const componentId: $TSFixMe = ownProps.componentId;
+    const requesting: $TSFixMe = state.applicationLog.newApplicationLog.requesting;
+    const currentProject: $TSFixMe = state.project.currentProject;
     const initialValues: $TSFixMe = {
         name: ownProps.applicationLog ? ownProps.applicationLog.name : '',
         resourceCategory: ownProps.applicationLog

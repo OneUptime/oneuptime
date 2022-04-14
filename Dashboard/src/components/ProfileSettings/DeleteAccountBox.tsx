@@ -38,9 +38,9 @@ export class DeleteAccountBox extends Component<DeleteAccountBoxProps>{
 
     override render() {
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
-        const deleting = this.props.deleteAccountSetting.requesting;
+        const deleting: $TSFixMe = this.props.deleteAccountSetting.requesting;
 
         return (
             <div

@@ -4,9 +4,9 @@ import SubscribeBox from './Subscribe/SubscribeBox';
 import { Translate } from 'react-auto-translate';
 
 const NewThemeSubscriber: Function = () => {
-    const [isShown, setIsShown] = useState(false);
-    const popupRef = useRef();
-    const subRef = useRef();
+    const [isShown, setIsShown]: $TSFixMe = useState(false);
+    const popupRef: $TSFixMe = useRef();
+    const subRef: $TSFixMe = useRef();
 
     const handleToggleButtonClick: Function = () => {
         setIsShown(prevState => !prevState);

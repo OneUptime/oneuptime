@@ -31,7 +31,7 @@ class Page extends Component<ComponentProps> {
 
     goToPageInProject(pathName: $TSFixMe) {
 
-        const { projectId } = this.props;
+        const { projectId }: $TSFixMe = this.props;
 
         this.goToPage(`/dashboard/${projectId}/${pathName}`);
     }
@@ -57,8 +57,8 @@ class Page extends Component<ComponentProps> {
             pageName,
         } = this.props;
 
-        const projectName = project ? project.name : '';
-        const projectSlug = project ? project.slug : '';
+        const projectName: $TSFixMe = project ? project.name : '';
+        const projectSlug: $TSFixMe = project ? project.slug : '';
 
         return (
             <Fade>

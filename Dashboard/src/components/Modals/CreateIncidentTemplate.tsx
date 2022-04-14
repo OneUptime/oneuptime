@@ -74,7 +74,7 @@ class CreateIncidentTemplate extends React.Component<CreateIncidentTemplateProps
             fetchIncidentTemplates,
         } = this.props;
 
-        const projectId = currentProject._id;
+        const projectId: $TSFixMe = currentProject._id;
         const {
             title,
             description,
@@ -107,7 +107,7 @@ class CreateIncidentTemplate extends React.Component<CreateIncidentTemplateProps
 
     closeAndClearError = () => {
 
-        const { createIncidentTemplateFailure, closeModal } = this.props;
+        const { createIncidentTemplateFailure, closeModal }: $TSFixMe = this.props;
 
         // clear error
         createIncidentTemplateFailure(null);
@@ -551,7 +551,7 @@ CreateIncidentTemplate.propTypes = {
     change: PropTypes.func,
 };
 
-const CreateIncidentTemplateForm = reduxForm({
+const CreateIncidentTemplateForm: $TSFixMe = reduxForm({
     form: 'CreateIncidentTemplateForm', // a unique identifier for this form
     enableReinitialize: true,
 })(CreateIncidentTemplate);

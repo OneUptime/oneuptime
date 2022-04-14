@@ -11,7 +11,7 @@ import path from 'path';
 app.get(
     ['/env.js', '/dashboard/env.js'],
     (req: ExpressRequest, res: ExpressResponse) => {
-        const isClustLocal = req.get('host').includes('cluster.local');
+        const isClustLocal: $TSFixMe = req.get('host').includes('cluster.local');
         if (!isClustLocal) {
             global.dashboardHost = 'https://' + req.host + '/dashboard';
 
@@ -108,7 +108,7 @@ app.use('/dashboard', ExpressStatic(path.join(__dirname, 'build')));
 //         let baseUrls = req.baseUrl;
 //         baseUrls = baseUrls.split('/');
 
-//         const fileName = baseUrls[baseUrls.length - 1];
+//         const fileName: $TSFixMe = baseUrls[baseUrls.length - 1];
 //         if (fileName) {
 //             res.sendFile(
 //                 path.join(__dirname, 'build', 'static', 'js', fileName)
@@ -126,7 +126,7 @@ app.use('/dashboard', ExpressStatic(path.join(__dirname, 'build')));
 //     let baseUrls = req.baseUrl;
 //     baseUrls = baseUrls.split('/');
 
-//     const fileName = baseUrls[baseUrls.length - 1];
+//     const fileName: $TSFixMe = baseUrls[baseUrls.length - 1];
 //     if (fileName) {
 //         res.sendFile(path.join(__dirname, 'build', 'static', 'js', fileName));
 //     } else {

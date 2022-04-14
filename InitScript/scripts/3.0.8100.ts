@@ -3,7 +3,7 @@ import { find, update } from '../util/db';
 const monitorCollection: string = 'monitors';
 
 async function run(): void {
-    const monitorsWithOldCriteria = await find(monitorCollection, {
+    const monitorsWithOldCriteria: $TSFixMe = await find(monitorCollection, {
         $or: [
             {
                 'criteria.up': {

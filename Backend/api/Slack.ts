@@ -5,8 +5,8 @@ import express, {
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import request from 'request';
 import IntegrationService from '../services/integrationService';
-const getUser = require('../middlewares/user').getUser;
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 import {
     CLIENT_ID,
     CLIENT_SECRET,
@@ -20,12 +20,12 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
     // get oneuptime project id from slack auth state query params
     let state = req.query.state;
-    const slackCode = req.query.code;
+    const slackCode: $TSFixMe = req.query.code;
 
     if (!slackCode) {
         return sendErrorResponse(req, res, {
@@ -44,9 +44,9 @@ router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
 
     state = state.split(',', 2);
 
-    const projectId = state[0];
+    const projectId: $TSFixMe = state[0];
 
-    const userToken = state[1];
+    const userToken: $TSFixMe = state[1];
 
     const options: $TSFixMe = {
         uri: `${API_ROUTE}/slack/${projectId}/link?code=${slackCode}`,
@@ -72,11 +72,11 @@ router.post(
     getUser,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId = req.params.projectId;
-        const code = req.query.code;
+        const projectId: $TSFixMe = req.params.projectId;
+        const code: $TSFixMe = req.query.code;
 
-        const userId = req.user ? req.user.id : null;
-        const slug = req.body.slug;
+        const userId: $TSFixMe = req.user ? req.user.id : null;
+        const slug: $TSFixMe = req.body.slug;
 
         if (!slug) {
             return sendErrorResponse(
@@ -110,7 +110,7 @@ router.post(
         request(
             options,
             async (error: $TSFixMe, response: $TSFixMe, body: $TSFixMe) => {
-                const JSONresponse = JSON.parse(body);
+                const JSONresponse: $TSFixMe = JSON.parse(body);
                 if (!JSONresponse.ok) {
                     return sendErrorResponse(req, res, JSONresponse.error);
                 } else {
@@ -128,7 +128,7 @@ router.post(
 
                     const integrationType: string = 'slack';
                     try {
-                        const slack = await IntegrationService.create(
+                        const slack: $TSFixMe = await IntegrationService.create(
                             projectId,
                             userId,
                             data,
@@ -151,15 +151,15 @@ router.delete(
     getUser,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId = req.params.projectId;
-        const teamId = req.params.teamId;
+        const projectId: $TSFixMe = req.params.projectId;
+        const teamId: $TSFixMe = req.params.teamId;
 
-        const userId = req.user ? req.user.id : null;
+        const userId: $TSFixMe = req.user ? req.user.id : null;
 
         const integrationType: string = 'slack';
 
         try {
-            const data = await IntegrationService.deleteBy(
+            const data: $TSFixMe = await IntegrationService.deleteBy(
                 {
                     projectId: projectId,
                     'data.teamId': teamId,
@@ -179,13 +179,13 @@ router.get(
     '/:projectId/teams',
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId = req.params.projectId;
+        const projectId: $TSFixMe = req.params.projectId;
         const integrationType: string = 'slack';
 
         try {
-            const select =
+            const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 { path: 'projectId', select: 'name' },
                 {
@@ -194,7 +194,7 @@ router.get(
                     populate: [{ path: 'componentId', select: 'name' }],
                 },
             ];
-            const [integrations, count] = await Promise.all([
+            const [integrations, count]: $TSFixMe = await Promise.all([
                 IntegrationService.findBy({
                     query: {
                         projectId: projectId,

@@ -2,8 +2,8 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
-const getUser = require('../middlewares/user').getUser;
+const router: $TSFixMe = express.getRouter();
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -21,8 +21,8 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { incidentState, incidentNote, name } = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const { incidentState, incidentNote, name }: $TSFixMe = req.body;
 
             if (!projectId) {
                 throw new BadDataException('Project Id must be present');
@@ -43,7 +43,7 @@ router.post(
                 incidentState,
                 incidentNote,
             };
-            const incidentNoteTemplate =
+            const incidentNoteTemplate: $TSFixMe =
                 await IncidentNoteTemplateService.create(data);
 
             return sendItemResponse(req, res, incidentNoteTemplate);
@@ -59,15 +59,15 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { skip, limit } = req.query;
+            const { projectId }: $TSFixMe = req.params;
+            const { skip, limit }: $TSFixMe = req.query;
 
             if (!projectId) {
                 throw new BadDataException('Project Id must be present');
             }
 
             const query: $TSFixMe = { projectId };
-            const [incidentNoteTemplates, count] = await Promise.all([
+            const [incidentNoteTemplates, count]: $TSFixMe = await Promise.all([
                 IncidentNoteTemplateService.findBy({
                     query,
                     skip,
@@ -89,14 +89,14 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId, templateId } = req.params;
-            const { name, incidentNote, incidentState } = req.body;
+            const { projectId, templateId }: $TSFixMe = req.params;
+            const { name, incidentNote, incidentState }: $TSFixMe = req.body;
 
             if (!projectId) {
                 throw new BadDataException('Project Id must be present');
             }
             if (!templateId) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Incident note template Id must be present'
                 );
 
@@ -121,7 +121,7 @@ router.put(
                 incidentNote,
             };
 
-            const incidentNoteTemplate =
+            const incidentNoteTemplate: $TSFixMe =
                 await IncidentNoteTemplateService.updateOneBy({ query, data });
             return sendItemResponse(req, res, incidentNoteTemplate);
         } catch (error) {
@@ -136,13 +136,13 @@ router.delete(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId, templateId } = req.params;
+            const { projectId, templateId }: $TSFixMe = req.params;
 
             if (!projectId) {
                 throw new BadDataException('Project Id must be present');
             }
             if (!templateId) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Incident note template Id must be present'
                 );
 
@@ -150,7 +150,7 @@ router.delete(
                 throw error;
             }
 
-            const incidentNoteTemplate =
+            const incidentNoteTemplate: $TSFixMe =
                 await IncidentNoteTemplateService.deleteBy({
                     projectId,
                     _id: templateId,

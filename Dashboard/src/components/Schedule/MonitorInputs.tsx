@@ -12,7 +12,7 @@ function MonitorInputs({
     currentProject,
     schedule
 }: $TSFixMe) {
-    const monitorItems =
+    const monitorItems: $TSFixMe =
         currentProject._id === subProject._id
             ? monitors.map((monitor: $TSFixMe, index: $TSFixMe) => {
                 // calculate how many up criteria, degraded criteria and down criteria
@@ -30,11 +30,11 @@ function MonitorInputs({
                             ? monitor.criteria.down
                             : []),
                     ].forEach((criterion, index) => {
-                        const monitorUpCriteriaCount =
+                        const monitorUpCriteriaCount: $TSFixMe =
                             monitor.criteria.up?.length || 0;
-                        const monitorDegradedCriteriaCount =
+                        const monitorDegradedCriteriaCount: $TSFixMe =
                             monitor.criteria.degraded?.length || 0;
-                        const type =
+                        const type: $TSFixMe =
                             index < monitorUpCriteriaCount
                                 ? 'Up'
                                 : index <

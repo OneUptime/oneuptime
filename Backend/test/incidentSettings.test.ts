@@ -7,7 +7,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import incidentData from './data/incident';
@@ -141,7 +141,7 @@ describe('Incident Settings API', function (): void {
 
     it('should return the list of the available variables', async () => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incidentSettings/variables`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -154,7 +154,7 @@ describe('Incident Settings API', function (): void {
 
     it('should return the default settings if no custom settings are defined', async () => {
         const authorization: string = `Basic ${token}`;
-        const res = await request
+        const res: $TSFixMe = await request
             .get(`/incidentSettings/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization);
         templateId = res.body.data[0]._id;
@@ -172,7 +172,7 @@ describe('Incident Settings API', function (): void {
 
     it('should update the default incident settings.', async () => {
         const authorization: string = `Basic ${token}`;
-        const incidentPriorityObject = await IncidentPrioritiesService.findOne({
+        const incidentPriorityObject: $TSFixMe = await IncidentPrioritiesService.findOne({
             query: {
                 projectId,
                 name: 'High',
@@ -181,7 +181,7 @@ describe('Incident Settings API', function (): void {
         });
         expect(incidentPriorityObject).to.not.equal(null);
         const { _id: incidentPriority } = incidentPriorityObject;
-        const res = await request
+        const res: $TSFixMe = await request
             .put(`/incidentSettings/${projectId}/${templateId}`)
             .set('Authorization', authorization)
             .send({ ...incidentSettings, incidentPriority });
@@ -204,7 +204,7 @@ describe('Incident Settings API', function (): void {
             ...incidentSettings,
             monitors: [monitorId],
         };
-        const res = await request
+        const res: $TSFixMe = await request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(payload);
@@ -212,7 +212,7 @@ describe('Incident Settings API', function (): void {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         incidentId = res.body._id;
-        const incident = await IncidentService.findOneBy({
+        const incident: $TSFixMe = await IncidentService.findOneBy({
             query: { _id: incidentId },
             select: 'description',
         });

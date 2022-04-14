@@ -37,7 +37,7 @@ class ScheduleHeaderModal extends Component<ComponentProps> {
 
     navigatToSchedule = (schedule: $TSFixMe) => {
 
-        const { data } = this.props;
+        const { data }: $TSFixMe = this.props;
 
         history.push(
             `/dashboard/project/${data.currentProjectSlug}/scheduledEvents/${schedule.slug}`
@@ -50,7 +50,7 @@ class ScheduleHeaderModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeThisDialog, data } = this.props;
+        const { closeThisDialog, data }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

@@ -1,4 +1,4 @@
-const monitorStatusCollection = global.db.collection('monitorstatuses');
+const monitorStatusCollection: $TSFixMe = global.db.collection('monitorstatuses');
 import { ObjectId } from 'mongodb';
 import Query from 'CommonServer/types/db/Query';
 import { post } from '../Utils/api';
@@ -36,7 +36,7 @@ export default {
             // check if monitor has a previous status
             // check if previous status is different from the current status
             // if different, end the previous status and create a new monitor status
-            const now = new Date(moment().format());
+            const now: $TSFixMe = new Date(moment().format());
             if (previousMonitorStatus) {
                 if (
                     data.status === 'enable' &&
@@ -69,10 +69,10 @@ export default {
                 monitorStatusData.lastStatus = data.lastStatus;
             }
 
-            const result = await monitorStatusCollection.insertOne(
+            const result: $TSFixMe = await monitorStatusCollection.insertOne(
                 monitorStatusData
             );
-            const savedMonitorStatus = await this.findOneBy({
+            const savedMonitorStatus: $TSFixMe = await this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
 
@@ -92,7 +92,7 @@ export default {
         }
 
         await monitorStatusCollection.updateOne(query, { $set: data });
-        const updatedMonitorStatus = await monitorStatusCollection.findOne(
+        const updatedMonitorStatus: $TSFixMe = await monitorStatusCollection.findOne(
             query
         );
         return updatedMonitorStatus;
@@ -107,7 +107,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const monitorStatus = await monitorStatusCollection.findOne(query);
+        const monitorStatus: $TSFixMe = await monitorStatusCollection.findOne(query);
         return monitorStatus;
     },
 
@@ -116,7 +116,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const incidents = await monitorStatusCollection
+        const incidents: $TSFixMe = await monitorStatusCollection
             .find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -127,18 +127,18 @@ export default {
     },
 
     async sendMonitorStatus(data: $TSFixMe): void {
-        const monitor = await MonitorService.findOneBy({
+        const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: ObjectId(data.monitorId) },
             // select: 'projectId',
             // populate: [{ path: 'projectId', select: '_id' }],
         });
         if (monitor && monitor.projectId) {
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: {
                     _id: ObjectId(monitor.projectId._id || monitor.projectId),
                 },
             });
-            const parentProjectId = project
+            const parentProjectId: $TSFixMe = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id

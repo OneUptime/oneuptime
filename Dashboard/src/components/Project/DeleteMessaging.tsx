@@ -40,7 +40,7 @@ class DeleteMessaging extends Component<ComponentProps> {
     };
     override render() {
 
-        const { hide, requesting } = this.props;
+        const { hide, requesting }: $TSFixMe = this.props;
         return (
             <div className="bs-Modal bs-Modal--medium">
                 <div className="bs-Modal-header">

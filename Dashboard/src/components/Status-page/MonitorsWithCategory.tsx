@@ -25,7 +25,7 @@ import { Link } from 'react-router-dom';
 
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 
-const grid = 0;
+const grid: $TSFixMe = 0;
 
 const getListStyle: Function = (isDraggingOver: $TSFixMe) => ({
     background: isDraggingOver ? 'lightblue' : 'transparent',
@@ -41,7 +41,7 @@ class MonitorsWithCategory extends Component<ComponentProps> {
 
     renderAddMonitorButton = (subProject: $TSFixMe) => {
 
-        const { category } = this.props;
+        const { category }: $TSFixMe = this.props;
 
         return (
             <ShouldRender
@@ -81,8 +81,8 @@ class MonitorsWithCategory extends Component<ComponentProps> {
 
     onDragEnd = (result: $TSFixMe) => {
 
-        const { monitorsInCategory, change } = this.props;
-        const { destination, source } = result;
+        const { monitorsInCategory, change }: $TSFixMe = this.props;
+        const { destination, source }: $TSFixMe = result;
 
         if (!destination) {
             return;
@@ -95,12 +95,12 @@ class MonitorsWithCategory extends Component<ComponentProps> {
             return;
         }
 
-        const start = source.droppableId;
-        const finish = destination.droppableId;
+        const start: $TSFixMe = source.droppableId;
+        const finish: $TSFixMe = destination.droppableId;
 
         if (start === finish) {
-            const result = Array.from(monitorsInCategory);
-            const [removed] = result.splice(source.index, 1);
+            const result: $TSFixMe = Array.from(monitorsInCategory);
+            const [removed]: $TSFixMe = result.splice(source.index, 1);
             result.splice(destination.index, 0, removed);
 
             // update form field
@@ -111,9 +111,9 @@ class MonitorsWithCategory extends Component<ComponentProps> {
 
     override render() {
 
-        const { category, statusPage, subProjects } = this.props;
-        const { status } = statusPage;
-        const subProject = !status.projectId
+        const { category, statusPage, subProjects }: $TSFixMe = this.props;
+        const { status }: $TSFixMe = statusPage;
+        const subProject: $TSFixMe = !status.projectId
             ? null
 
             : this.props.currentProject._id === status.projectId._id ||
@@ -318,17 +318,17 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const MonitorsWithCategoryForm = reduxForm({
+const MonitorsWithCategoryForm: $TSFixMe = reduxForm({
     enableReinitialize: true,
 })(MonitorsWithCategory);
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const selector = formValueSelector(ownProps.category.name);
-    const monitorsInForm =
+    const selector: $TSFixMe = formValueSelector(ownProps.category.name);
+    const monitorsInForm: $TSFixMe =
         selector(state, 'monitors') && selector(state, 'monitors').length;
 
-    const { currentProject } = state.project;
-    const subProjects = state.subProject.subProjects.subProjects;
+    const { currentProject }: $TSFixMe = state.project;
+    const subProjects: $TSFixMe = state.subProject.subProjects.subProjects;
 
     const {
         statusPage,

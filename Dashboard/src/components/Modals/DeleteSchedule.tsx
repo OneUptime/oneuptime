@@ -55,7 +55,7 @@ class DeleteSchedule extends Component<ComponentProps> {
 
             data,
         } = this.props;
-        const { projectId, eventId } = data;
+        const { projectId, eventId }: $TSFixMe = data;
         deleteScheduledEvent(projectId, eventId).then(() => {
             if (!deleteError) {
                 closeModal({ id: modalId });
@@ -69,7 +69,7 @@ class DeleteSchedule extends Component<ComponentProps> {
 
     override render() {
 
-        const { isRequesting, closeThisDialog, deleteError } = this.props;
+        const { isRequesting, closeThisDialog, deleteError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

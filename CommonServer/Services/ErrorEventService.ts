@@ -2,7 +2,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 export default class Service {
     async create(data: $TSFixMe): void {
         // prepare error event model
-        const errorEvent = new ErrorEventModel();
+        const errorEvent: $TSFixMe = new ErrorEventModel();
 
         // used this to sort JavaSDK having a different stack trace structure
         data.exception.stackTraceFrame
@@ -38,7 +38,7 @@ export default class Service {
 
         errorEvent.timeline = data.timeline;
 
-        const savedErrorEvent = await errorEvent.save();
+        const savedErrorEvent: $TSFixMe = await errorEvent.save();
 
         return savedErrorEvent;
     }
@@ -50,12 +50,12 @@ export default class Service {
         if (!query.deleted) {
             delete query.deleted;
         }
-        const errorEventQuery = ErrorEventModel.findOne(query)
+        const errorEventQuery: $TSFixMe = ErrorEventModel.findOne(query)
             .sort(sort)
             .lean();
         errorEventQuery.select(select);
         errorEventQuery.populate(populate);
-        const result = await errorEventQuery;
+        const result: $TSFixMe = await errorEventQuery;
         return result;
     }
     // get all error events that matches the specified query
@@ -83,14 +83,14 @@ export default class Service {
         if (!query.deleted) {
             delete query.deleted;
         }
-        const errorEventsQuery = ErrorEventModel.find(query)
+        const errorEventsQuery: $TSFixMe = ErrorEventModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
         errorEventsQuery.select(select);
         errorEventsQuery.populate(populate);
-        const result = await errorEventsQuery;
+        const result: $TSFixMe = await errorEventsQuery;
         return result;
     }
     // get all error events that matches the specified query
@@ -104,33 +104,33 @@ export default class Service {
         }
         // get all unique hashes by error tracker Id
 
-        const populateIssue = [
+        const populateIssue: $TSFixMe = [
             { path: 'errorTrackerId', select: 'name' },
             { path: 'resolvedById', select: 'name' },
             { path: 'ignoredById', select: 'name' },
         ];
 
-        const selectIssue =
+        const selectIssue: $TSFixMe =
             'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
-        const populateIssueTimeline = [
+        const populateIssueTimeline: $TSFixMe = [
             { path: 'issueId', select: 'name' },
             { path: 'createdById', select: 'name' },
         ];
 
-        const selectIssueTimeline =
+        const selectIssueTimeline: $TSFixMe =
             'issueId createdById createdAt status deleted';
 
-        const selectIssueMember =
+        const selectIssueMember: $TSFixMe =
             'issueId userId createdAt createdById removed removedAt removedById';
 
-        const populateIssueMember = [
+        const populateIssueMember: $TSFixMe = [
             { path: 'issueId', select: 'name' },
 
             { path: 'userId', select: 'name email' },
         ];
 
-        const errorTrackerIssues = await IssueService.findBy({
+        const errorTrackerIssues: $TSFixMe = await IssueService.findBy({
             query,
             limit: 0, // set limit to 0 to get ALL issues related by query
             skip,
@@ -138,7 +138,7 @@ export default class Service {
             populate: populateIssue,
         });
 
-        const totalErrorEvents = [];
+        const totalErrorEvents: $TSFixMe = [];
         let index = 0;
 
         // if the next index is available in the issue tracker, proceed
@@ -146,7 +146,7 @@ export default class Service {
             errorTrackerIssues[index] &&
             totalErrorEvents.length < limit // the limit will be used here to fetch limited issues from the ALL issues fetched before
         ) {
-            const issue = errorTrackerIssues[index];
+            const issue: $TSFixMe = errorTrackerIssues[index];
 
             if (issue) {
                 // set query with the current error tracker and issue ID
@@ -155,7 +155,7 @@ export default class Service {
                     issueId: issue._id,
                 };
                 // run a query to get the first and last error event that has current error tracker id and fingerprint hash
-                const [earliestErrorEvent, latestErrorEvent] =
+                const [earliestErrorEvent, latestErrorEvent]: $TSFixMe =
                     await Promise.all([
                         ErrorEventModel.findOne(innerQuery).sort({
                             createdAt: 1,
@@ -166,7 +166,7 @@ export default class Service {
                     ]);
                 // if we have an earliest and latest error event
                 if (earliestErrorEvent && latestErrorEvent) {
-                    const [totalNumberOfEvents, members, timeline] =
+                    const [totalNumberOfEvents, members, timeline]: $TSFixMe =
                         await Promise.all([
                             // get total number of events for that issue
                             this.countBy(innerQuery),
@@ -253,9 +253,9 @@ export default class Service {
         errorTrackerId: $TSFixMe
     ): void {
         let previous, next;
-        const selectErrorTracker =
+        const selectErrorTracker: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt issueId';
-        const populateErrorTracker = [
+        const populateErrorTracker: $TSFixMe = [
             { path: 'componentId', select: 'name' },
             { path: 'resourceCategory', select: 'name' },
             { path: 'issueId', select: 'name' },
@@ -266,16 +266,16 @@ export default class Service {
             populate: populateErrorTracker,
         });
 
-        const populateIssueTimeline = [
+        const populateIssueTimeline: $TSFixMe = [
             { path: 'issueId', select: 'name' },
             { path: 'createdById', select: 'name' },
         ];
 
-        const selectIssueTimeline =
+        const selectIssueTimeline: $TSFixMe =
             'issueId createdById createdAt status deleted';
 
         // add issue timeline to this error event
-        const issueTimeline = await IssueTimelineService.findBy({
+        const issueTimeline: $TSFixMe = await IssueTimelineService.findBy({
             query: { issueId: errorEvent.issueId._id },
             select: selectIssueTimeline,
             populate: populateIssueTimeline,
@@ -339,7 +339,7 @@ export default class Service {
             next.latest = latestErrorEvent[0]._id;
         }
 
-        const totalEvents = await this.countBy({
+        const totalEvents: $TSFixMe = await this.countBy({
             errorTrackerId: errorEvent.errorTrackerId,
             issueId: errorEvent.issueId,
         });
@@ -356,7 +356,7 @@ export default class Service {
             query = {};
         }
 
-        const count = await ErrorEventModel.countDocuments(query);
+        const count: $TSFixMe = await ErrorEventModel.countDocuments(query);
 
         return count;
     }
@@ -376,9 +376,9 @@ export default class Service {
                 new: true,
             }
         );
-        const select =
+        const select: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'componentId', select: 'name' },
             { path: 'resourceCategory', select: 'name' },
         ];
@@ -396,7 +396,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const updateProcess = await ErrorEventModel.updateMany(query, {
+        const updateProcess: $TSFixMe = await ErrorEventModel.updateMany(query, {
             $set: data,
         });
 

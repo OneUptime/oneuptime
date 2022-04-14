@@ -19,7 +19,7 @@ export const fetchMonitors: Function = (
     limit = 0
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `monitor/${projectId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchMonitorsRequest());
@@ -78,7 +78,7 @@ export function fetchPaginatedMonitors({
         if (componentSlug) {
             url = `monitor/${projectId}/paginated?skip=${skip}&limit=${limit}&componentSlug=${componentSlug}`;
         }
-        const promise = BackendAPI.get(url);
+        const promise: $TSFixMe = BackendAPI.get(url);
         dispatch(fetchPaginatedMonitorsRequest(paginate));
 
         promise.then(
@@ -130,7 +130,7 @@ export const createMonitor: Function = (
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch: Dispatch): void {
         dispatch(createMonitorRequest());
-        const promise = BackendAPI.post(`monitor/${projectId}`, values);
+        const promise: $TSFixMe = BackendAPI.post(`monitor/${projectId}`, values);
         promise.then(
             (monitor): void => {
                 dispatch(createMonitorSuccess(monitor.data));
@@ -163,18 +163,18 @@ export const uploadIdentityFile: Function = (
     file: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const data = new FormData();
+        const data: $TSFixMe = new FormData();
         if (file) {
             data.append('identityFile', file);
 
-            const promise = BackendAPI.post(
+            const promise: $TSFixMe = BackendAPI.post(
                 `monitor/${projectId}/identityFile`,
                 data
             );
             dispatch(uploadIdentityFileRequest());
             promise.then(
                 (response): void => {
-                    const data = response.data;
+                    const data: $TSFixMe = response.data;
                     dispatch(logFile(data.identityFile));
                     return data;
                 },
@@ -250,18 +250,18 @@ export const uploadConfigurationFile: Function = (
     file: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const data = new FormData();
+        const data: $TSFixMe = new FormData();
         if (file) {
             data.append('configurationFile', file);
 
-            const promise = BackendAPI.post(
+            const promise: $TSFixMe = BackendAPI.post(
                 `monitor/${projectId}/configurationFile`,
                 data
             );
             dispatch(uploadConfigurationFileRequest());
             promise.then(
                 (response): void => {
-                    const data = response.data;
+                    const data: $TSFixMe = response.data;
                     dispatch(logConfigFile(data.configurationFile));
                     return data;
                 },
@@ -334,7 +334,7 @@ export const editMonitor: Function = (
 ): void => {
     values.projectId = values.projectId._id || values.projectId || projectId;
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `monitor/${projectId}/${values._id}`,
             values
         );
@@ -413,7 +413,7 @@ export function addSiteUrl(
     siteUrl: URL
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `monitor/${projectId}/siteUrl/${monitorId}`,
             {
                 siteUrl,
@@ -451,7 +451,7 @@ export function deleteSiteUrl(
     siteUrl: URL
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = delete (`monitor/${projectId}/siteUrl/${monitorId}`,
+        const promise: $TSFixMe = delete (`monitor/${projectId}/siteUrl/${monitorId}`,
         {
             siteUrl,
         });
@@ -488,7 +488,7 @@ export const deleteMonitor: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete `monitor/${projectId}/${monitorId}`;
+        const promise: $TSFixMe = delete `monitor/${projectId}/${monitorId}`;
         dispatch(deleteMonitorRequest(monitorId));
 
         promise.then(
@@ -540,7 +540,7 @@ export const disableMonitor: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `monitor/${projectId}/disableMonitor/${monitorId}`,
             {
                 monitorId,
@@ -599,7 +599,7 @@ export const changeMonitorComponent: Function = (
     return async (dispatch: Dispatch) => {
         try {
             dispatch(changeMonitorComponentRequest(monitorId));
-            const monitor = await BackendAPI.post(
+            const monitor: $TSFixMe = await BackendAPI.post(
                 `monitor/${projectId}/changeComponent/${monitorId}`,
                 {
                     newComponentId,
@@ -675,7 +675,7 @@ export function fetchMonitorsIncidents(
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `incident/${projectId}/monitor/${monitorId}`,
             {
                 limit,
@@ -743,7 +743,7 @@ export function fetchMonitorsSubscribers(
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `subscriber/${projectId}/monitor/${monitorId}?limit=${limit}&skip=${skip}`
         );
         dispatch(fetchMonitorsSubscribersRequest(monitorId));
@@ -807,7 +807,7 @@ export function fetchMonitorLogs(
     endDate: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `monitor/${projectId}/monitorLog/${monitorId}`,
             { startDate, endDate }
         );
@@ -888,7 +888,7 @@ export function fetchMonitorStatuses(
     endDate: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `monitor/${projectId}/monitorStatuses/${monitorId}`,
             { startDate, endDate }
         );
@@ -952,7 +952,7 @@ export const fetchMonitorStatusesFailure: Function = (
 // Fetch Monitor Criteria
 export const fetchMonitorCriteria: Function = (): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(new Route('monitorCriteria'));
+        const promise: $TSFixMe = BackendAPI.get(new Route('monitorCriteria'));
         dispatch(fetchMonitorCriteriaRequest());
 
         promise.then(
@@ -1041,7 +1041,7 @@ export function getMonitorLogs(
     type: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `monitor/${projectId}/monitorLogs/${monitorId}`,
             {
                 skip,
@@ -1107,7 +1107,7 @@ export function fetchLighthouseLogs(
     url: URL
 ) {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             url
                 ? `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}&url=${url}`
                 : `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}`
@@ -1168,7 +1168,7 @@ export const fetchMonitorIssue: Function = (
     issueId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `monitor/${projectId}/lighthouseIssue/${issueId}`
         );
         dispatch(fetchMonitorIssueRequest());
@@ -1212,7 +1212,7 @@ export const fetchMonitorIssueFailure: Function = (
 
 export const addSeat: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`monitor/${projectId}/addseat`, {});
+        const promise: $TSFixMe = BackendAPI.post(`monitor/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
 
         promise.then(
@@ -1326,19 +1326,19 @@ export const closeBreachedMonitorSlaFailure: Function = (
     payload: error,
 });
 
-export const closeBreachedMonitorSla =
+export const closeBreachedMonitorSla: $TSFixMe =
     (projectId: ObjectID, monitorId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(closeBreachedMonitorSlaRequest());
 
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `monitor/${projectId}/closeSla/${monitorId}`
             );
 
             dispatch(closeBreachedMonitorSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1368,18 +1368,18 @@ export const fetchBreachedMonitorSlaFailure: Function = (
     payload: error,
 });
 
-export const fetchBreachedMonitorSla =
+export const fetchBreachedMonitorSla: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchBreachedMonitorSlaRequest());
 
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `monitor/${projectId}/monitorSlaBreaches`
             );
 
             dispatch(fetchBreachedMonitorSlaSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data

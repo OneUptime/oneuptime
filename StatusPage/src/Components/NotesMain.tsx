@@ -23,7 +23,7 @@ import {
 import { openSubscribeMenu } from '../actions/subscribe';
 import { capitalize } from '../config';
 import Badge from './basic/Badge';
-const countNum = 10;
+const countNum: $TSFixMe = 10;
 
 interface NotesMainProps {
     noteData?: object;
@@ -220,7 +220,7 @@ class NotesMain extends Component<ComponentProps> {
 
         if (this.props.statusPage) {
 
-            const colors = this.props.statusPage.colors;
+            const colors: $TSFixMe = this.props.statusPage.colors;
             contentBackground = {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
             };
@@ -280,7 +280,7 @@ class NotesMain extends Component<ComponentProps> {
             emailNotification,
 
         } = this.props.statusPage;
-        const showSubscriberOption =
+        const showSubscriberOption: $TSFixMe =
             enableRSSFeed ||
             smsNotification ||
             webhookNotification ||
@@ -289,10 +289,10 @@ class NotesMain extends Component<ComponentProps> {
         const checkDuplicateDates: Function = (items: $TSFixMe) => {
             const track: $TSFixMe = {};
 
-            const result = [];
+            const result: $TSFixMe = [];
 
             for (const item of items) {
-                const date = String(item.createdAt).slice(0, 10);
+                const date: $TSFixMe = String(item.createdAt).slice(0, 10);
 
 
                 if (!track[date]) {
@@ -310,7 +310,7 @@ class NotesMain extends Component<ComponentProps> {
         };
 
 
-        const incidentNoteData = this.props.noteData;
+        const incidentNoteData: $TSFixMe = this.props.noteData;
         if (
 
             this.props.theme === 'Clean Theme' &&

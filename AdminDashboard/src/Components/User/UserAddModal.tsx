@@ -27,7 +27,7 @@ class UserAddModal extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { addUser, closeThisDialog, resetAddUser } = this.props;
+        const { addUser, closeThisDialog, resetAddUser }: $TSFixMe = this.props;
 
         addUser(values).then(
             function (val: $TSFixMe) {
@@ -67,7 +67,7 @@ class UserAddModal extends Component<ComponentProps> {
 
             resetAddUser,
         } = this.props;
-        const disabled = addUserState.requesting || users.requesting;
+        const disabled: $TSFixMe = addUserState.requesting || users.requesting;
 
         return (
             <div
@@ -338,7 +338,7 @@ class UserAddModal extends Component<ComponentProps> {
 
 UserAddModal.displayName = 'UserAddModalForm';
 
-const validate = function (values: $TSFixMe) {
+const validate: $TSFixMe = function (values: $TSFixMe) {
     const error: $TSFixMe = {};
 
 
@@ -400,7 +400,7 @@ const validate = function (values: $TSFixMe) {
     return error;
 };
 
-const UserAddModalForm = reduxForm({
+const UserAddModalForm: $TSFixMe = reduxForm({
     form: 'AddUser', // a unique identifier for this form
     validate,
 })(UserAddModal);

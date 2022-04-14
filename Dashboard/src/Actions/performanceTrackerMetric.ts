@@ -21,7 +21,7 @@ export const fetchTimeMetricsFailure: Function = (
     payload: error,
 });
 
-export const fetchTimeMetrics =
+export const fetchTimeMetrics: $TSFixMe =
     ({ appId, key, startDate, endDate }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(fetchTimeMetricsRequest());
@@ -29,7 +29,7 @@ export const fetchTimeMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}/time?startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -38,7 +38,7 @@ export const fetchTimeMetrics =
                 dispatch(fetchTimeMetricsSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -72,7 +72,7 @@ export const fetchThroughputMetricsFailure: Function = (
     payload: error,
 });
 
-export const fetchThroughputMetrics =
+export const fetchThroughputMetrics: $TSFixMe =
     ({ appId, key, startDate, endDate }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(fetchThroughputMetricsRequest());
@@ -80,7 +80,7 @@ export const fetchThroughputMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}/throughput?startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -89,7 +89,7 @@ export const fetchThroughputMetrics =
                 dispatch(fetchThroughputMetricsSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -123,7 +123,7 @@ export const fetchErrorMetricsFailure: Function = (
     payload: error,
 });
 
-export const fetchErrorMetrics =
+export const fetchErrorMetrics: $TSFixMe =
     ({ appId, key, startDate, endDate }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(fetchErrorMetricsRequest());
@@ -131,7 +131,7 @@ export const fetchErrorMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}/error?startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -140,7 +140,7 @@ export const fetchErrorMetrics =
                 dispatch(fetchErrorMetricsSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -246,7 +246,7 @@ export const fetchIncomingMetricsFailure: Function = (
     payload: error,
 });
 
-export const fetchIncomingMetrics =
+export const fetchIncomingMetrics: $TSFixMe =
     ({ appId, key, skip, limit, startDate, endDate }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(fetchIncomingMetricsRequest());
@@ -254,7 +254,7 @@ export const fetchIncomingMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}?type=incoming&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -263,7 +263,7 @@ export const fetchIncomingMetrics =
                 dispatch(fetchIncomingMetricsSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -296,7 +296,7 @@ export const fetchOutgoingMetricsFailing: Function = (
     payload: error,
 });
 
-export const fetchOutgoingMetrics =
+export const fetchOutgoingMetrics: $TSFixMe =
     ({ appId, key, skip, limit, startDate, endDate }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(fetchOutgoingMetricsRequest());
@@ -304,7 +304,7 @@ export const fetchOutgoingMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}?type=outgoing&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -313,7 +313,7 @@ export const fetchOutgoingMetrics =
                 dispatch(fetchOutgoingMetricsSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -371,12 +371,12 @@ export const resetIncomingDelete: Function = (): void => ({
     type: types.RESET_INCOMING_DELETE,
 });
 
-export const deleteIncomingMetrics =
+export const deleteIncomingMetrics: $TSFixMe =
     ({ appId, key, metricId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(deleteIncomingMetricsRequest());
 
-        const promise =
+        const promise: $TSFixMe =
             delete `performanceMetric/${appId}/key/${key}/${metricId}`;
 
         promise.then(
@@ -384,7 +384,7 @@ export const deleteIncomingMetrics =
                 dispatch(deleteIncomingMetricsSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -421,12 +421,12 @@ export const resetOutgoingDelete: Function = (): void => ({
     type: types.RESET_OUTGOING_DELETE,
 });
 
-export const deleteOutgoingMetrics =
+export const deleteOutgoingMetrics: $TSFixMe =
     ({ appId, key, metricId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(deleteOutgoingMetricsRequest());
 
-        const promise =
+        const promise: $TSFixMe =
             delete `performanceMetric/${appId}/key/${key}/${metricId}`;
 
         promise.then(
@@ -434,7 +434,7 @@ export const deleteOutgoingMetrics =
                 dispatch(deleteOutgoingMetricsSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data

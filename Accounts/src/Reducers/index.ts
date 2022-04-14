@@ -10,7 +10,7 @@ import resetPassword from './resetPassword';
 import changePassword from './changePassword';
 import resendToken from './resendToken';
 
-const appReducer = combineReducers({
+const appReducer: $TSFixMe = combineReducers({
     routing: routerReducer,
     login,
     register,

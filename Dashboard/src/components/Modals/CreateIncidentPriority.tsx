@@ -96,7 +96,7 @@ class CreateIncidentPriority extends Component<ComponentProps> {
     }
 
     submitForm(values: $TSFixMe) {
-        const { name, color } = values;
+        const { name, color }: $TSFixMe = values;
         this.props
 
             .createIncidentPriority(this.props.currentProject._id, {
@@ -124,9 +124,9 @@ class CreateIncidentPriority extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit, closeThisDialog } = this.props;
+        const { handleSubmit, closeThisDialog }: $TSFixMe = this.props;
 
-        const { displayColorPicker } = this.state;
+        const { displayColorPicker }: $TSFixMe = this.state;
         return (
             <div
                 className="ModalLayer-contents"
@@ -302,7 +302,7 @@ CreateIncidentPriority.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     createIncidentPriority: PropTypes.func.isRequired,
 };
-const CreateIncidentPriorityForm = reduxForm({
+const CreateIncidentPriorityForm: $TSFixMe = reduxForm({
     form: 'IncidentPriorityForm',
     initialValues: { color: { r: 255, g: 0, b: 0, a: 1 } },
 })(CreateIncidentPriority);

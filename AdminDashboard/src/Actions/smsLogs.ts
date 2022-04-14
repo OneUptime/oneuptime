@@ -24,7 +24,7 @@ export const fetchSmsLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const fetchSmsLogs =
+export const fetchSmsLogs: $TSFixMe =
     (skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
@@ -33,11 +33,11 @@ export const fetchSmsLogs =
         dispatch(fetchSmsLogsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `sms-logs?skip=${skip}&limit=${limit}`
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(fetchSmsLogsSuccess(data));
 
@@ -80,7 +80,7 @@ export const searchSmsLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const searchSmsLogs =
+export const searchSmsLogs: $TSFixMe =
     (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
@@ -90,12 +90,12 @@ export const searchSmsLogs =
         dispatch(searchSmsLogsRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `sms-logs/search?skip=${skip}&limit=${limit}`,
                 values
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(searchSmsLogsSuccess(data));
             return response;
@@ -137,15 +137,15 @@ export const deleteSmsLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteSmsLogs =
+export const deleteSmsLogs: $TSFixMe =
     () =>
     async (dispatch: Dispatch): void => {
         dispatch(deleteSmsLogsRequest());
 
         try {
-            const response = await delete `sms-logs`;
+            const response: $TSFixMe = await delete `sms-logs`;
 
-            const message = response.data.message;
+            const message: $TSFixMe = response.data.message;
 
             dispatch(deleteSmsLogsSuccess(message));
         } catch (error) {
@@ -197,13 +197,13 @@ export const resetFetchSmsLogStatus: Function = (): void => {
 };
 
 // Calls the API to fetch smsLogStatus
-export const fetchSmsLogStatus =
+export const fetchSmsLogStatus: $TSFixMe =
     () =>
     async (dispatch: Dispatch): void => {
         dispatch(fetchSmsLogStatusRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 'globalConfig/smsLogMonitoringStatus'
             );
 
@@ -261,16 +261,16 @@ export const resetConfirmSmsLogStatus: Function = (): void => {
 };
 
 // Calls the API to change smsLogStatus
-export const smsLogStatusChange =
+export const smsLogStatusChange: $TSFixMe =
     (values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(changeSmsLogStatusRequest());
 
         try {
-            const response = await BackendAPI.post(new Route('globalConfig/'), [
+            const response: $TSFixMe = await BackendAPI.post(new Route('globalConfig/'), [
                 { name: 'smsLogMonitoringStatus', value: values.status },
             ]);
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
             dispatch(changeSmsLogStatusSuccess(data));
             return data;
         } catch (error) {

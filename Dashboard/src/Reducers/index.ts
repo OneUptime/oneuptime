@@ -58,7 +58,7 @@ import incidentNoteTemplate from './incidentNoteTemplate';
 import statusPageCategory from './statusPageCategory';
 import sso from './sso';
 
-const appReducer = combineReducers({
+const appReducer: $TSFixMe = combineReducers({
     routing: routerReducer,
     form: formReducer,
     team,

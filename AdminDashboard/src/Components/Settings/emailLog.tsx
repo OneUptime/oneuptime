@@ -41,7 +41,7 @@ class EmailLog extends Component<ComponentProps> {
     };
     override render() {
 
-        const { changeEmailLogStatus, handleSubmit } = this.props;
+        const { changeEmailLogStatus, handleSubmit }: $TSFixMe = this.props;
         return (
             <div
                 id="oneuptimeEmailLog"
@@ -167,8 +167,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const emailLogStatus = state.emailLogs.emailLogStatus;
-    const changeEmailLogStatus = state.emailLogs.changeEmailLogStatus;
+    const emailLogStatus: $TSFixMe = state.emailLogs.emailLogStatus;
+    const changeEmailLogStatus: $TSFixMe = state.emailLogs.changeEmailLogStatus;
     return {
         settings: state.settings,
         emailLogStatus,
@@ -180,7 +180,7 @@ function mapStateToProps(state: RootState) {
         },
     };
 }
-const ReduxFormComponent = reduxForm({
+const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'email-log-toggle-form',
     enableReinitialize: true,
 })(EmailLog);

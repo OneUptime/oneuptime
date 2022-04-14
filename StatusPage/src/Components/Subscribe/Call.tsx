@@ -36,14 +36,14 @@ class Call extends Component<ComponentProps> {
     }
 
     handleChange = (event: $TSFixMe) => {
-        const value = event.target.value;
-        const name = event.target.name;
+        const value: $TSFixMe = event.target.value;
+        const name: $TSFixMe = event.target.name;
         this.setState({ [name]: value });
     };
     handleSubmit = (event: $TSFixMe) => {
         event.preventDefault();
 
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.statuspage &&
 
@@ -51,17 +51,17 @@ class Call extends Component<ComponentProps> {
 
             this.props.statuspage.projectId._id;
 
-        const statusPageId = this.props.statuspage._id;
+        const statusPageId: $TSFixMe = this.props.statuspage._id;
 
-        const selectIndividualMonitors = this.props.statuspage
+        const selectIndividualMonitors: $TSFixMe = this.props.statuspage
             .selectIndividualMonitors;
 
 
         if (this.state.phone_number && this.state.phone_number.length) {
 
-            const validnumber = this.validation(this.state.phone_number);
+            const validnumber: $TSFixMe = this.validation(this.state.phone_number);
             if (validnumber) {
-                const values = this.state;
+                const values: $TSFixMe = this.state;
 
                 values.method = 'sms';
 
@@ -90,7 +90,7 @@ class Call extends Component<ComponentProps> {
         }
     };
     validation = (phone: $TSFixMe) => {
-        const numbers = /^[0-9]+$/;
+        const numbers: $TSFixMe = /^[0-9]+$/;
         if (phone.match(numbers)) {
             return true;
         } else {

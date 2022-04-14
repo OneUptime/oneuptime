@@ -6,10 +6,10 @@ import {
 } from 'CommonServer/Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import _ from 'lodash';
-const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
+const isValidMongoObjectId: $TSFixMe = require('../config/db').Types.ObjectId.isValid;
 
 import AuditLogsService from '../Services/auditLogsService';
-const sendErrorResponse = require('./response').sendErrorResponse;
+const sendErrorResponse: $TSFixMe = require('./response').sendErrorResponse;
 
 import { getProjectId } from './api';
 import GlobalConfigService from '../Services/globalConfigService';
@@ -24,10 +24,10 @@ export default {
         next: NextFunction
     ): void {
         try {
-            const blackListedRoutes = ['/audit-logs/'];
-            const blackListedReqObjectPaths = ['body.password'];
+            const blackListedRoutes: $TSFixMe = ['/audit-logs/'];
+            const blackListedReqObjectPaths: $TSFixMe = ['body.password'];
             const blackListedResObjectPaths: $TSFixMe = [];
-            const blackListedResBodyObjectPaths = [
+            const blackListedResBodyObjectPaths: $TSFixMe = [
                 'gitCredential',
                 'dockerCredential',
                 'iv',
@@ -45,7 +45,7 @@ export default {
                 projectId = isValidMongoObjectId(projectId) ? projectId : null;
 
                 if (shouldStoreLogs === null) {
-                    const auditLogStatus = await GlobalConfigService.findOneBy({
+                    const auditLogStatus: $TSFixMe = await GlobalConfigService.findOneBy({
                         query: { name: 'auditLogMonitoringStatus' },
                         select: 'value',
                     });
@@ -59,13 +59,13 @@ export default {
                 //  skip storing if audit log config exist and it is not storing
                 if (shouldStoreLogs) {
                     // store logs if storing
-                    const parsedUrl = url.parse(req.originalUrl);
+                    const parsedUrl: $TSFixMe = url.parse(req.originalUrl);
 
                     // Avoiding logging any audit data, if its a blacklisted url/route.
-                    const isBlackListedRoute = blackListedRoutes.some(
+                    const isBlackListedRoute: $TSFixMe = blackListedRoutes.some(
                         blackListedRouteName => {
-                            const fullApiUrl = req.originalUrl || '';
-                            const paramsRouteUrl =
+                            const fullApiUrl: $TSFixMe = req.originalUrl || '';
+                            const paramsRouteUrl: $TSFixMe =
                                 (req.route && req.route.path) || ''; // Ex. "/:projectId/statuspages"
 
                             return (
@@ -80,11 +80,11 @@ export default {
                     }
 
                     // Removing specified blacklisted object paths for security and other reasons.
-                    const modifiedReq = _.omit(
+                    const modifiedReq: $TSFixMe = _.omit(
                         { ...req },
                         blackListedReqObjectPaths
                     );
-                    const modifiedRes = _.omit(res, blackListedResObjectPaths);
+                    const modifiedRes: $TSFixMe = _.omit(res, blackListedResObjectPaths);
                     if (Array.isArray(res.logBody)) {
                         modifiedRes.logBody = res.logBody.map(
                             (element: $TSFixMe) =>

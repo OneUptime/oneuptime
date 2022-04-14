@@ -96,7 +96,7 @@ class CreateAnnouncement extends Component<ComponentProps> {
         } = this.props;
         const postObj: $TSFixMe = {};
         if (values.monitors && values.monitors.length > 0) {
-            const monitors = values.monitors.filter(
+            const monitors: $TSFixMe = values.monitors.filter(
                 (monitorId: $TSFixMe) => typeof monitorId === 'string'
             );
 
@@ -113,7 +113,7 @@ class CreateAnnouncement extends Component<ComponentProps> {
         postObj.hideAnnouncement = values.hideAnnouncement ? true : false;
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -154,9 +154,9 @@ class CreateAnnouncement extends Component<ComponentProps> {
     renderMonitors = ({
         fields
     }: $TSFixMe) => {
-        const { monitorError } = this.state;
+        const { monitorError }: $TSFixMe = this.state;
 
-        const { formValues, mergeMonitors } = this.props;
+        const { formValues, mergeMonitors }: $TSFixMe = this.props;
 
         return <>
             {formValues && formValues.selectAllMonitors && (
@@ -575,7 +575,7 @@ class CreateAnnouncement extends Component<ComponentProps> {
 
 CreateAnnouncement.displayName = 'CreateAnnouncement';
 
-const CreateAnnouncementForm = reduxForm({
+const CreateAnnouncementForm: $TSFixMe = reduxForm({
     form: 'CreateAnnouncementForm',
     enableReinitialize: false,
     validate,
@@ -601,11 +601,11 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const {
         data: { projectId },
     } = ownProps;
-    const allMonitors = state.monitor.monitorsList.monitors
+    const allMonitors: $TSFixMe = state.monitor.monitorsList.monitors
         .filter((monitor: $TSFixMe) => String(monitor._id) === String(projectId))
         .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
-    const monitors = state.statusPage.status.monitors;
+    const monitors: $TSFixMe = state.statusPage.status.monitors;
     const mergeMonitors: $TSFixMe = [];
     allMonitors.forEach((allMon: $TSFixMe) => {
         monitors.forEach((mon: $TSFixMe) => {

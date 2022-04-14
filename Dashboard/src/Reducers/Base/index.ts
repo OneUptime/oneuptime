@@ -27,11 +27,11 @@ const INITIAL_STATE: $TSFixMe = {
 };
 
 const getReducer: Function = ({ actionBase }: $TSFixMe): void => {
-    const createConstants = actionBase.getCreateConstants();
-    const listConstants = actionBase.getListConstants();
-    const getConstants = actionBase.getGetConstants();
-    const deleteConstants = actionBase.getDeleteConstants();
-    const updateConstants = actionBase.getUpdateConstants();
+    const createConstants: $TSFixMe = actionBase.getCreateConstants();
+    const listConstants: $TSFixMe = actionBase.getListConstants();
+    const getConstants: $TSFixMe = actionBase.getGetConstants();
+    const deleteConstants: $TSFixMe = actionBase.getDeleteConstants();
+    const updateConstants: $TSFixMe = actionBase.getUpdateConstants();
 
     return (state = INITIAL_STATE, action: Action) => {
         switch (action.type) {

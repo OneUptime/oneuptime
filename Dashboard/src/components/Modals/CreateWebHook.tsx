@@ -73,9 +73,9 @@ class CreateWebHook extends React.Component<CreateWebHookProps> {
             data: { monitorId },
         } = this.props;
         const postObj: $TSFixMe = {};
-        const { selectAllMonitors } = values;
+        const { selectAllMonitors }: $TSFixMe = values;
         let monitors = [];
-        const allMonitors = monitor.monitorsList.monitors
+        const allMonitors: $TSFixMe = monitor.monitorsList.monitors
             .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
 
@@ -119,7 +119,7 @@ class CreateWebHook extends React.Component<CreateWebHookProps> {
             : false;
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -159,12 +159,12 @@ class CreateWebHook extends React.Component<CreateWebHookProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -237,7 +237,7 @@ class CreateWebHook extends React.Component<CreateWebHookProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -367,7 +367,7 @@ class CreateWebHook extends React.Component<CreateWebHookProps> {
         } = this.props;
 
 
-        const { formValues } = this.props;
+        const { formValues }: $TSFixMe = this.props;
         const {
             selectedProjects,
             selectedComponents,
@@ -942,7 +942,7 @@ CreateWebHook.propTypes = {
     monitorsList: PropTypes.array,
 };
 
-const NewCreateWebHook = reduxForm({
+const NewCreateWebHook: $TSFixMe = reduxForm({
     form: 'newCreateWebHook', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for

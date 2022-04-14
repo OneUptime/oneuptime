@@ -49,9 +49,9 @@ export class GroupList extends Component<GroupListProps>{
 
     handleKeyboard = (e: $TSFixMe) => {
 
-        const { modalId, modalList } = this.props;
+        const { modalId, modalList }: $TSFixMe = this.props;
 
-        const { subProjectModalId } = this.state;
+        const { subProjectModalId }: $TSFixMe = this.state;
 
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
@@ -73,7 +73,7 @@ export class GroupList extends Component<GroupListProps>{
 
     paginatePrev = () => {
 
-        const { skip, getProjectGroups } = this.props;
+        const { skip, getProjectGroups }: $TSFixMe = this.props;
 
         getProjectGroups(this.props.project.id, skip ? skip - 10 : 10, 10);
         this.setState({
@@ -84,7 +84,7 @@ export class GroupList extends Component<GroupListProps>{
 
     paginateNext = () => {
 
-        const { skip, getProjectGroups } = this.props;
+        const { skip, getProjectGroups }: $TSFixMe = this.props;
 
         getProjectGroups(this.props.project.id, skip ? skip + 10 : 10, 10);
 
@@ -93,8 +93,8 @@ export class GroupList extends Component<GroupListProps>{
 
     handleAddSubProject = () => {
 
-        const { currentProject, openModal } = this.props;
-        const userId = User.getUserId();
+        const { currentProject, openModal }: $TSFixMe = this.props;
+        const userId: $TSFixMe = User.getUserId();
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
 
@@ -141,10 +141,10 @@ export class GroupList extends Component<GroupListProps>{
 
             createGroupRequest,
         } = this.props;
-        const canNext = count > skip + limit ? false : true;
-        const canPrev = skip <= 0 ? true : false;
+        const canNext: $TSFixMe = count > skip + limit ? false : true;
+        const canPrev: $TSFixMe = skip <= 0 ? true : false;
         
-        const numbersOfPage = Math.ceil(parseInt(count) / 10);
+        const numbersOfPage: $TSFixMe = Math.ceil(parseInt(count) / 10);
 
         return (
             <div className="bs-BIM">

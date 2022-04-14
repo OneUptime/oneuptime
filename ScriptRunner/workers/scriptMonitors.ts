@@ -7,7 +7,7 @@ export default {
     run: async monitor => {
         if (monitor && monitor.type === 'script') {
             if (monitor.data.script) {
-                const code = monitor.data.script; // redundant now but may be expanded in future
+                const code: $TSFixMe = monitor.data.script; // redundant now but may be expanded in future
                 const {
                     success,
                     message,

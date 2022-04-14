@@ -83,7 +83,7 @@ const ApplicationSecurityView: Function = ({
         });
     };
 
-    const status = securityLog.data
+    const status: $TSFixMe = securityLog.data
         ? threatLevel(securityLog.data.vulnerabilities)
         : 'no data';
 

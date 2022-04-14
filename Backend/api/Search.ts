@@ -4,7 +4,7 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 import { sendListResponse } from 'CommonServer/Utils/response';
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -21,7 +21,7 @@ import PerformanceTracker from '../services/performanceTrackerService';
 
 import { getSubProjects } from '../middlewares/subProject';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.post(
     '/:projectId',
@@ -29,14 +29,14 @@ router.post(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const val = req.body.search;
-            const parentProjectId = req.params.projectId;
+            const val: $TSFixMe = req.body.search;
+            const parentProjectId: $TSFixMe = req.params.projectId;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
-            const searchResponse = [];
+            const searchResponse: $TSFixMe = [];
 
             const [
                 components,
@@ -101,19 +101,19 @@ router.post(
     }
 );
 
-const getComponents = async (
+const getComponents: $TSFixMe = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
 ): void => {
-    const populateComponent = [
+    const populateComponent: $TSFixMe = [
         { path: 'projectId', select: 'name' },
         { path: 'componentCategoryId', select: 'name' },
     ];
 
-    const selectComponent =
+    const selectComponent: $TSFixMe =
         '_id createdAt name createdById projectId slug componentCategoryId';
-    const components = await ComponentService.findBy({
+    const components: $TSFixMe = await ComponentService.findBy({
         query: {
             projectId: { $in: projectIds },
             deleted: false,
@@ -144,7 +144,7 @@ const getComponents = async (
     return null;
 };
 
-const getMonitors = async (
+const getMonitors: $TSFixMe = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
@@ -154,7 +154,7 @@ const getMonitors = async (
         deleted: false,
         $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
     };
-    const populate = [
+    const populate: $TSFixMe = [
         {
             path: 'componentId',
             select: 'name slug _id',
@@ -162,7 +162,7 @@ const getMonitors = async (
         { path: 'projectId', select: '_id name' },
     ];
     const select: string = '_id name componentId projectId type slug';
-    const monitors = await MonitorService.findBy({
+    const monitors: $TSFixMe = await MonitorService.findBy({
         query,
         populate,
         select,
@@ -193,12 +193,12 @@ const getMonitors = async (
     return null;
 };
 
-const getStatusPages = async (
+const getStatusPages: $TSFixMe = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
 ): void => {
-    const populateStatusPage = [
+    const populateStatusPage: $TSFixMe = [
         {
             path: 'projectId',
             select: 'name parentProjectId',
@@ -214,10 +214,10 @@ const getStatusPages = async (
         },
     ];
 
-    const selectStatusPage =
+    const selectStatusPage: $TSFixMe =
         'domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-    const statusPages = await statusPageService.findBy({
+    const statusPages: $TSFixMe = await statusPageService.findBy({
         query: {
             projectId: { $in: projectIds },
             deleted: false,
@@ -253,7 +253,7 @@ const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe): void => {
     //get project users id so as to search for only users in a project and its subproject
     const projectUsers: $TSFixMe = [];
 
-    const projects = await ProjectService.findBy({
+    const projects: $TSFixMe = await ProjectService.findBy({
         query: { _id: { $in: projectIds } },
         select: 'users',
     });
@@ -261,7 +261,7 @@ const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe): void => {
         projectUsers.push(project.users);
     });
     const userIds = projectUsers.flat().map((user: $TSFixMe) => user.userId);
-    const users = await UserService.findBy({
+    const users: $TSFixMe = await UserService.findBy({
         query: {
             _id: { $in: userIds },
             deleted: false,
@@ -291,12 +291,12 @@ const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe): void => {
     return null;
 };
 
-const getOnCallDuty = async (
+const getOnCallDuty: $TSFixMe = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
 ): void => {
-    const populate = [
+    const populate: $TSFixMe = [
         { path: 'userIds', select: 'name' },
         { path: 'createdById', select: 'name' },
         { path: 'monitorIds', select: 'name' },
@@ -314,9 +314,9 @@ const getOnCallDuty = async (
         },
     ];
 
-    const select =
+    const select: $TSFixMe =
         '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-    const schedules = await ScheduleService.findBy({
+    const schedules: $TSFixMe = await ScheduleService.findBy({
         query: {
             projectId: { $in: projectIds },
             deleted: false,
@@ -345,12 +345,12 @@ const getOnCallDuty = async (
     return null;
 };
 
-const getSchedultEvent = async (
+const getSchedultEvent: $TSFixMe = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
 ): void => {
-    const populateScheduledEvent = [
+    const populateScheduledEvent: $TSFixMe = [
         { path: 'resolvedBy', select: 'name' },
         { path: 'projectId', select: 'name slug' },
         { path: 'createdById', select: 'name' },
@@ -360,10 +360,10 @@ const getSchedultEvent = async (
             populate: { path: 'componentId', select: 'name slug' },
         },
     ];
-    const selectScheduledEvent =
+    const selectScheduledEvent: $TSFixMe =
         'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-    const scheduleEvents = await ScheduleEventService.findBy({
+    const scheduleEvents: $TSFixMe = await ScheduleEventService.findBy({
         query: {
             projectId: { $in: projectIds },
             deleted: false,
@@ -393,14 +393,14 @@ const getSchedultEvent = async (
     return null;
 };
 
-const getIncidents = async (
+const getIncidents: $TSFixMe = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
 ): void => {
-    const isNumber = Number(val);
+    const isNumber: $TSFixMe = Number(val);
     if (isNumber) {
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -422,10 +422,10 @@ const getIncidents = async (
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'name _id' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber notifications';
 
-        const incidents = await IncidentService.findBy({
+        const incidents: $TSFixMe = await IncidentService.findBy({
             query: {
                 projectId: { $in: projectIds },
                 deleted: false,
@@ -457,19 +457,19 @@ const getIncidents = async (
     return null;
 };
 
-const getErrorTrackers = async (
+const getErrorTrackers: $TSFixMe = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
 ): void => {
-    const components = await ComponentService.findBy({
+    const components: $TSFixMe = await ComponentService.findBy({
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
     const componentIds = components.map((component: $TSFixMe) => component._id);
-    const select =
+    const select: $TSFixMe =
         'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-    const populate = [
+    const populate: $TSFixMe = [
         {
             path: 'componentId',
             select: 'name slug projectId',
@@ -477,7 +477,7 @@ const getErrorTrackers = async (
         },
         { path: 'resourceCategory', select: 'name' },
     ];
-    const errorTrackers = await ErrorTrackerService.findBy({
+    const errorTrackers: $TSFixMe = await ErrorTrackerService.findBy({
         query: {
             componentId: { $in: componentIds },
             deleted: false,
@@ -509,17 +509,17 @@ const getErrorTrackers = async (
     return null;
 };
 
-const getLogContainers = async (
+const getLogContainers: $TSFixMe = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
 ): void => {
-    const components = await ComponentService.findBy({
+    const components: $TSFixMe = await ComponentService.findBy({
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
     const componentIds = components.map((component: $TSFixMe) => component._id);
-    const populateAppLogs = [
+    const populateAppLogs: $TSFixMe = [
         {
             path: 'componentId',
             select: 'name slug projectId',
@@ -530,9 +530,9 @@ const getLogContainers = async (
         },
     ];
 
-    const selectAppLogs =
+    const selectAppLogs: $TSFixMe =
         'componentId name slug resourceCategory showQuickStart createdById key';
-    const logContainers = await LogContainerService.findBy({
+    const logContainers: $TSFixMe = await LogContainerService.findBy({
         query: {
             componentId: { $in: componentIds },
             deleted: false,
@@ -565,21 +565,21 @@ const getLogContainers = async (
     return null;
 };
 
-const getPerformanceTrackers = async (
+const getPerformanceTrackers: $TSFixMe = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
 ): void => {
-    const components = await ComponentService.findBy({
+    const components: $TSFixMe = await ComponentService.findBy({
         query: { projectId: { $in: projectIds }, deleted: false },
         select: 'id',
     });
 
     const componentIds = components.map((component: $TSFixMe) => component._id);
-    const selectPerfTracker =
+    const selectPerfTracker: $TSFixMe =
         'componentId name slug key showQuickStart createdById';
 
-    const populatePerfTracker = [
+    const populatePerfTracker: $TSFixMe = [
         { path: 'createdById', select: 'name email' },
         {
             path: 'componentId',
@@ -587,7 +587,7 @@ const getPerformanceTrackers = async (
             populate: { path: 'projectId', select: 'name slug' },
         },
     ];
-    const performanceTrackers = await PerformanceTracker.findBy({
+    const performanceTrackers: $TSFixMe = await PerformanceTracker.findBy({
         query: {
             componentId: { $in: componentIds },
             deleted: false,

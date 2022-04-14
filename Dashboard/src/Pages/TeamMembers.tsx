@@ -82,14 +82,14 @@ const LoadedTeam: Function = (props: LoadedTeamProps) => {
         currentProjectId,
         modalList,
     } = props;
-    const membersPerPage = 10;
+    const membersPerPage: $TSFixMe = 10;
 
     // Add Project TeamMembers to All TeamMembers List
     let projectTeamMembers = team.subProjectTeamMembers.find(
         (subProjectTeamMember: $TSFixMe) => subProjectTeamMember._id === currentProjectId
     );
-    const projectMembers = Object.assign({}, projectTeamMembers);
-    const subProjectName =
+    const projectMembers: $TSFixMe = Object.assign({}, projectTeamMembers);
+    const subProjectName: $TSFixMe =
         (props.subProjects &&
             props.subProjects.find((obj: $TSFixMe) => obj._id === currentProjectId)
                 ?.name) ||
@@ -147,7 +147,7 @@ const LoadedTeam: Function = (props: LoadedTeamProps) => {
             false
         );
 
-    const allTeamMembers = projectTeamMembers && [projectTeamMembers];
+    const allTeamMembers: $TSFixMe = projectTeamMembers && [projectTeamMembers];
     return allTeamMembers;
 };
 
@@ -243,9 +243,9 @@ class TeamApp extends Component<ComponentProps> {
             switchToProjectViewerNav,
         } = this.props;
 
-        const { inviteModalId } = this.state;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const { inviteModalId }: $TSFixMe = this.state;
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
 
         return (
             <Fade>
@@ -325,7 +325,7 @@ const mapStateToProps: Function = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
-    const subProjectNames =
+    const subProjectNames: $TSFixMe =
         subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =

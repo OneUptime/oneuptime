@@ -21,7 +21,7 @@ class SearchBox extends Component<ComponentProps> {
     }
     // update the state locally here
     onChange = (event: $TSFixMe) => {
-        const keyword = event.target.value;
+        const keyword: $TSFixMe = event.target.value;
         this.setState({
             keyword,
         });
@@ -37,7 +37,7 @@ class SearchBox extends Component<ComponentProps> {
     }
     override render() {
 
-        const { placeholder, style } = this.props;
+        const { placeholder, style }: $TSFixMe = this.props;
         return (
             <div>
                 <input

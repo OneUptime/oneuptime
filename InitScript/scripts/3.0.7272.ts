@@ -3,7 +3,7 @@ import { find, update } from '../util/db';
 const PROJECT_COLLECTION: string = 'projects';
 async function run(): void {
     // get projects without disableNotification fields for sms, email or webhook
-    const projectsWithoutInvestigationNoteNotificationOptionFields = await find(
+    const projectsWithoutInvestigationNoteNotificationOptionFields: $TSFixMe = await find(
         PROJECT_COLLECTION,
         {
             $or: [

@@ -59,7 +59,7 @@ class RunAutomationScript extends Component<ComponentProps> {
         } = this.props;
         runScript(projectId, automatedScriptId).then(() => {
             fetchAutomatedScript(projectId, 0, 10);
-            const pathName = history.location.pathname;
+            const pathName: $TSFixMe = history.location.pathname;
             if (navigate) {
                 history.push({
 

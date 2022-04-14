@@ -65,7 +65,7 @@ class ProjectResetDomain extends Component<ComponentProps> {
 
     override render() {
 
-        const { requesting, resetError } = this.props;
+        const { requesting, resetError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

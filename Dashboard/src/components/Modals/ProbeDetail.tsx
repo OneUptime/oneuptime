@@ -48,8 +48,8 @@ class ProbeDetail extends Component<ComponentProps> {
 
     override render() {
 
-        const { ProbeDetailModalId, closeModal, probesData } = this.props.data;
-        const isOffline =
+        const { ProbeDetailModalId, closeModal, probesData }: $TSFixMe = this.props.data;
+        const isOffline: $TSFixMe =
             (probesData.lastAlive &&
                 moment(Date.now()).diff(
                     moment(probesData.lastAlive),

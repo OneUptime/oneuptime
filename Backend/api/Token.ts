@@ -4,7 +4,7 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import UserService from '../services/userService';
 import {
     sendErrorResponse,
@@ -22,7 +22,7 @@ import Exception from 'Common/Types/Exception/Exception';
 //                                               }
 router.post('/new', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const jwtRefreshToken = req.body.refreshToken;
+        const jwtRefreshToken: $TSFixMe = req.body.refreshToken;
 
         if (!jwtRefreshToken) {
             return sendErrorResponse(
@@ -31,7 +31,7 @@ router.post('/new', async (req: ExpressRequest, res: ExpressResponse) => {
                 new BadDataException('Refresh Token not found.')
             );
         }
-        const token = await UserService.getNewToken(jwtRefreshToken);
+        const token: $TSFixMe = await UserService.getNewToken(jwtRefreshToken);
         const tokenData: $TSFixMe = {
             jwtAccessToken: token.accessToken,
             jwtRefreshToken: token.refreshToken,

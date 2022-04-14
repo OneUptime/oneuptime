@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 
@@ -28,8 +28,8 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const data = req.body;
+            const projectId: $TSFixMe = req.params.projectId;
+            const data: $TSFixMe = req.body;
 
             data.createdById = req.user ? req.user.id : null;
 
@@ -97,7 +97,7 @@ router.post(
                 });
             }
 
-            const scheduledEvent = await ScheduledEventService.create(
+            const scheduledEvent: $TSFixMe = await ScheduledEventService.create(
                 { projectId },
                 data
             );
@@ -115,8 +115,8 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const data = req.body;
-            const { eventId, projectId } = req.params;
+            const data: $TSFixMe = req.body;
+            const { eventId, projectId }: $TSFixMe = req.params;
 
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -195,7 +195,7 @@ router.put(
                 });
             }
 
-            const existingScheduledEvent =
+            const existingScheduledEvent: $TSFixMe =
                 await ScheduledEventService.findOneBy({
                     query: { name: data.name, projectId },
                     select: '_id createdById',
@@ -211,7 +211,7 @@ router.put(
                 });
             }
 
-            const scheduledEvent = await ScheduledEventService.updateOneBy(
+            const scheduledEvent: $TSFixMe = await ScheduledEventService.updateOneBy(
                 { _id: eventId, projectId },
                 data
             );
@@ -233,14 +233,14 @@ router.put(
             const data: $TSFixMe = {};
 
             data.resolvedBy = req.user ? req.user.id : null;
-            const { eventId } = req.params;
+            const { eventId }: $TSFixMe = req.params;
 
-            const scheduledEvent = await ScheduledEventService.findOneBy({
+            const scheduledEvent: $TSFixMe = await ScheduledEventService.findOneBy({
                 query: { _id: eventId },
                 select: 'startDate createdById',
             });
-            const startDate = moment(scheduledEvent.startDate).format();
-            const currentDate = moment().format();
+            const startDate: $TSFixMe = moment(scheduledEvent.startDate).format();
+            const currentDate: $TSFixMe = moment().format();
 
             if (startDate > currentDate) {
                 return sendErrorResponse(req, res, {
@@ -257,7 +257,7 @@ router.put(
                 });
             }
 
-            const response = await ScheduledEventService.resolveScheduledEvent(
+            const response: $TSFixMe = await ScheduledEventService.resolveScheduledEvent(
                 {
                     _id: eventId,
                 },
@@ -276,10 +276,10 @@ router.delete(
     isAuthorized,
     async (req, res): void => {
         try {
-            const userId = req.user ? req.user.id : null;
-            const { eventId } = req.params;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const { eventId }: $TSFixMe = req.params;
 
-            const event = await ScheduledEventService.deleteBy(
+            const event: $TSFixMe = await ScheduledEventService.deleteBy(
                 { _id: eventId },
                 userId
             );
@@ -298,10 +298,10 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const userId = req.user ? req.user.id : null;
-            const { eventId } = req.params;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const { eventId }: $TSFixMe = req.params;
 
-            const fetchEvent = await ScheduledEventService.findOneBy({
+            const fetchEvent: $TSFixMe = await ScheduledEventService.findOneBy({
                 query: { _id: eventId },
                 select: 'resolved cancelled monitorDuringEvent monitors',
             });
@@ -328,7 +328,7 @@ router.put(
                 );
             }
 
-            const event = await ScheduledEventService.updateBy(
+            const event: $TSFixMe = await ScheduledEventService.updateBy(
                 { _id: eventId },
                 {
                     cancelled: true,
@@ -337,7 +337,7 @@ router.put(
                 }
             );
 
-            const scheduledEvent = event[0];
+            const scheduledEvent: $TSFixMe = event[0];
 
             if (scheduledEvent) {
                 if (scheduledEvent.alertSubscriber) {
@@ -375,8 +375,8 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId } = req.params;
-            const currentDate = moment();
+            const { projectId }: $TSFixMe = req.params;
+            const currentDate: $TSFixMe = moment();
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -392,7 +392,7 @@ router.get(
                 });
             }
 
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
                 { path: 'createdById', select: 'name' },
@@ -402,7 +402,7 @@ router.get(
                     populate: { path: 'componentId', select: 'name slug' },
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
             const query: $TSFixMe = {
@@ -411,7 +411,7 @@ router.get(
                 endDate: { $gt: currentDate },
                 resolved: false,
             };
-            const [events, count] = await Promise.all([
+            const [events, count]: $TSFixMe = await Promise.all([
                 ScheduledEventService.findBy({
                     query,
                     select,
@@ -434,14 +434,14 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const currentDate = moment();
+            const currentDate: $TSFixMe = moment();
             // this contains both projectIds and subProjectIds
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
-            const ongoingScheduledEvents =
+            const ongoingScheduledEvents: $TSFixMe =
                 await ScheduledEventService.getSubProjectOngoingScheduledEvents(
                     subProjectIds,
                     {
@@ -464,7 +464,7 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId, eventId } = req.params;
+            const { projectId, eventId }: $TSFixMe = req.params;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -494,7 +494,7 @@ router.get(
                 });
             }
 
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
                 { path: 'createdById', select: 'name' },
@@ -507,10 +507,10 @@ router.get(
                     },
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            const scheduledEvent = await ScheduledEventService.findOneBy({
+            const scheduledEvent: $TSFixMe = await ScheduledEventService.findOneBy({
                 query: { _id: eventId },
                 select,
                 populate,
@@ -528,9 +528,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
+            const { projectId }: $TSFixMe = req.params;
 
-            const query = req.query;
+            const query: $TSFixMe = req.query;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -546,7 +546,7 @@ router.get(
                 });
             }
 
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
                 { path: 'createdById', select: 'name' },
@@ -556,10 +556,10 @@ router.get(
                     populate: { path: 'componentId', select: 'name slug' },
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            const [events, count] = await Promise.all([
+            const [events, count]: $TSFixMe = await Promise.all([
                 ScheduledEventService.findBy({
                     query: { projectId },
                     limit: query.limit,
@@ -587,11 +587,11 @@ router.get(
         try {
             // this contains both projectIds and subProjectIds
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
-            const scheduledEvents =
+            const scheduledEvents: $TSFixMe =
                 await ScheduledEventService.getSubProjectScheduledEvents(
                     subProjectIds
                 );
@@ -607,10 +607,10 @@ router.get(
     checkUserBelongToProject,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const monitorId = req.params.monitorId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const monitorId: $TSFixMe = req.params.monitorId;
 
-            const { limit, skip } = req.query;
+            const { limit, skip }: $TSFixMe = req.query;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -640,7 +640,7 @@ router.get(
                 });
             }
 
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
                 { path: 'createdById', select: 'name' },
@@ -653,7 +653,7 @@ router.get(
                     },
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
             const query: $TSFixMe = {
@@ -661,7 +661,7 @@ router.get(
                 monitorId,
                 showEventOnStatusPage: true,
             };
-            const [events, count] = await Promise.all([
+            const [events, count]: $TSFixMe = await Promise.all([
                 ScheduledEventService.findBy({
                     query,
                     limit,
@@ -687,10 +687,10 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { eventId, projectId } = req.params;
+            const { eventId, projectId }: $TSFixMe = req.params;
 
-            const userId = req.user ? req.user.id : null;
-            const data = req.body;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const data: $TSFixMe = req.body;
             data.scheduledEventId = eventId;
             data.createdById = userId;
             if (
@@ -767,7 +767,7 @@ router.post(
                 data.type = 'investigation';
             }
 
-            const scheduledEventMessage =
+            const scheduledEventMessage: $TSFixMe =
                 await ScheduledEventNoteService.create(data, projectId);
 
             return sendItemResponse(req, res, scheduledEventMessage);
@@ -784,11 +784,11 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { eventId } = req.params;
+            const { eventId }: $TSFixMe = req.params;
 
-            const { limit, skip } = req.query;
+            const { limit, skip }: $TSFixMe = req.query;
 
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 {
                     path: 'scheduledEventId',
@@ -799,10 +799,10 @@ router.get(
                     },
                 },
             ];
-            const selectFields =
+            const selectFields: $TSFixMe =
                 'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
-            const [eventNotes, count] = await Promise.all([
+            const [eventNotes, count]: $TSFixMe = await Promise.all([
                 ScheduledEventNoteService.findBy({
                     query: { scheduledEventId: eventId },
                     limit,
@@ -829,8 +829,8 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { eventId, noteId, projectId } = req.params;
-            const data = req.body;
+            const { eventId, noteId, projectId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
             data.updated = true;
 
             if (!eventId) {
@@ -890,7 +890,7 @@ router.put(
                 });
             }
 
-            const scheduledEventMessage =
+            const scheduledEventMessage: $TSFixMe =
                 await ScheduledEventNoteService.updateOneBy(
                     {
                         _id: noteId,
@@ -914,11 +914,11 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { eventId, noteId, projectId } = req.params;
+            const { eventId, noteId, projectId }: $TSFixMe = req.params;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
-            const deletedEventMessage =
+            const deletedEventMessage: $TSFixMe =
                 await ScheduledEventNoteService.deleteBy(
                     {
                         _id: noteId,
@@ -940,8 +940,8 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { slug } = req.params;
-            const populate = [
+            const { slug }: $TSFixMe = req.params;
+            const populate: $TSFixMe = [
                 { path: 'resolvedBy', select: 'name' },
                 { path: 'projectId', select: 'name slug' },
                 { path: 'createdById', select: 'name' },
@@ -954,10 +954,10 @@ router.get(
                     },
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            const scheduledEvent = await ScheduledEventService.findOneBy({
+            const scheduledEvent: $TSFixMe = await ScheduledEventService.findOneBy({
                 query: { slug },
                 populate,
                 select,

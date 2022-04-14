@@ -40,8 +40,8 @@ class IncidentHeaderModal extends Component<ComponentProps> {
 
     navigatToIncident = (incident: $TSFixMe) => {
 
-        const { data } = this.props;
-        const componentSlug =
+        const { data }: $TSFixMe = this.props;
+        const componentSlug: $TSFixMe =
             incident &&
             incident.monitors[0] &&
             incident.monitors[0].monitorId.componentId.slug;
@@ -85,7 +85,7 @@ class IncidentHeaderModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeThisDialog, data } = this.props;
+        const { closeThisDialog, data }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

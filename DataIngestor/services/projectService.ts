@@ -7,7 +7,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const project = await projectCollection.findOne(query);
+        const project: $TSFixMe = await projectCollection.findOne(query);
         return project;
     },
     findBy: async function ({ query, limit, skip }: $TSFixMe): void {
@@ -15,7 +15,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const projects = await projectCollection
+        const projects: $TSFixMe = await projectCollection
             .find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -24,4 +24,4 @@ export default {
     },
 };
 
-const projectCollection = global.db.collection('projects');
+const projectCollection: $TSFixMe = global.db.collection('projects');

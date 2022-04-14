@@ -8,9 +8,9 @@ const user: $TSFixMe = {
     password: '1234567890',
 };
 
-const monitorSlaName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
+const monitorSlaName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
 
 /** This is a test to check:
  * No errors on page reload
@@ -18,7 +18,7 @@ const monitorName = utils.generateRandomString();
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -88,7 +88,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitorSla_${monitorSlaName}`,
                 { visible: true, timeout: init.timeout }

@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const monitorFieldText: $TSFixMe = {
         fieldName: 'textField',
@@ -21,7 +21,7 @@ const user: $TSFixMe = {
 };
 
 describe('Monitor Custom Field', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -45,7 +45,7 @@ describe('Monitor Custom Field', () => {
         async (done: $TSFixMe) => {
             await init.addCustomField(page, monitorFieldText, 'monitor');
 
-            const firstCustomField = await init.pageWaitForSelector(
+            const firstCustomField: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#customfield_${monitorFieldText.fieldName}`,
                 { visible: true, timeout: init.timeout }
@@ -111,7 +111,7 @@ describe('Monitor Custom Field', () => {
                 hidden: true,
             });
 
-            const updatedField = await init.pageWaitForSelector(
+            const updatedField: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#customfield_${monitorFieldNumber.fieldName}`,
                 { visible: true, timeout: init.timeout }
@@ -165,7 +165,7 @@ describe('Monitor Custom Field', () => {
                 hidden: true,
             });
 
-            const noCustomFields = await init.pageWaitForSelector(
+            const noCustomFields: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#noCustomFields',
                 { visible: true, timeout: init.timeout }

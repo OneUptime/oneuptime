@@ -37,7 +37,7 @@ export const deleteSlack: Function = (
     msTeamsId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
+        const promise: $TSFixMe = delete (`webhook/${projectId}/delete/${msTeamsId}`,
         null);
 
         dispatch(deleteSlackRequest());
@@ -169,7 +169,7 @@ export const createSlack: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
+        const promise: $TSFixMe = BackendAPI.post(`webhook/${projectId}/create`, data);
 
         dispatch(createSlackRequest());
         return promise.then(
@@ -218,7 +218,7 @@ export function updateSlack(
     data: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `webhook/${projectId}/${webhookId}`,
             data
         );

@@ -119,7 +119,7 @@ export class SmsSmtpBox extends Component<SmsSmtpBoxProps>{
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
         return (
             <div
                 className="db-World-contentPane Box-root"
@@ -510,7 +510,7 @@ SmsSmtpBox.propTypes = {
     smsSmtpDelete: PropTypes.object,
 };
 
-const SmsSmtpBoxForm = reduxForm({
+const SmsSmtpBoxForm: $TSFixMe = reduxForm({
     form: 'SmsSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for
@@ -529,9 +529,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const smtpConfigurations =
+    const smtpConfigurations: $TSFixMe =
         state.smsTemplates && state.smsTemplates.smsSmtpConfiguration;
-    const showSmsSmtpConfiguration =
+    const showSmsSmtpConfiguration: $TSFixMe =
         state.smsTemplates && state.smsTemplates.showSmsSmtpConfiguration;
     let values = {
         enabled: false,

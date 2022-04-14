@@ -59,8 +59,8 @@ class DeleteCredentialModal extends Component<ComponentProps> {
 
             getSecuritiesError,
         } = this.props;
-        const { credentialType, ssh } = propArr[0];
-        const securityType =
+        const { credentialType, ssh }: $TSFixMe = propArr[0];
+        const securityType: $TSFixMe =
             (credentialType === 'git' && 'application') ||
             (credentialType === 'docker' && 'container');
 
@@ -238,10 +238,10 @@ DeleteCredentialModal.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { propArr } = ownProps;
-    const { credentialType } = propArr[0];
+    const { propArr }: $TSFixMe = ownProps;
+    const { credentialType }: $TSFixMe = propArr[0];
 
-    const securities =
+    const securities: $TSFixMe =
         (credentialType === 'git' && state.credential.gitSecurities) ||
         (credentialType === 'docker' && state.credential.dockerSecurities);
 

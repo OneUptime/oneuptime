@@ -54,7 +54,7 @@ export class DashboardApp extends Component<DashboardAppProps>{
 
     override componentDidMount() {
 
-        const { project, getProjects } = this.props;
+        const { project, getProjects }: $TSFixMe = this.props;
 
         this.setState({ progress: 100 });
 
@@ -118,15 +118,15 @@ export class DashboardApp extends Component<DashboardAppProps>{
                 notifications: { notifications },
             },
         } = this.props;
-        const projectId = currentProject ? currentProject._id : '';
-        const incidentNotifications = notifications.filter(
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
+        const incidentNotifications: $TSFixMe = notifications.filter(
             (notification: $TSFixMe) => notification.read.length === 0 &&
                 notification.meta &&
                 notification.meta.type === 'Incident' &&
                 !notification.closed.includes(User.getUserId())
         );
 
-        const userProfile =
+        const userProfile: $TSFixMe =
             location.pathname === '/dashboard/profile/billing' ||
             location.pathname === '/dashboard/profile/settings' ||
             location.pathname === '/dashboard/profile/changePassword' ||
@@ -135,13 +135,13 @@ export class DashboardApp extends Component<DashboardAppProps>{
         const profileFunc: Function = () => {
             let val;
             if (location.pathname === '/dashboard/profile/billing') {
-                const path = location.pathname.split('/');
+                const path: $TSFixMe = location.pathname.split('/');
                 val = {
                     route: path[path.length - 1],
                     name: 'Billing',
                 };
             } else if (location.pathname === '/dashboard/profile/settings') {
-                const path = location.pathname.split('/');
+                const path: $TSFixMe = location.pathname.split('/');
                 val = {
                     route: path[path.length - 1],
                     name: 'Profile Settings',
@@ -149,13 +149,13 @@ export class DashboardApp extends Component<DashboardAppProps>{
             } else if (
                 location.pathname === '/dashboard/profile/changePassword'
             ) {
-                const path = location.pathname.split('/');
+                const path: $TSFixMe = location.pathname.split('/');
                 val = {
                     route: path[path.length - 1],
                     name: 'Change Password',
                 };
             } else if (location.pathname === '/dashboard/profile/advanced') {
-                const path = location.pathname.split('/');
+                const path: $TSFixMe = location.pathname.split('/');
                 val = {
                     route: path[path.length - 1],
                     name: 'Advanced',
@@ -167,7 +167,7 @@ export class DashboardApp extends Component<DashboardAppProps>{
         // forcing children to re-render on dashboard redraw
         // when projectId is changed/switched in user profile pages
         // * usually children components are unmounted/remounted when project is switched
-        const childrenWithProps = React.Children.map(children, child => {
+        const childrenWithProps = React.Children.map(children, child: $TSFixMe => {
             // Checking isValidElement to ensure child is an element
             if (React.isValidElement(child)) {
                 return React.cloneElement(child, { key: projectId });

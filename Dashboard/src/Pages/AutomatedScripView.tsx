@@ -39,36 +39,36 @@ interface AutomatedScripViewProps {
 }
 
 const AutomatedScripView: Function = (props: AutomatedScripViewProps) => {
-    const { history } = props;
+    const { history }: $TSFixMe = props;
 
-    const parentRoute = getParentRoute(history.location.pathname);
+    const parentRoute: $TSFixMe = getParentRoute(history.location.pathname);
 
-    const [tabIndex, setTabIndex] = useState(0);
-    const [viewJsonModalId] = useState(uuidv4());
-    const [automatedId] = useState(uuidv4);
-    const [showUpdate, setShowUpdate] = useState(false);
-    const [prevProjectId] = useState(props.activeProject);
+    const [tabIndex, setTabIndex]: $TSFixMe = useState(0);
+    const [viewJsonModalId]: $TSFixMe = useState(uuidv4());
+    const [automatedId]: $TSFixMe = useState(uuidv4);
+    const [showUpdate, setShowUpdate]: $TSFixMe = useState(false);
+    const [prevProjectId]: $TSFixMe = useState(props.activeProject);
 
     useEffect(() => {
-        const projectId = props.activeProject;
-        const automatedSlug = props.match.params.automatedScriptslug;
+        const projectId: $TSFixMe = props.activeProject;
+        const automatedSlug: $TSFixMe = props.match.params.automatedScriptslug;
         if (projectId) {
             props.fetchSingleAutomatedScript(projectId, automatedSlug, 0, 10);
         }
     }, []);
 
-    const prevProjectIdRef = useRef();
+    const prevProjectIdRef: $TSFixMe = useRef();
     useEffect(() => {
         prevProjectIdRef.current = prevProjectId;
     });
 
     useEffect(() => {
-        const { activeProject, subProjects, currentProject } = props;
+        const { activeProject, subProjects, currentProject }: $TSFixMe = props;
         if (
             prevProjectIdRef.current &&
             prevProjectIdRef.current !== activeProject
         ) {
-            const { slug } = [...subProjects, currentProject].find(
+            const { slug }: $TSFixMe = [...subProjects, currentProject].find(
                 project => project._id === activeProject
             );
             history.push(`/dashboard/project/${slug}/automation-scripts`);
@@ -76,7 +76,7 @@ const AutomatedScripView: Function = (props: AutomatedScripViewProps) => {
     }, [props.activeProject]);
 
     const tabSelected: Function = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         setTimeout(() => {
 
@@ -85,9 +85,9 @@ const AutomatedScripView: Function = (props: AutomatedScripViewProps) => {
         setTabIndex(index);
     };
 
-    const scriptLogs = props.script;
-    const requesting = props.requesting;
-    const count = props.script && props.script.count;
+    const scriptLogs: $TSFixMe = props.script;
+    const requesting: $TSFixMe = props.requesting;
+    const count: $TSFixMe = props.script && props.script.count;
     let skip = props.script && props.script.skip,
         limit = props.script && props.script.limit;
 
@@ -108,10 +108,10 @@ const AutomatedScripView: Function = (props: AutomatedScripViewProps) => {
         canPrev = false;
     }
 
-    const nextClicked = async () => {
-        const projectId = props.activeProject;
-        const automatedSlug = props.match.params.automatedScriptslug;
-        const skip = props.script && props.script.skip;
+    const nextClicked = async (): $TSFixMe => {
+        const projectId: $TSFixMe = props.activeProject;
+        const automatedSlug: $TSFixMe = props.match.params.automatedScriptslug;
+        const skip: $TSFixMe = props.script && props.script.skip;
         await props.fetchSingleAutomatedScript(
             projectId,
             automatedSlug,
@@ -120,10 +120,10 @@ const AutomatedScripView: Function = (props: AutomatedScripViewProps) => {
         );
     };
 
-    const prevClicked = async () => {
-        const projectId = props.activeProject;
-        const automatedSlug = props.match.params.automatedScriptslug;
-        const skip = props.script && props.script.skip;
+    const prevClicked = async (): $TSFixMe => {
+        const projectId: $TSFixMe = props.activeProject;
+        const automatedSlug: $TSFixMe = props.match.params.automatedScriptslug;
+        const skip: $TSFixMe = props.script && props.script.skip;
         await props.fetchSingleAutomatedScript(
             projectId,
             automatedSlug,
@@ -132,12 +132,12 @@ const AutomatedScripView: Function = (props: AutomatedScripViewProps) => {
         );
     };
 
-    const automatedSlug = props.match.params.automatedScriptslug;
-    const details = props.details;
-    const scriptName = details?.name;
-    const scriptType = details?.scriptType;
-    const projectId = props.currentProject?._id;
-    const projectName = props.currentProject ? props.currentProject.name : '';
+    const automatedSlug: $TSFixMe = props.match.params.automatedScriptslug;
+    const details: $TSFixMe = props.details;
+    const scriptName: $TSFixMe = details?.name;
+    const scriptType: $TSFixMe = details?.scriptType;
+    const projectId: $TSFixMe = props.currentProject?._id;
+    const projectName: $TSFixMe = props.currentProject ? props.currentProject.name : '';
 
     return (
         <Fade>

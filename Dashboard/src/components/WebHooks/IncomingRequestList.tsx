@@ -41,7 +41,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
 
     handleCopyToClipboard = (requestId: $TSFixMe, text: $TSFixMe) => {
 
-        const { setActiveIncomingRequest } = this.props;
+        const { setActiveIncomingRequest }: $TSFixMe = this.props;
         setActiveIncomingRequest(requestId);
 
         copyToClipboard(text);
@@ -61,7 +61,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
             fetchDefaultTemplate,
         } = this.props;
 
-        const { projectId } = this.props;
+        const { projectId }: $TSFixMe = this.props;
         fetchAllIncomingRequest(projectId, 0, 10);
         fetchIncidentPriorities(projectId);
         fetchDefaultTemplate({ projectId });
@@ -101,7 +101,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
 
     prevClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { fetchAllIncomingRequest } = this.props;
+        const { fetchAllIncomingRequest }: $TSFixMe = this.props;
 
         fetchAllIncomingRequest(
             projectId,
@@ -113,7 +113,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
 
     nextClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { fetchAllIncomingRequest } = this.props;
+        const { fetchAllIncomingRequest }: $TSFixMe = this.props;
 
         fetchAllIncomingRequest(projectId, skip + limit, limit);
         this.setState({ page: this.state.page + 1 });
@@ -121,7 +121,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
 
     handleIncomingRequests = () => {
 
-        const { projectId, openModal, incomingRequestList } = this.props;
+        const { projectId, openModal, incomingRequestList }: $TSFixMe = this.props;
 
         return incomingRequestList &&
             incomingRequestList.length > 0 &&
@@ -292,9 +292,9 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
 
         return (
             <div className="bs-ContentSection-content Box-root">

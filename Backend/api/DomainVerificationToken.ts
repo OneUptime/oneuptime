@@ -21,7 +21,7 @@ import { sendListResponse } from 'CommonServer/Utils/response';
 import StatusPageService from '../services/statusPageService';
 import ProjectService from '../services/projectService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 // Route Description: Verifies a domain
 // req.params -> {projectId, domainId}; req.body -> {domain, verificationToken}
@@ -33,19 +33,19 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { domain: subDomain, verificationToken } = req.body;
         // id of the base domain
-        const { domainId } = req.params;
+        const { domainId }: $TSFixMe = req.params;
 
         try {
-            const doesTxtRecordExist =
+            const doesTxtRecordExist: $TSFixMe =
                 await DomainVerificationService.doesTxtRecordExist(
                     subDomain,
                     verificationToken
                 );
 
-            const { result, txtRecords } = doesTxtRecordExist;
+            const { result, txtRecords }: $TSFixMe = doesTxtRecordExist;
 
             if (!result) {
-                const records =
+                const records: $TSFixMe =
                     txtRecords.length > 1
                         ? txtRecords.join(', ')
                         : txtRecords[0];
@@ -57,7 +57,7 @@ router.put(
                 });
             }
 
-            const response = await DomainVerificationService.updateOneBy(
+            const response: $TSFixMe = await DomainVerificationService.updateOneBy(
                 { _id: domainId },
                 { verified: true, verifiedAt: Date.now() },
 
@@ -76,9 +76,9 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         // id of the base domain
-        const { domainId } = req.params;
+        const { domainId }: $TSFixMe = req.params;
         try {
-            const response = await DomainVerificationService.updateOneBy(
+            const response: $TSFixMe = await DomainVerificationService.updateOneBy(
                 { _id: domainId },
                 { verified: true, verifiedAt: Date.now() }
             );
@@ -95,8 +95,8 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { domainId } = req.params;
-            const response = await DomainVerificationService.updateOneBy(
+            const { domainId }: $TSFixMe = req.params;
+            const response: $TSFixMe = await DomainVerificationService.updateOneBy(
                 {
                     _id: domainId,
                 },
@@ -114,16 +114,16 @@ router.get(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { projectId } = req.params;
-        const { skip, limit } = req.query;
-        const selectDomainVerify =
+        const { projectId }: $TSFixMe = req.params;
+        const { skip, limit }: $TSFixMe = req.query;
+        const selectDomainVerify: $TSFixMe =
             'domain createdAt verificationToken verifiedAt updatedAt projectId verified';
-        const populateDomainVerify = [
+        const populateDomainVerify: $TSFixMe = [
             { path: 'projectId', select: 'name slug' },
         ];
         try {
             // a unique case where we have to consider the subProject as well
-            const [domains, count] = await Promise.all([
+            const [domains, count]: $TSFixMe = await Promise.all([
                 DomainVerificationService.findBy({
                     query: {
                         projectId,
@@ -149,19 +149,19 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { domain } = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const { domain }: $TSFixMe = req.body;
 
             if (!domain || !domain.trim()) {
                 throw new BadDataException('Please specify a domain');
             }
 
             // check if domain is not a sub-domain
-            const parsed = psl.parse(domain);
-            const _domain = parsed.domain;
+            const parsed: $TSFixMe = psl.parse(domain);
+            const _domain: $TSFixMe = parsed.domain;
             if (domain !== _domain) {
                 // domain is a sub-domain
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify only domains and not sub-domains'
                 );
 
@@ -170,13 +170,13 @@ router.post(
             }
 
             // check if domain already belong to another project
-            const doesDomainBelongToProject =
+            const doesDomainBelongToProject: $TSFixMe =
                 await DomainVerificationService.doesDomainBelongToProject(
                     projectId,
                     domain
                 );
             if (doesDomainBelongToProject) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Domain already belong to another project'
                 );
 
@@ -184,7 +184,7 @@ router.post(
                 throw error;
             }
 
-            const response = await DomainVerificationService.create({
+            const response: $TSFixMe = await DomainVerificationService.create({
                 domain,
                 projectId,
             });
@@ -205,8 +205,8 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { domainId } = req.params;
-            const domain = await DomainVerificationService.resetDomain(
+            const { domainId }: $TSFixMe = req.params;
+            const domain: $TSFixMe = await DomainVerificationService.resetDomain(
                 domainId
             );
             return sendItemResponse(req, res, domain);
@@ -222,19 +222,19 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, domainId } = req.params;
-            const { domain } = req.body;
+            const { projectId, domainId }: $TSFixMe = req.params;
+            const { domain }: $TSFixMe = req.body;
 
             if (!domain || !domain.trim()) {
                 throw new BadDataException('Please specify a domain');
             }
 
             // check if domain is not a sub-domain
-            const parsed = psl.parse(domain);
-            const _domain = parsed.domain;
+            const parsed: $TSFixMe = psl.parse(domain);
+            const _domain: $TSFixMe = parsed.domain;
             if (domain !== _domain) {
                 // domain is a sub-domain
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify only domains and not sub-domains'
                 );
 
@@ -243,13 +243,13 @@ router.put(
             }
 
             // check if domain already belong to another project
-            const doesDomainBelongToProject =
+            const doesDomainBelongToProject: $TSFixMe =
                 await DomainVerificationService.doesDomainBelongToProject(
                     projectId,
                     domain
                 );
             if (doesDomainBelongToProject) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Domain already belong to another project'
                 );
 
@@ -258,7 +258,7 @@ router.put(
             }
 
             //check if there's a change in the domain
-            const domainObj = await DomainVerificationService.findOneBy({
+            const domainObj: $TSFixMe = await DomainVerificationService.findOneBy({
                 query: { _id: domainId, projectId },
                 select: 'domain',
             });
@@ -273,7 +273,7 @@ router.put(
                 domainObj.domain
             );
 
-            const response = await DomainVerificationService.updateOneBy(
+            const response: $TSFixMe = await DomainVerificationService.updateOneBy(
                 { _id: domainId, projectId },
                 { domain, verified: false }
             );
@@ -290,14 +290,14 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, domainId } = req.params;
-            const projectArr = await ProjectService.findsubProjectId(projectId);
-            const projectIdInArr = await DomainVerificationService.findDomain(
+            const { projectId, domainId }: $TSFixMe = req.params;
+            const projectArr: $TSFixMe = await ProjectService.findsubProjectId(projectId);
+            const projectIdInArr: $TSFixMe = await DomainVerificationService.findDomain(
                 domainId,
 
                 projectArr
             );
-            const response = await DomainVerificationService.deleteBy({
+            const response: $TSFixMe = await DomainVerificationService.deleteBy({
                 _id: domainId,
                 projectId: projectIdInArr,
             });

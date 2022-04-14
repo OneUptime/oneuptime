@@ -73,7 +73,7 @@ class PastEvent extends Component<ComponentProps> {
 
         if (this.props.statusPage) {
 
-            const colors = this.props.statusPage.colors;
+            const colors: $TSFixMe = this.props.statusPage.colors;
             contentBackground = {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
             };

@@ -82,10 +82,10 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async sendProbe(probeId, monitorId): void {
-        const selectProbe =
+        const selectProbe: $TSFixMe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
 
-        const probe = await this.findOneBy({
+        const probe: $TSFixMe = await this.findOneBy({
             query: { _id: probeId },
             select: selectProbe,
         });
@@ -97,7 +97,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async createMonitorDisabledStatus(data): void {
-        const select =
+        const select: $TSFixMe =
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
         let monitorStatus = await MonitorStatusService.findBy({
             query: { monitorId: data.monitorId },
@@ -106,7 +106,7 @@ class Service extends DatabaseService<typeof Model> {
         });
         monitorStatus = monitorStatus[0];
 
-        const lastStatus =
+        const lastStatus: $TSFixMe =
             monitorStatus && monitorStatus.status ? monitorStatus.status : null;
 
         if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
@@ -124,7 +124,7 @@ class Service extends DatabaseService<typeof Model> {
         });
         monitorStatus = monitorStatus[0];
 
-        const lastStatus =
+        const lastStatus: $TSFixMe =
             monitorStatus && monitorStatus.status ? monitorStatus.status : null;
 
         let log = await MonitorLogService.create(data);
@@ -135,7 +135,7 @@ class Service extends DatabaseService<typeof Model> {
 
         // grab all the criteria in a monitor
 
-        const allCriteria = [];
+        const allCriteria: $TSFixMe = [];
         if (data.matchedUpCriterion) {
             data.matchedUpCriterion.forEach(criteria =>
                 allCriteria.push(criteria)
@@ -169,7 +169,7 @@ class Service extends DatabaseService<typeof Model> {
                 await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
-            const incidentIdsOrRetry = await this.incidentCreateOrUpdate(data);
+            const incidentIdsOrRetry: $TSFixMe = await this.incidentCreateOrUpdate(data);
 
             if (incidentIdsOrRetry.retry) {
                 return incidentIdsOrRetry;
@@ -196,7 +196,7 @@ class Service extends DatabaseService<typeof Model> {
                 await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
-            const incidents = await IncidentService.findBy({
+            const incidents: $TSFixMe = await IncidentService.findBy({
                 query: {
                     'monitors.monitorId': data.monitorId,
                     incidentType: data.status,
@@ -205,7 +205,7 @@ class Service extends DatabaseService<typeof Model> {
                 select: '_id',
             });
 
-            const incidentIds = incidents.map(incident => incident._id);
+            const incidentIds = incidents.map(incident: $TSFixMe => incident._id);
 
             if (incidentIds && incidentIds.length) {
                 log = await MonitorLogService.updateOneBy(
@@ -218,18 +218,18 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async getMonitorLog(data): void {
-        const date = new Date();
+        const date: $TSFixMe = new Date();
 
-        const selectMonitorLog =
+        const selectMonitorLog: $TSFixMe =
             'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
 
-        const populateMonitorLog = [
+        const populateMonitorLog: $TSFixMe = [
             {
                 path: 'probeId',
                 select: 'createdAt lastAlive probeKey probeName version probeImage deleted',
             },
         ];
-        const log = await MonitorLogService.findOneBy({
+        const log: $TSFixMe = await MonitorLogService.findOneBy({
             query: {
                 monitorId: data.monitorId,
                 probeId: data.probeId,
@@ -242,7 +242,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async incidentCreateOrUpdate(data): void {
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -265,10 +265,10 @@ class Service extends DatabaseService<typeof Model> {
             { path: 'probes.probeId', select: 'name _id' },
         ];
 
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const [monitor, incidents] = await Promise.all([
+        const [monitor, incidents]: $TSFixMe = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: data.monitorId },
                 select: 'type',
@@ -284,7 +284,7 @@ class Service extends DatabaseService<typeof Model> {
                 populate,
             }),
         ]);
-        const { matchedCriterion } = data;
+        const { matchedCriterion }: $TSFixMe = data;
         let incidentIds = [];
         let scripts = [];
 
@@ -307,10 +307,10 @@ class Service extends DatabaseService<typeof Model> {
             matchedCriterion.createAlert
         ) {
             if (incidents && incidents.length) {
-                const internalIncidents = [];
+                const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes = incident.probes.map(probe => ({
+                        const initialProbes = incident.probes.map(probe: $TSFixMe => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
                             status: probe.status,
@@ -352,7 +352,7 @@ class Service extends DatabaseService<typeof Model> {
                 ) {
                     return { retry: true, retryCount: data.retryCount };
                 }
-                const incident = await IncidentService.create({
+                const incident: $TSFixMe = await IncidentService.create({
                     projectId: monitor.projectId,
                     monitors: [data.monitorId],
                     createdById: null,
@@ -382,10 +382,10 @@ class Service extends DatabaseService<typeof Model> {
             matchedCriterion.createAlert
         ) {
             if (incidents && incidents.length) {
-                const internalIncidents = [];
+                const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes = incident.probes.map(probe => ({
+                        const initialProbes = incident.probes.map(probe: $TSFixMe => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
                             status: probe.status,
@@ -426,7 +426,7 @@ class Service extends DatabaseService<typeof Model> {
                 ) {
                     return { retry: true, retryCount: data.retryCount };
                 }
-                const incident = await IncidentService.create({
+                const incident: $TSFixMe = await IncidentService.create({
                     projectId: monitor.projectId,
                     monitors: [data.monitorId],
                     createdById: null,
@@ -456,10 +456,10 @@ class Service extends DatabaseService<typeof Model> {
             matchedCriterion.createAlert
         ) {
             if (incidents && incidents.length) {
-                const internalIncidents = [];
+                const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes = incident.probes.map(probe => ({
+                        const initialProbes = incident.probes.map(probe: $TSFixMe => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
                             status: probe.status,
@@ -501,7 +501,7 @@ class Service extends DatabaseService<typeof Model> {
                     return { retry: true, retryCount: data.retryCount };
                 }
 
-                const incident = await IncidentService.create({
+                const incident: $TSFixMe = await IncidentService.create({
                     projectId: monitor.projectId,
                     monitors: [data.monitorId],
                     createdById: null,
@@ -532,7 +532,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async incidentResolveOrAcknowledge(data, allCriteria): void {
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'probes.probeId',
                 select: '_id probeId updatedAt status reportedStatus',
@@ -541,7 +541,7 @@ class Service extends DatabaseService<typeof Model> {
 
         const select: string = '_id acknowledged criterionCause probes';
 
-        const incidents = await IncidentService.findBy({
+        const incidents: $TSFixMe = await IncidentService.findBy({
             query: {
                 'monitors.monitorId': data.monitorId,
                 resolved: false,
@@ -551,7 +551,7 @@ class Service extends DatabaseService<typeof Model> {
             populate,
         });
 
-        const monitor = await MonitorService.findOneBy({
+        const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: data.monitorId },
             select: 'type',
         });
@@ -584,9 +584,9 @@ class Service extends DatabaseService<typeof Model> {
             });
         }
 
-        const incidentsV1 = [];
+        const incidentsV1: $TSFixMe = [];
 
-        const incidentsV2 = [];
+        const incidentsV2: $TSFixMe = [];
 
         if (incidents && incidents.length) {
             // is this check needed at all??
@@ -624,13 +624,13 @@ class Service extends DatabaseService<typeof Model> {
                     incident.probes.length > 0 &&
                     monitor.type !== 'incomingHttpRequest'
                 ) {
-                    const initialProbes = incident.probes.map(probe => ({
+                    const initialProbes = incident.probes.map(probe: $TSFixMe => ({
                         probeId: probe.probeId._id || probe.probeId,
                         updatedAt: probe.updatedAt,
                         status: probe.status,
                         reportedStatus: probe.reportedStatus,
                     }));
-                    const newIncident = await IncidentService.updateOneBy(
+                    const newIncident: $TSFixMe = await IncidentService.updateOneBy(
                         {
                             _id: incident._id,
                         },
@@ -664,8 +664,8 @@ class Service extends DatabaseService<typeof Model> {
         );
 
         await forEach(incidentsV2, async incident => {
-            const trueArray = [];
-            const falseArray = [];
+            const trueArray: $TSFixMe = [];
+            const falseArray: $TSFixMe = [];
 
             incident.probes.forEach(probe => {
                 if (probe.status) {
@@ -703,7 +703,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async updateProbeStatus(probeId): void {
-        const probe = await ProbeModel.findOneAndUpdate(
+        const probe: $TSFixMe = await ProbeModel.findOneAndUpdate(
             { _id: probeId },
             { $set: { lastAlive: Date.now() } },
             { new: true }
@@ -712,11 +712,11 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     scriptConditions(resp, con): void {
-        const body = resp ?? null;
+        const body: $TSFixMe = resp ?? null;
 
-        const successReasons = [];
+        const successReasons: $TSFixMe = [];
 
-        const failedReasons = [];
+        const failedReasons: $TSFixMe = [];
 
         let eventOccurred = false;
         let matchedCriterion;
@@ -772,22 +772,22 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     conditions(monitorType, con, payload, resp, response): void {
-        const status = resp
+        const status: $TSFixMe = resp
             ? resp.status
                 ? resp.status
                 : resp.statusCode
                 ? resp.statusCode
                 : null
             : null;
-        const body = resp && resp.body ? resp.body : null;
-        const queryParams = resp && resp.queryParams ? resp.queryParams : null;
-        const headers = resp && resp.headers ? resp.headers : null;
-        const sslCertificate =
+        const body: $TSFixMe = resp && resp.body ? resp.body : null;
+        const queryParams: $TSFixMe = resp && resp.queryParams ? resp.queryParams : null;
+        const headers: $TSFixMe = resp && resp.headers ? resp.headers : null;
+        const sslCertificate: $TSFixMe =
             resp && resp.sslCertificate ? resp.sslCertificate : null;
 
-        const successReasons = [];
+        const successReasons: $TSFixMe = [];
 
-        const failedReasons = [];
+        const failedReasons: $TSFixMe = [];
 
         let eventOccurred = false;
         let matchedCriterion;
@@ -913,7 +913,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     toArray(params): void {
-        const array = [];
+        const array: $TSFixMe = [];
         if (Object.keys(params).length > 0) {
             for (const [key, value] of Object.entries(params)) {
                 array.push(key.toLowerCase() + '=' + value.toLowerCase());
@@ -924,14 +924,14 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async processHttpRequest(data): void {
-        const { monitor, body } = data;
+        const { monitor, body }: $TSFixMe = data;
         let { queryParams, headers } = data;
         queryParams = this.toArray(queryParams);
         headers = this.toArray(headers);
         let status, reason;
         let matchedCriterion;
-        const lastPingTime = monitor.lastPingTime;
-        const payload = moment().diff(moment(lastPingTime), 'minutes');
+        const lastPingTime: $TSFixMe = monitor.lastPingTime;
+        const payload: $TSFixMe = moment().diff(moment(lastPingTime), 'minutes');
         const {
             stat: validUp,
             successReasons: upSuccessReasons,
@@ -1003,12 +1003,12 @@ class Service extends DatabaseService<typeof Model> {
                 );
             }
         }
-        const index = reason.indexOf('Request Timed out');
+        const index: $TSFixMe = reason.indexOf('Request Timed out');
         if (index > -1) {
             reason = reason.filter(item => !item.includes('Response Time is'));
         }
         reason = reason.filter((item, pos, self) => self.indexOf(item) === pos);
-        const logData = body;
+        const logData: $TSFixMe = body;
         logData.responseTime = 0;
         logData.responseStatus = null;
         logData.status = status;
@@ -1039,7 +1039,7 @@ class Service extends DatabaseService<typeof Model> {
             monitor && monitor.criteria && monitor.criteria.degraded;
         // update monitor to save the last matched criterion
 
-        const [, log] = await Promise.all([
+        const [, log]: $TSFixMe = await Promise.all([
             MonitorService.updateCriterion(monitor._id, matchedCriterion),
             this.saveMonitorLog(logData),
             MonitorService.updateMonitorPingTime(monitor._id),
@@ -1050,8 +1050,8 @@ class Service extends DatabaseService<typeof Model> {
     async probeHttpRequest(monitor, probeId): void {
         let status, reason;
         let matchedCriterion;
-        const lastPingTime = monitor.lastPingTime;
-        const payload = moment().diff(moment(lastPingTime), 'minutes');
+        const lastPingTime: $TSFixMe = monitor.lastPingTime;
+        const payload: $TSFixMe = moment().diff(moment(lastPingTime), 'minutes');
 
         const { eventOccurred: validUp, matchedCriterion: matchedUpCriterion } =
             monitor && monitor.criteria && monitor.criteria.up
@@ -1153,7 +1153,7 @@ class Service extends DatabaseService<typeof Model> {
         logData.matchedCriterion = matchedCriterion;
 
         // update monitor to save the last matched criterion
-        const [, log] = await Promise.all([
+        const [, log]: $TSFixMe = await Promise.all([
             MonitorService.updateCriterion(monitor._id, matchedCriterion),
 
             this.saveMonitorLog(logData),
@@ -1182,7 +1182,7 @@ const incomingCheckAnd: Function = (payload, condition): void => {
                     condition.criteria[i].condition === 'and'
                 ) {
                     // incoming check and
-                    const tempAnd = incomingCheckAnd(
+                    const tempAnd: $TSFixMe = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
                     );
@@ -1195,7 +1195,7 @@ const incomingCheckAnd: Function = (payload, condition): void => {
                     condition.criteria[i].condition === 'or'
                 ) {
                     // incoming check or
-                    const tempOr = incomingCheckOr(
+                    const tempOr: $TSFixMe = incomingCheckOr(
                         payload,
                         condition.criteria[i]
                     );
@@ -1332,7 +1332,7 @@ const incomingCheckOr: Function = (payload, condition): void => {
                     condition.criteria[i].condition === 'or'
                 ) {
                     // incoming check or
-                    const tempor = incomingCheckAnd(
+                    const tempor: $TSFixMe = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
                     );
@@ -1344,7 +1344,7 @@ const incomingCheckOr: Function = (payload, condition): void => {
                     condition.criteria[i].condition &&
                     condition.criteria[i].condition === 'and'
                 ) {
-                    const tempAnd = incomingCheckAnd(
+                    const tempAnd: $TSFixMe = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
                     );
@@ -1502,7 +1502,7 @@ const checkAnd: Function = (
                 ) {
                     // check and again
 
-                    const temp = checkAnd(
+                    const temp: $TSFixMe = checkAnd(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -1525,7 +1525,7 @@ const checkAnd: Function = (
                 ) {
                     // check or again
 
-                    const temp1 = checkOr(
+                    const temp1: $TSFixMe = checkOr(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -1949,7 +1949,7 @@ const checkAnd: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'ssl'
                 ) {
-                    const expiresIn = moment(
+                    const expiresIn: $TSFixMe = moment(
                         new Date(
                             ssl && ssl.expires ? ssl.expires : Date.now()
                         ).getTime()
@@ -2489,10 +2489,10 @@ const checkAnd: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'memoryUsage'
                 ) {
-                    const memoryUsedBytes = payload
+                    const memoryUsedBytes: $TSFixMe = payload
                         ? parseInt(payload.memoryUsed || 0)
                         : 0;
-                    const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
+                    const memoryUsed: $TSFixMe = memoryUsedBytes / Math.pow(1e3, 3);
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -2717,14 +2717,14 @@ const checkAnd: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'storageUsage'
                 ) {
-                    const size = payload
+                    const size: $TSFixMe = payload
                         ? parseInt(payload.totalStorage || 0)
                         : 0;
-                    const used = payload
+                    const used: $TSFixMe = payload
                         ? parseInt(payload.storageUsed || 0)
                         : 0;
-                    const freeBytes = size - used;
-                    const free = freeBytes / Math.pow(1e3, 3);
+                    const freeBytes: $TSFixMe = size - used;
+                    const free: $TSFixMe = freeBytes / Math.pow(1e3, 3);
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -3283,9 +3283,9 @@ const checkAnd: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'jsExpression'
                     ) {
-                        const ctx = Object.create(null); // fix against prototype vulnerability
+                        const ctx: $TSFixMe = Object.create(null); // fix against prototype vulnerability
                         ctx.request = { body };
-                        const output = vm.runInNewContext(
+                        const output: $TSFixMe = vm.runInNewContext(
                             con.criteria[i].field1,
                             ctx
                         );
@@ -3355,7 +3355,7 @@ const checkAnd: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'evaluateResponse'
                     ) {
-                        const responseDisplay = con.criteria[i].field1
+                        const responseDisplay: $TSFixMe = con.criteria[i].field1
                             ? con.criteria[i].field1.includes(
                                   'response.body'
                               ) &&
@@ -3483,7 +3483,7 @@ const checkAnd: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'podStatus'
                 ) {
-                    const healthyPods = ['running', 'pending', 'succeeded'];
+                    const healthyPods: $TSFixMe = ['running', 'pending', 'succeeded'];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -3565,7 +3565,7 @@ const checkAnd: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'jobStatus'
                 ) {
-                    const healthyJobs = ['running', 'succeeded'];
+                    const healthyJobs: $TSFixMe = ['running', 'succeeded'];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -3876,7 +3876,7 @@ const checkOr: Function = (
                 ) {
                     // check or again
 
-                    const temp1 = checkOr(
+                    const temp1: $TSFixMe = checkOr(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -3896,7 +3896,7 @@ const checkOr: Function = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'and'
                 ) {
-                    const temp = checkAnd(
+                    const temp: $TSFixMe = checkAnd(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -4285,7 +4285,7 @@ const checkOr: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'ssl'
                 ) {
-                    const expiresIn = moment(
+                    const expiresIn: $TSFixMe = moment(
                         new Date(
                             ssl && ssl.expires ? ssl.expires : Date.now()
                         ).getTime()
@@ -4805,10 +4805,10 @@ const checkOr: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'memoryUsage'
                 ) {
-                    const memoryUsedBytes = payload
+                    const memoryUsedBytes: $TSFixMe = payload
                         ? parseInt(payload.memoryUsed || 0)
                         : 0;
-                    const memoryUsed = memoryUsedBytes / Math.pow(1e3, 3);
+                    const memoryUsed: $TSFixMe = memoryUsedBytes / Math.pow(1e3, 3);
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -5012,14 +5012,14 @@ const checkOr: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'storageUsage'
                 ) {
-                    const size = payload
+                    const size: $TSFixMe = payload
                         ? parseInt(payload.totalStorage || 0)
                         : 0;
-                    const used = payload
+                    const used: $TSFixMe = payload
                         ? parseInt(payload.storageUsed || 0)
                         : 0;
-                    const freeBytes = size - used;
-                    const free = freeBytes / Math.pow(1e3, 3);
+                    const freeBytes: $TSFixMe = size - used;
+                    const free: $TSFixMe = freeBytes / Math.pow(1e3, 3);
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -5551,9 +5551,9 @@ const checkOr: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'jsExpression'
                     ) {
-                        const ctx = Object.create(null); // fix against prototype vulnerability
+                        const ctx: $TSFixMe = Object.create(null); // fix against prototype vulnerability
                         ctx.request = { body };
-                        const output = vm.runInNewContext(
+                        const output: $TSFixMe = vm.runInNewContext(
                             con.criteria[i].field1,
                             ctx
                         );
@@ -5621,7 +5621,7 @@ const checkOr: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'evaluateResponse'
                     ) {
-                        const responseDisplay = con.criteria[i].field1
+                        const responseDisplay: $TSFixMe = con.criteria[i].field1
                             ? con.criteria[i].field1.includes(
                                   'response.body'
                               ) &&
@@ -5752,7 +5752,7 @@ const checkOr: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'podStatus'
                 ) {
-                    const healthyPods = ['running', 'pending', 'succeeded'];
+                    const healthyPods: $TSFixMe = ['running', 'pending', 'succeeded'];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -5832,7 +5832,7 @@ const checkOr: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'jobStatus'
                 ) {
-                    const healthyJobs = ['running', 'succeeded'];
+                    const healthyJobs: $TSFixMe = ['running', 'succeeded'];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -6219,7 +6219,7 @@ const checkScriptAnd: Function = (
                     con.criteria[i].condition === 'and'
                 ) {
                     // check script and
-                    const subConditionValid = checkScriptAnd(
+                    const subConditionValid: $TSFixMe = checkScriptAnd(
                         con.criteria[i],
                         body,
                         successReasons,
@@ -6233,7 +6233,7 @@ const checkScriptAnd: Function = (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check script or
-                    const subConditionValid = checkScriptOr(
+                    const subConditionValid: $TSFixMe = checkScriptOr(
                         con.criteria[i],
                         body,
                         successReasons,
@@ -6244,7 +6244,7 @@ const checkScriptAnd: Function = (
                     }
                 }
             } else {
-                const validity = checkScriptCondition(con.criteria[i], body);
+                const validity: $TSFixMe = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
                     if (validity.valid) {
                         successReasons.push(validity.reason);
@@ -6279,7 +6279,7 @@ const checkScriptOr: Function = (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check script or
-                    const subConditionValid = checkScriptOr(
+                    const subConditionValid: $TSFixMe = checkScriptOr(
                         con.criteria[i],
                         body,
                         successReasons,
@@ -6293,7 +6293,7 @@ const checkScriptOr: Function = (
                     con.criteria[i].condition === 'and'
                 ) {
                     // check script and
-                    const subConditionValid = checkScriptAnd(
+                    const subConditionValid: $TSFixMe = checkScriptAnd(
                         con.criteria[i],
                         body,
                         successReasons,
@@ -6304,7 +6304,7 @@ const checkScriptOr: Function = (
                     }
                 }
             } else {
-                const validity = checkScriptCondition(con.criteria[i], body);
+                const validity: $TSFixMe = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
                     if (validity.valid) {
                         valid = true;

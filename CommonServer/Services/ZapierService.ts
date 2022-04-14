@@ -18,17 +18,17 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const zapierQuery = ZapierModel.find(query).sort(sort).lean();
+        const zapierQuery: $TSFixMe = ZapierModel.find(query).sort(sort).lean();
 
         zapierQuery.select(select);
         zapierQuery.populate(populate);
 
-        const zap = await zapierQuery;
+        const zap: $TSFixMe = await zapierQuery;
         return zap;
     }
 
     async test(projectId: ObjectID, apiKey: string): void {
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { apiKey: apiKey, _id: projectId },
             select: 'name',
         });
@@ -37,7 +37,7 @@ export default class Service {
                 projectName: project.name,
             });
         } else {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'We are not able to authenticate you because your `API Key` or `Project ID` is not valid. Please go to your project settings and retrieve your API key and Project ID.'
             );
 
@@ -47,10 +47,10 @@ export default class Service {
     }
 
     async getIncidents(projectId: ObjectID): void {
-        const zapierResponseArray = [];
+        const zapierResponseArray: $TSFixMe = [];
         const zapierResponse: $TSFixMe = {};
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
@@ -60,7 +60,7 @@ export default class Service {
 
             zapierResponse.projectId = project._id;
 
-            const projects = await ProjectService.findBy({
+            const projects: $TSFixMe = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
                 },
@@ -72,7 +72,7 @@ export default class Service {
                 acknowledged: false,
                 resolved: false,
             };
-            const incidents = await IncidentService.findBy({
+            const incidents: $TSFixMe = await IncidentService.findBy({
                 query: findquery,
                 select: 'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
                 populate: [
@@ -82,7 +82,7 @@ export default class Service {
                 ],
             });
             for (const incident of incidents) {
-                const monitors = incident.monitors.map(
+                const monitors: $TSFixMe = incident.monitors.map(
                     (monitor: $TSFixMe) => monitor.monitorId
                 );
                 for (const monitor of monitors) {
@@ -107,7 +107,7 @@ export default class Service {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse: $TSFixMe = {};
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
@@ -117,7 +117,7 @@ export default class Service {
 
             zapierResponse.projectId = project._id;
 
-            const projects = await ProjectService.findBy({
+            const projects: $TSFixMe = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
                 },
@@ -127,15 +127,15 @@ export default class Service {
             const findquery: $TSFixMe = {
                 projectId: { $in: projectIds },
             };
-            const incidents = await IncidentService.findBy({
+            const incidents: $TSFixMe = await IncidentService.findBy({
                 query: findquery,
                 select: '_id',
             });
-            const incidentIds = incidents.map(
+            const incidentIds: $TSFixMe = incidents.map(
                 (incident: $TSFixMe) => incident._id
             );
 
-            const populateIncidentMessage = [
+            const populateIncidentMessage: $TSFixMe = [
                 {
                     path: 'incidentId',
                     select: 'idNumber name slug',
@@ -143,9 +143,9 @@ export default class Service {
                 { path: 'createdById', select: 'name' },
             ];
 
-            const selectIncidentMessage =
+            const selectIncidentMessage: $TSFixMe =
                 '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
-            const incidentMessages = await IncidentMessageService.findBy({
+            const incidentMessages: $TSFixMe = await IncidentMessageService.findBy({
                 query: { incidentId: { $in: incidentIds } },
                 select: selectIncidentMessage,
                 populate: populateIncidentMessage,
@@ -171,7 +171,7 @@ export default class Service {
     async createIncidentNote(data: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentNoteArr: $TSFixMe = [];
-        const populateIncidentMessage = [
+        const populateIncidentMessage: $TSFixMe = [
             {
                 path: 'incidentId',
                 select: 'idNumber name slug',
@@ -179,7 +179,7 @@ export default class Service {
             { path: 'createdById', select: 'name' },
         ];
 
-        const selectIncidentMessage =
+        const selectIncidentMessage: $TSFixMe =
             '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
         await Promise.all(
             data.incidents.map(async (incidentId: $TSFixMe) => {
@@ -212,10 +212,10 @@ export default class Service {
     }
 
     async getAcknowledgedIncidents(projectId: ObjectID): void {
-        const zapierResponseArray = [];
+        const zapierResponseArray: $TSFixMe = [];
         const zapierResponse: $TSFixMe = {};
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
@@ -224,7 +224,7 @@ export default class Service {
 
             zapierResponse.projectId = project._id;
 
-            const projects = await ProjectService.findBy({
+            const projects: $TSFixMe = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
                 },
@@ -236,7 +236,7 @@ export default class Service {
                 acknowledged: true,
                 resolved: false,
             };
-            const incidents = await IncidentService.findBy({
+            const incidents: $TSFixMe = await IncidentService.findBy({
                 query: findquery,
                 select: 'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
                 populate: [
@@ -246,7 +246,7 @@ export default class Service {
                 ],
             });
             for (const incident of incidents) {
-                const monitors = incident.monitors.map(
+                const monitors: $TSFixMe = incident.monitors.map(
                     (monitor: $TSFixMe) => monitor.monitorId
                 );
                 for (const monitor of monitors) {
@@ -268,10 +268,10 @@ export default class Service {
     }
 
     async getResolvedIncidents(projectId: ObjectID): void {
-        const zapierResponseArray = [];
+        const zapierResponseArray: $TSFixMe = [];
         const zapierResponse: $TSFixMe = {};
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
@@ -280,7 +280,7 @@ export default class Service {
 
             zapierResponse.projectId = project._id;
 
-            const projects = await ProjectService.findBy({
+            const projects: $TSFixMe = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
                 },
@@ -292,7 +292,7 @@ export default class Service {
                 acknowledged: true,
                 resolved: true,
             };
-            const incidents = await IncidentService.findBy({
+            const incidents: $TSFixMe = await IncidentService.findBy({
                 query: findquery,
                 select: 'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
                 populate: [
@@ -302,7 +302,7 @@ export default class Service {
                 ],
             });
             for (const incident of incidents) {
-                const monitors = incident.monitors.map(
+                const monitors: $TSFixMe = incident.monitors.map(
                     (monitor: $TSFixMe) => monitor.monitorId
                 );
                 for (const monitor of monitors) {
@@ -328,7 +328,7 @@ export default class Service {
         const incidentArr: $TSFixMe = [];
         await Promise.all(
             monitors.map(async (monitor: $TSFixMe) => {
-                const monitorObj = await MonitorService.findOneBy({
+                const monitorObj: $TSFixMe = await MonitorService.findOneBy({
                     query: { _id: monitor },
                     select: 'name projectId _id',
                     populate: [{ path: 'projectId', select: '_id' }],
@@ -405,7 +405,7 @@ export default class Service {
                     null,
                     true
                 );
-                const monitorObj = await MonitorService.findOneBy({
+                const monitorObj: $TSFixMe = await MonitorService.findOneBy({
                     query: { _id: monitor },
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
@@ -460,7 +460,7 @@ export default class Service {
                         );
                     })
                 );
-                const monitorObj = await MonitorService.findOneBy({
+                const monitorObj: $TSFixMe = await MonitorService.findOneBy({
                     query: { _id: monitor },
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
@@ -495,7 +495,7 @@ export default class Service {
     async acknowledgeIncident(incidents: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentArr: $TSFixMe = [];
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -514,7 +514,7 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'name _id' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         await Promise.all(
@@ -526,7 +526,7 @@ export default class Service {
                     null,
                     true
                 );
-                const incidentObj = await IncidentService.findOneBy({
+                const incidentObj: $TSFixMe = await IncidentService.findOneBy({
                     query: { _id: incident },
                     select,
                     populate,
@@ -563,7 +563,7 @@ export default class Service {
     async resolveLastIncident(monitors: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentArr: $TSFixMe = [];
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -582,7 +582,7 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'name _id' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         await Promise.all(
@@ -602,7 +602,7 @@ export default class Service {
                     null,
                     true
                 );
-                const monitorObj = await MonitorService.findOneBy({
+                const monitorObj: $TSFixMe = await MonitorService.findOneBy({
                     query: { _id: monitor },
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
@@ -637,7 +637,7 @@ export default class Service {
     async resolveAllIncidents(monitors: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         let incidentArr: $TSFixMe = [];
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -656,7 +656,7 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'name _id' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         await Promise.all(
@@ -680,7 +680,7 @@ export default class Service {
                         );
                     })
                 );
-                const monitorObj = await MonitorService.findOneBy({
+                const monitorObj: $TSFixMe = await MonitorService.findOneBy({
                     query: { _id: monitor },
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
@@ -715,7 +715,7 @@ export default class Service {
     async resolveIncident(incidents: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentArr: $TSFixMe = [];
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -734,7 +734,7 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'name _id' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         await Promise.all(
@@ -746,7 +746,7 @@ export default class Service {
                     null,
                     true
                 );
-                const incidentObj = await IncidentService.findOneBy({
+                const incidentObj: $TSFixMe = await IncidentService.findOneBy({
                     query: { _id: incident },
                     select,
                     populate,
@@ -822,7 +822,7 @@ export default class Service {
                 incidentObj.createdById = incident.createdById
                     ? incident.createdById.name
                     : 'OneUptime';
-                // const monitor = await MonitorService.findOneBy({
+                // const monitor: $TSFixMe = await MonitorService.findOneBy({
                 //     _id: incident.monitorId,
                 // });
                 incidentObj.monitorName = monitor.name;
@@ -841,7 +841,7 @@ export default class Service {
         type: $TSFixMe,
         monitors: $TSFixMe
     ): void {
-        const zapier = new ZapierModel();
+        const zapier: $TSFixMe = new ZapierModel();
 
         zapier.projectId = projectId;
 
@@ -850,7 +850,7 @@ export default class Service {
         zapier.type = type;
 
         zapier.monitors = monitors;
-        const zap = await zapier.save();
+        const zap: $TSFixMe = await zapier.save();
         return { id: zap._id };
     }
 
@@ -872,7 +872,7 @@ export default class Service {
         incident: $TSFixMe,
         incidentNote: $TSFixMe
     ): void {
-        const projectId = incident.projectId._id || incident.projectId;
+        const projectId: $TSFixMe = incident.projectId._id || incident.projectId;
 
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
@@ -891,7 +891,7 @@ export default class Service {
                     select: 'name _id',
                 });
             }
-            const monitorIds = incident.monitors.map(
+            const monitorIds: $TSFixMe = incident.monitors.map(
                 (monitor: $TSFixMe) => monitor.monitorId._id
             );
             zap = await this.findBy({
@@ -913,7 +913,7 @@ export default class Service {
 
                     zapierResponse.projectId = project._id;
                     if (incident) {
-                        const monitors = incident.monitors.map(
+                        const monitors: $TSFixMe = incident.monitors.map(
                             (monitor: $TSFixMe) => monitor.monitorId
                         );
                         for (const monitor of monitors) {

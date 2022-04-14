@@ -6,13 +6,13 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
 
 describe('Monitor API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(600000);
@@ -123,19 +123,19 @@ describe('Monitor API', () => {
                 page
             );
 
-            const probe0 = await init.pageWaitForSelector(page, '#probes-btn0');
+            const probe0: $TSFixMe = await init.pageWaitForSelector(page, '#probes-btn0');
 
-            const probe1 = await init.pageWaitForSelector(page, '#probes-btn1');
+            const probe1: $TSFixMe = await init.pageWaitForSelector(page, '#probes-btn1');
 
             expect(probe0).toBeDefined();
             expect(probe1).toBeDefined();
 
-            const monitorStatus = await init.pageWaitForSelector(
+            const monitorStatus: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-status-${monitorName}`
             );
 
-            const sslStatus = await init.pageWaitForSelector(
+            const sslStatus: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#ssl-status-${monitorName}`
             );

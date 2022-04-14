@@ -35,7 +35,7 @@ const subscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
 const unSubscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     // bundle.subscribeData contains the parsed response JSON from the subscribe
     // request made initially.
-    const hookId = bundle.subscribeData.id;
+    const hookId: $TSFixMe = bundle.subscribeData.id;
 
     // You can build requests and our client will helpfully inject all the variables
     // you need to complete. You can also register middleware to control this.

@@ -1,9 +1,9 @@
 import fs from 'fs';
 import Path from 'path';
 import { promisify } from 'util';
-const readdir = promisify(fs.readdir);
-const rmdir = promisify(fs.rmdir);
-const unlink = promisify(fs.unlink);
+const readdir: $TSFixMe = promisify(fs.readdir);
+const rmdir: $TSFixMe = promisify(fs.rmdir);
+const unlink: $TSFixMe = promisify(fs.unlink);
 
 /**
  * @description a promise based utility to read content of a file
@@ -38,10 +38,10 @@ async function deleteFile(file: $TSFixMe): void {
  */
 async function deleteFolderRecursive(dir: $TSFixMe): void {
     if (fs.existsSync(dir)) {
-        const entries = await readdir(dir, { withFileTypes: true });
+        const entries: $TSFixMe = await readdir(dir, { withFileTypes: true });
         await Promise.all(
             entries.map(entry => {
-                const fullPath = Path.join(dir, entry.name);
+                const fullPath: $TSFixMe = Path.join(dir, entry.name);
                 return entry.isDirectory()
                     ? deleteFolderRecursive(fullPath)
                     : unlink(fullPath);

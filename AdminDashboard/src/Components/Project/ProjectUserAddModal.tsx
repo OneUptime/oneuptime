@@ -26,7 +26,7 @@ function validate(values: $TSFixMe) {
     const errors: $TSFixMe = {};
     // remove white spaces
     values.emails = values.emails ? values.emails.replace(/\s/g, '') : '';
-    const emails = values.emails ? values.emails.split(',') : [];
+    const emails: $TSFixMe = values.emails ? values.emails.split(',') : [];
     if (!Validate.isValidBusinessEmails(emails)) {
 
         errors.emails = 'Please enter business emails of the members.';
@@ -56,11 +56,11 @@ export class FormModal extends Component<ComponentProps>{
     submitForm = (values: $TSFixMe) => {
         values.emails = formatEmails(values.emails);
 
-        const { userCreate, closeThisDialog, data } = this.props;
+        const { userCreate, closeThisDialog, data }: $TSFixMe = this.props;
         values.projectId = data.projectId;
 
-        const { role, emails } = values;
-        const emailArray = emails ? emails.split(',') : [];
+        const { role, emails }: $TSFixMe = values;
+        const emailArray: $TSFixMe = emails ? emails.split(',') : [];
 
         if (role !== 'Viewer' && emailArray.length > 100) {
             this.showMessageBox();
@@ -120,7 +120,7 @@ export class FormModal extends Component<ComponentProps>{
 
     override render() {
 
-        const { handleSubmit, closeThisDialog, data } = this.props;
+        const { handleSubmit, closeThisDialog, data }: $TSFixMe = this.props;
         return (
             <div
                 className="ModalLayer-contents"
@@ -507,7 +507,7 @@ export class FormModal extends Component<ComponentProps>{
 
 FormModal.displayName = 'InviteMemberFormModal';
 
-const ProjectUserAddModal = reduxForm({
+const ProjectUserAddModal: $TSFixMe = reduxForm({
     form: 'ProjectUserAddModal', // a unique identifier for this form
     validate,
 })(FormModal);

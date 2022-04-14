@@ -36,9 +36,9 @@ export class RegisterForm extends Component<RegisterFormProps>{
     }
 
     userFormSubmitted = (values: $TSFixMe) => {
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
 
-        const token = queryString.parse(thisObj.props.location.search).token;
+        const token: $TSFixMe = queryString.parse(thisObj.props.location.search).token;
         values.token = token;
 
         this.props.saveUserState(values);
@@ -71,7 +71,7 @@ export class RegisterForm extends Component<RegisterFormProps>{
 
     override render() {
 
-        const { step } = this.props.register;
+        const { step }: $TSFixMe = this.props.register;
         return (
             <Fade>
                 <div>
@@ -102,7 +102,7 @@ export class RegisterForm extends Component<RegisterFormProps>{
 
 RegisterForm.displayName = 'RegisterForm';
 
-const registerForm = reduxForm({
+const registerForm: $TSFixMe = reduxForm({
     form: 'RegisterForm',
 })(RegisterForm);
 

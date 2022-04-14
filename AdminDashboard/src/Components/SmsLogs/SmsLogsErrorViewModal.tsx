@@ -27,7 +27,7 @@ class SmsLogsErrorViewModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { isRequesting, error, closeThisDialog, content } = this.props;
+        const { isRequesting, error, closeThisDialog, content }: $TSFixMe = this.props;
         return (
             <div className="db-SmsLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

@@ -19,9 +19,9 @@ class Projects extends Component<ComponentProps> {
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchProjects, searchProjects } = this.props;
+        const { fetchProjects, searchProjects }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchProjects(
@@ -38,9 +38,9 @@ class Projects extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchProjects, searchProjects } = this.props;
+        const { fetchProjects, searchProjects }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchProjects(searchBox, skip + limit, 10);
@@ -57,9 +57,9 @@ class Projects extends Component<ComponentProps> {
     };
 
     onChange = (e: $TSFixMe) => {
-        const value = e.target.value;
+        const value: $TSFixMe = e.target.value;
 
-        const { searchProjects } = this.props;
+        const { searchProjects }: $TSFixMe = this.props;
 
         this.setState({ searchBox: value });
         searchProjects(value, 0, 10);
@@ -164,9 +164,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const projects = state.project.projects;
-    const searchProjects = state.project.searchProjects;
-    const requesting =
+    const projects: $TSFixMe = state.project.projects;
+    const searchProjects: $TSFixMe = state.project.searchProjects;
+    const requesting: $TSFixMe =
         projects && searchProjects
             ? projects.requesting || searchProjects.requesting
                 ? true

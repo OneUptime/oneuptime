@@ -94,7 +94,7 @@ class ApplicationLog extends Component<ComponentProps> {
         this.props.loadPage('Logs');
         this.setState({ requesting: true });
 
-        const { currentProject, fetchComponent, componentSlug } = this.props;
+        const { currentProject, fetchComponent, componentSlug }: $TSFixMe = this.props;
         if (currentProject) {
             fetchComponent(currentProject._id, componentSlug).then(() => {
                 this.ready();
@@ -128,8 +128,8 @@ class ApplicationLog extends Component<ComponentProps> {
     setRequesting = () => this.setState({ requesting: true });
     ready = () => {
 
-        const componentId = this.props.componentId;
-        const projectId =
+        const componentId: $TSFixMe = this.props.componentId;
+        const projectId: $TSFixMe =
 
             this.props.currentProject && this.props.currentProject._id;
         if (projectId && componentId) {
@@ -182,11 +182,11 @@ class ApplicationLog extends Component<ComponentProps> {
             applicationLog: appLogs,
         } = this.props;
 
-        const applicationLogs =
+        const applicationLogs: $TSFixMe =
             appLogs && appLogs.applicationLogs
                 ? sortByName(appLogs.applicationLogs)
                 : [];
-        const applicationLogsList =
+        const applicationLogsList: $TSFixMe =
             applicationLogs && applicationLogs.length > 0 ? (
                 <div
                     id={`box_${componentId}`}
@@ -223,9 +223,9 @@ class ApplicationLog extends Component<ComponentProps> {
                 false
             );
 
-        const componentName = component ? component.name : '';
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const componentName: $TSFixMe = component ? component.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -333,15 +333,15 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { componentSlug } = props.match.params;
-    const projectId =
+    const { componentSlug }: $TSFixMe = props.match.params;
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
-    const applicationLog = state.applicationLog.applicationLogsList;
+    const applicationLog: $TSFixMe = state.applicationLog.applicationLogsList;
 
-    const currentProject = state.project.currentProject;
+    const currentProject: $TSFixMe = state.project.currentProject;
 
     // try to get custom project tutorial by project ID
-    const projectCustomTutorial = state.tutorial[projectId];
+    const projectCustomTutorial: $TSFixMe = state.tutorial[projectId];
 
     // set a default show to true for the tutorials to display
     const tutorialStat: $TSFixMe = {

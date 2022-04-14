@@ -4,7 +4,7 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
-const jwtSecretKey = process.env['JWT_SECRET'];
+const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 import jwt from 'jsonwebtoken';
@@ -15,7 +15,7 @@ import saml2 from 'saml2-js';
 import { decode } from 'js-base64';
 import MailService from '../services/mailService';
 import SsoService from '../services/ssoService';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -23,7 +23,7 @@ import {
 import Exception from 'Common/Types/Exception/Exception';
 
 import { sendListResponse } from 'CommonServer/Utils/response';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 import winston from 'winston';
@@ -37,7 +37,7 @@ import VerificationTokenModel from 'CommonServer/models/verificationToken';
 import { IS_SAAS_SERVICE } from '../config/server';
 import UserModel from 'CommonServer/models/user';
 import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
 import Ip from '../middlewares/ipHandler';
 
 router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
@@ -55,13 +55,13 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
             }
         }
 
-        const data = req.body;
+        const data: $TSFixMe = req.body;
         data.email = data.email.toLowerCase();
         if (IS_SAAS_SERVICE) {
             //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
             delete data.role;
         } else {
-            const users = await UserService.findBy({
+            const users: $TSFixMe = await UserService.findBy({
                 query: {},
                 select: '_id',
             });
@@ -156,7 +156,7 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                 new BadDataException('Name is not in string format.')
             );
         }
-        const [userData, token] = await Promise.all([
+        const [userData, token]: $TSFixMe = await Promise.all([
             UserService.findOneBy({
                 query: { email: data.email },
                 select: '_id password',
@@ -184,12 +184,12 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
         //Checks if user is registered with only email
         if (user) {
             if (!user.password) {
-                const hash = await bcrypt.hash(
+                const hash: $TSFixMe = await bcrypt.hash(
                     data.password,
                     constants.saltRounds
                 );
                 // creating jwt refresh token
-                const jwtRefreshToken = randToken.uid(256);
+                const jwtRefreshToken: $TSFixMe = randToken.uid(256);
                 user = await UserService.updateOneBy(
                     { _id: user._id },
                     {
@@ -289,10 +289,10 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                 verificationToken: user.verificationToken || null,
             };
             winston.info('A User just signed up');
-            const populate = [{ path: 'parentProjectId', select: 'name' }];
-            const select =
+            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { 'users.userId': user._id },
                 select,
                 populate,
@@ -313,7 +313,7 @@ router.get(
     '/masterAdminExists',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const masterAdmin = await UserService.findBy({
+            const masterAdmin: $TSFixMe = await UserService.findBy({
                 query: { role: 'master-admin' },
                 select: '_id',
             });
@@ -335,7 +335,7 @@ router.get(
 // Param 1: req.query-> {email }
 // Returns: 400: Error; 500: Server Error; 200: redirect to login page
 router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
-    const { email } = req.query;
+    const { email }: $TSFixMe = req.query;
     if (!email) {
         return sendErrorResponse(req, res, {
             code: 400,
@@ -343,9 +343,9 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
         });
     }
 
-    const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+    const domainRegex: $TSFixMe = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
 
-    const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
+    const matchedTokens: $TSFixMe = email.toLocaleLowerCase().match(domainRegex);
 
     if (!matchedTokens) {
         return sendErrorResponse(req, res, {
@@ -354,12 +354,12 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
         });
     }
 
-    const domain = matchedTokens[1];
+    const domain: $TSFixMe = matchedTokens[1];
 
     try {
         const selectSso: string = '_id saml-enabled remoteLoginUrl entityId';
 
-        const sso = await SsoService.findOneBy({
+        const sso: $TSFixMe = await SsoService.findOneBy({
             query: { domain },
             select: selectSso,
         });
@@ -378,10 +378,10 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
             });
         }
 
-        const sp = new saml2.ServiceProvider({
+        const sp: $TSFixMe = new saml2.ServiceProvider({
             entity_id: sso.entityId,
         });
-        const idp = new saml2.IdentityProvider({
+        const idp: $TSFixMe = new saml2.IdentityProvider({
             sso_login_url: remoteLoginUrl,
         });
 
@@ -413,9 +413,9 @@ router.post(
         };
 
         // grab the email from the xml response
-        const email = SsoService.getEmail(decode(req.body.SAMLResponse));
-        const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
-        const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
+        const email: $TSFixMe = SsoService.getEmail(decode(req.body.SAMLResponse));
+        const domainRegex: $TSFixMe = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+        const matchedTokens: $TSFixMe = email.toLocaleLowerCase().match(domainRegex);
 
         if (!matchedTokens) {
             return sendErrorResponse(
@@ -425,9 +425,9 @@ router.post(
             );
         }
 
-        const domain = matchedTokens[1];
+        const domain: $TSFixMe = matchedTokens[1];
 
-        const sso = await SsoService.findOneBy({
+        const sso: $TSFixMe = await SsoService.findOneBy({
             query: { domain },
             select: '_id samlSsoUrl entityId',
         });
@@ -438,11 +438,11 @@ router.post(
             });
         }
 
-        const sp = new saml2.ServiceProvider({
+        const sp: $TSFixMe = new saml2.ServiceProvider({
             entity_id: sso.entityId,
         });
 
-        const idp = new saml2.IdentityProvider({
+        const idp: $TSFixMe = new saml2.IdentityProvider({
             sso_login_url: sso.samlSsoUrl,
         });
 
@@ -458,12 +458,12 @@ router.post(
                 }
 
                 // The structure of the saml_response is not the same from the different servers.
-                const email =
+                const email: $TSFixMe =
                     saml_response.user.email ||
                     saml_response.user.attributes.email[0];
 
-                const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
-                const matchedTokens = email
+                const domainRegex: $TSFixMe = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+                const matchedTokens: $TSFixMe = email
                     .toLocaleLowerCase()
                     .match(domainRegex);
 
@@ -474,9 +474,9 @@ router.post(
                     });
                 }
 
-                const domain = matchedTokens[1];
+                const domain: $TSFixMe = matchedTokens[1];
 
-                const sso = await SsoService.findOneBy({
+                const sso: $TSFixMe = await SsoService.findOneBy({
                     query: { domain },
                     select: '_id domain saml-enabled',
                 });
@@ -569,8 +569,8 @@ router.post(
 // Returns: 400: Error; 500: Server Error; 200: user
 router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const data = req.body;
-        const clientIP = Ip.getClientIp(req)[0];
+        const data: $TSFixMe = req.body;
+        const clientIP: $TSFixMe = Ip.getClientIp(req)[0];
         if (!data.email) {
             return sendErrorResponse(
                 req,
@@ -604,8 +604,8 @@ router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
         }
 
         // Call the UserService
-        const userAgent = req.get('user-agent');
-        const user = await UserService.login(
+        const userAgent: $TSFixMe = req.get('user-agent');
+        const user: $TSFixMe = await UserService.login(
             data.email.toLowerCase(),
             data.password,
             clientIP,
@@ -652,17 +652,17 @@ router.post(
     '/totp/verifyToken',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const token = data.token;
+            const data: $TSFixMe = req.body;
+            const token: $TSFixMe = data.token;
             let userId = data.userId;
             if (data.email && !data.userId) {
-                const foundUser = await UserService.findOneBy({
+                const foundUser: $TSFixMe = await UserService.findOneBy({
                     query: { email: data.email },
                     select: '_id',
                 });
                 userId = foundUser._id;
             }
-            const user = await UserService.verifyAuthToken(token, userId);
+            const user: $TSFixMe = await UserService.verifyAuthToken(token, userId);
             if (!user || !user._id) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -721,7 +721,7 @@ router.post(
     '/verify/backupCode',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             // Call the UserService
             let user;
             user = await UserService.findOneBy({
@@ -734,7 +734,7 @@ router.post(
                     message: 'User not found',
                 });
             }
-            const backupCode = user.backupCodes.filter(
+            const backupCode: $TSFixMe = user.backupCodes.filter(
                 (code: $TSFixMe) => code.code === data.code
             );
             if (backupCode.length > 0 && backupCode[0].used) {
@@ -809,8 +809,8 @@ router.post(
     '/generate/backupCode',
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const userId = req.user.id || null;
-        const user = await UserService.findOneBy({
+        const userId: $TSFixMe = req.user.id || null;
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'twoFactorAuthEnabled twoFactorSecretCode backupCodes',
         });
@@ -821,7 +821,7 @@ router.post(
                 new BadDataException('Provide a valid user Id')
             );
         }
-        const { twoFactorAuthEnabled, twoFactorSecretCode, backupCodes } = user;
+        const { twoFactorAuthEnabled, twoFactorSecretCode, backupCodes }: $TSFixMe = user;
         if (!twoFactorAuthEnabled) {
             return sendErrorResponse(
                 req,
@@ -836,12 +836,12 @@ router.post(
                 new BadDataException('SecretCode is not defined')
             );
         }
-        const numberOfCodes = 8;
+        const numberOfCodes: $TSFixMe = 8;
         let firstCounter = 0;
         if (Array.isArray(backupCodes) && backupCodes.length) {
             firstCounter = backupCodes[backupCodes.length - 1].counter + 1;
         }
-        const newBackupCodes = await UserService.generateUserBackupCodes(
+        const newBackupCodes: $TSFixMe = await UserService.generateUserBackupCodes(
             twoFactorSecretCode,
             numberOfCodes,
             firstCounter
@@ -867,8 +867,8 @@ router.post(
     '/totp/token/:userId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.params.userId;
-            const user = await UserService.findOneBy({
+            const userId: $TSFixMe = req.params.userId;
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: '_id otpauth_url',
             });
@@ -884,7 +884,7 @@ router.post(
                 return sendItemResponse(req, res, response);
             }
 
-            const response = await UserService.generateTwoFactorSecret(userId);
+            const response: $TSFixMe = await UserService.generateTwoFactorSecret(userId);
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -902,7 +902,7 @@ router.post(
     '/forgot-password',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
             if (!data.email) {
                 return sendErrorResponse(req, res, {
@@ -918,7 +918,7 @@ router.post(
                 });
             }
             // Call the UserService.
-            const user = await UserService.forgotPassword(data.email);
+            const user: $TSFixMe = await UserService.forgotPassword(data.email);
 
             const tokenVerifyUrl: string = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
 
@@ -943,7 +943,7 @@ router.post(
     '/reset-password',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
             if (!data.password) {
                 return sendErrorResponse(req, res, {
@@ -973,7 +973,7 @@ router.post(
                 });
             }
             // Call the UserService
-            const user = await UserService.resetPassword(
+            const user: $TSFixMe = await UserService.resetPassword(
                 data.password,
                 data.token
             );
@@ -1003,7 +1003,7 @@ router.post(
 // Returns: 400: Error; 500: Server Error; 200: user
 router.post('/isInvited', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const data = req.body;
+        const data: $TSFixMe = req.body;
 
         if (!data.email) {
             return sendErrorResponse(
@@ -1013,7 +1013,7 @@ router.post('/isInvited', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
         // Call the UserService
-        const user = await UserService.findOneBy({
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { email: data.email },
             select: '_id',
         });
@@ -1051,7 +1051,7 @@ router.put(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const upload = multer({
+            const upload: $TSFixMe = multer({
                 storage,
             }).fields([
                 {
@@ -1060,8 +1060,8 @@ router.put(
                 },
             ]);
             upload(req, res, async (error: $TSFixMe): void => {
-                const userId = req.user ? req.user.id : null;
-                const data = req.body;
+                const userId: $TSFixMe = req.user ? req.user.id : null;
+                const data: $TSFixMe = req.body;
 
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
@@ -1073,7 +1073,7 @@ router.put(
                 ) {
                     data.profilePic = req.files.profilePic[0].filename;
                 }
-                const userData = await UserService.findOneBy({
+                const userData: $TSFixMe = await UserService.findOneBy({
                     query: { _id: userId },
                     select: 'email tempEmail alertPhoneNumber isVerified name _id',
                 });
@@ -1089,7 +1089,7 @@ router.put(
                     delete data.alertPhoneNumber;
                 }
                 // Call the UserService
-                const user = await UserService.updateOneBy(
+                const user: $TSFixMe = await UserService.updateOneBy(
                     { _id: userId },
                     data
                 );
@@ -1111,9 +1111,9 @@ router.put(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.user ? req.user.id : null;
-            const data = req.body;
-            const user = await UserService.updatePush({ userId, data });
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const data: $TSFixMe = req.body;
+            const user: $TSFixMe = await UserService.updatePush({ userId, data });
             return sendItemResponse(req, res, user);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -1131,9 +1131,9 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { userId } = req.params;
-            const data = req.body;
-            const userData = await UserService.findOneBy({
+            const { userId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
+            const userData: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'email',
             });
@@ -1144,7 +1144,7 @@ router.put(
                 });
             }
             // Call the UserService
-            const user = await UserService.updateOneBy({ _id: userId }, data);
+            const user: $TSFixMe = await UserService.updateOneBy({ _id: userId }, data);
             return sendItemResponse(req, res, user);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -1158,7 +1158,7 @@ router.put(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const upload = multer({
+            const upload: $TSFixMe = multer({
                 storage,
             }).fields([
                 {
@@ -1168,8 +1168,8 @@ router.put(
             ]);
 
             upload(req, res, async (error: $TSFixMe): void => {
-                const userId = req.params.userId;
-                const data = req.body;
+                const userId: $TSFixMe = req.params.userId;
+                const data: $TSFixMe = req.body;
 
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
@@ -1184,7 +1184,7 @@ router.put(
                 }
 
                 // Call the UserService
-                const user = await UserService.updateOneBy(
+                const user: $TSFixMe = await UserService.updateOneBy(
                     { _id: userId },
                     data
                 );
@@ -1206,9 +1206,9 @@ router.put(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
             data._id = userId;
 
             if (!data.currentPassword) {
@@ -1268,7 +1268,7 @@ router.put(
                 });
             }
 
-            const user = await UserService.changePassword(data);
+            const user: $TSFixMe = await UserService.changePassword(data);
             const userObj: $TSFixMe = {
                 id: user._id,
                 name: user.name,
@@ -1302,7 +1302,7 @@ router.get(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
             if (!userId) {
                 return sendErrorResponse(req, res, {
@@ -1311,9 +1311,9 @@ router.get(
                 });
             }
             // Call the UserService
-            const select =
+            const select: $TSFixMe =
                 'name email isVerified jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber profilePic twoFactorAuthEnabled timezone role alertPhoneNumber tempAlertPhoneNumber identification';
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select,
             });
@@ -1363,7 +1363,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             if (req.params && req.params.token) {
-                const token = await VerificationTokenModel.findOne({
+                const token: $TSFixMe = await VerificationTokenModel.findOne({
                     token: req.params.token,
                 });
                 if (!token) {
@@ -1372,7 +1372,7 @@ router.get(
                             '/user-verify/resend?status=link-expired'
                     );
                 }
-                const user = await UserModel.findOne({
+                const user: $TSFixMe = await UserModel.findOne({
                     _id: token.userId,
                 });
                 if (!user) {
@@ -1419,7 +1419,7 @@ router.get(
 
 router.post('/resend', async (req: ExpressRequest, res: ExpressResponse) => {
     if (req.body && req.body.email) {
-        const { email, userId } = req.body;
+        const { email, userId }: $TSFixMe = req.body;
         let user;
         if (!userId) {
             user = await UserModel.findOne({ email });
@@ -1437,7 +1437,7 @@ router.post('/resend', async (req: ExpressRequest, res: ExpressResponse) => {
                     message: 'No user associated with this account',
                 });
             }
-            const checkUser = await UserModel.findOne({ email });
+            const checkUser: $TSFixMe = await UserModel.findOne({ email });
             if (checkUser && checkUser.id !== user.id) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1452,7 +1452,7 @@ router.post('/resend', async (req: ExpressRequest, res: ExpressResponse) => {
                 new BadDataException('User has already been verified.')
             );
         }
-        const token = await UserService.sendToken(user, email);
+        const token: $TSFixMe = await UserService.sendToken(user, email);
         if (token) {
             res.status(200).send(
                 `A verification email has been sent to ${user.email}`
@@ -1472,9 +1472,9 @@ router.get(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 10;
-            const [users, count] = await Promise.all([
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
+            const [users, count]: $TSFixMe = await Promise.all([
                 UserService.getAllUsers(skip, limit),
                 UserService.countBy({
                     _id: { $ne: null },
@@ -1494,10 +1494,10 @@ router.get(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const userId = req.params.userId;
-            const select =
+            const userId: $TSFixMe = req.params.userId;
+            const select: $TSFixMe =
                 'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId, deleted: { $ne: null } },
                 select,
             });
@@ -1515,11 +1515,11 @@ router.delete(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.params.userId;
+            const userId: $TSFixMe = req.params.userId;
 
-            const authUserId = req.user.id;
+            const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
-                const err = new Error(
+                const err: $TSFixMe = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
 
@@ -1527,8 +1527,8 @@ router.delete(
                 throw err;
             }
 
-            const masterUserId = req.user.id || null;
-            const user = await UserService.deleteBy(
+            const masterUserId: $TSFixMe = req.user.id || null;
+            const user: $TSFixMe = await UserService.deleteBy(
                 { _id: userId },
                 masterUserId
             );
@@ -1545,18 +1545,18 @@ router.put(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const userId = req.params.userId;
+            const userId: $TSFixMe = req.params.userId;
 
-            const authUserId = req.user.id;
+            const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
-                const err = new Error(
+                const err: $TSFixMe = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
 
                 err.code = 400;
                 throw err;
             }
-            const user = await UserService.restoreBy({
+            const user: $TSFixMe = await UserService.restoreBy({
                 _id: userId,
                 deleted: true,
             });
@@ -1573,18 +1573,18 @@ router.put(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const userId = req.params.userId;
+            const userId: $TSFixMe = req.params.userId;
 
-            const authUserId = req.user.id;
+            const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
-                const err = new Error(
+                const err: $TSFixMe = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
 
                 err.code = 400;
                 throw err;
             }
-            const user = await UserService.updateOneBy(
+            const user: $TSFixMe = await UserService.updateOneBy(
                 { _id: userId },
                 { isBlocked: true }
             );
@@ -1601,18 +1601,18 @@ router.put(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const userId = req.params.userId;
+            const userId: $TSFixMe = req.params.userId;
 
-            const authUserId = req.user.id;
+            const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
-                const err = new Error(
+                const err: $TSFixMe = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
 
                 err.code = 400;
                 throw err;
             }
-            const user = await UserService.updateOneBy(
+            const user: $TSFixMe = await UserService.updateOneBy(
                 { _id: userId },
                 { isBlocked: false }
             );
@@ -1634,19 +1634,19 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.params.userId;
+            const userId: $TSFixMe = req.params.userId;
 
-            const authUserId = req.user.id;
+            const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
-                const err = new Error(
+                const err: $TSFixMe = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
 
                 err.code = 400;
                 throw err;
             }
-            const { temporaryPassword } = req.body;
-            const user = await UserService.switchToAdminMode(
+            const { temporaryPassword }: $TSFixMe = req.body;
+            const user: $TSFixMe = await UserService.switchToAdminMode(
                 userId,
                 temporaryPassword
             );
@@ -1668,18 +1668,18 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.params.userId;
+            const userId: $TSFixMe = req.params.userId;
 
-            const authUserId = req.user.id;
+            const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
-                const err = new Error(
+                const err: $TSFixMe = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
 
                 err.code = 400;
                 throw err;
             }
-            const user = await UserService.exitAdminMode(userId);
+            const user: $TSFixMe = await UserService.exitAdminMode(userId);
             return sendItemResponse(req, res, user);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -1693,7 +1693,7 @@ router.post(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const userId = req.params.userId;
+            const userId: $TSFixMe = req.params.userId;
             if (Array.isArray(req.body)) {
                 const data: $TSFixMe = [];
                 if (req.body.length > 0) {
@@ -1718,10 +1718,10 @@ router.post(
                         data.push(val);
                     }
 
-                    const user = await UserService.addNotes(userId, data);
+                    const user: $TSFixMe = await UserService.addNotes(userId, data);
                     return sendItemResponse(req, res, user);
                 } else {
-                    const user = await UserService.addNotes(userId, data);
+                    const user: $TSFixMe = await UserService.addNotes(userId, data);
                     return sendItemResponse(req, res, user);
                 }
             } else {
@@ -1742,10 +1742,10 @@ router.post(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const filter = req.body.filter;
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 10;
-            const [users, count] = await Promise.all([
+            const filter: $TSFixMe = req.body.filter;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
+            const [users, count]: $TSFixMe = await Promise.all([
                 UserService.searchUsers(
                     {
                         deleted: { $ne: null },
@@ -1805,8 +1805,8 @@ router.delete(
                 });
             }
 
-            const userId = req.user.id;
-            const user = await UserService.findOneBy({
+            const userId: $TSFixMe = req.user.id;
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'projects',
             });
@@ -1816,7 +1816,7 @@ router.delete(
                     message: 'No user associated with this account',
                 });
             }
-            const { deleteMyAccount } = req.body;
+            const { deleteMyAccount }: $TSFixMe = req.body;
             if (deleteMyAccount !== 'DELETE MY ACCOUNT') {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1824,7 +1824,7 @@ router.delete(
                 });
             }
 
-            const { projects } = user;
+            const { projects }: $TSFixMe = user;
             projects
                 .filter((project: $TSFixMe) => {
                     return project.users.find(
@@ -1852,7 +1852,7 @@ router.delete(
                 })
                 .forEach(async (project: $TSFixMe) => {
                     const { _id: projectId, users } = project;
-                    const user = users.find(
+                    const user: $TSFixMe = users.find(
                         (user: $TSFixMe) => user.userId === userId
                     );
                     if (user) {
@@ -1866,7 +1866,7 @@ router.delete(
                         }
                     }
                 });
-            const deletedUser = await UserService.deleteBy(
+            const deletedUser: $TSFixMe = await UserService.deleteBy(
                 { _id: userId },
                 userId
             );
@@ -1881,7 +1881,7 @@ router.get(
     '/:token/email',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const token = await VerificationTokenModel.findOne({
+            const token: $TSFixMe = await VerificationTokenModel.findOne({
                 token: req.params.token,
             }).populate('userId', 'email');
 

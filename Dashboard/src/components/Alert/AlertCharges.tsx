@@ -27,7 +27,7 @@ class AlertCharge extends Component<ComponentProps> {
 
     fetchData = () => {
 
-        const { projectId, downloadAlertCharges } = this.props;
+        const { projectId, downloadAlertCharges }: $TSFixMe = this.props;
         downloadAlertCharges(projectId).then(() => {
 
             this.csvLink.current.link.click();
@@ -45,7 +45,7 @@ class AlertCharge extends Component<ComponentProps> {
 
             downloadedAlertCharges,
         } = this.props;
-        const canDownload = alertCharges.length > 0 ? true : false;
+        const canDownload: $TSFixMe = alertCharges.length > 0 ? true : false;
         return (
             <div
                 className="db-World-contentPane Box-root"
@@ -156,12 +156,12 @@ class AlertCharge extends Component<ComponentProps> {
 }
 
 const mapStateToProps: Function = (state: RootState) => {
-    const downloadedAlertCharges =
+    const downloadedAlertCharges: $TSFixMe =
         state.alert.downloadedAlertCharges &&
         state.alert.downloadedAlertCharges.data;
-    const alertCharges =
+    const alertCharges: $TSFixMe =
         state.alert.alertCharges !== null && state.alert.alertCharges.data;
-    const { requesting, error } = state.alert.downloadedAlertCharges;
+    const { requesting, error }: $TSFixMe = state.alert.downloadedAlertCharges;
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,

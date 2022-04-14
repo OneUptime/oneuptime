@@ -69,14 +69,14 @@ class ChangeMonitorComponent extends React.Component<ChangeMonitorComponentProps
 
             id: this.state.changeMonitorComponentModalId,
         });
-        const newComponent = monitor.componentId;
-        const { projectId } = monitor;
+        const newComponent: $TSFixMe = monitor.componentId;
+        const { projectId }: $TSFixMe = monitor;
 
         // get component from component list
         let componentWithProjects;
 
         this.props.components.find((subCompo: $TSFixMe) => {
-            const belongsToProject = subCompo._id === projectId;
+            const belongsToProject = subCompo._id: $TSFixMe === projectId;
             if (!belongsToProject) return false;
 
             return subCompo.components.find((compo: $TSFixMe) => {
@@ -100,20 +100,20 @@ class ChangeMonitorComponent extends React.Component<ChangeMonitorComponentProps
 
     handleRedirectOnSuccess = async (monitor: $TSFixMe) => {
 
-        const { currentProject } = this.props;
+        const { currentProject }: $TSFixMe = this.props;
         const { slug, componentId: newComponent } = monitor;
 
-        const redirectTo:string = `/dashboard/project/${currentProject.slug}/component/${newComponent.slug}/monitoring/${slug}`;
+        const redirectTo:string: $TSFixMe = `/dashboard/project/${currentProject.slug}/component/${newComponent.slug}/monitoring/${slug}`;
 
         return history.push(redirectTo);
     };
 
     submitForm = (values: $TSFixMe) => {
 
-        const { data, changeMonitorComponent } = this.props;
-        const projectId = data.monitor.projectId;
-        const monitorId = data.monitor._id;
-        const { newComponentId } = values;
+        const { data, changeMonitorComponent }: $TSFixMe = this.props;
+        const projectId: $TSFixMe = data.monitor.projectId;
+        const monitorId: $TSFixMe = data.monitor._id;
+        const { newComponentId }: $TSFixMe = values;
         changeMonitorComponent(projectId, monitorId, newComponentId).then(
             (response: $TSFixMe) => {
 
@@ -162,8 +162,8 @@ class ChangeMonitorComponent extends React.Component<ChangeMonitorComponentProps
             data,
         } = this.props;
 
-        const projectId = data.monitor.projectId;
-        const oldComponentId = data.monitor.componentId._id;
+        const projectId: $TSFixMe = data.monitor.projectId;
+        const oldComponentId: $TSFixMe = data.monitor.componentId._id;
 
         return (
             <div
@@ -357,7 +357,7 @@ ChangeMonitorComponent.propTypes = {
     addCurrentComponent: PropTypes.func,
 };
 
-const ChangeMonitorComponentForm = reduxForm({
+const ChangeMonitorComponentForm: $TSFixMe = reduxForm({
     form: formName,
     enableReinitialize: false,
     destroyOnUnmount: true,

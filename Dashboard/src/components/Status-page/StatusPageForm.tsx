@@ -48,7 +48,7 @@ export class StatusPageForm extends React.Component<StatusPageFormProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { data } = this.props;
+        const { data }: $TSFixMe = this.props;
 
         this.props.createStatusPage(data.projectId, values).then(() => {
 
@@ -78,7 +78,7 @@ export class StatusPageForm extends React.Component<StatusPageFormProps> {
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
                 <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -214,7 +214,7 @@ export class StatusPageForm extends React.Component<StatusPageFormProps> {
 
 StatusPageForm.displayName = 'StatusPageForm';
 
-const CreateStatusPageForm = reduxForm({
+const CreateStatusPageForm: $TSFixMe = reduxForm({
     form: 'StatusPageModalForm',
     validate,
 })(StatusPageForm);

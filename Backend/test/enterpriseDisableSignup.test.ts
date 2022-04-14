@@ -7,7 +7,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -22,7 +22,7 @@ describe('Disable Sign up test', function (): void {
         await UserService.hardDeleteBy({});
         await GlobalConfig.initTestConfig();
         await createUser(request, data.adminUser);
-        const res = await request.post('/user/login').send({
+        const res: $TSFixMe = await request.post('/user/login').send({
             email: data.adminUser.email,
             password: data.adminUser.password,
         });

@@ -21,10 +21,10 @@ interface PerformanceTrackerListProps {
 class PerformanceTrackerList extends Component<ComponentProps> {
     override componentDidMount() {
 
-        const { fetchLastMetrics, performanceTracker, projectId } = this.props;
+        const { fetchLastMetrics, performanceTracker, projectId }: $TSFixMe = this.props;
 
-        const endDate = moment(Date.now()).format();
-        const startDate = moment(endDate)
+        const endDate: $TSFixMe = moment(Date.now()).format();
+        const startDate: $TSFixMe = moment(endDate)
             .subtract(30, 'days')
             .format();
 
@@ -38,7 +38,7 @@ class PerformanceTrackerList extends Component<ComponentProps> {
 
     viewMore = () => {
 
-        const { componentSlug, projectSlug, performanceTracker } = this.props;
+        const { componentSlug, projectSlug, performanceTracker }: $TSFixMe = this.props;
         history.push(
             `/dashboard/project/${projectSlug}/component/${componentSlug}/performance-tracker/${performanceTracker.slug}`
         );
@@ -46,9 +46,9 @@ class PerformanceTrackerList extends Component<ComponentProps> {
 
     override render() {
 
-        const { performanceTracker, lastMetricsObj } = this.props;
+        const { performanceTracker, lastMetricsObj }: $TSFixMe = this.props;
 
-        const metrics = lastMetricsObj
+        const metrics: $TSFixMe = lastMetricsObj
             ? lastMetricsObj.metrics.filter(
                 (metric: $TSFixMe) => String(metric.performanceTrackerId) ===
                     String(performanceTracker._id)

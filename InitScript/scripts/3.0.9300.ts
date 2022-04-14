@@ -3,14 +3,14 @@ import getSlug from '../util/getSlug';
 const schedulesCollection: string = 'schedules';
 
 async function run(): void {
-    const schedules = await find(schedulesCollection, {
+    const schedules: $TSFixMe = await find(schedulesCollection, {
         $or: [
             { slug: { $exists: false } },
             { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < schedules.length; i++) {
-        const { name } = schedules[i];
+        const { name }: $TSFixMe = schedules[i];
         schedules[i].slug = getSlug(name);
         await update(
             schedulesCollection,

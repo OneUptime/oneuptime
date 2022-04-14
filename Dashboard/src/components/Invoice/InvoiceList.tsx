@@ -39,8 +39,8 @@ export class InvoiceList extends Component<InvoiceListProps>{
 
             prevClicked,
         } = this.props;
-        const canPrev = Boolean(nextCount);
-        const canNext = Boolean(has_more);
+        const canPrev: $TSFixMe = Boolean(nextCount);
+        const canNext: $TSFixMe = Boolean(has_more);
 
         return (
             <div>
@@ -400,10 +400,10 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const { invoices, nextCount } = state.invoice;
-    const { has_more } = invoices;
-    const isRequesting = state.invoice.requesting;
-    const error = state.invoice.error;
+    const { invoices, nextCount }: $TSFixMe = state.invoice;
+    const { has_more }: $TSFixMe = invoices;
+    const isRequesting: $TSFixMe = state.invoice.requesting;
+    const error: $TSFixMe = state.invoice.error;
 
     return {
         invoices,

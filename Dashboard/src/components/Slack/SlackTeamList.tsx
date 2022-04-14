@@ -78,15 +78,15 @@ class SlackTeamList extends React.Component<SlackTeamListProps> {
 
     override render() {
 
-        const { projectId, teams } = this.props;
-        const { error, requesting } = teams;
-        const { count } = teams;
+        const { projectId, teams }: $TSFixMe = this.props;
+        const { error, requesting }: $TSFixMe = teams;
+        const { count }: $TSFixMe = teams;
         let canPaginateForward =
             teams.teams && teams.count && teams.count > teams.skip + teams.limit
                 ? true
                 : false;
         let canPaginateBackward = teams && teams.skip <= 0 ? false : true;
-        const numberOfTeams = teams.teams.length;
+        const numberOfTeams: $TSFixMe = teams.teams.length;
 
         if (teams && (teams.requesting || !teams.teams)) {
             canPaginateForward = false;

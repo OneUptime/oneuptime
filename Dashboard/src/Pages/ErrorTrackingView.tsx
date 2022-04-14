@@ -88,7 +88,7 @@ class ErrorTrackingView extends Component<ComponentProps> {
             trackerSkip,
         } = this.props;
 
-        const projectId = this.props.currentProject
+        const projectId: $TSFixMe = this.props.currentProject
 
             ? this.props.currentProject._id
             : null;
@@ -108,9 +108,9 @@ class ErrorTrackingView extends Component<ComponentProps> {
     handleCloseQuickStart = () => {
         const postObj: $TSFixMe = { showQuickStart: false };
 
-        const { errorTracker, editErrorTracker } = this.props;
+        const { errorTracker, editErrorTracker }: $TSFixMe = this.props;
 
-        const projectId = this.props.currentProject
+        const projectId: $TSFixMe = this.props.currentProject
 
             ? this.props.currentProject._id
             : null;
@@ -135,11 +135,11 @@ class ErrorTrackingView extends Component<ComponentProps> {
             switchToProjectViewerNav,
         } = this.props;
 
-        const componentName = component ? component.name : '';
-        const errorTrackerName =
+        const componentName: $TSFixMe = component ? component.name : '';
+        const errorTrackerName: $TSFixMe =
             errorTracker.length > 0 ? errorTracker[0].name : null;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -213,9 +213,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { errorTrackerSlug, componentSlug } = ownProps.match.params;
-    const currentProject = state.project.currentProject;
-    const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(
+    const { errorTrackerSlug, componentSlug }: $TSFixMe = ownProps.match.params;
+    const currentProject: $TSFixMe = state.project.currentProject;
+    const errorTracker: $TSFixMe = state.errorTracker.errorTrackersList.errorTrackers.filter(
         (errorTracker: $TSFixMe) => errorTracker.slug === errorTrackerSlug
     );
     return {

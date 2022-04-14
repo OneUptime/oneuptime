@@ -3,12 +3,12 @@ import express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import NotificationService from '../services/notificationService';
 
 import { isAuthorized } from '../middlewares/authorization';
-const getUser = require('../middlewares/user').getUser;
-const getSubProjects = require('../middlewares/subProject').getSubProjects;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
 import {
     sendErrorResponse,
     sendListResponse,
@@ -23,11 +23,11 @@ router.get(
     getSubProjects,
     async (req, res): void => {
         try {
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
-            const populateNotification = [
+            const populateNotification: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
                 {
                     path: 'meta.incidentId',
@@ -41,10 +41,10 @@ router.get(
                 },
             ];
 
-            const selectNotification =
+            const selectNotification: $TSFixMe =
                 'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
 
-            const [notifications, count] = await Promise.all([
+            const [notifications, count]: $TSFixMe = await Promise.all([
                 NotificationService.findBy({
                     query: { projectId: { $in: subProjectIds } },
                     skip: req.query['skip'] || 0,
@@ -69,14 +69,14 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // const notificationId = req.params.notificationId;
+            // const notificationId: $TSFixMe = req.params.notificationId;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
-            const { notificationIds } = req.body;
-            const notifications = [];
+            const { notificationIds }: $TSFixMe = req.body;
+            const notifications: $TSFixMe = [];
             for (const notificationId of notificationIds) {
-                const notification = await NotificationService.updateOneBy(
+                const notification: $TSFixMe = await NotificationService.updateOneBy(
                     { _id: notificationId },
                     { read: [userId] }
                 );
@@ -98,17 +98,17 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const notificationId = req.params.notificationId;
+            const notificationId: $TSFixMe = req.params.notificationId;
 
-            const userId = req.user ? req.user.id : null;
-            const notification = await NotificationService.updateOneBy(
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const notification: $TSFixMe = await NotificationService.updateOneBy(
                 { _id: notificationId },
                 { closed: [userId] }
             );
             if (notification) {
                 return sendItemResponse(req, res, notification);
             } else {
-                const error = new Error('Notification not found.');
+                const error: $TSFixMe = new Error('Notification not found.');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
@@ -126,12 +126,12 @@ router.put(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
-            const userId = req.user ? req.user.id : null;
-            const notifications = await NotificationService.updateManyBy(
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const notifications: $TSFixMe = await NotificationService.updateManyBy(
                 { projectId: { $in: subProjectIds } },
                 { read: userId }
             );
@@ -142,7 +142,7 @@ router.put(
                     read: notifications.nModified,
                 });
             } else {
-                const error = new Error('No notification found.');
+                const error: $TSFixMe = new Error('No notification found.');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
@@ -159,16 +159,16 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const notificationId = req.params.notificationId;
-            const updateObject = req.body;
-            const notification = await NotificationService.updateOneBy(
+            const notificationId: $TSFixMe = req.params.notificationId;
+            const updateObject: $TSFixMe = req.body;
+            const notification: $TSFixMe = await NotificationService.updateOneBy(
                 { _id: notificationId },
                 updateObject
             );
             if (notification) {
                 return sendItemResponse(req, res, notification);
             } else {
-                const error = new Error('Notification not found.');
+                const error: $TSFixMe = new Error('Notification not found.');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
@@ -185,12 +185,12 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
+            const projectId: $TSFixMe = req.params.projectId;
 
-            const userId = req.user ? req.user.id : null;
-            const data = req.body;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const data: $TSFixMe = req.body;
 
-            const notification = await NotificationService.create(
+            const notification: $TSFixMe = await NotificationService.create(
                 projectId,
                 data.message,
                 userId,

@@ -52,14 +52,14 @@ class Dropdown extends React.Component<DropdownProps> {
 
     toggleExpanded = (value: $TSFixMe) => {
 
-        const { isLoading } = this.props;
-        const { expanded } = this.state;
+        const { isLoading }: $TSFixMe = this.props;
+        const { expanded }: $TSFixMe = this.state;
 
         if (isLoading) {
             return;
         }
 
-        const tempExpanded = value === undefined ? !expanded : !!value;
+        const tempExpanded = value: $TSFixMe === undefined ? !expanded : !!value;
 
         this.setState({ expanded: tempExpanded });
 
@@ -69,7 +69,7 @@ class Dropdown extends React.Component<DropdownProps> {
     };
 
     handleBlur = () => {
-        const { hasFocus } = this.state;
+        const { hasFocus }: $TSFixMe = this.state;
 
         if (hasFocus) {
             this.setState({ hasFocus: false });
@@ -77,7 +77,7 @@ class Dropdown extends React.Component<DropdownProps> {
     };
 
     handleFocus = (e: $TSFixMe) => {
-        const { hasFocus } = this.state;
+        const { hasFocus }: $TSFixMe = this.state;
 
         if (e.target === this.wrapper && !hasFocus) {
             this.setState({ hasFocus: true });
@@ -94,7 +94,7 @@ class Dropdown extends React.Component<DropdownProps> {
 
     handleHover = (toggleExpanded: $TSFixMe) => {
 
-        const { shouldToggleOnHover } = this.props;
+        const { shouldToggleOnHover }: $TSFixMe = this.props;
 
         if (shouldToggleOnHover) {
             this.toggleExpanded(toggleExpanded);
@@ -103,7 +103,7 @@ class Dropdown extends React.Component<DropdownProps> {
 
     renderPanel = () => {
 
-        const { ContentComponent, contentProps } = this.props;
+        const { ContentComponent, contentProps }: $TSFixMe = this.props;
 
         return (
             <div className="db-MultiSelect-dropdown-content db-MultiSelect-panel-container">
@@ -113,9 +113,9 @@ class Dropdown extends React.Component<DropdownProps> {
     };
 
     override render() {
-        const { expanded, hasFocus } = this.state;
+        const { expanded, hasFocus }: $TSFixMe = this.state;
 
-        const { children, isLoading, disabled } = this.props;
+        const { children, isLoading, disabled }: $TSFixMe = this.props;
 
         return (
             <div

@@ -8,12 +8,12 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 
 import Plans from '../backend/config/plans';
-const plans = Plans.getPlans();
+const plans: $TSFixMe = Plans.getPlans();
 import log from './data/log';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
@@ -32,7 +32,7 @@ describe('Project API', function (): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
-                const project = res.body.project;
+                const project: $TSFixMe = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
@@ -520,7 +520,7 @@ describe('Projects SubProjects API', function (): void {
         this.timeout(40000);
 
         createUser(request, userData.user, (err, res): void => {
-            const project = res.body.project;
+            const project: $TSFixMe = res.body.project;
             projectId = project._id;
             userId = res.body.id;
             VerificationTokenModel.findOne(

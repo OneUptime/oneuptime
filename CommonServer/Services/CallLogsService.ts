@@ -4,7 +4,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const itemQuery = CallLogsModel.find(query)
+        const itemQuery: $TSFixMe = CallLogsModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -12,7 +12,7 @@ export default class Service {
         itemQuery.select(select);
         itemQuery.populate(populate);
 
-        const items = await itemQuery;
+        const items: $TSFixMe = await itemQuery;
         return items;
     }
 
@@ -50,7 +50,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await CallLogsModel.countDocuments(query);
+        const count: $TSFixMe = await CallLogsModel.countDocuments(query);
         return count;
     }
 
@@ -60,7 +60,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const items = await CallLogsModel.findOneAndUpdate(query, {
+        const items: $TSFixMe = await CallLogsModel.findOneAndUpdate(query, {
             $set: {
                 deleted: true,
                 deletedAt: Date.now(),
@@ -79,9 +79,9 @@ export default class Service {
             to: { $regex: new RegExp(filter), $options: 'i' },
         };
 
-        const populate = [{ path: 'projectId', select: 'name' }];
+        const populate: $TSFixMe = [{ path: 'projectId', select: 'name' }];
         const select: string = 'from to projectId content status error';
-        const [searchedCallLogs, totalSearchCount] = await Promise.all([
+        const [searchedCallLogs, totalSearchCount]: $TSFixMe = await Promise.all([
             this.findBy({ query, skip, limit, select, populate }),
             this.countBy({ query }),
         ]);

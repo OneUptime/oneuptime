@@ -9,8 +9,8 @@ interface PerformanceViewProps { }
 //import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 //import moment from 'moment';
 
-//const endDate = moment();
-//const startDate = moment().subtract(30, 'd');
+//const endDate: $TSFixMe = moment();
+//const startDate: $TSFixMe = moment().subtract(30, 'd');
 export class PerformanceView extends Component<PerformanceViewProps>{
     public static displayName = '';
     public static propTypes = {};
@@ -27,10 +27,10 @@ export class PerformanceView extends Component<PerformanceViewProps>{
     }
 
     prevClicked = (monitorId, skip, limit) => {
-        const { currentProject, getMonitorLogs } = this.props;
-        const incidentId = this.props.incidentId ? this.props.incidentId : null;
-        const start = incidentId ? '' : this.state.startDate.clone().utc();
-        const end = incidentId ? '' : this.state.endDate.clone().utc();
+        const { currentProject, getMonitorLogs }: $TSFixMe = this.props;
+        const incidentId: $TSFixMe = this.props.incidentId ? this.props.incidentId : null;
+        const start: $TSFixMe = incidentId ? '' : this.state.startDate.clone().utc();
+        const end: $TSFixMe = incidentId ? '' : this.state.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -46,10 +46,10 @@ export class PerformanceView extends Component<PerformanceViewProps>{
     };
 
     nextClicked = (monitorId, skip, limit) => {
-        const { currentProject, getMonitorLogs } = this.props;
-        const incidentId = this.props.incidentId ? this.props.incidentId : null;
-        const start = incidentId ? '' : this.state.startDate.clone().utc();
-        const end = incidentId ? '' : this.state.endDate.clone().utc();
+        const { currentProject, getMonitorLogs }: $TSFixMe = this.props;
+        const incidentId: $TSFixMe = this.props.incidentId ? this.props.incidentId : null;
+        const start: $TSFixMe = incidentId ? '' : this.state.startDate.clone().utc();
+        const end: $TSFixMe = incidentId ? '' : this.state.endDate.clone().utc();
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -64,16 +64,16 @@ export class PerformanceView extends Component<PerformanceViewProps>{
         this.setState({ page: this.state.page + 1 });
     };
     handleStartDateTimeChange = val => {
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
         this.handleDateChange(startDate, this.state.endDate);
     };
     handleEndDateTimeChange = val => {
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
         this.handleDateChange(this.state.startDate, endDate);
     };
 
     handleDateChange = (startDate, endDate) => {
-        const { currentProject, getMonitorLogs, monitorId } = this.props;
+        const { currentProject, getMonitorLogs, monitorId }: $TSFixMe = this.props;
         this.setState({
             startDate,
             endDate,
@@ -92,7 +92,7 @@ export class PerformanceView extends Component<PerformanceViewProps>{
     };
 
     handleTimeChange = (startDate, endDate) => {
-        const { currentProject, getMonitorLogs, monitorId } = this.props;
+        const { currentProject, getMonitorLogs, monitorId }: $TSFixMe = this.props;
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -108,7 +108,7 @@ export class PerformanceView extends Component<PerformanceViewProps>{
 
     handleProbeChange = data => {
         this.setState({ probeValue: data });
-        const { currentProject, getMonitorLogs, monitorId } = this.props;
+        const { currentProject, getMonitorLogs, monitorId }: $TSFixMe = this.props;
         getMonitorLogs(
             currentProject._id,
             monitorId,
@@ -123,7 +123,7 @@ export class PerformanceView extends Component<PerformanceViewProps>{
     };*/
 
     override render() {
-        /* const probeOptions =
+        /* const probeOptions: $TSFixMe =
             this.props.probes && this.props.probes.length > 0
                 ? this.props.probes.map(p => {
                       return { value: p._id, label: p.probeName };
@@ -243,7 +243,7 @@ PerformanceView.displayName = 'PerformanceView';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getMonitorLogs }, dispatch);
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const monitorId = props.monitorId ? props.monitorId : null;
+    const monitorId: $TSFixMe = props.monitorId ? props.monitorId : null;
     return {
         monitorLogs: monitorId ? state.monitor.monitorLogs[monitorId] : {},
         probes: state.probe.probes.data,

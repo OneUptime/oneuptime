@@ -27,7 +27,7 @@ export default function credential(state = initialState, action: Action): void {
             };
 
         case types.ADD_GIT_CREDENTIAL_SUCCESS: {
-            const gitCredentials = [action.payload, ...state.gitCredentials];
+            const gitCredentials: $TSFixMe = [action.payload, ...state.gitCredentials];
             return {
                 ...state,
                 addCredential: {
@@ -60,7 +60,7 @@ export default function credential(state = initialState, action: Action): void {
             };
 
         case types.UPDATE_GIT_CREDENTIAL_SUCCESS: {
-            const gitCredentials = state.gitCredentials.map(gitCredential => {
+            const gitCredentials = state.gitCredentials.map(gitCredential: $TSFixMe => {
                 if (String(gitCredential._id) === String(action.payload._id)) {
                     gitCredential = action.payload;
                 }
@@ -131,7 +131,7 @@ export default function credential(state = initialState, action: Action): void {
 
         case types.DELETE_GIT_CREDENTIAL_SUCCESS: {
             // update the list of git credential
-            const gitCredentials = state.gitCredentials.filter(
+            const gitCredentials: $TSFixMe = state.gitCredentials.filter(
                 gitCredential =>
                     String(gitCredential._id) !== String(action.payload._id)
             );
@@ -199,7 +199,7 @@ export default function credential(state = initialState, action: Action): void {
             };
 
         case types.ADD_DOCKER_CREDENTIAL_SUCCESS: {
-            const dockerCredentials = [
+            const dockerCredentials: $TSFixMe = [
                 action.payload,
                 ...state.dockerCredentials,
             ];
@@ -235,7 +235,7 @@ export default function credential(state = initialState, action: Action): void {
             };
 
         case types.UPDATE_DOCKER_CREDENTIAL_SUCCESS: {
-            const dockerCredentials = state.dockerCredentials.map(
+            const dockerCredentials: $TSFixMe = state.dockerCredentials.map(
                 dockerCredential => {
                     if (
                         String(dockerCredential._id) ===
@@ -311,7 +311,7 @@ export default function credential(state = initialState, action: Action): void {
 
         case types.DELETE_DOCKER_CREDENTIAL_SUCCESS: {
             // update the list of git credential
-            const dockerCredentials = state.dockerCredentials.filter(
+            const dockerCredentials: $TSFixMe = state.dockerCredentials.filter(
                 dockerCredential =>
                     String(dockerCredential._id) !== String(action.payload._id)
             );

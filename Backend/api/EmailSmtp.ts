@@ -4,12 +4,12 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import EmailSmtpService from '../services/emailSmtpService';
 import MailService from '../services/mailService';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
-const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-const isUserOwner = require('../middlewares/project').isUserOwner;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserOwner: $TSFixMe = require('../middlewares/project').isUserOwner;
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -98,9 +98,9 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.projectId = req.params.projectId;
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: req.user.id },
                 select: 'email',
             });
@@ -148,9 +148,9 @@ router.post(
                 });
             }
 
-            const testResult = await MailService.testSmtpConfig(data);
+            const testResult: $TSFixMe = await MailService.testSmtpConfig(data);
             if (!testResult.failed) {
-                const emailSmtp = await EmailSmtpService.create(data);
+                const emailSmtp: $TSFixMe = await EmailSmtpService.create(data);
                 return sendItemResponse(req, res, emailSmtp);
             }
         } catch (error) {
@@ -165,10 +165,10 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const select =
+            const projectId: $TSFixMe = req.params.projectId;
+            const select: $TSFixMe =
                 'projectId user pass host port from name iv secure enabled createdAt';
-            const emailSmtp = await EmailSmtpService.findOneBy({
+            const emailSmtp: $TSFixMe = await EmailSmtpService.findOneBy({
                 query: { projectId },
                 select,
                 populate: [{ path: 'projectId', select: 'name' }],
@@ -186,9 +186,9 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const data = req.body;
-            const emailSmtpId = req.params.emailSmtpId;
-            const user = await UserService.findOneBy({
+            const data: $TSFixMe = req.body;
+            const emailSmtpId: $TSFixMe = req.params.emailSmtpId;
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: req.user.id },
                 select: 'email',
             });
@@ -236,10 +236,10 @@ router.put(
                 });
             }
 
-            const testResult = await MailService.testSmtpConfig(data);
+            const testResult: $TSFixMe = await MailService.testSmtpConfig(data);
             if (!testResult.failed) {
                 // Call the EmailTemplateService
-                const emailSmtp = await EmailSmtpService.updateOneBy(
+                const emailSmtp: $TSFixMe = await EmailSmtpService.updateOneBy(
                     { _id: emailSmtpId },
                     data
                 );
@@ -257,11 +257,11 @@ router.delete(
     isUserOwner,
     async (req, res): void => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.deleted = true;
             data.enabled = false;
-            const emailSmtpId = req.params.emailSmtpId;
-            const emailSmtp = await EmailSmtpService.updateOneBy(
+            const emailSmtpId: $TSFixMe = req.params.emailSmtpId;
+            const emailSmtp: $TSFixMe = await EmailSmtpService.updateOneBy(
                 { _id: emailSmtpId },
                 data
             );

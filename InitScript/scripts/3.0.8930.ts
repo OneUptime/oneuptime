@@ -3,7 +3,7 @@ import { find, update, removeField } from '../util/db';
 const ssoCollection: string = 'ssos';
 
 async function run(): void {
-    const ssos = await find(ssoCollection, {
+    const ssos: $TSFixMe = await find(ssoCollection, {
         samlSsoUrl: { $exists: true },
     });
 

@@ -16,7 +16,7 @@ interface UnVerifiedEmailBoxProps {
 class UnVerifiedEmailBox extends Component<ComponentProps> {
     handleSendEmailVerification = () => {
 
-        const { email } = this.props.initialValues;
+        const { email }: $TSFixMe = this.props.initialValues;
 
         this.props.sendEmailVerificationLink({ email });
     };

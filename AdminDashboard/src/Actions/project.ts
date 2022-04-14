@@ -26,7 +26,7 @@ export const fetchProjectsError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch all projects.
-export const fetchProjects =
+export const fetchProjects: $TSFixMe =
     (skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip || 0;
@@ -35,7 +35,7 @@ export const fetchProjects =
         dispatch(fetchProjectsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `project/projects/allProjects?skip=${skip}&limit=${limit}`
             );
 
@@ -79,15 +79,15 @@ export const fetchProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch a project.
-export const fetchProject =
+export const fetchProject: $TSFixMe =
     (slug: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         dispatch(fetchProjectRequest());
 
         try {
-            const response = await BackendAPI.get(`project/projects/${slug}`);
+            const response: $TSFixMe = await BackendAPI.get(`project/projects/${slug}`);
 
-            const projects = response.data;
+            const projects: $TSFixMe = response.data;
 
             dispatch(fetchProjectSuccess(projects));
             return response;
@@ -135,12 +135,12 @@ export const userCreate: Function = (
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`team/${projectId}`, values);
+        const promise: $TSFixMe = BackendAPI.post(`team/${projectId}`, values);
         dispatch(userCreateRequest());
         promise.then(
             (response): void => {
-                const data = response.data;
-                const projectUsers = data.filter(
+                const data: $TSFixMe = response.data;
+                const projectUsers: $TSFixMe = data.filter(
                     (team: $TSFixMe) => team.projectId === projectId
                 )[0];
                 dispatch(userCreateSuccess(projectUsers.team));
@@ -175,16 +175,16 @@ export const fetchUserProjectsError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch users belonging to a particular project
-export const fetchProjectTeam =
+export const fetchProjectTeam: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         dispatch(fetchProjectTeamRequest());
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `team/${projectId}/teamMembers`
             );
 
-            const team = response.data;
-            const projectTeam = team.filter(
+            const team: $TSFixMe = response.data;
+            const projectTeam: $TSFixMe = team.filter(
                 (team: $TSFixMe) => team._id === projectId
             )[0];
             dispatch(fetchProjectTeamSuccess(projectTeam));
@@ -258,7 +258,7 @@ export const userUpdateRole: Function = (
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `team/${projectId}/${values.teamMemberId}/changerole`,
             values
         );
@@ -266,8 +266,8 @@ export const userUpdateRole: Function = (
 
         promise.then(
             (response): void => {
-                const data = response.data;
-                const projectUsers = data.filter(
+                const data: $TSFixMe = response.data;
+                const projectUsers: $TSFixMe = data.filter(
                     (user: $TSFixMe) => user.projectId === projectId
                 )[0];
                 dispatch(userUpdateRoleSuccess(projectUsers));
@@ -302,20 +302,20 @@ export const paginate: Function = (type: $TSFixMe): void => {
 };
 
 //Add Balance to a project
-export const updateBalance =
+export const updateBalance: $TSFixMe =
     (projectId: ObjectID, rechargeBalanceAmount: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(updateProjectBalanceRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `project/${projectId}/updateBalance`,
                 {
                     rechargeBalanceAmount,
                 }
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
             dispatch(updateProjectBalanceSuccess(data));
             return response;
         } catch (error) {
@@ -362,13 +362,13 @@ export const teamDelete: Function = (
     teamMemberId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete (`team/${projectId}/${teamMemberId}`, null);
+        const promise: $TSFixMe = delete (`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
             (response): void => {
-                const team = response.data;
-                const projectTeam = team.filter(
+                const team: $TSFixMe = response.data;
+                const projectTeam: $TSFixMe = team.filter(
                     (team: $TSFixMe) => team.projectId === projectId
                 )[0];
                 dispatch(teamDeleteSuccess(projectTeam.team));
@@ -416,7 +416,7 @@ export const resetTeamDelete: Function = (): void => {
 };
 
 // Calls the API to fetch all user projects.
-export const fetchUserProjects =
+export const fetchUserProjects: $TSFixMe =
     (userId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
@@ -425,11 +425,11 @@ export const fetchUserProjects =
         dispatch(fetchUserProjectsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `project/projects/user/${userId}?skip=${skip}&limit=${limit}`
             );
 
-            const users = response.data;
+            const users: $TSFixMe = response.data;
 
             dispatch(fetchUserProjectsSuccess(users));
             return response;
@@ -478,14 +478,14 @@ export const deleteProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to delete a project
-export const deleteProject =
+export const deleteProject: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         dispatch(deleteProjectRequest());
 
         try {
-            const response = await delete `project/${projectId}/deleteProject`;
+            const response: $TSFixMe = await delete `project/${projectId}/deleteProject`;
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(deleteProjectSuccess(data));
             return response;
@@ -534,16 +534,16 @@ export const blockProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to block a project
-export const blockProject =
+export const blockProject: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         dispatch(blockProjectRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `project/${projectId}/blockProject`
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(blockProjectSuccess(data));
             return response;
@@ -592,20 +592,20 @@ export const renewAlertLimitError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to block a project
-export const renewAlertLimit =
+export const renewAlertLimit: $TSFixMe =
     (projectId: ObjectID, alertLimit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         dispatch(renewAlertLimitRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `project/${projectId}/renewAlertLimit`,
                 {
                     alertLimit,
                 }
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(renewAlertLimitSuccess(data));
             return response;
@@ -654,16 +654,16 @@ export const restoreProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to restore a project
-export const restoreProject =
+export const restoreProject: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         dispatch(restoreProjectRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `project/${projectId}/restoreProject`
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(restoreProjectSuccess(data));
             return response;
@@ -712,16 +712,16 @@ export const unblockProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to un-block a project
-export const unblockProject =
+export const unblockProject: $TSFixMe =
     (projectId: ObjectID) => async (dispatch: Dispatch) => {
         dispatch(unblockProjectRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `project/${projectId}/unblockProject`
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(unblockProjectSuccess(data));
             return response;
@@ -772,17 +772,17 @@ export const addProjectNoteError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to add Admin Note
-export const addProjectNote =
+export const addProjectNote: $TSFixMe =
     (projectId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addProjectNoteRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `project/${projectId}/addNote`,
                 values
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(addProjectNoteSuccess(data));
             return response;
@@ -831,7 +831,7 @@ export const searchProjectsError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the search projects api
-export const searchProjects =
+export const searchProjects: $TSFixMe =
     (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
@@ -841,12 +841,12 @@ export const searchProjects =
         dispatch(searchProjectsRequest());
 
         try {
-            const response = await BackendAPI.post(
+            const response: $TSFixMe = await BackendAPI.post(
                 `project/projects/search?skip=${skip}&limit=${limit}`,
                 values
             );
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
 
             dispatch(searchProjectsSuccess(data));
             return response;
@@ -888,7 +888,7 @@ export const changePlanFailure: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const changePlan =
+export const changePlan: $TSFixMe =
     (
         projectId: ObjectID,
         planId: $TSFixMe,
@@ -900,7 +900,7 @@ export const changePlan =
         dispatch(changePlanRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `project/${projectId}/admin/changePlan`,
                 {
                     projectName,
@@ -912,7 +912,7 @@ export const changePlan =
 
             dispatch(changePlanSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -955,7 +955,7 @@ export const fetchProjectDomains: Function = (
         dispatch(fetchProjectDomainsRequest());
 
         try {
-            const response = await BackendAPI.get(
+            const response: $TSFixMe = await BackendAPI.get(
                 `domainVerificationToken/${projectId}/domains?skip=${skip}&limit=${limit}`
             );
 
@@ -963,7 +963,7 @@ export const fetchProjectDomains: Function = (
 
             return response.data;
         } catch (error) {
-            const errorMessage =
+            const errorMessage: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1011,7 +1011,7 @@ export const deleteProjectDomain: Function = ({
     return async function (dispatch: Dispatch): void {
         dispatch(deleteProjectDomainRequest());
 
-        const promise =
+        const promise: $TSFixMe =
             delete `domainVerificationToken/${projectId}/domain/${domainId}`;
         promise.then(
             (response): void => {
@@ -1020,7 +1020,7 @@ export const deleteProjectDomain: Function = ({
                 return response.data;
             },
             (error): void => {
-                const errorMessage =
+                const errorMessage: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -1071,7 +1071,7 @@ export const verifyProjectDomain: Function = ({
         dispatch(verifyProjectDomainRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `domainVerificationToken/${projectId}/forceVerify/${domainId}`
             );
 
@@ -1079,7 +1079,7 @@ export const verifyProjectDomain: Function = ({
 
             return response.data;
         } catch (error) {
-            const errorMessage =
+            const errorMessage: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -1129,7 +1129,7 @@ export const unVerifyProjectDomain: Function = (
     return async function (dispatch: Dispatch): void {
         dispatch(unVerifyProjectDomainRequest());
 
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `domainVerificationToken/${projectId}/unverify/${domainId}`
         );
         promise.then(
@@ -1137,7 +1137,7 @@ export const unVerifyProjectDomain: Function = (
                 dispatch(unVerifyProjectDomainSuccess(response.data));
             },
             (error): void => {
-                const errorMessage =
+                const errorMessage: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -1187,7 +1187,7 @@ export const resetProjectDomain: Function = (
     return async function (dispatch: Dispatch): void {
         dispatch(resetProjectDomainRequest());
 
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `domainVerificationToken/${projectId}/resetDomain/${domainId}`
         );
         promise.then(
@@ -1195,7 +1195,7 @@ export const resetProjectDomain: Function = (
                 dispatch(resetProjectDomainSuccess(response.data));
             },
             (error): void => {
-                const errorMessage =
+                const errorMessage: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data

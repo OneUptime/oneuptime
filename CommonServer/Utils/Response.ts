@@ -23,8 +23,8 @@ function logResponse(
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     const requestEndedAt: Date = new Date();
-    const method = oneUptimeRequest.method;
-    const url = oneUptimeRequest.url;
+    const method: $TSFixMe = oneUptimeRequest.method;
+    const url: $TSFixMe = oneUptimeRequest.url;
 
     const duration_info: string = `OUTGOING RESPONSE ID: ${
         oneUptimeRequest.id
@@ -64,7 +64,7 @@ export const sendEmptyResponse: Function = (
     return logResponse(req, res, undefined);
 };
 
-export const sendFileResponse = async (
+export const sendFileResponse: $TSFixMe = async (
     req: ExpressRequest | ExpressRequest,
     res: ExpressResponse,
     file: File
@@ -73,11 +73,11 @@ export const sendFileResponse = async (
 
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    const gfs = new GridFSBucket(await Database.getDatabase(), {
+    const gfs: $TSFixMe = new GridFSBucket(await Database.getDatabase(), {
         bucketName: 'uploads',
     });
 
-    const readstream = gfs.openDownloadStreamByName(file.name);
+    const readstream: $TSFixMe = gfs.openDownloadStreamByName(file.name);
 
     /** set the proper content type */
     oneUptimeResponse.set('Content-Type', file.contentType);
@@ -109,7 +109,7 @@ export const sendErrorResponse: Function = (
     return logResponse(req, res, { message });
 };
 
-export const sendListResponse = async (
+export const sendListResponse: $TSFixMe = async (
     req: ExpressRequest,
     res: ExpressResponse,
     list: JSONArray,
@@ -157,7 +157,7 @@ export const sendListResponse = async (
     }
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {
-        const csv = await JsonToCsv.ToCsv(listData.data);
+        const csv: $TSFixMe = await JsonToCsv.ToCsv(listData.data);
         oneUptimeResponse.status(200).send(csv);
     } else {
         oneUptimeResponse.status(200).send(listData);
@@ -167,7 +167,7 @@ export const sendListResponse = async (
     }
 };
 
-export const sendItemResponse = async (
+export const sendItemResponse: $TSFixMe = async (
     req: ExpressRequest,
     res: ExpressResponse,
     item: JSONObject
@@ -179,7 +179,7 @@ export const sendItemResponse = async (
     oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {
-        const csv = JsonToCsv.ToCsv([item]);
+        const csv: $TSFixMe = JsonToCsv.ToCsv([item]);
         oneUptimeResponse.status(200).send(csv);
         logResponse(req, res);
         return;

@@ -39,8 +39,8 @@ export class ExternalStatusPages extends Component<ExternalStatusPagesProps>{
 
     override render() {
 
-        const { statusPage, openModal } = this.props;
-        const { externalStatusPageModalId } = this.state;
+        const { statusPage, openModal }: $TSFixMe = this.props;
+        const { externalStatusPageModalId }: $TSFixMe = this.state;
         return (
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"

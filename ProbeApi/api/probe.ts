@@ -5,7 +5,7 @@ import express, {
     ProbeRequest,
 } from 'CommonServer/utils/Express';
 import MonitorService from '../Services/monitorService';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import ProbeAuthorization from 'CommonServer/middleware/ProbeAuthorization';
 import { sendErrorResponse } from 'CommonServer/utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -18,12 +18,12 @@ router.get(
     ProbeAuthorization.isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const oneUptimeRequest = req as OneUptimeRequest;
+            const oneUptimeRequest: $TSFixMe = req as OneUptimeRequest;
             const limit: PositiveNumber = new PositiveNumber(
                 parseInt((req.query['limit'] as string) || '10')
             );
 
-            const monitors = await MonitorService.getProbeMonitors(
+            const monitors: $TSFixMe = await MonitorService.getProbeMonitors(
                 (oneUptimeRequest.probe as ProbeRequest).id,
                 limit
             );

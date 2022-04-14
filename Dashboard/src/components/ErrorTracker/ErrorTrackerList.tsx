@@ -22,16 +22,16 @@ interface ErrorTrackerListProps {
 }
 
 export const ErrorTrackerList: Function = (props: ErrorTrackerListProps) => {
-    const errorTrackers = props.errorTrackers || [];
+    const errorTrackers: $TSFixMe = props.errorTrackers || [];
     let errorTrackerDetails = null;
-    const skip = props.skip;
-    const limit = props.limit;
-    const count = props.count;
-    const page = props.page;
-    const canNext =
+    const skip: $TSFixMe = props.skip;
+    const limit: $TSFixMe = props.limit;
+    const count: $TSFixMe = props.count;
+    const page: $TSFixMe = props.page;
+    const canNext: $TSFixMe =
         errorTrackers && count && count > skip + limit ? true : false;
-    const canPrev = errorTrackers && skip <= 0 ? false : true;
-    const numberOfPages = props.numberOfPage
+    const canPrev: $TSFixMe = errorTrackers && skip <= 0 ? false : true;
+    const numberOfPages: $TSFixMe = props.numberOfPage
         ? props.numberOfPage
         : Math.ceil(parseInt(count) / limit);
 

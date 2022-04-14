@@ -28,7 +28,7 @@ class RemoveTeamUserModal extends Component<ComponentProps> {
 
     handleKeyBoard = (e: $TSFixMe) => {
 
-        const { data, resetTeamDelete } = this.props;
+        const { data, resetTeamDelete }: $TSFixMe = this.props;
         switch (e.key) {
             case 'Escape':
                 resetTeamDelete();
@@ -151,7 +151,7 @@ class RemoveTeamUserModal extends Component<ComponentProps> {
 RemoveTeamUserModal.displayName = 'RemoveTeamUserModal';
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const userId =
+    const userId: $TSFixMe =
         props.data && props.data.values && props.data.values.userId
             ? props.data.values.userId
             : null;

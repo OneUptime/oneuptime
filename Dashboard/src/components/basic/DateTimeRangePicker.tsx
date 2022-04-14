@@ -8,7 +8,7 @@ import ShouldRender from './ShouldRender';
 import { Field, reduxForm } from 'redux-form';
 import DateTimeWrapper from './DateTimeWrapper';
 
-const moment = extendMoment(originalMoment);
+const moment: $TSFixMe = extendMoment(originalMoment);
 
 interface DateTimeRangePickerProps {
     currentDateRange?: object;
@@ -25,8 +25,8 @@ function DateTimeRangePicker({
     formId,
     style
 }: DateTimeRangePickerProps) {
-    const currentDate = moment();
-    const [key, setkey] = useState(0);
+    const currentDate: $TSFixMe = moment();
+    const [key, setkey]: $TSFixMe = useState(0);
     useEffect(() => {
         setkey(key + 1);
     }, [
@@ -103,13 +103,13 @@ DateTimeRangePicker.propTypes = {
 };
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const { currentDateRange } = ownProps;
+    const { currentDateRange }: $TSFixMe = ownProps;
     return {
         initialValues: currentDateRange,
         form: ownProps.formId ? ownProps.formId : 'dateTimeRangePickerForm',
     };
 }
-const DateTimeRangePickerForm = reduxForm({
+const DateTimeRangePickerForm: $TSFixMe = reduxForm({
     enableReinitialize: true,
     destroyOnUnmount: true,
 })(DateTimeRangePicker);

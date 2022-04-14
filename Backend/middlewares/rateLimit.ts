@@ -1,22 +1,22 @@
 import rateLimit from 'express-rate-limit';
 
 import redisStore from 'rate-limit-redis';
-const { RATE_LIMITTER_TIME_PERIOD_IN_MS, RATE_LIMITTER_REQUEST_LIMIT } =
+const { RATE_LIMITTER_TIME_PERIOD_IN_MS, RATE_LIMITTER_REQUEST_LIMIT }: $TSFixMe =
     process.env;
 
-const limiter = rateLimit({
+const limiter: $TSFixMe = rateLimit({
     store: new redisStore({
         redisURL: `//${process.env['REDIS_HOST']}`,
         expiry: Number(RATE_LIMITTER_TIME_PERIOD_IN_MS) / 1000, // convert to seconds, same as windowMs
     }),
     max: Number(RATE_LIMITTER_REQUEST_LIMIT),
     keyGenerator: function (req: $TSFixMe): void {
-        const accessToken = req.headers.authorization || req.query.accessToken;
+        const accessToken: $TSFixMe = req.headers.authorization || req.query.accessToken;
         if (accessToken) {
             return accessToken;
         }
 
-        const apiKey =
+        const apiKey: $TSFixMe =
             req.query.apiKey || req.headers.apikey || req.body.apiKey;
         if (apiKey) {
             return apiKey;

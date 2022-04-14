@@ -1,4 +1,4 @@
-const incidentCollection = global.db.collection('incidents');
+const incidentCollection: $TSFixMe = global.db.collection('incidents');
 import { ObjectId } from 'mongodb';
 import Query from 'CommonServer/types/db/Query';
 import { post } from '../Utils/api';
@@ -14,7 +14,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const incidents = await incidentCollection
+        const incidents: $TSFixMe = await incidentCollection
             .find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -37,7 +37,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const incident = await incidentCollection.findOne(query);
+        const incident: $TSFixMe = await incidentCollection.findOne(query);
         return incident;
     },
 
@@ -50,11 +50,11 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const oldIncident = await this.findOneBy({
+        const oldIncident: $TSFixMe = await this.findOneBy({
             query: { _id: ObjectId(query._id), deleted: { $ne: null } },
         });
 
-        const notClosedBy = oldIncident && oldIncident.notClosedBy;
+        const notClosedBy: $TSFixMe = oldIncident && oldIncident.notClosedBy;
         if (data.notClosedBy) {
             data.notClosedBy = notClosedBy.concat(data.notClosedBy);
         }
@@ -281,12 +281,12 @@ export default {
             updatedIncident.monitorId &&
             Array.isArray(updatedIncident.monitorId)
         ) {
-            const monitor = updatedIncident.monitorId[0];
+            const monitor: $TSFixMe = updatedIncident.monitorId[0];
 
             // if there's monitor, then projectId and componentId should be available
             if (monitor) {
-                const projectId = updatedIncident.monitorProjectId[0];
-                const componentId = updatedIncident.componentId[0];
+                const projectId: $TSFixMe = updatedIncident.monitorProjectId[0];
+                const componentId: $TSFixMe = updatedIncident.componentId[0];
 
                 updatedIncident.monitors = [
                     {
@@ -300,14 +300,14 @@ export default {
             }
         }
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: {
                 _id: ObjectId(
                     updatedIncident.projectId._id || updatedIncident.projectId
                 ),
             },
         });
-        const projectId = project
+        const projectId: $TSFixMe = project
             ? project.parentProjectId
                 ? project.parentProjectId._id || project.parentProjectId
                 : project._id

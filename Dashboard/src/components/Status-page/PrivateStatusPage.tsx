@@ -44,11 +44,11 @@ export class PrivateStatusPage extends Component<PrivateStatusPageProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const { status } = this.props.statusPage;
-        const { projectId } = status;
+        const { status }: $TSFixMe = this.props.statusPage;
+        const { projectId }: $TSFixMe = status;
 
         if (values.ipWhitelist && values.ipWhitelist.length > 0) {
-            const ipWhitelist = values.ipWhitelist.filter(
+            const ipWhitelist: $TSFixMe = values.ipWhitelist.filter(
                 (ip: $TSFixMe) => typeof ip === 'string'
             );
             values.ipWhitelist = ipWhitelist;
@@ -95,7 +95,7 @@ export class PrivateStatusPage extends Component<PrivateStatusPageProps>{
         fields
     }: $TSFixMe) => {
 
-        const { formValues } = this.props;
+        const { formValues }: $TSFixMe = this.props;
         return <>
             {formValues && formValues.showIpWhitelistInput && (
                 <div
@@ -161,9 +161,9 @@ export class PrivateStatusPage extends Component<PrivateStatusPageProps>{
 
     override render() {
 
-        const { handleSubmit, formValues } = this.props;
+        const { handleSubmit, formValues }: $TSFixMe = this.props;
 
-        const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
+        const { subscriberAdvanceOptionModalId, showMoreOptions }: $TSFixMe = this.state;
         const historyLimit: Function = (value: $TSFixMe) => {
             if (value < 1) {
                 return 1;
@@ -1498,7 +1498,7 @@ export class PrivateStatusPage extends Component<PrivateStatusPageProps>{
 
 PrivateStatusPage.displayName = 'PrivateStatusPage';
 
-const PrivateStatusPageForm = reduxForm({
+const PrivateStatusPageForm: $TSFixMe = reduxForm({
     form: 'PrivateStatusPages', // a unique identifier for this form
     enableReinitialize: true,
 })(PrivateStatusPage);
@@ -1527,7 +1527,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 
 const mapStateToProps: Function = (state: RootState) => {
     const initialValues: $TSFixMe = {};
-    const { currentProject } = state.project;
+    const { currentProject }: $TSFixMe = state.project;
     const {
         statusPage,
         statusPage: { status },

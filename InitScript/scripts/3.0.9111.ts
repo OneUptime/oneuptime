@@ -4,7 +4,7 @@ const incidentSettingsCollection: string = 'incidentsettings';
 
 // run this script once
 async function run(): void {
-    const templates = await find(incidentSettingsCollection, {
+    const templates: $TSFixMe = await find(incidentSettingsCollection, {
         deleted: false,
         name: { $exists: false },
     });

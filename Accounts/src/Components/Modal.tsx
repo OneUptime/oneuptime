@@ -47,11 +47,11 @@ const composableComponent: Function = (ComposedComponent: $TSFixMe) => {
         };
         override render() {
 
-            const { zIndex } = this.props;
+            const { zIndex }: $TSFixMe = this.props;
 
-            const { extraClasses } = this.props.item;
+            const { extraClasses }: $TSFixMe = this.props.item;
 
-            const mainClass:string = `${extraClasses || ''} modal-dialog-view`;
+            const mainClass:string: $TSFixMe = `${extraClasses || ''} modal-dialog-view`;
             const modalContainerStyle: $TSFixMe = {
                 overflowX: 'auto',
                 overflowY: 'scroll',

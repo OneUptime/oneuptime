@@ -125,7 +125,7 @@ export default class Service {
             throw new Error('Pagesize cannot be greater than 10');
         }
 
-        const records = await base(tableName)
+        const records: $TSFixMe = await base(tableName)
             .select({ view, pageSize: limit })
             .firstPage();
 
@@ -158,8 +158,8 @@ export default class Service {
 }
 
 import Airtable from 'airtable';
-const AirtableApiKey = process.env['AIRTABLE_API_KEY'];
-const AirtableBaseId = process.env['AIRTABLE_BASE_ID'];
+const AirtableApiKey: $TSFixMe = process.env['AIRTABLE_API_KEY'];
+const AirtableBaseId: $TSFixMe = process.env['AIRTABLE_BASE_ID'];
 let base: $TSFixMe = null;
 if (AirtableApiKey && AirtableBaseId) {
     base = new Airtable({ apiKey: AirtableApiKey }).base(AirtableBaseId);

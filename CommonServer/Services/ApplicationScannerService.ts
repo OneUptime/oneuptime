@@ -80,7 +80,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async updateStatus(applicationScannerId: ObjectID): void {
-        const data = new Document<typeof Model>();
+        const data: $TSFixMe = new Document<typeof Model>();
         data.set('lastAlive', OneUptimeDate.getCurrentDate());
 
         await this.updateOneBy({ query: { _id: applicationScannerId }, data });

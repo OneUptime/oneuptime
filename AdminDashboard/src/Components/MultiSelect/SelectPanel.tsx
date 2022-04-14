@@ -67,14 +67,14 @@ class SelectPanel extends Component<ComponentProps> {
 
     allAreSelected() {
 
-        const { options, selected } = this.props;
+        const { options, selected }: $TSFixMe = this.props;
         return options.length === selected.length;
     }
 
     filteredOptions() {
-        const { searchText } = this.state;
+        const { searchText }: $TSFixMe = this.state;
 
-        const { options, filterOptions } = this.props;
+        const { options, filterOptions }: $TSFixMe = this.props;
 
         return customFilterOptions
             ? customFilterOptions(options, searchText)
@@ -82,9 +82,9 @@ class SelectPanel extends Component<ComponentProps> {
     }
 
     updateFocus(offset: $TSFixMe) {
-        const { focusIndex } = this.state;
+        const { focusIndex }: $TSFixMe = this.state;
 
-        const { options } = this.props;
+        const { options }: $TSFixMe = this.props;
 
         let tempFocus = focusIndex + offset;
         tempFocus = Math.max(0, tempFocus);
@@ -106,7 +106,7 @@ class SelectPanel extends Component<ComponentProps> {
 
             hasSelectAll,
         } = this.props;
-        const { focusIndex, searchHasFocus } = this.state;
+        const { focusIndex, searchHasFocus }: $TSFixMe = this.state;
 
         const selectAllOption: $TSFixMe = {
             label: selectAllLabel || 'Select All',

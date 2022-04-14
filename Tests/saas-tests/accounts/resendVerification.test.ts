@@ -35,7 +35,7 @@ describe('Resend Verification API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             await init.pageWaitForSelector(page, '#error-msg');
-            const html = await init.page$Eval(
+            const html: $TSFixMe = await init.page$Eval(
                 page,
                 '#error-msg',
                 (e: $TSFixMe) => {

@@ -8,29 +8,29 @@ import CallRoutingService from '../services/callRoutingService';
 import FileService from '../services/fileService';
 
 import { isAuthorized } from '../middlewares/authorization';
-const getUser = require('../middlewares/user').getUser;
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 import {
     sendErrorResponse,
     sendItemResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 
 const callForward = async (req: ExpressRequest, res: ExpressResponse): void => {
     try {
-        const body = req.body;
-        const to = body['To'];
-        const select =
+        const body: $TSFixMe = req.body;
+        const to: $TSFixMe = body['To'];
+        const select: $TSFixMe =
             'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
-        const data = await CallRoutingService.findOneBy({
+        const data: $TSFixMe = await CallRoutingService.findOneBy({
             query: { phoneNumber: to },
             select,
         });
-        const response = await CallRoutingService.getCallResponse(
+        const response: $TSFixMe = await CallRoutingService.getCallResponse(
             data,
             to,
             body,
@@ -43,20 +43,20 @@ const callForward = async (req: ExpressRequest, res: ExpressResponse): void => {
     }
 };
 
-const backupCallForward = async (
+const backupCallForward: $TSFixMe = async (
     req: ExpressRequest,
     res: ExpressResponse
 ): void => {
     try {
-        const body = req.body;
-        const to = body['To'];
-        const select =
+        const body: $TSFixMe = req.body;
+        const to: $TSFixMe = body['To'];
+        const select: $TSFixMe =
             'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
-        const data = await CallRoutingService.findOneBy({
+        const data: $TSFixMe = await CallRoutingService.findOneBy({
             query: { phoneNumber: to },
             select,
         });
-        const response = await CallRoutingService.getCallResponse(
+        const response: $TSFixMe = await CallRoutingService.getCallResponse(
             data,
             to,
             body,
@@ -71,15 +71,15 @@ const backupCallForward = async (
 
 const callStatus = async (req: ExpressRequest, res: ExpressResponse): void => {
     try {
-        const body = req.body;
-        const to = body['To'];
-        const select =
+        const body: $TSFixMe = req.body;
+        const to: $TSFixMe = body['To'];
+        const select: $TSFixMe =
             'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
-        const data = await CallRoutingService.findOneBy({
+        const data: $TSFixMe = await CallRoutingService.findOneBy({
             query: { phoneNumber: to },
             select,
         });
-        const response = await CallRoutingService.chargeRoutedCall(
+        const response: $TSFixMe = await CallRoutingService.chargeRoutedCall(
             data.projectId,
             body
         );
@@ -108,7 +108,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             let { skip, limit } = req.query;
-            const { projectId } = req.params;
+            const { projectId }: $TSFixMe = req.params;
 
             if (typeof skip === 'string') {
                 skip = parseInt(skip);
@@ -118,10 +118,10 @@ router.get(
                 limit = parseInt(limit);
             }
 
-            const populate = [{ path: 'projectId', select: 'name slug _id' }];
-            const select =
+            const populate: $TSFixMe = [{ path: 'projectId', select: 'name slug _id' }];
+            const select: $TSFixMe =
                 'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
-            const [numbers, count] = await Promise.all([
+            const [numbers, count]: $TSFixMe = await Promise.all([
                 CallRoutingService.findBy({
                     query: { projectId },
                     skip,
@@ -145,8 +145,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const logs = await CallRoutingService.getCallRoutingLogs(projectId);
+            const { projectId }: $TSFixMe = req.params;
+            const logs: $TSFixMe = await CallRoutingService.getCallRoutingLogs(projectId);
             return sendItemResponse(req, res, logs);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -160,9 +160,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { countryCode, numberType } = req.query;
-            const { projectId } = req.params;
-            const numbers = await fetchPhoneNumbers(
+            const { countryCode, numberType }: $TSFixMe = req.query;
+            const { projectId }: $TSFixMe = req.params;
+            const numbers: $TSFixMe = await fetchPhoneNumbers(
                 projectId,
                 countryCode,
                 numberType
@@ -192,9 +192,9 @@ router.post(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const data = req.body;
-            const { projectId } = req.params;
-            const CallRouting = await CallRoutingService.reserveNumber(
+            const data: $TSFixMe = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const CallRouting: $TSFixMe = await CallRoutingService.reserveNumber(
                 data,
                 projectId
             );
@@ -211,10 +211,10 @@ router.put(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const { callRoutingId } = req.params;
-            const data = req.body;
+            const { callRoutingId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
             data.callRoutingId = callRoutingId;
-            const CallRouting = await CallRoutingService.updateRoutingSchema(
+            const CallRouting: $TSFixMe = await CallRoutingService.updateRoutingSchema(
                 data
             );
             return sendItemResponse(req, res, CallRouting);
@@ -230,8 +230,8 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { audioFieldName, callRoutingId } = req.params;
-            const upload = multer({
+            const { audioFieldName, callRoutingId }: $TSFixMe = req.params;
+            const upload: $TSFixMe = multer({
                 storage,
             }).fields([
                 {
@@ -257,7 +257,7 @@ router.put(
 
                     data.fileName = req.files[audioFieldName][0].originalname;
                 }
-                const CallRouting =
+                const CallRouting: $TSFixMe =
                     await CallRoutingService.updateRoutingSchemaAudio(data);
                 return sendItemResponse(req, res, CallRouting);
             });
@@ -273,9 +273,9 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, callRoutingId } = req.params;
+            const { projectId, callRoutingId }: $TSFixMe = req.params;
 
-            const userId = req.user.id;
+            const userId: $TSFixMe = req.user.id;
             if (!callRoutingId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -302,7 +302,7 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { callRoutingId, backup } = req.body;
+            const { callRoutingId, backup }: $TSFixMe = req.body;
             if (!callRoutingId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -324,7 +324,7 @@ router.delete(
                 routingSchema.introAudio = null;
                 routingSchema.introAudioName = '';
             }
-            const [data] = await Promise.all([
+            const [data]: $TSFixMe = await Promise.all([
                 CallRoutingService.updateOneBy(
                     { _id: callRoutingId },
                     { routingSchema }

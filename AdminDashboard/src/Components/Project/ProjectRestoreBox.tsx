@@ -17,13 +17,13 @@ export class ProjectRestoreBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { restoreProject, project } = this.props;
+        const { restoreProject, project }: $TSFixMe = this.props;
         return restoreProject(project._id);
     };
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -73,7 +73,7 @@ ProjectRestoreBox.displayName = 'ProjectRestoreBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ restoreProject, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const project = state.project.project.project;
+    const project: $TSFixMe = state.project.project.project;
     return {
         project,
         isRequesting:

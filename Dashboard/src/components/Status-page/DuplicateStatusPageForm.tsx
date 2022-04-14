@@ -52,9 +52,9 @@ export class StatusPageForm extends React.Component<StatusPageFormProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { data, currentProject } = this.props;
-        const subProjectId = values.statuspageId || null;
-        const name = values.name;
+        const { data, currentProject }: $TSFixMe = this.props;
+        const subProjectId: $TSFixMe = values.statuspageId || null;
+        const name: $TSFixMe = values.name;
         this.props
 
             .createDuplicateStatusPage(
@@ -106,7 +106,7 @@ export class StatusPageForm extends React.Component<StatusPageFormProps> {
 
     override render() {
 
-        const { handleSubmit, subProjects } = this.props;
+        const { handleSubmit, subProjects }: $TSFixMe = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
                 <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -278,7 +278,7 @@ export class StatusPageForm extends React.Component<StatusPageFormProps> {
 
 StatusPageForm.displayName = 'StatusPageForm';
 
-const DuplicateStatusPageForm = reduxForm({
+const DuplicateStatusPageForm: $TSFixMe = reduxForm({
     form: 'StatusPageModalForm',
     validate,
 })(StatusPageForm);

@@ -3,14 +3,14 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const integrationQuery = IntegrationModel.find(query)
+        const integrationQuery: $TSFixMe = IntegrationModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
         integrationQuery.select(select);
         integrationQuery.populate(populate);
-        const result = await integrationQuery;
+        const result: $TSFixMe = await integrationQuery;
 
         return result;
     }
@@ -23,7 +23,7 @@ export default class Service {
         integrationType: $TSFixMe,
         notificationOptions: $TSFixMe
     ): void {
-        const integrationModel = new IntegrationModel(data);
+        const integrationModel: $TSFixMe = new IntegrationModel(data);
 
         integrationModel.projectId = projectId;
 
@@ -46,9 +46,9 @@ export default class Service {
         }
 
         let integration = await integrationModel.save();
-        const select =
+        const select: $TSFixMe =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             { path: 'projectId', select: 'name' },
             {
@@ -71,7 +71,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const count = await IntegrationModel.countDocuments(query);
+        const count: $TSFixMe = await IntegrationModel.countDocuments(query);
         return count;
     }
 
@@ -82,7 +82,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const integration = await IntegrationModel.findOneAndUpdate(query, {
+        const integration: $TSFixMe = await IntegrationModel.findOneAndUpdate(query, {
             $set: {
                 deleted: true,
                 deletedById: userId,
@@ -100,12 +100,12 @@ export default class Service {
         if (query.deleted) {
             query['deleted'] = false;
         }
-        const integrationQuery = IntegrationModel.findOne(query)
+        const integrationQuery: $TSFixMe = IntegrationModel.findOne(query)
             .lean()
             .sort(sort);
         integrationQuery.select(select);
         integrationQuery.populate(populate);
-        const result = await integrationQuery;
+        const result: $TSFixMe = await integrationQuery;
 
         return result;
     }
@@ -116,7 +116,7 @@ export default class Service {
         }
 
         if (!data._id) {
-            const integration = await this.create(
+            const integration: $TSFixMe = await this.create(
                 data.projectId,
                 data.userId,
                 data,
@@ -147,9 +147,9 @@ export default class Service {
                 },
                 { new: true }
             );
-            const select =
+            const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-            const populate = [
+            const populate: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 { path: 'projectId', select: 'name' },
                 {
@@ -178,9 +178,9 @@ export default class Service {
         let updatedData = await IntegrationModel.updateMany(query, {
             $set: data,
         });
-        const select =
+        const select: $TSFixMe =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             { path: 'projectId', select: 'name' },
             {
@@ -200,7 +200,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const integrations = await IntegrationModel.updateMany(query, {
+        const integrations: $TSFixMe = await IntegrationModel.updateMany(query, {
             $set: {
                 deleted: true,
                 deletedAt: Date.now(),
@@ -212,9 +212,9 @@ export default class Service {
 
     async restoreBy(query: Query): void {
         query.deleted = true;
-        const select =
+        const select: $TSFixMe =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             { path: 'projectId', select: 'name' },
             {
@@ -223,11 +223,11 @@ export default class Service {
                 populate: [{ path: 'componentId', select: 'name' }],
             },
         ];
-        const integration = await this.findBy({ query, select, populate });
+        const integration: $TSFixMe = await this.findBy({ query, select, populate });
         if (integration && integration.length > 1) {
-            const integrations = await Promise.all(
+            const integrations: $TSFixMe = await Promise.all(
                 integration.map(async (integration: $TSFixMe) => {
-                    const integrationId = integration._id;
+                    const integrationId: $TSFixMe = integration._id;
                     integration = await this.updateOneBy(
                         {
                             _id: integrationId,

@@ -56,8 +56,8 @@ export class Branding extends Component<BrandingProps>{
     changelogo = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
 
@@ -73,8 +73,8 @@ export class Branding extends Component<BrandingProps>{
     changefavicon = (e: $TSFixMe) => {
         e.preventDefault();
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
 
@@ -89,13 +89,13 @@ export class Branding extends Component<BrandingProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const { _id } = this.props.statusPage.status;
+        const { _id }: $TSFixMe = this.props.statusPage.status;
 
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         if (_id) values._id = _id;
 
-        const { reset, resetLogoCache, resetFaviconCache } = this.props;
+        const { reset, resetLogoCache, resetFaviconCache }: $TSFixMe = this.props;
 
         this.props.updateStatusPageName(projectId, values).then(
             (data: $TSFixMe) => {
@@ -115,13 +115,13 @@ export class Branding extends Component<BrandingProps>{
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         let faviconImage = <span />;
 
         let logoImage = <span />;
 
-        const logoUrl = this.props.logourl
+        const logoUrl: $TSFixMe = this.props.logourl
 
             ? this.props.logourl
 
@@ -132,7 +132,7 @@ export class Branding extends Component<BrandingProps>{
                 ? `${API_URL}/file/${this.props.statusPage.status.logoPath}`
                 : '';
 
-        const faviconUrl = this.props.faviconurl
+        const faviconUrl: $TSFixMe = this.props.faviconurl
 
             ? this.props.faviconurl
 
@@ -299,7 +299,7 @@ Branding.propTypes = {
     faviconurl: PropTypes.string,
 };
 
-const BasicForm = reduxForm({
+const BasicForm: $TSFixMe = reduxForm({
     form: 'BasicForm', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for

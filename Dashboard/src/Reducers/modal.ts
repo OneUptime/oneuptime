@@ -19,7 +19,7 @@ export default (state = initialState, action: Action): void => {
         // it makes sense to always remove items from the last index
         // LIFO ===> last in first out
         case CLOSE_MODAL: {
-            const modals = [...state.modals];
+            const modals: $TSFixMe = [...state.modals];
             modals.pop();
             return Object.assign({}, state, {
                 modals,

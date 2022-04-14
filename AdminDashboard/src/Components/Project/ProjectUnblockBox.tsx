@@ -17,13 +17,13 @@ export class ProjectUnblockBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { unblockProject, project } = this.props;
+        const { unblockProject, project }: $TSFixMe = this.props;
         return unblockProject(project._id);
     };
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -73,7 +73,7 @@ ProjectUnblockBox.displayName = 'ProjectUnblockBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ unblockProject, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const project = state.project.project.project;
+    const project: $TSFixMe = state.project.project.project;
     return {
         project,
         isRequesting:

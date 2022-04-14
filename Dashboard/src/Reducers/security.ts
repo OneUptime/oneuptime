@@ -94,7 +94,7 @@ export default function security(state = initialState, action: Action): void {
             };
 
         case types.GET_CONTAINER_SECURITY_SUCCESS: {
-            const securities =
+            const securities: $TSFixMe =
                 state.containerSecurities.securities.length > 0
                     ? state.containerSecurities.securities.map(
                           containerSecurity => {
@@ -190,11 +190,11 @@ export default function security(state = initialState, action: Action): void {
 
         case types.DELETE_CONTAINER_SECURITY_SUCCESS: {
             // update the list of container securities
-            const securities = state.containerSecurities.securities.filter(
+            const securities: $TSFixMe = state.containerSecurities.securities.filter(
                 containerSecurity =>
                     String(containerSecurity._id) !== String(action.payload._id)
             );
-            const count =
+            const count: $TSFixMe =
                 state.containerSecurities.count === 0
                     ? 0
                     : state.containerSecurities.count - 1;
@@ -234,7 +234,7 @@ export default function security(state = initialState, action: Action): void {
             };
 
         case types.SCAN_CONTAINER_SECURITY_SUCCESS: {
-            const containerSecurityLogs = [
+            const containerSecurityLogs: $TSFixMe = [
                 ...state.containerSecurityLogs,
                 action.payload,
             ];
@@ -402,7 +402,7 @@ export default function security(state = initialState, action: Action): void {
             };
 
         case types.GET_APPLICATION_SECURITY_SUCCESS: {
-            const securities =
+            const securities: $TSFixMe =
                 state.applicationSecurities.securities.length > 0
                     ? state.applicationSecurities.securities.map(
                           applicationSecurity => {
@@ -498,7 +498,7 @@ export default function security(state = initialState, action: Action): void {
 
         case types.DELETE_APPLICATION_SECURITY_SUCCESS: {
             // update the list of application securities
-            const securities = state.applicationSecurities.securities.filter(
+            const securities: $TSFixMe = state.applicationSecurities.securities.filter(
                 applicationSecurity =>
                     String(applicationSecurity._id) !==
                     String(action.payload._id)
@@ -538,7 +538,7 @@ export default function security(state = initialState, action: Action): void {
             };
 
         case types.SCAN_APPLICATION_SECURITY_SUCCESS: {
-            const applicationSecurityLogs = [
+            const applicationSecurityLogs: $TSFixMe = [
                 ...state.applicationSecurityLogs,
                 action.payload,
             ];

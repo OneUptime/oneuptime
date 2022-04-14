@@ -11,15 +11,15 @@ import {
 } from '../services/twilioService';
 
 import { isAuthorized } from '../middlewares/authorization';
-const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
 import {
     sendErrorResponse,
     sendItemResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import SmsCountService from '../services/smsCountService';
 
 /**
@@ -42,12 +42,12 @@ router.get(
                 To,
                 redialCount,
             } = req.query;
-            const incident = await IncidentService.findOneBy({
+            const incident: $TSFixMe = await IncidentService.findOneBy({
                 query: { _id: incidentId },
                 select: 'acknowledged',
             });
 
-            const newRedialCount = parseInt(redialCount) + 1;
+            const newRedialCount: $TSFixMe = parseInt(redialCount) + 1;
 
             switch (CallStatus) {
                 case 'failed':
@@ -123,14 +123,14 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { to } = req.body;
+            const { to }: $TSFixMe = req.body;
 
-            const userId = req.user ? req.user.id : null;
-            const projectId = req.query.projectId;
-            const validationResult = await SmsCountService.validateResend(
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const projectId: $TSFixMe = req.query.projectId;
+            const validationResult: $TSFixMe = await SmsCountService.validateResend(
                 userId
             );
-            const sendVerifyToken = await sendVerificationSMS(
+            const sendVerifyToken: $TSFixMe = await sendVerificationSMS(
                 to,
                 userId,
                 projectId,
@@ -155,9 +155,9 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { to, code } = req.body;
+            const { to, code }: $TSFixMe = req.body;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
             if (!to) {
                 sendErrorResponse(req, res, {
                     statusCode: 400,
@@ -170,8 +170,8 @@ router.post(
                     message: 'code field must be present.',
                 });
             }
-            const tempAlertPhoneNumber = to.startsWith('+') ? to : `+${to}`;
-            const user = await UserService.findOneBy({
+            const tempAlertPhoneNumber: $TSFixMe = to.startsWith('+') ? to : `+${to}`;
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: {
                     _id: userId,
                     tempAlertPhoneNumber,
@@ -210,7 +210,7 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
 
             if (!data.accountSid) {
                 return sendErrorResponse(req, res, {

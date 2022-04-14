@@ -17,8 +17,8 @@ const DropDownMenu: Function = ({
     ready,
     showMainProject
 }: DropDownMenuProps) => {
-    const [open, setOpen] = useState(false);
-    const container = useRef(null);
+    const [open, setOpen]: $TSFixMe = useState(false);
+    const container: $TSFixMe = useRef(null);
 
     const handleClickOutside: Function = (event: $TSFixMe) => {
 

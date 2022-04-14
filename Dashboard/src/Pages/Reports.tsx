@@ -56,8 +56,8 @@ const styles: $TSFixMe = {
     },
 };
 
-const endDate = moment();
-const startDate = moment().subtract(30, 'd');
+const endDate: $TSFixMe = moment();
+const startDate: $TSFixMe = moment().subtract(30, 'd');
 
 interface ReportsProps {
     location?: {
@@ -98,12 +98,12 @@ export class Reports extends Component<ReportsProps>{
     }
 
     handleMemberStartDateTimeChange = (val: $TSFixMe) => {
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
 
         this.handleMembersChange(startDate, this.state.membersEnd);
     };
     handleMemberEndDateTimeChange = (val: $TSFixMe) => {
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
 
         this.handleMembersChange(this.state.membersStart, endDate);
     };
@@ -115,12 +115,12 @@ export class Reports extends Component<ReportsProps>{
     }
 
     handleMonitorStartDateTimeChange = (val: $TSFixMe) => {
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
 
         this.handleMonitorChange(startDate, this.state.monitorEnd);
     };
     handleMonitorEndDateTimeChange = (val: $TSFixMe) => {
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
 
         this.handleMonitorChange(this.state.monitorStart, endDate);
     };
@@ -144,12 +144,12 @@ export class Reports extends Component<ReportsProps>{
     }
 
     handleStartDateTimeChange = (val: $TSFixMe) => {
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
 
         this.handleResolveTimeChange(startDate, this.state.resolveTimeEnd);
     };
     handleEndDateTimeChange = (val: $TSFixMe) => {
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
 
         this.handleResolveTimeChange(this.state.resolveTimeStart, endDate);
     };
@@ -160,12 +160,12 @@ export class Reports extends Component<ReportsProps>{
         });
     }
     handleIncidentStartDateTimeChange = (val: $TSFixMe) => {
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
 
         this.handleIncidentChange(startDate, this.state.incidentEnd);
     };
     handleIncidentEndDateTimeChange = (val: $TSFixMe) => {
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
 
         this.handleIncidentChange(this.state.incidentStart, endDate);
     };
@@ -186,8 +186,8 @@ export class Reports extends Component<ReportsProps>{
 
             switchToProjectViewerNav,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem

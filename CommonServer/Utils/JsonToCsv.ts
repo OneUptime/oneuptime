@@ -9,9 +9,9 @@ export default {
                 'Cannot convert to CSV when the object length is 0'
             );
         }
-        const fields = Object.keys(json[0] || {});
+        const fields: $TSFixMe = Object.keys(json[0] || {});
         const opts: $TSFixMe = { fields };
-        const parser = new Json2Csv.Parser(opts);
+        const parser: $TSFixMe = new Json2Csv.Parser(opts);
         return parser.parse(json);
     },
 };

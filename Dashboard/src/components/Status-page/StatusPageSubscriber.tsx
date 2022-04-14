@@ -52,7 +52,7 @@ class StatusPageSubscriber extends Component<ComponentProps> {
             subscribers,
         } = this.props;
 
-        const result = await this.props.deleteSubscriber(_projectId, _id);
+        const result: $TSFixMe = await this.props.deleteSubscriber(_projectId, _id);
         if (result.status === 200) {
             setLoading(false);
             await fetchStatusPageSubscribers(
@@ -142,7 +142,7 @@ class StatusPageSubscriber extends Component<ComponentProps> {
         } = this.props;
 
 
-        const { createSubscriberModalId, limit } = this.state;
+        const { createSubscriberModalId, limit }: $TSFixMe = this.state;
 
         if (
             subscribers &&
@@ -177,7 +177,7 @@ class StatusPageSubscriber extends Component<ComponentProps> {
             canPrev = false;
         }
 
-        const modal =
+        const modal: $TSFixMe =
             monitors && monitors.length > 0
                 ? CreateSubscriber
                 : NoMonitorSubscriber;
@@ -699,7 +699,7 @@ interface RemoveBtnProps {
 }
 
 const RemoveBtn: Function = (props: RemoveBtnProps) => {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading]: $TSFixMe = useState(false);
     return (
         <>
             <button

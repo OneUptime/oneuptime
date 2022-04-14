@@ -86,12 +86,12 @@ export const deleteProbeError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to delete a probe
-export const deleteProbe =
+export const deleteProbe: $TSFixMe =
     (probeId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(deleteProbeRequest());
 
         try {
-            const response = await delete `probe/${probeId}`;
+            const response: $TSFixMe = await delete `probe/${probeId}`;
             dispatch(deleteProbeSuccess(probeId));
             return response;
         } catch (error) {
@@ -145,17 +145,17 @@ export const resetAddProbe: Function = (): void => {
 };
 
 // Calls the API to add a probe
-export const addProbe =
+export const addProbe: $TSFixMe =
     (probeKey: $TSFixMe, probeName: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addProbeRequest());
 
         try {
-            const response = await BackendAPI.post(new Route('probe/'), {
+            const response: $TSFixMe = await BackendAPI.post(new Route('probe/'), {
                 probeKey,
                 probeName,
             });
 
-            const data = response.data;
+            const data: $TSFixMe = response.data;
             dispatch(addProbeSuccess(data));
             return 'ok';
         } catch (error) {
@@ -204,19 +204,19 @@ export const updateProbeError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to update a probe
-export const updateProbe =
+export const updateProbe: $TSFixMe =
     (values: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         dispatch(updateProbeRequest());
 
         try {
-            const data = new FormData();
+            const data: $TSFixMe = new FormData();
             data.append('probeImage', values.probeImage);
             data.append('id', values.id);
 
-            const response = await BackendAPI.put('probe/update/image', data);
+            const response: $TSFixMe = await BackendAPI.put('probe/update/image', data);
 
-            const resp = response.data;
+            const resp: $TSFixMe = response.data;
             if (Object.keys(resp).length > 0) {
                 dispatch(updateProbeSuccess(resp));
                 return 'ok';

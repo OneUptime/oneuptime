@@ -34,7 +34,7 @@ export const resetChangePassword: Function = (): void => {
 // Calls the API to register a user.
 export const changePassword: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             new Route('user/reset-password'),
             values
         );

@@ -15,10 +15,10 @@ import ComponentService from '../services/componentService';
 import ErrorService from 'CommonServer/Utils/error';
 import Api from '../Utils/api';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-const router = express.getRouter();
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const getUser = require('../middlewares/user').getUser;
-const getSubProjects = require('../middlewares/subProject').getSubProjects;
+const router: $TSFixMe = express.getRouter();
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -31,7 +31,7 @@ import { sendListResponse } from 'CommonServer/Utils/response';
 import multer from 'multer';
 import storage from '../middlewares/upload';
 import https from 'https';
-const httpsAgent = new https.Agent({
+const httpsAgent: $TSFixMe = new https.Agent({
     rejectUnauthorized: false,
 });
 
@@ -47,8 +47,8 @@ router.post(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const data = req.body;
-            const projectId = req.params.projectId;
+            const data: $TSFixMe = req.body;
+            const projectId: $TSFixMe = req.params.projectId;
 
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -152,12 +152,12 @@ router.post(
 
                 if (data.type === 'api') {
                     try {
-                        const headers = await Api.headers(
+                        const headers: $TSFixMe = await Api.headers(
                             data.headers,
                             data.bodyType
                         );
 
-                        const body = await Api.body(
+                        const body: $TSFixMe = await Api.body(
                             data.text && data.text.length
                                 ? data.text
                                 : data.formData,
@@ -174,8 +174,8 @@ router.post(
                         if (body && Object.keys(body).length) {
                             payload.data = body;
                         }
-                        const apiResponse = await axios(payload);
-                        const headerContentType =
+                        const apiResponse: $TSFixMe = await axios(payload);
+                        const headerContentType: $TSFixMe =
                             apiResponse.headers['content-type'];
                         if (/text\/html/.test(headerContentType)) {
                             return sendErrorResponse(req, res, {
@@ -240,7 +240,7 @@ router.post(
             }
             data.projectId = projectId;
 
-            const [monitor, user] = await Promise.all([
+            const [monitor, user]: $TSFixMe = await Promise.all([
                 MonitorService.create(data),
                 UserService.findOneBy({
                     query: { _id: req.user.id },
@@ -285,7 +285,7 @@ router.post(
     '/:projectId/identityFile',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const upload = multer({
+            const upload: $TSFixMe = multer({
                 storage,
             }).fields([
                 {
@@ -317,7 +317,7 @@ router.post(
     '/:projectId/configurationFile',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const upload = multer({
+            const upload: $TSFixMe = multer({
                 storage,
             }).fields([
                 {
@@ -352,8 +352,8 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const { monitorId } = req.params;
+            const data: $TSFixMe = req.body;
+            const { monitorId }: $TSFixMe = req.params;
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -362,11 +362,11 @@ router.put(
             }
             if (data.type && data.type === 'api') {
                 try {
-                    const headers = await Api.headers(
+                    const headers: $TSFixMe = await Api.headers(
                         data.headers,
                         data.bodyType
                     );
-                    const body = await Api.body(
+                    const body: $TSFixMe = await Api.body(
                         data.text && data.text.length
                             ? data.text
                             : data.formData,
@@ -383,8 +383,8 @@ router.put(
                     if (body && Object.keys(body).length) {
                         payload.data = body;
                     }
-                    const apiResponse = await axios(payload);
-                    const headerContentType =
+                    const apiResponse: $TSFixMe = await axios(payload);
+                    const headerContentType: $TSFixMe =
                         apiResponse.headers['content-type'];
                     if (/text\/html/.test(headerContentType)) {
                         return sendErrorResponse(req, res, {
@@ -419,7 +419,7 @@ router.put(
                 unsetData = { resourceCategory: '' };
             }
 
-            const monitor = await MonitorService.updateOneBy(
+            const monitor: $TSFixMe = await MonitorService.updateOneBy(
                 { _id: monitorId },
                 data,
                 unsetData
@@ -448,13 +448,13 @@ router.get(
     getSubProjects,
     async (req, res): void => {
         try {
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
-            const { limit, skip } = req.query;
+            const { limit, skip }: $TSFixMe = req.query;
             // Call the MonitorService.
-            const monitors = await MonitorService.getMonitorsBySubprojects(
+            const monitors: $TSFixMe = await MonitorService.getMonitorsBySubprojects(
                 subProjectIds,
                 limit || 0,
                 skip || 0
@@ -472,8 +472,8 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            // const { projectId } = req.params;
-            const { skip, limit, componentSlug } = req.query;
+            // const { projectId }: $TSFixMe = req.params;
+            const { skip, limit, componentSlug }: $TSFixMe = req.query;
             let componentId = req.query.componentId;
 
             let component;
@@ -498,7 +498,7 @@ router.get(
                 });
             }
 
-            const response =
+            const response: $TSFixMe =
                 await MonitorService.getMonitorsBySubprojectsPaginate(
                     component.projectId,
                     componentId,
@@ -519,18 +519,18 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const type = req.query.type;
+            const type: $TSFixMe = req.query.type;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            const query = type
+            const query: $TSFixMe = type
                 ? { projectId: { $in: subProjectIds }, type }
                 : { projectId: { $in: subProjectIds } };
 
-            const select =
+            const select: $TSFixMe =
                 '_id monitorStatus name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitorSla',
                     select: 'frequency _id',
@@ -538,7 +538,7 @@ router.get(
                 { path: 'componentId', select: 'name' },
                 { path: 'incidentCommunicationSla', select: '_id' },
             ];
-            const [monitors, count] = await Promise.all([
+            const [monitors, count]: $TSFixMe = await Promise.all([
                 MonitorService.findBy({
                     query,
                     limit: req.query['limit'] || 10,
@@ -564,19 +564,19 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const monitorId = req.params.monitorId;
-            const type = req.query.type;
+            const monitorId: $TSFixMe = req.params.monitorId;
+            const type: $TSFixMe = req.query.type;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            const query = type
+            const query: $TSFixMe = type
                 ? { _id: monitorId, projectId: { $in: subProjectIds }, type }
                 : { _id: monitorId, projectId: { $in: subProjectIds } };
 
-            const select =
+            const select: $TSFixMe =
                 '_id monitorStatus name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitorSla',
                     select: 'frequency _id',
@@ -584,7 +584,7 @@ router.get(
                 { path: 'componentId', select: 'name' },
                 { path: 'incidentCommunicationSla', select: '_id' },
             ];
-            const monitor = await MonitorService.findOneBy({
+            const monitor: $TSFixMe = await MonitorService.findOneBy({
                 query,
                 select,
                 populate,
@@ -613,12 +613,12 @@ router.post(
                 incidentId,
                 type,
             } = req.body;
-            const monitorId = req.params.monitorId;
+            const monitorId: $TSFixMe = req.params.monitorId;
             const query: $TSFixMe = {};
-            const selectMonitorLog =
+            const selectMonitorLog: $TSFixMe =
                 'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
 
-            const populateMonitorLog = [
+            const populateMonitorLog: $TSFixMe = [
                 {
                     path: 'probeId',
                     select: 'createdAt lastAlive probeKey probeName version probeImage deleted',
@@ -644,7 +644,7 @@ router.post(
                 query.createdAt = { $gte: startDate, $lte: endDate };
             }
 
-            const [monitorLogs, count] = await Promise.all([
+            const [monitorLogs, count]: $TSFixMe = await Promise.all([
                 MonitorLogService.findBy({
                     query,
                     limit: limit || 10,
@@ -667,9 +667,9 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { monitorId, projectId } = req.params;
+        const { monitorId, projectId }: $TSFixMe = req.params;
         try {
-            const monitor = await MonitorService.deleteBy(
+            const monitor: $TSFixMe = await MonitorService.deleteBy(
                 { _id: monitorId, projectId: projectId },
 
                 req.user.id
@@ -699,12 +699,12 @@ router.post(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const monitorId = req.params.monitorId || req.body._id;
-            const data = req.body;
+            const monitorId: $TSFixMe = req.params.monitorId || req.body._id;
+            const data: $TSFixMe = req.body;
             data.monitorId = monitorId;
 
             const select: string = 'type criteria';
-            const monitor = await MonitorService.findOneBy({
+            const monitor: $TSFixMe = await MonitorService.findOneBy({
                 query: { _id: monitorId },
                 select,
             });
@@ -764,7 +764,7 @@ router.post(
                     ...upFailedReasons,
                 ];
             }
-            const index = data.reason.indexOf('Request Timed out');
+            const index: $TSFixMe = data.reason.indexOf('Request Timed out');
             if (index > -1) {
                 data.reason = data.reason.filter(
                     (item: $TSFixMe) => !item.includes('Response Time is')
@@ -774,7 +774,7 @@ router.post(
                 (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
                     self.indexOf(item) === pos
             );
-            const log = await ProbeService.saveMonitorLog(data);
+            const log: $TSFixMe = await ProbeService.saveMonitorLog(data);
 
             return sendItemResponse(req, res, log);
         } catch (error) {
@@ -791,9 +791,9 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { startDate, endDate } = req.body;
-            const monitorId = req.params.monitorId;
-            const monitorLogs = await MonitorService.getMonitorLogs(
+            const { startDate, endDate }: $TSFixMe = req.body;
+            const monitorId: $TSFixMe = req.params.monitorId;
+            const monitorLogs: $TSFixMe = await MonitorService.getMonitorLogs(
                 monitorId,
                 startDate,
                 endDate
@@ -813,9 +813,9 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { startDate, endDate } = req.body;
-            const monitorId = req.params.monitorId;
-            const monitorStatuses = await MonitorService.getMonitorStatuses(
+            const { startDate, endDate }: $TSFixMe = req.body;
+            const monitorId: $TSFixMe = req.params.monitorId;
+            const monitorStatuses: $TSFixMe = await MonitorService.getMonitorStatuses(
                 monitorId,
                 startDate,
                 endDate
@@ -835,10 +835,10 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { skip, limit, url } = req.query;
-            const monitorId = req.params.monitorId;
+            const { skip, limit, url }: $TSFixMe = req.query;
+            const monitorId: $TSFixMe = req.params.monitorId;
 
-            const { lighthouseLogs, count } =
+            const { lighthouseLogs, count }: $TSFixMe =
                 await LighthouseLogService.findLastestScan({
                     monitorId,
                     url,
@@ -859,16 +859,16 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const selectLighthouseLogs =
+            const selectLighthouseLogs: $TSFixMe =
                 'monitorId probeId data url performance accessibility bestPractices seo pwa createdAt scanning';
 
-            const populateLighthouseLogs = [
+            const populateLighthouseLogs: $TSFixMe = [
                 {
                     path: 'probeId',
                     select: 'probeName probeKey version lastAlive deleted probeImage',
                 },
             ];
-            const lighthouseIssue = await LighthouseLogService.findOneBy({
+            const lighthouseIssue: $TSFixMe = await LighthouseLogService.findOneBy({
                 query: { _id: req.params.issueId },
                 select: selectLighthouseLogs,
                 populate: populateLighthouseLogs,
@@ -899,13 +899,13 @@ router.get(
     }
 );
 
-const _updateDeviceMonitorPingTime = async function (
+const _updateDeviceMonitorPingTime: $TSFixMe = async function (
     req: ExpressRequest,
     res: ExpressResponse
 ): void {
     try {
-        const projectId = req.params.projectId;
-        const deviceId = req.params.deviceId;
+        const projectId: $TSFixMe = req.params.projectId;
+        const deviceId: $TSFixMe = req.params.deviceId;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -921,7 +921,7 @@ const _updateDeviceMonitorPingTime = async function (
             });
         }
 
-        const monitor = await MonitorService.updateDeviceMonitorPingTime(
+        const monitor: $TSFixMe = await MonitorService.updateDeviceMonitorPingTime(
             projectId,
             deviceId
         );
@@ -945,7 +945,7 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const seatresponse = await MonitorService.addSeat({
+            const seatresponse: $TSFixMe = await MonitorService.addSeat({
                 _id: req.params.projectId,
             });
             return sendItemResponse(req, res, seatresponse);
@@ -961,8 +961,8 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { siteUrl } = req.body;
-            const monitor = await MonitorService.addSiteUrl(
+            const { siteUrl }: $TSFixMe = req.body;
+            const monitor: $TSFixMe = await MonitorService.addSiteUrl(
                 {
                     _id: req.params.monitorId,
                 },
@@ -981,8 +981,8 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { siteUrl } = req.body;
-            const monitor = await MonitorService.removeSiteUrl(
+            const { siteUrl }: $TSFixMe = req.body;
+            const monitor: $TSFixMe = await MonitorService.removeSiteUrl(
                 {
                     _id: req.params.monitorId,
                 },
@@ -1001,10 +1001,10 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const select =
+            const { projectId }: $TSFixMe = req.params;
+            const select: $TSFixMe =
                 '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
-            const monitors = await MonitorService.findBy({
+            const monitors: $TSFixMe = await MonitorService.findBy({
                 query: { projectId, breachedMonitorSla: true },
                 select,
             });
@@ -1021,10 +1021,10 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, monitorId } = req.params;
+            const { projectId, monitorId }: $TSFixMe = req.params;
 
-            const userId = req.user ? req.user.id : null;
-            const monitor = await MonitorService.closeBreachedMonitorSla(
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const monitor: $TSFixMe = await MonitorService.closeBreachedMonitorSla(
                 projectId,
                 monitorId,
                 userId
@@ -1043,14 +1043,14 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { monitorId } = req.params;
+            const { monitorId }: $TSFixMe = req.params;
             const select: string = 'disabled';
-            const monitor = await MonitorService.findOneBy({
+            const monitor: $TSFixMe = await MonitorService.findOneBy({
                 query: { _id: monitorId },
                 select,
             });
 
-            const disabled = monitor.disabled ? false : true;
+            const disabled: $TSFixMe = monitor.disabled ? false : true;
             await Promise.all([
                 MonitorService.disableMonitor(monitorId, disabled), // This enables or disables the monitor as needed.
 
@@ -1061,7 +1061,7 @@ router.post(
                 }),
             ]);
             // This fetch the values of the updated monitor needed to update UI state.
-            const updatedMonitor = await MonitorService.findOneBy({
+            const updatedMonitor: $TSFixMe = await MonitorService.findOneBy({
                 query: { _id: monitorId },
                 select: '_id disabled',
             });
@@ -1078,9 +1078,9 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, monitorId } = req.params;
-            const { newComponentId } = req.body;
-            const monitor = await MonitorService.changeMonitorComponent(
+            const { projectId, monitorId }: $TSFixMe = req.params;
+            const { newComponentId }: $TSFixMe = req.body;
+            const monitor: $TSFixMe = await MonitorService.changeMonitorComponent(
                 projectId,
                 monitorId,
                 newComponentId
@@ -1097,11 +1097,11 @@ router.post(
     '/:monitorId/calculate-time',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { monitorId } = req.params;
-            const { statuses, start, range } = req.body;
+            const { monitorId }: $TSFixMe = req.params;
+            const { statuses, start, range }: $TSFixMe = req.body;
 
             const select: string = '_id';
-            const [monitor, result] = await Promise.all([
+            const [monitor, result]: $TSFixMe = await Promise.all([
                 MonitorService.findOneBy({ query: { _id: monitorId }, select }),
                 MonitorService.calcTime(statuses, start, range),
             ]);

@@ -8,7 +8,7 @@ import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 
 import { createUser } from './utils/userSignUp';
@@ -32,7 +32,7 @@ describe('Audit Logs API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -136,7 +136,7 @@ describe('Audit Logs API', function (): void {
                     password: userData.newUser.password,
                 })
                 .end((err: $TSFixMe, res: $TSFixMe): void => {
-                    const token = res.body.tokens.jwtAccessToken;
+                    const token: $TSFixMe = res.body.tokens.jwtAccessToken;
                     const authorization: string = `Basic ${token}`;
 
                     request
@@ -155,7 +155,7 @@ describe('Audit Logs API', function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization: string = `Basic ${token}`;
 
-        const res = await request
+        const res: $TSFixMe = await request
             .get('/audit-logs/')
             .set('Authorization', authorization)
             .send();
@@ -177,7 +177,7 @@ describe('Audit Logs API', function (): void {
         await request.get('/version');
         await request.get('/version');
 
-        const res = await request
+        const res: $TSFixMe = await request
             .get('/audit-logs/')
             .query({ limit: 2 })
             .set('Authorization', authorization)
@@ -201,9 +201,9 @@ describe('Audit Logs API', function (): void {
         await request.get('/version');
         await request.get('/version');
 
-        const noOfAuditLogsNow = await AuditLogsService.countBy({});
+        const noOfAuditLogsNow: $TSFixMe = await AuditLogsService.countBy({});
 
-        const res = await request
+        const res: $TSFixMe = await request
             .get('/audit-logs/')
             .query({ skip: noOfAuditLogsNow - 2 })
             .set('Authorization', authorization)
@@ -246,7 +246,7 @@ describe('Audit Logs API', function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization: string = `Basic ${token}`;
 
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/audit-logs/search')
             .set('Authorization', authorization)
             .send();
@@ -272,7 +272,7 @@ describe('Audit Logs API', function (): void {
             .send();
 
         const searchString: string = '/vers';
-        const res = await request
+        const res: $TSFixMe = await request
             .post('/audit-logs/search')
             .set('Authorization', authorization)
             .send({
@@ -285,7 +285,7 @@ describe('Audit Logs API', function (): void {
         expect(res.body).to.have.property('count');
 
         // Checking searchResult match provided searchString.
-        const isEverySearchedApiUrlMatch = res.body.data.every(
+        const isEverySearchedApiUrlMatch: $TSFixMe = res.body.data.every(
             (result: $TSFixMe) => {
                 return result.request.apiUrl.includes(searchString);
             }

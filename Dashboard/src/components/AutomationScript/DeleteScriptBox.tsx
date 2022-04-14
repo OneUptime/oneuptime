@@ -18,12 +18,12 @@ interface DeleteScriptBoxProps {
 }
 
 const DeleteScriptBox: Function = (props: DeleteScriptBoxProps) => {
-    const { name, openModal } = props;
-    const deleteModalId = uuidv4();
+    const { name, openModal }: $TSFixMe = props;
+    const deleteModalId: $TSFixMe = uuidv4();
 
-    const deleteScript = async () => {
-        const automatedSlug = props.automatedSlug;
-        const projectId = props.currentProject._id;
+    const deleteScript = async (): $TSFixMe => {
+        const automatedSlug: $TSFixMe = props.automatedSlug;
+        const projectId: $TSFixMe = props.currentProject._id;
         await props.deleteAutomatedScript(projectId, automatedSlug).then(() => {
             history.push(
                 `/dashboard/project/${props.currentProject.slug}/automation-scripts`

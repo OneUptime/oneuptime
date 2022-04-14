@@ -33,7 +33,7 @@ export class FeedbackModal extends Component<FeedbackModalProps>{
     public static propTypes = {};
     submitForm = (values: $TSFixMe) => {
 
-        const { reset, page } = this.props;
+        const { reset, page }: $TSFixMe = this.props;
 
         if (values.feedback) {
             this.props
@@ -55,9 +55,9 @@ export class FeedbackModal extends Component<FeedbackModalProps>{
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
-        const { success, error } = this.props.feedback.feedback;
+        const { success, error }: $TSFixMe = this.props.feedback.feedback;
 
 
         return this.props.feedback.feedbackModalVisble ? (
@@ -166,7 +166,7 @@ export class FeedbackModal extends Component<FeedbackModalProps>{
 
 FeedbackModal.displayName = 'FeedbackModal';
 
-const FeedbackModalForm = reduxForm({
+const FeedbackModalForm: $TSFixMe = reduxForm({
     form: 'FeedbackModal', // a unique identifier for this form
 })(FeedbackModal);
 

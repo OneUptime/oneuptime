@@ -11,11 +11,11 @@ export default {
                 let retry = true;
                 let retryCount = 0;
                 while (retry || retryCount > 2) {
-                    const { res, resp, rawResp } = await pingfetch(
+                    const { res, resp, rawResp }: $TSFixMe = await pingfetch(
                         monitor.data.IPAddress
                     );
 
-                    const response = await ApiService.ping(monitor._id, {
+                    const response: $TSFixMe = await ApiService.ping(monitor._id, {
                         monitor,
                         res,
                         resp,
@@ -36,18 +36,18 @@ export default {
 };
 
 const pingfetch = async (IPAddress: $TSFixMe): void => {
-    const now = new Date().getTime();
+    const now: $TSFixMe = new Date().getTime();
     let resp = null;
     let rawResp = null;
     let res = null;
 
     try {
-        const response = await ping.promise.probe(IPAddress, {
+        const response: $TSFixMe = await ping.promise.probe(IPAddress, {
             timeout: 120,
             extra: ['-i', '2'],
         });
 
-        const isAlive = response ? response.alive : false;
+        const isAlive: $TSFixMe = response ? response.alive : false;
 
         res = new Date().getTime() - now;
 

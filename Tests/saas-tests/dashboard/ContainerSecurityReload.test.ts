@@ -7,14 +7,14 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
-const containerSecurityName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const containerSecurityName: $TSFixMe = utils.generateRandomString();
 
-const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
-const dockerUsername = utils.dockerCredential.dockerUsername;
-const dockerPassword = utils.dockerCredential.dockerPassword;
-const dockerImagePath = utils.dockerCredential.imagePath;
-const dockerImageTag = utils.dockerCredential.imageTags;
+const dockerRegistryUrl: $TSFixMe = utils.dockerCredential.dockerRegistryUrl;
+const dockerUsername: $TSFixMe = utils.dockerCredential.dockerUsername;
+const dockerPassword: $TSFixMe = utils.dockerCredential.dockerPassword;
+const dockerImagePath: $TSFixMe = utils.dockerCredential.imagePath;
+const dockerImageTag: $TSFixMe = utils.dockerCredential.imageTags;
 
 /** This is a test to check:
  * No errors on page reload
@@ -22,7 +22,7 @@ const dockerImageTag = utils.dockerCredential.imageTags;
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -96,7 +96,7 @@ describe('OneUptime Page Reload', () => {
 
             await init.pageClick(page, '#addContainerBtn');
 
-            const containerSecurity = await page.waitForSelector(
+            const containerSecurity: $TSFixMe = await page.waitForSelector(
                 `#containerSecurityTitle_${containerSecurityName}`,
                 { visible: true }
             );
@@ -114,7 +114,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
             });
 
-            const spanElement = await page.waitForSelector(
+            const spanElement: $TSFixMe = await page.waitForSelector(
                 `#containerSecurityTitle_${containerSecurityName}`
             );
             expect(spanElement).toBeDefined();

@@ -53,7 +53,7 @@ export class OnCall extends Component<OnCallProps>{
 
     ready() {
 
-        const { fetchSubProjectSchedules, currentProjectId } = this.props;
+        const { fetchSubProjectSchedules, currentProjectId }: $TSFixMe = this.props;
         fetchSubProjectSchedules(currentProjectId);
     }
 
@@ -85,7 +85,7 @@ export class OnCall extends Component<OnCallProps>{
 
     prevClicked = (subProjectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { fetchProjectSchedule, paginate } = this.props;
+        const { fetchProjectSchedule, paginate }: $TSFixMe = this.props;
 
         fetchProjectSchedule(
             subProjectId,
@@ -99,7 +99,7 @@ export class OnCall extends Component<OnCallProps>{
 
     nextClicked = (subProjectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { fetchProjectSchedule, paginate } = this.props;
+        const { fetchProjectSchedule, paginate }: $TSFixMe = this.props;
 
         fetchProjectSchedule(subProjectId, skip + limit, 10);
         this.setState({
@@ -114,7 +114,7 @@ export class OnCall extends Component<OnCallProps>{
 
     createSchedule = (subProjectId: string) => {
 
-        const { createSchedule, history } = this.props;
+        const { createSchedule, history }: $TSFixMe = this.props;
 
         createSchedule(subProjectId, { name: 'Unnamed' }).then(({
             data
@@ -127,14 +127,14 @@ export class OnCall extends Component<OnCallProps>{
     };
 
     handleKeyBoard = (e: $TSFixMe) => {
-        const schedulesPerPage = 10;
+        const schedulesPerPage: $TSFixMe = 10;
 
-        const { subProjectSchedules, pages } = this.props;
-        const canPaginateForward = subProjectSchedules.data
+        const { subProjectSchedules, pages }: $TSFixMe = this.props;
+        const canPaginateForward: $TSFixMe = subProjectSchedules.data
             ? subProjectSchedules.data.length >=
             (pages.counter + 1) * schedulesPerPage
             : null;
-        const canPaginateBackward = pages.counter > 1;
+        const canPaginateBackward: $TSFixMe = pages.counter > 1;
         switch (e.key) {
             case 'ArrowRight':
 
@@ -172,14 +172,14 @@ export class OnCall extends Component<OnCallProps>{
                 (subProjectSchedule: $TSFixMe) => subProjectSchedule._id === currentProjectId
             );
         let { skip, limit } = projectSchedule || {};
-        const { count } = projectSchedule || {};
+        const { count }: $TSFixMe = projectSchedule || {};
         skip = parseInt(skip);
         limit = parseInt(limit);
-        const schedules = projectSchedule ? projectSchedule.schedules : [];
+        const schedules: $TSFixMe = projectSchedule ? projectSchedule.schedules : [];
         let canPaginateForward =
             projectSchedule && count && count > skip + limit ? true : false;
         let canPaginateBackward = projectSchedule && skip <= 0 ? false : true;
-        const numberOfSchedules = schedules.length;
+        const numberOfSchedules: $TSFixMe = schedules.length;
 
         if (projectSchedule && (isRequesting || !schedules)) {
             canPaginateForward = false;
@@ -243,9 +243,9 @@ export class OnCall extends Component<OnCallProps>{
                 false
             );
 
-        const allSchedules = projectSchedule && [projectSchedule];
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProjectId;
+        const allSchedules: $TSFixMe = projectSchedule && [projectSchedule];
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProjectId;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -307,16 +307,16 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 const mapStateToProps: Function = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
     // sort subprojects names for display in alphabetical order
-    const subProjectNames =
+    const subProjectNames: $TSFixMe =
         subProjects && subProjects.map((subProject: $TSFixMe) => subProject.name);
     subProjectNames && subProjectNames.sort();
     subProjects =
         subProjectNames &&
         subProjectNames.map((name: $TSFixMe) => subProjects.find((subProject: $TSFixMe) => subProject.name === name)
         );
-    const projectId = state.subProject.activeSubProject;
-    const currentProjectId = projectId;
-    const schedules = state.schedule.subProjectSchedules;
+    const projectId: $TSFixMe = state.subProject.activeSubProject;
+    const currentProjectId: $TSFixMe = projectId;
+    const schedules: $TSFixMe = state.schedule.subProjectSchedules;
 
     // find project schedules or assign default value
     let projectSchedule = schedules.find(
@@ -333,10 +333,10 @@ const mapStateToProps: Function = (state: RootState) => {
         };
 
     // find subproject schedules or assign default value
-    const subProjectSchedules =
+    const subProjectSchedules: $TSFixMe =
         subProjects &&
         subProjects.map((subProject: $TSFixMe) => {
-            const schedule = schedules.find(
+            const schedule: $TSFixMe = schedules.find(
                 (schedule: $TSFixMe) => schedule._id === subProject._id
             );
             return schedule
@@ -353,7 +353,7 @@ const mapStateToProps: Function = (state: RootState) => {
     subProjectSchedules && subProjectSchedules.unshift(projectSchedule);
 
     // try to get custom project tutorial by project ID
-    const projectCustomTutorial = state.tutorial[projectId];
+    const projectCustomTutorial: $TSFixMe = state.tutorial[projectId];
 
     // set a default show to true for the tutorials to display
     const tutorialStat: $TSFixMe = {

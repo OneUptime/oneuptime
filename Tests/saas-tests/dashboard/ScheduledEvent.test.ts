@@ -4,13 +4,13 @@ import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
-const scheduleMaintenanceName = utils.generateRandomString();
-const newScheduledMaintenanceName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const scheduleMaintenanceName: $TSFixMe = utils.generateRandomString();
+const newScheduledMaintenanceName: $TSFixMe = utils.generateRandomString();
 
 const user: $TSFixMe = {
     email,
@@ -18,7 +18,7 @@ const user: $TSFixMe = {
 };
 
 describe('Scheduled event', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -121,7 +121,7 @@ describe('Scheduled event', () => {
             );
 
             await init.pageClick(page, '#createScheduledEventButton');
-            const monitorError = await init.pageWaitForSelector(
+            const monitorError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#monitorError',
                 {
@@ -211,7 +211,7 @@ describe('Scheduled event', () => {
                 timeout: init.timeout,
             });
 
-            const scheduledMaintenanceList = await init.page$$(
+            const scheduledMaintenanceList: $TSFixMe = await init.page$$(
                 page,
                 '.scheduled-event-list-item'
             );
@@ -283,7 +283,7 @@ describe('Scheduled event', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const eventName = await page.evaluate(
+            const eventName: $TSFixMe = await page.evaluate(
                 () =>
                     document.querySelector('.scheduled-event-name').textContent
             );
@@ -339,7 +339,7 @@ describe('Scheduled event', () => {
             await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 hidden: true,
             });
-            const scheduledEventList = await init.pageWaitForSelector(
+            const scheduledEventList: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '.scheduled-event-list-item',
                 {

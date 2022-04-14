@@ -4,11 +4,11 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import SmsSmtpService from '../services/smsSmtpService';
 import TwilioService from '../services/twilioService';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
-const getUser = require('../middlewares/user').getUser;
-const isUserOwner = require('../middlewares/project').isUserOwner;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserOwner: $TSFixMe = require('../middlewares/project').isUserOwner;
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -21,7 +21,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.projectId = req.params.projectId;
             if (!data.accountSid) {
                 return sendErrorResponse(req, res, {
@@ -43,9 +43,9 @@ router.post(
                     message: 'Phone Number is required.',
                 });
             }
-            const testResult = await TwilioService.test(data);
+            const testResult: $TSFixMe = await TwilioService.test(data);
             if (testResult && !testResult.errorCode) {
-                const smsSmtp = await SmsSmtpService.create(data);
+                const smsSmtp: $TSFixMe = await SmsSmtpService.create(data);
                 return sendItemResponse(req, res, smsSmtp);
             }
         } catch (error) {
@@ -60,11 +60,11 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const populate = [{ path: 'projectId', select: 'name' }];
-            const select =
+            const projectId: $TSFixMe = req.params.projectId;
+            const populate: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+            const select: $TSFixMe =
                 'projectId accountSid authToken phoneNumber iv enabled createdAt deletedById';
-            const smsSmtp = await SmsSmtpService.findOneBy({
+            const smsSmtp: $TSFixMe = await SmsSmtpService.findOneBy({
                 query: { projectId },
                 select,
                 populate,
@@ -82,11 +82,11 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const data = req.body;
-            const smsSmtpId = req.params.smsSmtpId;
-            const testResult = await TwilioService.test(data);
+            const data: $TSFixMe = req.body;
+            const smsSmtpId: $TSFixMe = req.params.smsSmtpId;
+            const testResult: $TSFixMe = await TwilioService.test(data);
             if (testResult && !testResult.errorCode) {
-                const smsSmtp = await SmsSmtpService.updateOneBy(
+                const smsSmtp: $TSFixMe = await SmsSmtpService.updateOneBy(
                     { _id: smsSmtpId },
                     data
                 );
@@ -104,14 +104,14 @@ router.delete(
     isUserOwner,
     async (req, res): void => {
         try {
-            const smsSmtpId = req.params.smsSmtpId;
+            const smsSmtpId: $TSFixMe = req.params.smsSmtpId;
             const payload: $TSFixMe = {
                 enabled: false,
                 accountSid: '',
                 authToken: '',
                 phoneNumber: '',
             };
-            const smsSmtp = await SmsSmtpService.updateOneBy(
+            const smsSmtp: $TSFixMe = await SmsSmtpService.updateOneBy(
                 { _id: smsSmtpId },
                 payload
             );

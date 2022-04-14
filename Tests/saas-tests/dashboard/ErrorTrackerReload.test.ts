@@ -7,8 +7,8 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
-const errorTrackerName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const errorTrackerName: $TSFixMe = utils.generateRandomString();
 
 /** This is a test to check:
  * No errors on page reload
@@ -16,7 +16,7 @@ const errorTrackerName = utils.generateRandomString();
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);

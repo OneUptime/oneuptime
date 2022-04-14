@@ -23,22 +23,22 @@ interface StatusPageLanguageProps {
 }
 
 export const StatusPageLanguage: Function = (props: StatusPageLanguageProps) => {
-    const [error, setError] = useState('');
-    const [language] = useState([
+    const [error, setError]: $TSFixMe = useState('');
+    const [language]: $TSFixMe = useState([
         'English',
         'German',
         'French',
         'Dutch',
         'Spanish',
     ]);
-    const { formValues } = props;
+    const { formValues }: $TSFixMe = props;
 
     const submitForm: Function = (values: $TSFixMe) => {
-        const { status } = props.statusPage;
-        const { projectId } = status;
-        const { formValues } = props;
-        const languages = formValues.multipleLanguages;
-        const isDuplicate = languages
+        const { status }: $TSFixMe = props.statusPage;
+        const { projectId }: $TSFixMe = status;
+        const { formValues }: $TSFixMe = props;
+        const languages: $TSFixMe = formValues.multipleLanguages;
+        const isDuplicate: $TSFixMe = languages
             ? languages.length === new Set(languages).size
                 ? false
                 : true
@@ -175,7 +175,7 @@ export const StatusPageLanguage: Function = (props: StatusPageLanguageProps) => 
             </div>
         );
     };
-    const { handleSubmit } = props;
+    const { handleSubmit }: $TSFixMe = props;
     return (
         <div className="bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">
@@ -355,7 +355,7 @@ export const StatusPageLanguage: Function = (props: StatusPageLanguageProps) => 
 
 StatusPageLanguage.displayName = 'StatusPageLanguage';
 
-const StatusPageLanguageForm = reduxForm({
+const StatusPageLanguageForm: $TSFixMe = reduxForm({
     form: 'multipleLanguage', // a unique identifier for this form
     enableReinitialize: true,
 })(StatusPageLanguage);
@@ -380,7 +380,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 
 const mapStateToProps: Function = (state: RootState) => {
     const initialValues: $TSFixMe = {};
-    const { currentProject } = state.project;
+    const { currentProject }: $TSFixMe = state.project;
     const {
         statusPage,
         statusPage: { status },

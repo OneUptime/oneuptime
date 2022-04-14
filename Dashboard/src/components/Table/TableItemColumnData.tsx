@@ -16,7 +16,7 @@ export default class TableItemColumnData extends Component<TableItemColumnDataPr
 
     getElement() {
 
-        const { item, column } = this.props;
+        const { item, column }: $TSFixMe = this.props;
         const {
             onColumnItemClick,
             onColumnItemDescriptionClick,
@@ -48,7 +48,7 @@ export default class TableItemColumnData extends Component<TableItemColumnDataPr
 
     override render() {
 
-        const { column } = this.props;
+        const { column }: $TSFixMe = this.props;
 
         const {
             visibleForOwner,

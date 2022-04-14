@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -13,7 +13,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import ContainerSecurityLogService from '../services/containerSecurityLogService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 //Route: GET
 //Description: get a particular container security log
@@ -25,16 +25,16 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { containerSecurityId, componentId } = req.params;
+            const { containerSecurityId, componentId }: $TSFixMe = req.params;
 
-            const selectContainerLog =
+            const selectContainerLog: $TSFixMe =
                 'securityId componentId data deleted deleteAt';
 
-            const populateContainerLog = [
+            const populateContainerLog: $TSFixMe = [
                 { path: 'securityId', select: 'name slug' },
                 { path: 'componentId', select: 'name slug' },
             ];
-            const securityLog = await ContainerSecurityLogService.findOneBy({
+            const securityLog: $TSFixMe = await ContainerSecurityLogService.findOneBy({
                 query: { securityId: containerSecurityId, componentId },
                 select: selectContainerLog,
                 populate: populateContainerLog,
@@ -56,16 +56,16 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { containerSecuritySlug, componentId } = req.params;
+            const { containerSecuritySlug, componentId }: $TSFixMe = req.params;
 
-            const selectContainerLog =
+            const selectContainerLog: $TSFixMe =
                 'securityId componentId data deleted deleteAt';
 
-            const populateContainerLog = [
+            const populateContainerLog: $TSFixMe = [
                 { path: 'securityId', select: 'name slug' },
                 { path: 'componentId', select: 'name slug' },
             ];
-            const securityLog = await ContainerSecurityLogService.findOneBy({
+            const securityLog: $TSFixMe = await ContainerSecurityLogService.findOneBy({
                 query: { slug: containerSecuritySlug, componentId },
                 select: selectContainerLog,
                 populate: populateContainerLog,
@@ -87,15 +87,15 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { componentId } = req.params;
-            const selectContainerLog =
+            const { componentId }: $TSFixMe = req.params;
+            const selectContainerLog: $TSFixMe =
                 'securityId componentId data deleted deleteAt';
 
-            const populateContainerLog = [
+            const populateContainerLog: $TSFixMe = [
                 { path: 'securityId', select: 'name slug' },
                 { path: 'componentId', select: 'name slug' },
             ];
-            const securityLogs = await ContainerSecurityLogService.findBy({
+            const securityLogs: $TSFixMe = await ContainerSecurityLogService.findBy({
                 componentId,
                 select: selectContainerLog,
                 populate: populateContainerLog,

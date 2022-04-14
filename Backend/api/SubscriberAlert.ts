@@ -6,7 +6,7 @@ import SubscriberAlertService from '../services/subscriberAlertService';
 import path from 'path';
 import fs from 'fs';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import {
     sendErrorResponse,
@@ -20,7 +20,7 @@ router.post(
     '/:projectId/:subscriberId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.projectId = req.params.projectId;
             data.subscriberId = req.params.subscriberId;
 
@@ -37,7 +37,7 @@ router.post(
                     message: 'AlertVia must be present',
                 });
             }
-            const subscriberAlert = await SubscriberAlertService.create(data);
+            const subscriberAlert: $TSFixMe = await SubscriberAlertService.create(data);
             return sendItemResponse(req, res, subscriberAlert);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -50,14 +50,14 @@ router.get(
     '/:projectId/:alertId/viewed',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const alertId = req.params.alertId;
-            const projectId = req.params.projectId;
+            const alertId: $TSFixMe = req.params.alertId;
+            const projectId: $TSFixMe = req.params.projectId;
 
             await SubscriberAlertService.updateOneBy(
                 { _id: alertId, projectId: projectId },
                 { alertStatus: 'Viewed' }
             );
-            const filePath = path.join(
+            const filePath: $TSFixMe = path.join(
                 __dirname,
                 '..',
                 '..',
@@ -65,7 +65,7 @@ router.get(
                 'img',
                 'vou-wb.png'
             );
-            const img = fs.readFileSync(filePath);
+            const img: $TSFixMe = fs.readFileSync(filePath);
 
             res.set('Content-Type', 'image/png');
             res.status(200);
@@ -81,10 +81,10 @@ router.get(
 // Returns: response subscriber alerts, error message
 router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const projectId = req.params.projectId;
-        const skip = req.query['skip'] || 0;
-        const limit = req.query['limit'] || 10;
-        const populate = [
+        const projectId: $TSFixMe = req.params.projectId;
+        const skip: $TSFixMe = req.query['skip'] || 0;
+        const limit: $TSFixMe = req.query['limit'] || 10;
+        const populate: $TSFixMe = [
             { path: 'incidentId', select: 'name' },
             { path: 'projectId', select: 'name' },
             {
@@ -92,9 +92,9 @@ router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
                 select: 'name contactEmail contactPhone contactWebhook countryCode',
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
-        const [subscriberAlerts, count] = await Promise.all([
+        const [subscriberAlerts, count]: $TSFixMe = await Promise.all([
             SubscriberAlertService.findBy({
                 query: { projectId: projectId },
                 skip,
@@ -119,20 +119,20 @@ router.get(
     '/:projectId/incident/:incidentSlug',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const incidentSlug = req.params.incidentSlug;
+            const projectId: $TSFixMe = req.params.projectId;
+            const incidentSlug: $TSFixMe = req.params.incidentSlug;
             let incidentId = await IncidentService.findOneBy({
                 query: { slug: incidentSlug },
                 select: '_id',
             });
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
 
             let subscriberAlerts = [],
                 count = 0;
             if (incidentId) {
                 incidentId = incidentId._id;
-                const populate = [
+                const populate: $TSFixMe = [
                     { path: 'incidentId', select: 'name' },
                     { path: 'projectId', select: 'name' },
                     {
@@ -140,9 +140,9 @@ router.get(
                         select: 'name contactEmail contactPhone contactWebhook countryCode',
                     },
                 ];
-                const select =
+                const select: $TSFixMe =
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
-                const [alerts, alertCount] = await Promise.all([
+                const [alerts, alertCount]: $TSFixMe = await Promise.all([
                     SubscriberAlertService.findBy({
                         query: { incidentId, projectId },
                         skip,

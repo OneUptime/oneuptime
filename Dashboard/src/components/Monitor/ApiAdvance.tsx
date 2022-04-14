@@ -25,7 +25,7 @@ const textboxstyle: $TSFixMe = {
     boxShadow:
         '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
 };
-const newSelector = formValueSelector('NewMonitor');
+const newSelector: $TSFixMe = formValueSelector('NewMonitor');
 
 interface ApiAdvanceProps {
     pushArray?: Function;
@@ -54,7 +54,7 @@ export class ApiAdvance extends Component<ApiAdvanceProps>{
 
     override render() {
 
-        const { bodytype } = this.props;
+        const { bodytype }: $TSFixMe = this.props;
         return (
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"

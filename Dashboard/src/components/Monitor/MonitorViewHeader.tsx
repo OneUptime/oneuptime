@@ -77,7 +77,7 @@ export class MonitorViewHeader extends Component<MonitorViewHeaderProps>{
             // updateprobebysocket,
         } = this.props;
 
-        const { startDate, endDate } = this.state;
+        const { startDate, endDate }: $TSFixMe = this.state;
 
         // socket.on(`updateProbe`, function(data) {
         //     updateprobebysocket(data);
@@ -100,12 +100,12 @@ export class MonitorViewHeader extends Component<MonitorViewHeaderProps>{
         // socket.removeListener(`updateProbe`);
     }
     handleStartDateTimeChange = (val: $TSFixMe) => {
-        const startDate = moment(val);
+        const startDate: $TSFixMe = moment(val);
 
         this.handleDateChange(startDate, this.state.endDate);
     };
     handleEndDateTimeChange = (val: $TSFixMe) => {
-        const endDate = moment(val);
+        const endDate: $TSFixMe = moment(val);
 
         this.handleDateChange(this.state.startDate, endDate);
     };
@@ -146,7 +146,7 @@ export class MonitorViewHeader extends Component<MonitorViewHeaderProps>{
 
     deleteMonitor = () => {
 
-        const promise = this.props.deleteMonitor(
+        const promise: $TSFixMe = this.props.deleteMonitor(
 
             this.props.monitor._id,
 
@@ -202,25 +202,25 @@ export class MonitorViewHeader extends Component<MonitorViewHeaderProps>{
             creating,
         } = this.props;
 
-        const subProjectId = monitor.projectId._id || monitor.projectId;
-        const subProject = subProjects.find(
+        const subProjectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+        const subProject: $TSFixMe = subProjects.find(
             (subProject: $TSFixMe) => subProject._id === subProjectId
         );
 
-        const probe =
+        const probe: $TSFixMe =
             monitor && probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
                 : null;
-        const { logs, statuses } = filterProbeData(
+        const { logs, statuses }: $TSFixMe = filterProbeData(
             monitor,
             probe,
             startDate,
             endDate
         );
-        const monitorType = monitor.type;
-        const requesting = monitorState.fetchMonitorLogsRequest;
-        const monitorDisabled = monitor.disabled;
-        const status = monitorDisabled
+        const monitorType: $TSFixMe = monitor.type;
+        const requesting: $TSFixMe = monitorState.fetchMonitorLogsRequest;
+        const monitorDisabled: $TSFixMe = monitor.disabled;
+        const status: $TSFixMe = monitorDisabled
             ? 'disabled'
             : requesting
                 ? 'requesting'
@@ -400,25 +400,25 @@ export class MonitorViewHeader extends Component<MonitorViewHeaderProps>{
                             <div className="btn-group">
                                 {monitor &&
                                     probes.map((location: $TSFixMe, index: $TSFixMe) => {
-                                        const { logs } = filterProbeData(
+                                        const { logs }: $TSFixMe = filterProbeData(
                                             monitor,
                                             location,
                                             startDate,
                                             endDate
                                         );
-                                        const checkLogs =
+                                        const checkLogs: $TSFixMe =
                                             logs && logs.length > 0;
-                                        const status = checkLogs
+                                        const status: $TSFixMe = checkLogs
                                             ? logs[0].status
 
                                             : getMonitorStatus(
                                                 monitor.incidents,
                                                 logs
                                             );
-                                        const probe = probes.filter(
+                                        const probe: $TSFixMe = probes.filter(
                                             (probe: $TSFixMe) => probe._id === location._id
                                         );
-                                        const lastAlive =
+                                        const lastAlive: $TSFixMe =
                                             probe && probe.length > 0
                                                 ? probe[0].lastAlive
                                                 : null;

@@ -43,10 +43,10 @@ class LanguageBox extends Component<ComponentProps> {
     };
     override render() {
 
-        const { statusPage } = this.props;
-        const languages = statusPage.multipleLanguages;
+        const { statusPage }: $TSFixMe = this.props;
+        const languages: $TSFixMe = statusPage.multipleLanguages;
 
-        const theme = this.props.theme;
+        const theme: $TSFixMe = this.props.theme;
         return (
             <div className="subscribe-overlay">
                 <ClickOutHandler onClickOut={() => this.translateButton()}>

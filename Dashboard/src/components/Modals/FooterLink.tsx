@@ -37,9 +37,9 @@ class CreateFooterLink extends Component<ComponentProps> {
 
     submitForm = (footerLinkValues: $TSFixMe) => {
 
-        const { submitForm, footerName, index } = this.props.data;
+        const { submitForm, footerName, index }: $TSFixMe = this.props.data;
 
-        const values = this.props.links;
+        const values: $TSFixMe = this.props.links;
 
         if (footerName) {
             values[index] = footerLinkValues;
@@ -71,7 +71,7 @@ class CreateFooterLink extends Component<ComponentProps> {
 
     override render() {
 
-        const { handleSubmit, data } = this.props;
+        const { handleSubmit, data }: $TSFixMe = this.props;
 
         return (
             <div
@@ -264,7 +264,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const CreateFooterLinkForm = reduxForm({
+const CreateFooterLinkForm: $TSFixMe = reduxForm({
     form: 'CreateFooterLink',
     validate, // <--- validation function given to redux-for
 })(CreateFooterLink);
@@ -282,7 +282,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const status = state.statusPage.status || [];
+    const status: $TSFixMe = state.statusPage.status || [];
     const links: $TSFixMe = [];
 
     status.links &&

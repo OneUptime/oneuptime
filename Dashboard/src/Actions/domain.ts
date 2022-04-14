@@ -37,14 +37,14 @@ export const verifyDomain: Function = ({
         dispatch(verifyDomainRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `domainVerificationToken/${projectId}/verify/${domainId}`,
                 payload
             );
 
             dispatch(verifyDomainSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -90,14 +90,14 @@ export function createDomain({
         dispatch(createDomainRequest());
 
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `StatusPage/${projectId}/${statusPageId}/domain`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
 
             dispatch(createDomainSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -138,12 +138,12 @@ export const deleteDomain: Function = ({
     return async function (dispatch: Dispatch): void {
         dispatch(deleteDomainRequest());
         try {
-            const response =
+            const response: $TSFixMe =
                 await delete `StatusPage/${projectId}/${statusPageId}/${domainId}`;
 
             dispatch(deleteDomainSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
@@ -189,14 +189,14 @@ export function updateDomain({
     return async function (dispatch: Dispatch): void {
         dispatch(updateDomainRequest());
         try {
-            const response = await BackendAPI.put(
+            const response: $TSFixMe = await BackendAPI.put(
                 `StatusPage/${projectId}/${statusPageId}/${domainId}`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
 
             dispatch(updateDomainSuccess(response.data));
         } catch (error) {
-            const errorMsg =
+            const errorMsg: $TSFixMe =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data

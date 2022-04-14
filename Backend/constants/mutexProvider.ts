@@ -5,11 +5,11 @@ import MUTEX_RESOURCES from './MUTEX_RESOURCES';
 
 // this is a single mutex storage
 // it contains one mutex per project
-const projectMutexStorage = new Map();
+const projectMutexStorage: $TSFixMe = new Map();
 
 // thi is a single mutex storage
 // it contains one mutex per monitor
-const monitorMutexStorage = new Map();
+const monitorMutexStorage: $TSFixMe = new Map();
 
 /**
  * gets an existing mutex for a project or creates a new one

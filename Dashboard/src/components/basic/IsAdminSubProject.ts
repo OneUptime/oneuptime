@@ -5,7 +5,7 @@ import { User } from '../../config';
 // params 1: props
 // returns JSX.Element or NULL
 export default function IsAdminSubProject(subProject: $TSFixMe): void {
-    const userId = User.getUserId();
+    const userId: $TSFixMe = User.getUserId();
     return (
         [null, undefined].every(i => i !== userId) &&
         [null, undefined].every(i => i !== subProject) &&

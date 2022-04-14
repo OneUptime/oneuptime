@@ -8,21 +8,21 @@ import thunk from 'redux-thunk';
 import { createBrowserHistory } from 'history';
 import rootReducer from './reducer/index';
 
-export const history = createBrowserHistory();
+export const history: $TSFixMe = createBrowserHistory();
 
 export const removeQuery: Function = (): void => {
-    const location = Object.assign({}, history.location);
+    const location: $TSFixMe = Object.assign({}, history.location);
     delete location.search;
     history.push(location);
 };
 
 const initialState: $TSFixMe = {};
-const enhancers = [];
-const logger = createLogger();
-const middleware = [thunk, routerMiddleware(history)];
+const enhancers: $TSFixMe = [];
+const logger: $TSFixMe = createLogger();
+const middleware: $TSFixMe = [thunk, routerMiddleware(history)];
 
 if (process.env['NODE_ENV'] === 'development') {
-    const devToolsExtension = window.devToolsExtension;
+    const devToolsExtension: $TSFixMe = window.devToolsExtension;
     middleware.push(logger);
 
     if (typeof devToolsExtension === 'function') {
@@ -30,9 +30,9 @@ if (process.env['NODE_ENV'] === 'development') {
     }
 }
 
-const composedEnhancers = compose(applyMiddleware(...middleware), ...enhancers);
+const composedEnhancers: $TSFixMe = compose(applyMiddleware(...middleware), ...enhancers);
 
-const store = createStore(rootReducer, initialState, composedEnhancers);
+const store: $TSFixMe = createStore(rootReducer, initialState, composedEnhancers);
 
 export type RootState = ReturnType<typeof store.getState>;
 

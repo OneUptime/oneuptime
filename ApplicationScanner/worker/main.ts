@@ -4,7 +4,7 @@ import ApplicationSecurity from './applicationSecurity';
 
 export default {
     runApplicationScan: async function (): void {
-        const securities = await BackendAPI.get(
+        const securities: $TSFixMe = await BackendAPI.get(
             'application/applicationSecurities'
         );
         if (securities && securities.length > 0) {

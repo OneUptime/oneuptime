@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -17,7 +17,7 @@ import RealTimeService from '../services/realTimeService';
 import ResourceCategoryService from '../services/resourceCategoryService';
 import ErrorService from 'CommonServer/Utils/error';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 //Route: POST
 //Description: creates a new container security
@@ -30,7 +30,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.componentId = req.params.componentId;
 
             if (!data) {
@@ -71,7 +71,7 @@ router.post(
                 });
             }
 
-            const containerSecurity = await ContainerSecurityService.create(
+            const containerSecurity: $TSFixMe = await ContainerSecurityService.create(
                 data
             );
             try {
@@ -100,7 +100,7 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { componentId, containerSecurityId } = req.params;
+            const { componentId, containerSecurityId }: $TSFixMe = req.params;
             const {
                 name,
                 dockerCredential,
@@ -129,7 +129,7 @@ router.put(
             if (!resourceCategory || resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             } else {
-                const resourceCategoryCount =
+                const resourceCategoryCount: $TSFixMe =
                     await ResourceCategoryService.countBy({
                         _id: resourceCategory,
                     });
@@ -140,7 +140,7 @@ router.put(
                 }
             }
 
-            const containerSecurity =
+            const containerSecurity: $TSFixMe =
                 await ContainerSecurityService.updateOneBy(
                     { _id: containerSecurityId, componentId },
                     data,
@@ -164,9 +164,9 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { componentId } = req.params;
-            const { skip, limit } = req.query;
-            const populate = [
+            const { componentId }: $TSFixMe = req.params;
+            const { skip, limit }: $TSFixMe = req.query;
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name slug _id' },
                 { path: 'resourceCategory', select: 'name' },
                 {
@@ -174,10 +174,10 @@ router.get(
                     select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
 
-            const [containerSecurities, count] = await Promise.all([
+            const [containerSecurities, count]: $TSFixMe = await Promise.all([
                 ContainerSecurityService.findBy({
                     query: { componentId },
                     skip,
@@ -205,8 +205,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { containerSecurityId } = req.params;
-            const populate = [
+            const { containerSecurityId }: $TSFixMe = req.params;
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name slug _id' },
                 { path: 'resourceCategory', select: 'name' },
                 {
@@ -214,9 +214,9 @@ router.get(
                     select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
-            const containerSecurity = await ContainerSecurityService.findOneBy({
+            const containerSecurity: $TSFixMe = await ContainerSecurityService.findOneBy({
                 query: { _id: containerSecurityId },
                 select,
                 populate,
@@ -246,8 +246,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { containerSecuritySlug } = req.params;
-            const populate = [
+            const { containerSecuritySlug }: $TSFixMe = req.params;
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name slug _id' },
                 { path: 'resourceCategory', select: 'name' },
                 {
@@ -255,9 +255,9 @@ router.get(
                     select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
-            const containerSecurity = await ContainerSecurityService.findOneBy({
+            const containerSecurity: $TSFixMe = await ContainerSecurityService.findOneBy({
                 query: { slug: containerSecuritySlug },
                 select,
                 populate,
@@ -287,9 +287,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { containerSecurityId } = req.params;
+            const { containerSecurityId }: $TSFixMe = req.params;
 
-            const deletedContainerSecurity =
+            const deletedContainerSecurity: $TSFixMe =
                 await ContainerSecurityService.deleteBy({
                     _id: containerSecurityId,
                 });
@@ -310,9 +310,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { componentId } = req.params;
+            const { componentId }: $TSFixMe = req.params;
 
-            const response = await ContainerSecurityService.hardDelete({
+            const response: $TSFixMe = await ContainerSecurityService.hardDelete({
                 componentId,
             });
             return sendItemResponse(req, res, response);
@@ -332,8 +332,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { credentialId } = req.params;
-            const populate = [
+            const { credentialId }: $TSFixMe = req.params;
+            const populate: $TSFixMe = [
                 { path: 'componentId', select: 'name slug _id' },
                 { path: 'resourceCategory', select: 'name' },
                 {
@@ -341,9 +341,9 @@ router.get(
                     select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
-            const response = await ContainerSecurityService.findBy({
+            const response: $TSFixMe = await ContainerSecurityService.findBy({
                 query: { dockerCredential: credentialId },
                 select,
                 populate,
@@ -366,14 +366,14 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { containerSecurityId } = req.params;
-            const containerSecurity = await ContainerSecurityService.findOneBy({
+            const { containerSecurityId }: $TSFixMe = req.params;
+            const containerSecurity: $TSFixMe = await ContainerSecurityService.findOneBy({
                 query: { _id: containerSecurityId },
                 select: '_id',
             });
 
             if (!containerSecurity) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Container Security not found or does not exist'
                 );
 
@@ -381,7 +381,7 @@ router.post(
                 return sendErrorResponse(req, res, error as Exception);
             }
 
-            const updatedContainerSecurity =
+            const updatedContainerSecurity: $TSFixMe =
                 await ContainerSecurityService.updateOneBy(
                     { _id: containerSecurityId },
                     { scanned: false }

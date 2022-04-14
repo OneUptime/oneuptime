@@ -18,10 +18,10 @@ process.on('message', url => {
     launchChromeAndRunLighthouse(url)
         .then(results => {
             const issues: $TSFixMe = {};
-            const categories = results.categories;
-            const audits = results.audits;
+            const categories: $TSFixMe = results.categories;
+            const audits: $TSFixMe = results.audits;
             for (const category in categories) {
-                const ids = categories[category].auditRefs.map(
+                const ids: $TSFixMe = categories[category].auditRefs.map(
                     (auditRef: $TSFixMe) => auditRef.id
                 );
 

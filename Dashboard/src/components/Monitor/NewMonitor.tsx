@@ -63,14 +63,14 @@ import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 import ScheduleInput from '../schedule/ScheduleInput';
-const selector = formValueSelector('NewMonitor');
+const selector: $TSFixMe = formValueSelector('NewMonitor');
 
 import dJSON from 'dirty-json'
 import { fetchAutomatedScript } from '../../actions/automatedScript';
 
-const defaultScript =
+const defaultScript: $TSFixMe =
     '// modules available - request, puppeteer, axios (We can add more later).' +
-    ' e.g - const request = require("request")\n\n' +
+    ' e.g - const request: $TSFixMe = require("request")\n\n' +
     '// To inspect your script or add comments, use logger.info\n\n' +
     'async function (done) {\n' +
     '   // write any javascript here \n' +
@@ -185,13 +185,13 @@ class NewMonitor extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { editMonitorProp } = this.props;
-        const userId = User.getUserId();
+        const { editMonitorProp }: $TSFixMe = this.props;
+        const userId: $TSFixMe = User.getUserId();
 
-        const projectMember = this.props.currentProject.users.find(
+        const projectMember: $TSFixMe = this.props.currentProject.users.find(
             (user: $TSFixMe) => user.userId === userId
         );
-        const link =
+        const link: $TSFixMe =
             editMonitorProp && editMonitorProp.data
                 ? editMonitorProp.data.link
                 : `${API_URL}/incomingHttpRequest/${uuidv4()}`;
@@ -240,8 +240,8 @@ class NewMonitor extends Component<ComponentProps> {
 
     componentDidUpdate(prevProps: $TSFixMe) {
 
-        const { monitor, editMonitorProp } = this.props;
-        const link =
+        const { monitor, editMonitorProp }: $TSFixMe = this.props;
+        const link: $TSFixMe =
             editMonitorProp && editMonitorProp.data
                 ? editMonitorProp.data.link
                 : `${API_URL}/incomingHttpRequest/${uuidv4()}`;
@@ -267,14 +267,14 @@ class NewMonitor extends Component<ComponentProps> {
             // setup criteria for up, down, and degraded events
             // update automatically when monitor type is changed
 
-            const areCriterionInitialValuesEqual = isEqual(
+            const areCriterionInitialValuesEqual: $TSFixMe = isEqual(
                 prevProps.initialValues,
 
                 this.props.initialValues
             );
 
             if (!areCriterionInitialValuesEqual) {
-                const criteria = [];
+                const criteria: $TSFixMe = [];
 
                 // add a default criterion as a down criterion
                 const defaultDownCriterion: $TSFixMe = {
@@ -295,7 +295,7 @@ class NewMonitor extends Component<ComponentProps> {
                         ) {
                             // do nothing
                         } else {
-                            const id = uuidv4();
+                            const id: $TSFixMe = uuidv4();
 
                             const newCriterion: $TSFixMe = {
                                 id,
@@ -332,13 +332,13 @@ class NewMonitor extends Component<ComponentProps> {
         }
 
 
-        const { change } = this.props;
+        const { change }: $TSFixMe = this.props;
 
         /** @type {{bodyField:Object[] | undefined, createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
-        const criterionFieldName:string = `${criterion.type}_${criterion.id}`;
+        const criterionFieldName:string: $TSFixMe = `${criterion.type}_${criterion.id}`;
         // add filter criteria if the criterion is not default
 
-        const criterionValues = this.getCriterionInitialValue(criterion.type);
+        const criterionValues: $TSFixMe = this.getCriterionInitialValue(criterion.type);
 
         change(criterionFieldName, criterionValues.bodyField);
 
@@ -371,7 +371,7 @@ class NewMonitor extends Component<ComponentProps> {
 
         let { initialValues } = this.props;
 
-        const { edit, monitor, editMonitorProp } = this.props;
+        const { edit, monitor, editMonitorProp }: $TSFixMe = this.props;
 
         if (edit) {
             initialValues = monitor.monitorCriteria
@@ -452,11 +452,11 @@ class NewMonitor extends Component<ComponentProps> {
      */
     removeCriterion(id: $TSFixMe) {
 
-        const indexOfTargetCriterion = this.state.criteria.findIndex(
+        const indexOfTargetCriterion: $TSFixMe = this.state.criteria.findIndex(
             (criterion: $TSFixMe) => criterion.id === id
         );
         if (indexOfTargetCriterion !== -1) {
-            const newCriteria = [
+            const newCriteria: $TSFixMe = [
 
                 ...this.state.criteria.slice(0, indexOfTargetCriterion),
 
@@ -477,7 +477,7 @@ class NewMonitor extends Component<ComponentProps> {
      */
     getDefaultCriterionName(criterion: $TSFixMe) {
 
-        const criteriaWithSameType = this.state.criteria.reduce(
+        const criteriaWithSameType: $TSFixMe = this.state.criteria.reduce(
             (acc: $TSFixMe, criterionItem: $TSFixMe) => {
                 return (
                     acc +
@@ -489,10 +489,10 @@ class NewMonitor extends Component<ComponentProps> {
             },
             0
         );
-        const defaultCriterionName =
+        const defaultCriterionName: $TSFixMe =
 
             CRITERIA_TYPES[criterion.type.toUpperCase()].name;
-        const name =
+        const name: $TSFixMe =
             criteriaWithSameType === 0
                 ? defaultCriterionName
                 : `${defaultCriterionName} ${criteriaWithSameType + 1}`;
@@ -526,7 +526,7 @@ class NewMonitor extends Component<ComponentProps> {
     }
 
     submitForm = (values: $TSFixMe) => {
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
         const postObj: $TSFixMe = { data: {}, criteria: {} };
         thisObj.setState({ processingMonitor: true });
 
@@ -555,7 +555,7 @@ class NewMonitor extends Component<ComponentProps> {
 
             values[`resourceCategory_${this.props.index}`];
 
-        const callSchedules = values[`callSchedules_${this.props.index}`];
+        const callSchedules: $TSFixMe = values[`callSchedules_${this.props.index}`];
         let monitorSchedules = [];
         if (callSchedules && callSchedules.length) {
             monitorSchedules = callSchedules
@@ -668,23 +668,23 @@ class NewMonitor extends Component<ComponentProps> {
             this.state.criteria.forEach((criterion: $TSFixMe) => {
                 const criterionData: $TSFixMe = {};
 
-                const criterionFieldName:string = `${criterion.type}_${criterion.id}`;
+                const criterionFieldName:string: $TSFixMe = `${criterion.type}_${criterion.id}`;
 
                 // add conditions only if the criterion isn't a default one
                 if (criterion.default) {
 
                     criterionData.default = true;
                 } else {
-                    const conditions = makeCriteria(
+                    const conditions: $TSFixMe = makeCriteria(
                         values[`${criterionFieldName}`]
                     );
 
                     criterionData.criteria = conditions;
                 }
 
-                const criterionSchedules =
+                const criterionSchedules: $TSFixMe =
                     values[`criterion_${criterion.id}_schedules`];
-                const schedules = criterionSchedules
+                const schedules: $TSFixMe = criterionSchedules
                     ? criterionSchedules
                         .filter((scheduleObject: $TSFixMe) => {
                             return Object.values(scheduleObject)[0] === true;
@@ -711,7 +711,7 @@ class NewMonitor extends Component<ComponentProps> {
 
                 criterionData.description =
                     values[`incidentDescription_${criterionFieldName}`];
-                const scriptValues =
+                const scriptValues: $TSFixMe =
                     values[`script_${criterionFieldName}`] || [];
                 const scriptArr = scriptValues.map((script: $TSFixMe) => {
                     return {
@@ -793,8 +793,8 @@ class NewMonitor extends Component<ComponentProps> {
 
                 if (postObj.bodyType === 'application/json') {
                     try {
-                        const val = text.replace(/^,{+|},+$/g, '');
-                        const r = dJSON.parse(val);
+                        const val: $TSFixMe = text.replace(/^,{+|},+$/g, '');
+                        const r: $TSFixMe = dJSON.parse(val);
                         text = JSON.stringify(r);
                     } catch (e) {
                         //
@@ -808,7 +808,7 @@ class NewMonitor extends Component<ComponentProps> {
 
         if (this.props.edit) {
 
-            const { monitorId } = this.props;
+            const { monitorId }: $TSFixMe = this.props;
 
             postObj._id = this.props.editMonitorProp._id;
             this.props
@@ -900,9 +900,9 @@ class NewMonitor extends Component<ComponentProps> {
 
             this.props.fetchSchedules(value);
         } else {
-            const userId = User.getUserId();
+            const userId: $TSFixMe = User.getUserId();
 
-            const projectMember = this.props.currentProject.users.find(
+            const projectMember: $TSFixMe = this.props.currentProject.users.find(
                 (user: $TSFixMe) => user.userId === userId
             );
             if (projectMember)
@@ -963,13 +963,13 @@ class NewMonitor extends Component<ComponentProps> {
         e.preventDefault();
 
 
-        const { logFile, uploadIdentityFile, projectId } = this.props;
+        const { logFile, uploadIdentityFile, projectId }: $TSFixMe = this.props;
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
-            const fileResult = reader.result;
+            const fileResult: $TSFixMe = reader.result;
             logFile(fileResult);
             uploadIdentityFile(projectId, file);
         };
@@ -992,11 +992,11 @@ class NewMonitor extends Component<ComponentProps> {
             projectId,
         } = this.props;
 
-        const reader = new FileReader();
-        const file = e.target.files[0];
+        const reader: $TSFixMe = new FileReader();
+        const file: $TSFixMe = e.target.files[0];
 
         reader.onloadend = () => {
-            const fileResult = reader.result;
+            const fileResult: $TSFixMe = reader.result;
             logConfigFile(fileResult);
             uploadConfigurationFile(projectId, file);
         };
@@ -1009,7 +1009,7 @@ class NewMonitor extends Component<ComponentProps> {
 
     removeConfigFile = () => {
 
-        const { setConfigInputKey, resetConfigFile } = this.props;
+        const { setConfigInputKey, resetConfigFile }: $TSFixMe = this.props;
 
         setConfigInputKey(new Date());
         resetConfigFile();
@@ -1017,7 +1017,7 @@ class NewMonitor extends Component<ComponentProps> {
 
     removeFile = () => {
 
-        const { setFileInputKey, resetFile } = this.props;
+        const { setFileInputKey, resetFile }: $TSFixMe = this.props;
 
         setFileInputKey(new Date());
         resetFile();
@@ -1039,8 +1039,8 @@ class NewMonitor extends Component<ComponentProps> {
     };
 
     getNextPlan = (plan: $TSFixMe) => {
-        const plans = ['Startup', 'Growth', 'Scale', 'Enterprise'];
-        const nextPlanIndex = plans.indexOf(plan) + 1;
+        const plans: $TSFixMe = ['Startup', 'Growth', 'Scale', 'Enterprise'];
+        const nextPlanIndex: $TSFixMe = plans.indexOf(plan) + 1;
 
         if (nextPlanIndex >= plans.length) {
             return plans[plans.length - 1];
@@ -1090,7 +1090,7 @@ class NewMonitor extends Component<ComponentProps> {
         );
     };
     override render() {
-        const requesting =
+        const requesting: $TSFixMe =
 
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
 
@@ -1129,19 +1129,19 @@ class NewMonitor extends Component<ComponentProps> {
             configFileInputKey,
         } = this.props;
 
-        const { type, mode, authentication, httpRequestLink } = this.state;
-        const unlimitedMonitors = ['Scale', 'Enterprise'];
-        const planCategory =
+        const { type, mode, authentication, httpRequestLink }: $TSFixMe = this.state;
+        const unlimitedMonitors: $TSFixMe = ['Scale', 'Enterprise'];
+        const planCategory: $TSFixMe =
             currentPlanId === 'enterprise'
                 ? 'Enterprise'
 
                 : PlanListing.getPlanById(currentPlanId).category;
-        const numOfUsers = this.getUserCount(project, subProjects);
-        const monitorPerUser =
+        const numOfUsers: $TSFixMe = this.getUserCount(project, subProjects);
+        const monitorPerUser: $TSFixMe =
             planCategory === 'Startup' ? 5 : planCategory === 'Growth' ? 10 : 0;
-        const monitorCount = numOfUsers * monitorPerUser;
-        const currentMonitorCount = this.getCurrentMonitorCount(monitor);
-        const monitorTypesOptions = [
+        const monitorCount: $TSFixMe = numOfUsers * monitorPerUser;
+        const currentMonitorCount: $TSFixMe = this.getCurrentMonitorCount(monitor);
+        const monitorTypesOptions: $TSFixMe = [
             {
                 value: 'url',
                 label: 'Website',
@@ -1207,7 +1207,7 @@ class NewMonitor extends Component<ComponentProps> {
             },
         ];
 
-        const scriptsObj =
+        const scriptsObj: $TSFixMe =
 
             this.props.scripts &&
 
@@ -2331,7 +2331,7 @@ class NewMonitor extends Component<ComponentProps> {
                                                                             // give the inner text area a name
                                                                             // so that we can reference it later
 
-                                                                            const elem = editor.textInput.getElement();
+                                                                            const elem: $TSFixMe = editor.textInput.getElement();
 
                                                                             elem.name = `script_editor_${this.props.index}`;
                                                                         }}
@@ -2916,7 +2916,7 @@ class NewMonitor extends Component<ComponentProps> {
                                                     {Object.values(
                                                         CRITERIA_TYPES
                                                     ).map(criterionType => {
-                                                        const criteria = [
+                                                        const criteria: $TSFixMe = [
 
                                                             ...this.state.criteria.filter(
                                                                 (criterion: $TSFixMe) => {
@@ -3258,7 +3258,7 @@ class NewMonitor extends Component<ComponentProps> {
 
 NewMonitor.displayName = 'NewMonitor';
 
-const NewMonitorForm = new reduxForm({
+const NewMonitorForm: $TSFixMe = new reduxForm({
     form: 'NewMonitor',
     destroyOnUnmount: true,
     enableReinitialize: true,
@@ -3300,14 +3300,14 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const name = selector(state, 'name_1000');
-    const type = selector(state, 'type_1000');
-    const mode = selector(state, 'mode_1000');
-    const authentication = selector(state, 'authentication_1000');
-    const category = selector(state, 'resourceCategory_1000');
-    const monitorSchedules = selector(state, 'callSchedules_1000');
-    const monitorSla = selector(state, 'monitorSla');
-    const incidentCommunicationSla = selector(
+    const name: $TSFixMe = selector(state, 'name_1000');
+    const type: $TSFixMe = selector(state, 'type_1000');
+    const mode: $TSFixMe = selector(state, 'mode_1000');
+    const authentication: $TSFixMe = selector(state, 'authentication_1000');
+    const category: $TSFixMe = selector(state, 'resourceCategory_1000');
+    const monitorSchedules: $TSFixMe = selector(state, 'callSchedules_1000');
+    const monitorSla: $TSFixMe = selector(state, 'monitorSla');
+    const incidentCommunicationSla: $TSFixMe = selector(
         state,
         'incidentCommunicationSla'
     );
@@ -3323,7 +3323,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
         }
     }
 
-    const currentPlanId =
+    const currentPlanId: $TSFixMe =
         state.project &&
             state.project.currentProject &&
             state.project.currentProject.stripePlanId
@@ -3331,18 +3331,18 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
             : '';
 
     if (ownProps.edit) {
-        const { monitorSlug } = ownProps.match.params;
-        const monitorCollection = state.monitor.monitorsList.monitors.find(
+        const { monitorSlug }: $TSFixMe = ownProps.match.params;
+        const monitorCollection: $TSFixMe = state.monitor.monitorsList.monitors.find(
             (el: $TSFixMe) => {
                 return projectId === el._id;
             }
         );
-        const currentMonitor =
+        const currentMonitor: $TSFixMe =
             monitorCollection &&
             monitorCollection.monitors.find((el: $TSFixMe) => {
                 return el.slug === monitorSlug;
             });
-        const monitorId = currentMonitor && currentMonitor._id;
+        const monitorId: $TSFixMe = currentMonitor && currentMonitor._id;
         return {
             monitor: state.monitor,
             currentProject: state.project.currentProject,

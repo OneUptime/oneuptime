@@ -73,7 +73,7 @@ class Service extends DatabaseService<typeof Model> {
         password: string;
     }): void {
         try {
-            const response = await API.post(
+            const response: $TSFixMe = await API.post(
                 new URL(
                     Protocol.HTTPS,
                     new Hostname('hub.docker.com'),

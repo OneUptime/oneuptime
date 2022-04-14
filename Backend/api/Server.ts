@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 import { IS_SAAS_SERVICE } from '../config/server';
 import { sendItemResponse } from 'CommonServer/Utils/response';

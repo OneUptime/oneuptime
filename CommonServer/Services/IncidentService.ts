@@ -39,7 +39,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const incidentQuery = IncidentModel.find(query)
+        const incidentQuery: $TSFixMe = IncidentModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -48,13 +48,13 @@ export default class Service {
         incidentQuery.select(select);
         incidentQuery.populate(populate);
 
-        const incidents = await incidentQuery;
+        const incidents: $TSFixMe = await incidentQuery;
         return incidents;
     }
 
     async create(data: $TSFixMe): void {
         if (!data.monitors || data.monitors.length === 0) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You need at least one monitor to create an incident'
             );
 
@@ -62,7 +62,7 @@ export default class Service {
             throw error;
         }
         if (!isArrayUnique(data.monitors)) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You cannot have multiple selection of the same monitor'
             );
 
@@ -76,7 +76,7 @@ export default class Service {
         });
         monitors = monitors.filter((monitor: $TSFixMe) => !monitor.disabled);
         if (monitors.length === 0) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You need at least one enabled monitor to create an incident'
             );
 
@@ -90,7 +90,7 @@ export default class Service {
                 monitorId: monitor._id,
             }));
         if (monitors.length === 0) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'You need at least one monitor not undergoing scheduled maintenance'
             );
 
@@ -98,13 +98,13 @@ export default class Service {
             throw error;
         }
         if (monitors && monitors.length > 0) {
-            const { matchedCriterion } = data;
+            const { matchedCriterion }: $TSFixMe = data;
 
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: data.projectId },
                 select: 'users parentProjectId name',
             });
-            const users =
+            const users: $TSFixMe =
                 project && project.users && project.users.length
                     ? project.users.map(({ userId }: $TSFixMe) => userId)
                     : [];
@@ -117,7 +117,7 @@ export default class Service {
                         field.fieldValue &&
                         field.fieldValue.trim()
                     ) {
-                        const incident = await this.findOneBy({
+                        const incident: $TSFixMe = await this.findOneBy({
                             query: {
                                 customFields: {
                                     $elemMatch: {
@@ -138,7 +138,7 @@ export default class Service {
             }
 
             if (errorMsg) {
-                const error = new Error(errorMsg);
+                const error: $TSFixMe = new Error(errorMsg);
 
                 error.code = 400;
                 throw error;
@@ -148,7 +148,7 @@ export default class Service {
             let parentCount = 0,
                 deletedParentCount = 0;
             if (project && project.parentProjectId) {
-                const [pCount, dpCount] = await Promise.all([
+                const [pCount, dpCount]: $TSFixMe = await Promise.all([
                     this.countBy({
                         projectId:
                             project.parentProjectId._id ||
@@ -164,7 +164,7 @@ export default class Service {
                 parentCount = pCount;
                 deletedParentCount = dpCount;
             }
-            const [incidentsCountInProject, deletedIncidentsCountInProject] =
+            const [incidentsCountInProject, deletedIncidentsCountInProject]: $TSFixMe =
                 await Promise.all([
                     this.countBy({
                         projectId: data.projectId,
@@ -217,21 +217,21 @@ export default class Service {
             };
 
             if (!incident.manuallyCreated) {
-                const select =
+                const select: $TSFixMe =
                     'projectId title description incidentPriority isDefault name';
                 const query: $TSFixMe = {
                     projectId: data.projectId,
                     isDefault: true,
                 };
-                const incidentSettings = await IncidentSettingsService.findOne({
+                const incidentSettings: $TSFixMe = await IncidentSettingsService.findOne({
                     query,
                     select,
                 });
 
-                const titleTemplate = Handlebars.compile(
+                const titleTemplate: $TSFixMe = Handlebars.compile(
                     incidentSettings.title
                 );
-                const descriptionTemplate = Handlebars.compile(
+                const descriptionTemplate: $TSFixMe = Handlebars.compile(
                     incidentSettings.description
                 );
 
@@ -262,8 +262,8 @@ export default class Service {
                     ];
                 }
             } else {
-                const titleTemplate = Handlebars.compile(data.title);
-                const descriptionTemplate = Handlebars.compile(
+                const titleTemplate: $TSFixMe = Handlebars.compile(data.title);
+                const descriptionTemplate: $TSFixMe = Handlebars.compile(
                     data.description
                 );
 
@@ -303,12 +303,12 @@ export default class Service {
             ];
             let select =
                 'slug idNumber notifications _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted';
-            const populatedIncident = await this.findOneBy({
+            const populatedIncident: $TSFixMe = await this.findOneBy({
                 query: { _id: incident._id },
                 populate,
                 select,
             });
-            const notifications = await this._sendIncidentCreatedAlert(
+            const notifications: $TSFixMe = await this._sendIncidentCreatedAlert(
                 populatedIncident
             );
 
@@ -388,7 +388,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await IncidentModel.countDocuments(query);
+        const count: $TSFixMe = await IncidentModel.countDocuments(query);
         return count;
     }
 
@@ -398,7 +398,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const incident = await IncidentModel.findOneAndUpdate(query, {
+        const incident: $TSFixMe = await IncidentModel.findOneAndUpdate(query, {
             $set: {
                 deleted: true,
                 deletedAt: Date.now(),
@@ -409,16 +409,16 @@ export default class Service {
         if (incident) {
             this.clearInterval(incident._id); // clear any existing sla interval
 
-            const monitorStatuses = await MonitorStatusService.findBy({
+            const monitorStatuses: $TSFixMe = await MonitorStatusService.findBy({
                 query: { incidentId: incident._id },
                 select: '_id',
             });
             for (const monitorStatus of monitorStatuses) {
-                const { _id } = monitorStatus;
+                const { _id }: $TSFixMe = monitorStatus;
                 await MonitorStatusService.deleteBy({ _id }, userId);
             }
 
-            const monitors = incident.monitors.map(
+            const monitors: $TSFixMe = incident.monitors.map(
                 (monitor: $TSFixMe) =>
                     monitor.monitorId._id || monitor.monitorId
             );
@@ -429,16 +429,16 @@ export default class Service {
                 { monitorStatus: 'online' }
             );
 
-            const populateIncTimeline = [
+            const populateIncTimeline: $TSFixMe = [
                 { path: 'createdById', select: 'name' },
                 {
                     path: 'probeId',
                     select: 'probeName probeImage',
                 },
             ];
-            const selectIncTimeline =
+            const selectIncTimeline: $TSFixMe =
                 'incidentId createdById probeId createdByZapier createdAt status incident_state';
-            const incidentTimeline = await IncidentTimelineService.findBy({
+            const incidentTimeline: $TSFixMe = await IncidentTimelineService.findBy({
                 query: { incidentId: incident._id },
                 select: selectIncTimeline,
                 populate: populateIncTimeline,
@@ -464,12 +464,12 @@ export default class Service {
 
         query['deleted'] = false;
 
-        const incidentQuery = IncidentModel.findOne(query).sort(sort).lean();
+        const incidentQuery: $TSFixMe = IncidentModel.findOne(query).sort(sort).lean();
 
         incidentQuery.select(select);
         incidentQuery.populate(populate);
 
-        const incident = await incidentQuery;
+        const incident: $TSFixMe = await incidentQuery;
         return incident;
     }
 
@@ -482,12 +482,12 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const oldIncident = await this.findOneBy({
+        const oldIncident: $TSFixMe = await this.findOneBy({
             query: { _id: query._id, deleted: { $ne: null } },
             select: 'notClosedBy manuallyCreated',
         });
 
-        const notClosedBy = oldIncident && oldIncident.notClosedBy;
+        const notClosedBy: $TSFixMe = oldIncident && oldIncident.notClosedBy;
         if (data.notClosedBy) {
             data.notClosedBy = notClosedBy.concat(data.notClosedBy);
         }
@@ -512,7 +512,7 @@ export default class Service {
             { new: true }
         );
 
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -534,7 +534,7 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications reason response hideIncident acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         updatedIncident = await this.findOneBy({
@@ -560,7 +560,7 @@ export default class Service {
             $set: data,
         });
 
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -582,7 +582,7 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         updatedData = await this.findBy({ query, populate, select });
@@ -593,9 +593,9 @@ export default class Service {
         ZapierService.pushToZapier('incident_created', incident);
         // await RealTimeService.sendCreatedIncident(incident);
 
-        const notifications = [];
+        const notifications: $TSFixMe = [];
 
-        const monitors = incident.monitors.map(
+        const monitors: $TSFixMe = incident.monitors.map(
             (monitor: $TSFixMe) => monitor.monitorId
         );
 
@@ -711,7 +711,7 @@ export default class Service {
                 }
             );
 
-            const downtimestring =
+            const downtimestring: $TSFixMe =
                 IncidentUtilitiy.calculateHumanReadableDownTime(
                     incident.createdAt
                 );
@@ -734,21 +734,21 @@ export default class Service {
             }
 
             // Ping webhook
-            const monitors = incident.monitors.map(
+            const monitors: $TSFixMe = incident.monitors.map(
                 (monitor: $TSFixMe) => monitor.monitorId
             );
 
             // assuming all the monitors in the incident is from the same component
             // which makes sense, since having multiple component will make things more complicated
 
-            const populateComponent = [
+            const populateComponent: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
                 { path: 'componentCategoryId', select: 'name' },
             ];
 
-            const selectComponent =
+            const selectComponent: $TSFixMe =
                 '_id createdAt name createdById projectId slug componentCategoryId';
-            const component = await ComponentService.findOneBy({
+            const component: $TSFixMe = await ComponentService.findOneBy({
                 query: {
                     _id:
                         monitors[0] &&
@@ -824,7 +824,7 @@ export default class Service {
 
             RealTimeService.incidentAcknowledged(incident);
         } else {
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
                     select: 'name slug componentId projectId type',
@@ -849,7 +849,7 @@ export default class Service {
                     select: 'probeName _id probeImage',
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 'slug notifications reason response acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             incident = await this.findOneBy({
@@ -922,7 +922,7 @@ export default class Service {
 
         incident = await this.updateOneBy({ _id: incidentId }, data);
 
-        const monitors = incident.monitors.map(
+        const monitors: $TSFixMe = incident.monitors.map(
             (monitor: $TSFixMe) => monitor.monitorId._id || monitor.monitorId
         );
 
@@ -955,7 +955,7 @@ export default class Service {
 
         this.clearInterval(incidentId);
 
-        const statusData = [];
+        const statusData: $TSFixMe = [];
         // send notificaton to subscribers
         AlertService.sendResolvedIncidentToSubscribers(incident, monitors);
         for (const monitor of monitors) {
@@ -991,7 +991,7 @@ export default class Service {
 
     //
     async close(incidentId: $TSFixMe, userId: ObjectID): void {
-        const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
+        const incident: $TSFixMe = await IncidentModel.findByIdAndUpdate(incidentId, {
             $pull: { notClosedBy: userId },
         });
 
@@ -1018,7 +1018,7 @@ export default class Service {
             }
         });
         await Promise.all(incidentsUnresolved);
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -1040,7 +1040,7 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug createdAt notifications reason response acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         incidentsUnresolved = await this.findBy({
@@ -1048,7 +1048,7 @@ export default class Service {
             populate,
             select,
         });
-        const incidentsResolved = await this.findBy({
+        const incidentsResolved: $TSFixMe = await this.findBy({
             query: {
                 projectId: { $in: subProjectIds },
                 resolved: true,
@@ -1064,7 +1064,7 @@ export default class Service {
     }
 
     async getSubProjectIncidents(projectId: ObjectID): void {
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -1086,10 +1086,10 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const monitors = await MonitorService.findBy({
+        const monitors: $TSFixMe = await MonitorService.findBy({
             query: { projectId },
             select: '_id',
         });
@@ -1099,7 +1099,7 @@ export default class Service {
             'monitors.monitorId': { $in: monitorIds },
         };
 
-        const [incidents, count] = await Promise.all([
+        const [incidents, count]: $TSFixMe = await Promise.all([
             this.findBy({
                 query,
                 limit: 10,
@@ -1117,7 +1117,7 @@ export default class Service {
         projectId: ObjectID,
         componentId: $TSFixMe
     ): void {
-        const monitors = await MonitorService.findBy({
+        const monitors: $TSFixMe = await MonitorService.findBy({
             query: { projectId, componentId },
             select: '_id',
         });
@@ -1127,7 +1127,7 @@ export default class Service {
             'monitors.monitorId': { $in: monitorIds },
         };
 
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -1149,14 +1149,14 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const [incidents, count] = await Promise.all([
+        const [incidents, count]: $TSFixMe = await Promise.all([
             this.findBy({ query, limit: 10, skip: 0, select, populate }),
             this.countBy(query),
         ]);
-        const componentIncidents = [
+        const componentIncidents: $TSFixMe = [
             { incidents, _id: projectId, count, skip: 0, limit: 10 },
         ];
         return componentIncidents;
@@ -1168,7 +1168,7 @@ export default class Service {
         limit: PositiveNumber,
         skip: PositiveNumber
     ): void {
-        const monitors = await MonitorService.findBy({
+        const monitors: $TSFixMe = await MonitorService.findBy({
             query: { componentId: componentId },
             select: '_id',
         });
@@ -1179,7 +1179,7 @@ export default class Service {
             'monitors.monitorId': { $in: monitorIds },
         };
 
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
                 select: 'name slug componentId projectId type',
@@ -1201,10 +1201,10 @@ export default class Service {
             { path: 'createdByIncomingHttpRequest', select: 'name' },
             { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
-        const select =
+        const select: $TSFixMe =
             'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const [incidents, count] = await Promise.all([
+        const [incidents, count]: $TSFixMe = await Promise.all([
             this.findBy({ query, limit, skip, select, populate }),
             this.countBy(query),
         ]);
@@ -1216,14 +1216,14 @@ export default class Service {
         name: $TSFixMe,
         monitor: $TSFixMe
     ): void {
-        const populateComponent = [
+        const populateComponent: $TSFixMe = [
             { path: 'projectId', select: 'name' },
             { path: 'componentCategoryId', select: 'name' },
         ];
 
-        const selectComponent =
+        const selectComponent: $TSFixMe =
             '_id createdAt name createdById projectId slug componentCategoryId';
-        const component = await ComponentService.findOneBy({
+        const component: $TSFixMe = await ComponentService.findOneBy({
             query: {
                 _id:
                     monitor.componentId && monitor.componentId._id
@@ -1233,12 +1233,12 @@ export default class Service {
             select: selectComponent,
             populate: populateComponent,
         });
-        const resolvedincident = await this.findOneBy({
+        const resolvedincident: $TSFixMe = await this.findOneBy({
             query: { _id: incident._id },
             select: 'createdAt resolvedBy',
             populate: [{ path: 'resolvedBy', select: 'name _id' }],
         });
-        const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
+        const downtimestring: $TSFixMe = IncidentUtilitiy.calculateHumanReadableDownTime(
             resolvedincident.createdAt
         );
 
@@ -1295,7 +1295,7 @@ export default class Service {
         incident: $TSFixMe,
         data: $TSFixMe
     ): void {
-        const monitors = incident.monitors.map(
+        const monitors: $TSFixMe = incident.monitors.map(
             (monitor: $TSFixMe) => monitor.monitorId
         );
         for (const monitor of monitors) {
@@ -1321,9 +1321,9 @@ export default class Service {
         query.deleted = true;
         let incident = await this.findBy({ query, select: '_id' });
         if (incident && incident.length > 0) {
-            const incidents = await Promise.all(
+            const incidents: $TSFixMe = await Promise.all(
                 incident.map(async (incident: $TSFixMe) => {
-                    const incidentId = incident._id;
+                    const incidentId: $TSFixMe = incident._id;
                     incident = await this.updateOneBy(
                         {
                             _id: incidentId,
@@ -1342,7 +1342,7 @@ export default class Service {
         } else {
             incident = incident[0];
             if (incident) {
-                const incidentId = incident._id;
+                const incidentId: $TSFixMe = incident._id;
                 incident = await this.updateOneBy(
                     {
                         _id: incidentId,
@@ -1364,7 +1364,7 @@ export default class Service {
      * @param {string} userId the id of the user
      */
     async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
-        const incidents = await this.findBy({
+        const incidents: $TSFixMe = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors _id',
         });
@@ -1372,7 +1372,7 @@ export default class Service {
         await Promise.all(
             incidents.map(async (incident: $TSFixMe) => {
                 // only delete the incident, since the monitor can be restored
-                const monitors = incident.monitors
+                const monitors: $TSFixMe = incident.monitors
                     .map((monitor: $TSFixMe) => ({
                         monitorId: monitor.monitorId._id || monitor.monitorId,
                     }))
@@ -1413,7 +1413,7 @@ export default class Service {
                     );
                 }
 
-                const populate = [
+                const populate: $TSFixMe = [
                     {
                         path: 'monitors.monitorId',
                         select: 'name slug componentId projectId type',
@@ -1444,7 +1444,7 @@ export default class Service {
                         select: 'probeName _id probeImage',
                     },
                 ];
-                const select =
+                const select: $TSFixMe =
                     'slug notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
                 updatedIncident = await this.findOneBy({
@@ -1467,7 +1467,7 @@ export default class Service {
         incident: $TSFixMe
     ): void {
         monitors = monitors.map((monitor: $TSFixMe) => monitor.monitorId);
-        const [monitorList, currentIncident] = await Promise.all([
+        const [monitorList, currentIncident]: $TSFixMe = await Promise.all([
             MonitorService.findBy({
                 query: { _id: { $in: monitors } },
                 select: 'incidentCommunicationSla',
@@ -1519,7 +1519,7 @@ export default class Service {
             }
 
             if (!isEmpty(lowestSla)) {
-                const incidentCommunicationSla = lowestSla;
+                const incidentCommunicationSla: $TSFixMe = lowestSla;
 
                 if (
                     incidentCommunicationSla &&
@@ -1527,7 +1527,7 @@ export default class Service {
                 ) {
                     let countDown = incidentCommunicationSla.duration * 60;
 
-                    const alertTime = incidentCommunicationSla.alertTime * 60;
+                    const alertTime: $TSFixMe = incidentCommunicationSla.alertTime * 60;
 
                     const data: $TSFixMe = {
                         projectId,
@@ -1537,10 +1537,10 @@ export default class Service {
                     };
 
                     // count down every second
-                    const intervalId = setInterval(async () => {
+                    const intervalId = setInterval(async (): $TSFixMe => {
                         countDown -= 1;
 
-                        // const minutes = Math.floor(countDown / 60);
+                        // const minutes: $TSFixMe = Math.floor(countDown / 60);
                         // let seconds = countDown % 60;
                         // seconds =
                         //     seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
@@ -1595,7 +1595,7 @@ export default class Service {
             if (String(interval.incidentId) === String(incidentId)) {
                 this.clearInterval(incidentId);
 
-                const incident = await this.findOneBy({
+                const incident: $TSFixMe = await this.findOneBy({
                     query: { _id: incidentId },
                     select: 'monitors projectId _id',
                 });

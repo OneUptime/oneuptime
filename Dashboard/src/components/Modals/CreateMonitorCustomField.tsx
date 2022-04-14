@@ -59,7 +59,7 @@ class CreateMonitorCustomField extends React.Component<CreateMonitorCustomFieldP
 
             fetchCustomFields,
         } = this.props;
-        const projectId = data.projectId;
+        const projectId: $TSFixMe = data.projectId;
         const postObj: $TSFixMe = {
             fieldName: values.fieldName,
             fieldType: values.fieldType,
@@ -365,7 +365,7 @@ CreateMonitorCustomField.propTypes = {
     createFieldError: PropTypes.string,
 };
 
-const CreateMonitorCustomFieldForm = reduxForm({
+const CreateMonitorCustomFieldForm: $TSFixMe = reduxForm({
     form: 'CreateMonitorCustomFieldForm',
     enableReinitialize: false,
     validate,

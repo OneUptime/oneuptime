@@ -21,7 +21,7 @@ export class ProfileMenu extends Component<ComponentProps>{
 
     logout() {
 
-        const { logoutUser } = this.props;
+        const { logoutUser }: $TSFixMe = this.props;
         logoutUser();
     }
 
@@ -56,8 +56,8 @@ export class ProfileMenu extends Component<ComponentProps>{
     };
 
     override render() {
-        const name = User.getName();
-        const email = User.getEmail();
+        const name: $TSFixMe = User.getName();
+        const email: $TSFixMe = User.getEmail();
 
 
         return this.props.visible ? (

@@ -48,7 +48,7 @@ export class EditResourceCategoryForm extends React.Component<EditResourceCatego
 
     submitForm = (values: $TSFixMe) => {
 
-        const { _id } = this.props.initialValues;
+        const { _id }: $TSFixMe = this.props.initialValues;
 
         if (this.props.initialValues.name === values.name) {
 
@@ -93,7 +93,7 @@ export class EditResourceCategoryForm extends React.Component<EditResourceCatego
 
     override render() {
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
@@ -228,7 +228,7 @@ export class EditResourceCategoryForm extends React.Component<EditResourceCatego
 
 EditResourceCategoryForm.displayName = 'EditResourceCategoryForm';
 
-const UpdateResourceCategoryForm = reduxForm({
+const UpdateResourceCategoryForm: $TSFixMe = reduxForm({
     form: 'EditResourceCategoryForm',
     validate,
 })(EditResourceCategoryForm);

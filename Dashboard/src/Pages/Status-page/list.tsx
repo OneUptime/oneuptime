@@ -8,7 +8,7 @@ import { connect } from 'react-redux';
 import Table from '../../components/table/Table';
 import StatusPageActions from '../../actions/StatusPage';
 
-const listActions = new StatusPageActions().getListActions();
+const listActions: $TSFixMe = new StatusPageActions().getListActions();
 
 interface StatusPagesProps { }
 

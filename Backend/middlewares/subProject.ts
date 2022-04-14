@@ -16,11 +16,11 @@ export default {
         next: NextFunction
     ): void {
         try {
-            const userId = req.user
+            const userId: $TSFixMe = req.user
                 ? req.user.id
                 : null || url.parse(req.url, true).query.userId;
 
-            const projectId =
+            const projectId: $TSFixMe =
                 req.params.projectId ||
                 req.body.projectId ||
                 url.parse(req.url, true).query.projectId;
@@ -35,7 +35,7 @@ export default {
                 });
             }
 
-            const query =
+            const query: $TSFixMe =
                 userId === 'API'
                     ? {
                           $or: [
@@ -53,11 +53,11 @@ export default {
                           ],
                       };
             // Fetch user subprojects
-            const populate = [{ path: 'parentProjectId', select: 'name' }];
-            const select =
+            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
-            const subProjects = await ProjectService.findBy({
+            const subProjects: $TSFixMe = await ProjectService.findBy({
                 query,
                 select,
                 populate,

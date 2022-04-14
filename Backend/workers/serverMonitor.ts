@@ -1,25 +1,25 @@
 import moment from 'moment';
-const MonitorService = require('../Services/monitorService'),
+const MonitorService: $TSFixMe = require('../Services/monitorService'),
     MonitorLogService = require('../Services/monitorLogService'),
     MonitorStatusService = require('../Services/monitorStatusService'),
     ProbeService = require('../Services/probeService');
 
 export default {
     checkAllServerMonitors: async () => {
-        const newDate = new moment();
-        const monitors = await MonitorService.findBy({
+        const newDate: $TSFixMe = new moment();
+        const monitors: $TSFixMe = await MonitorService.findBy({
             query: { type: 'server-monitor' },
             select: 'lastPingTime _id criteria',
         });
 
         if (monitors) {
             monitors.forEach(async (monitor: $TSFixMe) => {
-                const d = new moment(monitor.lastPingTime);
-                const log = await MonitorLogService.findOneBy({
+                const d: $TSFixMe = new moment(monitor.lastPingTime);
+                const log: $TSFixMe = await MonitorLogService.findOneBy({
                     query: { monitorId: monitor._id },
                     select: '_id',
                 });
-                const monitorStatus = await MonitorStatusService.findOneBy({
+                const monitorStatus: $TSFixMe = await MonitorStatusService.findOneBy({
                     query: { monitorId: monitor._id },
                     select: 'status',
                 });

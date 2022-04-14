@@ -18,7 +18,7 @@ export class DeleteProjectBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting, currentProject } = this.props;
+        const { isRequesting, currentProject }: $TSFixMe = this.props;
 
         return (
             <div className="Box-root Margin-bottom--12">

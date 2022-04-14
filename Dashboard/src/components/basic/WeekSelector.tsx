@@ -13,7 +13,7 @@ import { createStyles } from '@material-ui/styles';
 import { createTheme, MuiThemeProvider } from '@material-ui/core/styles';
 import { IconButton, withStyles } from '@material-ui/core';
 
-const theme = createTheme({
+const theme: $TSFixMe = createTheme({
     palette: {
         primary: {
             main: '#0080a8',
@@ -35,7 +35,7 @@ let WeekSelector = ({
     input,
     style
 }: WeekSelectorProps) => {
-    const [selectedDate, selectDate] = useState(new Date());
+    const [selectedDate, selectDate]: $TSFixMe = useState(new Date());
 
     const handleChange: Function = (option: $TSFixMe) => {
         selectDate(option);
@@ -52,20 +52,20 @@ let WeekSelector = ({
 
 
     const renderWrappedWeekDay: Function = (date: $TSFixMe, selectedDate: $TSFixMe, dayInCurrentMonth: $TSFixMe) => {
-        const start = startOfWeek(selectedDate);
-        const end = endOfWeek(selectedDate);
+        const start: $TSFixMe = startOfWeek(selectedDate);
+        const end: $TSFixMe = endOfWeek(selectedDate);
 
-        const dayIsBetween = isWithinInterval(date, { start, end });
-        const isFirstDay = isSameDay(date, start);
-        const isLastDay = isSameDay(date, end);
+        const dayIsBetween: $TSFixMe = isWithinInterval(date, { start, end });
+        const isFirstDay: $TSFixMe = isSameDay(date, start);
+        const isLastDay: $TSFixMe = isSameDay(date, end);
 
-        const wrapperClassName = clsx({
+        const wrapperClassName: $TSFixMe = clsx({
             [classes.highlight]: dayIsBetween,
             [classes.firstHighlight]: isFirstDay,
             [classes.endHighlight]: isLastDay,
         });
 
-        const dayClassName = clsx(classes.day, {
+        const dayClassName: $TSFixMe = clsx(classes.day, {
             [classes.nonCurrentMonthDay]: !dayInCurrentMonth,
             [classes.highlightNonCurrentMonthDay]:
                 !dayInCurrentMonth && dayIsBetween,

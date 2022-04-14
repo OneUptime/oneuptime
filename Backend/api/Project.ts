@@ -4,15 +4,15 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import ProjectService from '../services/projectService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import PaymentService from '../services/paymentService';
 import UserService from '../services/userService';
 import MailService from '../services/mailService';
 import AirtableService from '../services/airtableService';
-const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-const isUserOwner = require('../middlewares/project').isUserOwner;
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserOwner: $TSFixMe = require('../middlewares/project').isUserOwner;
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 
 import { IS_SAAS_SERVICE } from '../config/server';
 
@@ -36,7 +36,7 @@ router.post(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
+            const data: $TSFixMe = req.body;
             data.name = data.projectName;
 
             // Sanitize
@@ -78,13 +78,13 @@ router.post(
                 }
             }
 
-            const projectName = data.projectName;
+            const projectName: $TSFixMe = data.projectName;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
             data.userId = userId;
 
             // check if user has a project with provided name already
-            const countProject = await ProjectService.countBy({
+            const countProject: $TSFixMe = await ProjectService.countBy({
                 name: projectName,
                 'users.userId': userId,
             });
@@ -112,7 +112,7 @@ router.post(
                     const paymentIntent: $TSFixMe = {
                         id: data.paymentIntent,
                     };
-                    const checkedPaymentIntent =
+                    const checkedPaymentIntent: $TSFixMe =
                         await PaymentService.checkPaymentIntent(paymentIntent);
                     if (checkedPaymentIntent.status !== 'succeeded') {
                         return sendErrorResponse(req, res, {
@@ -121,7 +121,7 @@ router.post(
                         });
                     }
 
-                    const [updatedUser, subscriptionnew] = await Promise.all([
+                    const [updatedUser, subscriptionnew]: $TSFixMe = await Promise.all([
                         UserService.updateOneBy(
                             { _id: userId },
                             { stripeCustomerId: checkedPaymentIntent.customer }
@@ -139,7 +139,7 @@ router.post(
                         data.stripeSubscriptionId =
                             subscriptionnew.stripeSubscriptionId;
                     }
-                    const project = await ProjectService.create(data);
+                    const project: $TSFixMe = await ProjectService.create(data);
                     try {
                         MailService.sendCreateProjectMail(
                             projectName,
@@ -154,7 +154,7 @@ router.post(
                     return sendItemResponse(req, res, project);
                 } else {
                     if (IS_SAAS_SERVICE) {
-                        const subscription = await PaymentService.subscribePlan(
+                        const subscription: $TSFixMe = await PaymentService.subscribePlan(
                             stripePlanId,
                             user.stripeCustomerId
                         );
@@ -186,7 +186,7 @@ router.post(
                         }
                     }
 
-                    const [project, foundUser] = await Promise.all([
+                    const [project, foundUser]: $TSFixMe = await Promise.all([
                         ProjectService.create(data),
                         UserService.findOneBy({
                             query: { _id: userId },
@@ -230,17 +230,17 @@ router.get(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
             // find user subprojects and parent projects
 
-            const userProjects = await ProjectService.findBy({
+            const userProjects: $TSFixMe = await ProjectService.findBy({
                 query: { 'users.userId': userId },
                 select: 'parentProjectId _id',
             });
             let parentProjectIds = [];
             let projectIds = [];
             if (userProjects.length > 0) {
-                const subProjects = userProjects
+                const subProjects: $TSFixMe = userProjects
                     .map((project: $TSFixMe) =>
                         project.parentProjectId ? project : null
                     )
@@ -250,7 +250,7 @@ router.get(
                         subProject.parentProjectId._id ||
                         subProject.parentProjectId
                 );
-                const projects = userProjects
+                const projects: $TSFixMe = userProjects
                     .map((project: $TSFixMe) =>
                         project.parentProjectId ? null : project
                     )
@@ -266,7 +266,7 @@ router.get(
                 ],
             };
 
-            const populate = [{ path: 'parentProjectId', select: 'name' }];
+            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
             const select: string = `_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes
              sendCreatedIncidentNotificationSms sendAcknowledgedIncidentNotificationSms sendResolvedIncidentNotificationSms
              sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
@@ -277,7 +277,7 @@ router.get(
              sendNewScheduledEventInvestigationNoteNotificationEmail sendScheduledEventCancelledNotificationSms sendScheduledEventCancelledNotificationEmail
              enableInvestigationNoteNotificationWebhook unpaidSubscriptionNotifications`; // All these are needed upon page reload
 
-            const [response, count] = await Promise.all([
+            const [response, count]: $TSFixMe = await Promise.all([
                 ProjectService.findBy({
                     query,
                     limit: req.query['limit'] || 10,
@@ -304,14 +304,14 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const projectId = req.params.projectId;
+            const projectId: $TSFixMe = req.params.projectId;
             if (!projectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'ProjectId must be present.',
                 });
             }
-            const balance = await ProjectService.getBalance({ _id: projectId });
+            const balance: $TSFixMe = await ProjectService.getBalance({ _id: projectId });
             return sendItemResponse(req, res, balance);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -329,7 +329,7 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const projectId = req.params.projectId;
+            const projectId: $TSFixMe = req.params.projectId;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -337,7 +337,7 @@ router.get(
                     message: 'ProjectId must be present.',
                 });
             }
-            const project = await ProjectService.resetApiKey(projectId);
+            const project: $TSFixMe = await ProjectService.resetApiKey(projectId);
             return sendItemResponse(req, res, project);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -356,8 +356,8 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const projectName = req.body.projectName;
+            const projectId: $TSFixMe = req.params.projectId;
+            const projectName: $TSFixMe = req.body.projectName;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -372,7 +372,7 @@ router.put(
                     message: 'New project name must be present.',
                 });
             }
-            const project = await ProjectService.updateOneBy(
+            const project: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 { name: projectName }
             );
@@ -393,7 +393,7 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
+            const projectId: $TSFixMe = req.params.projectId;
             if (!projectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -404,7 +404,7 @@ router.put(
             if (typeof rechargeBalanceAmount === 'string') {
                 rechargeBalanceAmount = parseFloat(rechargeBalanceAmount);
             }
-            const project = await ProjectService.updateOneBy(
+            const project: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 { balance: rechargeBalanceAmount }
             );
@@ -422,9 +422,9 @@ router.put(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
+            const projectId: $TSFixMe = req.params.projectId;
 
-            const userId = req.user ? req.user.id : null;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -435,8 +435,8 @@ router.put(
 
             let data = req.body;
 
-            const minimumBalance = Number(data.minimumBalance);
-            const rechargeToBalance = Number(data.rechargeToBalance);
+            const minimumBalance: $TSFixMe = Number(data.minimumBalance);
+            const rechargeToBalance: $TSFixMe = Number(data.rechargeToBalance);
 
             if (!minimumBalance) {
                 return sendErrorResponse(req, res, {
@@ -499,7 +499,7 @@ router.put(
                 },
                 userId,
             };
-            const project = await ProjectService.updateAlertOptions(data);
+            const project: $TSFixMe = await ProjectService.updateAlertOptions(data);
             return sendItemResponse(req, res, project);
         } catch (error) {
             sendErrorResponse(req, res, error);
@@ -518,10 +518,10 @@ router.delete(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
+            const projectId: $TSFixMe = req.params.projectId;
 
-            const userId = req.user.id;
-            const feedback = req.body.feedback;
+            const userId: $TSFixMe = req.user.id;
+            const feedback: $TSFixMe = req.body.feedback;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -529,18 +529,18 @@ router.delete(
                     message: 'ProjectId must be present.',
                 });
             }
-            const project = await ProjectService.deleteBy(
+            const project: $TSFixMe = await ProjectService.deleteBy(
                 { _id: projectId },
                 userId
             );
 
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'name email',
             });
 
             if (project) {
-                const projectName = project.name;
+                const projectName: $TSFixMe = project.name;
                 try {
                     // SEND MAIL IN THE BACKGROUND
                     MailService.sendDeleteProjectEmail({
@@ -580,7 +580,7 @@ router.delete(
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
+            const projectId: $TSFixMe = req.params.projectId;
             if (!projectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -627,13 +627,13 @@ router.post(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const projectName = req.body.projectName;
-            const planId = req.body.planId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const projectName: $TSFixMe = req.body.projectName;
+            const planId: $TSFixMe = req.body.planId;
 
-            const userId = req.user ? req.user.id : null;
-            const oldPlan = req.body.oldPlan;
-            const newPlan = req.body.newPlan;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const oldPlan: $TSFixMe = req.body.oldPlan;
+            const newPlan: $TSFixMe = req.body.newPlan;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -669,14 +669,14 @@ router.post(
                     message: 'New Plan must be present.',
                 });
             }
-            const [project, user] = await Promise.all([
+            const [project, user]: $TSFixMe = await Promise.all([
                 ProjectService.changePlan(projectId, userId, planId),
                 UserService.findOneBy({
                     query: { _id: userId },
                     select: 'email',
                 }),
             ]);
-            const email = user.email;
+            const email: $TSFixMe = user.email;
 
             MailService.sendChangePlanMail(
                 projectName,
@@ -698,13 +698,13 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const projectName = req.body.projectName;
-            const planId = req.body.planId;
+            const projectId: $TSFixMe = req.params.projectId;
+            const projectName: $TSFixMe = req.body.projectName;
+            const planId: $TSFixMe = req.body.planId;
 
-            const userId = req.user ? req.user.id : null;
-            const oldPlan = req.body.oldPlan;
-            const newPlan = req.body.newPlan;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const oldPlan: $TSFixMe = req.body.oldPlan;
+            const newPlan: $TSFixMe = req.body.newPlan;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -729,7 +729,7 @@ router.put(
 
             if (planId === 'enterprise') {
                 // run all the upgrade here for enterprise plan
-                const response = await ProjectService.upgradeToEnterprise(
+                const response: $TSFixMe = await ProjectService.upgradeToEnterprise(
                     projectId
                 );
                 return sendItemResponse(req, res, response);
@@ -748,21 +748,21 @@ router.put(
                     });
                 }
 
-                const project = await ProjectService.findOneBy({
+                const project: $TSFixMe = await ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'users',
                 });
-                const owner = project.users.find(
+                const owner: $TSFixMe = project.users.find(
                     (user: $TSFixMe) => user.role === 'Owner'
                 );
-                const [updatedProject, user] = await Promise.all([
+                const [updatedProject, user]: $TSFixMe = await Promise.all([
                     ProjectService.changePlan(projectId, owner.userId, planId),
                     UserService.findOneBy({
                         query: { _id: userId },
                         select: 'email',
                     }),
                 ]);
-                const email = user.email;
+                const email: $TSFixMe = user.email;
 
                 MailService.sendChangePlanMail(
                     projectName,
@@ -790,11 +790,11 @@ router.post(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const projectName = req.body.projectName;
+            const projectId: $TSFixMe = req.params.projectId;
+            const projectName: $TSFixMe = req.body.projectName;
 
-            const userId = req.user ? req.user.id : null;
-            const oldPlan = req.body.oldPlan;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const oldPlan: $TSFixMe = req.body.oldPlan;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -816,11 +816,11 @@ router.post(
                     message: 'Old Plan must be present.',
                 });
             }
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'email',
             });
-            const email = user.email;
+            const email: $TSFixMe = user.email;
             try {
                 MailService.sendUpgradeToEnterpriseMail(
                     projectName,
@@ -852,10 +852,10 @@ router.delete(
     async (req: ExpressRequest, res: ExpressResponse) => {
         // Call the ProjectService
         try {
-            const userId = req.user ? req.user.id : null;
-            const projectId = req.params.projectId;
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const projectId: $TSFixMe = req.params.projectId;
 
-            const teamMember = await ProjectService.exitProject(
+            const teamMember: $TSFixMe = await ProjectService.exitProject(
                 projectId,
                 userId
             );
@@ -876,9 +876,9 @@ router.post(
     isAuthorized,
     async (req, res): void => {
         try {
-            const userId = req.user ? req.user.id : null;
-            const parentProjectId = req.params.projectId;
-            const subProjectName =
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const parentProjectId: $TSFixMe = req.params.projectId;
+            const subProjectName: $TSFixMe =
                 req.body && req.body.subProjectName
                     ? req.body.subProjectName
                     : null;
@@ -895,7 +895,7 @@ router.post(
                 });
             }
             // check if project has a sub-project with provided name
-            const countSubProject = await ProjectService.countBy({
+            const countSubProject: $TSFixMe = await ProjectService.countBy({
                 name: subProjectName,
                 parentProjectId: parentProjectId,
             });
@@ -912,8 +912,8 @@ router.post(
             };
 
             let subProjects = await ProjectService.create(data);
-            const populate = [{ path: 'parentProjectId', select: 'name' }];
-            const select =
+            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
             subProjects = await ProjectService.findBy({
@@ -935,10 +935,10 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const parentProjectId = req.params.projectId;
-            const subProjectId = req.params.subProjectId;
+            const parentProjectId: $TSFixMe = req.params.projectId;
+            const subProjectId: $TSFixMe = req.params.subProjectId;
 
-            const userId = req.user.id;
+            const userId: $TSFixMe = req.user.id;
 
             if (!subProjectId) {
                 return sendErrorResponse(req, res, {
@@ -946,7 +946,7 @@ router.delete(
                     message: 'subProjectId must be present.',
                 });
             }
-            const subProject = await ProjectService.deleteBy(
+            const subProject: $TSFixMe = await ProjectService.deleteBy(
                 { _id: subProjectId, parentProjectId },
                 userId
             );
@@ -968,15 +968,15 @@ router.get(
     async (req, res): void => {
         // Call the ProjectService
         try {
-            const parentProjectId = req.params.projectId;
+            const parentProjectId: $TSFixMe = req.params.projectId;
 
-            const userId = req.user ? req.user.id : null;
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 10;
-            const populate = [{ path: 'parentProjectId', select: 'name' }];
-            const select =
+            const userId: $TSFixMe = req.user ? req.user.id : null;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
+            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes createdAt';
-            const [subProjects, count] = await Promise.all([
+            const [subProjects, count]: $TSFixMe = await Promise.all([
                 ProjectService.findBy({
                     query: { parentProjectId, 'users.userId': userId },
                     limit,
@@ -1002,10 +1002,10 @@ router.get(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const userId = req.params.userId;
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 10;
-            const { projects, count } = await ProjectService.getUserProjects(
+            const userId: $TSFixMe = req.params.userId;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
+            const { projects, count }: $TSFixMe = await ProjectService.getUserProjects(
                 userId,
                 skip,
                 limit
@@ -1023,9 +1023,9 @@ router.get(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 10;
-            const [projects, count] = await Promise.all([
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
+            const [projects, count]: $TSFixMe = await Promise.all([
                 ProjectService.getAllProjects(skip, limit),
                 ProjectService.countBy({
                     parentProjectId: null,
@@ -1045,11 +1045,11 @@ router.get(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const slug = req.params.slug;
-            const populate = [{ path: 'parentProjectId', select: 'name' }];
-            const select =
+            const slug: $TSFixMe = req.params.slug;
+            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { slug: slug, deleted: { $ne: null } },
                 select,
                 populate,
@@ -1067,12 +1067,12 @@ router.get(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { slug } = req.params;
-            const populate = [{ path: 'parentProjectId', select: 'name' }];
-            const select =
+            const { slug }: $TSFixMe = req.params;
+            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
-            const project = await ProjectService.findOneBy({
+            const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { slug },
                 select,
                 populate,
@@ -1090,8 +1090,8 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const project = await ProjectService.updateOneBy(
+            const projectId: $TSFixMe = req.params.projectId;
+            const project: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 { isBlocked: true }
             );
@@ -1108,7 +1108,7 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
+            const projectId: $TSFixMe = req.params.projectId;
             let limit = req.body.alertLimit;
             if (!limit) {
                 return sendErrorResponse(req, res, {
@@ -1117,7 +1117,7 @@ router.put(
                 });
             }
 
-            const oldProject = await ProjectService.findOneBy({
+            const oldProject: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: projectId, deleted: false },
                 select: 'alertLimit',
             });
@@ -1125,7 +1125,7 @@ router.put(
                 limit =
                     parseInt(limit, 10) + parseInt(oldProject.alertLimit, 10);
             }
-            const project = await ProjectService.updateOneBy(
+            const project: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 { alertLimitReached: false, alertLimit: limit }
             );
@@ -1142,8 +1142,8 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const project = await ProjectService.updateOneBy(
+            const projectId: $TSFixMe = req.params.projectId;
+            const project: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 { isBlocked: false }
             );
@@ -1160,8 +1160,8 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId = req.params.projectId;
-            const project = await ProjectService.restoreBy({
+            const projectId: $TSFixMe = req.params.projectId;
+            const project: $TSFixMe = await ProjectService.restoreBy({
                 _id: projectId,
                 deleted: true,
             });
@@ -1179,9 +1179,9 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const parentProjectId = req.params.projectId;
-            const subProjectId = req.params.subProjectId;
-            const subProjectName =
+            const parentProjectId: $TSFixMe = req.params.projectId;
+            const subProjectId: $TSFixMe = req.params.subProjectId;
+            const subProjectName: $TSFixMe =
                 req.body && req.body.subProjectName
                     ? req.body.subProjectName
                     : null;
@@ -1199,7 +1199,7 @@ router.put(
                 });
             }
             // check if project has a sub-project with provided name
-            const count = await ProjectService.countBy({
+            const count: $TSFixMe = await ProjectService.countBy({
                 name: subProjectName,
                 parentProjectId,
             });
@@ -1209,7 +1209,7 @@ router.put(
                     message: 'You already have a sub-project with same name.',
                 });
             }
-            const subProject = await ProjectService.updateOneBy(
+            const subProject: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: subProjectId },
                 { name: subProjectName }
             );
@@ -1226,7 +1226,7 @@ router.post(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const projectId = req.params.projectId;
+            const projectId: $TSFixMe = req.params.projectId;
             if (Array.isArray(req.body)) {
                 const data: $TSFixMe = [];
                 if (req.body.length > 0) {
@@ -1251,13 +1251,13 @@ router.post(
                         data.push(val);
                     }
 
-                    const project = await ProjectService.addNotes(
+                    const project: $TSFixMe = await ProjectService.addNotes(
                         projectId,
                         data
                     );
                     return sendItemResponse(req, res, project);
                 } else {
-                    const project = await ProjectService.addNotes(
+                    const project: $TSFixMe = await ProjectService.addNotes(
                         projectId,
                         data
                     );
@@ -1281,10 +1281,10 @@ router.post(
     isUserMasterAdmin,
     async (req, res): void => {
         try {
-            const filter = req.body.filter;
-            const skip = req.query['skip'] || 0;
-            const limit = req.query['limit'] || 10;
-            const [users, count] = await Promise.all([
+            const filter: $TSFixMe = req.body.filter;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
+            const [users, count]: $TSFixMe = await Promise.all([
                 ProjectService.searchProjects(
                     {
                         parentProjectId: null,
@@ -1314,8 +1314,8 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const data = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
 
             if (!data.sendCreatedIncidentNotificationEmail) {
                 data.sendCreatedIncidentNotificationEmail = false;
@@ -1354,7 +1354,7 @@ router.put(
             data.enableInvestigationNoteNotificationEmail =
                 data.enableInvestigationNoteNotificationEmail ? true : false;
 
-            const result = await ProjectService.updateOneBy(
+            const result: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 data
             );
@@ -1371,8 +1371,8 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const data = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
 
             if (!data.sendCreatedIncidentNotificationSms) {
                 data.sendCreatedIncidentNotificationSms = false;
@@ -1403,7 +1403,7 @@ router.put(
             if (!data.sendScheduledEventCancelledNotificationSms) {
                 data.sendScheduledEventCancelledNotificationSms = false;
             }
-            const result = await ProjectService.updateOneBy(
+            const result: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 data
             );
@@ -1419,13 +1419,13 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const data = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const data: $TSFixMe = req.body;
 
             data.enableInvestigationNoteNotificationWebhook =
                 data.enableInvestigationNoteNotificationWebhook ? true : false;
 
-            const updatedProject = await ProjectService.updateOneBy(
+            const updatedProject: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 data
             );

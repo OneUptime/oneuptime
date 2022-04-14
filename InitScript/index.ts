@@ -57,11 +57,11 @@ if (process.env['NODE_ENV'] === 'development') {
 }
 
 async function run(): void {
-    const excludedScripts = ['index.ts', 'start.ts', 'end.ts'];
+    const excludedScripts: $TSFixMe = ['index.ts', 'start.ts', 'end.ts'];
 
     logger.info('Connecting to MongoDB.');
 
-    const connection = await util.connectToDb();
+    const connection: $TSFixMe = await util.connectToDb();
 
     global.db = connection.db();
 
@@ -81,7 +81,7 @@ async function run(): void {
 
     logger.info('START SCRIPT: Completed');
 
-    const files = fs
+    const files: $TSFixMe = fs
         .readdirSync('./scripts')
         .filter(file => excludedScripts.indexOf(file) < 0) // Exclude index, start and end scripts
         .sort((a, b) =>
@@ -90,7 +90,7 @@ async function run(): void {
 
     // Switched to for loop, forEach does not await the callback
     for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        const file: $TSFixMe = files[i];
 
         logger.info(file + ': Running script.');
 

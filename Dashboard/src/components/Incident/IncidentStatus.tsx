@@ -104,16 +104,16 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
     };
     firstFormSubmit = (values: $TSFixMe) => {
 
-        const incidentId = this.props.incident._id;
-        const projectId =
+        const incidentId: $TSFixMe = this.props.incident._id;
+        const projectId: $TSFixMe =
 
             this.props.incident.projectId._id ?? this.props.incident.projectId;
 
-        const incidentType = this.props.incident.incidentType;
+        const incidentType: $TSFixMe = this.props.incident.incidentType;
 
-        const description = this.props.incident.description;
+        const description: $TSFixMe = this.props.incident.description;
 
-        const incidentPriority = this.props.incident.incidentPriority._id;
+        const incidentPriority: $TSFixMe = this.props.incident.incidentPriority._id;
 
         this.props
 
@@ -141,18 +141,18 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
     };
     secondFormSubmit = () => {
 
-        const incidentId = this.props.incident._id;
-        const projectId =
+        const incidentId: $TSFixMe = this.props.incident._id;
+        const projectId: $TSFixMe =
 
             this.props.incident.projectId._id ?? this.props.incident.projectId;
 
-        const incidentType = this.props.incident.incidentType;
+        const incidentType: $TSFixMe = this.props.incident.incidentType;
 
-        const title = this.props.incident.title;
+        const title: $TSFixMe = this.props.incident.title;
 
-        const description = this.props.description;
+        const description: $TSFixMe = this.props.description;
 
-        const incidentPriority = this.props.incident.incidentPriority._id;
+        const incidentPriority: $TSFixMe = this.props.incident.incidentPriority._id;
         this.props
 
             .updateIncident(
@@ -179,17 +179,17 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
     };
     thirdFormSubmit = (e: $TSFixMe, value: $TSFixMe) => {
 
-        const incidentId = this.props.incident._id;
-        const projectId =
+        const incidentId: $TSFixMe = this.props.incident._id;
+        const projectId: $TSFixMe =
 
             this.props.incident.projectId._id ?? this.props.incident.projectId;
 
-        const incidentType = this.props.incident.incidentType;
+        const incidentType: $TSFixMe = this.props.incident.incidentType;
 
-        const title = this.props.incident.title;
+        const title: $TSFixMe = this.props.incident.title;
 
-        const description = this.props.incident.description;
-        const incidentPriority = value;
+        const description: $TSFixMe = this.props.incident.description;
+        const incidentPriority: $TSFixMe = value;
         this.props
 
             .updateIncident(
@@ -210,8 +210,8 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
             });
     };
     acknowledge = async (setLoading: $TSFixMe) => {
-        const userId = User.getUserId();
-        const projectId =
+        const userId: $TSFixMe = User.getUserId();
+        const projectId: $TSFixMe =
 
             this.props.incident.projectId._id ?? this.props.incident.projectId;
 
@@ -262,8 +262,8 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
     };
 
     resolve = async (setLoading: $TSFixMe) => {
-        const userId = User.getUserId();
-        const projectId =
+        const userId: $TSFixMe = User.getUserId();
+        const projectId: $TSFixMe =
 
             this.props.incident.projectId._id ?? this.props.incident.projectId;
 
@@ -319,7 +319,7 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
     };
 
     closeIncident = () => {
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.incident.projectId._id ?? this.props.incident.projectId;
 
@@ -346,13 +346,13 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
 
         if (this.props.incident && this.props.incident.monitors) {
 
-            const monitors = this.props.incident.monitors.map(
+            const monitors: $TSFixMe = this.props.incident.monitors.map(
                 (monitor: $TSFixMe) => monitor.monitorId
             );
-            const escalationArray = [];
+            const escalationArray: $TSFixMe = [];
 
 
-            const escalation = this.props.escalations
+            const escalation: $TSFixMe = this.props.escalations
 
                 ? this.props.escalations.find(
                     (escalation: $TSFixMe) => escalation.scheduleId &&
@@ -364,7 +364,7 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
             if (!escalation) {
                 for (const monitorObj of monitors) {
 
-                    const foundEscalation = this.props.escalations
+                    const foundEscalation: $TSFixMe = this.props.escalations
 
                         ? this.props.escalations.find(
                             (escalation: $TSFixMe) => escalation.scheduleId &&
@@ -411,14 +411,14 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
     };
 
     override render() {
-        const isUsersubProjectId =
+        const isUsersubProjectId: $TSFixMe =
 
             this.props.incident.projectId &&
 
             (this.props.incident.projectId._id ||
 
                 this.props.incident.projectId);
-        const subProject =
+        const subProject: $TSFixMe =
 
             this.props.subProjects &&
 
@@ -426,8 +426,8 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
                 (subProject: $TSFixMe) => subProject._id === isUsersubProjectId // The Id is being looked for during filtering. What it was seeing is an object that contains the ID
             )[0];
 
-        const loggedInUser = User.getUserId();
-        const isUserInProject =
+        const loggedInUser: $TSFixMe = User.getUserId();
+        const isUserInProject: $TSFixMe =
 
             this.props.currentProject &&
 
@@ -443,7 +443,7 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
             );
         }
 
-        const monitorName =
+        const monitorName: $TSFixMe =
 
             (this.props.multiple &&
 
@@ -458,21 +458,21 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
                 ? this.handleMonitorList(this.props.incident.monitors)
                 : '';
 
-        const projectId = this.props.currentProject
+        const projectId: $TSFixMe = this.props.currentProject
 
             ? this.props.currentProject._id
             : '';
-        // const incidentIdNumber = this.props.incident
+        // const incidentIdNumber: $TSFixMe = this.props.incident
         //     ? this.props.incident.idNumber
         //     : '';
 
-        const homeRoute = this.props.currentProject
+        const homeRoute: $TSFixMe = this.props.currentProject
 
             ? '/dashboard/project/' + this.props.currentProject.slug
             : '';
 
 
-        const showResolveButton = this.props.multipleIncidentRequest
+        const showResolveButton: $TSFixMe = this.props.multipleIncidentRequest
 
             ? !this.props.multipleIncidentRequest.resolving
 
@@ -480,7 +480,7 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
 
             !this.props.incidentRequest.resolving;
 
-        const incidentReason =
+        const incidentReason: $TSFixMe =
 
             this.props.incident.reason &&
 
@@ -488,9 +488,9 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
 
         function changeFormat(data: $TSFixMe) {
             let result;
-            const strArr = data.split('\n');
-            const regex = /did\s{1,}not\s{1,}evaluate/;
-            const patt = new RegExp(regex);
+            const strArr: $TSFixMe = data.split('\n');
+            const regex: $TSFixMe = /did\s{1,}not\s{1,}evaluate/;
+            const patt: $TSFixMe = new RegExp(regex);
             let success = false;
             for (let i = 0; i < strArr.length; i++) {
                 if (patt.test(strArr[i])) {
@@ -509,31 +509,31 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
         }
 
         const formatAckDate: Function = (otherDate: $TSFixMe, createdDate: $TSFixMe) => {
-            const sec = moment(moment(otherDate).toArray()).diff(
+            const sec: $TSFixMe = moment(moment(otherDate).toArray()).diff(
                 moment(moment(createdDate).toArray()),
                 'seconds'
             );
-            const minutes = moment(moment(otherDate).toArray()).diff(
+            const minutes: $TSFixMe = moment(moment(otherDate).toArray()).diff(
                 moment(moment(createdDate).toArray()),
                 'minutes'
             );
-            const hours = moment(moment(otherDate).toArray()).diff(
+            const hours: $TSFixMe = moment(moment(otherDate).toArray()).diff(
                 moment(moment(createdDate).toArray()),
                 'hours'
             );
-            const days = moment(moment(otherDate).toArray()).diff(
+            const days: $TSFixMe = moment(moment(otherDate).toArray()).diff(
                 moment(moment(createdDate).toArray()),
                 'days'
             );
-            const weeks = moment(moment(otherDate).toArray()).diff(
+            const weeks: $TSFixMe = moment(moment(otherDate).toArray()).diff(
                 moment(moment(createdDate).toArray()),
                 'weeks'
             );
-            const months = moment(moment(otherDate).toArray()).diff(
+            const months: $TSFixMe = moment(moment(otherDate).toArray()).diff(
                 moment(moment(createdDate).toArray()),
                 'months'
             );
-            const years = moment(moment(otherDate).toArray()).diff(
+            const years: $TSFixMe = moment(moment(otherDate).toArray()).diff(
                 moment(moment(createdDate).toArray()),
                 'years'
             );
@@ -561,7 +561,7 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
             teamMembers = [];
         }
 
-        const team = teamMembers.filter(member => member.userId);
+        const team = teamMembers.filter(member: $TSFixMe => member.userId);
 
         return <>
             <ShouldRender
@@ -736,10 +736,10 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
                                                                                             'Response Time'
                                                                                         )
                                                                                     ) {
-                                                                                        const milliSeconds = a.match(
+                                                                                        const milliSeconds: $TSFixMe = a.match(
                                                                                             /\d+/
                                                                                         )[0];
-                                                                                        const time = formatMonitorResponseTime(
+                                                                                        const time: $TSFixMe = formatMonitorResponseTime(
                                                                                             Number(
                                                                                                 milliSeconds
                                                                                             )
@@ -2245,10 +2245,10 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
                                                                                             'Response Time'
                                                                                         )
                                                                                     ) {
-                                                                                        const milliSeconds = a.match(
+                                                                                        const milliSeconds: $TSFixMe = a.match(
                                                                                             /\d+/
                                                                                         )[0];
-                                                                                        const time = formatMonitorResponseTime(
+                                                                                        const time: $TSFixMe = formatMonitorResponseTime(
                                                                                             Number(
                                                                                                 milliSeconds
                                                                                             )
@@ -2281,10 +2281,10 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
                                                                                         'Response Time'
                                                                                     )
                                                                                 ) {
-                                                                                    const milliSeconds = a.match(
+                                                                                    const milliSeconds: $TSFixMe = a.match(
                                                                                         /\d+/
                                                                                     )[0];
-                                                                                    const time = formatMonitorResponseTime(
+                                                                                    const time: $TSFixMe = formatMonitorResponseTime(
                                                                                         Number(
                                                                                             milliSeconds
                                                                                         )
@@ -2835,14 +2835,14 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
 
 IncidentStatus.displayName = 'IncidentStatus';
 
-const EditIncidentStatusForm = reduxForm({
+const EditIncidentStatusForm: $TSFixMe = reduxForm({
     form: 'IncidentStatusForm',
     enableReinitialize: true,
 })(IncidentStatus);
-const selector = formValueSelector('IncidentStatusForm');
+const selector: $TSFixMe = formValueSelector('IncidentStatusForm');
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { incidentId } = ownProps.match.params;
-    const incident = ownProps.incident;
+    const { incidentId }: $TSFixMe = ownProps.match.params;
+    const incident: $TSFixMe = ownProps.incident;
     const initialValues: $TSFixMe = {
         title: incident.title,
         description: incident.description,
@@ -2850,7 +2850,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
             ? incident.incidentPriority._id
             : '',
     };
-    const { description, incidentPriority } = selector(
+    const { description, incidentPriority }: $TSFixMe = selector(
         state,
         'description',
         'incidentPriority'

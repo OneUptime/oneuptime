@@ -21,9 +21,9 @@ export class UserDeleteBox extends Component<ComponentProps>{
 
     handleClick = () => {
 
-        const { deleteUser, userId } = this.props;
+        const { deleteUser, userId }: $TSFixMe = this.props;
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
 
         this.props.openModal({
@@ -47,7 +47,7 @@ export class UserDeleteBox extends Component<ComponentProps>{
 
     override render() {
 
-        const { isRequesting } = this.props;
+        const { isRequesting }: $TSFixMe = this.props;
 
         return (
             <div
@@ -99,7 +99,7 @@ UserDeleteBox.displayName = 'UserDeleteBox';
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteUser, openModal, closeModal }, dispatch);
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
 
     return {
         userId,

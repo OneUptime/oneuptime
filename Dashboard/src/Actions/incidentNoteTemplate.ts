@@ -21,11 +21,11 @@ export const createIncidentNoteTemplateFailure: Function = (
     payload: error,
 });
 
-export const createIncidentNoteTemplate =
+export const createIncidentNoteTemplate: $TSFixMe =
     ({ projectId, data }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(createIncidentNoteTemplateRequest());
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `incidentNoteTemplate/${projectId}`,
             data
         );
@@ -35,7 +35,7 @@ export const createIncidentNoteTemplate =
                 dispatch(createIncidentNoteTemplateSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -69,11 +69,11 @@ export const fetchIncidentNoteTemplatesFailure: Function = (
     payload: error,
 });
 
-export const fetchIncidentNoteTemplates =
+export const fetchIncidentNoteTemplates: $TSFixMe =
     ({ projectId, skip = 0, limit = 0 }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(fetchIncidentNoteTemplatesRequest());
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `incidentNoteTemplate/${projectId}?skip=${skip}&limit=${limit}`
         );
 
@@ -82,7 +82,7 @@ export const fetchIncidentNoteTemplates =
                 dispatch(fetchIncidentNoteTemplatesSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -116,11 +116,11 @@ export const updateIncidentNoteTemplateFailure: Function = (
     payload: error,
 });
 
-export const updateIncidentNoteTemplate =
+export const updateIncidentNoteTemplate: $TSFixMe =
     ({ projectId, templateId, data }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(updateIncidentNoteTemplateRequest());
-        const promise = BackendAPI.put(
+        const promise: $TSFixMe = BackendAPI.put(
             `incidentNoteTemplate/${projectId}/${templateId}`,
             data
         );
@@ -130,7 +130,7 @@ export const updateIncidentNoteTemplate =
                 dispatch(updateIncidentNoteTemplateSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
@@ -164,12 +164,12 @@ export const deleteIncidentNoteTemplateFailure: Function = (
     payload: error,
 });
 
-export const deleteIncidentNoteTemplate =
+export const deleteIncidentNoteTemplate: $TSFixMe =
     ({ projectId, templateId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(deleteIncidentNoteTemplateRequest());
 
-        const promise =
+        const promise: $TSFixMe =
             delete `incidentNoteTemplate/${projectId}/${templateId}`;
 
         promise.then(
@@ -177,7 +177,7 @@ export const deleteIncidentNoteTemplate =
                 dispatch(deleteIncidentNoteTemplateSuccess(response.data));
             },
             (error): void => {
-                const errorMsg =
+                const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
                         : error.data

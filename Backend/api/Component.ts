@@ -19,10 +19,10 @@ import PerformanceTrackerService from '../services/performanceTrackerService';
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import ErrorService from 'CommonServer/Utils/error';
 
-const router = express.getRouter();
-const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const getUser = require('../middlewares/user').getUser;
-const getSubProjects = require('../middlewares/subProject').getSubProjects;
+const router: $TSFixMe = express.getRouter();
+const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -46,8 +46,8 @@ router.post(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const data = req.body;
-            const projectId = req.params.projectId;
+            const data: $TSFixMe = req.body;
+            const projectId: $TSFixMe = req.params.projectId;
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -73,9 +73,9 @@ router.post(
 
             data.projectId = projectId;
 
-            const component = await ComponentService.create(data);
+            const component: $TSFixMe = await ComponentService.create(data);
 
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: req.user.id },
                 select: 'name _id',
             });
@@ -111,13 +111,13 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = req.body;
-            const { componentId } = req.params;
+            const data: $TSFixMe = req.body;
+            const { componentId }: $TSFixMe = req.params;
             let unsetData;
             if (!data.componentCategoryId || data.componentCategoryId === '') {
                 unsetData = { componentCategoryId: '' };
             }
-            const component = await ComponentService.updateOneBy(
+            const component: $TSFixMe = await ComponentService.updateOneBy(
                 { _id: componentId },
                 data,
                 unsetData
@@ -145,10 +145,10 @@ router.get(
     getSubProjects,
     async (req, res): void => {
         try {
-            const { limit, skip } = req.query;
+            const { limit, skip }: $TSFixMe = req.query;
 
             // Call the ComponentService.
-            const components =
+            const components: $TSFixMe =
                 await ComponentService.getComponentsBySubprojects(
                     [req.params.projectId],
                     limit || 0,
@@ -169,11 +169,11 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId } = req.params;
-            const { limit, skip } = req.query;
+            const { projectId }: $TSFixMe = req.params;
+            const { limit, skip }: $TSFixMe = req.query;
 
             // Call the ComponentService.
-            const response = await ComponentService.getComponentsByPaginate(
+            const response: $TSFixMe = await ComponentService.getComponentsByPaginate(
                 projectId,
                 limit,
                 skip
@@ -191,15 +191,15 @@ router.get(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { slug } = req.params;
-            const populateComponent = [
+            const { slug }: $TSFixMe = req.params;
+            const populateComponent: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
                 { path: 'componentCategoryId', select: 'name' },
             ];
 
-            const selectComponent =
+            const selectComponent: $TSFixMe =
                 '_id createdAt name createdById projectId slug componentCategoryId';
-            const component = await ComponentService.findOneBy({
+            const component: $TSFixMe = await ComponentService.findOneBy({
                 query: { slug },
                 select: selectComponent,
                 populate: populateComponent,
@@ -219,24 +219,24 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const type = req.query.type;
+            const type: $TSFixMe = req.query.type;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            const query = type
+            const query: $TSFixMe = type
                 ? { projectId: { $in: subProjectIds }, type }
                 : { projectId: { $in: subProjectIds } };
 
-            const populateComponent = [
+            const populateComponent: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
                 { path: 'componentCategoryId', select: 'name' },
             ];
 
-            const selectComponent =
+            const selectComponent: $TSFixMe =
                 '_id createdAt name createdById projectId slug componentCategoryId';
 
-            const [components, count] = await Promise.all([
+            const [components, count]: $TSFixMe = await Promise.all([
                 ComponentService.findBy({
                     query,
                     limit: req.query['limit'] || 10,
@@ -262,24 +262,24 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const componentId = req.params.componentId;
-            const type = req.query.type;
+            const componentId: $TSFixMe = req.params.componentId;
+            const type: $TSFixMe = req.query.type;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            const query = type
+            const query: $TSFixMe = type
                 ? { _id: componentId, projectId: { $in: subProjectIds }, type }
                 : { _id: componentId, projectId: { $in: subProjectIds } };
 
-            const populateComponent = [
+            const populateComponent: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
                 { path: 'componentCategoryId', select: 'name' },
             ];
 
-            const selectComponent =
+            const selectComponent: $TSFixMe =
                 '_id createdAt name createdById projectId slug componentCategoryId';
-            const component = await ComponentService.findOneBy({
+            const component: $TSFixMe = await ComponentService.findOneBy({
                 query,
                 select: selectComponent,
                 populate: populateComponent,
@@ -299,15 +299,15 @@ router.post(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { startDate, endDate } = req.body;
-            const componentId = req.params.componentId;
+            const { startDate, endDate }: $TSFixMe = req.body;
+            const componentId: $TSFixMe = req.params.componentId;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             // Check that component exists
-            const componentCount = await ComponentService.countBy({
+            const componentCount: $TSFixMe = await ComponentService.countBy({
                 _id: componentId,
                 projectId: { $in: subProjectIds },
             });
@@ -334,7 +334,7 @@ router.post(
                             monitorUptime: 100,
                         };
 
-                        const monitorStatus =
+                        const monitorStatus: $TSFixMe =
                             await MonitorService.getMonitorStatuses(
                                 monitor._id,
                                 startDate,
@@ -342,9 +342,9 @@ router.post(
                             );
 
                         if (monitorStatus && monitorStatus.length) {
-                            const uptimePercents = await Promise.all(
+                            const uptimePercents: $TSFixMe = await Promise.all(
                                 monitorStatus.map(async probe => {
-                                    const { uptimePercent } =
+                                    const { uptimePercent }: $TSFixMe =
                                         await MonitorService.calculateTime(
                                             probe.statuses,
                                             startDate,
@@ -358,7 +358,7 @@ router.post(
                                 })
                             );
 
-                            const monitorUptime =
+                            const monitorUptime: $TSFixMe =
                                 uptimePercents.reduce(
                                     (a, b) =>
                                         parseFloat(a || 100) +
@@ -399,26 +399,26 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const componentId = req.params.componentId;
-            const type = req.query.type;
+            const componentId: $TSFixMe = req.params.componentId;
+            const type: $TSFixMe = req.query.type;
 
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
-            const query = type
+            const query: $TSFixMe = type
                 ? { _id: componentId, projectId: { $in: subProjectIds }, type }
                 : { _id: componentId, projectId: { $in: subProjectIds } };
 
             // Get that component
-            const populateComponent = [
+            const populateComponent: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
                 { path: 'componentCategoryId', select: 'name' },
             ];
 
-            const selectComponent =
+            const selectComponent: $TSFixMe =
                 '_id createdAt name createdById projectId slug componentCategoryId';
-            const component = await ComponentService.findOneBy({
+            const component: $TSFixMe = await ComponentService.findOneBy({
                 query,
                 select: selectComponent,
                 populate: populateComponent,
@@ -430,10 +430,10 @@ router.get(
                 });
             }
             const totalResources: $TSFixMe = [];
-            const limit = 1000;
-            const skip = req.query['skip'] || 0;
+            const limit: $TSFixMe = 1000;
+            const skip: $TSFixMe = req.query['skip'] || 0;
 
-            const populateApplicationSecurity = [
+            const populateApplicationSecurity: $TSFixMe = [
                 {
                     path: 'componentId',
                     select: '_id slug name slug',
@@ -446,13 +446,13 @@ router.get(
                 },
             ];
 
-            const selectApplicationSecurity =
+            const selectApplicationSecurity: $TSFixMe =
                 '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
-            const selectContainerLog =
+            const selectContainerLog: $TSFixMe =
                 'securityId componentId data deleted deleteAt';
 
-            const populateContainerLog = [
+            const populateContainerLog: $TSFixMe = [
                 { path: 'securityId', select: 'name slug' },
                 { path: 'componentId', select: 'name slug' },
             ];
@@ -525,7 +525,7 @@ router.get(
 
             await Promise.all(
                 containerSecurity.map(async (elem: $TSFixMe) => {
-                    const securityLog =
+                    const securityLog: $TSFixMe =
                         await ContainerSecurityLogService.findOneBy({
                             query: {
                                 securityId: elem._id,
@@ -553,7 +553,7 @@ router.get(
                 applicationSecurity.map(async (elem: $TSFixMe) => {
                     // get the security log
 
-                    const populateApplicationSecurityLog = [
+                    const populateApplicationSecurityLog: $TSFixMe = [
                         {
                             path: 'componentId',
                             select: '_id slug name slug',
@@ -564,9 +564,9 @@ router.get(
                         },
                     ];
 
-                    const selectApplicationSecurityLog =
+                    const selectApplicationSecurityLog: $TSFixMe =
                         '_id securityId componentId data';
-                    const securityLog =
+                    const securityLog: $TSFixMe =
                         await ApplicationSecurityLogService.findOneBy({
                             query: {
                                 securityId: elem._id,
@@ -595,7 +595,7 @@ router.get(
                     async (elem: $TSFixMe) => {
                         let logStatus = 'No logs yet';
                         // confirm if the application log has started collecting logs or not
-                        const logs = await LogService.getLogsByApplicationLogId(
+                        const logs: $TSFixMe = await LogService.getLogsByApplicationLogId(
                             elem._id,
                             1,
                             0
@@ -625,16 +625,16 @@ router.get(
                     async (errorTracker: $TSFixMe) => {
                         let errorStatus = 'No Errors yet';
 
-                        const populateIssue = [
+                        const populateIssue: $TSFixMe = [
                             { path: 'errorTrackerId', select: 'name' },
                             { path: 'resolvedById', select: 'name' },
                             { path: 'ignoredById', select: 'name' },
                         ];
 
-                        const selectIssue =
+                        const selectIssue: $TSFixMe =
                             'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
-                        const issues = await IssueService.findBy({
+                        const issues: $TSFixMe = await IssueService.findBy({
                             query: { errorTrackerId: errorTracker._id },
                             limit: 1,
                             skip: 0,
@@ -664,7 +664,7 @@ router.get(
                 performanceTrackers.map(
                     async (performanceTracker: $TSFixMe) => {
                         let trackerStatus = 'Not monitoring performance';
-                        const metrics =
+                        const metrics: $TSFixMe =
                             await PerformanceTrackerMetricService.findBy({
                                 query: {
                                     performanceTrackerId:
@@ -712,12 +712,12 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const subProjectIds = req.user.subProjects
+            const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             // Call the ComponentService.
-            const components =
+            const components: $TSFixMe =
                 await ComponentService.getComponentsBySubprojects(
                     subProjectIds,
                     req.query['limit'] || 0,
@@ -731,9 +731,9 @@ router.get(
             });
 
             let errorTrackers: $TSFixMe = [];
-            const select =
+            const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'componentId',
                     select: 'name slug projectId',
@@ -743,7 +743,7 @@ router.get(
             ];
             await Promise.all(
                 allComponents.map(async component => {
-                    const componentErrorTrackers =
+                    const componentErrorTrackers: $TSFixMe =
                         await ErrorTrackerService.findBy({
                             query: {
                                 componentId: component._id,
@@ -775,7 +775,7 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const { componentId, projectId } = req.params;
+        const { componentId, projectId }: $TSFixMe = req.params;
         try {
             await ComponentService.deleteBy(
                 {
@@ -785,7 +785,7 @@ router.delete(
 
                 req.user.id
             );
-            const component = await ComponentService.deleteBy(
+            const component: $TSFixMe = await ComponentService.deleteBy(
                 {
                     _id: componentId,
                     projectId: projectId,

@@ -33,7 +33,7 @@ export class VerifyBackupCode extends Component<ComponentProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const email = this.props.login.user.email;
+        const email: $TSFixMe = this.props.login.user.email;
 
         this.props.verifyBackupCode({ ...values, email });
     };
@@ -44,7 +44,7 @@ export class VerifyBackupCode extends Component<ComponentProps>{
 
             window.location.href = ACCOUNTS_URL + '/login';
 
-        const { backupCode } = this.props.login;
+        const { backupCode }: $TSFixMe = this.props.login;
         let header;
 
         if (backupCode.error) {
@@ -154,7 +154,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const verifyBackupCodeForm = reduxForm({
+const verifyBackupCodeForm: $TSFixMe = reduxForm({
     form: 'verifyBackupCode',
     validate,
 })(VerifyBackupCode);

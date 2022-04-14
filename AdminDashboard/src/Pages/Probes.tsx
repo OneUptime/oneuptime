@@ -31,9 +31,9 @@ class Probes extends Component<ComponentProps> {
 
     handleKeyboard = (event: $TSFixMe) => {
 
-        const { modalId, modalList } = this.props;
+        const { modalId, modalList }: $TSFixMe = this.props;
 
-        const { addModalId } = this.state;
+        const { addModalId }: $TSFixMe = this.state;
 
         if (event.target.localName === 'body' && event.key) {
             switch (event.key) {
@@ -69,7 +69,7 @@ class Probes extends Component<ComponentProps> {
 
     handleClick = () => {
 
-        const { addModalId } = this.state;
+        const { addModalId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: addModalId,

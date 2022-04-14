@@ -1,4 +1,4 @@
-const countryCodes = [
+const countryCodes: $TSFixMe = [
     {
         value: '',
         label: 'Select an country code',

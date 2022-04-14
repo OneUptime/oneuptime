@@ -49,7 +49,7 @@ class DeletePerformanceTracker extends Component<ComponentProps> {
 
             trackerObj,
         } = this.props;
-        const { project, componentSlug, performanceTrackerId } = data;
+        const { project, componentSlug, performanceTrackerId }: $TSFixMe = data;
 
         deletePerformanceTracker({
             projectId: project._id,
@@ -67,7 +67,7 @@ class DeletePerformanceTracker extends Component<ComponentProps> {
 
     override render() {
 
-        const { closeModal, trackerObj } = this.props;
+        const { closeModal, trackerObj }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

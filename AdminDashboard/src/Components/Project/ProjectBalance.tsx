@@ -44,10 +44,10 @@ class ProjectBalance extends Component<ComponentProps> {
     };
     submitForm = (values: $TSFixMe) => {
 
-        const { openModal } = this.props;
+        const { openModal }: $TSFixMe = this.props;
 
-        const { createTopUpModalId } = this.state;
-        const { rechargeBalanceAmount } = values;
+        const { createTopUpModalId }: $TSFixMe = this.state;
+        const { rechargeBalanceAmount }: $TSFixMe = values;
         if (rechargeBalanceAmount) {
             openModal({
                 id: createTopUpModalId,
@@ -63,11 +63,11 @@ class ProjectBalance extends Component<ComponentProps> {
     };
     updateProjectBalance = (values: $TSFixMe) => {
 
-        const { updateBalance, projectId, openModal } = this.props;
-        const { MessageBoxId } = this.state;
+        const { updateBalance, projectId, openModal }: $TSFixMe = this.props;
+        const { MessageBoxId }: $TSFixMe = this.state;
         return updateBalance(projectId, values.rechargeBalanceAmount)
             .then((response: $TSFixMe) => {
-                const { balance } = response.data;
+                const { balance }: $TSFixMe = response.data;
                 openModal({
                     id: MessageBoxId,
                     content: MessageBox,
@@ -89,7 +89,7 @@ class ProjectBalance extends Component<ComponentProps> {
 
     override render() {
 
-        const { balance } = this.props;
+        const { balance }: $TSFixMe = this.props;
         return (
             <div className="Box-root Margin-vertical--12">
                 <div className="db-RadarRulesLists-page">
@@ -294,7 +294,7 @@ const  formName: string = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1)
 
 const onSubmitSuccess: Function = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
-const ProjectBalanceForm = new reduxForm({
+const ProjectBalanceForm: $TSFixMe = new reduxForm({
     form: formName,
     enableReinitialize: true,
     validate,

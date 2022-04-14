@@ -9,12 +9,12 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
-const applicationLogName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const applicationLogName: $TSFixMe = utils.generateRandomString();
 let applicationLogKey = '';
 
 describe('Log Containers', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -67,7 +67,7 @@ describe('Log Containers', () => {
 
             // find the log api key button which appears only on the details page
 
-            const logKeyElement = await init.pageWaitForSelector(
+            const logKeyElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#key_${applicationLogName}`
             );
@@ -451,7 +451,7 @@ describe('Log Containers', () => {
             await init.pageClick(page, '#deleteResourceCategory');
 
             // go back to log details and confirm it is not there anymore
-            const spanElementBadge = await page.$(
+            const spanElementBadge: $TSFixMe = await page.$(
                 `#${applicationLogName}NewBadge`,
                 { hidden: true }
             );

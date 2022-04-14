@@ -95,14 +95,14 @@ export class ScheduleComponent extends Component<ScheduleComponentProps>{
 
             changeBackupFile,
         } = this.props;
-        const introAudioLoading =
+        const introAudioLoading: $TSFixMe =
             (uploadIntroAudioState &&
                 uploadIntroAudioState.requesting &&
                 uploadIntroAudioState.callRoutingId === data.callRoutingId) ||
             (removeIntroAudioState &&
                 removeIntroAudioState.requesting &&
                 removeIntroAudioState.callRoutingId === data.callRoutingId);
-        const backupIntroAudioLoading =
+        const backupIntroAudioLoading: $TSFixMe =
             (uploadBackupIntroAudioState &&
                 uploadBackupIntroAudioState.requesting &&
                 uploadBackupIntroAudioState.callRoutingId ===

@@ -56,7 +56,7 @@ class TrackerInfo extends Component<ComponentProps> {
 
             trackerObj,
         } = this.props;
-        const { currentProject, performanceTracker } = data;
+        const { currentProject, performanceTracker }: $TSFixMe = data;
 
         resetPerformanceTrackerKey({
             projectId: currentProject._id,
@@ -69,7 +69,7 @@ class TrackerInfo extends Component<ComponentProps> {
     };
     handleKeyBoard = (e: $TSFixMe) => {
 
-        const { closeModal } = this.props;
+        const { closeModal }: $TSFixMe = this.props;
 
         switch (e.key) {
             case 'Escape':
@@ -87,10 +87,10 @@ class TrackerInfo extends Component<ComponentProps> {
     };
 
     override render() {
-        const { hidden } = this.state;
+        const { hidden }: $TSFixMe = this.state;
 
-        const { data, closeModal, trackerObj } = this.props;
-        const { currentProject, performanceTracker } = data;
+        const { data, closeModal, trackerObj }: $TSFixMe = this.props;
+        const { currentProject, performanceTracker }: $TSFixMe = data;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

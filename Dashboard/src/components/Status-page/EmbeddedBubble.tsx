@@ -21,7 +21,7 @@ import ResetStatusBubbleIdModal from '../modals/ResetStatusBubbleIdModal';
 import ResetCssModal from '../modals/ResetCssModal';
 import { openModal, closeModal } from 'CommonUI/actions/modal';
 
-const selector = formValueSelector('EmbeddedBubble');
+const selector: $TSFixMe = formValueSelector('EmbeddedBubble');
 
 const css: Function = (colors: $TSFixMe) => `<style>
     .all {
@@ -153,9 +153,9 @@ export class EmbeddedBubble extends Component<EmbeddedBubbleProps>{
     }
     submitForm = (values: $TSFixMe) => {
 
-        const { status } = this.props.statusPage;
-        const { projectId } = status;
-        const { embeddedCustomCSS } = values;
+        const { status }: $TSFixMe = this.props.statusPage;
+        const { projectId }: $TSFixMe = status;
+        const { embeddedCustomCSS }: $TSFixMe = values;
 
         this.props.updateStatusPageEmbeddedCss(projectId._id || projectId, {
             _id: status._id,
@@ -164,16 +164,16 @@ export class EmbeddedBubble extends Component<EmbeddedBubbleProps>{
     };
     changecss = (event: $TSFixMe, css: $TSFixMe) => {
 
-        const url:string = `${API_URL}/StatusPage/statusBubble?statusPageId=${this.props.statusPageId}&statusBubbleId=${this.props.statusBubbleId}`;
-        const value = createScript(url, css);
+        const url:string: $TSFixMe = `${API_URL}/StatusPage/statusBubble?statusPageId=${this.props.statusPageId}&statusBubbleId=${this.props.statusBubbleId}`;
+        const value: $TSFixMe = createScript(url, css);
 
         this.props.change('embeddedcode', value);
     };
     resetcss = () => {
 
-        const { status } = this.props.statusPage;
-        const { projectId, colors } = status;
-        const customCss = css(colors);
+        const { status }: $TSFixMe = this.props.statusPage;
+        const { projectId, colors }: $TSFixMe = status;
+        const customCss: $TSFixMe = css(colors);
 
 
         return this.props.resetStatusPageEmbeddedCss(
@@ -212,7 +212,7 @@ export class EmbeddedBubble extends Component<EmbeddedBubbleProps>{
             embeddedCss,
         } = this.props;
 
-        const { showMoreOptions, resetModalId, resetCssModalId } = this.state;
+        const { showMoreOptions, resetModalId, resetCssModalId }: $TSFixMe = this.state;
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -613,7 +613,7 @@ EmbeddedBubble.propTypes = {
     updateStatusPageEmbeddedCss: PropTypes.func,
 };
 
-const EmbeddedBubbleForm = reduxForm({
+const EmbeddedBubbleForm: $TSFixMe = reduxForm({
     form: 'EmbeddedBubble', // a unique identifier for this form
     enableReinitialize: true,
 })(EmbeddedBubble);
@@ -631,7 +631,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const customCodeValue = selector(state, 'embeddedcode');
+    const customCodeValue: $TSFixMe = selector(state, 'embeddedcode');
     const {
         statusBubbleId,
         _id,
@@ -639,10 +639,10 @@ const mapStateToProps: Function = (state: RootState) => {
         colors,
         embeddedCss,
     } = state.statusPage.status;
-    const url:string = `${API_URL}/StatusPage/statusBubble?statusPageId=${_id}&statusBubbleId=${statusBubbleId}`;
-    const customCss =
+    const url:string: $TSFixMe = `${API_URL}/StatusPage/statusBubble?statusPageId=${_id}&statusBubbleId=${statusBubbleId}`;
+    const customCss: $TSFixMe =
         embeddedCss && embeddedCss.length ? embeddedCss : css(colors);
-    const script = createScript(url, customCss);
+    const script: $TSFixMe = createScript(url, customCss);
     return {
         initialValues: { embeddedcode: script, embeddedCustomCSS: customCss },
         statusBubbleId,

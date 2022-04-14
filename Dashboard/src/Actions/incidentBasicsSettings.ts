@@ -22,7 +22,7 @@ const fetchBasicIncidentSettingsVariablesFailure: Function = (
 
 export const fetchBasicIncidentSettingsVariables: Function = (): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`incidentSettings/variables`);
+        const promise: $TSFixMe = BackendAPI.get(`incidentSettings/variables`);
         dispatch(fetchBasicIncidentSettingsVariablesRequest());
         promise.then(
             (incidentBasicSettings): void => {
@@ -39,7 +39,7 @@ export const fetchBasicIncidentSettingsVariables: Function = (): void => {
     };
 };
 
-export const setRevealIncidentSettingsVariables =
+export const setRevealIncidentSettingsVariables: $TSFixMe =
     (payload: $TSFixMe) => (dispatch: Dispatch) => {
         dispatch({
             type: types.SET_REVEAL_VARIABLES_INCIDENT_BASIC_SETTINGS,
@@ -66,12 +66,12 @@ export const fetchIncidentTemplatesFailure: Function = (
     payload: error,
 });
 
-export const fetchIncidentTemplates =
+export const fetchIncidentTemplates: $TSFixMe =
     ({ projectId, skip, limit }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         const url: string = `incidentSettings/${projectId}?skip=${skip}&limit=${limit}`;
 
-        const promise = BackendAPI.get(url);
+        const promise: $TSFixMe = BackendAPI.get(url);
         dispatch(fetchIncidentTemplatesRequest());
         promise.then(
             (incidentBasicSettings): void => {
@@ -106,12 +106,12 @@ export const createIncidentTemplateFailure: Function = (
     payload: error,
 });
 
-export const createIncidentTemplate =
+export const createIncidentTemplate: $TSFixMe =
     ({ projectId, data }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         const url: string = `incidentSettings/${projectId}`;
 
-        const promise = BackendAPI.post(url, data);
+        const promise: $TSFixMe = BackendAPI.post(url, data);
         dispatch(createIncidentTemplateRequest());
         promise.then(
             (incidentBasicSettings): void => {
@@ -146,12 +146,12 @@ export const updateIncidentTemplateFailure: Function = (
     payload: error,
 });
 
-export const updateIncidentTemplate =
+export const updateIncidentTemplate: $TSFixMe =
     ({ projectId, templateId, data }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         const url: string = `incidentSettings/${projectId}/${templateId}`;
 
-        const promise = BackendAPI.put(url, data);
+        const promise: $TSFixMe = BackendAPI.put(url, data);
         dispatch(updateIncidentTemplateRequest());
         promise.then(
             (incidentBasicSettings): void => {
@@ -186,12 +186,12 @@ export const deleteIncidentTemplateFailure: Function = (
     payload: error,
 });
 
-export const deleteIncidentTemplate =
+export const deleteIncidentTemplate: $TSFixMe =
     ({ projectId, templateId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         const url: string = `incidentSettings/${projectId}/${templateId}`;
 
-        const promise = BackendAPI.delete(url);
+        const promise: $TSFixMe = BackendAPI.delete(url);
         dispatch(deleteIncidentTemplateRequest());
         promise.then(
             (incidentBasicSettings): void => {
@@ -226,12 +226,12 @@ export const setDefaultTemplateFailure: Function = (
     payload: error,
 });
 
-export const setDefaultTemplate =
+export const setDefaultTemplate: $TSFixMe =
     ({ projectId, templateId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         const url: string = `incidentSettings/${projectId}/${templateId}/setDefault`;
 
-        const promise = BackendAPI.put(url, {});
+        const promise: $TSFixMe = BackendAPI.put(url, {});
         dispatch(setDefaultTemplateRequest());
         promise.then(
             (incidentBasicSettings): void => {
@@ -270,12 +270,12 @@ export const fetchDefaultTemplateFailure: Function = (
     payload: error,
 });
 
-export const fetchDefaultTemplate =
+export const fetchDefaultTemplate: $TSFixMe =
     ({ projectId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         const url: string = `incidentSettings/${projectId}/default`;
 
-        const promise = BackendAPI.get(url);
+        const promise: $TSFixMe = BackendAPI.get(url);
         dispatch(fetchDefaultTemplateRequest());
         promise.then(
             (incidentBasicSettings): void => {

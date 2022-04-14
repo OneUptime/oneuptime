@@ -1,4 +1,4 @@
-const PKG_VERSION = require('../package.json').version;
+const PKG_VERSION: $TSFixMe = require('../package.json').version;
 
 import { find, save, deleteDatabase } from '../util/db';
 
@@ -24,7 +24,7 @@ async function run(): void {
 async function updateVersion(): void {
     const collection: string = 'globalconfigs';
     const name: string = 'version';
-    const docs = await find(collection, { name });
+    const docs: $TSFixMe = await find(collection, { name });
 
     if (docs.length === 0) {
         const doc: $TSFixMe = {
@@ -38,7 +38,7 @@ async function updateVersion(): void {
 async function addMasterAdminUser(): void {
     const collection: string = 'users';
 
-    const now = new Date().toISOString();
+    const now: $TSFixMe = new Date().toISOString();
 
     const masterAdminUser: $TSFixMe = {
         name: 'Master Admin',
@@ -63,13 +63,13 @@ async function addMasterAdminUser(): void {
 
 async function setupTestProbes(): void {
     const collection: string = 'probes';
-    const docs = await find(collection, {
+    const docs: $TSFixMe = await find(collection, {
         probeName: { $in: ['Probe 1', 'Probe 2'] },
     });
 
     if (docs.length === 0) {
-        const now = new Date().toISOString();
-        const docs = [
+        const now: $TSFixMe = new Date().toISOString();
+        const docs: $TSFixMe = [
             {
                 deleted: false,
                 createdAt: now,

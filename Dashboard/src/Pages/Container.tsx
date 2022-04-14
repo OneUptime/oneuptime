@@ -169,7 +169,7 @@ class Container extends Component<ComponentProps> {
             prevProps.componentSlug !== this.props.componentSlug
         ) {
 
-            const { projectId, fetchComponent, componentSlug } = this.props;
+            const { projectId, fetchComponent, componentSlug }: $TSFixMe = this.props;
             if (projectId) {
                 fetchComponent(projectId, componentSlug);
             }
@@ -227,11 +227,11 @@ class Container extends Component<ComponentProps> {
             error,
         } = this.props;
 
-        const page = this.state.page;
-        const canNext =
+        const page: $TSFixMe = this.state.page;
+        const canNext: $TSFixMe =
             securities && count && count > skip + limit ? true : false;
-        const canPrev = securities && skip <= 0 ? false : true;
-        const numberOfPages = numberOfPage
+        const canPrev: $TSFixMe = securities && skip <= 0 ? false : true;
+        const numberOfPages: $TSFixMe = numberOfPage
             ? numberOfPage
             : Math.ceil(parseInt(count) / limit);
 
@@ -244,7 +244,7 @@ class Container extends Component<ComponentProps> {
             );
         });
 
-        const containerSecurities = securities ? sortByName(securities) : [];
+        const containerSecurities: $TSFixMe = securities ? sortByName(securities) : [];
         // containerSecurities.length > 0 &&
         //     containerSecurities.map(containerSecurity => {
         //         // join room
@@ -261,10 +261,10 @@ class Container extends Component<ComponentProps> {
         //         return containerSecurity;
         //     });
 
-        const componentName = component ? component.name : '';
-        const projectName = currentProject ? currentProject.name : '';
+        const componentName: $TSFixMe = component ? component.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
 
-        const isEmpty = containerSecurities.length === 0;
+        const isEmpty = containerSecurities.length: $TSFixMe === 0;
         return (
             <Fade>
                 <BreadCrumbItem
@@ -570,7 +570,7 @@ Container.propTypes = {
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     // ids from url
-    const { componentSlug } = ownProps.match.params;
+    const { componentSlug }: $TSFixMe = ownProps.match.params;
 
     return {
         projectId:

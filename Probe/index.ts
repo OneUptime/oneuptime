@@ -7,7 +7,7 @@ import Main from './workers/main';
 import config from './utils/config';
 import logger from 'CommonServer/Utils/Logger';
 
-const cronMinuteStartTime = Math.floor(Math.random() * 50);
+const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
 setTimeout(async () => {
     // keep monitoring in an infinate loop.

@@ -86,7 +86,7 @@ class CardForm extends Component<ComponentProps> {
     };
 
     handleChange = (event: $TSFixMe) => {
-        const { error, empty } = event;
+        const { error, empty }: $TSFixMe = event;
         if (empty) {
             this.setState({
                 [event.elementType]: 'Required.',
@@ -105,7 +105,7 @@ class CardForm extends Component<ComponentProps> {
     };
 
     handleClick = () => {
-        const { registerModal } = this.state;
+        const { registerModal }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: registerModal,
@@ -130,8 +130,8 @@ class CardForm extends Component<ComponentProps> {
             signupError,
         } = this.props;
 
-        const { user, planId } = this.props.register;
-        const { email, companyName } = user;
+        const { user, planId }: $TSFixMe = this.props.register;
+        const { email, companyName }: $TSFixMe = user;
         if (stripe) {
             signUpRequest();
             stripe
@@ -183,9 +183,9 @@ class CardForm extends Component<ComponentProps> {
 
         this.plan = PricingPlan.getPlanById(this.props.planId);
 
-        const { handleSubmit } = this.props;
+        const { handleSubmit }: $TSFixMe = this.props;
 
-        const registerError = this.props.register.error;
+        const registerError: $TSFixMe = this.props.register.error;
         let header;
         if (registerError) {
             header = (
@@ -563,7 +563,7 @@ class CardForm extends Component<ComponentProps> {
 
 CardForm.displayName = 'CardForm';
 
-const validate = function (values: $TSFixMe) {
+const validate: $TSFixMe = function (values: $TSFixMe) {
     const errors: $TSFixMe = {};
 
     if (!Validate.text(values.cardName)) {
@@ -594,7 +594,7 @@ const validate = function (values: $TSFixMe) {
     return errors;
 };
 
-const cardForm = reduxForm({
+const cardForm: $TSFixMe = reduxForm({
     form: 'CardForm', // <------ same form name                     // <----- validate form data
     destroyOnUnmount: true, // <------ preserve form data
     forceUnregisterOnUnmount: true, // <------ unregister fields on unmount
@@ -644,7 +644,7 @@ CardForm.propTypes = {
     formValues: PropTypes.object,
 };
 
-const CardFormWithCheckOut = injectStripe(
+const CardFormWithCheckOut: $TSFixMe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(cardForm)
 );
 CardFormWithCheckOut.displayName = 'CardFormWithCheckOut';

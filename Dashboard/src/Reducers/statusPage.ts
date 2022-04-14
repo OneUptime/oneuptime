@@ -955,7 +955,7 @@ export default function statusPage(
             };
 
         case VERIFY_DOMAIN_SUCCESS: {
-            const updateDomains = JSON.parse(
+            const updateDomains: $TSFixMe = JSON.parse(
                 JSON.stringify(state.status.domains)
             ); // deep clone to avoid mutation of state
             updateDomains.forEach(({ domainVerificationToken }: $TSFixMe) => {
@@ -1217,7 +1217,7 @@ export default function statusPage(
                     description: mon.description,
                 };
             });
-            const monitorNames = action.payload.monitors.map(
+            const monitorNames: $TSFixMe = action.payload.monitors.map(
                 ({ monitor }: $TSFixMe) => monitor.name
             );
             const status: $TSFixMe = {
@@ -1393,7 +1393,7 @@ export default function statusPage(
             });
 
         case FETCH_SUBPROJECT_STATUSPAGE_SUCCESS: {
-            const subProjectStatusPages = action.payload.map(
+            const subProjectStatusPages: $TSFixMe = action.payload.map(
                 (statusPage: $TSFixMe) => {
                     const statusPages: $TSFixMe = [];
                     statusPage.statusPages.forEach((statuspage: $TSFixMe) => {

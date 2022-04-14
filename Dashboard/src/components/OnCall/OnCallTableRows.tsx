@@ -15,7 +15,7 @@ interface RowProps {
 }
 
 function Row(props: RowProps) {
-    const path:string = `/dashboard/project/${props.slug}/schedule/${props.scheduleSlug}`;
+    const path:string: $TSFixMe = `/dashboard/project/${props.slug}/schedule/${props.scheduleSlug}`;
     return (
         <tr
             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem"
@@ -57,10 +57,10 @@ Row.propTypes = {
 };
 
 function parseSchedule(schedule: $TSFixMe) {
-    const { name, monitorIds, _id, slug } = schedule;
-    const { escalationIds } = schedule;
-    const escalation = escalationIds[0] && escalationIds[0].teams;
-    const userIds = [];
+    const { name, monitorIds, _id, slug }: $TSFixMe = schedule;
+    const { escalationIds }: $TSFixMe = schedule;
+    const escalation: $TSFixMe = escalationIds[0] && escalationIds[0].teams;
+    const userIds: $TSFixMe = [];
     if (escalation && escalation.length) {
         for (let i = 0; i < escalation.length; i++) {
             if (
@@ -81,7 +81,7 @@ function parseSchedule(schedule: $TSFixMe) {
     const gt: Function = (i: $TSFixMe) => monitorIds.length > i;
     const ut: Function = (i: $TSFixMe) => userIds.length > i;
 
-    const id = _id;
+    const id: $TSFixMe = _id;
 
     let users = ut(0)
         ? userIds[0].name

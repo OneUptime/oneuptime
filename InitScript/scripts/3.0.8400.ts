@@ -3,14 +3,14 @@ import getSlug from '../util/getSlug';
 const monitorCollection: string = 'monitors';
 
 async function run(): void {
-    const monitors = await find(monitorCollection, {
+    const monitors: $TSFixMe = await find(monitorCollection, {
         $or: [
             { slug: { $exists: false } },
             { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < monitors.length; i++) {
-        const { name } = monitors[i];
+        const { name }: $TSFixMe = monitors[i];
         monitors[i].slug = getSlug(name);
         await update(
             monitorCollection,

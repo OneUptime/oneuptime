@@ -62,7 +62,7 @@ class LoginPage extends React.Component<LoginPageProps> {
 
     override render() {
 
-        const { login, masterAdminExists, requestingMasterAdmin } = this.props;
+        const { login, masterAdminExists, requestingMasterAdmin }: $TSFixMe = this.props;
 
         if (login.success && !login.user.tokens) {
             history.push('/user-auth/token');

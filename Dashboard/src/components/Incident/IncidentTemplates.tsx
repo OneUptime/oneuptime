@@ -46,7 +46,7 @@ class IncidentTemplates extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { currentProject, fetchIncidentTemplates } = this.props;
+        const { currentProject, fetchIncidentTemplates }: $TSFixMe = this.props;
         if (currentProject) {
             fetchIncidentTemplates({
                 projectId: currentProject._id,
@@ -77,7 +77,7 @@ class IncidentTemplates extends Component<ComponentProps> {
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { currentProject, fetchIncidentTemplates } = this.props;
+        const { currentProject, fetchIncidentTemplates }: $TSFixMe = this.props;
         if (currentProject) {
             this.setState({
                 flag: false,
@@ -98,7 +98,7 @@ class IncidentTemplates extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { currentProject, fetchIncidentTemplates } = this.props;
+        const { currentProject, fetchIncidentTemplates }: $TSFixMe = this.props;
         if (currentProject) {
             this.setState({
                 flag: false,
@@ -125,7 +125,7 @@ class IncidentTemplates extends Component<ComponentProps> {
         templateId
     }: $TSFixMe) => {
 
-        const { setDefaultTemplate, setActiveTemplate } = this.props;
+        const { setDefaultTemplate, setActiveTemplate }: $TSFixMe = this.props;
         setActiveTemplate(templateId);
         setDefaultTemplate({ projectId, templateId });
     };
@@ -324,11 +324,11 @@ class IncidentTemplates extends Component<ComponentProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
-        const projectName = currentProject ? currentProject.name : '';
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
 
-        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(this.props.count) / 10);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">

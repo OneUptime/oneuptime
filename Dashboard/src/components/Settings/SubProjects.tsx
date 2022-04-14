@@ -45,9 +45,9 @@ export class SubProjects extends Component<SubProjectsProps>{
 
     handleKeyboard = (e: $TSFixMe) => {
 
-        const { modalId, modalList } = this.props;
+        const { modalId, modalList }: $TSFixMe = this.props;
 
-        const { subProjectModalId } = this.state;
+        const { subProjectModalId }: $TSFixMe = this.state;
 
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
@@ -69,7 +69,7 @@ export class SubProjects extends Component<SubProjectsProps>{
 
     paginatePrev = () => {
 
-        const { skip, getSubProjects, currentProject } = this.props;
+        const { skip, getSubProjects, currentProject }: $TSFixMe = this.props;
         getSubProjects(currentProject._id, skip ? skip - 10 : 10, 10);
         this.setState({
 
@@ -79,7 +79,7 @@ export class SubProjects extends Component<SubProjectsProps>{
 
     paginateNext = () => {
 
-        const { skip, getSubProjects, currentProject } = this.props;
+        const { skip, getSubProjects, currentProject }: $TSFixMe = this.props;
         getSubProjects(currentProject._id, skip ? skip + 10 : 10, 10);
 
         this.setState({ page: this.state.page + 1 });
@@ -87,8 +87,8 @@ export class SubProjects extends Component<SubProjectsProps>{
 
     handleAddSubProject = () => {
 
-        const { currentProject, openModal } = this.props;
-        const userId = User.getUserId();
+        const { currentProject, openModal }: $TSFixMe = this.props;
+        const userId: $TSFixMe = User.getUserId();
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
 
@@ -111,12 +111,12 @@ export class SubProjects extends Component<SubProjectsProps>{
 
     override render() {
 
-        const { limit, skip, count, subProjectState } = this.props;
-        const { subProjects } = subProjectState;
-        const canNext = count > skip + limit ? false : true;
-        const canPrev = skip <= 0 ? true : false;
+        const { limit, skip, count, subProjectState }: $TSFixMe = this.props;
+        const { subProjects }: $TSFixMe = subProjectState;
+        const canNext: $TSFixMe = count > skip + limit ? false : true;
+        const canPrev: $TSFixMe = skip <= 0 ? true : false;
         
-        const numbersOfPage = Math.ceil(parseInt(count) / 10);
+        const numbersOfPage: $TSFixMe = Math.ceil(parseInt(count) / 10);
 
         return (
             <div className="bs-BIM">

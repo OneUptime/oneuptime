@@ -4,7 +4,7 @@ import zapier from 'zapier-platform-core';
 
 import App from '../../index';
 
-const appTester = zapier.createAppTester(App);
+const appTester: $TSFixMe = zapier.createAppTester(App);
 
 describe('Acknowledge All Incidents Action', () => {
     it('passes authentication and acknowledges all incidents', (done: $TSFixMe) => {

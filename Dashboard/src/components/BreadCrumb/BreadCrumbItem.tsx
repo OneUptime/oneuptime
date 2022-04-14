@@ -34,8 +34,8 @@ function BreadCrumbItem({
     btnText,
     toggleForm
 }: BreadCrumbItemProps) {
-    const id = name ? name.split(' ').join('') : '';
-    const pages = pageTitles();
+    const id: $TSFixMe = name ? name.split(' ').join('') : '';
+    const pages: $TSFixMe = pageTitles();
 
     const onClick: Function = (event: $TSFixMe) => {
         event.preventDefault();
@@ -50,23 +50,23 @@ function BreadCrumbItem({
         return route;
     };
 
-    const titleElement = document.querySelector('#page-title-wrapper');
+    const titleElement: $TSFixMe = document.querySelector('#page-title-wrapper');
 
-    const [isShowing, setIsShowing] = useState(false);
+    const [isShowing, setIsShowing]: $TSFixMe = useState(false);
     // if(addBtn && !isShowing){}
     if (!isShowing) {
-        const wrapContainer = document.querySelector('#breadcrumb-wrap');
+        const wrapContainer: $TSFixMe = document.querySelector('#breadcrumb-wrap');
 
         if (wrapContainer && btnText) {
             // setup button and hook it to the node
-            const btn = document.createElement('button');
+            const btn: $TSFixMe = document.createElement('button');
             btn.id = 'newFormId';
             btn.type = 'button';
 
             btn.classList = 'bs-Button bs-ButtonLegacy ActionIconParent';
             btn.addEventListener('click', toggleForm);
 
-            const span = document.createElement('span');
+            const span: $TSFixMe = document.createElement('span');
 
             span.classList =
                 'bs-FileUploadButton bs-Button--icon bs-Button--new';
@@ -89,10 +89,10 @@ function BreadCrumbItem({
         () => () => {
             // cleanup
             if (isShowing) {
-                const wrapContainer = document.querySelector(
+                const wrapContainer: $TSFixMe = document.querySelector(
                     '#breadcrumb-wrap'
                 );
-                const btn = document.querySelector('#newFormId');
+                const btn: $TSFixMe = document.querySelector('#newFormId');
                 if (wrapContainer && btn) {
                     btn.removeEventListener('click', toggleForm);
                     wrapContainer.removeChild(btn);
@@ -106,10 +106,10 @@ function BreadCrumbItem({
 
         titleElement.parentElement.style.width = '100%';
 
-        const titleIcon = titleElement.querySelector('#titleIcon');
-        const titleText = titleElement.querySelector('#titleText');
-        const resourceType = titleElement.querySelector('#resourceType');
-        const typeContainer = titleElement.querySelector('#typeContainer');
+        const titleIcon: $TSFixMe = titleElement.querySelector('#titleIcon');
+        const titleText: $TSFixMe = titleElement.querySelector('#titleText');
+        const resourceType: $TSFixMe = titleElement.querySelector('#resourceType');
+        const typeContainer: $TSFixMe = titleElement.querySelector('#typeContainer');
 
         titleIcon.setAttribute(
             'class',

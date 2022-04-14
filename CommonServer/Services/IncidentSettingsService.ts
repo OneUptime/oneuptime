@@ -13,13 +13,13 @@ export default class Service {
         const query: $TSFixMe = { projectId, name };
         const select: string =
             '_id projectId title description incidentPriority name';
-        const incidentSetting = await this.findOne({
+        const incidentSetting: $TSFixMe = await this.findOne({
             query,
             select,
         });
 
         if (incidentSetting) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Incident template with this name already exist in project'
             );
 
@@ -27,7 +27,7 @@ export default class Service {
             throw error;
         }
 
-        const incidentSettings = new incidentSettingsModel();
+        const incidentSettings: $TSFixMe = new incidentSettingsModel();
         if (isDefault) {
             // there can only be one default incident settings per project
             await incidentSettingsModel.findOneAndUpdate(
@@ -80,7 +80,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const responseQuery = incidentSettingsModel
+        const responseQuery: $TSFixMe = incidentSettingsModel
             .find(query)
             .lean()
             .sort(sort)
@@ -89,7 +89,7 @@ export default class Service {
 
         responseQuery.select(select);
         responseQuery.populate(populate);
-        const result = await responseQuery;
+        const result: $TSFixMe = await responseQuery;
 
         return result;
     }
@@ -111,14 +111,14 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const responseQuery = incidentSettingsModel
+        const responseQuery: $TSFixMe = incidentSettingsModel
             .findOne(query)
             .sort(sort)
             .lean();
         responseQuery.select(select);
         responseQuery.populate(populate);
 
-        const incidentSettings = await responseQuery;
+        const incidentSettings: $TSFixMe = await responseQuery;
         return incidentSettings;
     }
 
@@ -131,7 +131,7 @@ export default class Service {
         }
 
         if (data.name && query.projectId && query._id) {
-            const incidentSetting = await this.findOne({
+            const incidentSetting: $TSFixMe = await this.findOne({
                 query: {
                     projectId: query.projectId,
                     name: data.name,
@@ -141,7 +141,7 @@ export default class Service {
             });
 
             if (incidentSetting) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Incident template with this name already exist in project'
                 );
 
@@ -172,7 +172,7 @@ export default class Service {
                 upsert: true,
             }
         );
-        const incidentSettings = await this.findOne({
+        const incidentSettings: $TSFixMe = await this.findOne({
             query,
             select: 'projectId title description incidentPriority isDefault name createdAt',
         });
@@ -189,8 +189,8 @@ export default class Service {
         let updatedData = await incidentSettingsModel.updateMany(query, {
             $set: data,
         });
-        const populate = [{ path: 'incidentPriority', select: 'name color' }];
-        const select =
+        const populate: $TSFixMe = [{ path: 'incidentPriority', select: 'name color' }];
+        const select: $TSFixMe =
             'projectId title description incidentPriority isDefault name createdAt';
 
         updatedData = await this.findBy({ query, select, populate });
@@ -198,7 +198,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        const incidentSetting = await this.findOne({
+        const incidentSetting: $TSFixMe = await this.findOne({
             query,
             select: 'projectId title description incidentPriority isDefault name createdAt',
         });
@@ -206,7 +206,7 @@ export default class Service {
             throw new BadDataException('Default template cannot be deleted');
         }
 
-        const deletedIncidentSetting =
+        const deletedIncidentSetting: $TSFixMe =
             await incidentSettingsModel.findOneAndUpdate(
                 query,
                 {

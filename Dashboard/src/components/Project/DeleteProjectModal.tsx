@@ -31,7 +31,7 @@ export class DeleteProjectModal extends Component<ComponentProps>{
 
     deleteProject(values: $TSFixMe) {
 
-        const { projectId, deleteProject } = this.props;
+        const { projectId, deleteProject }: $TSFixMe = this.props;
 
         deleteProject(projectId, values.feedback).then(() => {
             this.setState({ deleted: true });
@@ -41,7 +41,7 @@ export class DeleteProjectModal extends Component<ComponentProps>{
 
     closeNotice() {
 
-        const { switchProject, nextProject } = this.props;
+        const { switchProject, nextProject }: $TSFixMe = this.props;
         if (!IS_SAAS_SERVICE) {
 
             this.props.hideDeleteModal();
@@ -52,9 +52,9 @@ export class DeleteProjectModal extends Component<ComponentProps>{
 
     override render() {
 
-        const { deleted } = this.state;
+        const { deleted }: $TSFixMe = this.state;
 
-        const { deletedModal, deletedProjectSuccess } = this.props;
+        const { deletedModal, deletedProjectSuccess }: $TSFixMe = this.props;
 
         return this.props.visible ? (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -118,20 +118,20 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const { projects } = state.project.projects;
-    const projectId =
+    const { projects }: $TSFixMe = state.project.projects;
+    const projectId: $TSFixMe =
         state.project.currentProject && state.project.currentProject._id;
-    const project =
+    const project: $TSFixMe =
         projects !== undefined && projects.length > 0
             ? projects.filter((project: $TSFixMe) => project._id === projectId)[0]
             : [];
 
-    const nextProject =
+    const nextProject: $TSFixMe =
         projects !== undefined && projects.length > 0
             ? projects.filter((project: $TSFixMe) => project._id !== projectId)[0]
             : {};
 
-    const projectName = project && project.name;
+    const projectName: $TSFixMe = project && project.name;
 
     return {
         projectName,

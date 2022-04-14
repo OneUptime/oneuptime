@@ -34,7 +34,7 @@ const GitCredentialList: Function = ({
     getGitSecurities,
     modalId
 }: GitCredentialListProps) => {
-    const [page, setPage] = useState(1);
+    const [page, setPage]: $TSFixMe = useState(1);
 
     const handleDelete: Function = (credentialId: $TSFixMe) => {
         getGitSecurities({ projectId, credentialId });
@@ -102,13 +102,13 @@ const GitCredentialList: Function = ({
         setPage(page + 1);
     };
 
-    const { next_page, pre_page, data, count } = paginate(
+    const { next_page, pre_page, data, count }: $TSFixMe = paginate(
         gitCredentials.filter((obj: $TSFixMe) => obj.gitUsername),
         page,
         10
     );
     gitCredentials = data;
-    const numberOfPages = Math.ceil(parseInt(count) / 10);
+    const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
 
     return (
         <div className="Box-root  Margin-bottom--12">

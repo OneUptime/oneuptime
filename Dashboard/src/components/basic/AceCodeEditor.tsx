@@ -20,7 +20,7 @@ export interface ComponentProps {
 class AceCodeEditor extends Component<ComponentProps> {
     override render() {
 
-        const { value, mode, name, height, markers, theme } = this.props;
+        const { value, mode, name, height, markers, theme }: $TSFixMe = this.props;
         return (
             <AceEditor
                 name={name}

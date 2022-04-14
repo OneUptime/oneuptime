@@ -172,7 +172,7 @@ class CompanyForm extends Component<ComponentProps> {
 
 CompanyForm.displayName = 'CompanyForm';
 
-const validate = function (values: $TSFixMe) {
+const validate: $TSFixMe = function (values: $TSFixMe) {
     const error: $TSFixMe = {};
 
     if (!Validate.text(values.companyName)) {
@@ -203,7 +203,7 @@ const validate = function (values: $TSFixMe) {
     return error;
 };
 
-const companyForm = reduxForm({
+const companyForm: $TSFixMe = reduxForm({
     form: 'CompanyForm', // <------ same form name
     destroyOnUnmount: false, // <------ preserve form data
     forceUnregisterOnUnmount: true,

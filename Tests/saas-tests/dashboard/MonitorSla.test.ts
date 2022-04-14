@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const slaName: string = 'fxPro';
 const monitorUptime: string = '99.90';
@@ -13,7 +13,7 @@ const component: string = 'sampleComponent';
 const monitor: string = 'sampleMonitor';
 
 describe('Monitor SLA', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -81,7 +81,7 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const monitorSla = await init.pageWaitForSelector(
+            const monitorSla: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#field-error`,
                 {
@@ -138,7 +138,7 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const slaError = await init.pageWaitForSelector(page, `#slaError`, {
+            const slaError: $TSFixMe = await init.pageWaitForSelector(page, `#slaError`, {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -202,7 +202,7 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const uptimeError = await init.pageWaitForSelector(
+            const uptimeError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#field-error',
                 {
@@ -270,7 +270,7 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const uptimeError = await init.pageWaitForSelector(
+            const uptimeError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#field-error',
                 {
@@ -338,7 +338,7 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const uptimeError = await init.pageWaitForSelector(
+            const uptimeError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#field-error',
                 {
@@ -402,7 +402,7 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const frequencyError = await init.pageWaitForSelector(
+            const frequencyError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#field-error',
                 {
@@ -461,7 +461,7 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const monitorSla = await init.pageWaitForSelector(
+            const monitorSla: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitorSla_${slaName}`,
                 { visible: true, timeout: init.timeout }
@@ -511,7 +511,7 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#editSlaBtn');
 
-            const setDefaultBtn = await init.pageWaitForSelector(
+            const setDefaultBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#defaultMonitorSlaBtn_0`,
                 { hidden: true }
@@ -526,7 +526,7 @@ describe('Monitor SLA', () => {
         'should show monitor SLA indicator in a created monitor',
         async (done: $TSFixMe) => {
             await init.addMonitorToComponent(component, monitor, page);
-            const slaIndicator = await init.pageWaitForSelector(
+            const slaIndicator: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#noMonitorSlaBreached`,
                 {
@@ -545,7 +545,7 @@ describe('Monitor SLA', () => {
             await init.addIncident(monitor, 'offline', page);
             await init.navigateToMonitorDetails(component, monitor, page);
 
-            const breachedIndicator = await init.pageWaitForSelector(
+            const breachedIndicator: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#monitorSlaBreached',
                 { visible: true, timeout: init.timeout }
@@ -590,7 +590,7 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#DeleteMonitorSlaBtn');
 
-            const monitorSla = await init.pageWaitForSelector(
+            const monitorSla: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitorSla_${slaName}`,
                 { hidden: true }

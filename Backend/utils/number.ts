@@ -1,4 +1,4 @@
-const NumberFormatter = new Intl.NumberFormat('en-US', {
+const NumberFormatter: $TSFixMe = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
 });

@@ -41,8 +41,8 @@ class EditApplicationSecurity extends Component<ComponentProps> {
 
     componentDidUpdate(prevProps: $TSFixMe) {
 
-        const { propArr, isRequesting, closeModal, editError } = this.props;
-        const { applicationSecurityId } = propArr[0];
+        const { propArr, isRequesting, closeModal, editError }: $TSFixMe = this.props;
+        const { applicationSecurityId }: $TSFixMe = propArr[0];
 
         if (prevProps.isRequesting !== isRequesting) {
             if (!isRequesting && !editError) {
@@ -65,8 +65,8 @@ class EditApplicationSecurity extends Component<ComponentProps> {
 
     handleCloseModal = () => {
 
-        const { propArr } = this.props;
-        const { applicationSecurityId } = propArr[0];
+        const { propArr }: $TSFixMe = this.props;
+        const { applicationSecurityId }: $TSFixMe = propArr[0];
 
         this.props.closeModal({
             id: applicationSecurityId,
@@ -75,8 +75,8 @@ class EditApplicationSecurity extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { editApplicationSecurity, propArr } = this.props;
-        const { projectId, componentId, applicationSecurityId } = propArr[0];
+        const { editApplicationSecurity, propArr }: $TSFixMe = this.props;
+        const { projectId, componentId, applicationSecurityId }: $TSFixMe = propArr[0];
 
         if (!values) return;
 
@@ -112,7 +112,7 @@ class EditApplicationSecurity extends Component<ComponentProps> {
 
             formValues,
         } = this.props;
-        const { applicationSecurityId } = propArr[0];
+        const { applicationSecurityId }: $TSFixMe = propArr[0];
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -567,7 +567,7 @@ const mapStateToProps: Function = (state: RootState) => {
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, editApplicationSecurity }, dispatch);
 
-const EditApplicationSecurityForm = reduxForm({
+const EditApplicationSecurityForm: $TSFixMe = reduxForm({
     form: 'EditApplicationSecurityForm',
     enableReinitialize: true,
     destroyOnUnmount: true,

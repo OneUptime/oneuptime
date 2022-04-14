@@ -37,7 +37,7 @@ class ProjectUser extends Component<ComponentProps> {
     }
     handleClick = () => {
 
-        const { addUserId } = this.state;
+        const { addUserId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: addUserId,
@@ -61,7 +61,7 @@ class ProjectUser extends Component<ComponentProps> {
             data.role = to;
         }
 
-        const { projectId, changeUserProjectRole, userUpdateRole } = this.props;
+        const { projectId, changeUserProjectRole, userUpdateRole }: $TSFixMe = this.props;
         userUpdateRole(projectId, data).then((team: $TSFixMe) => changeUserProjectRole(team.data)
         );
     };
@@ -88,7 +88,7 @@ class ProjectUser extends Component<ComponentProps> {
     };
     renderTable = () => {
 
-        const { handleSubmit, updateUsers, pages, membersPerPage } = this.props;
+        const { handleSubmit, updateUsers, pages, membersPerPage }: $TSFixMe = this.props;
 
         return this.props.users &&
 
@@ -335,7 +335,7 @@ class ProjectUser extends Component<ComponentProps> {
 
             paginate,
         } = this.props;
-        const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
         return (
             <div className="Box-root">
                 <div className="ContentHeader Box-root Card-shadow--medium Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-vertical--16">
@@ -580,7 +580,7 @@ function mapStateToProps(state: RootState) {
     };
 }
 
-const ProjectUsers = reduxForm({
+const ProjectUsers: $TSFixMe = reduxForm({
     form: 'ProjectUsers',
 })(ProjectUser);
 

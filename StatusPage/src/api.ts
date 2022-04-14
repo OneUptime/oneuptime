@@ -12,7 +12,7 @@ export const post: Function = (url: URL, data: $TSFixMe): void => {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
-    const promise = new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject): $TSFixMe => {
         axios({
             method: 'POST',
             url: `${API_URL}/${url}`,
@@ -34,7 +34,7 @@ export const get: Function = (url: URL): void => {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
-    const promise = new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject): $TSFixMe => {
         axios({
             method: 'GET',
             url: `${API_URL}/${url}`,
@@ -55,7 +55,7 @@ export const put: Function = (url: URL, data: $TSFixMe): void => {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
-    const promise = new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject): $TSFixMe => {
         axios({
             method: 'PUT',
             url: `${API_URL}/${url}`,

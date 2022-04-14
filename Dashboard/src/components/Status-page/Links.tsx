@@ -24,7 +24,7 @@ import MessageBox from '../modals/MessageBox';
 //Client side validation
 function validate(values: $TSFixMe) {
     const errors: $TSFixMe = {};
-    const linksArrayErrors = [];
+    const linksArrayErrors: $TSFixMe = [];
 
     if (values.links) {
         for (let i = 0; i < values.links.length; i++) {
@@ -77,7 +77,7 @@ export class Links extends Component<LinksProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const { _id, projectId } = this.props.statusPage.status;
+        const { _id, projectId }: $TSFixMe = this.props.statusPage.status;
         if (_id) values._id = _id;
         this.props
 
@@ -97,15 +97,15 @@ export class Links extends Component<LinksProps>{
 
     handleRemoveFooterLink = (index: $TSFixMe) => {
 
-        const { links } = this.props.initialValues;
-        const newLinks = [...links];
+        const { links }: $TSFixMe = this.props.initialValues;
+        const newLinks: $TSFixMe = [...links];
         newLinks.splice(index, 1);
         this.submitForm({ links: newLinks });
     };
 
     override render() {
 
-        const { handleSubmit, statusPage, openModal } = this.props;
+        const { handleSubmit, statusPage, openModal }: $TSFixMe = this.props;
         const {
             createFooterLinkModalId,
             MessageBoxId,
@@ -294,7 +294,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const status = state.statusPage.status || [];
+    const status: $TSFixMe = state.statusPage.status || [];
     const links: $TSFixMe = [];
 
     status.links &&
@@ -312,7 +312,7 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const LinksForm = reduxForm({
+const LinksForm: $TSFixMe = reduxForm({
     form: 'Links', // a unique identifier for this form
     validate, // <--- validation function given to redux-for
     enableReinitialize: true,

@@ -12,9 +12,9 @@ export default class Service {
         userAgent: $TSFixMe,
         status: $TSFixMe
     ): void {
-        const detector = new DeviceDetector();
-        const result = detector.detect(userAgent);
-        const ipLocation = await UserService.getUserIpLocation(clientIP);
+        const detector: $TSFixMe = new DeviceDetector();
+        const result: $TSFixMe = detector.detect(userAgent);
+        const ipLocation: $TSFixMe = await UserService.getUserIpLocation(clientIP);
         await LoginHistoryModel.create({
             userId: user._id,
             ipLocation,
@@ -32,7 +32,7 @@ export default class Service {
     }
 
     async findBy({ query, skip, limit, select, populate, sort }: FindBy): void {
-        const logsQuery = LoginHistoryModel.find(query)
+        const logsQuery: $TSFixMe = LoginHistoryModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -41,7 +41,7 @@ export default class Service {
         logsQuery.select(select);
         logsQuery.populate(populate);
 
-        const [logs, count] = await Promise.all([
+        const [logs, count]: $TSFixMe = await Promise.all([
             logsQuery,
             LoginHistoryModel.countDocuments(query),
         ]);

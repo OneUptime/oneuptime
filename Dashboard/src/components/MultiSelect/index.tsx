@@ -23,7 +23,7 @@ class MultiSelect extends Component<ComponentProps> {
 
     getSelectedText() {
 
-        const { options, selected } = this.props;
+        const { options, selected }: $TSFixMe = this.props;
         const selectedOptions = selected.map((s: $TSFixMe) => options.find((o: $TSFixMe) => o.value === s)
         );
         const selectedLabels = selectedOptions.map((s: $TSFixMe) => s ? s.label : '');
@@ -32,12 +32,12 @@ class MultiSelect extends Component<ComponentProps> {
 
     renderHeader() {
 
-        const { options, selected, valueRenderer } = this.props;
+        const { options, selected, valueRenderer }: $TSFixMe = this.props;
 
-        const noneSelected = selected.length === 0;
-        const allSelected = selected.length === options.length;
+        const noneSelected = selected.length: $TSFixMe === 0;
+        const allSelected = selected.length: $TSFixMe === options.length;
 
-        const customText = valueRenderer && valueRenderer(selected, options);
+        const customText: $TSFixMe = valueRenderer && valueRenderer(selected, options);
 
         if (noneSelected) {
             return (
@@ -58,7 +58,7 @@ class MultiSelect extends Component<ComponentProps> {
 
     handleSelectedChange = (selected: $TSFixMe) => {
 
-        const { onSelectedChanged, disabled } = this.props;
+        const { onSelectedChanged, disabled }: $TSFixMe = this.props;
 
         if (disabled) {
             return;

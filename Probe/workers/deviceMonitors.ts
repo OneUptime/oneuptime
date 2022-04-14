@@ -6,13 +6,13 @@ import ApiService from '../Utils/apiService';
 // creates incident if a website is down and resolves it when they come back up
 export default {
     ping: async (monitor: $TSFixMe) => {
-        const newDate = new moment();
-        const resDate = new Date();
+        const newDate: $TSFixMe = new moment();
+        const resDate: $TSFixMe = new Date();
         if (monitor && monitor.type) {
-            const d = new moment(monitor.lastPingTime);
+            const d: $TSFixMe = new moment(monitor.lastPingTime);
 
             if (newDate.diff(d, 'minutes') > 3) {
-                const time = await ApiService.getMonitorTime(
+                const time: $TSFixMe = await ApiService.getMonitorTime(
                     monitor._id,
                     newDate
                 );
@@ -24,9 +24,9 @@ export default {
                     });
                 }
             } else {
-                const res = new Date().getTime() - resDate.getTime();
+                const res: $TSFixMe = new Date().getTime() - resDate.getTime();
 
-                const newTime = await ApiService.getMonitorTime(
+                const newTime: $TSFixMe = await ApiService.getMonitorTime(
                     monitor._id,
                     newDate
                 );

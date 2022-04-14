@@ -3,12 +3,12 @@ import Database from 'CommonServer/Utils/database';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import OneUptimeDate from 'Common/Types/Date';
 
-const monitorCollection = Database.getDatabase().collection('monitors');
+const monitorCollection: $TSFixMe = Database.getDatabase().collection('monitors');
 
 export default {
     async getProbeMonitors(probeId: String, limit: PositiveNumber): void {
         //get monitors that have not been pinged for the last minute.
-        const date = OneUptimeDate.getOneMinAgo();
+        const date: $TSFixMe = OneUptimeDate.getOneMinAgo();
 
         const key: string = `${probeId}_pingtime`;
 
@@ -39,14 +39,14 @@ export default {
 
         let monitors: $TSFixMe = [];
 
-        const monitorsThatHaveNeverBeenPinged = await monitorCollection
+        const monitorsThatHaveNeverBeenPinged: $TSFixMe = await monitorCollection
             .find(emptyQuery)
             .limit(limit)
             .toArray();
         monitors = monitors.concat(monitorsThatHaveNeverBeenPinged);
 
         if (monitorsThatHaveNeverBeenPinged.length < limit) {
-            const monitorsThatHaveBeenPingedBeforeOneMinute =
+            const monitorsThatHaveBeenPingedBeforeOneMinute: $TSFixMe =
                 await monitorCollection
                     .find(query)
                     .sort({ [key]: 1 })

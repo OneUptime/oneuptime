@@ -9,7 +9,7 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async deleteBy(query: Query, userId: ObjectID): void {
-        const resourceCategory = await ResourceCategoryModel.findOneAndUpdate(
+        const resourceCategory: $TSFixMe = await ResourceCategoryModel.findOneAndUpdate(
             query,
             {
                 $set: {

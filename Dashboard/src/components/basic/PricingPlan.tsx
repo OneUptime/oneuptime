@@ -29,8 +29,8 @@ const PricingPlanComponent: Function = ({
     disabled = false
 }: PricingPlanComponentProps) => {
     let category;
-    const [pricingPlanModalId] = useState(uuidv4()); // initialise modal ID
-    const isEnterprise =
+    const [pricingPlanModalId]: $TSFixMe = useState(uuidv4()); // initialise modal ID
+    const isEnterprise: $TSFixMe =
         currentProject &&
         (currentProject.stripePlanId === 'enterprise' ? true : false);
 
@@ -46,9 +46,9 @@ const PricingPlanComponent: Function = ({
     }
 
     const createAllowedPlans: Function = (plan: $TSFixMe) => {
-        const plans = ['Startup', 'Growth', 'Scale', 'Enterprise'];
-        const planIndex = plans.indexOf(plan);
-        const allowedPlans = [];
+        const plans: $TSFixMe = ['Startup', 'Growth', 'Scale', 'Enterprise'];
+        const planIndex: $TSFixMe = plans.indexOf(plan);
+        const allowedPlans: $TSFixMe = [];
         for (let i = planIndex; i < plans.length; i++) {
             allowedPlans.push(plans[i]);
         }
@@ -57,7 +57,7 @@ const PricingPlanComponent: Function = ({
     };
 
     const isAllowed: Function = (plan: $TSFixMe, category: $TSFixMe) => {
-        const allowedPlans = createAllowedPlans(plan);
+        const allowedPlans: $TSFixMe = createAllowedPlans(plan);
         return allowedPlans.includes(category);
     };
 
@@ -66,7 +66,7 @@ const PricingPlanComponent: Function = ({
         // javascript enables bubbling by default
         // prevent propagation of the bubble
         e.stopPropagation();
-        const userId = User.getUserId();
+        const userId: $TSFixMe = User.getUserId();
         if (!isOwnerOrAdmin(userId, currentProject)) {
             return openModal({
                 id: userId,
@@ -108,7 +108,7 @@ PricingPlanComponent.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const currentPlanId =
+    const currentPlanId: $TSFixMe =
         state.project &&
             state.project.currentProject &&
             state.project.currentProject.stripePlanId

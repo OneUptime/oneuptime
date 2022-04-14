@@ -1,7 +1,7 @@
 import { history } from '../store';
 
 // This is an array of the available first key characters for the shortcut
-const initKeys = ['f'];
+const initKeys: $TSFixMe = ['f'];
 
 /**
  * @description creates keybinding for side nav

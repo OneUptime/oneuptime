@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-const apiUrl = "http://localhost:3002/api"
+const apiUrl: $TSFixMe = "http://localhost:3002/api"
 
 var appLog map[string]interface{}
 

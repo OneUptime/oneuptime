@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -13,7 +13,7 @@ const user: $TSFixMe = {
 };
 
 describe('Status Page -> Pricing Plan Component', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -50,7 +50,7 @@ describe('Status Page -> Pricing Plan Component', () => {
 
             await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
-            const rowItem = await init.pageWaitForSelector(
+            const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
@@ -70,7 +70,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 'input[name="isPrivate"]',
                 (elem: $TSFixMe) => elem.click()
             );
-            const modal = await init.pageWaitForSelector(
+            const modal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
                 {
@@ -102,7 +102,7 @@ describe('Status Page -> Pricing Plan Component', () => {
 
             await init.pageWaitForSelector(page, '#alertEnable');
 
-            const rowLength = await init.page$$Eval(
+            const rowLength: $TSFixMe = await init.page$$Eval(
                 page,
                 '#alertOptionRow > div.bs-Fieldset-row',
                 (rows: $TSFixMe) => rows.length
@@ -118,7 +118,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.evaluate(() => {
                 document.querySelector('#billingRiskCountries').click();
             });
-            const elem = await init.pageWaitForSelector(
+            const elem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
                 {
@@ -141,7 +141,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 elem.click()
             );
             // select the first item from the table row
-            const rowItem = await init.pageWaitForSelector(
+            const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
@@ -166,7 +166,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const growthOption = await init.pageWaitForSelector(
+            const growthOption: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 'label[for=Growth_month]',
                 { visible: true, timeout: init.timeout }
@@ -178,7 +178,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             });
 
             await init.pageClick(page, '#cancelPlanUpgrade');
-            const elem = await init.pageWaitForSelector(
+            const elem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
                 {
@@ -202,7 +202,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 elem.click()
             );
             // select the first item from the table row
-            const rowItem = await init.pageWaitForSelector(
+            const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',
                 { visible: true, timeout: init.timeout }
@@ -227,7 +227,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const growthOption = await init.pageWaitForSelector(
+            const growthOption: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 'label[for=Growth_month]',
                 { visible: true, timeout: init.timeout }
@@ -260,7 +260,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 'input[name="isPrivate"]',
                 (elem: $TSFixMe) => elem.click()
             );
-            const value = await init.page$Eval(
+            const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name="isPrivate"]',
                 (elem: $TSFixMe) => elem.value

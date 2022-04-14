@@ -52,8 +52,8 @@ export function getInvoice(
 ): void {
     return function (dispatch: Dispatch): void {
         let promise = null;
-        const reqFornext = Boolean(startingAfter) && !endingBefore;
-        const reqForPrev = Boolean(endingBefore) && Boolean(startingAfter);
+        const reqFornext: $TSFixMe = Boolean(startingAfter) && !endingBefore;
+        const reqForPrev: $TSFixMe = Boolean(endingBefore) && Boolean(startingAfter);
 
         if (reqFornext) {
             promise = BackendAPI.post(

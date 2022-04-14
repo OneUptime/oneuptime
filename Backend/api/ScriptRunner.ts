@@ -13,7 +13,7 @@ import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
 import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthorization';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 // get all script monitors for ScriptRunner
 router.get(
@@ -22,7 +22,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             //get top 10 monitors.
-            const allScriptMonitors = await MonitorService.getScriptMonitors({
+            const allScriptMonitors: $TSFixMe = await MonitorService.getScriptMonitors({
                 limit: 10,
                 skip: 0,
             });
@@ -45,7 +45,7 @@ router.post(
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { monitor, resp } = req.body;
+            const { monitor, resp }: $TSFixMe = req.body;
 
             let status,
                 reason,
@@ -165,7 +165,7 @@ router.post(
 
             // save monitor log
             // update script run status
-            const [log] = await Promise.all([
+            const [log]: $TSFixMe = await Promise.all([
                 ProbeService.saveMonitorLog(data),
                 MonitorService.updateBy(
                     { _id: monitor._id },

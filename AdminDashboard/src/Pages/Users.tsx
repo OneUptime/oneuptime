@@ -40,9 +40,9 @@ class Users extends Component<ComponentProps> {
 
     handleKeyboard = (event: $TSFixMe) => {
 
-        const { modalId } = this.props;
+        const { modalId }: $TSFixMe = this.props;
 
-        const { addModalId } = this.state;
+        const { addModalId }: $TSFixMe = this.state;
 
         if (event.target.localName === 'body' && event.key) {
             switch (event.key) {
@@ -61,9 +61,9 @@ class Users extends Component<ComponentProps> {
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchUsers, searchUsers } = this.props;
+        const { fetchUsers, searchUsers }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchUsers(
@@ -80,9 +80,9 @@ class Users extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { searchBox } = this.state;
+        const { searchBox }: $TSFixMe = this.state;
 
-        const { fetchUsers, searchUsers } = this.props;
+        const { fetchUsers, searchUsers }: $TSFixMe = this.props;
 
         if (searchBox && searchBox !== '') {
             searchUsers(searchBox, skip + limit, 10);
@@ -94,9 +94,9 @@ class Users extends Component<ComponentProps> {
     };
 
     onChange = (e: $TSFixMe) => {
-        const value = e.target.value;
+        const value: $TSFixMe = e.target.value;
 
-        const { searchUsers } = this.props;
+        const { searchUsers }: $TSFixMe = this.props;
 
         this.setState({ searchBox: value });
         searchUsers(value, 0, 10);
@@ -105,7 +105,7 @@ class Users extends Component<ComponentProps> {
 
     handleClick = () => {
 
-        const { addModalId } = this.state;
+        const { addModalId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: addModalId,
@@ -116,7 +116,7 @@ class Users extends Component<ComponentProps> {
 
     override render() {
 
-        const { users, user, requesting } = this.props;
+        const { users, user, requesting }: $TSFixMe = this.props;
         let canNext =
 
             this.props.user.users &&
@@ -143,7 +143,7 @@ class Users extends Component<ComponentProps> {
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages = Math.ceil(parseInt(user.users.count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(user.users.count) / 10);
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -421,7 +421,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const requesting =
+    const requesting: $TSFixMe =
         state.user.users.requesting || state.user.searchUsers.requesting
             ? true
             : false;

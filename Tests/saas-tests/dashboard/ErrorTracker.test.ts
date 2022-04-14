@@ -9,12 +9,12 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
-const errorTrackerName = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
+const errorTrackerName: $TSFixMe = utils.generateRandomString();
 let errorTrackerKey = '';
 
 describe('Error Trackers', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -643,7 +643,7 @@ describe('Error Trackers', () => {
                 page
             );
 
-            const spanElementBadge = await init.pageWaitForSelector(
+            const spanElementBadge: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#${errorTrackerName}-new-badge`,
                 { hidden: true }

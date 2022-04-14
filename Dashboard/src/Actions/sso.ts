@@ -15,7 +15,7 @@ export const createSsoFailure: Function = (error: ErrorPayload): void => ({
 });
 export const createSso: Function = ({ data }: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`sso`, data);
+        const promise: $TSFixMe = BackendAPI.post(`sso`, data);
         dispatch(createSsoRequest());
 
         promise.then(
@@ -50,7 +50,7 @@ export const fetchSsos: Function = ({
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
-        const promise = BackendAPI.get(
+        const promise: $TSFixMe = BackendAPI.get(
             `sso/${projectId}/ssos?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchSsosRequest());
@@ -80,7 +80,7 @@ export const fetchSsoFailure: Function = (error: ErrorPayload): void => ({
 });
 export const fetchSso: Function = (ssoId: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(`sso/${ssoId}`);
+        const promise: $TSFixMe = BackendAPI.get(`sso/${ssoId}`);
         dispatch(fetchSsoRequest());
 
         promise.then(
@@ -108,7 +108,7 @@ export const updateSsoFailure: Function = (error: ErrorPayload): void => ({
 });
 export const updateSso: Function = ({ id, data }: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put(`sso/${id}`, data);
+        const promise: $TSFixMe = BackendAPI.put(`sso/${id}`, data);
         dispatch(updateSsoRequest());
 
         promise.then(
@@ -136,7 +136,7 @@ export const deleteSsoFailure: Function = (error: ErrorPayload): void => ({
 });
 export const deleteSso: Function = (ssoId: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete `sso/${ssoId}`;
+        const promise: $TSFixMe = delete `sso/${ssoId}`;
         dispatch(deleteSsoRequest());
 
         promise.then(

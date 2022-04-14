@@ -41,7 +41,7 @@ export default class Button extends Component<ComponentProps>{
 
     handleKeyboard(event: KeyboardEventProp) {
 
-        const { shortcutKey, onClick } = this.props;
+        const { shortcutKey, onClick }: $TSFixMe = this.props;
 
         if (event.target instanceof HTMLBodyElement && event.key && shortcutKey) {
             switch (event.key) {
@@ -57,7 +57,7 @@ export default class Button extends Component<ComponentProps>{
 
     override render() {
 
-        const { title, shortcutKey, id, onClick, disabled } = this.props;
+        const { title, shortcutKey, id, onClick, disabled }: $TSFixMe = this.props;
 
         return (<button
             id={id}

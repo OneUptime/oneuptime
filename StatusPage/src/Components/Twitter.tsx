@@ -7,7 +7,7 @@ const Twitter: Function = ({
     loading,
     error
 }: $TSFixMe) => {
-    const TweetLayout =
+    const TweetLayout: $TSFixMe =
         theme && theme === 'Classic Theme' ? (
             <div
                 id="scheduledEvents"

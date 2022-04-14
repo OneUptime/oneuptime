@@ -48,8 +48,8 @@ export class CreateStatusPageCategory extends React.Component<CreateStatusPageCa
 
     submitForm = (values: $TSFixMe) => {
 
-        const { data, skip, limit, fetchStatusPageCategories } = this.props;
-        const { projectId, statusPageId } = data;
+        const { data, skip, limit, fetchStatusPageCategories }: $TSFixMe = this.props;
+        const { projectId, statusPageId }: $TSFixMe = data;
         this.props
 
             .createStatusPageCategory({
@@ -92,7 +92,7 @@ export class CreateStatusPageCategory extends React.Component<CreateStatusPageCa
 
     override render() {
 
-        const { handleSubmit, creatingCategory, createError } = this.props;
+        const { handleSubmit, creatingCategory, createError }: $TSFixMe = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
                 <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -188,7 +188,7 @@ export class CreateStatusPageCategory extends React.Component<CreateStatusPageCa
 
 CreateStatusPageCategory.displayName = 'CreateStatusPageCategory';
 
-const CreateStatusPageCategoryForm = reduxForm({
+const CreateStatusPageCategoryForm: $TSFixMe = reduxForm({
     form: 'CreateStatusPageCategoryForm',
     validate,
 })(CreateStatusPageCategory);

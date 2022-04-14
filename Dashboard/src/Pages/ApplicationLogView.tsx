@@ -71,7 +71,7 @@ class ApplicationLogView extends Component<ComponentProps> {
 
             logSkip,
         } = this.props;
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.currentProject && this.props.currentProject._id;
         componentSlug && fetchComponent(projectId, componentSlug); // On Page Reload, the state is blank hence componentId is null. ComponentSlug present in URL bar is used to fetch component before the componentId is loaded alongside component.
@@ -135,12 +135,12 @@ class ApplicationLogView extends Component<ComponentProps> {
     handleCloseQuickStart = () => {
         const postObj: $TSFixMe = { showQuickStart: false };
 
-        const projectId = this.props.currentProject
+        const projectId: $TSFixMe = this.props.currentProject
 
             ? this.props.currentProject._id
             : null;
 
-        const { applicationLog } = this.props;
+        const { applicationLog }: $TSFixMe = this.props;
 
         this.props.editApplicationLog(
             projectId,
@@ -151,7 +151,7 @@ class ApplicationLogView extends Component<ComponentProps> {
     };
 
     tabSelected = (index: $TSFixMe) => {
-        const tabSlider = document.getElementById('tab-slider');
+        const tabSlider: $TSFixMe = document.getElementById('tab-slider');
 
         setTimeout(() => {
 
@@ -175,11 +175,11 @@ class ApplicationLogView extends Component<ComponentProps> {
             switchToProjectViewerNav,
         } = this.props;
 
-        const componentName = component ? component.name : '';
-        const applicationLogName =
+        const componentName: $TSFixMe = component ? component.name : '';
+        const applicationLogName: $TSFixMe =
             applicationLog.length > 0 ? applicationLog[0].name : null;
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -382,8 +382,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { componentSlug, applicationLogSlug } = props.match.params;
-    const applicationLog = state.applicationLog.applicationLogsList.applicationLogs.filter(
+    const { componentSlug, applicationLogSlug }: $TSFixMe = props.match.params;
+    const applicationLog: $TSFixMe = state.applicationLog.applicationLogsList.applicationLogs.filter(
         (applicationLog: $TSFixMe) => applicationLog.slug === applicationLogSlug
     );
     return {

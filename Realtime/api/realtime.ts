@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import {
     sendErrorResponse,
     sendEmptyResponse,
@@ -17,7 +17,7 @@ router.post(
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const body = req.body;
+            const body: $TSFixMe = req.body;
             RealtimeService.send(
                 new ObjectID(req.params['projectId'] as string),
                 req.params['eventType'] as string,

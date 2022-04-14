@@ -346,7 +346,7 @@ const methods: $TSFixMe = {
     }: $TSFixMe) => {
         let firstIdpResponse;
         try {
-            const response = await chai
+            const response: $TSFixMe = await chai
 
                 .request(SAMLRequest)
                 .get('')
@@ -361,9 +361,9 @@ const methods: $TSFixMe = {
         const {
             headers: { location, 'set-cookie': cookies },
         } = firstIdpResponse;
-        const [postSubmissionUrl, AuthState] = location.split('AuthState=');
+        const [postSubmissionUrl, AuthState]: $TSFixMe = location.split('AuthState=');
 
-        const samlResponsePage = await chai
+        const samlResponsePage: $TSFixMe = await chai
 
             .request(postSubmissionUrl)
             .post('')
@@ -381,15 +381,15 @@ const methods: $TSFixMe = {
         } = samlResponsePage;
 
         import { parse } from 'node-html-parser';
-        const root = parse(html);
-        const input = root.querySelectorAll('input')[1];
-        const value = input.rawAttrs.split(' ')[2];
-        const SAMLResponse = value.split('"')[1];
+        const root: $TSFixMe = parse(html);
+        const input: $TSFixMe = root.querySelectorAll('input')[1];
+        const value: $TSFixMe = input.rawAttrs.split(' ')[2];
+        const SAMLResponse: $TSFixMe = value.split('"')[1];
         return SAMLResponse;
     },
 };
 
-const proxy = new Proxy(methods, {
+const proxy: $TSFixMe = new Proxy(methods, {
     shared: {},
     setShared: function (args: $TSFixMe): void {
         this.shared = { ...this.shared, ...args };

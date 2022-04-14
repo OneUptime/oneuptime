@@ -8,7 +8,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -59,7 +59,7 @@ describe('Scheduled event API', function (): void {
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     userId = res.body.id;
                     projectId = project._id;
 
@@ -110,7 +110,7 @@ describe('Scheduled event API', function (): void {
                                                             monitorId =
                                                                 res.body._id;
 
-                                                            const scheduledEvents =
+                                                            const scheduledEvents: $TSFixMe =
                                                                 [];
 
                                                             for (
@@ -135,10 +135,10 @@ describe('Scheduled event API', function (): void {
                                                                 );
                                                             }
 
-                                                            const createdScheduledEvents =
+                                                            const createdScheduledEvents: $TSFixMe =
                                                                 scheduledEvents.map(
                                                                     async scheduledEvent => {
-                                                                        const sentRequests =
+                                                                        const sentRequests: $TSFixMe =
                                                                             await request
                                                                                 .post(
                                                                                     `/scheduledEvent/${projectId}`
@@ -399,7 +399,7 @@ describe('User from other project have access to read / write and delete API.', 
                 request,
                 userData.user,
                 (err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     createUser(
                         request,

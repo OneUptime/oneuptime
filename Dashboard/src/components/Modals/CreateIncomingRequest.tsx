@@ -76,7 +76,7 @@ class CreateIncomingRequest extends Component<ComponentProps> {
 
             fetchMonitorCustomFields,
         } = this.props;
-        const { projectId } = data;
+        const { projectId }: $TSFixMe = data;
         fetchCustomFields(projectId);
         fetchMonitorCustomFields(projectId);
 
@@ -102,7 +102,7 @@ class CreateIncomingRequest extends Component<ComponentProps> {
 
             customFields,
         } = this.props;
-        const { projectId } = data;
+        const { projectId }: $TSFixMe = data;
         const postObj: $TSFixMe = {};
 
 
@@ -191,13 +191,13 @@ class CreateIncomingRequest extends Component<ComponentProps> {
                     this.state.selectedMonitors &&
                     this.state.selectedMonitors.length > 0
                 ) {
-                    const monitors = this.state.selectedMonitors;
+                    const monitors: $TSFixMe = this.state.selectedMonitors;
 
                     postObj.monitors = monitors;
                 }
 
 
-                const isDuplicate = postObj.monitors
+                const isDuplicate: $TSFixMe = postObj.monitors
 
                     ? postObj.monitors.length === new Set(postObj.monitors).size
                         ? false
@@ -272,12 +272,12 @@ class CreateIncomingRequest extends Component<ComponentProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -350,7 +350,7 @@ class CreateIncomingRequest extends Component<ComponentProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -472,9 +472,9 @@ class CreateIncomingRequest extends Component<ComponentProps> {
     renderFilters = ({
         fields
     }: $TSFixMe) => {
-        const { filterShowing } = this.state;
+        const { filterShowing }: $TSFixMe = this.state;
 
-        const { formValues, monitorCustomFields, customFields } = this.props;
+        const { formValues, monitorCustomFields, customFields }: $TSFixMe = this.props;
 
         if (
             !filterShowing &&
@@ -905,8 +905,8 @@ class CreateIncomingRequest extends Component<ComponentProps> {
 
     handleCloseModal = () => {
 
-        const { closeModal, data, destroy } = this.props;
-        const { projectId } = data;
+        const { closeModal, data, destroy }: $TSFixMe = this.props;
+        const { projectId }: $TSFixMe = data;
         destroy();
         closeModal({
             id: projectId,
@@ -949,7 +949,7 @@ class CreateIncomingRequest extends Component<ComponentProps> {
 
             customFields,
         } = this.props;
-        const { projectId } = data;
+        const { projectId }: $TSFixMe = data;
 
         const {
             selectedProjects,
@@ -3174,7 +3174,7 @@ CreateIncomingRequest.propTypes = {
     monitorsList: PropTypes.array,
 };
 
-const CreateIncomingRequestForm = reduxForm({
+const CreateIncomingRequestForm: $TSFixMe = reduxForm({
     form: 'incomingRequestForm', // a unique identifier for this form
     enableReinitialize: false,
     validate, // <--- validation function given to redux-form

@@ -3,7 +3,7 @@ import express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import FeedbackService from '../services/feedbackService';
 import {
     sendErrorResponse,
@@ -11,7 +11,7 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 
@@ -28,7 +28,7 @@ router.post(
                         'Cannot submit a feedback with an empty message or page',
                 });
             }
-            const feedback = await FeedbackService.create(
+            const feedback: $TSFixMe = await FeedbackService.create(
                 req.params.projectId,
                 req.body.feedback,
                 req.body.page,

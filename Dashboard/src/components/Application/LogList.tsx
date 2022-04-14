@@ -29,13 +29,13 @@ class LogList extends Component<ComponentProps> {
     }
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { handleNavigationButtonClick } = this.props;
+        const { handleNavigationButtonClick }: $TSFixMe = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { handleNavigationButtonClick } = this.props;
+        const { handleNavigationButtonClick }: $TSFixMe = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);
     };
 
@@ -91,10 +91,10 @@ class LogList extends Component<ComponentProps> {
             });
         }
 
-        const { logs } = this.props;
+        const { logs }: $TSFixMe = this.props;
         let skip = logs && logs.skip ? logs.skip : null;
         let limit = logs && logs.limit ? logs.limit : null;
-        const count = logs && logs.count ? logs.count : null;
+        const count: $TSFixMe = logs && logs.count ? logs.count : null;
         if (skip && typeof skip === 'string') {
             skip = parseInt(skip, 10);
         }
@@ -555,8 +555,8 @@ LogList.propTypes = {
     getLogSuccess: PropTypes.func,
 };
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const applicationLogId = props.applicationLog._id;
-    const logs = state.applicationLog.logs[applicationLogId];
+    const applicationLogId: $TSFixMe = props.applicationLog._id;
+    const logs: $TSFixMe = state.applicationLog.logs[applicationLogId];
     return {
         applicationLogId,
         logs,

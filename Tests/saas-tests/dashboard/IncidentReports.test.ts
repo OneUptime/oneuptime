@@ -4,14 +4,14 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 
 // parent user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
-const monitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
+const monitorName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe = utils.generateRandomString();
 
 describe('Incident Reports API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(600000);

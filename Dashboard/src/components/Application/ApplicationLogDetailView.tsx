@@ -148,8 +148,8 @@ ApplicationLogDetailView.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const applicationLogId = props.applicationLog._id;
-    const logs = state.applicationLog.logs[applicationLogId];
+    const applicationLogId: $TSFixMe = props.applicationLog._id;
+    const logs: $TSFixMe = state.applicationLog.logs[applicationLogId];
     return {
         applicationLogId,
         logs,

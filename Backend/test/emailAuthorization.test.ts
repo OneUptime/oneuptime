@@ -8,7 +8,7 @@ chai.use(chaihttp);
 import app from '../server';
 import EmailStatusService from '../backend/services/emailStatusService';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 
 import { createUser } from './utils/userSignUp';
@@ -22,7 +22,7 @@ const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
 
 let userId: ObjectID, projectId: ObjectID;
 
-const selectEmailStatus =
+const selectEmailStatus: $TSFixMe =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
 describe('Email verification API', function (): void {
@@ -66,7 +66,7 @@ describe('Email verification API', function (): void {
     it('should send email verification', async (): void => {
         await sleep(10000);
 
-        const emailStatuses = await EmailStatusService.findBy({
+        const emailStatuses: $TSFixMe = await EmailStatusService.findBy({
             query: {},
             select: selectEmailStatus,
         });
@@ -86,12 +86,12 @@ describe('Email verification API', function (): void {
     });
 
     it('should verify the user', async (): void => {
-        const token = await VerificationTokenModel.findOne({ userId });
+        const token: $TSFixMe = await VerificationTokenModel.findOne({ userId });
         try {
             await request.get(`/user/confirmation/${token.token}`).redirects(0);
         } catch (error) {
             expect(error).to.have.status(302);
-            const user = await UserService.findOneBy({
+            const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'isVerified',
             });
@@ -100,7 +100,7 @@ describe('Email verification API', function (): void {
     });
 
     it('should login the verified user', async (): void => {
-        const res = await request.post('/user/login').send({
+        const res: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,
         });

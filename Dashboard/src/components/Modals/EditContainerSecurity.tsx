@@ -31,8 +31,8 @@ interface EditContainerSecurityProps {
 class EditContainerSecurity extends Component<ComponentProps> {
     componentDidUpdate(prevProps: $TSFixMe) {
 
-        const { propArr, isRequesting, closeModal, editError } = this.props;
-        const { containerSecurityId } = propArr[0];
+        const { propArr, isRequesting, closeModal, editError }: $TSFixMe = this.props;
+        const { containerSecurityId }: $TSFixMe = propArr[0];
 
         if (prevProps.isRequesting !== isRequesting) {
             if (!isRequesting && !editError) {
@@ -63,8 +63,8 @@ class EditContainerSecurity extends Component<ComponentProps> {
 
     handleCloseModal = () => {
 
-        const { propArr } = this.props;
-        const { containerSecurityId } = propArr[0];
+        const { propArr }: $TSFixMe = this.props;
+        const { containerSecurityId }: $TSFixMe = propArr[0];
 
         this.props.closeModal({
             id: containerSecurityId,
@@ -73,8 +73,8 @@ class EditContainerSecurity extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe) => {
 
-        const { editContainerSecurity, propArr } = this.props;
-        const { projectId, componentId, containerSecurityId } = propArr[0];
+        const { editContainerSecurity, propArr }: $TSFixMe = this.props;
+        const { projectId, componentId, containerSecurityId }: $TSFixMe = propArr[0];
 
         if (!values) return;
 
@@ -108,7 +108,7 @@ class EditContainerSecurity extends Component<ComponentProps> {
 
             resourceCategoryList,
         } = this.props;
-        const { containerSecurityId } = propArr[0];
+        const { containerSecurityId }: $TSFixMe = propArr[0];
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -442,7 +442,7 @@ const mapStateToProps: Function = (state: RootState) => {
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, editContainerSecurity }, dispatch);
 
-const EditContainerSecurityForm = reduxForm({
+const EditContainerSecurityForm: $TSFixMe = reduxForm({
     form: 'EditContainerSecurityForm',
     enableReinitialize: true,
     destroyOnUnmount: true,

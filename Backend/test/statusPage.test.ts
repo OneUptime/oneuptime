@@ -10,7 +10,7 @@ chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -47,9 +47,9 @@ const resourceCategory: $TSFixMe = {
     resourceCategoryName: 'New Monitor Category',
 };
 
-const now = new Date();
-const today = now.toISOString();
-const tomorrow = new Date(now.setDate(now.getDate() + 1)).toISOString();
+const now: $TSFixMe = new Date();
+const today: $TSFixMe = now.toISOString();
+const tomorrow: $TSFixMe = new Date(now.setDate(now.getDate() + 1)).toISOString();
 const scheduledEvent: $TSFixMe = {
     name: 'New scheduled Event',
     startDate: today,
@@ -644,9 +644,9 @@ describe('Status API', function (): void {
     it('should not verify a domain that does not exist on the web', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         const domain: string = 'binoehty1234hgyt.com';
-        const selectDomainVerify =
+        const selectDomainVerify: $TSFixMe =
             'domain createdAt verificationToken verifiedAt updatedAt projectId';
-        const populateDomainVerify = [
+        const populateDomainVerify: $TSFixMe = [
             { path: 'projectId', select: 'name slug' },
         ];
 
@@ -785,7 +785,7 @@ describe('Status API', function (): void {
                 if (err) {
                     throw err;
                 }
-                const newProjectId = res.body._id;
+                const newProjectId: $TSFixMe = res.body._id;
                 request
                     .post(`/StatusPage/${newProjectId}`)
                     .set('Authorization', authorization)
@@ -802,7 +802,7 @@ describe('Status API', function (): void {
                         if (err) {
                             throw err;
                         }
-                        const newStatusPageId = res.body._id;
+                        const newStatusPageId: $TSFixMe = res.body._id;
                         request
                             .put(
                                 `/StatusPage/${newProjectId}/${newStatusPageId}/domain`
@@ -837,7 +837,7 @@ describe('Status API', function (): void {
                 if (err) {
                     throw err;
                 }
-                const newProjectId = res.body._id;
+                const newProjectId: $TSFixMe = res.body._id;
                 request
                     .post(`/StatusPage/${newProjectId}`)
                     .set('Authorization', authorization)
@@ -854,7 +854,7 @@ describe('Status API', function (): void {
                         if (err) {
                             throw err;
                         }
-                        const newStatusPageId = res.body._id;
+                        const newStatusPageId: $TSFixMe = res.body._id;
                         request
                             .put(
                                 `/StatusPage/${newProjectId}/${newStatusPageId}/domain`

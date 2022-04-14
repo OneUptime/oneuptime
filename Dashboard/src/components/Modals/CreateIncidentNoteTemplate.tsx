@@ -74,7 +74,7 @@ class CreateIncidentNoteTemplate extends React.Component<CreateIncidentNoteTempl
             fetchIncidentNoteTemplates,
         } = this.props;
 
-        const projectId = currentProject._id;
+        const projectId: $TSFixMe = currentProject._id;
         const {
             incidentState,
             incidentNote,
@@ -112,7 +112,7 @@ class CreateIncidentNoteTemplate extends React.Component<CreateIncidentNoteTempl
 
     closeAndClearError = () => {
 
-        const { createIncidentNoteTemplateFailure, closeModal } = this.props;
+        const { createIncidentNoteTemplateFailure, closeModal }: $TSFixMe = this.props;
 
         // clear error
         createIncidentNoteTemplateFailure(null);
@@ -135,7 +135,7 @@ class CreateIncidentNoteTemplate extends React.Component<CreateIncidentNoteTempl
 
             formValues,
         } = this.props;
-        const { showVariables } = this.state;
+        const { showVariables }: $TSFixMe = this.state;
 
         return (
             <div
@@ -504,7 +504,7 @@ CreateIncidentNoteTemplate.propTypes = {
     change: PropTypes.func,
 };
 
-const CreateIncidentNoteTemplateForm = reduxForm({
+const CreateIncidentNoteTemplateForm: $TSFixMe = reduxForm({
     form: 'CreateIncidentNoteTemplateForm', // a unique identifier for this form
     enableReinitialize: true,
 })(CreateIncidentNoteTemplate);

@@ -18,7 +18,7 @@ class ResetPasswordPage extends React.Component<ResetPasswordPageProps> {
 
     override render() {
 
-        const { masterAdminExists, requestingMasterAdmin } = this.props;
+        const { masterAdminExists, requestingMasterAdmin }: $TSFixMe = this.props;
 
         return (
             <div id="wrap" style={{ paddingTop: 0 }}>

@@ -66,9 +66,9 @@ class CreateSlack extends React.Component<CreateSlackProps> {
             data: { monitorId },
         } = this.props;
         const postObj: $TSFixMe = {};
-        const { selectAllMonitors } = values;
+        const { selectAllMonitors }: $TSFixMe = values;
         let monitors = [];
-        const allMonitors = monitor.monitorsList.monitors
+        const allMonitors: $TSFixMe = monitor.monitorsList.monitors
             .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
 
@@ -118,7 +118,7 @@ class CreateSlack extends React.Component<CreateSlackProps> {
             : false;
 
 
-        const isDuplicate = postObj.monitors
+        const isDuplicate: $TSFixMe = postObj.monitors
 
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
@@ -157,12 +157,12 @@ class CreateSlack extends React.Component<CreateSlackProps> {
 
     formatData = () => {
 
-        const monitors = this.props.monitorsList;
+        const monitors: $TSFixMe = this.props.monitorsList;
         const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
-            const projectId = monitor.projectId._id || monitor.projectId;
-            const componentId = monitor.componentId._id || monitor.componentId;
+            const projectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
+            const componentId: $TSFixMe = monitor.componentId._id || monitor.componentId;
 
             if (!hash[projectId]) {
 
@@ -235,7 +235,7 @@ class CreateSlack extends React.Component<CreateSlackProps> {
             }
         });
 
-        const data = [];
+        const data: $TSFixMe = [];
         for (const [, value] of Object.entries(hash)) {
             data.push(value);
         }
@@ -365,7 +365,7 @@ class CreateSlack extends React.Component<CreateSlackProps> {
         } = this.props;
 
 
-        const { formValues } = this.props;
+        const { formValues }: $TSFixMe = this.props;
         const {
             selectedProjects,
             selectedComponents,
@@ -373,9 +373,9 @@ class CreateSlack extends React.Component<CreateSlackProps> {
             selectData,
         } = this.state;
 
-        const monitorList = [];
+        const monitorList: $TSFixMe = [];
 
-        const allMonitors = this.props.monitor.monitorsList.monitors
+        const allMonitors: $TSFixMe = this.props.monitor.monitorsList.monitors
             .map((monitor: $TSFixMe) => monitor.monitors)
             .flat();
         if (allMonitors && allMonitors.length > 0) {
@@ -981,7 +981,7 @@ CreateSlack.propTypes = {
     monitorsList: PropTypes.array,
 };
 
-const NewCreateSlack = reduxForm({
+const NewCreateSlack: $TSFixMe = reduxForm({
     form: 'newCreateSlack', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for

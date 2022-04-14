@@ -49,7 +49,7 @@ export default class Service {
             projectId: data.projectId,
         };
         const select: string = 'name _id';
-        const existingMonitor = await this.findBy({
+        const existingMonitor: $TSFixMe = await this.findBy({
             query,
             select,
         });
@@ -75,7 +75,7 @@ export default class Service {
         let subProjectIds: $TSFixMe = [];
         const selectResourceCat: string =
             'projectId name createdById createdAt';
-        const [subProjects, count, resourceCategory] = await Promise.all([
+        const [subProjects, count, resourceCategory]: $TSFixMe = await Promise.all([
             ProjectService.findBy({
                 query: { parentProjectId: project._id },
                 select: '_id users', // Subprojects require it for monitor creation
@@ -114,8 +114,8 @@ export default class Service {
         if (!plan && IS_SAAS_SERVICE) {
             throw new BadDataException('Invalid project plan.');
         } else {
-            const unlimitedMonitor = ['Scale', 'Enterprise'];
-            const monitorCount =
+            const unlimitedMonitor: $TSFixMe = ['Scale', 'Enterprise'];
+            const monitorCount: $TSFixMe =
                 plan.category === 'Startup'
                     ? 5
                     : plan.category === 'Growth'
@@ -126,7 +126,7 @@ export default class Service {
                 !IS_SAAS_SERVICE ||
                 unlimitedMonitor.includes(plan.category)
             ) {
-                const monitor = new MonitorModel();
+                const monitor: $TSFixMe = new MonitorModel();
 
                 monitor.name = data.name;
 
@@ -221,11 +221,11 @@ export default class Service {
                 if (data && data.name) {
                     monitor.slug = getSlug(data.name);
                 }
-                const savedMonitor = await monitor.save();
+                const savedMonitor: $TSFixMe = await monitor.save();
 
-                const select =
+                const select: $TSFixMe =
                     '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
-                const populate = [
+                const populate: $TSFixMe = [
                     {
                         path: 'monitorSla',
                         select: 'frequency _id',
@@ -233,7 +233,7 @@ export default class Service {
                     { path: 'componentId', select: 'name' },
                     { path: 'incidentCommunicationSla', select: '_id' },
                 ];
-                const populatedMonitor = await this.findOneBy({
+                const populatedMonitor: $TSFixMe = await this.findOneBy({
                     query: { _id: savedMonitor._id },
                     select,
                     populate,
@@ -250,7 +250,7 @@ export default class Service {
                 }
                 return populatedMonitor || savedMonitor;
             } else {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     "You can't add any more monitors. Please upgrade your account."
                 );
 
@@ -364,9 +364,9 @@ export default class Service {
             }
         );
 
-        const select =
+        const select: $TSFixMe =
             '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitorSla',
                 select: 'frequency _id',
@@ -378,7 +378,7 @@ export default class Service {
         ];
         const query: $TSFixMe = { _id };
 
-        const monitor = await this.findOneBy({ query, select, populate });
+        const monitor: $TSFixMe = await this.findOneBy({ query, select, populate });
         RealTimeService.monitorEdit(monitor);
         return monitor;
     }
@@ -427,7 +427,7 @@ export default class Service {
         let errorMsg;
         if (data && data.customFields && data.customFields.length > 0) {
             const select: string = '_id';
-            const monitor = await this.findOneBy({ query, select });
+            const monitor: $TSFixMe = await this.findOneBy({ query, select });
             for (const field of data.customFields) {
                 if (field.uniqueField) {
                     const query: $TSFixMe = {
@@ -439,7 +439,7 @@ export default class Service {
                             },
                         },
                     };
-                    const _monitor = await this.findOneBy({
+                    const _monitor: $TSFixMe = await this.findOneBy({
                         query,
                         select,
                     });
@@ -455,7 +455,7 @@ export default class Service {
         }
 
         if (errorMsg) {
-            const error = new Error(errorMsg);
+            const error: $TSFixMe = new Error(errorMsg);
 
             error.code = 400;
             throw error;
@@ -485,9 +485,9 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const select =
+        const select: $TSFixMe =
             '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitorSla',
                 select: 'frequency _id',
@@ -497,7 +497,7 @@ export default class Service {
             { path: 'resourceCategory', select: 'name' },
             { path: 'statusPageCategory', select: 'name' },
         ];
-        const monitor = await this.findOneBy({ query, select, populate });
+        const monitor: $TSFixMe = await this.findOneBy({ query, select, populate });
         // run in the background
         RealTimeService.monitorEdit(monitor);
 
@@ -515,9 +515,9 @@ export default class Service {
         let updatedData = await MonitorModel.updateMany(query, {
             $set: data,
         });
-        const select =
+        const select: $TSFixMe =
             '_id monitorStatus name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitorSla',
                 select: 'frequency _id',
@@ -539,7 +539,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const updatedData = await MonitorModel.updateMany(query, {
+        const updatedData: $TSFixMe = await MonitorModel.updateMany(query, {
             $set: data,
         });
         return updatedData;
@@ -574,7 +574,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const monitorQuery = MonitorModel.find(query)
+        const monitorQuery: $TSFixMe = MonitorModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -583,7 +583,7 @@ export default class Service {
         monitorQuery.select(select);
         monitorQuery.populate(populate);
 
-        const monitors = await monitorQuery;
+        const monitors: $TSFixMe = await monitorQuery;
         return monitors;
     }
 
@@ -596,12 +596,12 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const monitorQuery = MonitorModel.findOne(query).sort(sort).lean();
+        const monitorQuery: $TSFixMe = MonitorModel.findOne(query).sort(sort).lean();
 
         monitorQuery.select(select);
         monitorQuery.populate(populate);
 
-        const monitor = await monitorQuery;
+        const monitor: $TSFixMe = await monitorQuery;
         return monitor;
     }
 
@@ -613,7 +613,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await MonitorModel.countDocuments(query);
+        const count: $TSFixMe = await MonitorModel.countDocuments(query);
         return count;
     }
 
@@ -623,7 +623,7 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const monitor = await MonitorModel.findOneAndUpdate(
+        const monitor: $TSFixMe = await MonitorModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -655,7 +655,7 @@ export default class Service {
 
                 let subProjectIds = [];
 
-                const subProjects = await ProjectService.findBy({
+                const subProjects: $TSFixMe = await ProjectService.findBy({
                     query: { parentProjectId: project._id },
                     select: '_id',
                 });
@@ -665,7 +665,7 @@ export default class Service {
                     );
                 }
                 subProjectIds.push(project._id);
-                const [monitorsCount, projectUsers] = await Promise.all([
+                const [monitorsCount, projectUsers]: $TSFixMe = await Promise.all([
                     this.countBy({
                         projectId: { $in: subProjectIds },
                     }),
@@ -677,7 +677,7 @@ export default class Service {
                 if (typeof projectSeats === 'string') {
                     projectSeats = parseInt(projectSeats);
                 }
-                const seats = await TeamService.getSeats(projectUsers);
+                const seats: $TSFixMe = await TeamService.getSeats(projectUsers);
                 // check if project seats are more based on users in project or by count of monitors
                 if (
                     !IS_SAAS_SERVICE ||
@@ -700,7 +700,7 @@ export default class Service {
                 }
             }
 
-            const alerts = await AlertService.findBy({
+            const alerts: $TSFixMe = await AlertService.findBy({
                 query: { monitorId: monitor._id },
                 select: '_id userId',
             });
@@ -746,9 +746,9 @@ export default class Service {
             skip = parseInt(skip);
         }
 
-        const select =
+        const select: $TSFixMe =
             '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitorSla',
                 select: 'frequency _id',
@@ -759,9 +759,9 @@ export default class Service {
             { path: 'statusPageCategory', select: 'name' },
             { path: 'projectId', select: 'name' },
         ];
-        const subProjectMonitors = await Promise.all(
+        const subProjectMonitors: $TSFixMe = await Promise.all(
             subProjectIds.map(async (id: $TSFixMe) => {
-                const [monitors, count] = await Promise.all([
+                const [monitors, count]: $TSFixMe = await Promise.all([
                     this.findBy({
                         query: { projectId: id },
                         limit,
@@ -772,13 +772,13 @@ export default class Service {
                     this.countBy({ projectId: id }),
                 ]);
 
-                const monitorsWithStatus = await Promise.all(
+                const monitorsWithStatus: $TSFixMe = await Promise.all(
                     monitors.map(async (monitor: $TSFixMe) => {
                         let monitorStatus;
 
-                        const incidentList = [];
+                        const incidentList: $TSFixMe = [];
 
-                        const monitorIncidents = await IncidentService.findBy({
+                        const monitorIncidents: $TSFixMe = await IncidentService.findBy({
                             query: {
                                 'monitors.monitorId': monitor._id,
                                 resolved: false,
@@ -807,7 +807,7 @@ export default class Service {
                     })
                 );
 
-                const populateSchedule = [
+                const populateSchedule: $TSFixMe = [
                     { path: 'userIds', select: 'name' },
                     { path: 'createdById', select: 'name' },
                     { path: 'monitorIds', select: 'name' },
@@ -825,11 +825,11 @@ export default class Service {
                     },
                 ];
 
-                const selectSchedule =
+                const selectSchedule: $TSFixMe =
                     '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-                const monitorsWithSchedules = await Promise.all(
+                const monitorsWithSchedules: $TSFixMe = await Promise.all(
                     monitorsWithStatus.map(async monitor => {
-                        const monitorSchedules = await ScheduleService.findBy({
+                        const monitorSchedules: $TSFixMe = await ScheduleService.findBy({
                             query: { monitorIds: monitor._id },
                             select: selectSchedule,
                             populate: populateSchedule,
@@ -866,9 +866,9 @@ export default class Service {
             skip = parseInt(skip);
         }
 
-        const select =
+        const select: $TSFixMe =
             '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
-        const populate = [
+        const populate: $TSFixMe = [
             {
                 path: 'monitorSla',
                 select: 'frequency _id',
@@ -878,7 +878,7 @@ export default class Service {
             { path: 'resourceCategory', select: 'name' },
         ];
 
-        const [monitors, count] = await Promise.all([
+        const [monitors, count]: $TSFixMe = await Promise.all([
             this.findBy({
                 query: { componentId },
                 limit,
@@ -889,13 +889,13 @@ export default class Service {
             this.countBy({ componentId }),
         ]);
 
-        const monitorsWithStatus = await Promise.all(
+        const monitorsWithStatus: $TSFixMe = await Promise.all(
             monitors.map(async (monitor: $TSFixMe) => {
                 let monitorStatus;
 
-                const incidentList = [];
+                const incidentList: $TSFixMe = [];
 
-                const monitorIncidents = await IncidentService.findBy({
+                const monitorIncidents: $TSFixMe = await IncidentService.findBy({
                     query: {
                         'monitors.monitorId': monitor._id,
                         resolved: false,
@@ -924,7 +924,7 @@ export default class Service {
             })
         );
 
-        const populateSchedule = [
+        const populateSchedule: $TSFixMe = [
             { path: 'userIds', select: 'name' },
             { path: 'createdById', select: 'name' },
             { path: 'monitorIds', select: 'name' },
@@ -942,11 +942,11 @@ export default class Service {
             },
         ];
 
-        const selectSchedule =
+        const selectSchedule: $TSFixMe =
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-        const monitorsWithSchedules = await Promise.all(
+        const monitorsWithSchedules: $TSFixMe = await Promise.all(
             monitorsWithStatus.map(async monitor => {
-                const monitorSchedules = await ScheduleService.findBy({
+                const monitorSchedules: $TSFixMe = await ScheduleService.findBy({
                     query: { monitorIds: monitor._id },
                     select: selectSchedule,
                     populate: populateSchedule,
@@ -968,8 +968,8 @@ export default class Service {
     }
 
     async getProbeMonitors(probeId: $TSFixMe, date: $TSFixMe): void {
-        const newdate = new Date();
-        const monitors = await MonitorModel.find({
+        const newdate: $TSFixMe = new Date();
+        const monitors: $TSFixMe = await MonitorModel.find({
             $and: [
                 {
                     deleted: false,
@@ -1049,9 +1049,9 @@ export default class Service {
         });
 
         if (monitors && monitors.length) {
-            const updatePromises = [];
-            const createNewPollTimeMonitorIds = [];
-            const updatePollTimeMonitorIds = [];
+            const updatePromises: $TSFixMe = [];
+            const createNewPollTimeMonitorIds: $TSFixMe = [];
+            const updatePollTimeMonitorIds: $TSFixMe = [];
 
             for (const monitor of monitors) {
                 if (
@@ -1101,7 +1101,7 @@ export default class Service {
 
     async getScriptMonitors({ limit, skip }: $TSFixMe): void {
         import moment from 'moment';
-        const monitors = await MonitorModel.find({
+        const monitors: $TSFixMe = await MonitorModel.find({
             $and: [
                 {
                     deleted: false,
@@ -1150,9 +1150,9 @@ export default class Service {
     }
 
     async getUrlMonitorsNotScannedByLightHouseInPastOneDay(): void {
-        const oneDay = moment().subtract(1, 'days').toDate();
+        const oneDay: $TSFixMe = moment().subtract(1, 'days').toDate();
 
-        const monitors = await MonitorModel.find({
+        const monitors: $TSFixMe = await MonitorModel.find({
             $and: [
                 {
                     deleted: false,
@@ -1182,9 +1182,9 @@ export default class Service {
     }
 
     async updateMonitorPingTime(id: $TSFixMe): void {
-        const newdate = new Date();
+        const newdate: $TSFixMe = new Date();
 
-        const monitor = await MonitorModel.findOneAndUpdate(
+        const monitor: $TSFixMe = await MonitorModel.findOneAndUpdate(
             {
                 _id: id,
             },
@@ -1198,14 +1198,14 @@ export default class Service {
         projectId: ObjectID,
         deviceId: $TSFixMe
     ): void {
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
         let monitor = await thisObj.findOneBy({
             query: { projectId: projectId, data: { deviceId: deviceId } },
             select: '_id',
         });
 
         if (!monitor) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Monitor with this Device ID not found in this Project.'
             );
 
@@ -1222,22 +1222,22 @@ export default class Service {
         startDate: $TSFixMe,
         endDate: $TSFixMe
     ): void {
-        const start = moment(startDate).toDate();
-        const end = moment(endDate).toDate();
-        const intervalInDays = moment(endDate).diff(moment(startDate), 'days');
+        const start: $TSFixMe = moment(startDate).toDate();
+        const end: $TSFixMe = moment(endDate).toDate();
+        const intervalInDays: $TSFixMe = moment(endDate).diff(moment(startDate), 'days');
 
         await this.updateMonitorSlaStat({ _id: monitorId });
 
         const select: string = 'type agentlessConfig createdAt';
-        const monitor = await this.findOneBy({
+        const monitor: $TSFixMe = await this.findOneBy({
             query: { _id: monitorId },
             select,
         });
 
         let probes;
-        const probeLogs = [];
+        const probeLogs: $TSFixMe = [];
         if (monitor) {
-            const isNewMonitor =
+            const isNewMonitor: $TSFixMe =
                 moment(endDate).diff(moment(monitor.createdAt), 'days') < 2;
             if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
                 probes = [undefined];
@@ -1248,13 +1248,13 @@ export default class Service {
                 });
             }
 
-            const selectMonitorLogBy =
+            const selectMonitorLogBy: $TSFixMe =
                 'monitorId probeId status responseTime responseStatus cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp createdAt intervalDate maxResponseTime maxCpuLoad maxMemoryUsed maxStorageUsed maxMainTemp sslCertificate kubernetesLog';
 
-            const selectMonitorLog =
+            const selectMonitorLog: $TSFixMe =
                 'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
 
-            const populateMonitorLog = [
+            const populateMonitorLog: $TSFixMe = [
                 {
                     path: 'probeId',
                     select: 'createdAt lastAlive probeKey probeName version probeImage deleted',
@@ -1320,9 +1320,9 @@ export default class Service {
         endDate: $TSFixMe,
         filter: $TSFixMe
     ): void {
-        const start = moment(startDate).toDate();
-        const end = moment(endDate).toDate();
-        const monitor = await this.findOneBy({
+        const start: $TSFixMe = moment(startDate).toDate();
+        const end: $TSFixMe = moment(endDate).toDate();
+        const monitor: $TSFixMe = await this.findOneBy({
             query: { _id: monitorId },
             select: 'type agentlessConfig',
         });
@@ -1336,10 +1336,10 @@ export default class Service {
             });
         }
 
-        const selectMonitorLogBy =
+        const selectMonitorLogBy: $TSFixMe =
             'monitorId probeId status responseTime responseStatus cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp createdAt intervalDate maxResponseTime maxCpuLoad maxMemoryUsed maxStorageUsed maxMainTemp sslCertificate kubernetesLog';
 
-        const probeLogs = [];
+        const probeLogs: $TSFixMe = [];
         for (const probe of probes) {
             const query: $TSFixMe = {
                 monitorId,
@@ -1348,7 +1348,7 @@ export default class Service {
             if (typeof probe !== 'undefined') {
                 query.probeId = probe._id;
             }
-            const monitorLogs = await MonitorLogByDayService.findBy({
+            const monitorLogs: $TSFixMe = await MonitorLogByDayService.findBy({
                 query,
                 limit: null,
                 skip: null,
@@ -1370,15 +1370,15 @@ export default class Service {
         startDate: $TSFixMe,
         endDate: $TSFixMe
     ): void {
-        const start = moment(startDate).toDate();
-        const end = moment(endDate).toDate();
-        const monitor = await this.findOneBy({
+        const start: $TSFixMe = moment(startDate).toDate();
+        const end: $TSFixMe = moment(endDate).toDate();
+        const monitor: $TSFixMe = await this.findOneBy({
             query: { _id: monitorId },
             select: 'type agentlessConfig',
         });
 
         let probes;
-        const probeStatuses = [];
+        const probeStatuses: $TSFixMe = [];
         if (
             (monitor &&
                 monitor.type === 'server-monitor' &&
@@ -1413,9 +1413,9 @@ export default class Service {
                 query.probeId = { $in: [probe._id, null] };
             }
 
-            const select =
+            const select: $TSFixMe =
                 '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
-            const monitorStatuses = await MonitorStatusService.findBy({
+            const monitorStatuses: $TSFixMe = await MonitorStatusService.findBy({
                 query,
                 select,
             });
@@ -1432,7 +1432,7 @@ export default class Service {
     }
 
     async addSeat(query: Query): void {
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
         });
@@ -1465,7 +1465,7 @@ export default class Service {
             throw new BadDataException('Site URL already exists.');
         }
 
-        const siteUrls = [data.siteUrl, ...monitor.siteUrls];
+        const siteUrls: $TSFixMe = [data.siteUrl, ...monitor.siteUrls];
 
         monitor = await this.updateOneBy(query, { siteUrls });
 
@@ -1474,7 +1474,7 @@ export default class Service {
 
     async removeSiteUrl(query: Query, data: $TSFixMe): void {
         let monitor = await this.findOneBy({ query, select: 'siteUrls' });
-        const siteUrlIndex =
+        const siteUrlIndex: $TSFixMe =
             monitor.siteUrls && monitor.siteUrls.length > 0
                 ? monitor.siteUrls.indexOf(data.siteUrl)
                 : -1;
@@ -1486,7 +1486,7 @@ export default class Service {
         if (monitor.siteUrls && monitor.siteUrls.length > 0) {
             monitor.siteUrls.splice(siteUrlIndex, 1);
         }
-        const siteUrls = monitor.siteUrls;
+        const siteUrls: $TSFixMe = monitor.siteUrls;
 
         monitor = await this.updateOneBy(query, { siteUrls });
 
@@ -1495,7 +1495,7 @@ export default class Service {
 
     // yet to be edited
     async getManualMonitorTime(monitorId: $TSFixMe): void {
-        const [monitorTime, monitorIncidents] = await Promise.all([
+        const [monitorTime, monitorIncidents]: $TSFixMe = await Promise.all([
             this.findOneBy({
                 query: { _id: monitorId },
                 select: 'createdAt',
@@ -1505,7 +1505,7 @@ export default class Service {
                 select: 'createdAt resolvedAt',
             }),
         ]);
-        const dateNow = moment().utc();
+        const dateNow: $TSFixMe = moment().utc();
         let days = moment(dateNow)
             .utc()
             .startOf('day')
@@ -1514,7 +1514,7 @@ export default class Service {
         if (days > 89) {
             days = 89;
         }
-        const times = [];
+        const times: $TSFixMe = [];
         for (let i = days; i >= 0; i--) {
             let incidents = [];
             const temp: $TSFixMe = {};
@@ -1525,7 +1525,7 @@ export default class Service {
             temp.monitorId = monitorId;
             if (monitorIncidents && monitorIncidents.length) {
                 incidents = monitorIncidents.filter((inc: $TSFixMe) => {
-                    const creatediff = moment(temp.date)
+                    const creatediff: $TSFixMe = moment(temp.date)
                         .utc()
                         .startOf('day')
                         .diff(
@@ -1533,7 +1533,7 @@ export default class Service {
                             'days'
                         );
 
-                    const resolveddiff = moment(temp.date)
+                    const resolveddiff: $TSFixMe = moment(temp.date)
                         .utc()
                         .startOf('day')
                         .diff(
@@ -1561,14 +1561,14 @@ export default class Service {
                     : 'online';
 
                 incidents = incidents.map((inc: $TSFixMe) => {
-                    const creatediff = moment(temp.date)
+                    const creatediff: $TSFixMe = moment(temp.date)
                         .utc()
                         .startOf('day')
                         .diff(
                             moment(inc.createdAt).utc().startOf('day'),
                             'days'
                         );
-                    const resolveddiff = inc.resolvedAt
+                    const resolveddiff: $TSFixMe = inc.resolvedAt
                         ? moment(temp.date)
                               .utc()
                               .startOf('day')
@@ -1601,7 +1601,7 @@ export default class Service {
                 });
             }
             if (incidents.length) {
-                const reduced = incidents.reduce(
+                const reduced: $TSFixMe = incidents.reduce(
                     (inc: $TSFixMe, val: $TSFixMe) => inc + val
                 );
 
@@ -1623,11 +1623,11 @@ export default class Service {
     async restoreBy(query: Query): void {
         query.deleted = true;
         const select: string = '_id';
-        const monitor = await this.findBy({ query, select });
+        const monitor: $TSFixMe = await this.findBy({ query, select });
         if (monitor && monitor.length > 0) {
-            const monitors = await Promise.all(
+            const monitors: $TSFixMe = await Promise.all(
                 monitor.map(async (monitor: $TSFixMe) => {
-                    const monitorId = monitor._id;
+                    const monitorId: $TSFixMe = monitor._id;
 
                     monitor = await this.updateOneBy(
                         { _id: monitorId, deleted: true },
@@ -1657,12 +1657,12 @@ export default class Service {
     // checks if the monitor uptime stat is within the defined uptime on monitor sla
     // then update the monitor => breachedMonitorSla
     async updateMonitorSlaStat(query: Query): void {
-        const currentDate = moment().format();
+        const currentDate: $TSFixMe = moment().format();
         let startDate = moment(currentDate).subtract(30, 'days'); // default frequency
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'monitorSla', select: 'frequency monitorUptime' },
         ];
-        const monitor = await this.findOneBy({
+        const monitor: $TSFixMe = await this.findOneBy({
             query,
             select: '_id monitorSla projectId',
             populate,
@@ -1686,23 +1686,23 @@ export default class Service {
                     .subtract(Number(monitorSla.frequency), 'days')
                     .format();
 
-                const monitorStatus = await this.getMonitorStatuses(
+                const monitorStatus: $TSFixMe = await this.getMonitorStatuses(
                     monitor._id,
                     startDate,
                     currentDate
                 );
                 if (monitorStatus && monitorStatus.length > 0) {
-                    const { uptimePercent } = await this.calculateTime(
+                    const { uptimePercent }: $TSFixMe = await this.calculateTime(
                         monitorStatus[0].statuses,
                         startDate,
                         Number(monitorSla.frequency)
                     );
 
-                    const monitorUptime =
+                    const monitorUptime: $TSFixMe =
                         uptimePercent !== 100 && !isNaN(uptimePercent)
                             ? uptimePercent.toFixed(3)
                             : '100';
-                    const slaUptime = Number(monitorSla.monitorUptime).toFixed(
+                    const slaUptime: $TSFixMe = Number(monitorSla.monitorUptime).toFixed(
                         3
                     );
 
@@ -1720,9 +1720,9 @@ export default class Service {
                     }
                 }
 
-                const select =
+                const select: $TSFixMe =
                     '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
-                const populate = [
+                const populate: $TSFixMe = [
                     {
                         path: 'monitorSla',
                         select: 'frequency _id',
@@ -1733,7 +1733,7 @@ export default class Service {
                     { path: 'statusPageCategory', select: 'name' },
                 ];
 
-                const monitorData = await this.findOneBy({
+                const monitorData: $TSFixMe = await this.findOneBy({
                     query: { _id: monitor._id },
                     select,
                     populate,
@@ -1745,17 +1745,17 @@ export default class Service {
     }
 
     calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
-        const timeBlock = [];
+        const timeBlock: $TSFixMe = [];
         let totalUptime = 0;
         let totalTime = 0;
 
         let dayStart = moment(start).startOf('day');
 
-        const reversedStatuses = statuses.slice().reverse();
+        const reversedStatuses: $TSFixMe = statuses.slice().reverse();
 
         for (let i = 0; i < range; i++) {
-            const dayStartIn = dayStart;
-            const dayEnd =
+            const dayStartIn: $TSFixMe = dayStart;
+            const dayEnd: $TSFixMe =
                 i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
 
             const timeObj: $TSFixMe = {
@@ -1791,12 +1791,12 @@ export default class Service {
                     moment(monitorStatus.startTime).isBefore(dayEnd) &&
                     moment(monitorStatus.endTime).isAfter(dayStartIn)
                 ) {
-                    const start = moment(monitorStatus.startTime).isBefore(
+                    const start: $TSFixMe = moment(monitorStatus.startTime).isBefore(
                         dayStartIn
                     )
                         ? dayStartIn
                         : moment(monitorStatus.startTime);
-                    const end = moment(monitorStatus.endTime).isAfter(dayEnd)
+                    const end: $TSFixMe = moment(monitorStatus.endTime).isAfter(dayEnd)
                         ? dayEnd
                         : moment(monitorStatus.endTime);
                     incidentsHappenedDuringTheDay.push({
@@ -1817,11 +1817,11 @@ export default class Service {
             );
             //Third step
             for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
-                const firstIncidentIndex = i;
-                const nextIncidentIndex = i + 1;
-                const firstIncident =
+                const firstIncidentIndex: $TSFixMe = i;
+                const nextIncidentIndex: $TSFixMe = i + 1;
+                const firstIncident: $TSFixMe =
                     incidentsHappenedDuringTheDay[firstIncidentIndex];
-                const nextIncident =
+                const nextIncident: $TSFixMe =
                     incidentsHappenedDuringTheDay[nextIncidentIndex];
                 if (
                     moment(firstIncident.end).isSameOrBefore(nextIncident.start)
@@ -1830,7 +1830,7 @@ export default class Service {
                 }
 
                 if (firstIncident.status === nextIncident.status) {
-                    const end = moment(firstIncident.end).isAfter(
+                    const end: $TSFixMe = moment(firstIncident.end).isAfter(
                         nextIncident.end
                     )
                         ? firstIncident.end
@@ -1922,7 +1922,7 @@ export default class Service {
                 );
             //Last step
             for (const incident of incidentsHappenedDuringTheDay) {
-                const { start, end, status } = incident;
+                const { start, end, status }: $TSFixMe = incident;
                 if (status === 'offline') {
                     timeObj.downTime =
                         timeObj.downTime + end.diff(start, 'seconds');
@@ -1958,7 +1958,7 @@ export default class Service {
         monitorId: $TSFixMe,
         userId: ObjectID
     ): void {
-        const monitor = await MonitorModel.findOneAndUpdate(
+        const monitor: $TSFixMe = await MonitorModel.findOneAndUpdate(
             {
                 _id: monitorId,
                 projectId,
@@ -1979,7 +1979,7 @@ export default class Service {
         monitorId: $TSFixMe,
         componentId: $TSFixMe
     ): void {
-        const [monitor, component] = await Promise.all([
+        const [monitor, component]: $TSFixMe = await Promise.all([
             this.findOneBy({
                 query: { _id: monitorId },
                 select: 'projectId slug',
@@ -2000,7 +2000,7 @@ export default class Service {
             );
         }
 
-        const updatedMonitor = await this.updateOneBy(
+        const updatedMonitor: $TSFixMe = await this.updateOneBy(
             { _id: monitorId },
             { componentId }
         );
@@ -2009,17 +2009,17 @@ export default class Service {
     }
 
     calcTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
-        const timeBlock = [];
+        const timeBlock: $TSFixMe = [];
         let totalUptime = 0;
         let totalTime = 0;
 
         let dayStart = moment(start).startOf('day');
 
-        const reversedStatuses = statuses.slice().reverse();
+        const reversedStatuses: $TSFixMe = statuses.slice().reverse();
 
         for (let i = 0; i < range; i++) {
-            const dayStartIn = dayStart;
-            const dayEnd =
+            const dayStartIn: $TSFixMe = dayStart;
+            const dayEnd: $TSFixMe =
                 i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
 
             const timeObj: $TSFixMe = {
@@ -2051,7 +2051,7 @@ export default class Service {
             let incidentsHappenedDuringTheDay: $TSFixMe = [];
             reversedStatuses.forEach(
                 (monitor: $TSFixMe, index: $TSFixMe, array: $TSFixMe) => {
-                    const monitorStatus = Object.assign({}, monitor);
+                    const monitorStatus: $TSFixMe = Object.assign({}, monitor);
                     if (
                         monitorStatus.endTime === null &&
                         index === array.length - 1
@@ -2080,12 +2080,12 @@ export default class Service {
                         ) {
                             timeObj.status = monitor.status;
                         }
-                        const start = moment(monitorStatus.startTime).isBefore(
+                        const start: $TSFixMe = moment(monitorStatus.startTime).isBefore(
                             dayStartIn
                         )
                             ? dayStartIn
                             : moment(monitorStatus.startTime);
-                        const end = moment(monitorStatus.endTime).isAfter(
+                        const end: $TSFixMe = moment(monitorStatus.endTime).isAfter(
                             dayEnd
                         )
                             ? dayEnd
@@ -2114,11 +2114,11 @@ export default class Service {
             );
             //Third step
             for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
-                const firstIncidentIndex = i;
-                const nextIncidentIndex = i + 1;
-                const firstIncident =
+                const firstIncidentIndex: $TSFixMe = i;
+                const nextIncidentIndex: $TSFixMe = i + 1;
+                const firstIncident: $TSFixMe =
                     incidentsHappenedDuringTheDay[firstIncidentIndex];
-                const nextIncident =
+                const nextIncident: $TSFixMe =
                     incidentsHappenedDuringTheDay[nextIncidentIndex];
                 if (
                     moment(firstIncident.end).isSameOrBefore(nextIncident.start)
@@ -2127,7 +2127,7 @@ export default class Service {
                 }
 
                 if (firstIncident.status === nextIncident.status) {
-                    const end = moment(firstIncident.end).isAfter(
+                    const end: $TSFixMe = moment(firstIncident.end).isAfter(
                         nextIncident.end
                     )
                         ? firstIncident.end
@@ -2221,7 +2221,7 @@ export default class Service {
                 );
             //Last step
             for (const incident of incidentsHappenedDuringTheDay) {
-                const { start, end, status } = incident;
+                const { start, end, status }: $TSFixMe = incident;
                 if (status === 'disabled') {
                     timeObj.disabledTime =
                         timeObj.disabledTime + end.diff(start, 'seconds');

@@ -41,9 +41,9 @@ export class IncidentDeleteBox extends Component<IncidentDeleteBoxProps>{
 
     override render() {
 
-        const { deleting } = this.props;
+        const { deleting }: $TSFixMe = this.props;
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
         return (
             <div

@@ -8,7 +8,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import UserService from '../backend/services/userService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import ProjectService from '../backend/services/projectService';
@@ -16,7 +16,7 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 import payment from '../backend/config/payment';
 import Stripe from 'stripe';
-const stripe = Stripe(payment.paymentPrivateKey);
+const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 
 let token, userId, projectId, stripeCustomerId, testPlan;
 
@@ -26,7 +26,7 @@ describe('Invoice API', function (): void {
     before(async function (): void {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
-        const checkCardData = await request.post('/stripe/checkCard').send({
+        const checkCardData: $TSFixMe = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
 
             email: userData.email,
@@ -34,22 +34,22 @@ describe('Invoice API', function (): void {
             companyName: userData.companyName,
         });
 
-        const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
+        const confirmedPaymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(
             checkCardData.body.id
         );
 
-        const signUp = await request.post('/user/signup').send({
+        const signUp: $TSFixMe = await request.post('/user/signup').send({
             paymentIntent: {
                 id: confirmedPaymentIntent.id,
             },
             ...userData.user,
         });
 
-        const project = signUp.body.project;
+        const project: $TSFixMe = signUp.body.project;
         projectId = project._id;
         userId = signUp.body.id;
 
-        const verificationToken = await VerificationTokenModel.findOne({
+        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
             userId,
         });
         try {
@@ -60,13 +60,13 @@ describe('Invoice API', function (): void {
             //catch
         }
 
-        const login = await request.post('/user/login').send({
+        const login: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,
         });
         token = login.body.tokens.jwtAccessToken;
 
-        const user = await UserService.findOneBy({
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
         });
@@ -115,7 +115,7 @@ describe('Invoice API', function (): void {
 
     it('should return invoices', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const invoices = await request
+        const invoices: $TSFixMe = await request
 
             .post(`/invoice/${userId}`)
             .set('Authorization', authorization);

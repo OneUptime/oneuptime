@@ -28,7 +28,7 @@ export class ContainerSecurityDeleteBox extends Component<ContainerSecurityDelet
         componentSlug
     }: $TSFixMe) => {
 
-        const { openModal } = this.props;
+        const { openModal }: $TSFixMe = this.props;
 
         openModal({
             id: containerSecurityId,

@@ -4,7 +4,7 @@ import Main from './worker/main';
 
 import cron from 'node-cron';
 
-const cronContainerSecurityStartTime = Math.floor(Math.random() * 50);
+const cronContainerSecurityStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
 //Run this cron every 5 minute.
 cron.schedule('*/5 * * * *', () => {

@@ -3,7 +3,7 @@ import express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import GlobalConfigService from '../services/globalConfigService';
 import {
     sendErrorResponse,
@@ -11,8 +11,8 @@ import {
     sendItemResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
-const getUser = require('../middlewares/user').getUser;
-const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
+const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
 import twilioService from '../services/twilioService';
 
 // Route Description: Creating global config(s).
@@ -33,11 +33,11 @@ router.post(
                 configs = [req.body];
             }
 
-            const globalConfigs = [];
+            const globalConfigs: $TSFixMe = [];
 
             // Sanitize
             for (const config of configs) {
-                const { name, value } = config;
+                const { name, value }: $TSFixMe = config;
 
                 if (!name) {
                     return sendErrorResponse(req, res, {
@@ -117,10 +117,10 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const names = req.body;
+            const names: $TSFixMe = req.body;
 
             const selectConfig: string = 'name value createdAt';
-            const globalConfigs = await GlobalConfigService.findBy({
+            const globalConfigs: $TSFixMe = await GlobalConfigService.findBy({
                 query: { name: { $in: names } },
                 select: selectConfig,
             });
@@ -150,7 +150,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const selectConfig: string = 'name value createdAt';
-            const { name } = req.params;
+            const { name }: $TSFixMe = req.params;
             let globalConfig = await GlobalConfigService.findOneBy({
                 query: { name: name },
                 select: selectConfig,

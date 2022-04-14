@@ -38,7 +38,7 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
 
     componentDidUpdate(prevProps: $TSFixMe) {
 
-        const { currentProject, monitor, fetchLighthouseLogs } = this.props;
+        const { currentProject, monitor, fetchLighthouseLogs }: $TSFixMe = this.props;
         if (
             prevProps.monitor &&
             monitor &&
@@ -52,7 +52,7 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
 
     prevClicked = (monitorId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { currentProject, fetchLighthouseLogs } = this.props;
+        const { currentProject, fetchLighthouseLogs }: $TSFixMe = this.props;
         fetchLighthouseLogs(
             currentProject._id,
             monitorId,
@@ -63,7 +63,7 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
 
     nextClicked = (monitorId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { currentProject, fetchLighthouseLogs } = this.props;
+        const { currentProject, fetchLighthouseLogs }: $TSFixMe = this.props;
         fetchLighthouseLogs(
             currentProject._id,
             monitorId,
@@ -88,13 +88,13 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
     handleSiteChange = (data: $TSFixMe) => {
         this.setState({ siteValue: data });
 
-        const { currentProject, monitor, fetchLighthouseLogs } = this.props;
+        const { currentProject, monitor, fetchLighthouseLogs }: $TSFixMe = this.props;
         fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5, data.value);
     };
 
     scanWebsites = async () => {
 
-        const { currentProject, monitor, editMonitor } = this.props;
+        const { currentProject, monitor, editMonitor }: $TSFixMe = this.props;
         if (monitor.name) {
             delete monitor.name;
         }
@@ -109,14 +109,14 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
 
     override render() {
 
-        const { addSiteUrlModalId } = this.state;
+        const { addSiteUrlModalId }: $TSFixMe = this.state;
 
-        const requesting = this.props.requesting
+        const requesting: $TSFixMe = this.props.requesting
 
             ? this.props.requesting
             : false;
 
-        const siteUrls =
+        const siteUrls: $TSFixMe =
 
             this.props.monitor &&
 
@@ -131,7 +131,7 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
 
         siteUrls.unshift({ value: '', label: 'All Site URLs' });
 
-        const lighthouseScanStatus =
+        const lighthouseScanStatus: $TSFixMe =
 
             this.props.monitor && this.props.monitor.lighthouseScanStatus;
 

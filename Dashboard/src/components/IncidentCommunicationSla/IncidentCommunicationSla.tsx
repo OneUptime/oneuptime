@@ -47,13 +47,13 @@ class IncidentCommunicationSla extends Component<ComponentProps> {
 
     override componentDidMount() {
 
-        const { projectId, fetchCommunicationSlas } = this.props;
+        const { projectId, fetchCommunicationSlas }: $TSFixMe = this.props;
         fetchCommunicationSlas(projectId, 0, this.limit);
     }
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { projectId, fetchCommunicationSlas } = this.props;
+        const { projectId, fetchCommunicationSlas }: $TSFixMe = this.props;
         this.setState({
             flag: false,
         });
@@ -69,7 +69,7 @@ class IncidentCommunicationSla extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
-        const { projectId, fetchCommunicationSlas } = this.props;
+        const { projectId, fetchCommunicationSlas }: $TSFixMe = this.props;
         this.setState({
             flag: false,
         });
@@ -90,7 +90,7 @@ class IncidentCommunicationSla extends Component<ComponentProps> {
         incidentSlaId
     }: $TSFixMe) => {
 
-        const { updateCommunicationSla, setActiveSla } = this.props;
+        const { updateCommunicationSla, setActiveSla }: $TSFixMe = this.props;
         const data: $TSFixMe = { isDefault: true };
         setActiveSla(incidentSlaId);
         updateCommunicationSla(projectId, incidentSlaId, data, true);
@@ -133,7 +133,7 @@ class IncidentCommunicationSla extends Component<ComponentProps> {
         return incidentSlas &&
             incidentSlas.length > 0 &&
             incidentSlas.map((incidentSla: $TSFixMe) => {
-                const slaMonitors = monitors.filter(
+                const slaMonitors: $TSFixMe = monitors.filter(
                     (monitor: $TSFixMe) => monitor.incidentCommunicationSla &&
                         String(monitor.incidentCommunicationSla._id) ===
                         String(incidentSla._id)
@@ -347,11 +347,11 @@ class IncidentCommunicationSla extends Component<ComponentProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
-        const projectName = currentProject ? currentProject.name : '';
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
 
-        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(this.props.count) / 10);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
@@ -594,10 +594,10 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const monitorData = state.monitor.monitorsList.monitors.find(
+    const monitorData: $TSFixMe = state.monitor.monitorsList.monitors.find(
         (data: $TSFixMe) => String(data._id) === String(ownProps.projectId)
     );
-    const monitors = monitorData ? monitorData.monitors : [];
+    const monitors: $TSFixMe = monitorData ? monitorData.monitors : [];
 
     return {
         requesting: state.incidentSla.incidentCommunicationSlas.requesting,

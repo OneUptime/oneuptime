@@ -31,8 +31,8 @@ interface IncidentBasicSettingsProps {
 class IncidentBasicSettings extends React.Component<IncidentBasicSettingsProps> {
     submit = async (values: $TSFixMe) => {
 
-        const projectId = this.props.currentProject._id;
-        const { title, description, incidentPriority } = values;
+        const projectId: $TSFixMe = this.props.currentProject._id;
+        const { title, description, incidentPriority }: $TSFixMe = values;
 
         await this.props.updateBasicIncidentSettings(
             projectId,
@@ -43,7 +43,7 @@ class IncidentBasicSettings extends React.Component<IncidentBasicSettingsProps> 
     };
     override render() {
 
-        const { handleSubmit, reset } = this.props;
+        const { handleSubmit, reset }: $TSFixMe = this.props;
         return (
             <div
                 id="incidentBasicSettingsBox"
@@ -357,7 +357,7 @@ IncidentBasicSettings.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
 };
 
-const IncidentBasicSettingsForm = reduxForm({
+const IncidentBasicSettingsForm: $TSFixMe = reduxForm({
     form: 'incidentBasicSettings', // a unique identifier for this form
     enableReinitialize: true,
 })(IncidentBasicSettings);

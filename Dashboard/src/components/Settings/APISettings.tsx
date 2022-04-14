@@ -52,7 +52,7 @@ export class APISettings extends Component<ComponentProps>{
 
     override render() {
 
-        const { hidden } = this.state;
+        const { hidden }: $TSFixMe = this.state;
 
         return (
             <div className="Box-root Margin-bottom--12">

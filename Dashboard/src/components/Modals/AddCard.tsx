@@ -176,7 +176,7 @@ class _CardForm extends React.Component<_CardFormProps> {
     };
     override render() {
 
-        const { requesting, error, elementFontSize } = this.props;
+        const { requesting, error, elementFontSize }: $TSFixMe = this.props;
         return (
             <form onSubmit={this.handleSubmit}>
                 <div
@@ -325,7 +325,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const CardForm = injectStripe(
+const CardForm: $TSFixMe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(_CardForm)
 );
 
@@ -355,7 +355,7 @@ class AddCard extends Component<ComponentProps> {
 
     override render() {
 
-        const { elementFontSize } = this.state;
+        const { elementFontSize }: $TSFixMe = this.state;
         return (
             <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
                 <div className="Checkout">

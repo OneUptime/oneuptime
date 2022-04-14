@@ -12,7 +12,7 @@ import { Validate } from '../../config';
 //Client side validation
 function validate(values: $TSFixMe) {
     const errors: $TSFixMe = {};
-    const adminNotesArrayErrors = [];
+    const adminNotesArrayErrors: $TSFixMe = [];
 
     if (values.adminNotes) {
         for (let i = 0; i < values.adminNotes.length; i++) {
@@ -46,7 +46,7 @@ export class AdminNotes extends Component<ComponentProps>{
 
     override render() {
 
-        const { handleSubmit, requesting } = this.props;
+        const { handleSubmit, requesting }: $TSFixMe = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -118,7 +118,7 @@ AdminNotes.propTypes = {
     handleSubmit: PropTypes.func,
 };
 
-const AdminNotesForm = reduxForm({
+const AdminNotesForm: $TSFixMe = reduxForm({
     form: 'AdminNotes', // a unique identifier for this form
     validate, // <--- validation function given to redux-for
     enableReinitialize: true,

@@ -26,16 +26,16 @@ const _this: $TSFixMe = {
         endTime: $TSFixMe,
         currentTime: $TSFixMe
     ) {
-        const isDifferentDay = startTime >= endTime;
-        const [startHour, startMin] = startTime.split(':');
-        const [endHour, endMin] = endTime.split(':');
-        const [nowHour, nowMin] = currentTime.split(':');
-        const addDay = 86400000;
+        const isDifferentDay: $TSFixMe = startTime >= endTime;
+        const [startHour, startMin]: $TSFixMe = startTime.split(':');
+        const [endHour, endMin]: $TSFixMe = endTime.split(':');
+        const [nowHour, nowMin]: $TSFixMe = currentTime.split(':');
+        const addDay: $TSFixMe = 86400000;
 
-        const start = new Date(
+        const start: $TSFixMe = new Date(
             new Date().setHours(startHour, startMin)
         ).getTime();
-        const end = isDifferentDay
+        const end: $TSFixMe = isDifferentDay
             ? new Date(
                   new Date(new Date().getTime() + addDay).setHours(
                       endHour,
@@ -197,7 +197,7 @@ const _this: $TSFixMe = {
 
     //This will change the date to today and will retain the time.
     moveDateToToday(date: $TSFixMe) {
-        const today = new Date();
+        const today: $TSFixMe = new Date();
 
         if (typeof date === 'string') {
             date = new Date(date);
@@ -218,7 +218,7 @@ const _this: $TSFixMe = {
             date = new Date(date);
         }
 
-        const current = new Date();
+        const current: $TSFixMe = new Date();
         date = moment(date).add(1, 'minutes').toDate();
 
         return this.lessThan(date, current);

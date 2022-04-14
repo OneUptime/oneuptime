@@ -1,4 +1,4 @@
-const jwtSecretKey = process.env['JWT_SECRET'];
+const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
 import {
     ExpressResponse,
     ExpressRequest,
@@ -25,7 +25,7 @@ const _this: $TSFixMe = {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        const projectId = apiMiddleware.getProjectId(req);
+        const projectId: $TSFixMe = apiMiddleware.getProjectId(req);
 
         if (projectId) {
             if (!apiMiddleware.isValidProjectId(projectId)) {
@@ -40,7 +40,7 @@ const _this: $TSFixMe = {
             }
         }
 
-        const accessToken =
+        const accessToken: $TSFixMe =
             req.headers['authorization'] ||
             url.parse(req.url, true).query.accessToken;
 
@@ -66,7 +66,7 @@ const _this: $TSFixMe = {
             }
         }
 
-        const token = accessToken.split(' ')[1] || accessToken;
+        const token: $TSFixMe = accessToken.split(' ')[1] || accessToken;
 
         //Decode the token
         let decoded = null;
@@ -83,7 +83,7 @@ const _this: $TSFixMe = {
             }
         }
         req.user = decoded;
-        const user = await UserService.findOneBy({
+        const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: req.user.id },
             select: 'role',
         });
@@ -120,7 +120,7 @@ const _this: $TSFixMe = {
         res: ExpressResponse,
         next: NextFunction
     ) {
-        const accessToken =
+        const accessToken: $TSFixMe =
             req.headers['authorization'] ||
             url.parse(req.url, true).query.accessToken;
 
@@ -135,7 +135,7 @@ const _this: $TSFixMe = {
                 });
             }
 
-            const token = accessToken.split(' ')[1] || accessToken;
+            const token: $TSFixMe = accessToken.split(' ')[1] || accessToken;
 
             //Decode the token
             jwt.verify(
@@ -165,7 +165,7 @@ const _this: $TSFixMe = {
         res: ExpressResponse,
         next: NextFunction
     ) {
-        const accessToken =
+        const accessToken: $TSFixMe =
             req.headers['authorization'] ||
             url.parse(req.url, true).query.accessToken;
         if (!accessToken) {
@@ -178,7 +178,7 @@ const _this: $TSFixMe = {
                     message: 'Token is not of type string',
                 });
             }
-            const token = accessToken.split(' ')[1] || accessToken;
+            const token: $TSFixMe = accessToken.split(' ')[1] || accessToken;
             jwt.verify(
                 token,
                 jwtSecretKey,
@@ -192,10 +192,10 @@ const _this: $TSFixMe = {
                         req.authorizationType = 'USER';
                         req.user = decoded;
 
-                        const userId = req.user
+                        const userId: $TSFixMe = req.user
                             ? req.user.id
                             : null || url.parse(req.url, true).query.userId;
-                        const projectId =
+                        const projectId: $TSFixMe =
                             req.params.projectId ||
                             req.body.projectId ||
                             url.parse(req.url, true).query.projectId;
@@ -205,7 +205,7 @@ const _this: $TSFixMe = {
                                 message: 'Project id is not present.',
                             });
                         }
-                        const [project] = await Promise.all([
+                        const [project]: $TSFixMe = await Promise.all([
                             ProjectService.findOneBy({
                                 _id: projectId,
                             }),
@@ -274,7 +274,7 @@ const _this: $TSFixMe = {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        const projectId = apiMiddleware.getProjectId(req);
+        const projectId: $TSFixMe = apiMiddleware.getProjectId(req);
 
         if (this.isUserMasterAdmin(req, res)) {
             if (next) {
@@ -306,12 +306,12 @@ const _this: $TSFixMe = {
             }
         }
 
-        const project = await ProjectService.findOneBy({
+        const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'stripePlanId',
         });
 
-        const isScalePlan = project?.stripePlanId
+        const isScalePlan: $TSFixMe = project?.stripePlanId
             ? getPlanById(project.stripePlanId).category === 'Scale'
             : false;
 

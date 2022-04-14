@@ -1,6 +1,6 @@
 export default class Service {
     async create(data: $TSFixMe): void {
-        const Log = new LighthouseLogModel();
+        const Log: $TSFixMe = new LighthouseLogModel();
 
         Log.monitorId = data.monitorId;
 
@@ -22,7 +22,7 @@ export default class Service {
 
         Log.scanning = data.scanning;
 
-        const savedLog = await Log.save();
+        const savedLog: $TSFixMe = await Log.save();
 
         await this.sendLighthouseLog(savedLog);
 
@@ -38,7 +38,7 @@ export default class Service {
             query = {};
         }
 
-        const lighthouseLog = await LighthouseLogModel.findOneAndUpdate(
+        const lighthouseLog: $TSFixMe = await LighthouseLogModel.findOneAndUpdate(
             query,
             { $set: data },
             {
@@ -54,7 +54,7 @@ export default class Service {
             query = {};
         }
 
-        const lighthouseLog = await LighthouseLogModel.updateMany(
+        const lighthouseLog: $TSFixMe = await LighthouseLogModel.updateMany(
             query,
             { $set: data },
             {
@@ -86,7 +86,7 @@ export default class Service {
             query = {};
         }
 
-        const lighthouseLogsQuery = LighthouseLogModel.find(query)
+        const lighthouseLogsQuery: $TSFixMe = LighthouseLogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -95,7 +95,7 @@ export default class Service {
         lighthouseLogsQuery.select(select);
         lighthouseLogsQuery.populate(populate);
 
-        const lighthouseLogs = await lighthouseLogsQuery;
+        const lighthouseLogs: $TSFixMe = await lighthouseLogsQuery;
 
         return lighthouseLogs;
     }
@@ -105,7 +105,7 @@ export default class Service {
             query = {};
         }
 
-        const lighthouseLogQuery = LighthouseLogModel.findOne(query)
+        const lighthouseLogQuery: $TSFixMe = LighthouseLogModel.findOne(query)
             .sort(sort)
             .lean()
             .populate('probeId');
@@ -113,7 +113,7 @@ export default class Service {
         lighthouseLogQuery.select(select);
         lighthouseLogQuery.populate(populate);
 
-        const lighthouseLog = await lighthouseLogQuery;
+        const lighthouseLog: $TSFixMe = await lighthouseLogQuery;
 
         return lighthouseLog;
     }
@@ -138,15 +138,15 @@ export default class Service {
         let lighthouseLogs: $TSFixMe = [];
         let siteUrls;
 
-        const monitor = await MonitorService.findOneBy({
+        const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: monitorId },
             select: 'siteUrls',
         });
 
-        const selectLighthouseLogs =
+        const selectLighthouseLogs: $TSFixMe =
             'monitorId probeId data url performance accessibility bestPractices seo pwa createdAt scanning';
 
-        const populateLighthouseLogs = [
+        const populateLighthouseLogs: $TSFixMe = [
             {
                 path: 'probeId',
                 select: 'probeName probeKey version lastAlive deleted probeImage',
@@ -201,13 +201,13 @@ export default class Service {
             query = {};
         }
 
-        const count = await LighthouseLogModel.countDocuments(query);
+        const count: $TSFixMe = await LighthouseLogModel.countDocuments(query);
 
         return count;
     }
 
     async sendLighthouseLog(data: $TSFixMe): void {
-        const monitor = await MonitorService.findOneBy({
+        const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: data.monitorId },
             select: 'projectId',
             populate: [{ path: 'projectId', select: '_id' }],
@@ -223,7 +223,7 @@ export default class Service {
         query: Query
     ): void {
         await this.updateManyBy({ monitorId: monitorId }, query);
-        const logs = await this.findLastestScan({
+        const logs: $TSFixMe = await this.findLastestScan({
             monitorId,
             url: null,
             limit: 5,

@@ -6,7 +6,7 @@ import {
     ExpressRequest,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-const CLUSTER_KEY = process.env['CLUSTER_KEY'];
+const CLUSTER_KEY: $TSFixMe = process.env['CLUSTER_KEY'];
 export default {
     isAuthorizedApplicationScanner: async function (
         req: ExpressRequest,
@@ -127,7 +127,7 @@ export default {
         req.applicationScanner = {};
         req.applicationScanner.id = applicationScanner._id;
 
-        const [applicationScannerValue] = await Promise.all([
+        const [applicationScannerValue]: $TSFixMe = await Promise.all([
             ApplicationScannerService.findOneBy({
                 query: { applicationScannerKey, applicationScannerName },
                 select: 'version',

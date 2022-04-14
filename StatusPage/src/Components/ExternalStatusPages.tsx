@@ -25,7 +25,7 @@ class ExternalStatusPages extends Component<ComponentProps> {
 
     override render() {
 
-        const { externalStatusPages, theme } = this.props;
+        const { externalStatusPages, theme }: $TSFixMe = this.props;
         return (
             <div>
                 {theme && theme === 'Clean Theme' && (

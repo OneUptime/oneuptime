@@ -97,7 +97,7 @@ class AddNoteModal extends Component<ComponentProps> {
 
     handleKeyBoard = (e: $TSFixMe) => {
 
-        const { closeThisDialog, data } = this.props;
+        const { closeThisDialog, data }: $TSFixMe = this.props;
         if (e.target.localName !== 'textarea' && e.key) {
             switch (e.key) {
                 case 'Escape':
@@ -135,7 +135,7 @@ class AddNoteModal extends Component<ComponentProps> {
             closeThisDialog,
         } = this.props;
 
-        const { type } = this.props.data;
+        const { type }: $TSFixMe = this.props.data;
 
         return (
             <div
@@ -395,8 +395,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const currentProject = state.project.currentProject;
-    const event_state =
+    const currentProject: $TSFixMe = state.project.currentProject;
+    const event_state: $TSFixMe =
         state.form.AddNote &&
         state.form.AddNote.values &&
         state.form.AddNote.values.event_state;
@@ -413,7 +413,7 @@ const mapStateToProps: Function = (state: RootState) => {
 
 AddNoteModal.displayName = 'AddNoteModal';
 
-const AddNoteModalForm = reduxForm({
+const AddNoteModalForm: $TSFixMe = reduxForm({
     form: 'AddNote',
     destroyOnUnmount: true,
     enableReinitialize: true,

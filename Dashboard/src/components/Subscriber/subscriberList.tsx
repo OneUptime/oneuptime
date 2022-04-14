@@ -51,9 +51,9 @@ export class SubscriberList extends Component<SubscriberListProps>{
 
     deleteSubscriber = async (projectId: string, _id: $TSFixMe, setLoading: $TSFixMe) => {
 
-        const { fetchMonitorsSubscribers, monitorId } = this.props;
+        const { fetchMonitorsSubscribers, monitorId }: $TSFixMe = this.props;
 
-        const result = await this.props.deleteSubscriber(projectId, _id);
+        const result: $TSFixMe = await this.props.deleteSubscriber(projectId, _id);
         if (result.status === 200) {
             setLoading(false);
             fetchMonitorsSubscribers(projectId, monitorId, 0, 5);
@@ -62,15 +62,15 @@ export class SubscriberList extends Component<SubscriberListProps>{
 
     override render() {
 
-        const monitor = this.props.monitorState.monitorsList.monitors
+        const monitor: $TSFixMe = this.props.monitorState.monitorsList.monitors
             .map((monitor: $TSFixMe) => monitor.monitors.find(
 
                 (monitor: $TSFixMe) => monitor._id === this.props.monitorId
             )
             )
             .filter((monitor: $TSFixMe) => monitor)[0];
-        const subscribers = monitor.subscribers || {};
-        const subProjectId = monitor.projectId._id || monitor.projectId;
+        const subscribers: $TSFixMe = monitor.subscribers || {};
+        const subProjectId: $TSFixMe = monitor.projectId._id || monitor.projectId;
         if (
             subscribers &&
             subscribers.skip &&
@@ -575,7 +575,7 @@ interface RemoveBtnProps {
 }
 
 const RemoveBtn: Function = (props: RemoveBtnProps) => {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading]: $TSFixMe = useState(false);
     return (
         <>
             <button

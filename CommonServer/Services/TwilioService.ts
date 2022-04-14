@@ -14,7 +14,7 @@ import { IS_TESTING } from '../config/server';
 export default class TwilioService {
     getClient(accountSid: $TSFixMe, authToken: $TSFixMe): void {
         if (!accountSid || !authToken) {
-            const error = new Error('Twilio credentials not found.');
+            const error: $TSFixMe = new Error('Twilio credentials not found.');
 
             error.code = 400;
             return error;
@@ -23,7 +23,7 @@ export default class TwilioService {
     }
 
     async getSettings(): void {
-        const document = await GlobalConfigService.findOneBy({
+        const document: $TSFixMe = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value name',
         });
@@ -31,7 +31,7 @@ export default class TwilioService {
             return document.value;
         }
 
-        const error = new Error('Twilio settings not found.');
+        const error: $TSFixMe = new Error('Twilio settings not found.');
 
         error.code = 400;
         throw error;
@@ -61,14 +61,14 @@ export default class TwilioService {
                 to: number,
             };
             smsBody = options.body;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
             });
             if (customTwilioSettings) {
                 options.from = customTwilioSettings.phoneNumber;
-                const incidentSMSAction = new incidentSMSActionModel();
+                const incidentSMSAction: $TSFixMe = new incidentSMSActionModel();
 
                 incidentSMSAction.incidentId = incidentId;
 
@@ -79,12 +79,12 @@ export default class TwilioService {
                 incidentSMSAction.name = name;
                 await incidentSMSAction.save();
 
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     userId,
@@ -95,14 +95,14 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
-                const twilioClient = this.getClient(
+                const creds: $TSFixMe = await this.getSettings();
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
 
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -115,13 +115,13 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const alertLimit = await AlertService.checkPhoneAlertsLimit(
+                const alertLimit: $TSFixMe = await AlertService.checkPhoneAlertsLimit(
                     projectId
                 );
                 if (alertLimit) {
                     options.from = creds.phone;
                     // create incidentSMSAction entry for matching sms from twilio.
-                    const incidentSMSAction = new incidentSMSActionModel();
+                    const incidentSMSAction: $TSFixMe = new incidentSMSActionModel();
 
                     incidentSMSAction.incidentId = incidentId;
 
@@ -132,7 +132,7 @@ export default class TwilioService {
                     incidentSMSAction.name = name;
                     await incidentSMSAction.save();
 
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         userId,
@@ -143,7 +143,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new BadDataException(
+                    const error: $TSFixMe = new BadDataException(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -200,7 +200,7 @@ export default class TwilioService {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
@@ -213,12 +213,12 @@ export default class TwilioService {
                     to: number,
                 };
 
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     null,
@@ -229,9 +229,9 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
+                const creds: $TSFixMe = await this.getSettings();
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -249,7 +249,7 @@ export default class TwilioService {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -260,7 +260,7 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -271,7 +271,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -332,7 +332,7 @@ export default class TwilioService {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -344,12 +344,12 @@ export default class TwilioService {
                     to: number,
                 };
 
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     null,
@@ -360,9 +360,9 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
+                const creds: $TSFixMe = await this.getSettings();
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -380,7 +380,7 @@ export default class TwilioService {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -391,7 +391,7 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -402,7 +402,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -463,7 +463,7 @@ export default class TwilioService {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
@@ -475,12 +475,12 @@ export default class TwilioService {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     null,
@@ -491,9 +491,9 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
+                const creds: $TSFixMe = await this.getSettings();
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -511,7 +511,7 @@ export default class TwilioService {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -522,7 +522,7 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -533,7 +533,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -594,7 +594,7 @@ export default class TwilioService {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
@@ -606,12 +606,12 @@ export default class TwilioService {
                     to: number,
                 };
 
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     null,
@@ -622,9 +622,9 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
+                const creds: $TSFixMe = await this.getSettings();
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -642,7 +642,7 @@ export default class TwilioService {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -653,7 +653,7 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -664,7 +664,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -701,12 +701,12 @@ export default class TwilioService {
                 to: '+19173976235',
             };
 
-            const twilioClient = this.getClient(
+            const twilioClient: $TSFixMe = this.getClient(
                 data.accountSid,
                 data.authToken
             );
 
-            const message = await twilioClient.messages.create(options);
+            const message: $TSFixMe = await twilioClient.messages.create(options);
 
             await SmsCountService.create(
                 null,
@@ -755,7 +755,7 @@ export default class TwilioService {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -766,12 +766,12 @@ export default class TwilioService {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     null,
@@ -782,9 +782,9 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
+                const creds: $TSFixMe = await this.getSettings();
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -802,7 +802,7 @@ export default class TwilioService {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -813,7 +813,7 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -824,7 +824,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -878,7 +878,7 @@ export default class TwilioService {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber authToken accountSid',
             });
@@ -889,12 +889,12 @@ export default class TwilioService {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     null,
@@ -905,9 +905,9 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
+                const creds: $TSFixMe = await this.getSettings();
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -925,7 +925,7 @@ export default class TwilioService {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -936,7 +936,7 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -947,7 +947,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -997,7 +997,7 @@ export default class TwilioService {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -1008,12 +1008,12 @@ export default class TwilioService {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     null,
@@ -1024,9 +1024,9 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
+                const creds: $TSFixMe = await this.getSettings();
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -1044,7 +1044,7 @@ export default class TwilioService {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -1055,7 +1055,7 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -1066,7 +1066,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -1116,7 +1116,7 @@ export default class TwilioService {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -1127,12 +1127,12 @@ export default class TwilioService {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     null,
@@ -1143,9 +1143,9 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
+                const creds: $TSFixMe = await this.getSettings();
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -1163,7 +1163,7 @@ export default class TwilioService {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -1174,7 +1174,7 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -1185,7 +1185,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -1236,7 +1236,7 @@ export default class TwilioService {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -1247,12 +1247,12 @@ export default class TwilioService {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const message = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(options);
 
                 await SmsCountService.create(
                     null,
@@ -1263,9 +1263,9 @@ export default class TwilioService {
                 );
                 return message;
             } else {
-                const creds = await this.getSettings();
+                const creds: $TSFixMe = await this.getSettings();
                 if (!creds['sms-enabled']) {
-                    const error = new Error('SMS Not Enabled');
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     await SmsCountService.create(
@@ -1283,7 +1283,7 @@ export default class TwilioService {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -1294,7 +1294,7 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message = await twilioClient.messages.create(options);
+                    const message: $TSFixMe = await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -1305,7 +1305,7 @@ export default class TwilioService {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -1346,13 +1346,13 @@ export default class TwilioService {
     ): void {
         let callBody;
         try {
-            const extraInfo = callProgress
+            const extraInfo: $TSFixMe = callProgress
                 ? `This is the ${await this.getProgressText(
                       callProgress.current
                   )} 
                     reminder.`
                 : '';
-            const message =
+            const message: $TSFixMe =
                 '<Say voice="alice">This is an alert from OneUptime. Your monitor ' +
                 monitorName +
                 ' is ' +
@@ -1368,19 +1368,19 @@ export default class TwilioService {
                 twiml: twiml,
                 to: number,
             };
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
                 options.from = customTwilioSettings.phoneNumber;
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
 
-                const call = await twilioClient.calls.create(options);
+                const call: $TSFixMe = await twilioClient.calls.create(options);
 
                 await CallLogsService.create(
                     '+15005550006',
@@ -1391,13 +1391,13 @@ export default class TwilioService {
                 );
                 return call;
             } else {
-                const creds = await this.getSettings();
-                const twilioClient = this.getClient(
+                const creds: $TSFixMe = await this.getSettings();
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
                 if (!creds['call-enabled']) {
-                    const error = new Error('Call Not Enabled');
+                    const error: $TSFixMe = new Error('Call Not Enabled');
 
                     error.code = 400;
                     await CallLogsService.create(
@@ -1411,13 +1411,13 @@ export default class TwilioService {
                     return error;
                 }
 
-                const alertLimit = await AlertService.checkPhoneAlertsLimit(
+                const alertLimit: $TSFixMe = await AlertService.checkPhoneAlertsLimit(
                     projectId
                 );
                 if (alertLimit) {
                     options.from = creds.phone;
                     if (twilioClient) {
-                        const call = await twilioClient.calls.create(options);
+                        const call: $TSFixMe = await twilioClient.calls.create(options);
 
                         await CallLogsService.create(
                             '+15005550006',
@@ -1429,7 +1429,7 @@ export default class TwilioService {
                         return call;
                     }
                 } else {
-                    const error = new BadDataException(
+                    const error: $TSFixMe = new BadDataException(
                         'Alerts limit reached for the day.'
                     );
                     await CallLogsService.create(
@@ -1457,7 +1457,7 @@ export default class TwilioService {
     }
 
     async getProgressText(number: $TSFixMe): void {
-        const special = [
+        const special: $TSFixMe = [
             'zeroth',
             'first',
             'second',
@@ -1479,7 +1479,7 @@ export default class TwilioService {
             'eighteenth',
             'nineteenth',
         ];
-        const deca = [
+        const deca: $TSFixMe = [
             'twent',
             'thirt',
             'fort',
@@ -1500,7 +1500,7 @@ export default class TwilioService {
     }
 
     async getTemplate(smsTemplate: $TSFixMe, smsTemplateType: $TSFixMe): void {
-        const defaultTemplate = defaultSmsTemplates.filter(
+        const defaultTemplate: $TSFixMe = defaultSmsTemplates.filter(
             template => template.smsType === smsTemplateType
         )[0];
         let smsContent = defaultTemplate.body;
@@ -1511,7 +1511,7 @@ export default class TwilioService {
         ) {
             smsContent = smsTemplate.body;
         }
-        const template = await Handlebars.compile(smsContent);
+        const template: $TSFixMe = await Handlebars.compile(smsContent);
         return { template };
     }
 
@@ -1523,14 +1523,14 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            const customTwilioSettings = await this.findByOne({
+            const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken iv',
             });
             if (!to.startsWith('+')) {
                 to = '+' + to;
             }
-            const alertPhoneVerificationCode = IS_TESTING
+            const alertPhoneVerificationCode: $TSFixMe = IS_TESTING
                 ? '123456'
                 : Math.random().toString(10).substr(2, 6);
             if (customTwilioSettings) {
@@ -1542,7 +1542,7 @@ export default class TwilioService {
                     to,
                 };
 
-                const twilioClient = this.getClient(
+                const twilioClient: $TSFixMe = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -1561,18 +1561,18 @@ export default class TwilioService {
                 if (!validationResult.validateResend) {
                     throw new Error(validationResult.problem);
                 }
-                const creds = await this.getSettings();
-                const twilioClient = this.getClient(
+                const creds: $TSFixMe = await this.getSettings();
+                const twilioClient: $TSFixMe = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
 
-                const alertLimit = await AlertService.checkPhoneAlertsLimit(
+                const alertLimit: $TSFixMe = await AlertService.checkPhoneAlertsLimit(
                     projectId
                 );
                 if (alertLimit) {
                     if (!creds['sms-enabled']) {
-                        const error = new Error('SMS Not Enabled');
+                        const error: $TSFixMe = new Error('SMS Not Enabled');
 
                         error.code = 400;
                         throw error;
@@ -1607,7 +1607,7 @@ export default class TwilioService {
 
                     return {};
                 } else {
-                    const error = new Error(
+                    const error: $TSFixMe = new Error(
                         'Alerts limit reached for the day.'
                     );
                     await SmsCountService.create(
@@ -1653,7 +1653,7 @@ export default class TwilioService {
             price: '',
             priceUnit: '',
         };
-        const customTwilioSettings = await this.findByOne({
+        const customTwilioSettings: $TSFixMe = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
         });
@@ -1661,13 +1661,13 @@ export default class TwilioService {
             accountSid = customTwilioSettings.accountSid;
             authToken = customTwilioSettings.authToken;
         } else {
-            const creds = await this.getSettings();
+            const creds: $TSFixMe = await this.getSettings();
             accountSid = creds['account-sid'];
             authToken = creds['authentication-token'];
         }
-        const twilioClient = this.getClient(accountSid, authToken);
+        const twilioClient: $TSFixMe = this.getClient(accountSid, authToken);
 
-        const priceList = await twilioClient.pricing.v1.phoneNumbers
+        const priceList: $TSFixMe = await twilioClient.pricing.v1.phoneNumbers
             .countries(countryCode)
             .fetch();
         const localPrice: $TSFixMe = {};
@@ -1742,7 +1742,7 @@ export default class TwilioService {
     async buyPhoneNumber(projectId: ObjectID, phoneNumber: $TSFixMe): void {
         let accountSid = null;
         let authToken = null;
-        const customTwilioSettings = await this.findByOne({
+        const customTwilioSettings: $TSFixMe = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
         });
@@ -1750,13 +1750,13 @@ export default class TwilioService {
             accountSid = customTwilioSettings.accountSid;
             authToken = customTwilioSettings.authToken;
         } else {
-            const creds = await this.getSettings();
+            const creds: $TSFixMe = await this.getSettings();
             accountSid = creds['account-sid'];
             authToken = creds['authentication-token'];
         }
-        const twilioClient = this.getClient(accountSid, authToken);
+        const twilioClient: $TSFixMe = this.getClient(accountSid, authToken);
 
-        const numbers = await twilioClient.incomingPhoneNumbers.create({
+        const numbers: $TSFixMe = await twilioClient.incomingPhoneNumbers.create({
             phoneNumber: phoneNumber,
 
             voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
@@ -1771,7 +1771,7 @@ export default class TwilioService {
     async releasePhoneNumber(projectId: ObjectID, sid: $TSFixMe): void {
         let accountSid = null;
         let authToken = null;
-        const customTwilioSettings = await this.findByOne({
+        const customTwilioSettings: $TSFixMe = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
         });
@@ -1779,20 +1779,20 @@ export default class TwilioService {
             accountSid = customTwilioSettings.accountSid;
             authToken = customTwilioSettings.authToken;
         } else {
-            const creds = await this.getSettings();
+            const creds: $TSFixMe = await this.getSettings();
             accountSid = creds['account-sid'];
             authToken = creds['authentication-token'];
         }
-        const twilioClient = this.getClient(accountSid, authToken);
+        const twilioClient: $TSFixMe = this.getClient(accountSid, authToken);
 
-        const numbers = await twilioClient.incomingPhoneNumbers(sid).remove();
+        const numbers: $TSFixMe = await twilioClient.incomingPhoneNumbers(sid).remove();
         return numbers;
     }
 
     async getCallDetails(projectId: ObjectID, CallSid: $TSFixMe): void {
         let accountSid = null;
         let authToken = null;
-        const customTwilioSettings = await this.findByOne({
+        const customTwilioSettings: $TSFixMe = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
         });
@@ -1800,13 +1800,13 @@ export default class TwilioService {
             accountSid = customTwilioSettings.accountSid;
             authToken = customTwilioSettings.authToken;
         } else {
-            const creds = await this.getSettings();
+            const creds: $TSFixMe = await this.getSettings();
             accountSid = creds['account-sid'];
             authToken = creds['authentication-token'];
         }
-        const twilioClient = this.getClient(accountSid, authToken);
+        const twilioClient: $TSFixMe = this.getClient(accountSid, authToken);
 
-        const details = await twilioClient.calls(CallSid).fetch();
+        const details: $TSFixMe = await twilioClient.calls(CallSid).fetch();
         return details;
     }
 

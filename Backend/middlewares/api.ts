@@ -62,7 +62,7 @@ export default {
             }
         }
 
-        const projectCount = await ProjectService.countBy({
+        const projectCount: $TSFixMe = await ProjectService.countBy({
             _id: projectId,
             apiKey: apiKey,
         });
@@ -135,7 +135,7 @@ export default {
     },
 
     getStatusPageId: function (req: $TSFixMe): void {
-        const statusPageId =
+        const statusPageId: $TSFixMe =
             req.params?.statusPageId ||
             req.query?.statusPageId ||
             req.headers?.statuspageid ||
@@ -146,7 +146,7 @@ export default {
     },
 
     getStatusPageSlug: function (req: $TSFixMe): void {
-        const statusPageSlug =
+        const statusPageSlug: $TSFixMe =
             req.params?.statusPageSlug ||
             req.query?.statusPageSlug ||
             req.headers?.statuspageslug ||
@@ -157,7 +157,7 @@ export default {
     },
 
     getStatusPageUrl: function (req: $TSFixMe): void {
-        const statusPageUrl =
+        const statusPageUrl: $TSFixMe =
             req.params?.url ||
             req.query?.url ||
             req.headers?.url ||
@@ -171,7 +171,7 @@ export default {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        const id = req.params.id;
+        const id: $TSFixMe = req.params.id;
         let monitor = await MonitorService.findBy({
             query: {
                 type: 'incomingHttpRequest',

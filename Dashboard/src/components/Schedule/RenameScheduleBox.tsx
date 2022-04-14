@@ -32,9 +32,9 @@ export class RenameScheduleBox extends Component<ComponentProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const { scheduleId, renameSchedule, subProjectId } = this.props;
+        const { scheduleId, renameSchedule, subProjectId }: $TSFixMe = this.props;
 
-        const scheduleName = values.schedule_name;
+        const scheduleName: $TSFixMe = values.schedule_name;
 
         if (scheduleName) {
             renameSchedule(subProjectId, scheduleId, scheduleName).then(
@@ -167,7 +167,7 @@ const  formName: string = 'RenameSchedule' + Math.floor(Math.random() * 10 + 1);
 
 const onSubmitSuccess: Function = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
-const RenameScheduleForm = new reduxForm({
+const RenameScheduleForm: $TSFixMe = new reduxForm({
     form: formName,
     validate,
     onSubmitSuccess,
@@ -177,7 +177,7 @@ const RenameScheduleForm = new reduxForm({
 const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ renameSchedule }, dispatch);
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { scheduleSlug } = props.match.params;
+    const { scheduleSlug }: $TSFixMe = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         (subProjectSchedule: $TSFixMe) => {
@@ -191,8 +191,8 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
         (schedule: $TSFixMe) => schedule && schedule.slug === scheduleSlug
     );
 
-    const schedule_name = schedule && schedule.name;
-    const currentProjectSlug =
+    const schedule_name: $TSFixMe = schedule && schedule.name;
+    const currentProjectSlug: $TSFixMe =
         state.project.currentProject && state.project.currentProject.slug;
     return {
         initialValues: { schedule_name },

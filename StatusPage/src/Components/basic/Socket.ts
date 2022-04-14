@@ -32,7 +32,7 @@ import {
 // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
 // '/realtime' is set as socket io namespace, so remove
 
-const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+const socket: $TSFixMe = io.connect(REALTIME_URL.replace('/realtime', ''), {
     path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
@@ -110,7 +110,7 @@ class SocketApp extends Component<ComponentProps> {
     }
 
     override render(): void {
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
 
         if (this.props.project) {
             socket.emit('project_switch', this.props.project._id);

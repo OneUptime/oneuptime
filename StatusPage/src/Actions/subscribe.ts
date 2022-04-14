@@ -78,7 +78,7 @@ export const subscribeUser: Function = (
     notificationType: $TSFixMe
 ) => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `subscriber/${projectId}/${statusPageId}`,
             {
                 userDetails,

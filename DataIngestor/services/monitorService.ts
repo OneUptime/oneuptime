@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-const monitorCollection = global.db.collection('monitors');
+const monitorCollection: $TSFixMe = global.db.collection('monitors');
 import { ObjectId } from 'mongodb';
 
 export default {
@@ -125,7 +125,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const monitor = await monitorCollection.findOne(query);
+        const monitor: $TSFixMe = await monitorCollection.findOne(query);
         return monitor;
     },
 
@@ -137,7 +137,7 @@ export default {
             },
             { $set: { lastPingTime: new Date(moment().format()) } }
         );
-        const monitor = await monitorCollection.findOne({
+        const monitor: $TSFixMe = await monitorCollection.findOne({
             _id: ObjectId(id),
             $or: [{ deleted: false }, { deleted: { $exists: false } }],
         });

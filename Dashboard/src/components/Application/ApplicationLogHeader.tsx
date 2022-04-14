@@ -295,8 +295,8 @@ class ApplicationLogHeader extends Component<ComponentProps> {
 ApplicationLogHeader.displayName = 'ApplicationLogHeader';
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
-    const applicationLogId = ownProps.applicationLog._id;
-    const currentDateRange = state.applicationLog.logs[applicationLogId]
+    const applicationLogId: $TSFixMe = ownProps.applicationLog._id;
+    const currentDateRange: $TSFixMe = state.applicationLog.logs[applicationLogId]
         ? state.applicationLog.logs[applicationLogId].dateRange
         : null;
     return {

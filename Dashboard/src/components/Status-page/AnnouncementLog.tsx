@@ -36,7 +36,7 @@ class AnnouncementLog extends Component<ComponentProps> {
     }
     async override componentDidMount() {
 
-        const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
+        const { fetchAnnouncementLogs, projectId, statusPage }: $TSFixMe = this.props;
         await fetchAnnouncementLogs(projectId, statusPage._id, 0, this.limit);
     }
 
@@ -60,7 +60,7 @@ class AnnouncementLog extends Component<ComponentProps> {
 
     prevClicked = (skip: PositiveNumber) => {
 
-        const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
+        const { fetchAnnouncementLogs, projectId, statusPage }: $TSFixMe = this.props;
         fetchAnnouncementLogs(
             projectId,
             statusPage._id,
@@ -71,7 +71,7 @@ class AnnouncementLog extends Component<ComponentProps> {
 
     nextClicked = (skip: PositiveNumber) => {
 
-        const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
+        const { fetchAnnouncementLogs, projectId, statusPage }: $TSFixMe = this.props;
         fetchAnnouncementLogs(
             projectId,
             statusPage._id,
@@ -95,10 +95,10 @@ class AnnouncementLog extends Component<ComponentProps> {
         } = this.props;
 
 
-        const { deleteModalId } = this.state;
+        const { deleteModalId }: $TSFixMe = this.state;
 
-        const canNext = count > Number(skip) + Number(limit) ? true : false;
-        const canPrev = Number(skip) <= 0 ? false : true;
+        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
 
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
         return (

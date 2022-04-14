@@ -3,7 +3,7 @@ import { $ } from 'zx';
 
 export default class Compile {
     static async compileAllTypeScriptProjects(): Promise<void> {
-        const projects = Project.getProjects();
+        const projects: $TSFixMe = Project.getProjects();
         for (const project of projects) {
             await $`cd ${project.path}`;
             await $`npm run compile`;

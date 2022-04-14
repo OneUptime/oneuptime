@@ -88,7 +88,7 @@ class PerformanceTracker extends Component<ComponentProps> {
 
         this.props.loadPage('Performance Tracker');
 
-        const { currentProject, fetchComponent, componentSlug } = this.props;
+        const { currentProject, fetchComponent, componentSlug }: $TSFixMe = this.props;
         if (currentProject) {
             this.setState({ requesting: true });
             fetchComponent(currentProject._id, componentSlug).then(() => {
@@ -107,8 +107,8 @@ class PerformanceTracker extends Component<ComponentProps> {
             prevProps.componentSlug !== this.props.componentSlug
         ) {
 
-            const componentId = this.props.componentId;
-            const projectId =
+            const componentId: $TSFixMe = this.props.componentId;
+            const projectId: $TSFixMe =
 
                 this.props.currentProject && this.props.currentProject._id;
             if (projectId) {
@@ -134,8 +134,8 @@ class PerformanceTracker extends Component<ComponentProps> {
 
     ready = () => {
 
-        const componentId = this.props.componentId;
-        const projectId =
+        const componentId: $TSFixMe = this.props.componentId;
+        const projectId: $TSFixMe =
 
             this.props.currentProject && this.props.currentProject._id;
         if (projectId && componentId) {
@@ -202,27 +202,27 @@ class PerformanceTracker extends Component<ComponentProps> {
             numberOfPage,
         } = this.props;
 
-        const skip = performanceTrackerList.skip;
-        const limit = performanceTrackerList.limit;
-        const count = performanceTrackerList.count;
-        const error = performanceTrackerList.error;
-        const fetchingPage = performanceTrackerList.fetchingPage;
-        const componentId = component?._id;
-        const page = this.state.page;
-        const canNext =
+        const skip: $TSFixMe = performanceTrackerList.skip;
+        const limit: $TSFixMe = performanceTrackerList.limit;
+        const count: $TSFixMe = performanceTrackerList.count;
+        const error: $TSFixMe = performanceTrackerList.error;
+        const fetchingPage: $TSFixMe = performanceTrackerList.fetchingPage;
+        const componentId: $TSFixMe = component?._id;
+        const page: $TSFixMe = this.state.page;
+        const canNext: $TSFixMe =
             performanceTrackerList && count && count > skip + limit
                 ? true
                 : false;
-        const canPrev = performanceTrackerList && skip <= 0 ? false : true;
-        const numberOfPages = numberOfPage
+        const canPrev: $TSFixMe = performanceTrackerList && skip <= 0 ? false : true;
+        const numberOfPages: $TSFixMe = numberOfPage
             ? numberOfPage
             : Math.ceil(parseInt(count) / limit);
 
-        const componentName = component ? component.name : '';
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const componentName: $TSFixMe = component ? component.name : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
 
-        const isEmpty =
+        const isEmpty: $TSFixMe =
 
             this.props.performanceTrackerList.performanceTrackers.length === 0;
         return (
@@ -451,8 +451,8 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const currentProject = state.project.currentProject;
-    const { componentSlug, slug } = ownProps.match.params;
+    const currentProject: $TSFixMe = state.project.currentProject;
+    const { componentSlug, slug }: $TSFixMe = ownProps.match.params;
 
     return {
         componentId:

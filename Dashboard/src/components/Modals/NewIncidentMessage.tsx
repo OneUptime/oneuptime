@@ -77,7 +77,7 @@ class NewIncidentMessage extends Component<ComponentProps> {
         this.props.change('content', val);
     };
     submitForm = (values: $TSFixMe) => {
-        const thisObj = this;
+        const thisObj: $TSFixMe = this;
         const postObj: $TSFixMe = {};
         if (values.post_statuspage) {
 
@@ -99,7 +99,7 @@ class NewIncidentMessage extends Component<ComponentProps> {
             postObj.id = this.props.data.incidentMessage._id;
         }
 
-        const projectId =
+        const projectId: $TSFixMe =
 
             this.props.data.incident.projectId._id ||
 
@@ -164,7 +164,7 @@ class NewIncidentMessage extends Component<ComponentProps> {
     };
     handleKeyBoard = (event: $TSFixMe) => {
 
-        const { closeModal, data } = this.props;
+        const { closeModal, data }: $TSFixMe = this.props;
         if (event.target.localName !== 'textarea' && event.key) {
             switch (event.key) {
                 case 'Escape':
@@ -186,7 +186,7 @@ class NewIncidentMessage extends Component<ComponentProps> {
     };
     onTemplateChange = (value: $TSFixMe) => {
 
-        const { change, noteTemplates } = this.props;
+        const { change, noteTemplates }: $TSFixMe = this.props;
 
         if (value) {
             !noteTemplates.requesting &&
@@ -227,7 +227,7 @@ class NewIncidentMessage extends Component<ComponentProps> {
             closeModal,
         } = this.props;
 
-        const { edit, type } = this.props.data;
+        const { edit, type }: $TSFixMe = this.props.data;
         return (
             <div
                 className="ModalLayer-contents"
@@ -660,14 +660,14 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const incidentMessageState =
+    const incidentMessageState: $TSFixMe =
         ownProps.data.type === 'investigation'
             ? state.incident.investigationNotes
             : state.incident.internalNotes;
     let initialValues = null;
 
     if (ownProps.data.incidentMessage) {
-        const isCustomState = !['Investigating', 'Update'].includes(
+        const isCustomState: $TSFixMe = !['Investigating', 'Update'].includes(
             ownProps.data.incidentMessage.incident_state
         );
         initialValues = {
@@ -686,8 +686,8 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
             custom_incident_state: '',
         };
     }
-    const currentProject = state.project.currentProject;
-    const incident_state = state.form[ownProps.data.formId]
+    const currentProject: $TSFixMe = state.project.currentProject;
+    const incident_state: $TSFixMe = state.form[ownProps.data.formId]
         ? state.form[ownProps.data.formId].values
             ? state.form[ownProps.data.formId].values.incident_state
                 ? state.form[ownProps.data.formId].values.incident_state
@@ -705,7 +705,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
 };
 
 NewIncidentMessage.displayName = 'NewIncidentMessage';
-const NewIncidentMessageForm = new reduxForm({
+const NewIncidentMessageForm: $TSFixMe = new reduxForm({
     destroyOnUnmount: true,
     enableReinitialize: true,
 })(NewIncidentMessage);

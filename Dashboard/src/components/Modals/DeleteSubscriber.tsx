@@ -36,7 +36,7 @@ class DeleteSubscriber extends Component<ComponentProps> {
 
     override render() {
 
-        const { deleting } = this.props.data;
+        const { deleting }: $TSFixMe = this.props.data;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

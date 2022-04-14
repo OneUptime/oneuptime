@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import moment from 'moment';
 import { decode } from 'js-base64';
@@ -23,8 +23,8 @@ router.post(
     isValidAPIKey,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { appId } = req.params;
-            const { incoming, outgoing, sentAt } = req.body;
+            const { appId }: $TSFixMe = req.params;
+            const { incoming, outgoing, sentAt }: $TSFixMe = req.body;
 
             Promise.all([
                 PerformanceTrackerMetricService.createMetricsData(
@@ -54,7 +54,7 @@ router.get(
     isValidAPIKey,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { appId } = req.params;
+            const { appId }: $TSFixMe = req.params;
             let { startDate, endDate } = req.query;
 
             startDate = decode(startDate);
@@ -62,7 +62,7 @@ router.get(
             endDate = decode(endDate);
 
             if (!startDate) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify startDate in the query parameter'
                 );
 
@@ -70,7 +70,7 @@ router.get(
                 throw error;
             }
             if (!moment(startDate).isValid()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify startDate as utc time or millisecond time'
                 );
 
@@ -78,7 +78,7 @@ router.get(
                 throw error;
             }
             if (!endDate) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify endDate in the query parameter'
                 );
 
@@ -86,7 +86,7 @@ router.get(
                 throw error;
             }
             if (!moment(endDate).isValid()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify endDate as utc time or millisecond time'
                 );
 
@@ -102,7 +102,7 @@ router.get(
                 endDate = Number(endDate);
             }
 
-            const metrics =
+            const metrics: $TSFixMe =
                 await PerformanceTrackerMetricService.structureMetricsTime(
                     appId,
                     startDate,
@@ -122,7 +122,7 @@ router.get(
     isValidAPIKey,
     async (req, res): void => {
         try {
-            const { appId } = req.params;
+            const { appId }: $TSFixMe = req.params;
             let { startDate, endDate } = req.query;
 
             startDate = decode(startDate);
@@ -130,7 +130,7 @@ router.get(
             endDate = decode(endDate);
 
             if (!startDate) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify startDate in the query parameter'
                 );
 
@@ -138,7 +138,7 @@ router.get(
                 throw error;
             }
             if (!moment(startDate).isValid()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify startDate as utc time or millisecond time'
                 );
 
@@ -146,7 +146,7 @@ router.get(
                 throw error;
             }
             if (!endDate) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify endDate in the query parameter'
                 );
 
@@ -154,7 +154,7 @@ router.get(
                 throw error;
             }
             if (!moment(endDate).isValid()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify endDate as utc time or millisecond time'
                 );
 
@@ -170,7 +170,7 @@ router.get(
                 endDate = Number(endDate);
             }
 
-            const metrics =
+            const metrics: $TSFixMe =
                 await PerformanceTrackerMetricService.structureMetricsCount(
                     appId,
                     startDate,
@@ -189,7 +189,7 @@ router.get(
     isValidAPIKey,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { appId } = req.params;
+            const { appId }: $TSFixMe = req.params;
             let { startDate, endDate } = req.query;
 
             startDate = decode(startDate);
@@ -197,7 +197,7 @@ router.get(
             endDate = decode(endDate);
 
             if (!startDate) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify startDate in the query parameter'
                 );
 
@@ -205,7 +205,7 @@ router.get(
                 throw error;
             }
             if (!moment(startDate).isValid()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify startDate as utc time or millisecond time'
                 );
 
@@ -213,7 +213,7 @@ router.get(
                 throw error;
             }
             if (!endDate) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify endDate in the query parameter'
                 );
 
@@ -221,7 +221,7 @@ router.get(
                 throw error;
             }
             if (!moment(endDate).isValid()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify endDate as utc time or millisecond time'
                 );
 
@@ -237,7 +237,7 @@ router.get(
                 endDate = Number(endDate);
             }
 
-            const metrics =
+            const metrics: $TSFixMe =
                 await PerformanceTrackerMetricService.structureMetricsError(
                     appId,
                     startDate,
@@ -258,8 +258,8 @@ router.get(
     isValidAPIKey,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { appId } = req.params;
-            const { type, skip, limit } = req.query;
+            const { appId }: $TSFixMe = req.params;
+            const { type, skip, limit }: $TSFixMe = req.query;
             let { startDate, endDate } = req.query;
 
             startDate = decode(startDate);
@@ -267,7 +267,7 @@ router.get(
             endDate = decode(endDate);
 
             if (!type) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify the type in the query parameter'
                 );
 
@@ -275,7 +275,7 @@ router.get(
                 throw error;
             }
             if (!startDate) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify startDate in the query parameter'
                 );
 
@@ -283,7 +283,7 @@ router.get(
                 throw error;
             }
             if (!moment(startDate).isValid()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify startDate as utc time or millisecond time'
                 );
 
@@ -291,7 +291,7 @@ router.get(
                 throw error;
             }
             if (!endDate) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify endDate in the query parameter'
                 );
 
@@ -299,7 +299,7 @@ router.get(
                 throw error;
             }
             if (!moment(endDate).isValid()) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please specify endDate as utc time or millisecond time'
                 );
 
@@ -320,16 +320,16 @@ router.get(
                 type,
                 createdAt: { $gte: startDate, $lte: endDate },
             };
-            const populate = [
+            const populate: $TSFixMe = [
                 {
                     path: 'performanceTrackerId',
                     select: 'componentId name slug key',
                     populate: { path: 'componentId', select: 'name slug _id' },
                 },
             ];
-            const select =
+            const select: $TSFixMe =
                 '_id type metrics callIdentifier method performanceTrackerId createdAt updatedAt';
-            const performanceTrackerMetrics =
+            const performanceTrackerMetrics: $TSFixMe =
                 await PerformanceTrackerMetricService.mergeMetrics({
                     query,
                     limit,
@@ -352,8 +352,8 @@ router.delete(
     isValidAPIKey,
     async (req, res): void => {
         try {
-            const { metricId } = req.params;
-            const deletedMetric =
+            const { metricId }: $TSFixMe = req.params;
+            const deletedMetric: $TSFixMe =
                 await PerformanceTrackerMetricService.deleteBy({
                     _id: metricId,
                 });

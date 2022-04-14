@@ -52,7 +52,7 @@ class ComponentSettings extends Component<ComponentProps> {
     };
     override componentDidMount() {
 
-        const { projectId, componentSlug, fetchComponent } = this.props;
+        const { projectId, componentSlug, fetchComponent }: $TSFixMe = this.props;
         if (projectId && componentSlug) {
             fetchComponent(projectId, componentSlug);
         }
@@ -65,7 +65,7 @@ class ComponentSettings extends Component<ComponentProps> {
             prevProps.componentSlug !== this.props.componentSlug
         ) {
 
-            const { projectId, fetchComponent, componentSlug } = this.props;
+            const { projectId, fetchComponent, componentSlug }: $TSFixMe = this.props;
             if (projectId) {
                 fetchComponent(projectId, componentSlug);
             }
@@ -84,10 +84,10 @@ class ComponentSettings extends Component<ComponentProps> {
 
             switchToProjectViewerNav,
         } = this.props;
-        const componentName = component ? component.name : '';
+        const componentName: $TSFixMe = component ? component.name : '';
 
-        const projectName = currentProject ? currentProject.name : '';
-        const projectId = currentProject ? currentProject._id : '';
+        const projectName: $TSFixMe = currentProject ? currentProject.name : '';
+        const projectId: $TSFixMe = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
@@ -255,7 +255,7 @@ ComponentSettings.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const { componentSlug } = props.match.params;
+    const { componentSlug }: $TSFixMe = props.match.params;
     return {
         component:
             state.component && state.component.currentComponent.component,
@@ -276,7 +276,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ editComponent, fetchComponent }, dispatch);
 };
 
-const NewComponentSettings = reduxForm({
+const NewComponentSettings: $TSFixMe = reduxForm({
     form: 'ComponentSettingsForm',
     destroyOnUnmount: true,
     enableReinitialize: true,

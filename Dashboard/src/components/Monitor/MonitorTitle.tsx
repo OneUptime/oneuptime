@@ -48,7 +48,7 @@ export class MonitorTitle extends Component<MonitorTitleProps>{
     setLastAlive = () => {
         this.setState({ now: Date.now() });
 
-        const nowHandler = setTimeout(() => {
+        const nowHandler = setTimeout((): $TSFixMe => {
             this.setState({ now: Date.now() });
         }, 300000);
 
@@ -86,13 +86,13 @@ export class MonitorTitle extends Component<MonitorTitleProps>{
             requesting,
         } = this.props;
 
-        const probe =
+        const probe: $TSFixMe =
             monitor && probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
                 : null;
-        const lastAlive = probe && probe.lastAlive ? probe.lastAlive : null;
+        const lastAlive: $TSFixMe = probe && probe.lastAlive ? probe.lastAlive : null;
 
-        const url =
+        const url: $TSFixMe =
             monitor && monitor.data && monitor.data.url
                 ? monitor.data.url
                 : monitor && monitor.data && monitor.data.link
@@ -108,7 +108,7 @@ export class MonitorTitle extends Component<MonitorTitleProps>{
                 badgeColor = 'blue';
                 break;
         }
-        const isCurrentlyNotMonitoring =
+        const isCurrentlyNotMonitoring: $TSFixMe =
             (lastAlive &&
 
                 moment(this.state.now).diff(moment(lastAlive), 'seconds') >=

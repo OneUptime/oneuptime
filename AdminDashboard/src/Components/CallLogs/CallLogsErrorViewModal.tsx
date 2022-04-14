@@ -27,7 +27,7 @@ class CallLogsErrorViewModal extends Component<ComponentProps> {
 
     override render() {
 
-        const { isRequesting, error, closeThisDialog, content } = this.props;
+        const { isRequesting, error, closeThisDialog, content }: $TSFixMe = this.props;
         return (
             <div className="db-CallLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

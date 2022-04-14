@@ -16,7 +16,7 @@ export class Modals extends Component<ModalsProps>{
     override render() {
 
         const modals = this.props.modals.map((item: $TSFixMe, i: $TSFixMe) => {
-            const ModalComponent = Modal(item.content);
+            const ModalComponent: $TSFixMe = Modal(item.content);
             return (
                 <ModalComponent
 

@@ -17,7 +17,7 @@ export class TransactionMetricsTable extends Component<TransactionMetricsTablePr
     handleKeyBoard: $TSFixMe;
     override render() {
 
-        const { heading, title, subHeading, type } = this.props;
+        const { heading, title, subHeading, type }: $TSFixMe = this.props;
         return (
             <div
                 className="Box-root Card-shadow--medium"

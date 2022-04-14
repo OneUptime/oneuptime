@@ -33,7 +33,7 @@ export class MonitorUrl extends React.Component<MonitorUrlProps> {
 
     override render() {
 
-        const { closeThisDialog, data, currentProject } = this.props;
+        const { closeThisDialog, data, currentProject }: $TSFixMe = this.props;
 
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

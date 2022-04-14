@@ -60,7 +60,7 @@ export const updatePushNotificationSuccess: Function = (
 
 export const updateProfileSetting: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const data = new FormData();
+        const data: $TSFixMe = new FormData();
         if (values.profilePic && values.profilePic !== 'null') {
             if (!values.removedPic) {
                 if (
@@ -86,11 +86,11 @@ export const updateProfileSetting: Function = (values: $TSFixMe): void => {
         data.append('timezone', values.timezone);
         data.append('alertPhoneNumber', values.alertPhoneNumber);
 
-        const promise = BackendAPI.put('user/profile', data);
+        const promise: $TSFixMe = BackendAPI.put('user/profile', data);
         dispatch(updateProfileSettingRequest());
         promise.then(
             (response): void => {
-                const profileSettings = response.data;
+                const profileSettings: $TSFixMe = response.data;
                 dispatch(updateProfileSettingSuccess(profileSettings));
                 return profileSettings;
             },
@@ -106,11 +106,11 @@ export const updateProfileSetting: Function = (values: $TSFixMe): void => {
 // Update push notification
 export const updatePushNotification: Function = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put('user/push-notification', data);
+        const promise: $TSFixMe = BackendAPI.put('user/push-notification', data);
         dispatch(updatePushNotificationRequest());
         promise.then(
             (response): void => {
-                const profileSettings = response.data;
+                const profileSettings: $TSFixMe = response.data;
                 dispatch(updatePushNotificationSuccess(profileSettings));
                 return profileSettings;
             },
@@ -150,14 +150,14 @@ export const twoFactorAuthTokenError: Function = (
 
 export const verifyTwoFactorAuthToken: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             new Route('user/totp/verifyToken'),
             values
         );
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             (response): void => {
-                const payload = response.data;
+                const payload: $TSFixMe = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
@@ -197,11 +197,11 @@ export const generateTwoFactorQRCodeError: Function = (
 
 export const generateTwoFactorQRCode: Function = (userId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`user/totp/token/${userId}`);
+        const promise: $TSFixMe = BackendAPI.post(`user/totp/token/${userId}`);
         dispatch(generateTwoFactorQRCodeRequest());
         promise.then(
             (response): void => {
-                const payload = response.data;
+                const payload: $TSFixMe = response.data;
                 dispatch(generateTwoFactorQRCodeSuccess(payload));
                 return payload;
             },
@@ -218,11 +218,11 @@ export const generateTwoFactorQRCode: Function = (userId: ObjectID): void => {
 
 export const updateTwoFactorAuthToken: Function = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put('user/profile', data);
+        const promise: $TSFixMe = BackendAPI.put('user/profile', data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             (response): void => {
-                const payload = response.data;
+                const payload: $TSFixMe = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
@@ -261,7 +261,7 @@ export const updateChangePasswordSettingError: Function = (
 // Calls the API to update change password setting.
 export const updateChangePasswordSetting: Function = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.put('user/changePassword', data);
+        const promise: $TSFixMe = BackendAPI.put('user/changePassword', data);
         dispatch(updateChangePasswordSettingRequest());
 
         promise.then(
@@ -316,12 +316,12 @@ export const userSettingsError: Function = (error: ErrorPayload): void => {
 // Calls the API to update on cal alert setting.
 export const userSettings: Function = (): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.get(new Route('user/profile'));
+        const promise: $TSFixMe = BackendAPI.get(new Route('user/profile'));
         dispatch(userSettingsRequest());
 
         promise.then(
             (response): void => {
-                const settings = response.data;
+                const settings: $TSFixMe = response.data;
                 dispatch(userSettingsSuccess(settings));
                 return settings;
             },
@@ -402,7 +402,7 @@ export const sendEmailVerificationError: Function = (
 
 export const sendEmailVerificationLink: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(new Route('user/resend'), values);
+        const promise: $TSFixMe = BackendAPI.post(new Route('user/resend'), values);
         dispatch(sendEmailVerificationRequest());
 
         promise.then(
@@ -422,7 +422,7 @@ export const sendVerificationSMS: Function = (
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `twilio/sms/sendVerificationToken?projectId=${projectId}`,
             values
         );
@@ -430,7 +430,7 @@ export const sendVerificationSMS: Function = (
 
         promise.then(
             (response): void => {
-                const vericationAction = response.data;
+                const vericationAction: $TSFixMe = response.data;
                 dispatch(sendVerificationSMSSuccess(vericationAction));
                 return vericationAction;
             },
@@ -475,7 +475,7 @@ export const verifySMSCode: Function = (
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(
+        const promise: $TSFixMe = BackendAPI.post(
             `twilio/sms/verify?projectId=${projectId}`,
             values
         );
@@ -483,7 +483,7 @@ export const verifySMSCode: Function = (
 
         promise.then(
             (response): void => {
-                const verificationResult = response.data;
+                const verificationResult: $TSFixMe = response.data;
                 dispatch(verifySMSCodeSuccess(verificationResult));
                 return verificationResult;
             },
@@ -615,7 +615,7 @@ export const deleteAccount: Function = (
     confirmation: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise = delete (`user/${userId}/delete`, confirmation);
+        const promise: $TSFixMe = delete (`user/${userId}/delete`, confirmation);
         dispatch(deleteAccountRequest());
 
         promise.then(
@@ -649,7 +649,7 @@ const generateBackupCodesFailure: Function = (payload: $TSFixMe): void => ({
 
 export const generateBackupCodes: Function = (): void => {
     return function (dispatch: Dispatch): void {
-        const promise = BackendAPI.post(`user/generate/backupCode`);
+        const promise: $TSFixMe = BackendAPI.post(`user/generate/backupCode`);
         dispatch(generateBackupCodesRequest());
 
         promise.then(

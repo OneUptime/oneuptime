@@ -14,7 +14,7 @@ import RealTimeService from './realTimeService';
 
 export default class Service {
     async create(data: $TSFixMe): void {
-        const [containerNameExist, imagePathExist, dockerCredentialExist] =
+        const [containerNameExist, imagePathExist, dockerCredentialExist]: $TSFixMe =
             await Promise.all([
                 this.findOneBy({
                     query: { name: data.name, componentId: data.componentId },
@@ -34,7 +34,7 @@ export default class Service {
             ]);
 
         if (containerNameExist) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Container security with this name already exist in this component'
             );
 
@@ -43,7 +43,7 @@ export default class Service {
         }
 
         if (imagePathExist) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Container security with this image path already exist in this component'
             );
 
@@ -52,21 +52,21 @@ export default class Service {
         }
 
         if (!dockerCredentialExist) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Docker Credential not found or does not exist'
             );
 
             error.code = 400;
             throw error;
         }
-        const resourceCategoryCount = await ResourceCategoryService.countBy({
+        const resourceCategoryCount: $TSFixMe = await ResourceCategoryService.countBy({
             _id: data.resourceCategory,
         });
         if (!resourceCategoryCount || resourceCategoryCount === 0) {
             delete data.resourceCategory;
         }
         data.slug = getSlug(data.name);
-        const containerSecurity = await ContainerSecurityModel.create(data);
+        const containerSecurity: $TSFixMe = await ContainerSecurityModel.create(data);
         return containerSecurity;
     }
 
@@ -80,12 +80,12 @@ export default class Service {
         }
 
         // won't be using lean() here because of iv cypher for password
-        const containerSecurityQuery =
+        const containerSecurityQuery: $TSFixMe =
             ContainerSecurityModel.findOne(query).sort(sort);
         containerSecurityQuery.select(select);
         containerSecurityQuery.populate(populate);
 
-        const containerSecurity = await containerSecurityQuery;
+        const containerSecurity: $TSFixMe = await containerSecurityQuery;
         return containerSecurity;
     }
 
@@ -115,14 +115,14 @@ export default class Service {
         }
 
         // won't be using lean() here because of iv cypher for password
-        const containerSecurityQuery = ContainerSecurityModel.find(query)
+        const containerSecurityQuery: $TSFixMe = ContainerSecurityModel.find(query)
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
         containerSecurityQuery.select(select);
         containerSecurityQuery.populate(populate);
 
-        const containerSecurities = await containerSecurityQuery;
+        const containerSecurities: $TSFixMe = await containerSecurityQuery;
         return containerSecurities;
     }
 
@@ -159,7 +159,7 @@ export default class Service {
         }
 
         if (!containerSecurity) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Container Security not found or does not exist'
             );
 
@@ -167,7 +167,7 @@ export default class Service {
             throw error;
         }
 
-        const populate = [
+        const populate: $TSFixMe = [
             { path: 'componentId', select: 'name slug _id' },
             { path: 'resourceCategory', select: 'name' },
             {
@@ -175,7 +175,7 @@ export default class Service {
                 select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
         containerSecurity = this.findOneBy({
             query: { _id: containerSecurity._id },
@@ -192,7 +192,7 @@ export default class Service {
         });
 
         if (!containerSecurity) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Container Security not found or does not exist'
             );
 
@@ -200,7 +200,7 @@ export default class Service {
             throw error;
         }
 
-        const securityLog = await ContainerSecurityLogService.findOneBy({
+        const securityLog: $TSFixMe = await ContainerSecurityLogService.findOneBy({
             query: { securityId: containerSecurity._id },
             select: '_id',
         });
@@ -229,8 +229,8 @@ export default class Service {
     }
 
     async getSecuritiesToScan(): void {
-        const oneDay = moment().subtract(1, 'days').toDate();
-        const populate = [
+        const oneDay: $TSFixMe = moment().subtract(1, 'days').toDate();
+        const populate: $TSFixMe = [
             { path: 'componentId', select: 'name slug _id' },
             { path: 'resourceCategory', select: 'name' },
             {
@@ -238,9 +238,9 @@ export default class Service {
                 select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
             },
         ];
-        const select =
+        const select: $TSFixMe =
             'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
-        const securities = await this.findBy({
+        const securities: $TSFixMe = await this.findBy({
             query: {
                 $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
                 scanning: false,
@@ -252,11 +252,11 @@ export default class Service {
     }
 
     async decryptPassword(security: $TSFixMe): void {
-        const values = [];
+        const values: $TSFixMe = [];
         for (let i = 0; i <= 15; i++) {
             values.push(security.dockerCredential.iv[i]);
         }
-        const iv = Buffer.from(values);
+        const iv: $TSFixMe = Buffer.from(values);
         security.dockerCredential.dockerPassword = await decrypt(
             security.dockerCredential.dockerPassword,
             iv
@@ -265,8 +265,8 @@ export default class Service {
     }
 
     async updateScanTime(query: Query): void {
-        const newDate = new Date();
-        const containerSecurity = await this.updateOneBy(query, {
+        const newDate: $TSFixMe = new Date();
+        const containerSecurity: $TSFixMe = await this.updateOneBy(query, {
             lastScan: newDate,
             scanned: true,
             scanning: false,
@@ -284,7 +284,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await ContainerSecurityModel.countDocuments(query);
+        const count: $TSFixMe = await ContainerSecurityModel.countDocuments(query);
         return count;
     }
 }

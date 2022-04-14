@@ -151,7 +151,7 @@ export class EmailSmtpBox extends Component<EmailSmtpBoxProps>{
 
     override render() {
 
-        const { handleSubmit, change } = this.props;
+        const { handleSubmit, change }: $TSFixMe = this.props;
 
         return (
             <div
@@ -696,7 +696,7 @@ EmailSmtpBox.propTypes = {
     change: PropTypes.func, // redux-form action for changing value
 };
 
-const EmailSmtpBoxForm = reduxForm({
+const EmailSmtpBoxForm: $TSFixMe = reduxForm({
     form: 'EmailSmtpBox', // a unique identifier for this form
     enableReinitialize: true,
     validate, // <--- validation function given to redux-for
@@ -716,9 +716,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState) {
-    const smtpConfigurations =
+    const smtpConfigurations: $TSFixMe =
         state.emailTemplates && state.emailTemplates.emailSmtpConfiguration;
-    const showEmailSmtpConfiguration =
+    const showEmailSmtpConfiguration: $TSFixMe =
         state.emailTemplates && state.emailTemplates.showEmailSmtpConfiguration;
     let values = {
         smtpswitch: false,

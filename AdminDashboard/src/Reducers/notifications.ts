@@ -76,7 +76,7 @@ export default (state = initialState, action: Action): void => {
             });
 
         case 'ADD_NOTIFICATION_BY_SOCKET': {
-            const notify = state.notifications.notifications;
+            const notify: $TSFixMe = state.notifications.notifications;
 
             notify.unshift(action.payload);
             return Object.assign({}, state, {

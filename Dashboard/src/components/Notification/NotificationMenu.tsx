@@ -43,23 +43,23 @@ class NotificationMenu extends Component<ComponentProps> {
     }
 
     markAsRead(notification: $TSFixMe) {
-        const notificationIds = [{ notificationId: notification._id }];
+        const notificationIds: $TSFixMe = [{ notificationId: notification._id }];
 
         this.props.markAsRead(notification.projectId._id, notificationIds);
     }
 
     handlePaymentIntent = (notification: $TSFixMe) => {
-        const { client_secret } = notification.meta;
-        const { projectId, _id } = notification;
+        const { client_secret }: $TSFixMe = notification.meta;
+        const { projectId, _id }: $TSFixMe = notification;
 
-        const { stripe, billingActionTaken, openModal, balance } = this.props;
-        const { MessageBoxId } = this.state;
+        const { stripe, billingActionTaken, openModal, balance }: $TSFixMe = this.props;
+        const { MessageBoxId }: $TSFixMe = this.state;
         stripe.handleCardPayment(client_secret).then((result: $TSFixMe) => {
             if (
                 result.paymentIntent &&
                 result.paymentIntent.status === 'succeeded'
             ) {
-                const creditedBalance = result.paymentIntent.amount / 100;
+                const creditedBalance: $TSFixMe = result.paymentIntent.amount / 100;
                 billingActionTaken(projectId, _id, {
                     meta: {},
                     icon: 'success',
@@ -94,8 +94,8 @@ class NotificationMenu extends Component<ComponentProps> {
     };
 
     override render() {
-        const userId = User.getUserId();
-        const allRead =
+        const userId: $TSFixMe = User.getUserId();
+        const allRead: $TSFixMe =
 
             this.props.notifications &&
 
@@ -391,7 +391,7 @@ NotificationMenu.propTypes = {
     position: PropTypes.number,
 };
 
-const NotificationMenuStripe = injectStripe(
+const NotificationMenuStripe: $TSFixMe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(NotificationMenu)
 );
 

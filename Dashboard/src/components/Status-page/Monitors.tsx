@@ -27,7 +27,7 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 
-const grid = 8;
+const grid: $TSFixMe = 8;
 
 const getListStyle: Function = (isDraggingOver: $TSFixMe) => ({
     background: isDraggingOver ? 'lightblue' : 'transparent',
@@ -38,12 +38,12 @@ const getListStyle: Function = (isDraggingOver: $TSFixMe) => ({
 
 const validate: Function = (values: $TSFixMe) => {
     const errors: $TSFixMe = {};
-    const { monitors = [] } = values;
+    const { monitors = [] }: $TSFixMe = values;
     const monitorsArrayErrors: $TSFixMe = {};
     const selectedMonitor: $TSFixMe = {};
     for (let i = 0; i < monitors.length; i++) {
         const monitorErrors: $TSFixMe = {};
-        const monitor = monitors[i];
+        const monitor: $TSFixMe = monitors[i];
         if (!monitor.monitor)
 
             monitorErrors.monitor = 'A monitor must be selected.';
@@ -69,9 +69,9 @@ export class Monitors extends Component<ComponentProps>{
 
     submitForm = (values: $TSFixMe) => {
 
-        const { status } = this.props.statusPage;
-        const { projectId } = status;
-        const { monitors } = values;
+        const { status }: $TSFixMe = this.props.statusPage;
+        const { projectId }: $TSFixMe = status;
+        const { monitors }: $TSFixMe = values;
 
         this.props
 
@@ -123,8 +123,8 @@ export class Monitors extends Component<ComponentProps>{
 
     onDragEnd = (result: $TSFixMe) => {
 
-        const { statusPageMonitors, change } = this.props;
-        const { destination, source } = result;
+        const { statusPageMonitors, change }: $TSFixMe = this.props;
+        const { destination, source }: $TSFixMe = result;
 
         if (!destination) {
             return;
@@ -137,12 +137,12 @@ export class Monitors extends Component<ComponentProps>{
             return;
         }
 
-        const start = source.droppableId;
-        const finish = destination.droppableId;
+        const start: $TSFixMe = source.droppableId;
+        const finish: $TSFixMe = destination.droppableId;
 
         if (start === finish) {
-            const result = Array.from(statusPageMonitors);
-            const [removed] = result.splice(source.index, 1);
+            const result: $TSFixMe = Array.from(statusPageMonitors);
+            const [removed]: $TSFixMe = result.splice(source.index, 1);
             result.splice(destination.index, 0, removed);
 
             change('monitors', result);
@@ -153,10 +153,10 @@ export class Monitors extends Component<ComponentProps>{
 
     override render() {
 
-        const { handleSubmit, subProjects } = this.props;
+        const { handleSubmit, subProjects }: $TSFixMe = this.props;
 
-        const { status } = this.props.statusPage;
-        const subProject = !status.projectId
+        const { status }: $TSFixMe = this.props.statusPage;
+        const subProject: $TSFixMe = !status.projectId
             ? null
 
             : this.props.currentProject._id === status.projectId._id ||
@@ -402,7 +402,7 @@ Monitors.propTypes = {
     change: PropTypes.func,
 };
 
-const MonitorsForm = reduxForm({
+const MonitorsForm: $TSFixMe = reduxForm({
     form: 'StatuspageMonitors', // a unique identifier for this form
     enableReinitialize: true,
     validate,
@@ -420,13 +420,13 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const selector = formValueSelector('StatuspageMonitors');
+const selector: $TSFixMe = formValueSelector('StatuspageMonitors');
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
-    const { subProjectId } = ownProps;
-    const { currentProject } = state.project;
+    const { subProjectId }: $TSFixMe = ownProps;
+    const { currentProject }: $TSFixMe = state.project;
 
-    const monitors = state.monitor.monitorsList.monitors
+    const monitors: $TSFixMe = state.monitor.monitorsList.monitors
         .filter((monitor: $TSFixMe) => String(monitor._id) === String(subProjectId))
         .map((monitor: $TSFixMe) => monitor.monitors)
         .flat();
@@ -438,9 +438,9 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     } = state;
     const initialValues: $TSFixMe = { monitors: selectedMonitors || [] };
     //Description field rendering becomes slow if the array is assigned to monitorsInForm instead of the array's lenght.
-    const monitorsInForm =
+    const monitorsInForm: $TSFixMe =
         selector(state, 'monitors') && selector(state, 'monitors').length;
-    const subProjects = state.subProject.subProjects.subProjects;
+    const subProjects: $TSFixMe = state.subProject.subProjects.subProjects;
 
     return {
         initialValues,

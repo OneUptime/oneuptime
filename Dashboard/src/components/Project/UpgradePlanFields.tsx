@@ -4,12 +4,12 @@ import { PricingPlan } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 
 export default function UpgradePlanFields(props: $TSFixMe) {
-    const { currentProject, projects } = props;
+    const { currentProject, projects }: $TSFixMe = props;
 
-    const list = [];
-    const plans = PricingPlan.getPlans();
+    const list: $TSFixMe = [];
+    const plans: $TSFixMe = PricingPlan.getPlans();
 
-    const reducedPlans = plans.reduce((filtered, plan, index) => {
+    const reducedPlans = plans.reduce((filtered, plan, index): $TSFixMe => {
         if (currentProject.stripePlanId === plan.planId) {
             for (let i = 0; i < plans.length; i++) {
                 if (i > index && plans[index].category !== plans[i].category) {

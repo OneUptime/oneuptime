@@ -20,7 +20,7 @@ export default class TableHeader extends Component<TableHeaderProps>{
 
     override render() {
 
-        const { title, description, headerButtons } = this.props;
+        const { title, description, headerButtons }: $TSFixMe = this.props;
 
         return (
             <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">

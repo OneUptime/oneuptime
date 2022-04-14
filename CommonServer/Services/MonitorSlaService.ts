@@ -7,12 +7,12 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async create(data: $TSFixMe): void {
-        const monitorSlaCount = await this.countBy({
+        const monitorSlaCount: $TSFixMe = await this.countBy({
             name: data.name,
             projectId: data.projectId,
         });
         if (monitorSlaCount && monitorSlaCount > 0) {
-            const error = new Error(
+            const error: $TSFixMe = new Error(
                 'Monitor SLA with the same name already exist'
             );
 
@@ -32,7 +32,7 @@ export default class Service {
             );
         }
 
-        const createdMonitorSla = await MonitorSlaModel.create(data);
+        const createdMonitorSla: $TSFixMe = await MonitorSlaModel.create(data);
 
         if (data.monitors && data.monitors.length > 0) {
             let monitorIds = [...data.monitors];
@@ -56,14 +56,14 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const monitorSlaQuery = MonitorSlaModel.findOne(query)
+        const monitorSlaQuery: $TSFixMe = MonitorSlaModel.findOne(query)
             .sort(sort)
             .lean();
 
         monitorSlaQuery.select(select);
         monitorSlaQuery.populate(populate);
 
-        const monitorSla = await monitorSlaQuery;
+        const monitorSla: $TSFixMe = await monitorSlaQuery;
         return monitorSla;
     }
 
@@ -92,7 +92,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const monitorSlaQuery = MonitorSlaModel.find(query)
+        const monitorSlaQuery: $TSFixMe = MonitorSlaModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -101,7 +101,7 @@ export default class Service {
         monitorSlaQuery.select(select);
         monitorSlaQuery.populate(populate);
 
-        const monitorSla = await monitorSlaQuery;
+        const monitorSla: $TSFixMe = await monitorSlaQuery;
 
         return monitorSla;
     }
@@ -118,13 +118,13 @@ export default class Service {
         // check if we are only setting default sla
         // or using update modal for editing the details
         if (!data.handleDefault) {
-            const monitorSla = await this.findOneBy({
+            const monitorSla: $TSFixMe = await this.findOneBy({
                 query: { name: data.name, projectId: query.projectId },
                 select: '_id',
             });
 
             if (monitorSla && String(monitorSla._id) !== String(query._id)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Monitor SLA with the same name already exist'
                 );
 
@@ -132,11 +132,11 @@ export default class Service {
                 throw error;
             }
 
-            const monitors = await MonitorService.findBy({
+            const monitors: $TSFixMe = await MonitorService.findBy({
                 query: { monitorSla: query._id },
                 select: '_id',
             });
-            const initialMonitorIds = monitors.map(
+            const initialMonitorIds: $TSFixMe = monitors.map(
                 (monitor: $TSFixMe) => monitor._id
             );
 
@@ -202,10 +202,10 @@ export default class Service {
             );
         }
 
-        const selectMonSla =
+        const selectMonSla: $TSFixMe =
             'name projectId isDefault frequency monitorUptime deleted deletedAt';
 
-        const populateMonSla = [{ path: 'projectId', select: 'name slug' }];
+        const populateMonSla: $TSFixMe = [{ path: 'projectId', select: 'name slug' }];
         updatedMonitorSla = await this.findOneBy({
             query,
             select: selectMonSla,
@@ -216,7 +216,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        const deletedSla = await MonitorSlaModel.findOneAndUpdate(
+        const deletedSla: $TSFixMe = await MonitorSlaModel.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -242,7 +242,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count = await MonitorSlaModel.countDocuments(query);
+        const count: $TSFixMe = await MonitorSlaModel.countDocuments(query);
         return count;
     }
 }

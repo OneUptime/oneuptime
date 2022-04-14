@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
-const getUser = require('../middlewares/user').getUser;
+const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -14,7 +14,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import { sendListResponse } from 'CommonServer/Utils/response';
 import MonitorSlaService from '../services/monitorSlaService';
 
-const router = express.getRouter();
+const router: $TSFixMe = express.getRouter();
 
 router.get(
     '/:projectId',
@@ -22,14 +22,14 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { limit, skip } = req.query;
+            const { projectId }: $TSFixMe = req.params;
+            const { limit, skip }: $TSFixMe = req.query;
 
-            const selectMonSla =
+            const selectMonSla: $TSFixMe =
                 'name projectId isDefault frequency monitorUptime deleted deletedAt';
 
-            const populateMonSla = [{ path: 'projectId', select: 'name slug' }];
-            const [monitorSlas, count] = await Promise.all([
+            const populateMonSla: $TSFixMe = [{ path: 'projectId', select: 'name slug' }];
+            const [monitorSlas, count]: $TSFixMe = await Promise.all([
                 MonitorSlaService.findBy({
                     query: {
                         projectId,
@@ -57,25 +57,25 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const { name, frequency, monitorUptime } = req.body;
+            const { projectId }: $TSFixMe = req.params;
+            const { name, frequency, monitorUptime }: $TSFixMe = req.body;
 
             if (!name || !name.trim()) {
-                const error = new Error('SLA name is required');
+                const error: $TSFixMe = new Error('SLA name is required');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!monitorUptime || !monitorUptime.trim()) {
-                const error = new Error('Monitor uptime is required');
+                const error: $TSFixMe = new Error('Monitor uptime is required');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (frequency && isNaN(frequency)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please use numeric values for frequency'
                 );
 
@@ -84,14 +84,14 @@ router.post(
             }
 
             if (frequency && Number(frequency) < 1) {
-                const error = new Error('At lease a single day is needed');
+                const error: $TSFixMe = new Error('At lease a single day is needed');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (monitorUptime && isNaN(monitorUptime)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please use numeric values for monitor uptime'
                 );
 
@@ -100,7 +100,7 @@ router.post(
             }
 
             if (monitorUptime && Number(monitorUptime) < 1) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Monitor Uptime less than 1 is not allowed'
                 );
 
@@ -109,7 +109,7 @@ router.post(
             }
 
             if (monitorUptime && Number(monitorUptime) > 100) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Monitor Uptime greater than 100 is not allowed'
                 );
 
@@ -119,7 +119,7 @@ router.post(
 
             const data: $TSFixMe = { ...req.body };
             data.projectId = projectId;
-            const monitorSla = await MonitorSlaService.create(data);
+            const monitorSla: $TSFixMe = await MonitorSlaService.create(data);
             return sendItemResponse(req, res, monitorSla);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -133,25 +133,25 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         try {
-            const { projectId, monitorSlaId } = req.params;
-            const { name, handleDefault, frequency, monitorUptime } = req.body;
+            const { projectId, monitorSlaId }: $TSFixMe = req.params;
+            const { name, handleDefault, frequency, monitorUptime }: $TSFixMe = req.body;
 
             if (!handleDefault && (!name || !name.trim())) {
-                const error = new Error('SLA name is required');
+                const error: $TSFixMe = new Error('SLA name is required');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && (!monitorUptime || !monitorUptime.trim())) {
-                const error = new Error('Monitor uptime is required');
+                const error: $TSFixMe = new Error('Monitor uptime is required');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && frequency && isNaN(frequency)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please use numeric values for frequency'
                 );
 
@@ -160,14 +160,14 @@ router.put(
             }
 
             if (!handleDefault && frequency && Number(frequency) < 1) {
-                const error = new Error('At lease a single day is needed');
+                const error: $TSFixMe = new Error('At lease a single day is needed');
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && monitorUptime && isNaN(monitorUptime)) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Please use numeric values for monitor uptime'
                 );
 
@@ -176,7 +176,7 @@ router.put(
             }
 
             if (!handleDefault && monitorUptime && Number(monitorUptime) < 1) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Monitor Uptime less than 1 is not allowed'
                 );
 
@@ -189,7 +189,7 @@ router.put(
                 monitorUptime &&
                 Number(monitorUptime) > 100
             ) {
-                const error = new Error(
+                const error: $TSFixMe = new Error(
                     'Monitor Uptime greater than 100 is not allowed'
                 );
 
@@ -198,7 +198,7 @@ router.put(
             }
 
             const data: $TSFixMe = { ...req.body };
-            const monitorSla = await MonitorSlaService.updateOneBy(
+            const monitorSla: $TSFixMe = await MonitorSlaService.updateOneBy(
                 { projectId, _id: monitorSlaId },
                 data
             );
@@ -215,9 +215,9 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId, monitorSlaId } = req.params;
+            const { projectId, monitorSlaId }: $TSFixMe = req.params;
 
-            const deletedMonitorSla = await MonitorSlaService.deleteBy({
+            const deletedMonitorSla: $TSFixMe = await MonitorSlaService.deleteBy({
                 _id: monitorSlaId,
                 projectId,
             });
@@ -234,12 +234,12 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { projectId } = req.params;
-            const selectMonSla =
+            const { projectId }: $TSFixMe = req.params;
+            const selectMonSla: $TSFixMe =
                 'name projectId isDefault frequency monitorUptime deleted deletedAt';
 
-            const populateMonSla = [{ path: 'projectId', select: 'name slug' }];
-            const defaultMonitorSla = await MonitorSlaService.findOneBy({
+            const populateMonSla: $TSFixMe = [{ path: 'projectId', select: 'name slug' }];
+            const defaultMonitorSla: $TSFixMe = await MonitorSlaService.findOneBy({
                 query: { projectId, isDefault: true },
                 select: selectMonSla,
                 populate: populateMonSla,

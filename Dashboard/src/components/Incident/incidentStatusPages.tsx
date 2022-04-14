@@ -27,17 +27,17 @@ const IncidentStatusPages: Function = ({
     count,
     limit
 }: IncidentStatusPagesProps) => {
-    const [page, setPage] = useState(1);
-    const numberOfPages = Math.ceil(parseInt(count) / 10);
+    const [page, setPage]: $TSFixMe = useState(1);
+    const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
     const nextPage: Function = () => {
-        const nextSkip = skip + limit;
+        const nextSkip: $TSFixMe = skip + limit;
         if (nextSkip < count) {
             fetchIncidentStatusPages(projectId, incidentId, nextSkip, limit);
             setPage(page < numberOfPages ? page + 1 : numberOfPages);
         }
     };
     const previousPage: Function = () => {
-        const nextSkip = skip - limit;
+        const nextSkip: $TSFixMe = skip - limit;
         if (nextSkip >= 0) {
             fetchIncidentStatusPages(projectId, incidentId, nextSkip, limit);
             setPage(page > 1 ? page - 1 : 1);
@@ -92,7 +92,7 @@ const IncidentStatusPages: Function = ({
                             <tbody id="statusPagesListContainer">
                                 {statusPages &&
                                     statusPages.map((statusPage: $TSFixMe) => {
-                                        const statusPageLink = IS_LOCALHOST
+                                        const statusPageLink: $TSFixMe = IS_LOCALHOST
                                             ? `http://${statusPage.slug}.localhost:3006`
                                             : window.location.origin +
                                             `/StatusPage/${statusPage.slug}`;

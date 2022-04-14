@@ -1,6 +1,6 @@
 import Express, { ExpressRequest, ExpressResponse } from '../Utils/Express';
 
-const router = Express.getRouter();
+const router: $TSFixMe = Express.getRouter();
 
 // general status
 router.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {

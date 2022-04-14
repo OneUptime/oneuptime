@@ -14,14 +14,14 @@ export default {
                 let retry = true;
                 let retryCount = 0;
                 while (retry || retryCount > 2) {
-                    const { res, resp, rawResp } = await pingfetch(
+                    const { res, resp, rawResp }: $TSFixMe = await pingfetch(
                         monitor.data.url
                     );
 
                     logger.info(
                         `Monitor ID ${monitor._id}: Start saving data to ingestor.`
                     );
-                    const response = await ApiService.ping(monitor._id, {
+                    const response: $TSFixMe = await ApiService.ping(monitor._id, {
                         monitor,
                         res,
                         resp,

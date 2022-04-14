@@ -65,14 +65,14 @@ class ErrorEventTimeline extends Component<ComponentProps> {
         return `/dashboard/assets/img/${image}.svg`;
     };
     generateText = (status: $TSFixMe) => {
-        const capitalizedText =
+        const capitalizedText: $TSFixMe =
             status.charAt(0).toUpperCase() + status.slice(1);
         return `${capitalizedText}d by`;
     };
     override render() {
 
-        const { errorEvent } = this.props;
-        const errorEventDetails = errorEvent.errorEvent;
+        const { errorEvent }: $TSFixMe = this.props;
+        const errorEventDetails: $TSFixMe = errorEvent.errorEvent;
         return (
             <ShouldRender
                 if={

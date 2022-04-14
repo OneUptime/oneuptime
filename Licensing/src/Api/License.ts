@@ -3,7 +3,7 @@ import Express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-const router = Express.getRouter();
+const router: $TSFixMe = Express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -16,7 +16,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const data = req.body;
+        const data: $TSFixMe = req.body;
 
         if (!data.license) {
             return sendErrorResponse(
@@ -50,11 +50,11 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
 
-        const limit = new PositiveNumber(
+        const limit: $TSFixMe = new PositiveNumber(
             parseInt((req.query['limit'] as string) || '100')
         );
 
-        const item = await LicenseService.confirm(
+        const item: $TSFixMe = await LicenseService.confirm(
             data.license,
             new Email(data.email),
             limit

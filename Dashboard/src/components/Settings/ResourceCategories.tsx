@@ -52,9 +52,9 @@ export class ResourceCategories extends Component<ResourceCategoriesProps>{
 
     handleKeyboard = (e: $TSFixMe) => {
 
-        const { modalId, modalList } = this.props;
-        const { CreateResourceCategoryModalId } = this.state;
-        const userId = User.getUserId();
+        const { modalId, modalList }: $TSFixMe = this.props;
+        const { CreateResourceCategoryModalId }: $TSFixMe = this.state;
+        const userId: $TSFixMe = User.getUserId();
 
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
@@ -101,7 +101,7 @@ export class ResourceCategories extends Component<ResourceCategoriesProps>{
 
     handleCreateResourceCategory = (userId: string) => {
 
-        const { openModal, currentProject } = this.props;
+        const { openModal, currentProject }: $TSFixMe = this.props;
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
                 id: this.state.CreateResourceCategoryModalId,
@@ -115,7 +115,7 @@ export class ResourceCategories extends Component<ResourceCategoriesProps>{
 
     handleEdit = (userId: string, _id: $TSFixMe) => {
 
-        const { openModal, currentProject } = this.props;
+        const { openModal, currentProject }: $TSFixMe = this.props;
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
                 id: this.state.EditResourceCategoryModalId,
@@ -131,7 +131,7 @@ export class ResourceCategories extends Component<ResourceCategoriesProps>{
 
     handleDelete = (userId: string, _id: $TSFixMe) => {
 
-        const { openModal, currentProject } = this.props;
+        const { openModal, currentProject }: $TSFixMe = this.props;
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
                 id: this.state.removeResourceCategoryModalId,
@@ -157,16 +157,16 @@ export class ResourceCategories extends Component<ResourceCategoriesProps>{
 
         let canPrev:number = parseInt(this.props.skip) <= 0 ? false : true;
 
-        const { isRequesting, error, resourceCategories } = this.props;
+        const { isRequesting, error, resourceCategories }: $TSFixMe = this.props;
 
         if (isRequesting || !resourceCategories) {
             canNext = false;
             canPrev = false;
         }
 
-        const userId = User.getUserId();
+        const userId: $TSFixMe = User.getUserId();
 
-        const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(parseInt(this.props.count) / 10);
 
         return (
             <div className="Box-root Margin-bottom--12">

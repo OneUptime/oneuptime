@@ -9,7 +9,7 @@ export interface InitialStateType {
     modals: Array<OpenModalActionPayload>;
 }
 
-const initialState: InitialStateType: $TSFixMe = {
+const initialState: InitialStateType = {
     modals: [],
 };
 

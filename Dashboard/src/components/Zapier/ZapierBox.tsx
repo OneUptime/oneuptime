@@ -9,9 +9,9 @@ class ZapierBox extends Component<ComponentProps> {
     };
 
     override componentDidMount() {
-        const embededZapierTemplates = 7;
-        const zapierEmbededWidget:string = `https://zapier.com/apps/embed/widget.js?services=oneuptime&limit=${embededZapierTemplates}&html_id=zapierId`;
-        const script = document.createElement('script');
+        const embededZapierTemplates: $TSFixMe = 7;
+        const zapierEmbededWidget:string: $TSFixMe = `https://zapier.com/apps/embed/widget.js?services=oneuptime&limit=${embededZapierTemplates}&html_id=zapierId`;
+        const script: $TSFixMe = document.createElement('script');
 
         script.async = true;
         script.src = zapierEmbededWidget;
@@ -21,7 +21,7 @@ class ZapierBox extends Component<ComponentProps> {
     }
 
     override render() {
-        const { isLoading } = this.state;
+        const { isLoading }: $TSFixMe = this.state;
 
         return (
             <div className="Box-root Margin-vertical--12">

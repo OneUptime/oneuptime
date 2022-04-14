@@ -7,7 +7,7 @@ import axios from 'axios';
 let page, browser: $TSFixMe;
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const queryString: string =
     '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
@@ -34,7 +34,7 @@ describe('Home redirect', () => {
         // user
         await init.registerUser(user, page);
 
-        const params = new URLSearchParams(queryString);
+        const params: $TSFixMe = new URLSearchParams(queryString);
         // formating query string to an object
         for (const param of params) {
             queryObj = { ...queryObj, [`${param[0]}`]: param[1] };
@@ -62,8 +62,8 @@ describe('Home redirect', () => {
                 },
                 data: data,
             };
-            const res = await axios(config);
-            const sourceObj = res.data[0].source;
+            const res: $TSFixMe = await axios(config);
+            const sourceObj: $TSFixMe = res.data[0].source;
             for (const key in sourceObj) {
                 expect(sourceObj[key]).toEqual(queryObj[key]);
             }

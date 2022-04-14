@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: $TSFixMe = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -13,7 +13,7 @@ const user: $TSFixMe = {
 };
 
 describe('New Monitor API', () => {
-    const operationTimeOut = 1000000;
+    const operationTimeOut: $TSFixMe = 1000000;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -34,14 +34,14 @@ describe('New Monitor API', () => {
     test(
         "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Growth plan => 10 Monitors/User)",
         async (done: $TSFixMe) => {
-            const projectName = utils.generateRandomString();
-            const componentName = utils.generateRandomString();
+            const projectName: $TSFixMe = utils.generateRandomString();
+            const componentName: $TSFixMe = utils.generateRandomString();
             await init.addGrowthProject(projectName, page);
             // create a component
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
             // This the first monitor
-            const firstMonitorName = utils.generateRandomString();
+            const firstMonitorName: $TSFixMe = utils.generateRandomString();
             await init.addNewMonitorToComponent(
                 page,
                 componentName,
@@ -51,7 +51,7 @@ describe('New Monitor API', () => {
             for (let i = 0; i < 9; i++) {
                 // This adds 9 more monitors
                 // The Interface for adding additional monitor has been updated
-                const monitorName = utils.generateRandomString();
+                const monitorName: $TSFixMe = utils.generateRandomString();
 
                 await init.addAdditionalMonitorToComponent(
                     page,
@@ -63,7 +63,7 @@ describe('New Monitor API', () => {
                 });
             }
             // try to add more monitor
-            const monitorName = utils.generateRandomString();
+            const monitorName: $TSFixMe = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -114,7 +114,7 @@ describe('New Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const pricingPlanModal = await init.pageWaitForSelector(
+            const pricingPlanModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
                 { visible: true, timeout: init.timeout }

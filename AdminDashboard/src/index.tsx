@@ -7,7 +7,7 @@ import App from './App';
 import './index.css';
 import ErrorBoundary from './components/basic/ErrorBoundary';
 
-const target = document.getElementById('root');
+const target: $TSFixMe = document.getElementById('root');
 
 render(
 
