@@ -16,7 +16,7 @@ import ProjectService from '../backend/services/projectService';
 
 let token: $TSFixMe, projectId: ObjectID, newProjectId: ObjectID;
 
-const  teamEmail: string = 'noreply1@oneuptime.com';
+const teamEmail: string = 'noreply1@oneuptime.com';
 
 describe('Enterprise Team API', function (): void {
     this.timeout(30000);

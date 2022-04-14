@@ -161,7 +161,7 @@ const getMonitors = async (
         },
         { path: 'projectId', select: '_id name' },
     ];
-    const  select: string = '_id name componentId projectId type slug';
+    const select: string = '_id name componentId projectId type slug';
     const monitors = await MonitorService.findBy({
         query,
         populate,

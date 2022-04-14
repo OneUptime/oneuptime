@@ -6,7 +6,7 @@ import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Email Logs', () => {

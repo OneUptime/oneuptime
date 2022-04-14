@@ -1,6 +1,6 @@
 import { updateMany } from '../util/db';
 
-const  scheduledCollection: string = 'scheduledevents';
+const scheduledCollection: string = 'scheduledevents';
 
 async function run(): void {
     await updateMany(

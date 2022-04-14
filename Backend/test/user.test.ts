@@ -485,7 +485,7 @@ describe('User API', function (): void {
 
     it('should not delete account that belongs to another user', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  anotherUserId: string = '5ef84e17504ba0deaac459d9';
+        const anotherUserId: string = '5ef84e17504ba0deaac459d9';
         request
             .delete(`/user/${anotherUserId}/delete`)
             .set('Authorization', authorization)

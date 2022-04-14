@@ -630,7 +630,7 @@ export default class Service {
             },
         ];
 
-        const  selectStatusPage: string = 'monitors _id';
+        const selectStatusPage: string = 'monitors _id';
 
         const statusPages = await this.findBy({
             query: { 'monitors.monitor': monitorId },
@@ -1629,7 +1629,7 @@ export default class Service {
         skip = 0,
         limit = 10,
     }: $TSFixMe): void {
-        const  selectStatusPage: string = 'slug title name description _id';
+        const selectStatusPage: string = 'slug title name description _id';
 
         const [data, count] = await Promise.all([
             this.findBy({

@@ -171,7 +171,7 @@ export default class StripeService {
 
         if (!duplicateCard) {
             const testChargeValue = 100;
-            const  description: string = 'Verify if card is billable';
+            const description: string = 'Verify if card is billable';
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -264,7 +264,7 @@ export default class StripeService {
         projectId: ObjectID,
         alertOptions: $TSFixMe
     ): void {
-        const  description: string = 'Recharge balance';
+        const description: string = 'Recharge balance';
         const stripechargeAmount = chargeAmount * 100;
         const user = await UserService.findOneBy({
             query: { _id: userId },
@@ -362,7 +362,7 @@ export default class StripeService {
         chargeAmount: $TSFixMe,
         projectId: ObjectID
     ): void {
-        const  description: string = 'Recharge balance';
+        const description: string = 'Recharge balance';
         const stripechargeAmount = chargeAmount * 100;
         const user = await UserService.findOneBy({
             query: { _id: userId },
@@ -435,7 +435,7 @@ export default class StripeService {
         email: $TSFixMe,
         companyName: $TSFixMe
     ): void {
-        const  description: string = 'Verify if card is billable';
+        const description: string = 'Verify if card is billable';
         const testChargeValue = 100;
         const stripeCustomerId = await PaymentService.createCustomer(
             email,

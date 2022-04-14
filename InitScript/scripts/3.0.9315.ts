@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 
-const  incomingRequestCollection: string = 'incomingrequests';
+const incomingRequestCollection: string = 'incomingrequests';
 
 async function run(): void {
     const incomingRequests = await find(incomingRequestCollection, {

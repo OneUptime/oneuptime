@@ -384,7 +384,7 @@ describe('Container Security API', function (): void {
 
     it('should not scan a container security if it does not exist', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  containerSecurityId: string = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
+        const containerSecurityId: string = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
         request
             .post(
@@ -402,7 +402,7 @@ describe('Container Security API', function (): void {
 
     it('should not delete a non-existing container security', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  containerSecurityId: string = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
+        const containerSecurityId: string = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
         request
             .delete(
@@ -420,7 +420,7 @@ describe('Container Security API', function (): void {
 
     it('should not get a non-existing container security', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  containerSecurityId: string = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
+        const containerSecurityId: string = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
         request
             .get(

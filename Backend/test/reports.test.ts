@@ -31,7 +31,7 @@ const monitor = {
 };
 const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(7, 'd').format('YYYY-MM-DD');
-const  filter: string = 'month';
+const filter: string = 'month';
 
 describe('Reports API', function (): void {
     this.timeout(20000);

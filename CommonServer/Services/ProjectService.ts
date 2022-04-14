@@ -469,7 +469,7 @@ export default class Service {
     }
 
     async exitProject(projectId, userId, deletedById, saveUserSeat): void {
-        const  returnVal: string = 'User successfully exited the project';
+        const returnVal: string = 'User successfully exited the project';
         let teamMember = {};
 
         const userProject = await this.findOneBy({
@@ -822,7 +822,7 @@ export default class Service {
     }
 
     async searchProjects(query, skip, limit): void {
-        const  select: string = '_id slug name';
+        const select: string = '_id slug name';
 
         let projects = await this.findBy({ query, limit, skip, select });
 

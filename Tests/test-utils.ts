@@ -73,7 +73,7 @@ function generatePassword(): void {
  */
 function generateRandomString(): void {
     const result = [];
-    const  characters: string = 'abcdefghijklmnopqrstuvwxyz';
+    const characters: string = 'abcdefghijklmnopqrstuvwxyz';
     const charactersLength = characters.length;
     for (let i = 0; i < 5; i++) {
         result.push(
@@ -116,19 +116,19 @@ function capitalize(words: $TSFixMe): void {
     return words.join(' ').trim();
 }
 
-const  resourceCategoryName: string = 'e2e_monitor_category';
+const resourceCategoryName: string = 'e2e_monitor_category';
 
-const  monitorName: string = 'newMonitor';
+const monitorName: string = 'newMonitor';
 
-const  monitorUrl: string = 'https://www.test.com';
+const monitorUrl: string = 'https://www.test.com';
 
-const  scheduledEventDescription: string = 'event description';
+const scheduledEventDescription: string = 'event description';
 
-const  scheduledEventName: string = 'event name';
+const scheduledEventName: string = 'event name';
 
-const  updatedScheduledEventDescription: string = 'event description updated';
+const updatedScheduledEventDescription: string = 'event description updated';
 
-const  updatedScheduledEventName: string = 'event name updated';
+const updatedScheduledEventName: string = 'event name updated';
 
 const dockerCredential = {
     dockerUsername: process.env.DOCKER_UNMASKED_USERNAME || 'oneuptimetest',

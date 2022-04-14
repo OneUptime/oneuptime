@@ -48,7 +48,8 @@ export default class Service {
             { path: 'projectId', select: 'name' },
         ];
 
-        const  selectAuditLog: string = 'userId projectId request response createdAt';
+        const selectAuditLog: string =
+            'userId projectId request response createdAt';
 
         const [searchedAuditLogs, totalSearchCount] = await Promise.all([
             this.findBy({

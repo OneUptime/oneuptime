@@ -7,8 +7,8 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const  email: string = 'masteradmin@hackerbay.io';
-const  password: string = '1234567890';
+const email: string = 'masteradmin@hackerbay.io';
+const password: string = '1234567890';
 const user = {
     email: utils.generateRandomBusinessEmail(),
     password,

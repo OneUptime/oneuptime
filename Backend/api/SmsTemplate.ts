@@ -86,7 +86,7 @@ router.get(
         try {
             const smsTemplateId = req.params.smsTemplateId;
             const populate = [{ path: 'projectId', select: 'name' }];
-            const  select: string = 'projectId body smsType allowedVariables';
+            const select: string = 'projectId body smsType allowedVariables';
             const smsTemplates = await SmsTemplateService.findOneBy({
                 query: { _id: smsTemplateId },
                 populate,

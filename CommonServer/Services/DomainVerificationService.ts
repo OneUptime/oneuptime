@@ -15,7 +15,7 @@ import errorService from '../Utils/error';
 export default class Service {
     async create({ domain, projectId }: $TSFixMe): void {
         const parsed = psl.parse(domain);
-        const  token: string = 'oneuptime=' + randomChar();
+        const token: string = 'oneuptime=' + randomChar();
 
         const creationData = {
             domain: parsed.domain,
@@ -98,8 +98,8 @@ export default class Service {
     ): void {
         try {
             const parsed = psl.parse(subDomain);
-            const  host: string = 'oneuptime';
-            const  previousHost: string = 'oneuptime';
+            const host: string = 'oneuptime';
+            const previousHost: string = 'oneuptime';
             const domain = parsed.domain;
             const domainToLookup: string = `${host}.${domain}`;
             const prevDomainToLookup: string = `${previousHost}.${domain}`;

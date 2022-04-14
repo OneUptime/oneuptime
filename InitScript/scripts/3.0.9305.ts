@@ -1,5 +1,5 @@
 import { find, update } from '../util/db';
-const  usersCollection: string = 'users';
+const usersCollection: string = 'users';
 
 async function run(): void {
     const items = await find(usersCollection, {

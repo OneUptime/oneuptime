@@ -165,8 +165,8 @@ describe('API test', () => {
     test(
         'Should not access API settings if user is a member on a project',
         async (done: $TSFixMe) => {
-            const  projectName: string = 'Project1';
-            const  role: string = 'Member';
+            const projectName: string = 'Project1';
+            const role: string = 'Member';
 
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',

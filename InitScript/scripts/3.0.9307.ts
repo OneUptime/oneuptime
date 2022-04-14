@@ -1,6 +1,6 @@
 import { updateMany, removeFieldsFromMany } from '../util/db';
 
-const  statusPageCollection: string = 'statuspages';
+const statusPageCollection: string = 'statuspages';
 
 async function run(): void {
     await updateMany(

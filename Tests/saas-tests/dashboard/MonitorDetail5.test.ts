@@ -6,7 +6,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 const monitorName = utils.generateRandomString();
 const newMonitorName = utils.generateRandomString();
 const urlMonitorName = utils.generateRandomString();
@@ -74,7 +74,8 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            const  createdLighthouseLogsSelector: string = '.lighthouseLogsListItem';
+            const createdLighthouseLogsSelector: string =
+                '.lighthouseLogsListItem';
             await init.pageWaitForSelector(
                 page,
                 createdLighthouseLogsSelector,
@@ -131,7 +132,8 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const  createdLighthouseLogsSelector: string = '.lighthouseLogsListItem';
+            const createdLighthouseLogsSelector: string =
+                '.lighthouseLogsListItem';
 
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
@@ -176,7 +178,8 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const  createdLighthouseLogsSelector: string = '.lighthouseLogsListItem';
+            const createdLighthouseLogsSelector: string =
+                '.lighthouseLogsListItem';
 
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
@@ -252,7 +255,7 @@ describe('Monitor Detail API', () => {
                 e.click()
             );
 
-            const  confirmDeleteButtonSelector: string = '#deleteMonitor';
+            const confirmDeleteButtonSelector: string = '#deleteMonitor';
 
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector);
             await init.page$Eval(

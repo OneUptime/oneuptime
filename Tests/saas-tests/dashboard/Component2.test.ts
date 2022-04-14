@@ -300,7 +300,7 @@ describe('Components', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            const  customTutorialType: string = 'monitor';
+            const customTutorialType: string = 'monitor';
             // confirm that monitor box exist on component details page
 
             const componentBoxElement = await init.pageWaitForSelector(

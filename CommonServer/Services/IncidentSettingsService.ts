@@ -11,7 +11,8 @@ export default class Service {
         } = data;
 
         const query = { projectId, name };
-        const  select: string = '_id projectId title description incidentPriority name';
+        const select: string =
+            '_id projectId title description incidentPriority name';
         const incidentSetting = await this.findOne({
             query,
             select,

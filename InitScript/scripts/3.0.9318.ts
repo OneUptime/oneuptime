@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 
-const  subscriberCollection: string = 'subscribers';
+const subscriberCollection: string = 'subscribers';
 
 async function run(): void {
     const subscribers = await find(subscriberCollection, {

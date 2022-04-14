@@ -184,7 +184,7 @@ describe('Error Tracker API', function (): void {
 
     it('should update the current error tracker name', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  appName: string = 'Python API App';
+        const appName: string = 'Python API App';
         request
             .put(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`

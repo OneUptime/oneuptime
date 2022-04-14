@@ -539,7 +539,7 @@ class Service extends DatabaseService<typeof Model> {
             },
         ];
 
-        const  select: string = '_id acknowledged criterionCause probes';
+        const select: string = '_id acknowledged criterionCause probes';
 
         const incidents = await IncidentService.findBy({
             query: {

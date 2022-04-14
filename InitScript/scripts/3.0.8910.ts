@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 
-const  statusPageCollection: string = 'statuspages';
+const statusPageCollection: string = 'statuspages';
 
 async function run(): void {
     // get all statuspages with cert and private key set to the custom domain

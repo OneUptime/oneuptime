@@ -7,7 +7,7 @@ import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 const projectName = utils.generateRandomString();
 const callSchedule = utils.generateRandomString();
 const componentName = utils.generateRandomString();

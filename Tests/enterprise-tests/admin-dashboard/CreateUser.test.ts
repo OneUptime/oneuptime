@@ -5,7 +5,7 @@ import init from '../../test-init';
 import 'should';
 // user credentials
 const userEmail = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 let browser: $TSFixMe, page;
 const masterAdmin = {
     email: 'masteradmin@hackerbay.io',

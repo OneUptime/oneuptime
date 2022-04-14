@@ -8,7 +8,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 const email = utils.generateRandomBusinessEmail();
 const priorityName = utils.generateRandomString();
 const newPriorityName = utils.generateRandomString();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 
 describe('Incident Priority API', () => {
     const operationTimeOut = init.timeout;
@@ -200,7 +200,7 @@ describe('Incident Priority API', () => {
                 '.incident-priority-tab',
                 (elems: $TSFixMe) => elems[0].click()
             );
-            const  incidentPrioritiesCount: string = '#incidentPrioritiesCount';
+            const incidentPrioritiesCount: string = '#incidentPrioritiesCount';
 
             await init.pageWaitForSelector(page, incidentPrioritiesCount);
             const incidentsCountBeforeDeletion = await init.page$Eval(

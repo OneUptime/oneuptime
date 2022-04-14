@@ -30,7 +30,7 @@ let probeId: $TSFixMe;
 import GlobalConfig from './utils/globalConfig';
 import AirtableService from '../backend/services/airtableService';
 let token: $TSFixMe, userId, projectId: ObjectID, componentId: $TSFixMe;
-const  probeKey: string = 'test-key';
+const probeKey: string = 'test-key';
 const sleep = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 const generateRandomString = require('./utils/string').generateRandomString;
@@ -427,9 +427,9 @@ describe('Probe API', function (): void {
 
     it('should get application securities yet to be scanned or scanned 24hrs ago', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  probeName: string = 'US';
-        const  probeKey: string = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
-        const  clusterKey: string = 'f414c23b4cdf4e84a6a66ecfd528eff2';
+        const probeName: string = 'US';
+        const probeKey: string = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
+        const clusterKey: string = 'f414c23b4cdf4e84a6a66ecfd528eff2';
 
         GitCredentialService.create({
             gitUsername: gitCredential.gitUsername,
@@ -466,9 +466,9 @@ describe('Probe API', function (): void {
 
     it('should get container securities yet to be scanned or scanned 24hrs ago', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  probeName: string = 'US';
-        const  probeKey: string = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
-        const  clusterKey: string = 'f414c23b4cdf4e84a6a66ecfd528eff2';
+        const probeName: string = 'US';
+        const probeKey: string = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
+        const clusterKey: string = 'f414c23b4cdf4e84a6a66ecfd528eff2';
 
         DockerCredentialService.create({
             dockerRegistryUrl: dockerCredential.dockerRegistryUrl,

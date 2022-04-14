@@ -260,7 +260,7 @@ export default class Service {
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
 
-        const  select: string = 'metrics createdAt';
+        const select: string = 'metrics createdAt';
         // store the metrics according to createdAt
         // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
         const dataBank = {};
@@ -315,7 +315,7 @@ export default class Service {
         // store the metrics according to createdAt
         // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
         const dataBank = {};
-        const  select: string = 'createdAt metrics';
+        const select: string = 'createdAt metrics';
         const timeMetrics = await this.findBy({
             query: {
                 performanceTrackerId: appId,
@@ -365,7 +365,7 @@ export default class Service {
         // store the metrics according to createdAt
         // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
         const dataBank = {};
-        const  select: string = 'createdAt metrics';
+        const select: string = 'createdAt metrics';
         const timeMetrics = await this.findBy({
             query: {
                 performanceTrackerId: appId,

@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 import getSlug from '../util/getSlug';
-const  applicationSecurityCollection: string = 'applicationsecurities';
+const applicationSecurityCollection: string = 'applicationsecurities';
 
 async function run(): void {
     const applicationSecurities = await find(applicationSecurityCollection, {

@@ -22,8 +22,8 @@ async function run(): void {
 }
 
 async function updateVersion(): void {
-    const  collection: string = 'globalconfigs';
-    const  name: string = 'version';
+    const collection: string = 'globalconfigs';
+    const name: string = 'version';
     const docs = await find(collection, { name });
 
     if (docs.length === 0) {
@@ -36,7 +36,7 @@ async function updateVersion(): void {
 }
 
 async function addMasterAdminUser(): void {
-    const  collection: string = 'users';
+    const collection: string = 'users';
 
     const now = new Date().toISOString();
 
@@ -62,7 +62,7 @@ async function addMasterAdminUser(): void {
 }
 
 async function setupTestProbes(): void {
-    const  collection: string = 'probes';
+    const collection: string = 'probes';
     const docs = await find(collection, {
         probeName: { $in: ['Probe 1', 'Probe 2'] },
     });

@@ -36,6 +36,6 @@ export const uniqueFields: UniqueFields = [];
 
 export const encryptedFields: EncryptedFields = ['pass'];
 
-export const  slugifyField: string = '';
+export const slugifyField: string = '';
 
 export default mongoose.model('Smtp', schema);

@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 
-const  statusPagesCollection: string = 'statuspages';
+const statusPagesCollection: string = 'statuspages';
 
 async function run(): void {
     // get all statusPages that don't have the hideProbeBar field

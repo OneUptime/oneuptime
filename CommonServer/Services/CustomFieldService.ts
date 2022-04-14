@@ -29,7 +29,8 @@ export default class Service {
         });
 
         const populateCustomField = [{ path: 'projectId', select: 'name' }];
-        const  selectCustomField: string = 'fieldName fieldType projectId uniqueField';
+        const selectCustomField: string =
+            'fieldName fieldType projectId uniqueField';
         customField = await this.findOneBy({
             query: { _id: customField._id },
             populate: populateCustomField,
@@ -56,7 +57,8 @@ export default class Service {
         // and update the custom fields
 
         const populateCustomField = [{ path: 'projectId', select: 'name' }];
-        const  selectCustomField: string = 'fieldName fieldType projectId uniqueField';
+        const selectCustomField: string =
+            'fieldName fieldType projectId uniqueField';
         const selectIncomingRequest =
             'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
@@ -227,7 +229,8 @@ export default class Service {
         });
 
         const populateCustomField = [{ path: 'projectId', select: 'name' }];
-        const  selectCustomField: string = 'fieldName fieldType projectId uniqueField';
+        const selectCustomField: string =
+            'fieldName fieldType projectId uniqueField';
         updatedCustomField = await this.findBy({
             query,
             select: selectCustomField,

@@ -978,7 +978,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
 
             // create a new URL monitor, with a resource that will fail
-            const  url: string = 'https://httpbin.org/status/500';
+            const url: string = 'https://httpbin.org/status/500';
             const newMonitor = await createMonitor({
                 request,
                 authorization,
@@ -1295,7 +1295,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             criteria.down[0].scheduleIds = [newScheduleId];
             // create a new URL monitor, with a resource that will fail
-            const  url: string = 'https://httpbin.org/status/500';
+            const url: string = 'https://httpbin.org/status/500';
             const newMonitor = await createMonitor({
                 request,
                 authorization,

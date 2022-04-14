@@ -10,7 +10,7 @@ export default class Service {
             query.probeId = data.probeId;
         }
 
-        const  select: string = '_id status lastStatus';
+        const select: string = '_id status lastStatus';
         let previousMonitorStatus = await this.findBy({
             query,
             limit: 1,
@@ -82,7 +82,7 @@ export default class Service {
                 query.probeId = data.probeId;
             }
 
-            const  select: string = '_id status lastStatus';
+            const select: string = '_id status lastStatus';
             let previousMonitorStatus = await this.findBy({
                 query,
                 limit: 1,

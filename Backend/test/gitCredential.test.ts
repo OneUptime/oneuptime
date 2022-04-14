@@ -77,8 +77,8 @@ describe('Git Credential API', function (): void {
 
     it('should add git credential', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  gitUsername: string = 'username';
-        const  gitPassword: string = 'password';
+        const gitUsername: string = 'username';
+        const gitPassword: string = 'password';
 
         request
             .post(`/credential/${projectId}/gitCredential`)
@@ -97,7 +97,7 @@ describe('Git Credential API', function (): void {
 
     it('should update a git credential', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  newGitUsername: string = 'newusername';
+        const newGitUsername: string = 'newusername';
 
         request
             .put(`/credential/${projectId}/gitCredential/${credentialId}`)
@@ -114,8 +114,8 @@ describe('Git Credential API', function (): void {
 
     it('should get all the git credentials in a project', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  gitUsername: string = 'anotherUsername';
-        const  gitPassword: string = 'password';
+        const gitUsername: string = 'anotherUsername';
+        const gitPassword: string = 'password';
 
         request
             .post(`/credential/${projectId}/gitCredential`)
@@ -152,8 +152,8 @@ describe('Git Credential API', function (): void {
 
     it('should not create git credential with an existing git user in a project', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  gitUsername: string = 'anotherUsername'; // an existing username
-        const  gitPassword: string = 'password';
+        const gitUsername: string = 'anotherUsername'; // an existing username
+        const gitPassword: string = 'password';
 
         request
             .post(`/credential/${projectId}/gitCredential`)
@@ -173,8 +173,8 @@ describe('Git Credential API', function (): void {
 
     it('should not create git credential if git username is missing', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  gitUsername: string = '';
-        const  gitPassword: string = 'password';
+        const gitUsername: string = '';
+        const gitPassword: string = 'password';
 
         request
             .post(`/credential/${projectId}/gitCredential`)
@@ -194,7 +194,7 @@ describe('Git Credential API', function (): void {
 
     it('should not create git credential if git password is missing', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  gitUsername: string = 'username';
+        const gitUsername: string = 'username';
 
         request
             .post(`/credential/${projectId}/gitCredential`)
@@ -213,7 +213,7 @@ describe('Git Credential API', function (): void {
 
     it('should not remove a non-existing git credential', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  credentialId: string = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
+        const credentialId: string = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
 
         request
             .delete(`/credential/${projectId}/gitCredential/${credentialId}`)

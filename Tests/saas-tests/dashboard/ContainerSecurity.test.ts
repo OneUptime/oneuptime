@@ -6,10 +6,10 @@ import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
-const  component: string = 'TestComponent';
-const  containerSecurityName: string = 'Test';
-const  newContainerSecurityName: string = 'Byter';
+const password: string = '1234567890';
+const component: string = 'TestComponent';
+const containerSecurityName: string = 'Test';
+const newContainerSecurityName: string = 'Byter';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Container Security Page', () => {

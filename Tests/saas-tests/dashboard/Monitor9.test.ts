@@ -6,7 +6,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const  password: string = '1234567890';
+const password: string = '1234567890';
 
 describe('API Monitor API', () => {
     const operationTimeOut = init.timeout;
@@ -476,7 +476,7 @@ describe('API Monitor API', () => {
                 e.click()
             );
 
-            const  confirmDeleteButtonSelector: string = '#deleteMonitor';
+            const confirmDeleteButtonSelector: string = '#deleteMonitor';
 
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector);
 

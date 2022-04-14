@@ -500,7 +500,7 @@ export default class Service {
         }
 
         const monitorPopulate = [{ path: 'componentId', select: 'name' }];
-        const  monitorSelect: string = '_id name data method componentId';
+        const monitorSelect: string = '_id name data method componentId';
         const selectOnCallScheduleStatus =
             'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
@@ -1774,7 +1774,7 @@ export default class Service {
                 alertProgress: smsProgress,
             });
         } else if (sendResult) {
-            const  alertStatus: string = 'Success';
+            const alertStatus: string = 'Success';
             alert = await this.create({
                 projectId: incident.projectId._id || incident.projectId,
                 schedule: schedule._id,
@@ -2067,7 +2067,7 @@ export default class Service {
                 : incident.projectId;
 
             const monitorPopulate = [{ path: 'componentId', select: 'name' }];
-            const  monitorSelect: string = '_id name data method componentId';
+            const monitorSelect: string = '_id name data method componentId';
 
             const selectOnCallScheduleStatus =
                 'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
@@ -2418,7 +2418,7 @@ export default class Service {
                 : incident.projectId;
 
             const monitorPopulate = [{ path: 'componentId', select: 'name' }];
-            const  monitorSelect: string = '_id name data method componentId';
+            const monitorSelect: string = '_id name data method componentId';
             const selectOnCallScheduleStatus =
                 'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
@@ -2991,7 +2991,7 @@ export default class Service {
             { path: 'componentId', select: '_id' },
             { path: 'projectId', select: 'slug' },
         ];
-        const  monitorSelect: string = '_id customFields componentId projectId';
+        const monitorSelect: string = '_id customFields componentId projectId';
         const [project, mon] = await Promise.all([
             ProjectService.findOneBy({
                 query: { _id: projectId },
@@ -4355,7 +4355,8 @@ export default class Service {
                         const notificationSMSDisabled =
                             !project.sendNewScheduledEventInvestigationNoteNotificationSms;
 
-                        const  eventType: string = 'Scheduled maintenance note created';
+                        const eventType: string =
+                            'Scheduled maintenance note created';
                         const templateType =
                             'Subscriber Scheduled Maintenance Note';
 
@@ -5184,7 +5185,8 @@ export default class Service {
                     const notificationSMSDisabled =
                         !project.sendAnnouncementNotificationSms;
 
-                    const  eventType: string = 'Announcement notification created';
+                    const eventType: string =
+                        'Announcement notification created';
                     const templateType =
                         'Subscriber Announcement Notification Created';
 

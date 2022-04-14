@@ -103,7 +103,8 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const emailTemplateId = req.params.emailTemplateId;
-            const  select: string = 'projectId subject body emailType allowedVariables';
+            const select: string =
+                'projectId subject body emailType allowedVariables';
             const emailTemplates = await EmailTemplateService.findOneBy({
                 query: { _id: emailTemplateId },
                 select,
@@ -170,7 +171,8 @@ router.put(
                 value.body = body;
                 data.push(value);
             }
-            const  select: string = 'projectId subject body emailType allowedVariables';
+            const select: string =
+                'projectId subject body emailType allowedVariables';
             for (const value of data) {
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     query: {

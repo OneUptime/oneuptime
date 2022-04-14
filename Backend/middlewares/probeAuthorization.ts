@@ -92,7 +92,7 @@ export default {
 
         let probeId = null;
 
-        const  selectProbe: string = '_id probeKey version probeName';
+        const selectProbe: string = '_id probeKey version probeName';
         if (clusterKey && clusterKey === CLUSTER_KEY) {
             // if cluster key matches then just query by probe name,
             // because if the probe key does not match, we can update probe key later

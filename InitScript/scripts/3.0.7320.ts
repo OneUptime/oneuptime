@@ -1,6 +1,6 @@
 import { find, update, removeField } from '../util/db';
 
-const  incomingRequestCollection: string = 'incomingrequests';
+const incomingRequestCollection: string = 'incomingrequests';
 
 async function run(): void {
     const requests = await find(incomingRequestCollection, {

@@ -1,6 +1,6 @@
 import { update, find } from '../util/db';
 
-const  integrationsCollection: string = 'integrations';
+const integrationsCollection: string = 'integrations';
 
 async function run(): void {
     const integrations = await find(integrationsCollection, {

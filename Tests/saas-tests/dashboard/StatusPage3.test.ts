@@ -6,10 +6,10 @@ import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
-const  componentName: string = 'hackerbay';
-const  monitorName: string = 'oneuptime';
-const  monitorName1: string = 'testoneuptime';
+const password: string = '1234567890';
+const componentName: string = 'hackerbay';
+const monitorName: string = 'oneuptime';
+const monitorName1: string = 'testoneuptime';
 const customDomain: string = `${utils.generateRandomString()}.com`;
 
 let browser: $TSFixMe, page: $TSFixMe;

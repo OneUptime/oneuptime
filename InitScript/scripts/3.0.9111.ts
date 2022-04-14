@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 
-const  incidentSettingsCollection: string = 'incidentsettings';
+const incidentSettingsCollection: string = 'incidentsettings';
 
 // run this script once
 async function run(): void {

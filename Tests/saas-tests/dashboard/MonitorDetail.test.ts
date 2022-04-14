@@ -6,7 +6,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const priorityName = utils.generateRandomString();
@@ -144,7 +144,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, selector);
             await init.page$Eval(page, selector, (e: $TSFixMe) => e.click());
-            const  incidentTitleSelector: string = '#incidentTitle';
+            const incidentTitleSelector: string = '#incidentTitle';
             await init.pageWaitForSelector(page, incidentTitleSelector, {
                 visible: true,
                 timeout: init.timeout,

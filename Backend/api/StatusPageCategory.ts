@@ -183,7 +183,7 @@ router.get(
                 });
             }
             // Call the StatusPageCategoryService
-            const  select: string = 'statusPageId name createdById createdAt';
+            const select: string = 'statusPageId name createdById createdAt';
             const [statusPageCategories, count] = await Promise.all([
                 StatusPageCategoryService.findBy({
                     query: { statusPageId },

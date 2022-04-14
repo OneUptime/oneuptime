@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 import getSlug from '../util/getSlug';
-const  projectCollection: string = 'projects';
+const projectCollection: string = 'projects';
 
 async function run(): void {
     const projects = await find(projectCollection, {

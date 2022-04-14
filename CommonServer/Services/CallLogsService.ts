@@ -80,7 +80,7 @@ export default class Service {
         };
 
         const populate = [{ path: 'projectId', select: 'name' }];
-        const  select: string = 'from to projectId content status error';
+        const select: string = 'from to projectId content status error';
         const [searchedCallLogs, totalSearchCount] = await Promise.all([
             this.findBy({ query, skip, limit, select, populate }),
             this.countBy({ query }),

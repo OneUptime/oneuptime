@@ -38,6 +38,6 @@ export const requiredFields: RequiredFields = schema.requiredPaths();
 export const uniqueFields: UniqueFields = [];
 export const encryptedFields: EncryptedFields = [];
 
-export const  slugifyField: string = '';
+export const slugifyField: string = '';
 
 export default mongoose.model('StatusPageCategory', schema);

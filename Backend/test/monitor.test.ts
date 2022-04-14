@@ -465,7 +465,7 @@ describe('Monitor API', function (): void {
 });
 
 const BACKEND_URL: string = `http://localhost:${process.env['PORT']}/api`;
-const  HTTP_TEST_SERVER_URL: string = 'http://localhost:3010';
+const HTTP_TEST_SERVER_URL: string = 'http://localhost:3010';
 
 const testServer = chai.request(HTTP_TEST_SERVER_URL);
 
@@ -1366,7 +1366,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function (): void
 
     it('should be able to create more monitor on upgrade of project to Growth plan.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const  growthPlan: string = 'plan_GoWKgxRnPPBJWy';
+        const growthPlan: string = 'plan_GoWKgxRnPPBJWy';
 
         const project = ProjectService.changePlan(
             projectId,

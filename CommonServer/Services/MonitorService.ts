@@ -48,7 +48,7 @@ export default class Service {
             componentId: data.componentId,
             projectId: data.projectId,
         };
-        const  select: string = 'name _id';
+        const select: string = 'name _id';
         const existingMonitor = await this.findBy({
             query,
             select,
@@ -73,7 +73,8 @@ export default class Service {
             });
         }
         let subProjectIds: $TSFixMe = [];
-        const  selectResourceCat: string = 'projectId name createdById createdAt';
+        const selectResourceCat: string =
+            'projectId name createdById createdAt';
         const [subProjects, count, resourceCategory] = await Promise.all([
             ProjectService.findBy({
                 query: { parentProjectId: project._id },
@@ -425,7 +426,7 @@ export default class Service {
 
         let errorMsg;
         if (data && data.customFields && data.customFields.length > 0) {
-            const  select: string = '_id';
+            const select: string = '_id';
             const monitor = await this.findOneBy({ query, select });
             for (const field of data.customFields) {
                 if (field.uniqueField) {
@@ -1227,7 +1228,7 @@ export default class Service {
 
         await this.updateMonitorSlaStat({ _id: monitorId });
 
-        const  select: string = 'type agentlessConfig createdAt';
+        const select: string = 'type agentlessConfig createdAt';
         const monitor = await this.findOneBy({
             query: { _id: monitorId },
             select,
@@ -1621,7 +1622,7 @@ export default class Service {
 
     async restoreBy(query: Query): void {
         query.deleted = true;
-        const  select: string = '_id';
+        const select: string = '_id';
         const monitor = await this.findBy({ query, select });
         if (monitor && monitor.length > 0) {
             const monitors = await Promise.all(

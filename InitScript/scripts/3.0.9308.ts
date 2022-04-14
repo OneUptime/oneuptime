@@ -1,7 +1,7 @@
 import { find, update } from '../util/db';
 import { ObjectId } from 'mongodb';
 
-const  incidentCollection: string = 'incidents';
+const incidentCollection: string = 'incidents';
 
 async function run(): void {
     const incidents = await find(incidentCollection, {

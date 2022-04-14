@@ -3,11 +3,11 @@ import { find, update, save } from '../util/db';
 import bcrypt from 'bcrypt';
 const { IS_TESTING, IS_SAAS_SERVICE } = process.env;
 
-const  userCollection: string = 'users';
-const  projectCollection: string = 'projects';
-const  incidentPriorityCollection: string = 'incidentpriorities';
-const  email: string = 'masteradmin@hackerbay.io';
-const  plainPassword: string = '1234567890';
+const userCollection: string = 'users';
+const projectCollection: string = 'projects';
+const incidentPriorityCollection: string = 'incidentpriorities';
+const email: string = 'masteradmin@hackerbay.io';
+const plainPassword: string = '1234567890';
 const saltRounds = 10;
 
 async function run(): void {

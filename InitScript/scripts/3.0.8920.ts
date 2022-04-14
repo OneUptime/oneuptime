@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 
-const  ssoCollection: string = 'ssos';
+const ssoCollection: string = 'ssos';
 
 async function run(): void {
     const ssos = await find(ssoCollection, {

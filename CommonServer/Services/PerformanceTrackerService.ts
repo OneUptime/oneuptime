@@ -55,7 +55,8 @@ export default class Service {
 
         let performanceTracker = await PerformanceTrackerModel.create(data);
 
-        const  select: string = 'componentId name slug key showQuickStart createdById';
+        const select: string =
+            'componentId name slug key showQuickStart createdById';
         const populate = [
             { path: 'createdById', select: 'name email' },
             {
@@ -158,7 +159,8 @@ export default class Service {
             skip = parseInt(skip);
         }
 
-        const  select: string = 'componentId name slug key showQuickStart createdById';
+        const select: string =
+            'componentId name slug key showQuickStart createdById';
         const populate = [
             { path: 'createdById', select: 'name email' },
             {
@@ -254,7 +256,8 @@ export default class Service {
             );
         }
 
-        const  select: string = 'componentId name slug key showQuickStart createdById';
+        const select: string =
+            'componentId name slug key showQuickStart createdById';
         const populate = [
             { path: 'createdById', select: 'name email' },
             {

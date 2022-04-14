@@ -6,7 +6,7 @@ import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Credential Page', () => {
@@ -191,7 +191,7 @@ describe('Credential Page', () => {
             await init.pageClick(page, '#editCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#gitCredentialForm');
-            const  gitUsername: string = 'newusername';
+            const gitUsername: string = 'newusername';
             await init.pageClick(page, '#gitUsername', { clickCount: 3 });
 
             await init.pageType(page, '#gitUsername', gitUsername);

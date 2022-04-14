@@ -357,7 +357,7 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
     const domain = matchedTokens[1];
 
     try {
-        const  selectSso: string = '_id saml-enabled remoteLoginUrl entityId';
+        const selectSso: string = '_id saml-enabled remoteLoginUrl entityId';
 
         const sso = await SsoService.findOneBy({
             query: { domain },

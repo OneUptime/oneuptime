@@ -6,7 +6,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const webhookEndpoint = utils.generateRandomWebsite();
@@ -52,7 +52,7 @@ describe('Monitor Detail API', () => {
             // click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
-            const  addButtonSelector: string = '#addWebhookButton';
+            const addButtonSelector: string = '#addWebhookButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
             await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
@@ -68,7 +68,7 @@ describe('Monitor Detail API', () => {
                 document.querySelector('input[name=incidentCreated]').click();
             });
 
-            const  createdWebhookSelector: string = '#webhook_name';
+            const createdWebhookSelector: string = '#webhook_name';
 
             await init.page$Eval(page, '#createWebhook', (e: $TSFixMe) =>
                 e.click()
@@ -104,7 +104,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const  addButtonSelector: string = '#addWebhookButton';
+            const addButtonSelector: string = '#addWebhookButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
 
@@ -145,7 +145,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const  createdWebhookSelector: string = '.webhook-list';
+            const createdWebhookSelector: string = '.webhook-list';
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 

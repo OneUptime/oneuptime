@@ -2,9 +2,9 @@ import { find, save, findOne } from '../util/db';
 import { ObjectId } from 'mongodb';
 import moment from 'moment';
 
-const  incidentSettingsCollection: string = 'incidentsettings';
-const  projectCollection: string = 'projects';
-const  incidentPriorityCollection: string = 'incidentpriorities';
+const incidentSettingsCollection: string = 'incidentsettings';
+const projectCollection: string = 'projects';
+const incidentPriorityCollection: string = 'incidentpriorities';
 
 // run this script once
 async function run(): void {

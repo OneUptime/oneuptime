@@ -4,12 +4,12 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 // parent user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 const projectName = utils.generateRandomString();
 const subProjectMonitorName = utils.generateRandomString();
 // sub-project user credentials
 const newEmail = utils.generateRandomBusinessEmail();
-const  newPassword: string = '1234567890';
+const newPassword: string = '1234567890';
 const subProjectName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
@@ -248,8 +248,8 @@ describe('StatusPage API With SubProjects', () => {
 
             await init.pageClick(page, '.branding-tab');
 
-            const  pageTitle: string = 'MyCompany';
-            const  pageDescription: string = 'MyCompany description';
+            const pageTitle: string = 'MyCompany';
+            const pageDescription: string = 'MyCompany description';
 
             await init.pageWaitForSelector(page, '#title');
 

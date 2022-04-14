@@ -15,7 +15,7 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        const  format: string = 'ddd MMM DD YYYY H:m:s GMT';
+        const format: string = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
 
@@ -107,7 +107,7 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        const  format: string = 'ddd MMM DD YYYY H:m:s GMT';
+        const format: string = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
 
@@ -200,7 +200,7 @@ export default class Service {
         endDate: $TSFixMe,
         filter: $TSFixMe
     ): void {
-        const  format: string = 'ddd MMM DD YYYY H:m:s GMT';
+        const format: string = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
         let group, sort, inputFormat, outputFormat;
@@ -328,7 +328,7 @@ export default class Service {
         endDate: $TSFixMe,
         filter: $TSFixMe
     ): void {
-        const  format: string = 'ddd MMM DD YYYY H:m:s GMT';
+        const format: string = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
         const end = moment(endDate, format).toDate();
         let group, sort, inputFormat, outputFormat;

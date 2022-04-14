@@ -6,15 +6,15 @@ import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 const { twilioCredentials } = { ...utils };
 
-const  projectName: string = 'project';
-const  componentName: string = 'component1';
-const  monitorName: string = 'monitor1';
-const  countryCode: string = '+1';
-const  phoneNumber: string = '9173976235';
-const  alertPhone: string = '+19173976123';
+const projectName: string = 'project';
+const componentName: string = 'component1';
+const monitorName: string = 'monitor1';
+const countryCode: string = '+1';
+const phoneNumber: string = '9173976235';
+const alertPhone: string = '+19173976123';
 const incidentTitle = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {

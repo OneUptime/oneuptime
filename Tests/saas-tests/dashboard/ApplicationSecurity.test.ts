@@ -6,9 +6,9 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
-const  component: string = 'TestComponent';
-const  applicationSecurityName: string = 'Test';
+const password: string = '1234567890';
+const component: string = 'TestComponent';
+const applicationSecurityName: string = 'Test';
 
 describe('Application Security Page', () => {
     const operationTimeOut = init.timeout;
@@ -356,7 +356,7 @@ describe('Application Security Page', () => {
     test(
         'should edit an application security',
         async (done: $TSFixMe) => {
-            const  newApplicationName: string = 'AnotherName';
+            const newApplicationName: string = 'AnotherName';
 
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#components', {
@@ -441,7 +441,7 @@ describe('Application Security Page', () => {
     test(
         'should delete an application security',
         async (done: $TSFixMe) => {
-            const  newApplicationName: string = 'AnotherName';
+            const newApplicationName: string = 'AnotherName';
 
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#components', {

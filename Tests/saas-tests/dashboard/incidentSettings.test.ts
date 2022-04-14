@@ -5,14 +5,14 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  password: string = '1234567890';
+const password: string = '1234567890';
 
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
-const  newName: string = 'Another';
-const  newDefaultIncidentTitle: string = 'TEST: {{monitorName}}';
-const  newDefaultIncidentDescription: string = 'TEST: {{incidentType}}';
-const  incidentType: string = 'offline';
+const newName: string = 'Another';
+const newDefaultIncidentTitle: string = 'TEST: {{monitorName}}';
+const newDefaultIncidentDescription: string = 'TEST: {{incidentType}}';
+const incidentType: string = 'offline';
 const changedTitle: string = `${monitorName} is ${incidentType}.`;
 
 describe('Incident Settings API', () => {
@@ -216,9 +216,9 @@ describe('Incident Settings API', () => {
             //And this will avoid using fragile selector to navigate to the incident page since the incident name is out of this test scope
             // await init.navigateToComponentDetails(componentName, page);
             // selectors refactoring
-            const  incidentTitleSelector: string = '#incident_title_0 > p';
+            const incidentTitleSelector: string = '#incident_title_0 > p';
             //Incident Description is no longer on UI
-            const  incidentPrioritySelector: string = '#name_Low';
+            const incidentPrioritySelector: string = '#name_Low';
 
             await init.pageWaitForSelector(page, incidentTitleSelector);
             const title = await init.page$Eval(

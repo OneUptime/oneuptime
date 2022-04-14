@@ -1,6 +1,6 @@
 import { find, update, removeField } from '../util/db';
 
-const  scheduledEventCollection: string = 'scheduledevents';
+const scheduledEventCollection: string = 'scheduledevents';
 
 async function run(): void {
     const scheduledEvents = await find(scheduledEventCollection, {

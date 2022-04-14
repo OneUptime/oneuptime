@@ -5,7 +5,7 @@ chai.use(chaihttp);
 
 const expect = chai.expect;
 import { user, generateRandomBusinessEmail } from './util';
-const  API_URL: string = 'http://localhost:3002/api';
+const API_URL: string = 'http://localhost:3002/api';
 
 const request = chai.request.agent(API_URL);
 const timeout = 5000;
@@ -103,7 +103,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const  logMessage: string = 'This is a simple log';
+        const logMessage: string = 'This is a simple log';
         validLog.log(logMessage).then(response => {
             expect(response.status).to.equal(200);
 
@@ -152,7 +152,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const  logMessage: string = 'This is a simple log';
+        const logMessage: string = 'This is a simple log';
         validLog.error(logMessage).then(response => {
             expect(response.status).to.equal(200);
 
@@ -170,7 +170,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const  logMessage: string = 'This is a simple log';
+        const logMessage: string = 'This is a simple log';
         validLog.warning(logMessage).then(response => {
             expect(response.status).to.equal(200);
 
@@ -188,8 +188,8 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const  logMessage: string = 'This is a simple log';
-        const  tag: string = 'trial';
+        const logMessage: string = 'This is a simple log';
+        const tag: string = 'trial';
 
         validLog.log(logMessage, tag).then(response => {
             expect(response.status).to.equal(200);
@@ -214,7 +214,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const  logMessage: string = 'This is a simple log';
+        const logMessage: string = 'This is a simple log';
         validLog.warning(logMessage).then(response => {
             expect(response.status).to.equal(200);
 
@@ -232,7 +232,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const  logMessage: string = 'This is a simple log';
+        const logMessage: string = 'This is a simple log';
         const tags = ['auction', 'trial', 'famous'];
 
         validLog.error(logMessage, tags).then(response => {
@@ -259,7 +259,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const  logMessage: string = 'This is a simple log';
+        const logMessage: string = 'This is a simple log';
         const tags = { type: 'trying things' };
 
         validLog.error(logMessage, tags).then(response => {

@@ -8,7 +8,8 @@ let page, browser: $TSFixMe;
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const  queryString: string = '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
+const queryString: string =
+    '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
 let queryObj = {};
 
 describe('Demo form', () => {

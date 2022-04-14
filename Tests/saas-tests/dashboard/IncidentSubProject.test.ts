@@ -345,7 +345,7 @@ describe('Incident API With SubProjects', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            const  type: string = 'internal';
+            const type: string = 'internal';
             // fill internal message thread form
 
             await init.pageWaitForSelector(page, `#add-${type}-message`);

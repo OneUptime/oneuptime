@@ -70,7 +70,7 @@ router.post(
             data.componentId = componentId;
 
             const populateComponent = [{ path: 'projectId', select: '_id' }];
-            const  selectComponent: string = 'projectId ';
+            const selectComponent: string = 'projectId ';
 
             const [applicationLog, component, user] = await Promise.all([
                 ApplicationLogService.create(data),

@@ -132,7 +132,7 @@ describe('Incident Priority API', function (): void {
     });
 
     it('Should update incident priority.', async () => {
-        const  newIncidentPriorityName: string = 'Intermediate Updated';
+        const newIncidentPriorityName: string = 'Intermediate Updated';
         const authorization: string = `Basic ${token}`;
 
         let res = await request
