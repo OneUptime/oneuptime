@@ -9,7 +9,7 @@ export default class Slug {
             return '';
         }
 
-        let slug: $TSFixMe = slugify(name, { remove: /[&*+~.,\\/()|'"!:@]+/g });
+        let slug: string = slugify(name, { remove: /[&*+~.,\\/()|'"!:@]+/g });
         slug = `${slug}-${customAlphabet(numbers, 10)}`;
         slug = slug.toLowerCase();
 

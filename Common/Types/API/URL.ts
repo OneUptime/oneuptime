@@ -46,7 +46,7 @@ export default class URL {
     }
 
     static fromString(url: string): URL {
-        let protocol: $TSFixMe = Protocol.HTTPS;
+        let protocol: Protocol = Protocol.HTTPS;
 
         if (url.startsWith('https://')) {
             protocol = Protocol.HTTPS;
@@ -73,12 +73,12 @@ export default class URL {
             url = url.replace('mongodb://', '');
         }
 
-        const hostname: $TSFixMe = new Hostname(url.split('/')[0] || '');
+        const hostname: Hostname = new Hostname(url.split('/')[0] || '');
 
-        let route: $TSFixMe;
+        let route: Route;
 
         if (url.split('/').length > 1) {
-            const paths: $TSFixMe = url.split('/');
+            const paths: Array<string> = url.split('/');
             paths.shift();
             route = new Route(paths.join('/'));
         }
