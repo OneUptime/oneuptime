@@ -46,7 +46,7 @@ export function fetchSchedules(
             `schedule/${projectId}?skip=${skip || 0}&limit=${limit || 10}`
         );
         promise.then(
-            (schedule): void => {
+            (schedule: $TSFixMe): void => {
                 dispatch(scheduleSuccess(schedule.data));
             },
             (error: $TSFixMe): void => {
@@ -104,7 +104,7 @@ export const fetchSubProjectSchedules: Function = (
 
         dispatch(subProjectScheduleRequest());
         promise.then(
-            (schedule): void => {
+            (schedule: $TSFixMe): void => {
                 dispatch(subProjectScheduleSuccess(schedule.data));
             },
             (error: $TSFixMe): void => {
@@ -156,7 +156,7 @@ export function fetchProjectSchedule(
             `schedule/${projectId}/schedule?skip=${skip}&limit=${limit}`
         );
         promise.then(
-            (schedule): void => {
+            (schedule: $TSFixMe): void => {
                 const data: $TSFixMe = schedule.data;
                 data.projectId = projectId;
                 dispatch(projectScheduleSuccess(data));
@@ -207,7 +207,7 @@ export const createSchedule: Function = (
         dispatch(createScheduleRequest());
 
         promise.then(
-            (schedule): void => {
+            (schedule: $TSFixMe): void => {
                 dispatch(createScheduleSuccess(schedule.data));
             },
             (error: $TSFixMe): void => {
@@ -264,7 +264,7 @@ export function renameSchedule(
 
         promise
             .then(
-                (schedule): void => {
+                (schedule: $TSFixMe): void => {
                     dispatch(renameScheduleSuccess(schedule));
                 },
                 (error: $TSFixMe): void => {
@@ -337,7 +337,7 @@ export const deleteSchedule: Function = (
 
         promise
             .then(
-                (schedule): void => {
+                (schedule: $TSFixMe): void => {
                     const data: $TSFixMe = Object.assign(
                         {},
                         { scheduleId },
@@ -415,7 +415,7 @@ export function addMonitors(
 
         promise
             .then(
-                (schedule): void => {
+                (schedule: $TSFixMe): void => {
                     dispatch(addMonitorSuccess(schedule));
                 },
                 (error: $TSFixMe): void => {
@@ -485,7 +485,7 @@ export function addUsers(
 
         promise
             .then(
-                (schedule): void => {
+                (schedule: $TSFixMe): void => {
                     dispatch(addUserSuccess(schedule));
                 },
                 (error: $TSFixMe): void => {
@@ -556,7 +556,7 @@ export function addEscalation(
         dispatch(escalationRequest());
 
         promise.then(
-            (escalation): void => {
+            (escalation: $TSFixMe): void => {
                 dispatch(escalationSuccess(escalation));
             },
             (error: $TSFixMe): void => {
@@ -580,7 +580,7 @@ export const getEscalation: Function = (
         dispatch(escalationRequest());
 
         promise.then(
-            (escalation): void => {
+            (escalation: $TSFixMe): void => {
                 dispatch(escalationSuccess(escalation.data));
             },
             (error: $TSFixMe): void => {
@@ -658,7 +658,7 @@ export const fetchUserSchedule: Function = (
         dispatch(userScheduleRequest());
 
         promise.then(
-            (schedule): void => {
+            (schedule: $TSFixMe): void => {
                 dispatch(userScheduleSuccess(schedule.data));
             },
             (error: $TSFixMe): void => {

@@ -25,7 +25,7 @@ export const fetchBasicIncidentSettingsVariables: Function = (): void => {
         const promise: $TSFixMe = BackendAPI.get(`incidentSettings/variables`);
         dispatch(fetchBasicIncidentSettingsVariablesRequest());
         promise.then(
-            (incidentBasicSettings): void => {
+            (incidentBasicSettings: $TSFixMe): void => {
                 dispatch(
                     fetchBasicIncidentSettingsVariablesSuccess(
                         incidentBasicSettings.data
@@ -74,7 +74,7 @@ export const fetchIncidentTemplates: $TSFixMe =
         const promise: $TSFixMe = BackendAPI.get(url);
         dispatch(fetchIncidentTemplatesRequest());
         promise.then(
-            (incidentBasicSettings): void => {
+            (incidentBasicSettings: $TSFixMe): void => {
                 dispatch(
                     fetchIncidentTemplatesSuccess(incidentBasicSettings.data)
                 );
@@ -114,7 +114,7 @@ export const createIncidentTemplate: $TSFixMe =
         const promise: $TSFixMe = BackendAPI.post(url, data);
         dispatch(createIncidentTemplateRequest());
         promise.then(
-            (incidentBasicSettings): void => {
+            (incidentBasicSettings: $TSFixMe): void => {
                 dispatch(
                     createIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
@@ -154,7 +154,7 @@ export const updateIncidentTemplate: $TSFixMe =
         const promise: $TSFixMe = BackendAPI.put(url, data);
         dispatch(updateIncidentTemplateRequest());
         promise.then(
-            (incidentBasicSettings): void => {
+            (incidentBasicSettings: $TSFixMe): void => {
                 dispatch(
                     updateIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
@@ -194,7 +194,7 @@ export const deleteIncidentTemplate: $TSFixMe =
         const promise: $TSFixMe = BackendAPI.delete(url);
         dispatch(deleteIncidentTemplateRequest());
         promise.then(
-            (incidentBasicSettings): void => {
+            (incidentBasicSettings: $TSFixMe): void => {
                 dispatch(
                     deleteIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
@@ -234,7 +234,7 @@ export const setDefaultTemplate: $TSFixMe =
         const promise: $TSFixMe = BackendAPI.put(url, {});
         dispatch(setDefaultTemplateRequest());
         promise.then(
-            (incidentBasicSettings): void => {
+            (incidentBasicSettings: $TSFixMe): void => {
                 dispatch(setDefaultTemplateSuccess(incidentBasicSettings.data));
             },
             (error: $TSFixMe): void => {
@@ -278,7 +278,7 @@ export const fetchDefaultTemplate: $TSFixMe =
         const promise: $TSFixMe = BackendAPI.get(url);
         dispatch(fetchDefaultTemplateRequest());
         promise.then(
-            (incidentBasicSettings): void => {
+            (incidentBasicSettings: $TSFixMe): void => {
                 dispatch(
                     fetchDefaultTemplateSuccess(incidentBasicSettings.data)
                 );

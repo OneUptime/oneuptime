@@ -18,10 +18,10 @@ class OutgoingListener {
         override(Http);
         override(Https);
 
-        function override(module): void {
+        function override(module: $TSFixMe): void {
             const original: $TSFixMe = module.request;
 
-            function wrapper(outgoing): void {
+            function wrapper(outgoing: $TSFixMe): void {
                 // Store a call to the original in req
 
                 const req: $TSFixMe = original.apply(this, arguments);

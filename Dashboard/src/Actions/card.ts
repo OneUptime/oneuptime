@@ -33,7 +33,7 @@ export const addCard: Function = (userId: ObjectID, token: $TSFixMe): void => {
         dispatch(addCardRequest(promise));
 
         promise.then(
-            (card): void => {
+            (card: $TSFixMe): void => {
                 dispatch(addCardSuccess(card.data));
             },
             (error: $TSFixMe): void => {
@@ -71,7 +71,7 @@ export const fetchCards: Function = (userId: ObjectID): void => {
         dispatch(fetchCardsRequest(promise));
 
         promise.then(
-            (cards): void => {
+            (cards: $TSFixMe): void => {
                 dispatch(fetchCardsSuccess(cards.data.data));
             },
             (error: $TSFixMe): void => {
@@ -114,7 +114,7 @@ export const deleteCard: Function = (
         dispatch(deleteCardRequest(promise));
 
         promise.then(
-            (card): void => {
+            (card: $TSFixMe): void => {
                 dispatch(deleteCardSuccess(card.data));
             },
             (error: $TSFixMe): void => {
@@ -164,7 +164,7 @@ export const setDefaultCard: Function = (
         dispatch(setDefaultCardRequest(promise, cardId));
 
         promise.then(
-            (card): void => {
+            (card: $TSFixMe): void => {
                 dispatch(setDefaultCardSuccess(card.data));
                 dispatch(fetchCards(userId));
             },

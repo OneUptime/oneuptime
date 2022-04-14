@@ -8,7 +8,7 @@ import { realtimeUrl } from '../Config';
 const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function (data): void {
+    create: async function (data: $TSFixMe): void {
         let probeKey: $TSFixMe;
         if (data.probeKey) {
             probeKey = data.probeKey;
@@ -49,7 +49,7 @@ export default {
         }
     },
 
-    findOneBy: async function (query): void {
+    findOneBy: async function (query: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -76,7 +76,7 @@ export default {
         return probe;
     },
 
-    updateProbeStatus: async function (probeId): void {
+    updateProbeStatus: async function (probeId: $TSFixMe): void {
         const now: $TSFixMe = new Date(moment().format());
         await probeCollection.updateOne(
             {

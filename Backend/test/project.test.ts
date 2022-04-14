@@ -28,7 +28,7 @@ let token, projectId, subProjectId, userId;
 describe('Project API', function (): void {
     this.timeout(30000);
 
-    before(function (done): void {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
@@ -85,7 +85,7 @@ describe('Project API', function (): void {
 
     // 'post /user/signup'
 
-    it('should reject the request of an unauthenticated user', (done): void => {
+    it('should reject the request of an unauthenticated user', (done: $TSFixMe): void => {
         request
             .post('/project/create')
             .send({
@@ -100,7 +100,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should not create a project when `projectName` is not given', (done): void => {
+    it('should not create a project when `projectName` is not given', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
             .post('/project/create')
@@ -117,7 +117,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should not create a project when `planId` is not given', (done): void => {
+    it('should not create a project when `planId` is not given', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
             .post('/project/create')
@@ -133,7 +133,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should create a new project when `planId` and `projectName` is given', (done): void => {
+    it('should create a new project when `planId` and `projectName` is given', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
             .post('/project/create')
@@ -151,7 +151,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should get projects for a valid user', (done): void => {
+    it('should get projects for a valid user', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
             .get('/project/projects')
@@ -166,7 +166,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should reset the API key for a project given the `projectId`', (done): void => {
+    it('should reset the API key for a project given the `projectId`', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
             .post('/project/create')
@@ -193,7 +193,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should not rename a project when the `projectName` is null or invalid', (done): void => {
+    it('should not rename a project when the `projectName` is null or invalid', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -209,7 +209,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should rename a project when `projectName` is given', (done): void => {
+    it('should rename a project when `projectName` is given', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
             .post('/project/create')
@@ -237,7 +237,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should return error when project balance is tried to accessed without supplying a projectId', (done): void => {
+    it('should return error when project balance is tried to accessed without supplying a projectId', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
             .get(`/project/${null}/balance`)
@@ -249,7 +249,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should fetch a project balance when projectId is given', (done): void => {
+    it('should fetch a project balance when projectId is given', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -263,7 +263,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should delete a project when `projectId` is given', (done): void => {
+    it('should delete a project when `projectId` is given', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
             .post('/project/create')
@@ -287,7 +287,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should not upgrade the subscription plan of the user for a project to enterprise plan if not an admin', (done): void => {
+    it('should not upgrade the subscription plan of the user for a project to enterprise plan if not an admin', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -304,7 +304,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should upgrade the subscription plan of the user for a project to enterprise plan by an admin', (done): void => {
+    it('should upgrade the subscription plan of the user for a project to enterprise plan by an admin', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
 
         UserService.updateBy({ _id: userId }, { role: 'master-admin' }).then(
@@ -329,7 +329,7 @@ describe('Project API', function (): void {
         );
     });
 
-    it('should change the subscription plan of the user for a project to any other plan by an admin', (done): void => {
+    it('should change the subscription plan of the user for a project to any other plan by an admin', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -352,7 +352,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should change the subscription plan of the user for a project', (done): void => {
+    it('should change the subscription plan of the user for a project', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -376,7 +376,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should remove a user from a project', (done): void => {
+    it('should remove a user from a project', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -393,7 +393,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should disable sending incident created email notification to external subscribers', (done): void => {
+    it('should disable sending incident created email notification to external subscribers', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -413,7 +413,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should disable sending incident acknowledged email notification to external subscribers', (done): void => {
+    it('should disable sending incident acknowledged email notification to external subscribers', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -433,7 +433,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should disable sending incident resolved email notification to external subscribers', (done): void => {
+    it('should disable sending incident resolved email notification to external subscribers', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -453,7 +453,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should disable sending incident created sms notification to external subscribers', (done): void => {
+    it('should disable sending incident created sms notification to external subscribers', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -472,7 +472,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should disable sending incident acknowledged sms notification to external subscribers', (done): void => {
+    it('should disable sending incident acknowledged sms notification to external subscribers', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -492,7 +492,7 @@ describe('Project API', function (): void {
             });
     });
 
-    it('should disable sending incident resolved sms notification to external subscribers', (done): void => {
+    it('should disable sending incident resolved sms notification to external subscribers', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -516,7 +516,7 @@ describe('Project API', function (): void {
 describe('Projects SubProjects API', function (): void {
     this.timeout(30000);
 
-    before(function (done): void {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
 
         createUser(request, userData.user, (err, res): void => {
@@ -566,7 +566,7 @@ describe('Projects SubProjects API', function (): void {
         });
     });
 
-    it('should not create a subproject without a name.', (done): void => {
+    it('should not create a subproject without a name.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -583,7 +583,7 @@ describe('Projects SubProjects API', function (): void {
             });
     });
 
-    it('should create a subproject.', (done): void => {
+    it('should create a subproject.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -598,7 +598,7 @@ describe('Projects SubProjects API', function (): void {
             });
     });
 
-    it('should not get subprojects for a user not present in the project.', (done): void => {
+    it('should not get subprojects for a user not present in the project.', (done: $TSFixMe): void => {
         createUser(request, userData.newUser, (err, res): void => {
             userId = res.body.id;
             VerificationTokenModel.findOne(
@@ -644,7 +644,7 @@ describe('Projects SubProjects API', function (): void {
         });
     });
 
-    it('should get subprojects for a valid user.', (done): void => {
+    it('should get subprojects for a valid user.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -660,7 +660,7 @@ describe('Projects SubProjects API', function (): void {
             });
     });
 
-    it('should not rename a subproject when the subproject is null or invalid or empty', (done): void => {
+    it('should not rename a subproject when the subproject is null or invalid or empty', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -676,7 +676,7 @@ describe('Projects SubProjects API', function (): void {
             });
     });
 
-    it('should rename a subproject with valid name', (done): void => {
+    it('should rename a subproject with valid name', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -693,7 +693,7 @@ describe('Projects SubProjects API', function (): void {
             });
     });
 
-    it('should delete a subproject', (done): void => {
+    it('should delete a subproject', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 

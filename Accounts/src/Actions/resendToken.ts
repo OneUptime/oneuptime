@@ -42,7 +42,7 @@ export const resendToken: Function = (values: $TSFixMe): void => {
         dispatch(resendTokenRequest(promise));
 
         promise.then(
-            (data): void => {
+            (data: $TSFixMe): void => {
                 dispatch(resendTokenSuccess(data));
             },
             (error: $TSFixMe): void => {

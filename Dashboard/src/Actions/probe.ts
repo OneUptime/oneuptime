@@ -54,7 +54,7 @@ export function getProbes(
         dispatch(probeRequest(promise));
 
         promise.then(
-            (probes): void => {
+            (probes: $TSFixMe): void => {
                 probes.data.skip = skip || 0;
 
                 probes.data.limit = limit || 10;

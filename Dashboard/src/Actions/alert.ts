@@ -40,7 +40,7 @@ export const fetchAlert: Function = (projectId: ObjectID): void => {
         dispatch(alertRequest());
 
         promise.then(
-            (payload): void => {
+            (payload: $TSFixMe): void => {
                 dispatch(alertSuccess(payload.data));
             },
             (error: $TSFixMe): void => {
@@ -94,7 +94,7 @@ export function fetchProjectAlert(
         dispatch(projectAlertRequest());
 
         promise.then(
-            (payload): void => {
+            (payload: $TSFixMe): void => {
                 const data: $TSFixMe = payload.data;
                 data.projectId = projectId;
                 dispatch(projectAlertSuccess(data));
@@ -152,7 +152,7 @@ export function fetchIncidentAlert(
         dispatch(incidentAlertRequest());
 
         promise.then(
-            (alerts): void => {
+            (alerts: $TSFixMe): void => {
                 dispatch(incidentAlertSuccess(alerts.data));
             },
             (error: $TSFixMe): void => {
@@ -220,7 +220,7 @@ export function fetchSubscriberAlert(
         dispatch(subscriberAlertRequest());
 
         promise.then(
-            (alerts): void => {
+            (alerts: $TSFixMe): void => {
                 dispatch(subscriberAlertSuccess(alerts.data));
             },
             (error: $TSFixMe): void => {
@@ -275,7 +275,7 @@ export function fetchAlertCharges(
         dispatch(fetchAlertChargesRequest(promise));
 
         promise.then(
-            (alertCharges): void => {
+            (alertCharges: $TSFixMe): void => {
                 dispatch(fetchAlertChargesSuccess(alertCharges.data));
             },
             (error: $TSFixMe): void => {
@@ -322,7 +322,7 @@ export const downloadAlertCharges: Function = (projectId: ObjectID): void => {
         dispatch(downloadAlertChargesRequest(promise));
 
         promise.then(
-            (alertCharges): void => {
+            (alertCharges: $TSFixMe): void => {
                 dispatch(downloadAlertChargesSuccess(alertCharges.data));
             },
             (error: $TSFixMe): void => {

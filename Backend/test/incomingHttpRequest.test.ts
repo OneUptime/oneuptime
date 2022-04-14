@@ -179,7 +179,7 @@ describe('Incoming HTTP Request API', function (): void {
         IncidentPrioritiesService.findOne({
             query: { projectId },
             select: '_id',
-        }).then((priority): void => {
+        }).then((priority: $TSFixMe): void => {
             // fetch one of the priorities
             incidentPriorityId = priority._id;
             incidentRequest.incidentPriority = incidentPriorityId;
@@ -304,7 +304,7 @@ describe('Incoming HTTP Request API', function (): void {
         axios({
             method: 'post',
             url: createIncidentUrl,
-        }).then((res): void => {
+        }).then((res: $TSFixMe): void => {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.created_incidents).to.be.an('array');
@@ -316,7 +316,7 @@ describe('Incoming HTTP Request API', function (): void {
         axios({
             method: 'post',
             url: acknowledgeIncidentUrl,
-        }).then((res): void => {
+        }).then((res: $TSFixMe): void => {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.acknowledged_incidents).to.be.an('array');
@@ -328,7 +328,7 @@ describe('Incoming HTTP Request API', function (): void {
         axios({
             method: 'post',
             url: resolveIncidentUrl,
-        }).then((res): void => {
+        }).then((res: $TSFixMe): void => {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.resolved_incidents).to.be.an('array');
@@ -341,7 +341,7 @@ describe('Incoming HTTP Request API', function (): void {
         axios({
             method: 'get',
             url: incidentNoteUrl,
-        }).then((res): void => {
+        }).then((res: $TSFixMe): void => {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.notes_addedTo).to.be.an('array');
@@ -353,7 +353,7 @@ describe('Incoming HTTP Request API', function (): void {
         axios({
             method: 'get',
             url: internalNoteUrl,
-        }).then((res): void => {
+        }).then((res: $TSFixMe): void => {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.notes_addedTo).to.be.an('array');

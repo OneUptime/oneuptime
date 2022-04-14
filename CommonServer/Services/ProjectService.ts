@@ -21,7 +21,7 @@ import flattenArray from '../Utils/flattenArray';
 import IncidentSettingsService from './IncidentSettingsService';
 
 export default class Service {
-    async create(data): void {
+    async create(data: $TSFixMe): void {
         const projectModel: $TSFixMe = new ProjectModel();
         const adminUser: $TSFixMe = await UserService.findOneBy({
             query: { role: 'master-admin' },
@@ -285,7 +285,7 @@ export default class Service {
         return project;
     }
 
-    async updateAlertOptions(data): void {
+    async updateAlertOptions(data: $TSFixMe): void {
         const projectId: $TSFixMe = data._id;
         const userId: $TSFixMe = data.userId;
         const project: $TSFixMe = await ProjectModel.findById(projectId).lean();
@@ -351,7 +351,7 @@ export default class Service {
         }
     }
 
-    async getProjectIdsBy(query): void {
+    async getProjectIdsBy(query: $TSFixMe): void {
         const projects: $TSFixMe = await this.findBy({ query, select: '_id' });
         const projectsId: $TSFixMe = [];
 
@@ -361,12 +361,12 @@ export default class Service {
         return projectsId;
     }
 
-    async getBalance(query): void {
+    async getBalance(query: $TSFixMe): void {
         const project: $TSFixMe = await ProjectModel.findOne(query).select('balance');
         return project;
     }
 
-    async resetApiKey(projectId): void {
+    async resetApiKey(projectId: $TSFixMe): void {
         const apiKey: $TSFixMe = uuidv1();
         const project: $TSFixMe = await this.updateOneBy(
             { _id: projectId },
@@ -375,7 +375,7 @@ export default class Service {
         return project;
     }
 
-    async upgradeToEnterprise(projectId): void {
+    async upgradeToEnterprise(projectId: $TSFixMe): void {
         const data: $TSFixMe = {
             stripePlanId: 'enterprise',
             stripeSubscriptionId: null,
@@ -433,7 +433,7 @@ export default class Service {
         }
     }
 
-    async findsubProjectId(projectId): void {
+    async findsubProjectId(projectId: $TSFixMe): void {
         const subProject: $TSFixMe = await this.findBy({
             query: { parentProjectId: projectId },
             select: '_id',
@@ -738,7 +738,7 @@ export default class Service {
         return { projects, count };
     }
 
-    async restoreBy(query): void {
+    async restoreBy(query: $TSFixMe): void {
         query.deleted = true;
 
         let project: $TSFixMe = await this.findOneBy({

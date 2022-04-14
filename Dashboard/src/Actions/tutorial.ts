@@ -66,7 +66,7 @@ export const fetchTutorial: Function = (): void => {
         dispatch(fetchTutorialRequest(promise));
 
         promise.then(
-            (tutorial): void => {
+            (tutorial: $TSFixMe): void => {
                 dispatch(fetchTutorialSuccess(tutorial.data));
             },
             (error: $TSFixMe): void => {
@@ -89,7 +89,7 @@ export const closeTutorial: Function = (
         dispatch(closeTutorialRequest(promise));
 
         promise.then(
-            (tutorial): void => {
+            (tutorial: $TSFixMe): void => {
                 dispatch(closeTutorialSuccess(tutorial.data));
             },
             (error: $TSFixMe): void => {

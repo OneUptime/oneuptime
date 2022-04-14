@@ -128,7 +128,7 @@ describe('Container Security API', function (): void {
             dockerPassword: dockerCredential.dockerPassword,
             dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
             projectId,
-        }).then((credential): void => {
+        }).then((credential: $TSFixMe): void => {
             credentialId = credential._id;
             const data: $TSFixMe = {
                 name: 'Test Container',

@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data): void {
+    async create(data: $TSFixMe): void {
         let containerScannerKey: $TSFixMe;
         if (data.containerScannerKey) {
             containerScannerKey = data.containerScannerKey;
@@ -45,7 +45,7 @@ export default class Service {
         return containerScanner;
     }
 
-    async findOneBy(query): void {
+    async findOneBy(query: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -57,7 +57,7 @@ export default class Service {
         return containerScanner;
     }
 
-    async updateContainerScannerStatus(containerScannerId): void {
+    async updateContainerScannerStatus(containerScannerId: $TSFixMe): void {
         const containerScanner: $TSFixMe =
             await ContainerScannerModel.findOneAndUpdate(
                 { _id: containerScannerId },

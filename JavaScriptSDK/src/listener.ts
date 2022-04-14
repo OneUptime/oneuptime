@@ -49,7 +49,7 @@ public clearTimeline(eventId: $TSFixMe): void {
     // set up console listener
     private _setUpConsoleListener(): void {
         // set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
-        const console: Function = (function (oldCons): void {
+        const console: Function = (function (oldCons: $TSFixMe): void {
             return {
                 log: function (text: $TSFixMe): void {
                     oldCons.log(text);

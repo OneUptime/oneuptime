@@ -22,7 +22,7 @@ export function getCallRoutingNumbers(
         dispatch(getCallRoutingNumbersRequest());
 
         promise.then(
-            (numbers): void => {
+            (numbers: $TSFixMe): void => {
                 dispatch(getCallRoutingNumbersSuccess(numbers.data));
             },
             (error: $TSFixMe): void => {
@@ -119,7 +119,7 @@ export const addCallRoutingNumber: Function = (
         dispatch(addCallRoutingNumberRequest());
 
         promise.then(
-            (number): void => {
+            (number: $TSFixMe): void => {
                 dispatch(addCallRoutingNumberSuccess(number.data));
             },
             (error: $TSFixMe): void => {
@@ -186,7 +186,7 @@ export function uploadCallRoutingAudio(
         dispatch(uploadCallRoutingAudioRequest(callRoutingId, audioFieldName));
 
         promise.then(
-            (data): void => {
+            (data: $TSFixMe): void => {
                 dispatch(
                     uploadCallRoutingAudioSuccess(
                         callRoutingId,
@@ -267,7 +267,7 @@ export function addCallRoutingSchedule(
         dispatch(addCallRoutingScheduleRequest());
 
         promise.then(
-            (data): void => {
+            (data: $TSFixMe): void => {
                 dispatch(addCallRoutingScheduleSuccess(data.data));
             },
             (error: $TSFixMe): void => {
@@ -326,7 +326,7 @@ export function fetchNumbers(
         dispatch(fetchNumbersRequest());
 
         promise.then(
-            (numbers): void => {
+            (numbers: $TSFixMe): void => {
                 dispatch(fetchNumbersSuccess(numbers.data));
             },
             (error: $TSFixMe): void => {
@@ -377,7 +377,7 @@ export const removeNumbers: Function = (
         dispatch(removeNumbersRequest(callRoutingId));
 
         promise.then(
-            (numbers): void => {
+            (numbers: $TSFixMe): void => {
                 dispatch(removeNumbersSuccess(numbers.data));
             },
             (error: $TSFixMe): void => {
@@ -424,7 +424,7 @@ export function getCallRoutingLogs(
         dispatch(getCallRoutingLogsRequest());
 
         promise.then(
-            (logs): void => {
+            (logs: $TSFixMe): void => {
                 dispatch(
                     getCallRoutingLogsSuccess({
                         logs: logs.data,
@@ -487,7 +487,7 @@ export function removeIntroAudio(
         dispatch(removeIntroAudioRequest(callRoutingId, backup));
 
         promise.then(
-            (numbers): void => {
+            (numbers: $TSFixMe): void => {
                 dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
             (error: $TSFixMe): void => {

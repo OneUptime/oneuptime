@@ -37,7 +37,7 @@ export function fetchIncidentPriorities(
         );
         dispatch(fetchIncidentPrioritiesRequest());
         promise.then(
-            (incidentsPriorities): void => {
+            (incidentsPriorities: $TSFixMe): void => {
                 dispatch(
                     fetchIncidentPrioritiesSuccess(incidentsPriorities.data)
                 );
@@ -60,7 +60,7 @@ export const createIncidentPriority: Function = (
         );
         dispatch(createIncidentPriorityRequest());
         promise.then(
-            (incidentPriority): void => {
+            (incidentPriority: $TSFixMe): void => {
                 dispatch(createIncidentPrioritySuccess(incidentPriority.data));
             },
             (error: $TSFixMe): void => {
@@ -102,7 +102,7 @@ export const updateIncidentPriority: Function = (
         );
         dispatch(updateIncidentPriorityRequest());
         promise.then(
-            (incidentPriority): void => {
+            (incidentPriority: $TSFixMe): void => {
                 dispatch(updateIncidentPrioritySuccess(incidentPriority.data));
             },
             (error: $TSFixMe): void => {
@@ -142,7 +142,7 @@ export const deleteIncidentPriority: Function = (
         data);
         dispatch(deleteIncidentPriorityRequest());
         promise.then(
-            (incidentPriority): void => {
+            (incidentPriority: $TSFixMe): void => {
                 dispatch(deleteIncidentPrioritySuccess(incidentPriority.data));
             },
             (error: $TSFixMe): void => {

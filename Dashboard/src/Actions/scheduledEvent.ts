@@ -413,7 +413,7 @@ export function updateScheduledEvent(
         dispatch(updateScheduledEventRequest());
 
         promise.then(
-            (scheduledEvent): void => {
+            (scheduledEvent: $TSFixMe): void => {
                 dispatch(updateScheduledEventSuccess(scheduledEvent.data));
             },
             (error: $TSFixMe): void => {
@@ -798,7 +798,7 @@ export const fetchScheduledEvent: Function = (
         dispatch(fetchScheduledEventRequest());
 
         promise.then(
-            (component): void => {
+            (component: $TSFixMe): void => {
                 dispatch(fetchScheduledEventSuccess(component.data));
             },
             (error: $TSFixMe): void => {

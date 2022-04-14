@@ -6,7 +6,7 @@
 
 export default function flat(arr: $TSFixMe): void {
     const flattened: $TSFixMe = [];
-    (function flatten(arr): void {
+    (function flatten(arr: $TSFixMe): void {
         for (const val of arr) {
             if (Array.isArray(val)) {
                 flatten(val);

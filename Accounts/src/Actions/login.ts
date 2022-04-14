@@ -113,7 +113,7 @@ export const loginUser: Function = (values: $TSFixMe): void => {
         dispatch(loginRequest(promise));
 
         promise.then(
-            (user): void => {
+            (user: $TSFixMe): void => {
                 dispatch(loginSuccess(user.data));
             },
             (error: $TSFixMe): void => {
@@ -175,7 +175,7 @@ export const verifyAuthToken: Function = (values: $TSFixMe): void => {
         dispatch(verifyTokenRequest(promise));
 
         promise.then(
-            (user): void => {
+            (user: $TSFixMe): void => {
                 dispatch(loginSuccess(user.data));
             },
             (error: $TSFixMe): void => {
@@ -224,7 +224,7 @@ export const verifyBackupCode: Function = (values: $TSFixMe): void => {
         dispatch(useBackupCodeRequest(promise));
 
         promise.then(
-            (user): void => {
+            (user: $TSFixMe): void => {
                 dispatch(loginSuccess(user.data));
             },
             (error: $TSFixMe): void => {

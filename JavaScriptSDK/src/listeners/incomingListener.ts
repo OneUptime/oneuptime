@@ -22,7 +22,7 @@ class IncomingListener {
         override(Http);
         override(Https);
 
-        function override(module): void {
+        function override(module: $TSFixMe): void {
             const emit: $TSFixMe = module.Server.prototype.emit;
 
             module.Server.prototype.emit = function (type, req, res): void {

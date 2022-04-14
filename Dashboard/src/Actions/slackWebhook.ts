@@ -43,7 +43,7 @@ export const deleteSlack: Function = (
         dispatch(deleteSlackRequest());
 
         return promise.then(
-            (msTeams): void => {
+            (msTeams: $TSFixMe): void => {
                 dispatch(deleteSlackSuccess(msTeams.data));
 
                 return msTeams.data;
@@ -97,7 +97,7 @@ export const getSlack: Function = (
         dispatch(getSlackRequest(promise));
 
         promise.then(
-            (webhooks): void => {
+            (webhooks: $TSFixMe): void => {
                 dispatch(getSlackSuccess(webhooks.data));
             },
             (error: $TSFixMe): void => {
@@ -125,7 +125,7 @@ export function getSlackMonitor(
         dispatch(getSlackRequest(promise));
 
         promise.then(
-            (webhooks): void => {
+            (webhooks: $TSFixMe): void => {
                 dispatch(getSlackSuccess(webhooks.data));
             },
             (error: $TSFixMe): void => {
@@ -176,7 +176,7 @@ export const createSlack: Function = (
 
         dispatch(createSlackRequest());
         return promise.then(
-            (webhook): void => {
+            (webhook: $TSFixMe): void => {
                 dispatch(createSlackSuccess(webhook.data));
 
                 return webhook.data;
@@ -229,7 +229,7 @@ export function updateSlack(
         dispatch(updateSlackRequest());
 
         return promise.then(
-            (webhook): void => {
+            (webhook: $TSFixMe): void => {
                 dispatch(updateSlackSuccess(webhook.data));
 
                 return webhook.data;

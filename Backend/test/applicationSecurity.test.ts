@@ -127,7 +127,7 @@ describe('Application Security API', function (): void {
             gitUsername: gitCredential.gitUsername,
             gitPassword: gitCredential.gitPassword,
             projectId,
-        }).then((credential): void => {
+        }).then((credential: $TSFixMe): void => {
             credentialId = credential._id;
             const data: $TSFixMe = {
                 name: 'Test',

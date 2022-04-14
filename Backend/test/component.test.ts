@@ -280,7 +280,7 @@ describe('Component API', function (): void {
             gitUsername: gitCredential.gitUsername,
             gitPassword: gitCredential.gitPassword,
             projectId,
-        }).then((credential): void => {
+        }).then((credential: $TSFixMe): void => {
             const data: $TSFixMe = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
@@ -326,7 +326,7 @@ describe('Component API', function (): void {
             dockerPassword: dockerCredential.dockerPassword,
             dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
             projectId,
-        }).then((credential): void => {
+        }).then((credential: $TSFixMe): void => {
             const data: $TSFixMe = {
                 name: 'Test Container',
                 dockerCredential: credential._id,

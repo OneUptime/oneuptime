@@ -22,7 +22,7 @@ tester
         console.info('PASS', record);
     })
 
-    .catch((e): void => {
+    .catch((e: $TSFixMe): void => {
         //eslint-disable-next-line no-console
         console.error(e.message);
         //eslint-disable-next-line no-console

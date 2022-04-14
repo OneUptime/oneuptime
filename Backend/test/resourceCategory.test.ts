@@ -28,7 +28,7 @@ const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 describe('Resource Category API', function (): void {
     this.timeout(20000);
 
-    before(function (done): void {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
@@ -85,7 +85,7 @@ describe('Resource Category API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should reject the request of an unauthenticated user', (done): void => {
+    it('should reject the request of an unauthenticated user', (done: $TSFixMe): void => {
         request
 
             .post(`/resourceCategory/${projectId}`)
@@ -99,7 +99,7 @@ describe('Resource Category API', function (): void {
             });
     });
 
-    it('should not create a resource category when the `resourceCategoryName` field is null', (done): void => {
+    it('should not create a resource category when the `resourceCategoryName` field is null', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -115,7 +115,7 @@ describe('Resource Category API', function (): void {
             });
     });
 
-    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', (done): void => {
+    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -133,7 +133,7 @@ describe('Resource Category API', function (): void {
             });
     });
 
-    it('should get all monitor Categories for an authenticated user by ProjectId', (done): void => {
+    it('should get all monitor Categories for an authenticated user by ProjectId', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -152,7 +152,7 @@ describe('Resource Category API', function (): void {
             });
     });
 
-    it('should delete a resource category when resourceCategoryId is valid', (done): void => {
+    it('should delete a resource category when resourceCategoryId is valid', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -169,7 +169,7 @@ describe('Resource Category API', function (): void {
 describe('User from other project have access to read / write and delete API.', function (): void {
     this.timeout(20000);
 
-    before(function (done): void {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
@@ -228,7 +228,7 @@ describe('User from other project have access to read / write and delete API.', 
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    it('should not be able to create new resource category', (done): void => {
+    it('should not be able to create new resource category', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -242,7 +242,7 @@ describe('User from other project have access to read / write and delete API.', 
             });
     });
 
-    it('should not be able to delete a resource category', (done): void => {
+    it('should not be able to delete a resource category', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -255,7 +255,7 @@ describe('User from other project have access to read / write and delete API.', 
             });
     });
 
-    it('should not be able to get all resource categories', (done): void => {
+    it('should not be able to get all resource categories', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -275,7 +275,7 @@ describe('Non-admin user access to create, delete and access resource category.'
     let projectIdSecondUser: $TSFixMe = '';
     let emailToBeInvited: $TSFixMe = '';
 
-    before(function (done): void {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
@@ -424,7 +424,7 @@ describe('Non-admin user access to create, delete and access resource category.'
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    it('should not be able to create new resource category', (done): void => {
+    it('should not be able to create new resource category', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -438,7 +438,7 @@ describe('Non-admin user access to create, delete and access resource category.'
             });
     });
 
-    it('should not be able to delete a resource category', (done): void => {
+    it('should not be able to delete a resource category', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -451,7 +451,7 @@ describe('Non-admin user access to create, delete and access resource category.'
             });
     });
 
-    it('should be able to get all resource categories', (done): void => {
+    it('should be able to get all resource categories', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
 
@@ -474,7 +474,7 @@ describe('Non-admin user access to create, delete and access resource category.'
 describe('Resource Category APIs accesible through API key', function (): void {
     this.timeout(20000);
 
-    before(function (done): void {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
             createUser(request, userData.user, (err, res): void => {
@@ -503,7 +503,7 @@ describe('Resource Category APIs accesible through API key', function (): void {
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', (done): void => {
+    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', (done: $TSFixMe): void => {
         request
 
             .post(`/resourceCategory/${projectId}`)
@@ -521,7 +521,7 @@ describe('Resource Category APIs accesible through API key', function (): void {
             });
     });
 
-    it('should get all monitor Categories for an authenticated user by ProjectId', (done): void => {
+    it('should get all monitor Categories for an authenticated user by ProjectId', (done: $TSFixMe): void => {
         request
 
             .get(`/resourceCategory/${projectId}`)
@@ -540,7 +540,7 @@ describe('Resource Category APIs accesible through API key', function (): void {
             });
     });
 
-    it('should delete a resource category when resourceCategoryId is valid', (done): void => {
+    it('should delete a resource category when resourceCategoryId is valid', (done: $TSFixMe): void => {
         request
 
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)

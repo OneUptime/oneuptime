@@ -18,14 +18,14 @@ import {
 import flattenArray from './flattenArray';
 
 export default {
-    scan: async function (security): void {
+    scan: async function (security: $TSFixMe): void {
         const decryptedSecurity: $TSFixMe = await this.decryptPassword(
             security
         );
         await this.scanContainerSecurity(decryptedSecurity);
     },
 
-    decryptPassword: async function (security): void {
+    decryptPassword: async function (security: $TSFixMe): void {
         const values: $TSFixMe = [];
         for (let i: $TSFixMe = 0; i <= 15; i++) {
             values.push(security.dockerCredential.iv[i]);
@@ -290,7 +290,7 @@ export default {
     },
 };
 
-function createDir(dirPath): void {
+function createDir(dirPath: $TSFixMe): void {
     return new Promise((resolve: Function, reject: Function) => {
         const workPath: $TSFixMe = Path.resolve(process.cwd(), dirPath);
         if (fs.existsSync(workPath)) {
@@ -306,7 +306,7 @@ function createDir(dirPath): void {
     });
 }
 
-function readFileContent(filePath): void {
+function readFileContent(filePath: $TSFixMe): void {
     return new Promise((resolve: Function, reject: Function) => {
         if (fs.existsSync(filePath)) {
             fs.readFile(filePath, { encoding: 'utf8' }, (error, data): void => {
@@ -319,7 +319,7 @@ function readFileContent(filePath): void {
     });
 }
 
-async function deleteFile(file): void {
+async function deleteFile(file: $TSFixMe): void {
     if (fs.existsSync(file)) {
         await unlink(file);
     }

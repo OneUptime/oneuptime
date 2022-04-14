@@ -83,7 +83,7 @@ const questions: $TSFixMe = [
  * @return {Promise} The cli params promise.
  */
 
-const checkParams: Function = (params): void => {
+const checkParams: Function = (params: $TSFixMe): void => {
     const values: $TSFixMe = [];
 
     return new Promise(resolve => {

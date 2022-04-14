@@ -52,7 +52,7 @@ export function createSubscriber(
         dispatch(createSubscriberRequest(promise));
 
         promise.then(
-            (createSubscriber): void => {
+            (createSubscriber: $TSFixMe): void => {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             (error: $TSFixMe): void => {
@@ -109,7 +109,7 @@ export function exportCSV(
         dispatch(exportCsvRequest(promise));
 
         promise.then(
-            (csvData): void => {
+            (csvData: $TSFixMe): void => {
                 saveFile(csvData.data.data, 'subscriber.csv');
 
                 dispatch(exportCsvSuccess(csvData.data.data));
@@ -166,7 +166,7 @@ export const deleteSubscriber: Function = (
         dispatch(deleteSubscriberRequest(promise));
 
         promise.then(
-            (subscriber): void => {
+            (subscriber: $TSFixMe): void => {
                 dispatch(deleteSubscriberSuccess(subscriber.data));
                 dispatch({
                     type: 'REMOVE_MONITORS_SUBSCRIBERS',
@@ -242,7 +242,7 @@ export function importSubscribersFromCsvFile(
         dispatch(createSubscriberRequest(promise));
 
         promise.then(
-            (createSubscriber): void => {
+            (createSubscriber: $TSFixMe): void => {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             (error: $TSFixMe): void => {

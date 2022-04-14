@@ -44,7 +44,7 @@ export const getSubProjects: Function = (
         dispatch(subProjectsRequest(promise));
 
         promise.then(
-            (subProjects): void => {
+            (subProjects: $TSFixMe): void => {
                 const subData: $TSFixMe = {
                     subProjects: subProjects.data.data,
 
@@ -118,7 +118,7 @@ export function createSubProject(
         dispatch(createSubProjectRequest());
 
         return promise.then(
-            (subProject): void => {
+            (subProject: $TSFixMe): void => {
                 dispatch(createSubProjectSuccess(subProject.data));
 
                 return subProject.data;
@@ -178,7 +178,7 @@ export const resetSubProjectToken: Function = (
         dispatch(resetSubProjectTokenRequest());
 
         promise.then(
-            (subProject): void => {
+            (subProject: $TSFixMe): void => {
                 dispatch(resetSubProjectTokenSuccess(subProject));
             },
             (error: $TSFixMe): void => {
@@ -238,7 +238,7 @@ export function renameSubProject(
         dispatch(renameSubProjectRequest());
 
         promise.then(
-            (project): void => {
+            (project: $TSFixMe): void => {
                 dispatch(renameSubProjectSuccess(project));
                 return project;
             },

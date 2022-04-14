@@ -20,7 +20,7 @@ import { realtimeUrl } from '../Config';
 const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function (data): void {
+    create: async function (data: $TSFixMe): void {
         let probeKey: $TSFixMe;
         if (data.probeKey) {
             probeKey = data.probeKey;
@@ -61,7 +61,7 @@ export default {
         }
     },
 
-    findOneBy: async function (query): void {
+    findOneBy: async function (query: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -88,12 +88,12 @@ export default {
         return probe;
     },
 
-    saveLighthouseLog: async function (data): void {
+    saveLighthouseLog: async function (data: $TSFixMe): void {
         const log: $TSFixMe = await LighthouseLogService.create(data);
         return log;
     },
 
-    createMonitorDisabledStatus: async function (data): void {
+    createMonitorDisabledStatus: async function (data: $TSFixMe): void {
         let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
             query: {
                 monitorId: data.monitorId,
@@ -115,7 +115,7 @@ export default {
         return monitorStatus;
     },
 
-    saveMonitorLog: async function (data): void {
+    saveMonitorLog: async function (data: $TSFixMe): void {
         let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
             query: {
                 monitorId: data.monitorId,
@@ -217,7 +217,7 @@ export default {
         return log;
     },
 
-    getMonitorLog: async function (data): void {
+    getMonitorLog: async function (data: $TSFixMe): void {
         const date: $TSFixMe = new Date(moment().format());
         const log: $TSFixMe = await MonitorLogService.findOneBy({
             monitorId: data.monitorId,
@@ -227,7 +227,7 @@ export default {
         return log;
     },
 
-    incidentCreateOrUpdate: async function (data): void {
+    incidentCreateOrUpdate: async function (data: $TSFixMe): void {
         const [monitor, incidents]: $TSFixMe = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: ObjectId(data.monitorId) },
@@ -663,7 +663,7 @@ export default {
         return {};
     },
 
-    updateProbeStatus: async function (probeId): void {
+    updateProbeStatus: async function (probeId: $TSFixMe): void {
         const now: $TSFixMe = new Date(moment().format());
         await probeCollection.updateOne(
             {

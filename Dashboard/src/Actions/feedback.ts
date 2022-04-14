@@ -57,7 +57,7 @@ export function createFeedback(
         dispatch(createFeedbackRequest());
 
         return promise.then(
-            (feedback): void => {
+            (feedback: $TSFixMe): void => {
                 dispatch(createFeedbackSuccess(feedback));
                 return feedback;
             },

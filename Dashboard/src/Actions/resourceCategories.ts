@@ -25,7 +25,7 @@ export function fetchResourceCategories(
         dispatch(fetchResourceCategoriesRequest());
 
         promise.then(
-            (resourceCategories): void => {
+            (resourceCategories: $TSFixMe): void => {
                 dispatch(
                     fetchResourceCategoriesSuccess(resourceCategories.data)
                 );
@@ -74,7 +74,7 @@ export const createResourceCategory: Function = (
         dispatch(createResourceCategoryRequest());
 
         promise.then(
-            (resourceCategory): void => {
+            (resourceCategory: $TSFixMe): void => {
                 dispatch(createResourceCategorySuccess(resourceCategory.data));
             },
             (error: $TSFixMe): void => {
@@ -109,7 +109,7 @@ export function updateResourceCategory(
         dispatch(updateResourceCategoryRequest());
 
         promise.then(
-            (updatedResourceCategory): void => {
+            (updatedResourceCategory: $TSFixMe): void => {
                 dispatch(
                     updateResourceCategorySuccess(updatedResourceCategory.data)
                 );
@@ -191,7 +191,7 @@ export function deleteResourceCategory(
         dispatch(deleteResourceCategoryRequest(resourceCategoryId));
 
         promise.then(
-            (resourceCategory): void => {
+            (resourceCategory: $TSFixMe): void => {
                 dispatch(
                     deleteResourceCategorySuccess(resourceCategory.data._id)
                 );
@@ -241,7 +241,7 @@ export const fetchResourceCategoriesForNewResource: Function = (
         dispatch(fetchResourceCategoriesForNewResourceRequest());
 
         promise.then(
-            (resourceCategories): void => {
+            (resourceCategories: $TSFixMe): void => {
                 dispatch(
                     fetchResourceCategoriesForNewResourceSuccess(
                         resourceCategories.data

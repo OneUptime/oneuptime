@@ -412,7 +412,7 @@ export const sendEmailVerificationLink: Function = (values: $TSFixMe): void => {
         dispatch(sendEmailVerificationRequest());
 
         promise.then(
-            (data): void => {
+            (data: $TSFixMe): void => {
                 dispatch(sendEmailVerificationSuccess(data));
                 return data;
             },

@@ -46,7 +46,7 @@ export const deleteSlackLink: Function = (
         dispatch(deleteSlackLinkRequest());
 
         return promise.then(
-            (teams): void => {
+            (teams: $TSFixMe): void => {
                 dispatch(deleteSlackLinkSuccess(teams.data));
 
                 return teams.data;
@@ -102,7 +102,7 @@ export function getSlackTeams(
         dispatch(getSlackTeamsRequest(promise));
 
         promise.then(
-            (teams): void => {
+            (teams: $TSFixMe): void => {
                 dispatch(getSlackTeamsSuccess(teams.data));
             },
             (error: $TSFixMe): void => {

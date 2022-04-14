@@ -56,7 +56,7 @@ export function getProjectIncidents(
         dispatch(projectIncidentsRequest(promise));
 
         promise.then(
-            (incidents): void => {
+            (incidents: $TSFixMe): void => {
                 const data: $TSFixMe = incidents.data;
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
@@ -92,7 +92,7 @@ export function getProjectComponentIncidents(
         dispatch(projectIncidentsRequest(promise));
 
         promise.then(
-            (incidents): void => {
+            (incidents: $TSFixMe): void => {
                 const data: $TSFixMe = incidents.data;
 
                 data.count = incidents.data.data.count;
@@ -144,7 +144,7 @@ export const getIncidents: Function = (projectId: ObjectID): void => {
         dispatch(incidentsRequest(promise));
 
         promise.then(
-            (incidents): void => {
+            (incidents: $TSFixMe): void => {
                 dispatch(incidentsSuccess(incidents.data));
             },
             (error: $TSFixMe): void => {
@@ -165,7 +165,7 @@ export function getComponentIncidents(
         dispatch(incidentsRequest(promise));
 
         promise.then(
-            (incidents): void => {
+            (incidents: $TSFixMe): void => {
                 dispatch(incidentsSuccess(incidents.data));
             },
             (error: $TSFixMe): void => {
@@ -237,7 +237,7 @@ export function createNewIncident(
         dispatch(createIncidentRequest(projectId));
 
         promise.then(
-            (createIncident): void => {
+            (createIncident: $TSFixMe): void => {
                 dispatch({
                     type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
 
@@ -335,7 +335,7 @@ export const getIncident: Function = (
         dispatch(incidentRequest(promise));
 
         promise.then(
-            (incident): void => {
+            (incident: $TSFixMe): void => {
                 dispatch(incidentSuccess(incident.data));
             },
             (error: $TSFixMe): void => {
@@ -367,7 +367,7 @@ export function getIncidentTimeline(
         dispatch(incidentTimelineRequest(promise));
 
         promise.then(
-            (timeline): void => {
+            (timeline: $TSFixMe): void => {
                 dispatch(incidentTimelineSuccess(timeline.data));
             },
             (error: $TSFixMe): void => {
@@ -444,7 +444,7 @@ export function acknowledgeIncident(
         }
 
         promise.then(
-            (result): void => {
+            (result: $TSFixMe): void => {
                 if (multiple) {
                     dispatch(
                         acknowledgeIncidentSuccess({
@@ -542,7 +542,7 @@ export function resolveIncident(
         }
 
         promise.then(
-            (result): void => {
+            (result: $TSFixMe): void => {
                 if (multiple) {
                     dispatch(
                         resolveIncidentSuccess({
@@ -635,7 +635,7 @@ export const closeIncident: Function = (
         dispatch(closeIncidentRequest(incidentId));
 
         promise.then(
-            (incident): void => {
+            (incident: $TSFixMe): void => {
                 dispatch(closeIncidentSuccess(incident.data));
             },
             (error: $TSFixMe): void => {
@@ -696,7 +696,7 @@ export const fetchUnresolvedIncidents: Function = (
         dispatch(UnresolvedIncidentsRequest(promise));
 
         promise.then(
-            (incidents): void => {
+            (incidents: $TSFixMe): void => {
                 dispatch(UnresolvedIncidentsSuccess(incidents.data));
             },
             (error: $TSFixMe): void => {
@@ -763,7 +763,7 @@ export function setInvestigationNote(
         dispatch(investigationNoteRequest(promise, isUpdate));
 
         promise.then(
-            (incidents): void => {
+            (incidents: $TSFixMe): void => {
                 dispatch(investigationNoteSuccess(incidents.data));
             },
             (error: $TSFixMe): void => {
@@ -818,7 +818,7 @@ export function setInternalNote(
         dispatch(internalNoteRequest(promise, isUpdate));
 
         promise.then(
-            (incidents): void => {
+            (incidents: $TSFixMe): void => {
                 if (incidents.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
@@ -883,7 +883,7 @@ export const deleteIncident: Function = (
         dispatch(deleteIncidentRequest(incidentId));
 
         promise.then(
-            (incident): void => {
+            (incident: $TSFixMe): void => {
                 dispatch(deleteIncidentSuccess(incident.data._id));
             },
             (error: $TSFixMe): void => {
@@ -920,7 +920,7 @@ export const hideIncident: Function = (data: $TSFixMe): void => {
             }
         );
         promise.then(
-            (incident): void => {
+            (incident: $TSFixMe): void => {
                 dispatch(hideIncidentSuccess(incident));
             },
             (error: $TSFixMe): void => {
@@ -1034,7 +1034,7 @@ export function deleteIncidentMessage(
         dispatch(deleteIncidentMessageRequest(incidentMessageId));
 
         promise.then(
-            (incidentMessage): void => {
+            (incidentMessage: $TSFixMe): void => {
                 if (incidentMessage.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
@@ -1117,7 +1117,7 @@ export function updateIncident(
         dispatch(updateIncidentRequest());
 
         promise.then(
-            (incident): void => {
+            (incident: $TSFixMe): void => {
                 dispatch(updateIncidentSuccess(incident.data));
             },
             (error: $TSFixMe): void => {

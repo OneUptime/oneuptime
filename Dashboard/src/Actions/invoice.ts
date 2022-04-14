@@ -73,7 +73,7 @@ export function getInvoice(
         dispatch(getInvoiceRequest(promise));
 
         promise.then(
-            (invoices): void => {
+            (invoices: $TSFixMe): void => {
                 dispatch(getInvoiceSuccess(invoices.data));
                 if (reqFornext) {
                     dispatch(incrementNextCount());

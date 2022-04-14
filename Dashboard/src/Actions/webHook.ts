@@ -44,7 +44,7 @@ export const deleteWebHook: Function = (
         dispatch(deleteWebHookRequest());
 
         return promise.then(
-            (webhook): void => {
+            (webhook: $TSFixMe): void => {
                 dispatch(deleteWebHookSuccess(webhook.data));
 
                 return webhook.data;
@@ -96,7 +96,7 @@ export function getWebHook(
         dispatch(getWebHookRequest(promise));
 
         promise.then(
-            (webhooks): void => {
+            (webhooks: $TSFixMe): void => {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             (error: $TSFixMe): void => {
@@ -124,7 +124,7 @@ export function getWebHookMonitor(
         dispatch(getWebHookRequest(promise));
 
         promise.then(
-            (webhooks): void => {
+            (webhooks: $TSFixMe): void => {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             (error: $TSFixMe): void => {
@@ -176,7 +176,7 @@ export const createWebHook: Function = (
         dispatch(createWebHookRequest());
 
         return promise.then(
-            (webhook): void => {
+            (webhook: $TSFixMe): void => {
                 dispatch(createWebHookSuccess(webhook.data));
 
                 return webhook.data;
@@ -229,7 +229,7 @@ export function updateWebHook(
         dispatch(updateWebHookRequest());
 
         return promise.then(
-            (webhook): void => {
+            (webhook: $TSFixMe): void => {
                 dispatch(updateWebHookSuccess(webhook.data));
 
                 return webhook.data;

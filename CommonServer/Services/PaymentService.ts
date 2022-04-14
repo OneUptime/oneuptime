@@ -213,7 +213,7 @@ export default class Service {
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
 
-    async checkPaymentIntent(paymentIntent): void {
+    async checkPaymentIntent(paymentIntent: $TSFixMe): void {
         const processedPaymentIntent: $TSFixMe =
             await stripe.paymentIntents.retrieve(paymentIntent.id);
         return processedPaymentIntent;
@@ -368,7 +368,7 @@ export default class Service {
         return subscriptions;
     }
 
-    async removeSubscription(stripeSubscriptionId): void {
+    async removeSubscription(stripeSubscriptionId: $TSFixMe): void {
         const confirmations: $TSFixMe = [];
 
         confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);

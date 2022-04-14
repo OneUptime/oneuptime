@@ -96,7 +96,7 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    async createMonitorDisabledStatus(data): void {
+    async createMonitorDisabledStatus(data: $TSFixMe): void {
         const select: $TSFixMe =
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
         let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
@@ -116,7 +116,7 @@ class Service extends DatabaseService<typeof Model> {
         return monitorStatus;
     }
 
-    async saveMonitorLog(data): void {
+    async saveMonitorLog(data: $TSFixMe): void {
         let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
             query: { monitorId: data.monitorId, probeId: data.probeId },
             select: 'status',
@@ -217,7 +217,7 @@ class Service extends DatabaseService<typeof Model> {
         return log;
     }
 
-    async getMonitorLog(data): void {
+    async getMonitorLog(data: $TSFixMe): void {
         const date: $TSFixMe = new Date();
 
         const selectMonitorLog: $TSFixMe =
@@ -241,7 +241,7 @@ class Service extends DatabaseService<typeof Model> {
         return log;
     }
 
-    async incidentCreateOrUpdate(data): void {
+    async incidentCreateOrUpdate(data: $TSFixMe): void {
         const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
@@ -702,7 +702,7 @@ class Service extends DatabaseService<typeof Model> {
         return {};
     }
 
-    async updateProbeStatus(probeId): void {
+    async updateProbeStatus(probeId: $TSFixMe): void {
         const probe: $TSFixMe = await ProbeModel.findOneAndUpdate(
             { _id: probeId },
             { $set: { lastAlive: Date.now() } },
@@ -912,7 +912,7 @@ class Service extends DatabaseService<typeof Model> {
         return { eventOccurred, matchedCriterion };
     }
 
-    toArray(params): void {
+    toArray(params: $TSFixMe): void {
         const array: $TSFixMe = [];
         if (Object.keys(params).length > 0) {
             for (const [key, value] of Object.entries(params)) {
@@ -923,7 +923,7 @@ class Service extends DatabaseService<typeof Model> {
         return null;
     }
 
-    async processHttpRequest(data): void {
+    async processHttpRequest(data: $TSFixMe): void {
         const { monitor, body }: $TSFixMe = data;
         let {queryParams, headers}: $TSFixMe = data;
         queryParams = this.toArray(queryParams);

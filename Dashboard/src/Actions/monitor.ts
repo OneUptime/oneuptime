@@ -25,7 +25,7 @@ export const fetchMonitors: Function = (
         dispatch(fetchMonitorsRequest());
 
         promise.then(
-            (monitors): void => {
+            (monitors: $TSFixMe): void => {
                 dispatch(fetchMonitorsSuccess(monitors.data));
             },
             (error: $TSFixMe): void => {
@@ -82,7 +82,7 @@ export function fetchPaginatedMonitors({
         dispatch(fetchPaginatedMonitorsRequest(paginate));
 
         promise.then(
-            (monitors): void => {
+            (monitors: $TSFixMe): void => {
                 dispatch(fetchPaginatedMonitorsSuccess(monitors.data));
             },
             (error: $TSFixMe): void => {
@@ -135,7 +135,7 @@ export const createMonitor: Function = (
             values
         );
         promise.then(
-            (monitor): void => {
+            (monitor: $TSFixMe): void => {
                 dispatch(createMonitorSuccess(monitor.data));
                 dispatch(resetFile());
 
@@ -349,7 +349,7 @@ export const editMonitor: Function = (
             dispatch(editMonitorRequest());
         }
         promise.then(
-            (monitor): void => {
+            (monitor: $TSFixMe): void => {
                 dispatch(editMonitorSuccess(monitor.data));
             },
             (error: $TSFixMe): void => {
@@ -425,7 +425,7 @@ export function addSiteUrl(
         dispatch(editMonitorRequest());
 
         promise.then(
-            (monitor): void => {
+            (monitor: $TSFixMe): void => {
                 dispatch(editMonitorSuccess(monitor.data));
             },
             (error: $TSFixMe): void => {
@@ -462,7 +462,7 @@ export function deleteSiteUrl(
         dispatch(editMonitorRequest());
 
         promise.then(
-            (monitor): void => {
+            (monitor: $TSFixMe): void => {
                 dispatch(editMonitorSuccess(monitor.data));
             },
             (error: $TSFixMe): void => {
@@ -496,7 +496,7 @@ export const deleteMonitor: Function = (
         dispatch(deleteMonitorRequest(monitorId));
 
         promise.then(
-            (monitor): void => {
+            (monitor: $TSFixMe): void => {
                 dispatch(deleteMonitorSuccess(monitor.data._id));
             },
             (error: $TSFixMe): void => {
@@ -553,7 +553,7 @@ export const disableMonitor: Function = (
         dispatch(disableMonitorRequest(monitorId));
 
         promise.then(
-            (monitor): void => {
+            (monitor: $TSFixMe): void => {
                 dispatch(
                     disableMonitorSuccess({
                         monitorId: monitor.data._id,
@@ -689,7 +689,7 @@ export function fetchMonitorsIncidents(
         dispatch(fetchMonitorsIncidentsRequest(monitorId));
 
         promise.then(
-            (monitors): void => {
+            (monitors: $TSFixMe): void => {
                 dispatch(
                     fetchMonitorsIncidentsSuccess({
                         projectId,
@@ -753,7 +753,7 @@ export function fetchMonitorsSubscribers(
         dispatch(fetchMonitorsSubscribersRequest(monitorId));
 
         promise.then(
-            (subscribers): void => {
+            (subscribers: $TSFixMe): void => {
                 dispatch(
                     fetchMonitorsSubscribersSuccess({
                         projectId,
@@ -819,7 +819,7 @@ export function fetchMonitorLogs(
         dispatch(updateDateRange(startDate, endDate));
 
         promise.then(
-            (monitorLogs): void => {
+            (monitorLogs: $TSFixMe): void => {
                 dispatch(
                     fetchMonitorLogsSuccess({
                         projectId,
@@ -899,7 +899,7 @@ export function fetchMonitorStatuses(
         dispatch(fetchMonitorStatusesRequest());
 
         promise.then(
-            (monitorStatuses): void => {
+            (monitorStatuses: $TSFixMe): void => {
                 dispatch(
                     fetchMonitorStatusesSuccess({
                         projectId,
@@ -960,7 +960,7 @@ export const fetchMonitorCriteria: Function = (): void => {
         dispatch(fetchMonitorCriteriaRequest());
 
         promise.then(
-            (monitorCriteria): void => {
+            (monitorCriteria: $TSFixMe): void => {
                 dispatch(fetchMonitorCriteriaSuccess(monitorCriteria));
             },
             (error: $TSFixMe): void => {
@@ -1060,7 +1060,7 @@ export function getMonitorLogs(
         dispatch(getMonitorLogsRequest({ monitorId }));
 
         promise.then(
-            (monitors): void => {
+            (monitors: $TSFixMe): void => {
                 dispatch(
                     getMonitorLogsSuccess({
                         monitorId,
@@ -1119,7 +1119,7 @@ export function fetchLighthouseLogs(
         dispatch(fetchLighthouseLogsRequest());
 
         promise.then(
-            (lighthouseLogs): void => {
+            (lighthouseLogs: $TSFixMe): void => {
                 dispatch(
                     fetchLighthouseLogsSuccess({
                         projectId,
@@ -1178,7 +1178,7 @@ export const fetchMonitorIssue: Function = (
         dispatch(fetchMonitorIssueRequest());
 
         promise.then(
-            (monitorIssue): void => {
+            (monitorIssue: $TSFixMe): void => {
                 dispatch(fetchMonitorIssueSuccess(monitorIssue.data));
             },
             (error: $TSFixMe): void => {
@@ -1223,7 +1223,7 @@ export const addSeat: Function = (projectId: ObjectID): void => {
         dispatch(addSeatRequest());
 
         promise.then(
-            (monitor): void => {
+            (monitor: $TSFixMe): void => {
                 dispatch(createMonitorFailure(monitor.data));
 
                 dispatch(addSeatSuccess(monitor.data));

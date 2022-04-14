@@ -38,7 +38,7 @@ export const getVersion: Function = (): void => {
         dispatch(getVersionRequest(promise));
 
         promise.then(
-            (versions): void => {
+            (versions: $TSFixMe): void => {
                 dispatch(getVersionSuccess(versions.data));
             },
             (error: $TSFixMe): void => {

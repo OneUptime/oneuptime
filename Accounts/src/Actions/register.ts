@@ -87,7 +87,7 @@ export const signupUser: Function = (values: $TSFixMe): void => {
         );
         dispatch(signUpRequest(promise));
         promise.then(
-            (user): void => {
+            (user: $TSFixMe): void => {
                 dispatch(signupSuccess(user.data));
 
                 if (user.data.role === 'master-admin' && !IS_SAAS_SERVICE) {
@@ -218,7 +218,7 @@ export const addCard: Function = (data: $TSFixMe): void => {
         dispatch(addCardRequest(promise));
 
         promise.then(
-            (card): void => {
+            (card: $TSFixMe): void => {
                 dispatch(addCardSuccess(card.data));
             },
             (error: $TSFixMe): void => {

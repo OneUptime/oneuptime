@@ -19,7 +19,7 @@ export function createApplicationLog(
         dispatch(createApplicationLogRequest());
 
         promise.then(
-            (applicationLog): void => {
+            (applicationLog: $TSFixMe): void => {
                 dispatch(createApplicationLogSuccess(applicationLog.data));
             },
             (error: $TSFixMe): void => {
@@ -86,7 +86,7 @@ export function fetchApplicationLogs(
         dispatch(fetchApplicationLogsRequest(paginated));
 
         promise.then(
-            (applicationLogs): void => {
+            (applicationLogs: $TSFixMe): void => {
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
             (error: $TSFixMe): void => {
@@ -147,7 +147,7 @@ export function deleteApplicationLog(
         dispatch(deleteApplicationLogRequest(applicationLogId));
 
         promise.then(
-            (applicationLog): void => {
+            (applicationLog: $TSFixMe): void => {
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
             (error: $TSFixMe): void => {
@@ -290,7 +290,7 @@ export function resetApplicationLogKey(
         dispatch(resetApplicationLogKeyRequest());
 
         promise.then(
-            (applicationLog): void => {
+            (applicationLog: $TSFixMe): void => {
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
             (error: $TSFixMe): void => {
@@ -352,7 +352,7 @@ export function editApplicationLog(
         dispatch(editApplicationLogRequest());
 
         promise.then(
-            (applicationLog): void => {
+            (applicationLog: $TSFixMe): void => {
                 dispatch(editApplicationLogSuccess(applicationLog.data));
             },
             (error: $TSFixMe): void => {
@@ -412,7 +412,7 @@ export function fetchStats(
         dispatch(fetchStatsRequest({ applicationLogId }));
 
         promise.then(
-            (logs): void => {
+            (logs: $TSFixMe): void => {
                 dispatch(
                     fetchStatsSuccess({
                         applicationLogId,

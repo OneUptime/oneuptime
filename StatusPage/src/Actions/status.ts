@@ -881,7 +881,7 @@ export function fetchMonitorStatuses(
         dispatch(fetchMonitorStatusesRequest(monitorId));
 
         promise.then(
-            (monitorStatuses): void => {
+            (monitorStatuses: $TSFixMe): void => {
                 dispatch(
                     fetchMonitorStatusesSuccess({
                         projectId,
@@ -949,7 +949,7 @@ export function fetchMonitorLogs(
         dispatch(fetchMonitorLogsRequest(monitorId));
 
         promise.then(
-            (monitorLogs): void => {
+            (monitorLogs: $TSFixMe): void => {
                 dispatch(
                     fetchMonitorLogsSuccess({
                         monitorId,

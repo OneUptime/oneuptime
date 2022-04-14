@@ -262,7 +262,7 @@ const joinFn: Function = (acc = [], curr: $TSFixMe): void => {
 };
 
 export const allRoutes: $TSFixMe = groups
-    .map((group): void => {
+    .map((group: $TSFixMe): void => {
         const { routes }: $TSFixMe = group;
         const newRoutes: $TSFixMe = [];
         for (const route of routes) {

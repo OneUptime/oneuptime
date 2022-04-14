@@ -137,7 +137,7 @@ export const getProjects: Function = (switchToProjectId: ObjectID): void => {
         dispatch(projectsRequest(promise));
 
         promise.then(
-            (projects): void => {
+            (projects: $TSFixMe): void => {
                 projects = projects.data && projects.data.data;
                 dispatch(projectsSuccess(projects));
 
@@ -215,7 +215,7 @@ export const getProjectBalance: Function = (projectId: ObjectID): void => {
         dispatch(getProjectBalanceRequest(promise));
 
         promise.then(
-            (balance): void => {
+            (balance: $TSFixMe): void => {
                 dispatch(getProjectBalanceSuccess(balance.data));
             },
             (error: $TSFixMe): void => {
@@ -260,7 +260,7 @@ export const createProject: Function = (values: $TSFixMe): void => {
         dispatch(createProjectRequest());
 
         return promise.then(
-            (project): void => {
+            (project: $TSFixMe): void => {
                 if (IS_SAAS_SERVICE) {
                     User.setCardRegistered(true);
                 }
@@ -466,7 +466,7 @@ export const resetProjectToken: Function = (projectId: ObjectID): void => {
 
         promise
             .then(
-                (project): void => {
+                (project: $TSFixMe): void => {
                     dispatch(resetProjectTokenSuccess(project));
                 },
                 (error: $TSFixMe): void => {
@@ -534,7 +534,7 @@ export const renameProject: Function = (
 
         promise
             .then(
-                (project): void => {
+                (project: $TSFixMe): void => {
                     dispatch(renameProjectSuccess(project));
                     return project;
                 },
@@ -659,7 +659,7 @@ export function changePlan(
 
         promise
             .then(
-                (project): void => {
+                (project: $TSFixMe): void => {
                     dispatch(changePlanSuccess(project));
                 },
                 (error: $TSFixMe): void => {
@@ -703,7 +703,7 @@ export function upgradeToEnterpriseMail(
 
         promise
             .then(
-                (project): void => {
+                (project: $TSFixMe): void => {
                     dispatch(changePlanSuccess(project));
                 },
                 (error: $TSFixMe): void => {
@@ -868,7 +868,7 @@ export const alertOptionsUpdate: Function = (
         dispatch(alertOptionsUpdateRequest());
 
         promise.then(
-            (project): void => {
+            (project: $TSFixMe): void => {
                 dispatch(alertOptionsUpdateSuccess(project));
             },
             (error: $TSFixMe): void => {
@@ -912,7 +912,7 @@ export const addBalance: Function = (
         dispatch(addBalanceRequest());
 
         promise.then(
-            (pi): void => {
+            (pi: $TSFixMe): void => {
                 dispatch(addBalanceSuccess(pi));
             },
             (error: $TSFixMe): void => {
@@ -1002,7 +1002,7 @@ export const checkCard: Function = (data: $TSFixMe): void => {
         dispatch(checkCardRequest(promise));
 
         promise.then(
-            (card): void => {
+            (card: $TSFixMe): void => {
                 dispatch(checkCardSuccess(card.data));
             },
             (error: $TSFixMe): void => {

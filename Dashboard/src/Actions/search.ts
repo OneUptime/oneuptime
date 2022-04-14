@@ -54,7 +54,7 @@ export const search: Function = (
             values
         );
         promise.then(
-            (result): void => {
+            (result: $TSFixMe): void => {
                 const search: $TSFixMe = result.data;
                 dispatch(searchSuccess(search.data));
             },

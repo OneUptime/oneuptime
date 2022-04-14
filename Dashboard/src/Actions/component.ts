@@ -30,7 +30,7 @@ export const fetchComponents: Function = ({
         dispatch(fetchComponentsRequest());
 
         promise.then(
-            (components): void => {
+            (components: $TSFixMe): void => {
                 dispatch(fetchComponentsSuccess(components.data));
             },
             (error: $TSFixMe): void => {
@@ -137,7 +137,7 @@ export const createComponent: Function = (
         dispatch(createComponentRequest());
 
         promise.then(
-            (component): void => {
+            (component: $TSFixMe): void => {
                 dispatch(createComponentSuccess(component.data));
             },
             (error: $TSFixMe): void => {
@@ -202,7 +202,7 @@ export const editComponent: Function = (
         dispatch(editComponentRequest());
 
         promise.then(
-            (component): void => {
+            (component: $TSFixMe): void => {
                 dispatch(editComponentSuccess(component.data));
             },
             (error: $TSFixMe): void => {
@@ -275,7 +275,7 @@ export const deleteComponent: Function = (
         dispatch(deleteComponentRequest(componentId));
 
         promise.then(
-            (component): void => {
+            (component: $TSFixMe): void => {
                 dispatch(deleteComponentSuccess(component.data._id));
             },
             (error: $TSFixMe): void => {
@@ -335,7 +335,7 @@ export const addSeat: Function = (projectId: ObjectID): void => {
         dispatch(addSeatRequest());
 
         promise.then(
-            (component): void => {
+            (component: $TSFixMe): void => {
                 dispatch(createComponentFailure(component.data));
 
                 dispatch(addSeatSuccess(component.data));
@@ -401,7 +401,7 @@ export function fetchComponentResources(
         dispatch(fetchComponentResourcesRequest(componentId));
 
         promise.then(
-            (components): void => {
+            (components: $TSFixMe): void => {
                 dispatch(fetchComponentResourcesSuccess(components.data));
             },
             (error: $TSFixMe): void => {
@@ -461,7 +461,7 @@ export function fetchComponentSummary(
         dispatch(fetchComponentSummaryRequest(componentId));
 
         promise.then(
-            (components): void => {
+            (components: $TSFixMe): void => {
                 dispatch(fetchComponentSummarySuccess(components.data));
             },
             (error: $TSFixMe): void => {
@@ -546,7 +546,7 @@ export const fetchComponent: Function = (
         dispatch(fetchComponentRequest());
 
         promise.then(
-            (component): void => {
+            (component: $TSFixMe): void => {
                 dispatch(fetchComponentSuccess(component.data));
             },
             (error: $TSFixMe): void => {
