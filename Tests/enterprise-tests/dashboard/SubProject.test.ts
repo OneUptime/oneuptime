@@ -1,13 +1,14 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let subProjectName = utils.generateRandomString();
-const newSubProjectName: $TSFixMe = utils.generateRandomString();
+const newSubProjectName: $TSFixMe: string = utils.generateRandomString();
 
 describe('Sub-Project API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -116,7 +117,7 @@ describe('Sub-Project API', () => {
             await init.pageWaitForSelector(page, '#projectSettings');
 
             await init.pageClick(page, '#projectSettings');
-            const editSubProjectName: $TSFixMe = utils.generateRandomString();
+            const editSubProjectName: $TSFixMe: string = utils.generateRandomString();
 
             await init.pageClick(page, `#sub_project_edit_${subProjectName}`);
 

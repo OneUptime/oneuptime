@@ -1,11 +1,12 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -35,8 +36,8 @@ describe('Enterprise Monitor API', () => {
     test(
         'Should create new monitor with correct details',
         async (done: $TSFixMe) => {
-            const componentName = utils.generateRandomString();
-            const monitorName = utils.generateRandomString();
+            const componentName: string = utils.generateRandomString();
+            const monitorName: string = utils.generateRandomString();
 
             await init.adminLogout(page);
             await init.loginUser(user, page);

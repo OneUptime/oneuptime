@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
@@ -6,10 +7,10 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const componentName = utils.generateRandomString();
-const testServerMonitorName = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const testServerMonitorName: string = utils.generateRandomString();
 
 describe('Monitor API', () => {
     const operationTimeOut = init.timeout;
@@ -39,7 +40,7 @@ describe('Monitor API', () => {
     });
 
     test('should degrade (not timeout and return status code 408) monitor with response time longer than init.timeoutms and status code 200', async (done: $TSFixMe) => {
-        const bodyText = utils.generateRandomString();
+        const bodyText: string = utils.generateRandomString();
         // This navigates to hhtp-test server and create the settings for the test suite
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
         await page.evaluate(

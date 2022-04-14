@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
@@ -8,8 +9,8 @@ const user: $TSFixMe = {
     password: '1234567890',
 };
 
-const projectName = utils.generateRandomString();
-const teamMember = utils.generateRandomBusinessEmail();
+const projectName: string = utils.generateRandomString();
+const teamMember: Email = utils.generateRandomBusinessEmail();
 
 /** This is a test to check:
  * No errors on page reload

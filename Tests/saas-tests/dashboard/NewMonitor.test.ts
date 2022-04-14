@@ -1,11 +1,12 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -34,12 +35,12 @@ describe('New Monitor API', () => {
     test(
         "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Startup plan => 5 Monitors/User)",
         async (done: $TSFixMe) => {
-            const componentName = utils.generateRandomString();
+            const componentName: string = utils.generateRandomString();
             // create a component
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
             // This the first monitor
-            const firstMonitorName = utils.generateRandomString();
+            const firstMonitorName: string = utils.generateRandomString();
             await init.addNewMonitorToComponent(
                 page,
                 componentName,
@@ -49,7 +50,7 @@ describe('New Monitor API', () => {
             for (let i = 0; i < 4; i++) {
                 // This adds 4 more monitors
                 // The Interface for adding additional monitor has been updated
-                const monitorName = utils.generateRandomString();
+                const monitorName: string = utils.generateRandomString();
 
                 await init.addAdditionalMonitorToComponent(
                     page,
@@ -61,7 +62,7 @@ describe('New Monitor API', () => {
                 });
             }
             // try to add more monitor
-            const monitorName = utils.generateRandomString();
+            const monitorName: string = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });

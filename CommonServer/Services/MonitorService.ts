@@ -1480,7 +1480,10 @@ export default class Service {
     }
 
     async addSiteUrl(query: Query, data: $TSFixMe): void {
-        let monitor: $TSFixMe = await this.findOneBy({ query, select: 'siteUrls' });
+        let monitor: $TSFixMe = await this.findOneBy({
+            query,
+            select: 'siteUrls',
+        });
 
         if (
             monitor.siteUrls &&
@@ -1498,7 +1501,10 @@ export default class Service {
     }
 
     async removeSiteUrl(query: Query, data: $TSFixMe): void {
-        let monitor: $TSFixMe = await this.findOneBy({ query, select: 'siteUrls' });
+        let monitor: $TSFixMe = await this.findOneBy({
+            query,
+            select: 'siteUrls',
+        });
         const siteUrlIndex: $TSFixMe =
             monitor.siteUrls && monitor.siteUrls.length > 0
                 ? monitor.siteUrls.indexOf(data.siteUrl)

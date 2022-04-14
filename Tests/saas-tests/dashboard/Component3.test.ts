@@ -9,10 +9,10 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
-const newComponentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
-const newMonitorName = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const newComponentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const newMonitorName: string = utils.generateRandomString();
 let browser: $TSFixMe,
     browser2: $TSFixMe,
     page: $TSFixMe,
@@ -351,10 +351,14 @@ describe('Components', () => {
                 e.click()
             );
 
-            let currentPage: $TSFixMe = await init.pageWaitForSelector(page, '#cbHome', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            let currentPage: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#cbHome',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             currentPage = await currentPage.getProperty('innerText');
             currentPage = await currentPage.jsonValue();
             currentPage.should.be.exactly('Home');

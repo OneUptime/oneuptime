@@ -1,11 +1,12 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -35,7 +36,7 @@ describe('Project API', () => {
     test(
         'Should create new project from dropdown after login',
         async (done: $TSFixMe) => {
-            const projectName: $TSFixMe = utils.generateRandomString();
+            const projectName: $TSFixMe: string = utils.generateRandomString();
             //Login is no longer required as Dashboard page is loaded automatically.
             await init.pageWaitForSelector(page, '#selector', {
                 visible: true,

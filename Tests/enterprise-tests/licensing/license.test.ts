@@ -6,7 +6,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-const request = chai.request.agent(app);
+const request: $TSFixMe = chai.request.agent(app);
 import AirtableService from '../../../../licensing/src/services/airtableService';
 
 const tableName: string = 'License';

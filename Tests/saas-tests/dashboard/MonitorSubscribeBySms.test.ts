@@ -1,14 +1,15 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;

@@ -921,10 +921,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             ];
 
-            let updatedProject: $TSFixMe = await TeamMembers.addTeamMembersToProject(
-                projectId,
-                members
-            );
+            let updatedProject: $TSFixMe =
+                await TeamMembers.addTeamMembersToProject(projectId, members);
 
             // a user was added when creating the project, so we expect a total of 2 members
             expect(updatedProject.users).to.have.lengthOf(2);
@@ -1072,10 +1070,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             ];
 
-            let updatedProject: $TSFixMe = await TeamMembers.addTeamMembersToProject(
-                projectId,
-                members
-            );
+            let updatedProject: $TSFixMe =
+                await TeamMembers.addTeamMembersToProject(projectId, members);
 
             // a user was added when creating the project, so we expect a total of 2 members
             expect(updatedProject.users).to.have.lengthOf(2);
@@ -1243,10 +1239,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             ];
 
-            let updatedProject: $TSFixMe = await TeamMembers.addTeamMembersToProject(
-                projectId,
-                members
-            );
+            let updatedProject: $TSFixMe =
+                await TeamMembers.addTeamMembersToProject(projectId, members);
 
             // a user was added when creating the project, so we expect a total of 2 members
             expect(updatedProject.users).to.have.lengthOf(2);

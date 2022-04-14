@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
@@ -6,12 +7,12 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const projectName: $TSFixMe = utils.generateRandomString();
-const callSchedule: $TSFixMe = utils.generateRandomString();
-const componentName: $TSFixMe = utils.generateRandomString();
-const monitorName: $TSFixMe = utils.generateRandomString();
+const projectName: $TSFixMe: string = utils.generateRandomString();
+const callSchedule: $TSFixMe: string = utils.generateRandomString();
+const componentName: $TSFixMe: string = utils.generateRandomString();
+const monitorName: $TSFixMe: string = utils.generateRandomString();
 
 describe('Monitor API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -44,7 +45,7 @@ describe('Monitor API', () => {
             // Create Component first
             // Redirects automatically component to details page
             await init.navigateToComponentDetails(componentName, page);
-            const monitorName: $TSFixMe = utils.generateRandomString();
+            const monitorName: $TSFixMe: string = utils.generateRandomString();
 
             await init.pageWaitForSelector(page, '#cbMonitors');
 

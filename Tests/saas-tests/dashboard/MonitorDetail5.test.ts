@@ -1,16 +1,17 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorName = utils.generateRandomString();
-const newMonitorName = utils.generateRandomString();
-const urlMonitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const newMonitorName: string = utils.generateRandomString();
+const urlMonitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
@@ -227,7 +228,10 @@ describe('Monitor Detail API', () => {
 
             const selector: string = `#monitor-title-${newMonitorName}`;
 
-            let spanElement: $TSFixMe = await init.pageWaitForSelector(page, selector);
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                selector
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
 

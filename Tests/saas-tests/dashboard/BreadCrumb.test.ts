@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
@@ -6,7 +7,7 @@ import 'should';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 const user: $TSFixMe = {
@@ -36,8 +37,8 @@ describe('BreadCrumb Component test', () => {
     test(
         'Should navigate between pages from the breadcrumbs',
         async (done: $TSFixMe) => {
-            const componentName: $TSFixMe = utils.generateRandomString();
-            const monitorName: $TSFixMe = utils.generateRandomString();
+            const componentName: $TSFixMe: string = utils.generateRandomString();
+            const monitorName: $TSFixMe: string = utils.generateRandomString();
 
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],

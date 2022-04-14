@@ -12,7 +12,7 @@ const email: string = 'masteradmin@hackerbay.io';
 const password: string = '1234567890';
 
 const smtpName: string = 'Hackerbay';
-const wrongPassword = utils.generateRandomString();
+const wrongPassword: string = utils.generateRandomString();
 
 describe('SMTP Settings API', () => {
     const operationTimeOut = init.timeout;

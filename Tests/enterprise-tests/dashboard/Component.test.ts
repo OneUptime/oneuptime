@@ -35,7 +35,7 @@ describe('Enterprise Component API', () => {
     test(
         'Should create new component',
         async (done: $TSFixMe) => {
-            const componentName: $TSFixMe = utils.generateRandomString();
+            const componentName: $TSFixMe: string = utils.generateRandomString();
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',

@@ -1,11 +1,12 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -35,9 +36,9 @@ describe('Enterprise Monitor SubProject API', () => {
     test(
         'Should create a monitor in sub-project for valid `admin`',
         async (done: $TSFixMe) => {
-            const subProjectName = utils.generateRandomString();
-            const componentName = utils.generateRandomString();
-            const subProjectMonitorName = utils.generateRandomString();
+            const subProjectName: string = utils.generateRandomString();
+            const componentName: string = utils.generateRandomString();
+            const subProjectMonitorName: string = utils.generateRandomString();
 
             await init.adminLogout(page);
             await init.loginUser(user, page);

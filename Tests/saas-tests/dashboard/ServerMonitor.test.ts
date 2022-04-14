@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
@@ -17,7 +18,7 @@ try {
 import 'should';
 
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('Server Monitor API', () => {
@@ -43,8 +44,8 @@ describe('Server Monitor API', () => {
         done();
     });
 
-    const componentName: $TSFixMe = utils.generateRandomString();
-    const monitorName: $TSFixMe = utils.generateRandomString();
+    const componentName: $TSFixMe: string = utils.generateRandomString();
+    const monitorName: $TSFixMe: string = utils.generateRandomString();
 
     test(
         'should create offline incident if no data is uploaded in 3 minutes after creating server monitor',

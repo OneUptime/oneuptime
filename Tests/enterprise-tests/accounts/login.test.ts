@@ -1,11 +1,12 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 
 import utils from '../../test-utils';
 import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 const operationTimeOut = init.timeout;
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 const moveToSsoPage: Function = async (page: $TSFixMe): void => {

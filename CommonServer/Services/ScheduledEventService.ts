@@ -203,13 +203,14 @@ export default class Service {
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
-        let updatedScheduledEvent: $TSFixMe = await ScheduledEventModel.findOneAndUpdate(
-            { _id: query._id },
-            {
-                $set: data,
-            },
-            { new: true }
-        );
+        let updatedScheduledEvent: $TSFixMe =
+            await ScheduledEventModel.findOneAndUpdate(
+                { _id: query._id },
+                {
+                    $set: data,
+                },
+                { new: true }
+            );
 
         const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
@@ -256,9 +257,12 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData: $TSFixMe = await ScheduledEventModel.updateMany(query, {
-            $set: data,
-        });
+        let updatedData: $TSFixMe = await ScheduledEventModel.updateMany(
+            query,
+            {
+                $set: data,
+            }
+        );
 
         const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
@@ -552,11 +556,12 @@ export default class Service {
     async resolveScheduledEvent(query: Query, data: $TSFixMe): void {
         data.resolved = true;
         data.resolvedAt = Date.now();
-        let resolvedScheduledEvent: $TSFixMe = await ScheduledEventModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            { new: true }
-        );
+        let resolvedScheduledEvent: $TSFixMe =
+            await ScheduledEventModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                { new: true }
+            );
         if (
             resolvedScheduledEvent &&
             !resolvedScheduledEvent.monitorDuringEvent

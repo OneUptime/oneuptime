@@ -1,18 +1,19 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const slaName: string = 'fxPro';
 const newSlaName: string = 'newFxPro';
 const duration: string = '15';
 const alertTime: string = '10';
-const component: $TSFixMe = utils.generateRandomString();
-const monitor: $TSFixMe = utils.generateRandomString();
+const component: $TSFixMe: string = utils.generateRandomString();
+const monitor: $TSFixMe: string = utils.generateRandomString();
 
 const user: $TSFixMe = {
     email,

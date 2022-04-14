@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
@@ -6,7 +7,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('Project', () => {
@@ -34,7 +35,7 @@ describe('Project', () => {
     test(
         'should not show upgrade/downgrade box if IS_SAAS_SERVICE is false',
         async () => {
-            const email = utils.generateRandomBusinessEmail();
+            const email: Email = utils.generateRandomBusinessEmail();
             const password: string = '1234567890';
 
             await page.goto(utils.ADMIN_DASHBOARD_URL, {

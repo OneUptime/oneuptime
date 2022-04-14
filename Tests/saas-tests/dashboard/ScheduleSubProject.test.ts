@@ -1,18 +1,19 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // parent user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const projectName = utils.generateRandomString();
-const subProjectMonitorName = utils.generateRandomString();
+const projectName: string = utils.generateRandomString();
+const subProjectMonitorName: string = utils.generateRandomString();
 // sub-project user credentials
-const newEmail = utils.generateRandomBusinessEmail();
+const newEmail: Email = utils.generateRandomBusinessEmail();
 const newPassword: string = '1234567890';
-const subProjectName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
+const subProjectName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 
 const user: $TSFixMe = {
     email,
@@ -102,7 +103,7 @@ describe('Schedule API With SubProjects', () => {
     test(
         'should create a schedule in sub-project for sub-project `admin`',
         async (done: $TSFixMe) => {
-            const scheduleName = utils.generateRandomString();
+            const scheduleName: string = utils.generateRandomString();
 
             await init.loginUser(user, page);
 
@@ -148,7 +149,7 @@ describe('Schedule API With SubProjects', () => {
             await init.pageClick(page, `#project-${subProjectName}`);
             // add 10 more schedules to sub-project to test for pagination
             for (let i = 0; i < 10; i++) {
-                const scheduleName = utils.generateRandomString();
+                const scheduleName: string = utils.generateRandomString();
                 await init.addScheduleToProject(
                     scheduleName,
                     subProjectName,
@@ -162,7 +163,10 @@ describe('Schedule API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
 
-            let scheduleRows: $TSFixMe = await init.page$$(page, 'tr.scheduleListItem');
+            let scheduleRows: $TSFixMe = await init.page$$(
+                page,
+                'tr.scheduleListItem'
+            );
             let countSchedules = scheduleRows.length;
 
             expect(countSchedules).toEqual(10);

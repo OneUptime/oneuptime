@@ -53,13 +53,14 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        let customField: $TSFixMe = await MonitorCustomFieldModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            { new: true }
-        );
+        let customField: $TSFixMe =
+            await MonitorCustomFieldModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            );
 
         const selectMonCustomField: $TSFixMe =
             'fieldName fieldType projectId uniqueField deleted';
@@ -159,12 +160,10 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedCustomField: $TSFixMe = await MonitorCustomFieldModel.updateMany(
-            query,
-            {
+        let updatedCustomField: $TSFixMe =
+            await MonitorCustomFieldModel.updateMany(query, {
                 $set: data,
-            }
-        );
+            });
 
         const selectMonCustomField: $TSFixMe =
             'fieldName fieldType projectId uniqueField deleted';

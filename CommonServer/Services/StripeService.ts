@@ -351,11 +351,12 @@ export default class StripeService {
                         alertOptions,
                     };
                 }
-                let updatedProject: $TSFixMe = await ProjectModel.findByIdAndUpdate(
-                    projectId,
-                    updateObject,
-                    { new: true }
-                );
+                let updatedProject: $TSFixMe =
+                    await ProjectModel.findByIdAndUpdate(
+                        projectId,
+                        updateObject,
+                        { new: true }
+                    );
                 updatedProject = await updatedProject
                     .populate('userId', 'name')
                     .populate('parentProjectId', 'name')

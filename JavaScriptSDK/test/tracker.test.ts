@@ -8,7 +8,7 @@ chai.use(chaihttp);
 import { user, generateSecondRandomBusinessEmail } from './util';
 const API_URL: string = 'http://localhost:3002/api';
 
-const request = chai.request.agent(API_URL);
+const request: $TSFixMe = chai.request.agent(API_URL);
 const timeout = 5000;
 
 import OneUptimeTracker from '../src/tracker';

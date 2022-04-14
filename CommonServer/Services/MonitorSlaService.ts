@@ -188,13 +188,14 @@ export default class Service {
             );
         }
 
-        let updatedMonitorSla: $TSFixMe = await MonitorSlaModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            { new: true }
-        );
+        let updatedMonitorSla: $TSFixMe =
+            await MonitorSlaModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            );
 
         if (!updatedMonitorSla) {
             throw new BadDataException(

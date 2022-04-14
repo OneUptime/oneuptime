@@ -1,11 +1,12 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -34,14 +35,14 @@ describe('New Monitor API', () => {
     test(
         'should not show any upgrade modal if the project plan is on Scale plan and above',
         async (done: $TSFixMe) => {
-            const projectName: $TSFixMe = utils.generateRandomString();
-            const componentName = utils.generateRandomString();
+            const projectName: $TSFixMe: string = utils.generateRandomString();
+            const componentName: string = utils.generateRandomString();
             await init.addScaleProject(projectName, page);
             // create a component
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
             // This the first monitor
-            const firstMonitorName = utils.generateRandomString();
+            const firstMonitorName: string = utils.generateRandomString();
             await init.addNewMonitorToComponent(
                 page,
                 componentName,
@@ -51,7 +52,7 @@ describe('New Monitor API', () => {
             for (let i = 0; i < 14; i++) {
                 // This adds 14 more monitors
                 // The Interface for adding additional monitor has been updated
-                const monitorName = utils.generateRandomString();
+                const monitorName: string = utils.generateRandomString();
 
                 await init.addAdditionalMonitorToComponent(
                     page,
@@ -64,7 +65,7 @@ describe('New Monitor API', () => {
             }
 
             // try to add more monitor
-            const monitorName = utils.generateRandomString();
+            const monitorName: string = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });

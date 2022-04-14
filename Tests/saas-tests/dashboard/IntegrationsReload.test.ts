@@ -8,8 +8,8 @@ const user: $TSFixMe = {
     password: '1234567890',
 };
 
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
 const webHookEndpoint = utils.generateRandomWebsite();
 
 /** This is a test to check:

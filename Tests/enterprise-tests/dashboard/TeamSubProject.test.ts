@@ -37,7 +37,7 @@ describe('Enterprise Team SubProject API', () => {
     test(
         'Should add a new user to sub-project (role -> `Member`)',
         async (done: $TSFixMe) => {
-            const subProjectName = utils.generateRandomString();
+            const subProjectName: string = utils.generateRandomString();
 
             await init.loginUser(user, page);
             //SubProject is only available for 'Growth Plan and above'

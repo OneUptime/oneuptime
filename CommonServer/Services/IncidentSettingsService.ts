@@ -186,9 +186,12 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData: $TSFixMe = await incidentSettingsModel.updateMany(query, {
-            $set: data,
-        });
+        let updatedData: $TSFixMe = await incidentSettingsModel.updateMany(
+            query,
+            {
+                $set: data,
+            }
+        );
         const populate: $TSFixMe = [
             { path: 'incidentPriority', select: 'name color' },
         ];

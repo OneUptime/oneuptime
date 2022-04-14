@@ -19,8 +19,8 @@ let browser: $TSFixMe, page: $TSFixMe;
 describe('Incident Created test', () => {
     const operationTimeOut = init.timeout;
 
-    const monitorName = utils.generateRandomString();
-    const monitorName2 = utils.generateRandomString();
+    const monitorName: string = utils.generateRandomString();
+    const monitorName2: string = utils.generateRandomString();
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);

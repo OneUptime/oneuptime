@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 const csvFile: string = `${__dirname}/MOCKS/subscribers.csv`;
@@ -8,10 +9,10 @@ const existingSubscribers: string = `${__dirname}/MOCKS/existing.csv`;
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorName: $TSFixMe = utils.generateRandomString();
-const componentName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe: string = utils.generateRandomString();
+const componentName: $TSFixMe: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

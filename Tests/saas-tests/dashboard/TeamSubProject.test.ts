@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
@@ -6,15 +7,15 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 
 // parent user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const projectName = utils.generateRandomString();
+const projectName: string = utils.generateRandomString();
 // sub-project user credentials
-const newEmail = utils.generateRandomBusinessEmail();
+const newEmail: Email = utils.generateRandomBusinessEmail();
 // another user credentials
-const anotherEmail = utils.generateRandomBusinessEmail();
+const anotherEmail: Email = utils.generateRandomBusinessEmail();
 
-const subProjectName = utils.generateRandomString();
+const subProjectName: string = utils.generateRandomString();
 
 describe('Team API With SubProjects', () => {
     const operationTimeOut = init.timeout;

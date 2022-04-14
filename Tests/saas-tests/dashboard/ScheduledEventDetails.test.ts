@@ -1,16 +1,17 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
-const anotherEmail: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const anotherEmail: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
-const componentName: $TSFixMe = utils.generateRandomString();
-const monitorName: $TSFixMe = utils.generateRandomString();
-const scheduledEventName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe: string = utils.generateRandomString();
+const monitorName: $TSFixMe: string = utils.generateRandomString();
+const scheduledEventName: $TSFixMe: string = utils.generateRandomString();
 
 const user: $TSFixMe = {
     email,
@@ -267,7 +268,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         );
         // create multiple notes
         for (let i = 0; i < 15; i++) {
-            const noteDescription: $TSFixMe = utils.generateRandomString();
+            const noteDescription: $TSFixMe: string = utils.generateRandomString();
             await init.addScheduledMaintenanceNote(
                 page,
                 'internal',

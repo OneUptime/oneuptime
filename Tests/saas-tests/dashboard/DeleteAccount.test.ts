@@ -14,8 +14,8 @@ const user1: $TSFixMe = {
     password: '1234567890',
 };
 
-const projectName = utils.generateRandomString();
-const projectName2 = utils.generateRandomString();
+const projectName: string = utils.generateRandomString();
+const projectName2: string = utils.generateRandomString();
 
 describe('Profile -> Delete Account Component test', () => {
     const operationTimeOut = init.timeout;

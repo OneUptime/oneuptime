@@ -8,7 +8,7 @@ const user: $TSFixMe = {
     password: '1234567890',
 };
 
-const resourceCategory = utils.generateRandomString();
+const resourceCategory: string = utils.generateRandomString();
 
 /** This is a test to check:
  * No errors on page reload

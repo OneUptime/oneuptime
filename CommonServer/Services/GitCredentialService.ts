@@ -178,7 +178,10 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        let gitCredential: $TSFixMe = await this.findOneBy({ query, select: '_id' });
+        let gitCredential: $TSFixMe = await this.findOneBy({
+            query,
+            select: '_id',
+        });
 
         if (!gitCredential) {
             const error: $TSFixMe = new Error(

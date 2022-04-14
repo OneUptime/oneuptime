@@ -9,7 +9,7 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 
 let browser: $TSFixMe, page: $TSFixMe;
 

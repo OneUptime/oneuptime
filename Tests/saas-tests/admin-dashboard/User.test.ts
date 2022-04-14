@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
@@ -7,7 +8,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email: string = 'masteradmin@hackerbay.io';
 const password: string = '1234567890';
-const createUserMail = utils.generateRandomBusinessEmail();
+const createUserMail: Email = utils.generateRandomBusinessEmail();
 
 describe('SMTP Settings API', () => {
     const operationTimeOut = init.timeout;
@@ -57,7 +58,10 @@ describe('SMTP Settings API', () => {
 
             await init.pageWaitForSelector(page, '.bs-Modal-content > span');
 
-            let info: $TSFixMe = await init.page$(page, '.bs-Modal-content > span');
+            let info: $TSFixMe = await init.page$(
+                page,
+                '.bs-Modal-content > span'
+            );
             expect(info).toBeDefined();
             info = await info.getProperty('innerText');
             info = await info.jsonValue();

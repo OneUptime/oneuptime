@@ -1,11 +1,12 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const { twilioCredentials }: $TSFixMe = { ...utils };
 
@@ -15,7 +16,7 @@ const monitorName: string = 'monitor1';
 const countryCode: string = '+1';
 const phoneNumber: string = '9173976235';
 const alertPhone: string = '+19173976123';
-const incidentTitle: $TSFixMe = utils.generateRandomString();
+const incidentTitle: $TSFixMe: string = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

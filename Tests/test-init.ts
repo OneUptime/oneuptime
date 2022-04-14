@@ -4,7 +4,7 @@ import chaihttp from 'chai-http';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 chai.use(chaihttp);
 
-const request = chai.request(utils.BACKEND_URL);
+const request: $TSFixMe = chai.request(utils.BACKEND_URL);
 
 const _this: $TSFixMe = {
     /**
@@ -779,7 +779,7 @@ const _this: $TSFixMe = {
         page: $TSFixMe
     ) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
-        const description = utils.generateRandomString();
+        const description: string = utils.generateRandomString();
 
         await this.pageWaitForSelector(page, '#statusPages');
 
@@ -820,7 +820,10 @@ const _this: $TSFixMe = {
     clickStatusPageUrl: async function (page: $TSFixMe): void {
         await this.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-        let link: $TSFixMe = await this.page$(page, '#publicStatusPageUrl > span > a');
+        let link: $TSFixMe = await this.page$(
+            page,
+            '#publicStatusPageUrl > span > a'
+        );
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link, { waitUntil: ['networkidle2'] });

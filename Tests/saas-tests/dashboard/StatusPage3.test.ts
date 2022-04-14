@@ -1,11 +1,12 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const componentName: string = 'hackerbay';
 const monitorName: string = 'oneuptime';
@@ -100,7 +101,10 @@ describe('Status Page', () => {
 
             await init.pageWaitForSelector(page, '#customHeaderHTML > div');
 
-            let spanElement: $TSFixMe = await init.page$(page, '#customHeaderHTML > div');
+            let spanElement: $TSFixMe = await init.page$(
+                page,
+                '#customHeaderHTML > div'
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('My header');

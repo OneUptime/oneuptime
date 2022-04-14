@@ -1,10 +1,11 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 // user credentials
-const userEmail = utils.generateRandomBusinessEmail();
+const userEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let browser: $TSFixMe, page;
 const masterAdmin: $TSFixMe = {
@@ -45,7 +46,7 @@ describe('Enterprise User API', () => {
             page = await browser.newPage();
             await page.setUserAgent(utils.agent);
 
-            const newEmail = utils.generateRandomBusinessEmail();
+            const newEmail: Email = utils.generateRandomBusinessEmail();
 
             await init.loginAdminUser(masterAdmin, page);
 
@@ -166,7 +167,10 @@ describe('Enterprise User API', () => {
                 await init.pageClick(page, 'button[type=submit]');
             }
 
-            let userRows: $TSFixMe = await init.page$$(page, 'a.db-UserListRow');
+            let userRows: $TSFixMe = await init.page$$(
+                page,
+                'a.db-UserListRow'
+            );
             let countUsers = userRows.length;
 
             expect(countUsers).toEqual(10);

@@ -1,19 +1,20 @@
 import utils from '../../test-utils';
 
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import init from '../../test-init';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
 };
 
-const projectName = utils.generateRandomString();
-const statusPageName = utils.generateRandomString();
+const projectName: string = utils.generateRandomString();
+const statusPageName: string = utils.generateRandomString();
 
 describe('Probe bar test', () => {
     beforeAll(async (done: $TSFixMe) => {

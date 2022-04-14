@@ -229,9 +229,12 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedCustomField: $TSFixMe = await CustomFieldModel.updateMany(query, {
-            $set: data,
-        });
+        let updatedCustomField: $TSFixMe = await CustomFieldModel.updateMany(
+            query,
+            {
+                $set: data,
+            }
+        );
 
         const populateCustomField: $TSFixMe = [
             { path: 'projectId', select: 'name' },

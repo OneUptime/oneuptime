@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
@@ -7,7 +8,7 @@ import axios from 'axios';
 let page, browser: $TSFixMe;
 
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const queryString: string =
     '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';

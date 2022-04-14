@@ -1,18 +1,19 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // parent user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const projectName = utils.generateRandomString();
-const subProjectMonitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
+const projectName: string = utils.generateRandomString();
+const subProjectMonitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 // sub-project user credentials
-const newEmail = utils.generateRandomBusinessEmail();
+const newEmail: Email = utils.generateRandomBusinessEmail();
 const newPassword: string = '1234567890';
-const subProjectName = utils.generateRandomString();
+const subProjectName: string = utils.generateRandomString();
 
 describe('Monitor API With SubProjects', () => {
     const operationTimeOut = init.timeout;
@@ -157,7 +158,7 @@ describe('Monitor API With SubProjects', () => {
     test(
         'should create a monitor in parent project for valid `admin`',
         async (done: $TSFixMe) => {
-            const monitorName = utils.generateRandomString();
+            const monitorName: string = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -244,7 +245,7 @@ describe('Monitor API With SubProjects', () => {
     test(
         'should get both project and sub-project monitors for valid parent project user.',
         async (done: $TSFixMe) => {
-            const monitorName = utils.generateRandomString();
+            const monitorName: string = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });

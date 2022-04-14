@@ -85,11 +85,12 @@ router.post(
                 },
                 { path: 'projectId', select: 'name' },
             ];
-            let incomingRequest: $TSFixMe = await IncomingRequestService.findOneBy({
-                query: { name: data.name, projectId },
-                select,
-                populate,
-            });
+            let incomingRequest: $TSFixMe =
+                await IncomingRequestService.findOneBy({
+                    query: { name: data.name, projectId },
+                    select,
+                    populate,
+                });
             if (incomingRequest) {
                 const error: $TSFixMe = new Error(
                     'Incoming request with this name already exist'
@@ -144,11 +145,12 @@ router.put(
                 { path: 'projectId', select: 'name' },
             ];
 
-            let incomingRequest: $TSFixMe = await IncomingRequestService.findOneBy({
-                query: { name: data.name, projectId },
-                select,
-                populate,
-            });
+            let incomingRequest: $TSFixMe =
+                await IncomingRequestService.findOneBy({
+                    query: { name: data.name, projectId },
+                    select,
+                    populate,
+                });
             if (
                 incomingRequest &&
                 String(incomingRequest._id) !== String(requestId)
@@ -260,11 +262,12 @@ router.post(
                 { path: 'projectId', select: 'name' },
             ];
 
-            let incomingRequest: $TSFixMe = await IncomingRequestService.findOneBy({
-                query: { name: data.name, projectId },
-                select,
-                populate,
-            });
+            let incomingRequest: $TSFixMe =
+                await IncomingRequestService.findOneBy({
+                    query: { name: data.name, projectId },
+                    select,
+                    populate,
+                });
             if (
                 incomingRequest &&
                 String(incomingRequest._id) !== String(requestId)

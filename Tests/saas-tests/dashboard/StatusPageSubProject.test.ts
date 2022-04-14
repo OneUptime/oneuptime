@@ -1,17 +1,18 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 // parent user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const projectName: $TSFixMe = utils.generateRandomString();
-const subProjectMonitorName: $TSFixMe = utils.generateRandomString();
+const projectName: $TSFixMe: string = utils.generateRandomString();
+const subProjectMonitorName: $TSFixMe: string = utils.generateRandomString();
 // sub-project user credentials
-const newEmail: $TSFixMe = utils.generateRandomBusinessEmail();
+const newEmail: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const newPassword: string = '1234567890';
-const subProjectName: $TSFixMe = utils.generateRandomString();
-const componentName: $TSFixMe = utils.generateRandomString();
+const subProjectName: $TSFixMe: string = utils.generateRandomString();
+const componentName: $TSFixMe: string = utils.generateRandomString();
 
 describe('StatusPage API With SubProjects', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -102,7 +103,7 @@ describe('StatusPage API With SubProjects', () => {
     test(
         'should create a status page in sub-project for sub-project `admin`',
         async (done: $TSFixMe) => {
-            const statuspageName: $TSFixMe = utils.generateRandomString();
+            const statuspageName: $TSFixMe: string = utils.generateRandomString();
 
             const user: $TSFixMe = {
                 email: email,
@@ -150,7 +151,7 @@ describe('StatusPage API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            const statuspageName: $TSFixMe = utils.generateRandomString();
+            const statuspageName: $TSFixMe: string = utils.generateRandomString();
             await init.addStatusPageToProject(
                 statuspageName,
                 subProjectName,
@@ -189,7 +190,7 @@ describe('StatusPage API With SubProjects', () => {
                 waitUntil: ['networkidle2'],
             });
             for (let i = 0; i < 10; i++) {
-                const statuspageName: $TSFixMe = utils.generateRandomString();
+                const statuspageName: $TSFixMe: string = utils.generateRandomString();
                 await init.addStatusPageToProject(
                     statuspageName,
                     subProjectName,

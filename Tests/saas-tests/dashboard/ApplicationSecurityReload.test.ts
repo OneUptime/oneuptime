@@ -7,8 +7,8 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName = utils.generateRandomString();
-const applicationSecurityName = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const applicationSecurityName: string = utils.generateRandomString();
 
 const gitUsername = utils.gitCredential.gitUsername;
 const gitPassword = utils.gitCredential.gitPassword;

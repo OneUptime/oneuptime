@@ -7,7 +7,7 @@ import init from './test-init';
 let browser: $TSFixMe;
 let page: $TSFixMe;
 
-const bodyText = utils.generateRandomString();
+const bodyText: string = utils.generateRandomString();
 
 describe('HTTP Home page', () => {
     beforeAll(async () => {

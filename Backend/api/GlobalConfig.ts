@@ -77,10 +77,11 @@ router.post(
                 }
 
                 const selectConfig: string = 'name value createdAt';
-                let globalConfig: $TSFixMe = await GlobalConfigService.findOneBy({
-                    query: { name },
-                    select: selectConfig,
-                });
+                let globalConfig: $TSFixMe =
+                    await GlobalConfigService.findOneBy({
+                        query: { name },
+                        select: selectConfig,
+                    });
 
                 if (globalConfig) {
                     globalConfig = await GlobalConfigService.updateOneBy(

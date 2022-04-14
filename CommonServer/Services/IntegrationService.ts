@@ -129,27 +129,28 @@ export default class Service {
         } else {
             query['deleted'] = false;
 
-            let updatedIntegration: $TSFixMe = await IntegrationModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        monitors: data.monitors,
-                        'data.webHookName': data.webHookName,
-                        'data.endpoint': data.endpoint,
-                        'data.monitors': data.monitors,
-                        'data.endpointType': data.endpointType,
-                        'notificationOptions.incidentCreated':
-                            data.incidentCreated,
-                        'notificationOptions.incidentResolved':
-                            data.incidentResolved,
-                        'notificationOptions.incidentAcknowledged':
-                            data.incidentAcknowledged,
-                        'notificationOptions.incidentNoteAdded':
-                            data.incidentNoteAdded,
+            let updatedIntegration: $TSFixMe =
+                await IntegrationModel.findOneAndUpdate(
+                    query,
+                    {
+                        $set: {
+                            monitors: data.monitors,
+                            'data.webHookName': data.webHookName,
+                            'data.endpoint': data.endpoint,
+                            'data.monitors': data.monitors,
+                            'data.endpointType': data.endpointType,
+                            'notificationOptions.incidentCreated':
+                                data.incidentCreated,
+                            'notificationOptions.incidentResolved':
+                                data.incidentResolved,
+                            'notificationOptions.incidentAcknowledged':
+                                data.incidentAcknowledged,
+                            'notificationOptions.incidentNoteAdded':
+                                data.incidentNoteAdded,
+                        },
                     },
-                },
-                { new: true }
-            );
+                    { new: true }
+                );
             const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
             const populate: $TSFixMe = [

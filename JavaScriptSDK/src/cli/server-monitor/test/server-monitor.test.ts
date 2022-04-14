@@ -7,7 +7,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const request = chai.request.agent(process.env.API_URL);
+const request: $TSFixMe = chai.request.agent(process.env.API_URL);
 
 import utils from './test-utils';
 import { expect } from 'chai';
@@ -19,7 +19,7 @@ user.email = utils.generateRandomBusinessEmail();
 let token, projectId: ObjectID, apiKey: string, monitorId: $TSFixMe;
 const badProjectId: string = 'badProjectId',
     badApiKey = 'badApiKey';
-const invalidProjectId = utils.generateRandomString();
+const invalidProjectId: string = utils.generateRandomString();
 const timeout = 5000,
     monitor = {
         name: 'New Monitor',

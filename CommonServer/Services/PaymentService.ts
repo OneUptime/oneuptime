@@ -291,7 +291,9 @@ export default class Service {
             return;
         }
 
-        let subscription: $TSFixMe = await stripe.subscriptions.retrieve(subscriptionId);
+        let subscription: $TSFixMe = await stripe.subscriptions.retrieve(
+            subscriptionId
+        );
 
         let plan = null;
         const items: $TSFixMe = [];

@@ -1,18 +1,19 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorName: $TSFixMe = utils.generateRandomString();
-const componentName: $TSFixMe = utils.generateRandomString();
-const webHookName: $TSFixMe = utils.generateRandomString();
-const newWebHookName: $TSFixMe = utils.generateRandomString();
+const monitorName: $TSFixMe: string = utils.generateRandomString();
+const componentName: $TSFixMe: string = utils.generateRandomString();
+const webHookName: $TSFixMe: string = utils.generateRandomString();
+const newWebHookName: $TSFixMe: string = utils.generateRandomString();
 const webhookEndpoint: $TSFixMe = utils.generateRandomWebsite();
-const priorityName: $TSFixMe = utils.generateRandomString();
+const priorityName: $TSFixMe: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

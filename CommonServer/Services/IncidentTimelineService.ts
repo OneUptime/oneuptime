@@ -72,13 +72,14 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        let incidentTimeline: $TSFixMe = await IncidentTimelineModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            {
-                new: true,
-            }
-        );
+        let incidentTimeline: $TSFixMe =
+            await IncidentTimelineModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
         const populateIncTimeline: $TSFixMe = [
             { path: 'createdById', select: 'name' },
             {
@@ -104,9 +105,10 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        let incidentTimelines: $TSFixMe = await IncidentTimelineModel.updateMany(query, {
-            $set: data,
-        });
+        let incidentTimelines: $TSFixMe =
+            await IncidentTimelineModel.updateMany(query, {
+                $set: data,
+            });
 
         const populateIncTimeline: $TSFixMe = [
             { path: 'createdById', select: 'name' },

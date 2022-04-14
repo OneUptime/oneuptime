@@ -1,13 +1,14 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
-const priorityName = utils.generateRandomString();
-const newPriorityName = utils.generateRandomString();
+const email: Email = utils.generateRandomBusinessEmail();
+const priorityName: string = utils.generateRandomString();
+const newPriorityName: string = utils.generateRandomString();
 const password: string = '1234567890';
 
 describe('Incident Priority API', () => {

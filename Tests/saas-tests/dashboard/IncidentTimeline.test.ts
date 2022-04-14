@@ -1,16 +1,17 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 // parent user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
-const projectName = utils.generateRandomString();
-const projectMonitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
+const projectName: string = utils.generateRandomString();
+const projectMonitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 
-const message = utils.generateRandomString();
+const message: string = utils.generateRandomString();
 
 describe('Incident Timeline API', () => {
     const operationTimeOut = init.timeout;
@@ -159,9 +160,8 @@ describe('Incident Timeline API', () => {
                 page,
                 `#content_${type}_incident_message_0`
             );
-            let messageContent: $TSFixMe = await investigationMessage.getProperty(
-                'innerText'
-            );
+            let messageContent: $TSFixMe =
+                await investigationMessage.getProperty('innerText');
             messageContent = await messageContent.jsonValue();
             expect(messageContent).toEqual(`${message}`);
 
@@ -228,9 +228,8 @@ describe('Incident Timeline API', () => {
                 page,
                 `#content_${type}_incident_message_0`
             );
-            let messageContent: $TSFixMe = await investigationMessage.getProperty(
-                'innerText'
-            );
+            let messageContent: $TSFixMe =
+                await investigationMessage.getProperty('innerText');
             messageContent = await messageContent.jsonValue();
             expect(messageContent).toEqual(`${message}-updated`);
 
@@ -305,7 +304,9 @@ describe('Incident Timeline API', () => {
                 page,
                 `#content_${type}_incident_message_0`
             );
-            let messageContent: $TSFixMe = await incidentMessage.getProperty('innerText');
+            let messageContent: $TSFixMe = await incidentMessage.getProperty(
+                'innerText'
+            );
             messageContent = await messageContent.jsonValue();
 
             expect(messageContent).toMatch(`${message}`);
@@ -378,7 +379,9 @@ describe('Incident Timeline API', () => {
                 page,
                 `#content_${type}_incident_message_0`
             );
-            let messageContent: $TSFixMe = await incidentMessage.getProperty('innerText');
+            let messageContent: $TSFixMe = await incidentMessage.getProperty(
+                'innerText'
+            );
             messageContent = await messageContent.jsonValue();
             expect(messageContent).toEqual(`${message}-updated`);
 
@@ -440,7 +443,7 @@ describe('Incident Timeline API', () => {
         'should get incident timeline and paginate for incident timeline in project',
         async () => {
             //
-            const internalNote = utils.generateRandomString();
+            const internalNote: string = utils.generateRandomString();
             const type: string = 'internal';
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);

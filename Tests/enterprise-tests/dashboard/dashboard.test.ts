@@ -12,8 +12,8 @@ const user: $TSFixMe = {
 
 describe('Enterprise Dashboard API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
-    const monitorName: $TSFixMe = utils.generateRandomString();
-    const componentName: $TSFixMe = utils.generateRandomString();
+    const monitorName: $TSFixMe: string = utils.generateRandomString();
+    const componentName: $TSFixMe: string = utils.generateRandomString();
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);

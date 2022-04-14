@@ -9,8 +9,8 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName: $TSFixMe = utils.generateRandomString();
-const applicationLogName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe: string = utils.generateRandomString();
+const applicationLogName: $TSFixMe: string = utils.generateRandomString();
 let applicationLogKey = '';
 
 describe('Log Containers', () => {
@@ -398,7 +398,9 @@ describe('Log Containers', () => {
                 }
             );
             // confirm the new category shows in the details page.
-            let spanElement: $TSFixMe = await page.$(`#${applicationLogName}NewBadge`);
+            let spanElement: $TSFixMe = await page.$(
+                `#${applicationLogName}NewBadge`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -420,7 +422,9 @@ describe('Log Containers', () => {
                 page
             );
 
-            let spanElement: $TSFixMe = await page.$(`#${applicationLogName}NewBadge`);
+            let spanElement: $TSFixMe = await page.$(
+                `#${applicationLogName}NewBadge`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());

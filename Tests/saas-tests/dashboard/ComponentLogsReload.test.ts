@@ -7,8 +7,8 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName: $TSFixMe = utils.generateRandomString();
-const logName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe: string = utils.generateRandomString();
+const logName: $TSFixMe: string = utils.generateRandomString();
 
 /** This is a test to check:
  * No errors on page reload

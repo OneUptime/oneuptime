@@ -40,11 +40,12 @@ router.post(
                 { path: 'projectId', select: 'name' },
             ];
 
-            let customField: $TSFixMe = await MonitorCustomFieldService.findOneBy({
-                query: { projectId, fieldName },
-                select: selectMonCustomField,
-                populate: populateMonCustomField,
-            });
+            let customField: $TSFixMe =
+                await MonitorCustomFieldService.findOneBy({
+                    query: { projectId, fieldName },
+                    select: selectMonCustomField,
+                    populate: populateMonCustomField,
+                });
             if (customField) {
                 const error: $TSFixMe = new Error(
                     'Custom field with this name already exist'
@@ -120,10 +121,11 @@ router.put(
                 throw new BadDataException('Field type is required');
             }
 
-            let customField: $TSFixMe = await MonitorCustomFieldService.findOneBy({
-                query: { projectId, fieldName },
-                select: '_id',
-            });
+            let customField: $TSFixMe =
+                await MonitorCustomFieldService.findOneBy({
+                    query: { projectId, fieldName },
+                    select: '_id',
+                });
             if (
                 customField &&
                 String(customField._id) !== String(customFieldId)

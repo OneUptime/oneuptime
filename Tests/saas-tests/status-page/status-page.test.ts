@@ -1,21 +1,22 @@
 import utils from '../../test-utils';
 
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import init from '../../test-init';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
 };
 
-const monitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
-const projectName = utils.generateRandomString();
-const statusPageName = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const projectName: string = utils.generateRandomString();
+const statusPageName: string = utils.generateRandomString();
 
 describe('Check StatusPage up', () => {
     beforeAll(async (done: $TSFixMe) => {
@@ -286,8 +287,8 @@ describe('Check StatusPage up', () => {
             let additionalMonitor = 0;
             for (let i = 0; i < 2; i++) {
                 await init.navigateToComponentDetails(componentName, page);
-                const monitorName = utils.generateRandomString();
-                const description = utils.generateRandomString();
+                const monitorName: string = utils.generateRandomString();
+                const description: string = utils.generateRandomString();
                 await init.addAdditionalMonitor(monitorName, description, page);
                 await init.pageWaitForSelector(
                     page,
@@ -532,7 +533,7 @@ describe('Check StatusPage up', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            const note = utils.generateRandomString();
+            const note: string = utils.generateRandomString();
             await init.navigateToMonitorDetails(
                 componentName,
                 monitorName,
@@ -579,10 +580,14 @@ describe('Check StatusPage up', () => {
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement: $TSFixMe = await init.pageWaitForSelector(page, '#note-0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#note-0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch(note);

@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
@@ -6,10 +7,10 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
 
 describe('Monitor API', () => {
     const operationTimeOut = init.timeout;
@@ -39,7 +40,7 @@ describe('Monitor API', () => {
         async (done: $TSFixMe) => {
             // Component is already created.
             await init.navigateToComponentDetails(componentName, page);
-            const monitorName = utils.generateRandomString();
+            const monitorName: string = utils.generateRandomString();
 
             await init.pageWaitForSelector(page, '#cbMonitors');
 
@@ -91,7 +92,7 @@ describe('Monitor API', () => {
         async (done: $TSFixMe) => {
             // Component is already created.
             await init.navigateToComponentDetails(componentName, page);
-            const monitorName = utils.generateRandomString();
+            const monitorName: string = utils.generateRandomString();
 
             await init.pageWaitForSelector(page, '#cbMonitors');
 
@@ -126,10 +127,11 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, '#advanceOptions');
 
-            let criterionAdvancedOptions: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                '[data-testId=criterionAdvancedOptions_up]'
-            );
+            let criterionAdvancedOptions: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    '[data-testId=criterionAdvancedOptions_up]'
+                );
             await criterionAdvancedOptions.click();
 
             await init.pageWaitForSelector(page, 'input[id^=name_up]');
@@ -172,7 +174,7 @@ describe('Monitor API', () => {
     test('Should create new monitor with multiple criteria on each category', async (done: $TSFixMe) => {
         // Component is already created.
         await init.navigateToComponentDetails(componentName, page);
-        const monitorName = utils.generateRandomString();
+        const monitorName: string = utils.generateRandomString();
 
         await init.pageWaitForSelector(page, '#cbMonitors');
 

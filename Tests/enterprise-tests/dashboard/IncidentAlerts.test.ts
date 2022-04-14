@@ -1,20 +1,21 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
 };
 
-const componentName: $TSFixMe = utils.generateRandomString();
-const monitorName: $TSFixMe = utils.generateRandomString();
-const callScheduleName: $TSFixMe = utils.generateRandomString();
+const componentName: $TSFixMe: string = utils.generateRandomString();
+const monitorName: $TSFixMe: string = utils.generateRandomString();
+const callScheduleName: $TSFixMe: string = utils.generateRandomString();
 
 describe('Schedule', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

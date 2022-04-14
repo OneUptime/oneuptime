@@ -7,7 +7,7 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const groupName = utils.generateRandomString();
+const groupName: string = utils.generateRandomString();
 /** This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload

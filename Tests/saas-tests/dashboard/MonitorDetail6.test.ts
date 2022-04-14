@@ -1,14 +1,15 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const urlMonitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
+const urlMonitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
@@ -69,11 +70,12 @@ describe('Monitor Detail API', () => {
         await init.pageWaitForSelector(page, '#website_postscan', {
             timeout: 600000,
         });
-        let lighthousePerformanceElement: $TSFixMe = await init.pageWaitForSelector(
-            page,
-            `#performance_${urlMonitorName}_0`,
-            { visible: true, timeout: init.timeout }
-        );
+        let lighthousePerformanceElement: $TSFixMe =
+            await init.pageWaitForSelector(
+                page,
+                `#performance_${urlMonitorName}_0`,
+                { visible: true, timeout: init.timeout }
+            );
         lighthousePerformanceElement =
             await lighthousePerformanceElement.getProperty('innerText');
         lighthousePerformanceElement =
@@ -133,33 +135,36 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, '#website_postscan');
 
-            let lighthousePerformanceElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#lighthouse-performance-${urlMonitorName}`,
-                { visible: true, timeout: init.timeout }
-            );
+            let lighthousePerformanceElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#lighthouse-performance-${urlMonitorName}`,
+                    { visible: true, timeout: init.timeout }
+                );
             lighthousePerformanceElement =
                 await lighthousePerformanceElement.getProperty('innerText');
             lighthousePerformanceElement =
                 await lighthousePerformanceElement.jsonValue();
             lighthousePerformanceElement.should.endWith('%');
 
-            let lighthouseAccessibilityElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#lighthouse-accessibility-${urlMonitorName}`,
-                { visible: true, timeout: init.timeout }
-            );
+            let lighthouseAccessibilityElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#lighthouse-accessibility-${urlMonitorName}`,
+                    { visible: true, timeout: init.timeout }
+                );
             lighthouseAccessibilityElement =
                 await lighthouseAccessibilityElement.getProperty('innerText');
             lighthouseAccessibilityElement =
                 await lighthouseAccessibilityElement.jsonValue();
             lighthouseAccessibilityElement.should.endWith('%');
 
-            let lighthouseBestPracticesElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#lighthouse-bestPractices-${urlMonitorName}`,
-                { visible: true, timeout: init.timeout }
-            );
+            let lighthouseBestPracticesElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#lighthouse-bestPractices-${urlMonitorName}`,
+                    { visible: true, timeout: init.timeout }
+                );
             lighthouseBestPracticesElement =
                 await lighthouseBestPracticesElement.getProperty('innerText');
             lighthouseBestPracticesElement =

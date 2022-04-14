@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 
 import should from 'should';
 import utils from '../../test-utils';
@@ -7,7 +8,7 @@ import init from '../../test-init';
 let browser: $TSFixMe;
 let page: $TSFixMe;
 
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,

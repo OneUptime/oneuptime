@@ -1,17 +1,18 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
-const priorityName = utils.generateRandomString();
-const incidentTitle = utils.generateRandomString();
-const newIncidentTitle = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const priorityName: string = utils.generateRandomString();
+const incidentTitle: string = utils.generateRandomString();
+const newIncidentTitle: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
@@ -296,10 +297,8 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.basic-tab');
 
-            let incidentCountSpanElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#numberOfIncidents`
-            );
+            let incidentCountSpanElement: $TSFixMe =
+                await init.pageWaitForSelector(page, `#numberOfIncidents`);
             incidentCountSpanElement =
                 await incidentCountSpanElement.getProperty('innerText');
             incidentCountSpanElement =

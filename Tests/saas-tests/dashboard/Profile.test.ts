@@ -32,7 +32,7 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should edit the user profile',
         async (done: $TSFixMe) => {
-            const name = utils.generateRandomString(10);
+            const name: string = utils.generateRandomString(10);
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });

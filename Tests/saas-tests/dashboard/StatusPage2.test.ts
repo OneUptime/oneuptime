@@ -1,16 +1,17 @@
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
 
 // user credentials
-const email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const componentName: string = 'hackerbay';
 const monitorName: string = 'oneuptime';
 const monitorName1: string = 'testoneuptime';
-const customDomain = utils.generateRandomString();
+const customDomain: string = utils.generateRandomString();
 
 let browser: $TSFixMe, page: $TSFixMe;
 const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
@@ -122,7 +123,10 @@ describe('Status Page', () => {
         await gotoTheFirstStatusPage(page);
         await init.themeNavigationAndConfirmation(page, 'Classic');
 
-        let link: $TSFixMe = await init.page$(page, '#publicStatusPageUrl > span > a');
+        let link: $TSFixMe = await init.page$(
+            page,
+            '#publicStatusPageUrl > span > a'
+        );
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link);

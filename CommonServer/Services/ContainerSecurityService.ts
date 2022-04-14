@@ -148,13 +148,14 @@ export default class Service {
             data.slug = getSlug(data.name);
         }
 
-        let containerSecurity: $TSFixMe = await ContainerSecurityModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            { new: true }
-        );
+        let containerSecurity: $TSFixMe =
+            await ContainerSecurityModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            );
 
         if (unsetData) {
             containerSecurity = await ContainerSecurityModel.findOneAndUpdate(

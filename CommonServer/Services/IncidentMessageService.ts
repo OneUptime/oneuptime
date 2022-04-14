@@ -51,13 +51,14 @@ export default class Service {
             query['deleted'] = false;
         }
         data.updated = true;
-        let incidentMessage: $TSFixMe = await IncidentMessageModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            {
-                new: true,
-            }
-        );
+        let incidentMessage: $TSFixMe =
+            await IncidentMessageModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
 
         const populate: $TSFixMe = [
             { path: 'incidentId', select: 'idNumber name slug' },

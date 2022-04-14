@@ -14,11 +14,11 @@ const newUser: $TSFixMe = {
     password: '1234567890',
 };
 
-const projectMonitorName = utils.generateRandomString();
-const projectMonitorName1 = utils.generateRandomString();
-const subProjectName = utils.generateRandomString();
-const componentName = utils.generateRandomString();
-const newComponentName = utils.generateRandomString();
+const projectMonitorName: string = utils.generateRandomString();
+const projectMonitorName1: string = utils.generateRandomString();
+const subProjectName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const newComponentName: string = utils.generateRandomString();
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Incident API With SubProjects', () => {
@@ -322,7 +322,7 @@ describe('Incident API With SubProjects', () => {
     test(
         'should update internal and investigation notes of incident in sub-project (Postmortem notes)',
         async (done: $TSFixMe) => {
-            const internalNote = utils.generateRandomString();
+            const internalNote: string = utils.generateRandomString();
 
             // Navigate to details page of component created
             await init.navigateToMonitorDetails(
@@ -407,7 +407,7 @@ describe('Incident API With SubProjects', () => {
     // test(
     //     'should get incident timeline and paginate for incident timeline in sub-project',
     //     async done => {
-    //         const internalNote = utils.generateRandomString();
+    //         const internalNote: string = utils.generateRandomString();
     //         const  type: string = 'internal';
     //         await init.loginUser(newUser, page);
     //         // switch to invited project for new user

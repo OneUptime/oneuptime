@@ -455,12 +455,10 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updateIncomingRequest: $TSFixMe = await IncomingRequestModel.updateMany(
-            query,
-            {
+        let updateIncomingRequest: $TSFixMe =
+            await IncomingRequestModel.updateMany(query, {
                 $set: data,
-            }
-        );
+            });
 
         const select: $TSFixMe =
             'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';

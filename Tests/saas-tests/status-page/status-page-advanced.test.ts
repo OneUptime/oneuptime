@@ -1,22 +1,23 @@
 import utils from '../../test-utils';
 
 import puppeteer from 'puppeteer';
+import Email from 'Common/Types/Email';
 import init from '../../test-init';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
-const email: $TSFixMe = utils.generateRandomBusinessEmail();
+const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
 };
 
-const projectName: $TSFixMe = utils.generateRandomString();
-const statusPageName: $TSFixMe = utils.generateRandomString();
-const componentName: $TSFixMe = utils.generateRandomString();
-const monitorName: $TSFixMe = utils.generateRandomString();
-const subscriberEmail: $TSFixMe = utils.generateRandomBusinessEmail();
+const projectName: $TSFixMe: string = utils.generateRandomString();
+const statusPageName: $TSFixMe: string = utils.generateRandomString();
+const componentName: $TSFixMe: string = utils.generateRandomString();
+const monitorName: $TSFixMe: string = utils.generateRandomString();
+const subscriberEmail: $TSFixMe: Email = utils.generateRandomBusinessEmail();
 const customDomainWebsite: string = `www.${utils.generateRandomString()}.com`;
 
 describe('StatusPage Advanced Options', () => {
