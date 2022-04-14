@@ -59,7 +59,7 @@ export default {
             }
 
             ssh.connect(config).then(async (): void => {
-                let os;
+                let os: $TSFixMe;
                 try {
                     const { stdout: osLine, stderr } = await ssh.execCommand(
                         'uname -a'

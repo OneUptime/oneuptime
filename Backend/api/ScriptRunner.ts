@@ -51,7 +51,7 @@ router.post(
             let status,
                 reason,
                 data = {};
-            let matchedCriterion;
+            let matchedCriterion: $TSFixMe;
 
             // determine if monitor is up and reasons therefore
             const {

@@ -42,7 +42,7 @@ export const loadDashboard: $TSFixMe =
 
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

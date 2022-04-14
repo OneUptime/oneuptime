@@ -61,7 +61,7 @@ describe('OneUptime Page Reload', () => {
             });
 
             await init.pageClick(page, '#addErrorTrackerButton');
-            let spanElement;
+            let spanElement: $TSFixMe;
             spanElement = await init.pageWaitForSelector(
                 page,
                 `#error-tracker-title-${errorTrackerName}`,

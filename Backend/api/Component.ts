@@ -114,7 +114,7 @@ router.put(
         try {
             const data: $TSFixMe = req.body;
             const { componentId }: $TSFixMe = req.params;
-            let unsetData;
+            let unsetData: $TSFixMe;
             if (!data.componentCategoryId || data.componentCategoryId === '') {
                 unsetData = { componentCategoryId: '' };
             }

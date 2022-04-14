@@ -249,7 +249,7 @@ describe('Check StatusPage up', () => {
 
             await init.pageClick(page, '#viewStatusPage');
             await init.themeNavigationAndConfirmation(page, 'Classic');
-            let spanElement;
+            let spanElement: $TSFixMe;
             spanElement = await init.pageWaitForSelector(
                 page,
                 '#monitor-name-0',

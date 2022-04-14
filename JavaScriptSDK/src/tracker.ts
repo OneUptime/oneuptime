@@ -289,7 +289,7 @@ class ErrorTracker {
         };
     }
     async sendErrorEventToServer(): void {
-        let content;
+        let content: $TSFixMe;
         await this._makeApiRequest(this.event)
             .then(response => {
                 content = response;

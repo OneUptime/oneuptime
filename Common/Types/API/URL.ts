@@ -75,7 +75,7 @@ export default class URL {
 
         const hostname: $TSFixMe = new Hostname(url.split('/')[0] || '');
 
-        let route;
+        let route: $TSFixMe;
 
         if (url.split('/').length > 1) {
             const paths: $TSFixMe = url.split('/');

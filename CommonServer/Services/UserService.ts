@@ -279,7 +279,7 @@ class Service extends DatabaseService<typeof Model> {
                         data.coupon
                     );
                 }
-                let verificationToken;
+                let verificationToken: $TSFixMe;
                 if (user.role !== 'master-admin' || !customerId) {
                     verificationToken = await this.sendToken(user, user.email);
                 }
@@ -547,7 +547,7 @@ class Service extends DatabaseService<typeof Model> {
                     } else {
                         // show a different error message in admin mode as user most
                         // likely provided a wrong password
-                        let error;
+                        let error: $TSFixMe;
                         if (user.isAdminMode && user.cachedPassword) {
                             error = new Error(
                                 'Your account is currently under maintenance. Please try again later'

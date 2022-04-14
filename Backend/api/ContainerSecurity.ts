@@ -124,7 +124,7 @@ router.put(
             if (imageTags) {
                 data.imageTags = imageTags;
             }
-            let unsetData;
+            let unsetData: $TSFixMe;
             if (!resourceCategory || resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             } else {

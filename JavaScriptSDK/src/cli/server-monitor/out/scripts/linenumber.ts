@@ -4,10 +4,10 @@
     );
     let i: $TSFixMe = 0;
     let lineNumber: $TSFixMe = 0;
-    let lineId;
-    let lines;
-    let totalLines;
-    let anchorHash;
+    let lineId: $TSFixMe;
+    let lines: $TSFixMe;
+    let totalLines: $TSFixMe;
+    let anchorHash: $TSFixMe;
 
     if (source && source[0]) {
         anchorHash = document.location.hash.substring(1);

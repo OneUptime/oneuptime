@@ -754,7 +754,7 @@ export default class Service {
         const projectOwners: $TSFixMe = project.users.filter(
             user => user.role === 'Owner'
         );
-        let subscription;
+        let subscription: $TSFixMe;
         await Promise.all(
             projectOwners.map(async projectOwner => {
                 const owner: $TSFixMe = await UserService.findOneBy({

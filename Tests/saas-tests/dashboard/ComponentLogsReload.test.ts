@@ -61,7 +61,7 @@ describe('OneUptime Page Reload', () => {
             });
 
             await init.pageClick(page, '#addApplicationLogButton');
-            let spanElement;
+            let spanElement: $TSFixMe;
             spanElement = await init.pageWaitForSelector(
                 page,
                 '#application-content-header',

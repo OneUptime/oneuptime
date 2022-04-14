@@ -124,7 +124,7 @@ describe('Monitor Detail API', () => {
             );
 
             await init.pageClick(page, '#importCsvButton');
-            let elementHandle;
+            let elementHandle: $TSFixMe;
 
             elementHandle = await init.pageWaitForSelector(
                 page,

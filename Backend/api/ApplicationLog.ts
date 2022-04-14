@@ -434,7 +434,7 @@ router.put(
             applicationLogUpdate.showQuickStart = data.showQuickStart;
         }
 
-        let unsetData;
+        let unsetData: $TSFixMe;
         if (!data.resourceCategory || data.resourceCategory === '') {
             unsetData = { resourceCategory: '' };
         } else {
@@ -475,7 +475,7 @@ router.post(
         const endTime: $TSFixMe = new Date(
             startTime.getTime() + duration * 60000
         );
-        let response;
+        let response: $TSFixMe;
         if (filter) {
             response = await LogService.search(
                 { applicationLogId, deleted: false },

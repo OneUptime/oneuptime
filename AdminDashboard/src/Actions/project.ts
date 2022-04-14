@@ -42,7 +42,7 @@ export const fetchProjects: $TSFixMe =
             dispatch(fetchProjectsSuccess(response.data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -94,7 +94,7 @@ export const fetchProject: $TSFixMe =
             dispatch(fetchProjectSuccess(projects));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -192,7 +192,7 @@ export const fetchProjectTeam: $TSFixMe =
             dispatch(fetchProjectTeamSuccess(projectTeam));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -321,7 +321,7 @@ export const updateBalance: $TSFixMe =
             dispatch(updateProjectBalanceSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -437,7 +437,7 @@ export const fetchUserProjects: $TSFixMe =
             dispatch(fetchUserProjectsSuccess(users));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -494,7 +494,7 @@ export const deleteProject: $TSFixMe =
             dispatch(deleteProjectSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -552,7 +552,7 @@ export const blockProject: $TSFixMe =
             dispatch(blockProjectSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -614,7 +614,7 @@ export const renewAlertLimit: $TSFixMe =
             dispatch(renewAlertLimitSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -672,7 +672,7 @@ export const restoreProject: $TSFixMe =
             dispatch(restoreProjectSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -730,7 +730,7 @@ export const unblockProject: $TSFixMe =
             dispatch(unblockProjectSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -791,7 +791,7 @@ export const addProjectNote: $TSFixMe =
             dispatch(addProjectNoteSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -855,7 +855,7 @@ export const searchProjects: $TSFixMe =
             dispatch(searchProjectsSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

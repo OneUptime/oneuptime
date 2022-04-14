@@ -92,7 +92,7 @@ export const fetchNotifications: Function = (projectId: ObjectID): void => {
 
             dispatch(fetchNotificationsSuccess(notifications.data));
         } catch (error) {
-            let payload;
+            let payload: $TSFixMe;
             if (error && error.response && error.response.data) {
                 payload = error.response.data;
             }
@@ -139,7 +139,7 @@ export const markAsRead: Function = (
                 );
             }
         } catch (error) {
-            let payload;
+            let payload: $TSFixMe;
             if (error && error.response && error.response.data) {
                 payload = error.response.data;
             }
@@ -176,7 +176,7 @@ export function closeNotification(
                 `notification/${projectId}/${notificationId}/closed`
             );
         } catch (error) {
-            let payload;
+            let payload: $TSFixMe;
             if (error && error.response && error.response.data) {
                 payload = error.response.data;
             }
@@ -203,7 +203,7 @@ export const markAllAsRead: Function = (projectId: ObjectID): void => {
 
             dispatch(allNotificationReadSuccess(userId));
         } catch (error) {
-            let payload;
+            let payload: $TSFixMe;
             if (error && error.response && error.response.data) {
                 payload = error.response.data;
             }
@@ -235,7 +235,7 @@ export function billingActionTaken(
 
             dispatch(notificationReadSuccess(notification));
         } catch (error) {
-            let payload;
+            let payload: $TSFixMe;
             if (error && error.response && error.response.data) {
                 payload = error.response.data;
             }

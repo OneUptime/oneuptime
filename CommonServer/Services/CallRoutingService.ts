@@ -155,7 +155,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async findTeamMember(type: $TSFixMe, id: $TSFixMe): void {
-        let user;
+        let user: $TSFixMe;
         const selectEscalation: string = 'teams createdAt deleted deletedAt';
 
         const populateEscalation: $TSFixMe = [

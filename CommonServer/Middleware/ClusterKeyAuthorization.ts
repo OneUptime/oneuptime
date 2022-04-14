@@ -14,7 +14,7 @@ export default class ClusterKeyAuthorization {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-        let clusterKey;
+        let clusterKey: $TSFixMe;
 
         if (req.params && req.params['clusterKey']) {
             clusterKey = req.params['clusterKey'];

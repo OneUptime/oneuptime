@@ -46,7 +46,7 @@ describe('Components', () => {
                 await init.pageWaitForSelector(page, '#info-teamMember');
             expect(componentBoxElement).toBeDefined();
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,
@@ -83,7 +83,7 @@ describe('Components', () => {
                 await init.pageWaitForSelector(page, '#info-component');
             expect(componentBoxElement).toBeDefined();
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,
@@ -137,7 +137,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,
@@ -165,7 +165,7 @@ describe('Components', () => {
             );
             expect(monitorBoxElement).toBeDefined();
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,

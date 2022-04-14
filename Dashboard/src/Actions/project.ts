@@ -306,7 +306,7 @@ export function switchProject(
     );
     const match: $TSFixMe = pathname.match(regex);
 
-    let projectSlug;
+    let projectSlug: $TSFixMe;
     if (match) {
         projectSlug = match[1];
     }

@@ -146,7 +146,7 @@ checkParams(questions).then(values => {
     if (daemon) {
         os.platform();
 
-        let Service;
+        let Service: $TSFixMe;
 
         switch (os) {
             case 'linux':

@@ -70,7 +70,7 @@ describe('Enterprise Component API', () => {
 
             await init.pageClick(page, '#components');
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,

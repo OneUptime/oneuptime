@@ -161,7 +161,7 @@ export default class Service {
             }
         }
 
-        let incidentSla;
+        let incidentSla: $TSFixMe;
         if (data.isDefault) {
             incidentSla = await this.findOneBy({
                 query: { projectId: query.projectId, isDefault: true },

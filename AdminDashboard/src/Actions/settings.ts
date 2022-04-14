@@ -132,7 +132,7 @@ export const fetchSettings: $TSFixMe =
             dispatch(requestingSettingsSucceeded(data.value, type));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -161,7 +161,7 @@ export const saveSettings: $TSFixMe =
             dispatch(requestingSettingsSucceeded(data.value, type));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

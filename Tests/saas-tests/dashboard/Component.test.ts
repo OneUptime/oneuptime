@@ -66,7 +66,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,
@@ -250,7 +250,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,

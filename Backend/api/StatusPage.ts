@@ -378,7 +378,7 @@ router.post(
                 },
             ]);
             upload(req, res, async (error: $TSFixMe): void => {
-                let cert;
+                let cert: $TSFixMe;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
                 }
@@ -407,7 +407,7 @@ router.post(
                 },
             ]);
             upload(req, res, async (error: $TSFixMe): void => {
-                let privateKey;
+                let privateKey: $TSFixMe;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
                 }
@@ -597,7 +597,7 @@ router.put(
                 return sendErrorResponse(req, res, error as Exception);
             }
 
-            let statusPage;
+            let statusPage: $TSFixMe;
             if (data._id) {
                 statusPage = await StatusPageService.findOneBy({
                     query: { _id: data._id },
@@ -1123,7 +1123,7 @@ router.get(
     checkUser,
     ipWhitelist,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        let result;
+        let result: $TSFixMe;
         const statusPageSlug: $TSFixMe = req.params.statusPageSlug;
         const skip: $TSFixMe = req.query['skip'] || 0;
         const limit: $TSFixMe = req.query['limit'] || 10;
@@ -2893,7 +2893,7 @@ async function getStatusPageNote(
     statusPageSlug: $TSFixMe,
     theme: $TSFixMe
 ): void {
-    let result;
+    let result: $TSFixMe;
     const skip: $TSFixMe = req.query['skip'] || 0;
     const limit: $TSFixMe = req.query['limit'] || 10;
     const days: $TSFixMe = req.query.days || 14;

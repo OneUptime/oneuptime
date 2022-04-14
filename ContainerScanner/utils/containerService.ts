@@ -178,7 +178,7 @@ export default {
                             auditLog.Vulnerabilities.length > 0
                         ) {
                             auditLog.Vulnerabilities.map(vulnerability => {
-                                let severity;
+                                let severity: $TSFixMe;
                                 if (vulnerability.Severity === 'LOW') {
                                     counter.low += 1;
                                     severity = 'low';

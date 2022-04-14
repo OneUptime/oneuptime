@@ -41,7 +41,7 @@ export const fetchUsers: $TSFixMe =
             dispatch(fetchUsersSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -93,7 +93,7 @@ export const fetchUser: $TSFixMe =
             dispatch(fetchUserSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -156,7 +156,7 @@ export const addUser: $TSFixMe =
             dispatch(addUserSuccess(userResponse.data));
             return 'ok';
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -225,7 +225,7 @@ export const updateUserSetting: $TSFixMe =
             dispatch(updateUserSettingSuccess(user));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -294,7 +294,7 @@ export const deleteUser: $TSFixMe =
             dispatch(deleteUserSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -353,7 +353,7 @@ export const restoreUser: $TSFixMe =
             dispatch(restoreUserSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -412,7 +412,7 @@ export const blockUser: $TSFixMe =
             dispatch(blockUserSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -471,7 +471,7 @@ export const enableAdminMode: $TSFixMe =
             dispatch(enableAdminModeSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -529,7 +529,7 @@ export const disableAdminMode: $TSFixMe =
             dispatch(disableAdminModeSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -588,7 +588,7 @@ export const unblockUser: $TSFixMe =
             dispatch(unblockUserSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -647,7 +647,7 @@ export const addUserNote: $TSFixMe =
             dispatch(addUserNoteSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -713,7 +713,7 @@ export const searchUsers: $TSFixMe =
             dispatch(searchUsersSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

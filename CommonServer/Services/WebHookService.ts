@@ -62,7 +62,7 @@ export default class Service {
         { note, incidentState, statusNoteStatus }: $TSFixMe = {}
     ): void {
         const self: $TSFixMe = this;
-        let response;
+        let response: $TSFixMe;
 
         const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
@@ -151,9 +151,9 @@ export default class Service {
         const uri: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow: string = '#fedc56';
         const green: string = '#028A0F';
-        let payload;
-        let webHookURL;
-        let httpMethod;
+        let payload: $TSFixMe;
+        let webHookURL: $TSFixMe;
+        let httpMethod: $TSFixMe;
         const isStatusPageNoteNotification: $TSFixMe =
             note && incidentState && statusNoteStatus;
         let notificationTitle: $TSFixMe = '';

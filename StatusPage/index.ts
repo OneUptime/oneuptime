@@ -324,7 +324,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
     for (let i: $TSFixMe = 0; i <= N - M; i++) {
         // For current index i, check for
         // pattern match
-        let j;
+        let j: $TSFixMe;
         for (j = 0; j < M; j++) {
             if (txt[i + j] != pat[j]) {
                 break;

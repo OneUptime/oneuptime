@@ -163,7 +163,7 @@ describe('Enterprise Dashboard API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,
@@ -217,7 +217,7 @@ describe('Enterprise Dashboard API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,

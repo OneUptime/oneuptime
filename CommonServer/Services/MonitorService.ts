@@ -429,7 +429,7 @@ export default class Service {
 
         await this.updateMonitorSlaStat(query);
 
-        let errorMsg;
+        let errorMsg: $TSFixMe;
         if (data && data.customFields && data.customFields.length > 0) {
             const select: string = '_id';
             const monitor: $TSFixMe = await this.findOneBy({ query, select });
@@ -788,7 +788,7 @@ export default class Service {
 
                 const monitorsWithStatus: $TSFixMe = await Promise.all(
                     monitors.map(async (monitor: $TSFixMe) => {
-                        let monitorStatus;
+                        let monitorStatus: $TSFixMe;
 
                         const incidentList: $TSFixMe = [];
 
@@ -907,7 +907,7 @@ export default class Service {
 
         const monitorsWithStatus: $TSFixMe = await Promise.all(
             monitors.map(async (monitor: $TSFixMe) => {
-                let monitorStatus;
+                let monitorStatus: $TSFixMe;
 
                 const incidentList: $TSFixMe = [];
 
@@ -1257,7 +1257,7 @@ export default class Service {
             select,
         });
 
-        let probes;
+        let probes: $TSFixMe;
         const probeLogs: $TSFixMe = [];
         if (monitor) {
             const isNewMonitor: $TSFixMe =
@@ -1293,7 +1293,7 @@ export default class Service {
                     query.probeId = probe._id;
                 }
 
-                let monitorLogs;
+                let monitorLogs: $TSFixMe;
 
                 if (intervalInDays > 30 && !isNewMonitor) {
                     monitorLogs = await MonitorLogByWeekService.findBy({
@@ -1349,7 +1349,7 @@ export default class Service {
             query: { _id: monitorId },
             select: 'type agentlessConfig',
         });
-        let probes;
+        let probes: $TSFixMe;
         if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
             probes = [undefined];
         } else {
@@ -1400,7 +1400,7 @@ export default class Service {
             select: 'type agentlessConfig',
         });
 
-        let probes;
+        let probes: $TSFixMe;
         const probeStatuses: $TSFixMe = [];
         if (
             (monitor &&

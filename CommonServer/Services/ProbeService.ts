@@ -719,7 +719,7 @@ class Service extends DatabaseService<typeof Model> {
         const failedReasons: $TSFixMe = [];
 
         let eventOccurred: $TSFixMe = false;
-        let matchedCriterion;
+        let matchedCriterion: $TSFixMe;
         if (con && con.length) {
             eventOccurred = con.some(condition => {
                 let stat: $TSFixMe = true;
@@ -790,7 +790,7 @@ class Service extends DatabaseService<typeof Model> {
         const failedReasons: $TSFixMe = [];
 
         let eventOccurred: $TSFixMe = false;
-        let matchedCriterion;
+        let matchedCriterion: $TSFixMe;
 
         if (con && con.length) {
             eventOccurred = some(con, condition => {
@@ -861,7 +861,7 @@ class Service extends DatabaseService<typeof Model> {
 
     incomingCondition(payload, conditions): void {
         let eventOccurred: $TSFixMe = false;
-        let matchedCriterion;
+        let matchedCriterion: $TSFixMe;
         if (conditions && conditions.length) {
             eventOccurred = some(conditions, condition => {
                 let response: $TSFixMe = false;
@@ -929,7 +929,7 @@ class Service extends DatabaseService<typeof Model> {
         queryParams = this.toArray(queryParams);
         headers = this.toArray(headers);
         let status, reason;
-        let matchedCriterion;
+        let matchedCriterion: $TSFixMe;
         const lastPingTime: $TSFixMe = monitor.lastPingTime;
         const payload: $TSFixMe = moment().diff(moment(lastPingTime), 'minutes');
         const {
@@ -1049,7 +1049,7 @@ class Service extends DatabaseService<typeof Model> {
 
     async probeHttpRequest(monitor, probeId): void {
         let status, reason;
-        let matchedCriterion;
+        let matchedCriterion: $TSFixMe;
         const lastPingTime: $TSFixMe = monitor.lastPingTime;
         const payload: $TSFixMe = moment().diff(moment(lastPingTime), 'minutes');
 
@@ -6340,7 +6340,7 @@ const criteriaStrings: $TSFixMe = {
 };
 
 const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
-    let formattedNumber;
+    let formattedNumber: $TSFixMe;
     switch (roundType) {
         case 'up':
             formattedNumber = Math.ceil(
@@ -6364,8 +6364,8 @@ const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
 
 const formatBytes: Function = (a, b, c, d, e): void => {
     let value: $TSFixMe = a;
-    let decimalPlaces;
-    let roundType;
+    let decimalPlaces: $TSFixMe;
+    let roundType: $TSFixMe;
     if (typeof a === 'object') {
         value = a.value;
         decimalPlaces = a.decimalPlaces;

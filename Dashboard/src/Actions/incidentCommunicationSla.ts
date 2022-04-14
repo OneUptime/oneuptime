@@ -118,7 +118,7 @@ export const fetchCommunicationSlas: $TSFixMe =
         try {
             dispatch(fetchCommunicationSlasRequest());
 
-            let response;
+            let response: $TSFixMe;
             if (skip === 0 && limit === 0) {
                 response = await BackendAPI.get(`incidentSla/${projectId}`);
             } else {

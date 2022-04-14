@@ -263,7 +263,7 @@ export default class Service {
     }
 
     async findDomain(domainId: $TSFixMe, projectArr = []): void {
-        let projectId;
+        let projectId: $TSFixMe;
         for (const pId of projectArr) {
             const populateDomainVerify: $TSFixMe = [
                 { path: 'projectId', select: '_id' },

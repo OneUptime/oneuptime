@@ -132,7 +132,7 @@ export default class MailService {
     ): Promise<string> {
         // Localcache templates, so we dont read from disk all the time.
 
-        let templateData;
+        let templateData: $TSFixMe;
         if (LocalCache.hasValue(emailTemplateType)) {
             templateData = LocalCache.get(emailTemplateType);
         } else {
@@ -176,7 +176,7 @@ export default class MailService {
             extName: '.hbs',
         };
 
-        let privateMailer;
+        let privateMailer: $TSFixMe;
 
         privateMailer = nodemailer.createTransport({
             host: mailServer.host.toString(),

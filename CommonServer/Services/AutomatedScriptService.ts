@@ -197,7 +197,7 @@ export default class Service {
         if (stackSize === 3) {
             const resource: $TSFixMe = resources[0];
             if (resource) {
-                let type;
+                let type: $TSFixMe;
                 if (resource.automatedScript) {
                     type = 'automatedScript';
                 } else if (resource.callSchedule) {
@@ -227,7 +227,7 @@ export default class Service {
         }
         const events: $TSFixMe = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
         const eventPromises: $TSFixMe = events.map(event: $TSFixMe => {
-            let resourceType;
+            let resourceType: $TSFixMe;
             if (event.automatedScript) {
                 resourceType = 'automatedScript';
             } else if (event.callSchedule) {

@@ -187,7 +187,7 @@ router.post(
                 log,
                 reason,
                 data = {};
-            let matchedCriterion;
+            let matchedCriterion: $TSFixMe;
 
             if (type === 'incomingHttpRequest') {
                 const newMonitor: $TSFixMe = await MonitorService.findOneBy({

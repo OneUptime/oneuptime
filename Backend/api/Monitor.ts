@@ -295,7 +295,7 @@ router.post(
                 },
             ]);
             upload(req, res, async (error: $TSFixMe): void => {
-                let identityFile;
+                let identityFile: $TSFixMe;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
                 }
@@ -327,7 +327,7 @@ router.post(
                 },
             ]);
             upload(req, res, async (error: $TSFixMe): void => {
-                let configurationFile;
+                let configurationFile: $TSFixMe;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
                 }
@@ -415,7 +415,7 @@ router.put(
                 );
             }
 
-            let unsetData;
+            let unsetData: $TSFixMe;
             if (!data.resourceCategory || data.resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             }
@@ -478,7 +478,7 @@ router.get(
             const { skip, limit, componentSlug }: $TSFixMe = req.query;
             let componentId: $TSFixMe = req.query.componentId;
 
-            let component;
+            let component: $TSFixMe;
             if (!componentId) {
                 if (!componentSlug) {
                     return sendErrorResponse(req, res, {

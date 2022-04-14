@@ -38,7 +38,7 @@ export default class Service {
         alertPhoneNumber,
         segments = 1
     ): string {
-        // let release;
+        // let release: $TSFixMe;
         try {
             // const mutex: $TSFixMe = getMutex(
             //     MUTEX_RESOURCES.PROJECT,
@@ -133,7 +133,7 @@ export default class Service {
 
     async fillProjectBalance(userId, project): void {
         try {
-            let balanceRecharged;
+            let balanceRecharged: $TSFixMe;
 
             const rechargeAmount: $TSFixMe = project.alertOptions
                 ? project.alertOptions.rechargeToBalance
@@ -170,7 +170,7 @@ export default class Service {
 
         alertType
     ): void {
-        // let release;
+        // let release: $TSFixMe;
         const status: $TSFixMe = {};
         // const mutex: $TSFixMe = getMutex(
         //     MUTEX_RESOURCES.PROJECT,

@@ -140,7 +140,7 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, '#components');
 
-            let spanElement;
+            let spanElement: $TSFixMe;
 
             spanElement = await init.pageWaitForSelector(
                 page,
@@ -201,7 +201,7 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement;
+            let spanElement: $TSFixMe;
             spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
@@ -266,7 +266,7 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement;
+            let spanElement: $TSFixMe;
             spanElement = await init.pageWaitForSelector(
                 page,
                 '#form-new-monitor span#field-error',

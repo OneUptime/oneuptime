@@ -120,7 +120,7 @@ router.put(
             if (gitCredential) {
                 data.gitCredential = gitCredential;
             }
-            let unsetData;
+            let unsetData: $TSFixMe;
             if (!resourceCategory || resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             } else {

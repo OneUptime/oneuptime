@@ -344,7 +344,7 @@ const methods: $TSFixMe = {
         username,
         password,
     }: $TSFixMe) => {
-        let firstIdpResponse;
+        let firstIdpResponse: $TSFixMe;
         try {
             const response: $TSFixMe = await chai
 

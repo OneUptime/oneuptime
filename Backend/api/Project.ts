@@ -55,7 +55,7 @@ router.post(
                 });
             }
 
-            let stripePlanId;
+            let stripePlanId: $TSFixMe;
 
             if (IS_SAAS_SERVICE) {
                 if (!data.planId) {

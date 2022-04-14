@@ -48,7 +48,7 @@ export const fetchLicense: $TSFixMe =
             dispatch(fetchLicenseSuccess(data));
             return data;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -122,7 +122,7 @@ export const confirmLicense: $TSFixMe =
             dispatch(confirmLicenseSuccess(data));
             return data;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

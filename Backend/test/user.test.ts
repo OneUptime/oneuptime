@@ -747,7 +747,7 @@ describe('SSO authentication', function (): void {
             password: 'user1pass',
         });
 
-        let response;
+        let response: $TSFixMe;
         try {
             response = await request
                 .post('/api/user/sso/callback')
@@ -797,7 +797,7 @@ describe('SSO authentication', function (): void {
             password: 'user2pass',
         });
 
-        let response;
+        let response: $TSFixMe;
         try {
             response = await request
                 .post('/api/user/sso/callback')

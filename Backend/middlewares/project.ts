@@ -152,7 +152,7 @@ export default {
                     select: 'users',
                 });
                 if (project) {
-                    let role;
+                    let role: $TSFixMe;
                     for (const user of project.users) {
                         if (user.userId === userId) {
                             role = user.role;
@@ -204,7 +204,7 @@ export default {
                     select: 'users',
                 });
                 if (project) {
-                    let role;
+                    let role: $TSFixMe;
                     for (const user of project.users) {
                         if (user.userId === UserId) {
                             role = user.role;
@@ -252,7 +252,7 @@ export default {
                 select: 'users',
             });
             if (project) {
-                let role;
+                let role: $TSFixMe;
 
                 for (const user of project.users) {
                     if (user.userId === UserId) {

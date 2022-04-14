@@ -1391,7 +1391,7 @@ router.delete(
                     ),
                 ]);
             const idNumber: $TSFixMe = incident.idNumber;
-            let result;
+            let result: $TSFixMe;
             /* eslint-disable prefer-const */
             if (incidentMessage) {
                 const status: string = `${incidentMessage.type} notes deleted`;

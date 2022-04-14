@@ -17,7 +17,7 @@ const _this: $TSFixMe = {
     ): void {
         const statusPageSlug: $TSFixMe = apiMiddleware.getStatusPageSlug(req);
         const statusPageUrl: $TSFixMe = apiMiddleware.getStatusPageUrl(req);
-        let statusPage;
+        let statusPage: $TSFixMe;
 
         try {
             if (

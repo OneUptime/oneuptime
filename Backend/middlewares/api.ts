@@ -113,7 +113,7 @@ export default {
 
     getProjectId: function (req: $TSFixMe): void {
         // Get Project Id, If Available
-        let projectId;
+        let projectId: $TSFixMe;
 
         if (req.params && req.params.projectId) {
             projectId = req.params.projectId;

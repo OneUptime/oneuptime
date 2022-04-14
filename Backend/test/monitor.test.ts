@@ -307,7 +307,7 @@ describe('Monitor API', function (): void {
     });
 
     it('should create a new monitor with valid call schedule', (done: $TSFixMe): void => {
-        let scheduleId;
+        let scheduleId: $TSFixMe;
         const authorization: string = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)

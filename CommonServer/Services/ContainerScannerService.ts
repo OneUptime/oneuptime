@@ -1,6 +1,6 @@
 export default class Service {
     async create(data): void {
-        let containerScannerKey;
+        let containerScannerKey: $TSFixMe;
         if (data.containerScannerKey) {
             containerScannerKey = data.containerScannerKey;
         } else {

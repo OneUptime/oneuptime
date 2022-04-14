@@ -623,7 +623,7 @@ router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
             userAgent
         );
 
-        let authUserObj;
+        let authUserObj: $TSFixMe;
 
         if (!user._id) {
             authUserObj = { ...user };
@@ -737,7 +737,7 @@ router.post(
         try {
             const data: $TSFixMe = req.body;
             // Call the UserService
-            let user;
+            let user: $TSFixMe;
             user = await UserService.findOneBy({
                 query: { email: data.email },
                 select: 'backupCodes',
@@ -1446,7 +1446,7 @@ router.get(
 router.post('/resend', async (req: ExpressRequest, res: ExpressResponse) => {
     if (req.body && req.body.email) {
         const { email, userId }: $TSFixMe = req.body;
-        let user;
+        let user: $TSFixMe;
         if (!userId) {
             user = await UserModel.findOne({ email });
             if (!user) {

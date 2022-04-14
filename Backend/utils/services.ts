@@ -2,7 +2,7 @@ export default {
     deduplicate: async (arr = []) => {
         const map: $TSFixMe = {};
 
-        let curr;
+        let curr: $TSFixMe;
 
         for (let i: $TSFixMe = 0; i < arr.length; i++) {
             curr = arr[i];
@@ -19,7 +19,7 @@ export default {
     },
 
     rearrangeDuty: async (main = []) => {
-        let closeStringId;
+        let closeStringId: $TSFixMe;
         for (let i: $TSFixMe = 0; i < main.length; i++) {
             if (typeof main[i].schedule == 'object') {
                 closeStringId = i - 1;

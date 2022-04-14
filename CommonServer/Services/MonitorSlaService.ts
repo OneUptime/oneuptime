@@ -173,7 +173,7 @@ export default class Service {
             }
         }
 
-        let monitorSla;
+        let monitorSla: $TSFixMe;
         if (data.isDefault) {
             monitorSla = await this.findOneBy({
                 query: { projectId: query.projectId, isDefault: true },

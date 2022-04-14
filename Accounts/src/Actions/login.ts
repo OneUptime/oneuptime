@@ -142,7 +142,7 @@ export const loginUserSso: $TSFixMe =
             const { url }: $TSFixMe = response.data;
             window.location.href = url;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

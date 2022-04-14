@@ -44,7 +44,7 @@ export const fetchEmailLogs: $TSFixMe =
 
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -101,7 +101,7 @@ export const searchEmailLogs: $TSFixMe =
             dispatch(searchEmailLogsSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -150,7 +150,7 @@ export const deleteEmailLogs: $TSFixMe =
 
             dispatch(deleteEmailLogsSuccess(message));
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -213,7 +213,7 @@ export const fetchEmailLogStatus: $TSFixMe =
             dispatch(fetchEmailLogStatusSuccess(response.data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -278,7 +278,7 @@ export const emailLogStatusChange: $TSFixMe =
             dispatch(changeEmailLogStatusSuccess(data));
             return data;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

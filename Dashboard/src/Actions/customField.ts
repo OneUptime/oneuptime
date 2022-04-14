@@ -112,7 +112,7 @@ export const fetchCustomFields: $TSFixMe =
         try {
             dispatch(fetchCustomFieldsRequest());
 
-            let response;
+            let response: $TSFixMe;
             if (skip === 0 && limit === 0) {
                 response = await BackendAPI.get(`customField/${projectId}`);
             } else {

@@ -1046,7 +1046,7 @@ export default class Service {
         eventType,
         pushProgress,
     }: $TSFixMe): void {
-        let pushMessage;
+        let pushMessage: $TSFixMe;
         const userData: $TSFixMe = await UserService.findOneBy({
             query: { _id: user._id },
             select: 'identification',
@@ -1208,7 +1208,7 @@ export default class Service {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
-                let errorMessageText;
+                let errorMessageText: $TSFixMe;
                 if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
                     errorMessageText =
                         'SMTP Settings not found on Admin Dashboard';
@@ -1401,7 +1401,7 @@ export default class Service {
         eventType,
         callProgress,
     }: $TSFixMe): void {
-        let alert;
+        let alert: $TSFixMe;
         const date: $TSFixMe = new Date();
         const monitorId: $TSFixMe = monitor._id;
         const projectId: $TSFixMe = incident.projectId._id || incident.projectId;
@@ -1448,7 +1448,7 @@ export default class Service {
                 (!project.alertEnable || !areAlertsEnabledGlobally)) ||
                 (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
         ) {
-            let errorMessageText;
+            let errorMessageText: $TSFixMe;
             if (!hasGlobalTwilioSettings) {
                 errorMessageText =
                     'Twilio Settings not found on Admin Dashboard';
@@ -1482,7 +1482,7 @@ export default class Service {
                 );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
                 const countryType: $TSFixMe = getCountryType(user.alertPhoneNumber);
-                let errorMessageText;
+                let errorMessageText: $TSFixMe;
                 if (countryType === 'us') {
                     errorMessageText =
                         'Calls for numbers inside US not enabled for this project';
@@ -1611,7 +1611,7 @@ export default class Service {
         eventType,
         smsProgress,
     }: $TSFixMe): void {
-        let alert;
+        let alert: $TSFixMe;
         const projectId: $TSFixMe = project._id;
         const date: $TSFixMe = new Date();
         const monitorId: $TSFixMe = monitor._id;
@@ -1654,7 +1654,7 @@ export default class Service {
                 (!project.alertEnable || !areAlertsEnabledGlobally)) ||
                 (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))
         ) {
-            let errorMessageText;
+            let errorMessageText: $TSFixMe;
             if (!hasGlobalTwilioSettings) {
                 errorMessageText =
                     'Twilio Settings not found on Admin Dashboard';
@@ -1690,7 +1690,7 @@ export default class Service {
                 );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
                 const countryType: $TSFixMe = getCountryType(user.alertPhoneNumber);
-                let errorMessageText;
+                let errorMessageText: $TSFixMe;
                 if (countryType === 'us') {
                     errorMessageText =
                         'SMS for numbers inside US not enabled for this project';
@@ -1837,7 +1837,7 @@ export default class Service {
                 populate: populateComponent,
             });
 
-            let incidentStatus;
+            let incidentStatus: $TSFixMe;
             if (incident.resolved) {
                 incidentStatus = INCIDENT_RESOLVED;
             } else if (incident.acknowledged) {
@@ -2290,7 +2290,7 @@ export default class Service {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
-                let errorMessageText;
+                let errorMessageText: $TSFixMe;
                 if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
                     errorMessageText =
                         'SMTP Settings not found on Admin Dashboard';
@@ -2642,7 +2642,7 @@ export default class Service {
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
             ) {
-                let errorMessageText;
+                let errorMessageText: $TSFixMe;
                 if (!hasGlobalSmtpSettings && !hasCustomSmtpSettings) {
                     errorMessageText =
                         'SMTP Settings not found on Admin Dashboard';
@@ -3074,7 +3074,7 @@ export default class Service {
                     isStatusPageNoteAlert &&
                     !project.enableInvestigationNoteNotificationWebhook;
 
-                let eventType;
+                let eventType: $TSFixMe;
                 if (investigationNoteNotificationWebhookDisabled) {
                     if (isStatusPageNoteAlert) {
                         eventType = statusPageNoteAlertEventType;
@@ -3439,7 +3439,7 @@ export default class Service {
                     throw error;
                 }
             } else if (subscriber.alertVia == AlertType.SMS) {
-                let owner;
+                let owner: $TSFixMe;
                 const hasGlobalTwilioSettings: $TSFixMe =
                     await GlobalConfigService.findOneBy({
                         query: { name: 'twilio' },
@@ -3570,7 +3570,7 @@ export default class Service {
                             contactPhone,
                             AlertType.SMS
                         );
-                    let eventType;
+                    let eventType: $TSFixMe;
                     if (isStatusPageNoteAlert) {
                         eventType = statusPageNoteAlertEventType;
                     } else if (
@@ -3602,12 +3602,12 @@ export default class Service {
                     }
                 }
 
-                let sendResult;
+                let sendResult: $TSFixMe;
                 const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
                     query: { projectId, smsType: templateType },
                     select: 'body',
                 });
-                let eventType;
+                let eventType: $TSFixMe;
                 if (isStatusPageNoteAlert) {
                     eventType = statusPageNoteAlertEventType;
                 } else if (
@@ -4336,7 +4336,7 @@ export default class Service {
                             throw error;
                         }
                     } else if (subscriber.alertVia === AlertType.SMS) {
-                        let owner;
+                        let owner: $TSFixMe;
                         const hasGlobalTwilioSettings: $TSFixMe =
                             await GlobalConfigService.findOneBy({
                                 query: { name: 'twilio' },
@@ -4369,7 +4369,7 @@ export default class Service {
                                         !areAlertsEnabledGlobally))) ||
                             notificationSMSDisabled
                         ) {
-                            let errorMessageText;
+                            let errorMessageText: $TSFixMe;
                             if (!hasGlobalTwilioSettings) {
                                 errorMessageText =
                                     'Twilio Settings not found on Admin Dashboard';
@@ -4423,7 +4423,7 @@ export default class Service {
                             if (!doesPhoneNumberComplyWithHighRiskConfig) {
                                 const countryType: $TSFixMe =
                                     getCountryType(contactPhone);
-                                let errorMessageText;
+                                let errorMessageText: $TSFixMe;
                                 if (countryType === 'us') {
                                     errorMessageText =
                                         'SMS for numbers inside US not enabled for this project';
@@ -4474,7 +4474,7 @@ export default class Service {
                             }
                         }
 
-                        let sendResult;
+                        let sendResult: $TSFixMe;
                         const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
                             query: {
                                 projectId,
@@ -4643,7 +4643,7 @@ export default class Service {
                         ? !project.sendScheduledEventResolvedNotificationEmail
                         : !project.sendScheduledEventCancelledNotificationEmail;
 
-                let errorMessageText;
+                let errorMessageText: $TSFixMe;
                 if (
                     (!areEmailAlertsEnabledInGlobalSettings &&
                         !hasCustomSmtpSettings) ||
@@ -4759,7 +4759,7 @@ export default class Service {
                     throw error;
                 }
             } else if (subscriber.alertVia === AlertType.SMS) {
-                let owner;
+                let owner: $TSFixMe;
                 const hasGlobalTwilioSettings: $TSFixMe =
                     await GlobalConfigService.findOneBy({
                         query: { name: 'twilio' },
@@ -4791,7 +4791,7 @@ export default class Service {
                             (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))) ||
                     notificationSmsDisabled
                 ) {
-                    let errorMessageText;
+                    let errorMessageText: $TSFixMe;
                     if (!hasGlobalTwilioSettings) {
                         errorMessageText =
                             'Twilio Settings not found on Admin Dashboard';
@@ -4836,7 +4836,7 @@ export default class Service {
                         );
                     if (!doesPhoneNumberComplyWithHighRiskConfig) {
                         const countryType: $TSFixMe = getCountryType(contactPhone);
-                        let errorMessageText;
+                        let errorMessageText: $TSFixMe;
                         if (countryType === 'us') {
                             errorMessageText =
                                 'SMS for numbers inside US not enabled for this project';
@@ -4884,7 +4884,7 @@ export default class Service {
                     }
                 }
 
-                let sendResult;
+                let sendResult: $TSFixMe;
                 const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
                     query: { projectId, smsType: templateType },
                     select: 'body smsType allowedVariables projectId',
@@ -5166,7 +5166,7 @@ export default class Service {
                         throw error;
                     }
                 } else if (subscriber.alertVia === AlertType.SMS) {
-                    let owner;
+                    let owner: $TSFixMe;
                     const [hasGlobalTwilioSettings, hasCustomTwilioSettings]: $TSFixMe =
                         await Promise.all([
                             GlobalConfigService.findOneBy({
@@ -5199,7 +5199,7 @@ export default class Service {
                                     !areAlertsEnabledGlobally))) ||
                         notificationSMSDisabled
                     ) {
-                        let errorMessageText;
+                        let errorMessageText: $TSFixMe;
                         if (!hasGlobalTwilioSettings) {
                             errorMessageText =
                                 'Twilio Settings not found on Admin Dashboard';
@@ -5247,7 +5247,7 @@ export default class Service {
                             );
                         if (!doesPhoneNumberComplyWithHighRiskConfig) {
                             const countryType: $TSFixMe = getCountryType(contactPhone);
-                            let errorMessageText;
+                            let errorMessageText: $TSFixMe;
                             if (countryType === 'us') {
                                 errorMessageText =
                                     'SMS for numbers inside US not enabled for this project';
@@ -5296,7 +5296,7 @@ export default class Service {
                         }
                     }
 
-                    let sendResult;
+                    let sendResult: $TSFixMe;
                     const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
                         query: {
                             projectId,

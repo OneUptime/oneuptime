@@ -43,7 +43,7 @@ export const fetchAuditLogs: $TSFixMe =
 
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -100,7 +100,7 @@ export const searchAuditLogs: $TSFixMe =
             dispatch(searchAuditLogsSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -149,7 +149,7 @@ export const deleteAuditLogs: $TSFixMe =
 
             dispatch(deleteAuditLogsSuccess(message));
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -212,7 +212,7 @@ export const fetchAuditLogStatus: $TSFixMe =
             dispatch(fetchAuditLogStatusSuccess(response.data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -277,7 +277,7 @@ export const auditLogStatusChange: $TSFixMe =
             dispatch(changeAuditLogStatusSuccess(data));
             return data;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

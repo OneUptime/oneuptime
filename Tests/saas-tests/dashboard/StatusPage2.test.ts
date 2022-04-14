@@ -316,7 +316,7 @@ describe('Status Page', () => {
             });
 
             await init.pageClick(page, '.custom-domains-tab');
-            let finalInputValue;
+            let finalInputValue: $TSFixMe;
             finalInputValue = await init.pageWaitForSelector(
                 page,
                 '#domain-name',

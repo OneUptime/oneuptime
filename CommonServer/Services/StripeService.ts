@@ -279,7 +279,7 @@ export default class StripeService {
             select: 'stripeCustomerId',
         });
         const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
-        let metadata;
+        let metadata: $TSFixMe;
         if (alertOptions) {
             metadata = {
                 projectId,
@@ -404,7 +404,7 @@ export default class StripeService {
         metadata: $TSFixMe,
         source: $TSFixMe
     ): void {
-        let updatedPaymentIntent;
+        let updatedPaymentIntent: $TSFixMe;
         await stripe.invoiceItems.create({
             amount: amount,
             currency: 'usd',

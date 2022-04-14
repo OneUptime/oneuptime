@@ -150,8 +150,8 @@ router.post(
                     const filter: $TSFixMe = advisories.via.filter(
                         (e: $TSFixMe) => e.severity === advisories.severity
                     );
-                    let filterBySeverity;
-                    let filterByTitle;
+                    let filterBySeverity: $TSFixMe;
+                    let filterByTitle: $TSFixMe;
                     //This is used to get the library name and description
                     if (filter.length > 0) {
                         filterBySeverity = advisories.via.find(
@@ -174,8 +174,8 @@ router.post(
                 const filter: $TSFixMe = advisories.via.filter(
                     (e: $TSFixMe) => e.severity === advisories.severity
                 );
-                let filterBySeverity;
-                let filterByTitle;
+                let filterBySeverity: $TSFixMe;
+                let filterByTitle: $TSFixMe;
                 //This is used to get the library name and description
                 if (filter.length > 0) {
                     filterBySeverity = advisories.via.find(
@@ -199,8 +199,8 @@ router.post(
                     const filter: $TSFixMe = advisories.via.filter(
                         (e: $TSFixMe) => e.severity === advisories.severity
                     );
-                    let filterBySeverity;
-                    let filterByTitle;
+                    let filterBySeverity: $TSFixMe;
+                    let filterByTitle: $TSFixMe;
                     //This is used to get the library name and description
                     if (filter.length > 0) {
                         filterBySeverity = advisories.via.find(
@@ -224,8 +224,8 @@ router.post(
                 const filter: $TSFixMe = advisories.via.filter(
                     (e: $TSFixMe) => e.severity === advisories.severity
                 );
-                let filterBySeverity;
-                let filterByTitle;
+                let filterBySeverity: $TSFixMe;
+                let filterByTitle: $TSFixMe;
                 //This is used to get the library name and description
                 if (filter.length > 0) {
                     filterBySeverity = advisories.via.find(

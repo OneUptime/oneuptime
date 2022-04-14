@@ -574,8 +574,8 @@ export default class Service {
         }
 
         if (resolvedScheduledEvent.recurring) {
-            let newStartDate;
-            let newEndDate;
+            let newStartDate: $TSFixMe;
+            let newEndDate: $TSFixMe;
             const startDate: $TSFixMe = resolvedScheduledEvent.startDate;
             const endDate: $TSFixMe = resolvedScheduledEvent.endDate;
             if (resolvedScheduledEvent.interval === 'daily') {

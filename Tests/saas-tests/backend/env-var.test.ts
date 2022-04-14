@@ -29,7 +29,7 @@ describe('Check Server', () => {
             }
         );
 
-        let expectedResponse;
+        let expectedResponse: $TSFixMe;
         if (utils.BACKEND_URL.includes('localhost')) {
             if (utils.BACKEND_URL.includes('localhost:')) {
                 expectedResponse =

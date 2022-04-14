@@ -137,7 +137,7 @@ export default class Service {
         }
 
         let lighthouseLogs: $TSFixMe = [];
-        let siteUrls;
+        let siteUrls: $TSFixMe;
 
         const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: monitorId },

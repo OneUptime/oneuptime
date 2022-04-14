@@ -111,7 +111,7 @@ export default class Service {
                     ? project.users.map(({ userId }: $TSFixMe) => userId)
                     : [];
 
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (data.customFields && data.customFields.length > 0) {
                 for (const field of data.customFields) {
                     if (

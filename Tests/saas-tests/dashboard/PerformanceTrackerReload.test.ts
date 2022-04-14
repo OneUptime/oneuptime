@@ -73,7 +73,7 @@ describe('OneUptime Page Reload', () => {
             );
 
             await init.pageClick(page, '#addPerformanceTrackerButton');
-            let spanElement;
+            let spanElement: $TSFixMe;
             spanElement = await init.pageWaitForSelector(
                 page,
                 `#performance-tracker-title-${performanceTrackerName}`,

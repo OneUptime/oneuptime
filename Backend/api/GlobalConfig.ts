@@ -26,7 +26,7 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            let configs;
+            let configs: $TSFixMe;
 
             if (Array.isArray(req.body)) {
                 configs = req.body;

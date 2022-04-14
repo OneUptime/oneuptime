@@ -9,7 +9,7 @@ const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data): void {
-        let probeKey;
+        let probeKey: $TSFixMe;
         if (data.probeKey) {
             probeKey = data.probeKey;
         } else {

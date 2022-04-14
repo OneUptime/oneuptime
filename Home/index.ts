@@ -177,7 +177,7 @@ app.get(
     '/unsubscribe/:monitorId/:subscriberId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { monitorId, subscriberId } = req.params;
-        let apiHost;
+        let apiHost: $TSFixMe;
         if (process.env['ONEUPTIME_HOST']) {
             apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
         } else {

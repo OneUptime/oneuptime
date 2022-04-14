@@ -67,7 +67,7 @@ class Service extends DatabaseService<typeof Model> {
     protected override async onBeforeCreate({
         data,
     }: CreateBy): Promise<CreateBy> {
-        let applicationScannerKey;
+        let applicationScannerKey: $TSFixMe;
         if (data.get('applicationScannerKey')) {
             applicationScannerKey = data.get('applicationScannerKey');
         } else {

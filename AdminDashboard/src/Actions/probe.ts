@@ -95,7 +95,7 @@ export const deleteProbe: $TSFixMe =
             dispatch(deleteProbeSuccess(probeId));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -162,7 +162,7 @@ export const addProbe: $TSFixMe =
             dispatch(addProbeSuccess(data));
             return 'ok';
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -230,7 +230,7 @@ export const updateProbe: $TSFixMe =
                 dispatch(addProbeError('Network Error'));
             }
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

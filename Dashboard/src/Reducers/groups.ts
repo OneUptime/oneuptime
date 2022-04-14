@@ -13,7 +13,7 @@ const initialState: $TSFixMe = {
 };
 
 export default function groups(state = initialState, action: Action): void {
-    let updatedGroup;
+    let updatedGroup: $TSFixMe;
     switch (action.type) {
         case types.GET_GROUPS_REQUEST:
             return {

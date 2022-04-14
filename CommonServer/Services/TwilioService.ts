@@ -48,9 +48,9 @@ export default class TwilioService {
         projectId: ObjectID,
         smsProgress: $TSFixMe
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
-            let smsMessage;
+            let smsMessage: $TSFixMe;
             if (smsProgress) {
                 smsMessage = `Reminder ${smsProgress.current}/${smsProgress.total}: `;
             } else {
@@ -186,7 +186,7 @@ export default class TwilioService {
         statusPageUrl: URL,
         customFields: $TSFixMe
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
@@ -320,7 +320,7 @@ export default class TwilioService {
         customFields: $TSFixMe,
         note: $TSFixMe
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
@@ -454,7 +454,7 @@ export default class TwilioService {
         customFields: $TSFixMe,
         length: $TSFixMe
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
@@ -588,7 +588,7 @@ export default class TwilioService {
         customFields: $TSFixMe,
         length: $TSFixMe
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
@@ -756,7 +756,7 @@ export default class TwilioService {
         projectName: $TSFixMe,
         projectId: ObjectID
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
@@ -882,7 +882,7 @@ export default class TwilioService {
         projectName: $TSFixMe,
         projectId: ObjectID
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
@@ -1007,7 +1007,7 @@ export default class TwilioService {
         projectName: $TSFixMe,
         projectId: ObjectID
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
@@ -1129,7 +1129,7 @@ export default class TwilioService {
         projectName: $TSFixMe,
         projectId: ObjectID
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
@@ -1252,7 +1252,7 @@ export default class TwilioService {
         projectName: $TSFixMe,
         projectId: ObjectID
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
@@ -1377,7 +1377,7 @@ export default class TwilioService {
         incidentType: $TSFixMe,
         callProgress: $TSFixMe
     ): void {
-        let callBody;
+        let callBody: $TSFixMe;
         try {
             const extraInfo: $TSFixMe = callProgress
                 ? `This is the ${await this.getProgressText(
@@ -1555,7 +1555,7 @@ export default class TwilioService {
         projectId: ObjectID,
         validationResult: $TSFixMe
     ): void {
-        let smsBody;
+        let smsBody: $TSFixMe;
         try {
             const customTwilioSettings: $TSFixMe = await this.findByOne({
                 query: { projectId, enabled: true },
@@ -1677,7 +1677,7 @@ export default class TwilioService {
     ): void {
         let accountSid: $TSFixMe = null;
         let authToken: $TSFixMe = null;
-        let numbers;
+        let numbers: $TSFixMe;
         const data: $TSFixMe = {
             phoneNumber: '',
             locality: '',

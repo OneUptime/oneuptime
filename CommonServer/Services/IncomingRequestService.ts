@@ -832,7 +832,7 @@ export default class Service {
                     );
 
                     if (!monitorsWithIncident.includes(String(monitor._id))) {
-                        let incident;
+                        let incident: $TSFixMe;
                         if (_incident) {
                             incident = await IncidentService.updateOneBy(
                                 { _id: _incident._id },
@@ -936,7 +936,7 @@ export default class Service {
                     data.monitors = monitors.map(
                         (monitor: $TSFixMe) => monitor._id
                     );
-                    let incident;
+                    let incident: $TSFixMe;
                     if (_incident) {
                         incident = await IncidentService.updateOneBy(
                             { _id: _incident._id },

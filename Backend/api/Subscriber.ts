@@ -293,7 +293,7 @@ router.post(
                     message: 'You are already subscribed to this monitor.',
                 });
             } else {
-                let subscriber;
+                let subscriber: $TSFixMe;
                 if (data.alertVia === 'email') {
                     const subscriberExist: $TSFixMe =
                         await SubscriberService.findByOne({

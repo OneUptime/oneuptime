@@ -165,7 +165,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not save custom SMTP settings if user name is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let user;
+        let user: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             user,
@@ -181,7 +181,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not save custom SMTP settings if password is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let pass;
+        let pass: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             pass,
@@ -197,7 +197,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not save custom SMTP settings if host is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let host;
+        let host: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             host,
@@ -213,7 +213,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not save custom SMTP settings if port is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let port;
+        let port: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             port,
@@ -228,7 +228,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not save custom SMTP settings if from is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let from;
+        let from: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             from,
@@ -243,7 +243,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not save custom SMTP settings if name is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let name;
+        let name: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             name,
@@ -269,7 +269,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not update custom SMTP settings if user name is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let user;
+        let user: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             user,
@@ -284,7 +284,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not update custom SMTP settings if password is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let pass;
+        let pass: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             pass,
@@ -300,7 +300,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not update custom SMTP settings if host is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let host;
+        let host: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             host,
@@ -317,7 +317,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not update custom SMTP settings if port is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let port;
+        let port: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             port,
@@ -333,7 +333,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not update custom SMTP settings if from is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let from;
+        let from: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             from,
@@ -348,7 +348,7 @@ describe('Email SMTP Api Test', function (): void {
 
     it('should not update custom SMTP settings if name is missing', async () => {
         const authorization: string = `Basic ${jwtToken}`;
-        let name;
+        let name: $TSFixMe;
         const data: $TSFixMe = {
             ...smtpCredential,
             name,

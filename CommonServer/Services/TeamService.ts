@@ -71,7 +71,7 @@ export default class Service {
         projectId: ObjectID,
         teamMemberUserId: ObjectID
     ): void {
-        let index;
+        let index: $TSFixMe;
         let subProject: $TSFixMe = null;
 
         let project: $TSFixMe = await ProjectService.findOneBy({
@@ -580,7 +580,7 @@ export default class Service {
         userId: ObjectID,
         teamMemberUserId: ObjectID
     ): void {
-        let index;
+        let index: $TSFixMe;
         let subProject: $TSFixMe = null;
 
         if (userId === teamMemberUserId) {
@@ -763,7 +763,7 @@ export default class Service {
     ): void {
         let previousRole: $TSFixMe = '';
         const nextRole: $TSFixMe = role;
-        let index;
+        let index: $TSFixMe;
         let subProject: $TSFixMe = null;
         let subProjects: $TSFixMe = null;
 

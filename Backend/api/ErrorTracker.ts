@@ -310,7 +310,7 @@ router.put(
             errorTrackerUpdate.showQuickStart = data.showQuickStart;
         }
 
-        let unsetData;
+        let unsetData: $TSFixMe;
         if (!data.resourceCategory || data.resourceCategory === '') {
             unsetData = { resourceCategory: '' };
         } else {
@@ -985,7 +985,7 @@ router.post(
             await Promise.all(
                 teamMemberId.map(async teamMemberUserId => {
                     // check if in organization
-                    let member;
+                    let member: $TSFixMe;
                     try {
                         member = await TeamService.getTeamMemberBy(
                             projectId,
@@ -1135,7 +1135,7 @@ router.post(
             await Promise.all(
                 teamMemberId.map(async teamMemberUserId => {
                     // check if in organization
-                    let member;
+                    let member: $TSFixMe;
                     try {
                         member = await TeamService.getTeamMemberBy(
                             projectId,

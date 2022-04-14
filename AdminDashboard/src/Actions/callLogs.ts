@@ -43,7 +43,7 @@ export const fetchCallLogs: $TSFixMe =
 
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -100,7 +100,7 @@ export const searchCallLogs: $TSFixMe =
             dispatch(searchCallLogsSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -149,7 +149,7 @@ export const deleteCallLogs: $TSFixMe =
 
             dispatch(deleteCallLogsSuccess(message));
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -212,7 +212,7 @@ export const fetchCallLogStatus: $TSFixMe =
             dispatch(fetchCallLogStatusSuccess(response.data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -277,7 +277,7 @@ export const callLogStatusChange: $TSFixMe =
             dispatch(changeCallLogStatusSuccess(data));
             return data;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

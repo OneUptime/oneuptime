@@ -43,7 +43,7 @@ export const fetchSmsLogs: $TSFixMe =
 
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -100,7 +100,7 @@ export const searchSmsLogs: $TSFixMe =
             dispatch(searchSmsLogsSuccess(data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -149,7 +149,7 @@ export const deleteSmsLogs: $TSFixMe =
 
             dispatch(deleteSmsLogsSuccess(message));
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -210,7 +210,7 @@ export const fetchSmsLogStatus: $TSFixMe =
             dispatch(fetchSmsLogStatusSuccess(response.data));
             return response;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -275,7 +275,7 @@ export const smsLogStatusChange: $TSFixMe =
             dispatch(changeSmsLogStatusSuccess(data));
             return data;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

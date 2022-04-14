@@ -12,7 +12,7 @@ export default {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        let clusterKey;
+        let clusterKey: $TSFixMe;
 
         if (req.params && req.params['clusterKey']) {
             clusterKey = req.params['clusterKey'];

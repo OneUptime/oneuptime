@@ -26,7 +26,7 @@ const logger: $TSFixMe = createLogger();
 const middleware: $TSFixMe = [thunk, routerMiddleware(history)];
 
 if (process.env['NODE_ENV'] === 'development') {
-    let devToolsExtension;
+    let devToolsExtension: $TSFixMe;
     if (!isApiServer) {
         devToolsExtension = window.devToolsExtension;
     }

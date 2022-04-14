@@ -10,7 +10,7 @@ export default class Service {
     async create(data: $TSFixMe): void {
         // prepare  log model
         let log: $TSFixMe = new LogModel();
-        let content;
+        let content: $TSFixMe;
 
         try {
             content = JSON.parse(data.content);

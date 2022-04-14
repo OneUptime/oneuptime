@@ -21,8 +21,8 @@ const getMutex: Function = (
     mutexResource: $TSFixMe,
     resourceId: $TSFixMe
 ): void => {
-    let mutex;
-    let mutexStorage;
+    let mutex: $TSFixMe;
+    let mutexStorage: $TSFixMe;
     try {
         if (!mongoose.isValidObjectId(resourceId)) {
             return;

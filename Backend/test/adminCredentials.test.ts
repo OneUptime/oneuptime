@@ -15,7 +15,7 @@ import AuditLogsService from '../backend/services/auditLogsService';
 import UserService from '../backend/services/userService';
 import AirtableService from '../backend/services/airtableService';
 
-let token;
+let token: $TSFixMe;
 
 describe('Admin process.env login API', function (): void {
     this.timeout(30000);

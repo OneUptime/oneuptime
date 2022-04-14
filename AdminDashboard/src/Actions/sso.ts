@@ -36,7 +36,7 @@ export const fetchSsos: $TSFixMe =
 
             dispatch(fetchSsosSuccess(response.data));
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -81,7 +81,7 @@ export const fetchSso: $TSFixMe =
 
             dispatch(fetchSsoSuccess(response.data));
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -124,7 +124,7 @@ export const deleteSso: $TSFixMe =
             await delete `sso/${ssoId}`;
             dispatch(deleteSsoSuccess());
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -167,7 +167,7 @@ export const addSso: $TSFixMe =
             await BackendAPI.post(`sso/`, data);
             dispatch(addSsoSuccess());
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -210,7 +210,7 @@ export const updateSso: $TSFixMe =
             await BackendAPI.put(`sso/${id}`, data);
             dispatch(updateSsoSuccess());
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

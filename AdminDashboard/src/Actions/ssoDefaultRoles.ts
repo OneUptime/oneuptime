@@ -40,7 +40,7 @@ export const fetchSsoDefaultRoles: $TSFixMe =
 
             return dispatch(fetchSsoDefaultRolesSuccess(response.data));
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -88,7 +88,7 @@ export const fetchSsoDefaultRole: $TSFixMe =
 
             dispatch(fetchSsoDefaultRoleSuccess(response.data));
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -138,7 +138,7 @@ export const deleteSsoDefaultRole: $TSFixMe =
 
             dispatch(fetchSsoDefaultRoles());
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -182,7 +182,7 @@ export const addSsoDefaultRole: $TSFixMe =
             dispatch(addSsoDefaultRoleSuccess());
             return true;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }
@@ -229,7 +229,7 @@ export const updateSsoDefaultRole: $TSFixMe =
             dispatch(updateSsoDefaultRoleSuccess());
             return true;
         } catch (error) {
-            let errorMsg;
+            let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
             }

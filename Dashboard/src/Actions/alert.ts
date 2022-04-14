@@ -262,7 +262,7 @@ export function fetchAlertCharges(
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
-    let promise;
+    let promise: $TSFixMe;
     return function (dispatch: Dispatch): void {
         if (skip >= 0 && limit > 0) {
             promise = BackendAPI.get(

@@ -21,7 +21,7 @@ const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data): void {
-        let probeKey;
+        let probeKey: $TSFixMe;
         if (data.probeKey) {
             probeKey = data.probeKey;
         } else {
@@ -693,7 +693,7 @@ export default {
         const failedReasons: $TSFixMe = [];
 
         let eventOccurred: $TSFixMe = false;
-        let matchedCriterion;
+        let matchedCriterion: $TSFixMe;
         if (con && con.length) {
             eventOccurred = con.some(condition => {
                 let stat: $TSFixMe = true;
@@ -764,7 +764,7 @@ export default {
         const failedReasons: $TSFixMe = [];
 
         let eventOccurred: $TSFixMe = false;
-        let matchedCriterion;
+        let matchedCriterion: $TSFixMe;
 
         if (con && con.length) {
             for (const condition of con) {
@@ -840,7 +840,7 @@ export default {
 
     incomingCondition: (payload, conditions) => {
         let eventOccurred: $TSFixMe = false;
-        let matchedCriterion;
+        let matchedCriterion: $TSFixMe;
         if (conditions && conditions.length) {
             eventOccurred = some(conditions, condition => {
                 let response: $TSFixMe = false;
@@ -893,7 +893,7 @@ export default {
 
     probeHttpRequest: async function (monitor, probeId): void {
         let status, reason;
-        let matchedCriterion;
+        let matchedCriterion: $TSFixMe;
         const lastPingTime: $TSFixMe = monitor.lastPingTime;
         const payload: $TSFixMe = moment().diff(moment(lastPingTime), 'minutes');
 
@@ -6167,7 +6167,7 @@ const criteriaStrings: $TSFixMe = {
 };
 
 const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
-    let formattedNumber;
+    let formattedNumber: $TSFixMe;
     switch (roundType) {
         case 'up':
             formattedNumber = Math.ceil(
@@ -6191,8 +6191,8 @@ const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
 
 const formatBytes: Function = (a, b, c, d, e): void => {
     let value: $TSFixMe = a;
-    let decimalPlaces;
-    let roundType;
+    let decimalPlaces: $TSFixMe;
+    let roundType: $TSFixMe;
     if (typeof a === 'object') {
         value = a.value;
         decimalPlaces = a.decimalPlaces;

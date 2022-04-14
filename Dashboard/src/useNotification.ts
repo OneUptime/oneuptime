@@ -12,7 +12,7 @@ export async function getUserAgent(): void {
 }
 
 export async function getTheSubscription(): void {
-    let subscription;
+    let subscription: $TSFixMe;
 
     if (registerService) {
         subscription = await registerService.pushManager.subscribe({
