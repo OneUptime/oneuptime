@@ -355,7 +355,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { performanceTrackerId }: $TSFixMe = req.params;
-            let {startDate, endDate}: $TSFixMe = req.query;
+            let { startDate, endDate }: $TSFixMe = req.query;
 
             startDate = decode(startDate);
 

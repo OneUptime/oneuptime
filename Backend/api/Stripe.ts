@@ -203,7 +203,7 @@ router.post(
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const { projectId }: $TSFixMe = req.params;
-            let {rechargeBalanceAmount}: $TSFixMe = req.body;
+            let { rechargeBalanceAmount }: $TSFixMe = req.body;
             rechargeBalanceAmount = Number(rechargeBalanceAmount);
             if (!rechargeBalanceAmount) {
                 return sendErrorResponse(req, res, {

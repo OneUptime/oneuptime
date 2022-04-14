@@ -412,7 +412,7 @@ router.put(
                     message: 'ProjectId must be present.',
                 });
             }
-            let {rechargeBalanceAmount}: $TSFixMe = req.body;
+            let { rechargeBalanceAmount }: $TSFixMe = req.body;
             if (typeof rechargeBalanceAmount === 'string') {
                 rechargeBalanceAmount = parseFloat(rechargeBalanceAmount);
             }

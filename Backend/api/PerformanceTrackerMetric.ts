@@ -55,7 +55,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { appId }: $TSFixMe = req.params;
-            let {startDate, endDate}: $TSFixMe = req.query;
+            let { startDate, endDate }: $TSFixMe = req.query;
 
             startDate = decode(startDate);
 
@@ -123,7 +123,7 @@ router.get(
     async (req, res): void => {
         try {
             const { appId }: $TSFixMe = req.params;
-            let {startDate, endDate}: $TSFixMe = req.query;
+            let { startDate, endDate }: $TSFixMe = req.query;
 
             startDate = decode(startDate);
 
@@ -190,7 +190,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { appId }: $TSFixMe = req.params;
-            let {startDate, endDate}: $TSFixMe = req.query;
+            let { startDate, endDate }: $TSFixMe = req.query;
 
             startDate = decode(startDate);
 
@@ -260,7 +260,7 @@ router.get(
         try {
             const { appId }: $TSFixMe = req.params;
             const { type, skip, limit }: $TSFixMe = req.query;
-            let {startDate, endDate}: $TSFixMe = req.query;
+            let { startDate, endDate }: $TSFixMe = req.query;
 
             startDate = decode(startDate);
 
