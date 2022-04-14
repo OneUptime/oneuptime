@@ -43,7 +43,7 @@ export const getStatusPage: Function = (
             Data => {
                 dispatch(statusPageSuccess(Data.data));
             },
-            error => {
+            (error: Error) => {
                 if (
                     error &&
                     error.response &&
@@ -192,7 +192,7 @@ export const getAllStatusPageResource: Function = (
                 };
                 dispatch(getAllStatusPageSuccess(data));
             },
-            error => {
+            (error: Error) => {
                 if (
                     error &&
                     error.response &&
@@ -306,7 +306,7 @@ export const getStatusPageNote: Function = (
                 dispatch(newThemeIncidentNote(Data.data));
                 dispatch(individualNoteDisable());
             },
-            error => {
+            (error: Error) => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -354,7 +354,7 @@ export const getStatusPageIndividualNote: Function = (
                     })
                 );
             },
-            error => {
+            (error: Error) => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -418,7 +418,7 @@ export const getScheduledEvent: Function = (
             Data => {
                 dispatch(scheduledEventSuccess(Data.data));
             },
-            error => {
+            (error: Error) => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -483,7 +483,7 @@ export const getOngoingScheduledEvent: Function = (
                 dispatch(ongoingEventSuccess(Data.data));
             },
 
-            error => {
+            (error: Error) => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -542,7 +542,7 @@ export const getIndividualEvent: Function = (
                     })
                 );
             },
-            error => {
+            (error: Error) => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -703,7 +703,7 @@ export const getMoreNote: Function = (
             Data => {
                 dispatch(moreNoteSuccess(Data.data));
             },
-            error => {
+            (error: Error) => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -757,7 +757,7 @@ export const getMoreEvent: Function = (
             Data => {
                 dispatch(moreEventSuccess(Data.data));
             },
-            error => {
+            (error: Error) => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }

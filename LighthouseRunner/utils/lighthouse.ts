@@ -53,7 +53,7 @@ process.on('message', url => {
 
             process.send(result);
         })
-        .catch(error => {
+        .catch((error: Error) => {
             process.send({ data: { url }, error });
         });
 });

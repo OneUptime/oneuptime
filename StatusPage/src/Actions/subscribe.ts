@@ -93,7 +93,7 @@ export const subscribeUser: Function = (
             () => {
                 dispatch(subscribeSuccess());
             },
-            error => {
+            (error: Error) => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }

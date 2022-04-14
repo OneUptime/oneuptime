@@ -22,7 +22,7 @@ export const post: Function = (url: URL, data: $TSFixMe): void => {
             .then(response => {
                 resolve(response);
             })
-            .then(error => {
+            .then((error: Error) => {
                 reject(error);
             });
     });
@@ -43,7 +43,7 @@ export const get: Function = (url: URL): void => {
             .then(response => {
                 resolve(response);
             })
-            .then(error => {
+            .then((error: Error) => {
                 reject(error);
             });
     });
@@ -65,7 +65,7 @@ export const put: Function = (url: URL, data: $TSFixMe): void => {
             .then(response => {
                 resolve(response);
             })
-            .then(error => {
+            .then((error: Error) => {
                 reject(error);
             });
     });

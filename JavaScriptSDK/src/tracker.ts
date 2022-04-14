@@ -298,7 +298,7 @@ class ErrorTracker {
                 // clear the timeline after a successful call to the server
                 this._clear(this.getEventId());
             })
-            .catch(error => (content = error));
+            .catch((error: Error) => (content = error));
         return content;
     }
     _makeApiRequest(data: $TSFixMe): void {

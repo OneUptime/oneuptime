@@ -1861,7 +1861,7 @@ export default class Service {
                     incidentState: statusPageNoteData.incident_state,
                     statusNoteStatus: statusPageNoteData.statusNoteStatus,
                 }
-            ).catch(error => {
+            ).catch((error: Error) => {
                 ErrorService.log(
                     'ApplicationScannerService.sendStatusPageNoteNotificationToProjectWebhooks > WebHookService.sendIntegrationNotification',
                     error
@@ -3148,7 +3148,7 @@ export default class Service {
                         eventType: eventType,
                         totalSubscribers,
                         id,
-                    }).catch(error => {
+                    }).catch((error: Error) => {
                         ErrorService.log(
                             'AlertService.sendSubscriberAlert',
                             error

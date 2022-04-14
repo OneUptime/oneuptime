@@ -270,7 +270,7 @@ async function fetchCredential(
                     resolve('done writing to file');
                 });
 
-                dest.on('error', async error => {
+                dest.on('error', async (error: Error) => {
                     reject(error);
                 });
             }
@@ -306,7 +306,7 @@ function createDir(dirPath: $TSFixMe): void {
             resolve(workPath);
         }
 
-        fs.mkdir(workPath, error => {
+        fs.mkdir(workPath, (error: Error) => {
             if (error) {
                 reject(error);
             }

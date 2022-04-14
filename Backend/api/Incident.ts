@@ -1101,7 +1101,7 @@ router.post(
                             data,
                             'created',
                             projectId
-                        ).catch(error => {
+                        ).catch((error: Error) => {
                             errorService.log(
                                 'AlertService.sendInvestigationNoteToSubscribers',
                                 error
@@ -1134,7 +1134,7 @@ router.post(
                             data,
                             'updated',
                             projectId
-                        ).catch(error => {
+                        ).catch((error: Error) => {
                             errorService.log(
                                 'AlertService.sendInvestigationNoteToSubscribers',
                                 error
@@ -1150,7 +1150,7 @@ router.post(
                         ...data,
                         statusNoteStatus: data.id ? 'updated' : 'created',
                     }
-                ).catch(error => {
+                ).catch((error: Error) => {
                     errorService.log(
                         'IncidentAPI.sendInvestigationToProjectWebhooks',
                         error

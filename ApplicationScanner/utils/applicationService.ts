@@ -94,7 +94,7 @@ export default {
                         const output: $TSFixMe = spawn('npm', ['install'], {
                             cwd: repoPath,
                         });
-                        output.on('error', error => {
+                        output.on('error', (error: Error) => {
                             error.code = 500;
                             throw error;
                         });
@@ -109,7 +109,7 @@ export default {
                                 }
                             );
 
-                            audit.on('error', error => {
+                            audit.on('error', (error: Error) => {
                                 error.code = 500;
                                 throw error;
                             });
@@ -189,7 +189,7 @@ export default {
                             });
                         });
                     })
-                    .catch(async error => {
+                    .catch(async (error: Error) => {
                         await updateApplicationSecurityToFailed(security);
                         error.message =
                             'Authentication failed please check your git credentials or git repository url';
@@ -236,7 +236,7 @@ export default {
                     const output: $TSFixMe = spawn('npm', ['install'], {
                         cwd: repoPath,
                     });
-                    output.on('error', error => {
+                    output.on('error', (error: Error) => {
                         error.code = 500;
                         throw error;
                     });
@@ -251,7 +251,7 @@ export default {
                             }
                         );
 
-                        audit.on('error', error => {
+                        audit.on('error', (error: Error) => {
                             error.code = 500;
                             throw error;
                         });
@@ -329,7 +329,7 @@ export default {
                         });
                     });
                 })
-                .catch(async error => {
+                .catch(async (error: Error) => {
                     await updateApplicationSecurityToFailed(security);
                     error.message =
                         'Authentication failed please check your git credentials or git repository url';
@@ -392,7 +392,7 @@ function createDir(dirPath): void {
             resolve(workPath);
         }
 
-        fs.mkdir(workPath, error => {
+        fs.mkdir(workPath, (error: Error) => {
             if (error) {
                 reject(error);
             }

@@ -648,7 +648,7 @@ export default {
                     await deleteFile(configPath);
                 });
 
-                dest.on('error', async error => {
+                dest.on('error', async (error: Error) => {
                     await deleteFile(configPath);
                     throw error;
                 });

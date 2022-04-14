@@ -249,7 +249,7 @@ export default class Service {
                     StatusPageService.deleteDomain(
                         statusPageId,
                         eachDomain._id
-                    ).catch(error => {
+                    ).catch((error: Error) => {
                         errorService.log(
                             'StatusPageService.deleteDomain',
                             error

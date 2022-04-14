@@ -48,7 +48,7 @@ export const validateToken: Function = (token: $TSFixMe): void => {
             user => {
                 dispatch(validateTokenSuccess(user.data.tokens.jwtAccessToken));
             },
-            error => {
+            (error: Error) => {
                 dispatch(validateTokenError(error));
             }
         );

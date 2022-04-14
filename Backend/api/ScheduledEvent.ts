@@ -349,7 +349,7 @@ router.put(
                     // handle this asynchronous operation in the background
                     AlertService.sendCancelledScheduledEventToSubscribers(
                         scheduledEvent
-                    ).catch(error => {
+                    ).catch((error: Error) => {
                         ErrorService.log(
                             'AlertService.sendCancelledScheduledEventToSubscribers',
                             error

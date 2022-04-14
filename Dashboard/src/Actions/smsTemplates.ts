@@ -94,7 +94,7 @@ export const editSmsTemplates: Function = (
             (smsTemplate): void => {
                 dispatch(editSmsTemplateSuccess(smsTemplate.data));
             },
-            error => {
+            (error: Error) => {
                 dispatch(editSmsTemplateError(error));
             }
         );

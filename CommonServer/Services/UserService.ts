@@ -215,7 +215,7 @@ class Service extends DatabaseService<typeof Model> {
 
             if (email !== user.email) {
                 this.updateOneBy({ _id: user._id }, { tempEmail: email }).catch(
-                    error => {
+                    (error: Error) => {
                         ErrorService.log(
                             'UserService.sendToken > UserService.updateOneBy',
                             error

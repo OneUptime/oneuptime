@@ -94,7 +94,7 @@ export const editEmailTemplates: Function = (
             (emailTemplate): void => {
                 dispatch(editEmailTemplateSuccess(emailTemplate.data));
             },
-            error => {
+            (error: Error) => {
                 dispatch(editEmailTemplateError(error));
             }
         );

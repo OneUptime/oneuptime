@@ -89,6 +89,7 @@
         "react/boolean-prop-naming": "error",
         "react/no-is-mounted": "error",
         "react/no-find-dom-node": "error",
+        "one-var-declaration-per-line": "error",
         "@typescript-eslint/typedef": [
             "error",
             {

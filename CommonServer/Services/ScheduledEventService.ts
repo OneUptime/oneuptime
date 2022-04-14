@@ -139,7 +139,7 @@ export default class Service {
             // handle this asynchronous operation in the background
             AlertService.sendCreatedScheduledEventToSubscribers(
                 scheduledEvent
-            ).catch(error => {
+            ).catch((error: Error) => {
                 ErrorService.log(
                     'AlertService.sendCreatedScheduledEventToSubscribers',
                     error
@@ -662,7 +662,7 @@ export default class Service {
             // handle this asynchronous operation in the background
             AlertService.sendResolvedScheduledEventToSubscribers(
                 resolvedScheduledEvent
-            ).catch(error => {
+            ).catch((error: Error) => {
                 ErrorService.log(
                     'AlertService.sendResolvedScheduledEventToSubscribers',
                     error

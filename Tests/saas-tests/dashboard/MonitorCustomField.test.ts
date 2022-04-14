@@ -9,13 +9,13 @@ let browser: $TSFixMe, page: $TSFixMe;
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const monitorFieldText: $TSFixMe = {
-        fieldName: 'textField',
-        fieldType: 'text',
-    },
-    monitorFieldNumber = {
-        fieldName: 'numField',
-        fieldType: 'number',
-    };
+    fieldName: 'textField',
+    fieldType: 'text',
+};
+const monitorFieldNumber: $TSFixMe = {
+    fieldName: 'numField',
+    fieldType: 'number',
+};
 const user: $TSFixMe = {
     email,
     password,

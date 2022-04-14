@@ -178,7 +178,7 @@ export default {
                     schedule,
                     incident,
                     monitorId: monitor,
-                }).catch(error => {
+                }).catch((error: Error) => {
                     ErrorService.log(
                         'AlertService.sendAlertsToTeamMembersInSchedule',
                         error

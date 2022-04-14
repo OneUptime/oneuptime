@@ -45,7 +45,7 @@ export default class Service {
         ) {
             AlertService.sendScheduledEventInvestigationNoteToSubscribers(
                 scheduledEventMessage
-            ).catch(error => {
+            ).catch((error: Error) => {
                 ErrorService.log(
                     'AlertService.sendScheduledEventInvestigationNoteToSubscribers',
                     error

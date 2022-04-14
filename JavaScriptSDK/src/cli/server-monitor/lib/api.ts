@@ -158,7 +158,7 @@ const ping: Function = (
                                 (error: $TSFixMe) => logger.error(error)
                             );
                         })
-                        .catch(error => {
+                        .catch((error: Error) => {
                             logger.error(error);
                         });
             }

@@ -65,7 +65,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             ''
         );
-        firstLog.log('here').catch(error => {
+        firstLog.log('here').catch((error: Error) => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
                 'Application Log Key is required.'
@@ -79,7 +79,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        firstLog.log('').catch(error => {
+        firstLog.log('').catch((error: Error) => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
                 'Content to be logged is required.'
@@ -93,7 +93,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             'key'
         );
-        firstLog.log('content').catch(error => {
+        firstLog.log('content').catch((error: Error) => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
                 'Application Log does not exist.'

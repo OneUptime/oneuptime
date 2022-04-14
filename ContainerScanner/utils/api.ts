@@ -26,7 +26,7 @@ const _this: $TSFixMe = {
                 .then(response => {
                     resolve(response.data);
                 })
-                .then(error => {
+                .then((error: Error) => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -49,7 +49,7 @@ const _this: $TSFixMe = {
                 .then(response => {
                     resolve(response.data);
                 })
-                .then(error => {
+                .then((error: Error) => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -73,7 +73,7 @@ const _this: $TSFixMe = {
                 .then(response => {
                     resolve(response.data);
                 })
-                .then(error => {
+                .then((error: Error) => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -97,7 +97,7 @@ const _this: $TSFixMe = {
                 .then(response => {
                     resolve(response.data);
                 })
-                .then(error => {
+                .then((error: Error) => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }

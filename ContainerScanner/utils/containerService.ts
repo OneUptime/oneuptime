@@ -81,7 +81,7 @@ export default {
                 shell: true,
             });
 
-            output.on('error', async error => {
+            output.on('error', async (error: Error) => {
                 const errorMessage: $TSFixMe =
                     'Scanning failed please check your docker credential or image path/tag';
 
@@ -140,7 +140,7 @@ export default {
                     shell: true,
                 });
 
-                clearCache.on('error', async error => {
+                clearCache.on('error', async (error: Error) => {
                     error.code = 400;
                     error.message = 'Unable to clear cache, try again later';
                     await Promise.all([
@@ -286,7 +286,7 @@ function createDir(dirPath): void {
             resolve(workPath);
         }
 
-        fs.mkdir(workPath, error => {
+        fs.mkdir(workPath, (error: Error) => {
             if (error) {
                 reject(error);
             }

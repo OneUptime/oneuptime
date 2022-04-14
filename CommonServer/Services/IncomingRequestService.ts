@@ -1457,7 +1457,7 @@ export default class Service {
                                 data,
                                 'created',
                                 data.projectId
-                            ).catch(error => {
+                            ).catch((error: Error) => {
                                 ErrorService.log(
                                     'AlertService.sendInvestigationNoteToSubscriber',
                                     error
@@ -1477,7 +1477,7 @@ export default class Service {
                                 data,
                                 'created',
                                 data.projectId
-                            ).catch(error => {
+                            ).catch((error: Error) => {
                                 ErrorService.log(
                                     'AlertService.sendInvestigationNoteToSubscribers',
                                     error

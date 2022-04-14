@@ -1982,7 +1982,7 @@ export default class Service {
         if (!data.hideAnnouncement && data.announcementToggle) {
             AlertService.sendAnnouncementNotificationToSubscribers(
                 response
-            ).catch(error => {
+            ).catch((error: Error) => {
                 ErrorService.log(
                     'StatusPageService.updateAnnouncement > AlertService.sendAnnouncementNotificationToSubscribers',
                     error
