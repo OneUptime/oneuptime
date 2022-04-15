@@ -13,7 +13,10 @@ const stripe: $TSFixMe = require('stripe')(payment.paymentPrivateKey, {
 // removal of 'moment' due to declaration but not used.
 
 export default class StripeService {
-    async successEvent(customerId: $TSFixMe, subscriptionId: $TSFixMe): void {
+    public async successEvent(
+        customerId: $TSFixMe,
+        subscriptionId: $TSFixMe
+    ): void {
         const [, project]: $TSFixMe = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
@@ -37,7 +40,7 @@ export default class StripeService {
         return { paymentStatus: 'success' };
     }
 
-    async failedEvent(
+    public async failedEvent(
         customerId: $TSFixMe,
         subscriptionId: $TSFixMe,
         chargeAttemptCount: $TSFixMe,
@@ -91,7 +94,10 @@ export default class StripeService {
         return { paymentStatus: 'failed' };
     }
 
-    async cancelEvent(customerId: $TSFixMe, subscriptionId: $TSFixMe): void {
+    public async cancelEvent(
+        customerId: $TSFixMe,
+        subscriptionId: $TSFixMe
+    ): void {
         const [user, project]: $TSFixMe = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
@@ -135,7 +141,7 @@ export default class StripeService {
         return { projectDeleted: true };
     }
 
-    async charges(userId: ObjectID): void {
+    public async charges(userId: ObjectID): void {
         const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -147,7 +153,7 @@ export default class StripeService {
         return charges.data;
     }
 
-    async createCreditCard(tok: $TSFixMe, userId: ObjectID): void {
+    public async createCreditCard(tok: $TSFixMe, userId: ObjectID): void {
         const [tokenCard, cards]: $TSFixMe = await Promise.all([
             stripe.tokens.retrieve(tok),
 
@@ -199,7 +205,7 @@ export default class StripeService {
         }
     }
 
-    async update(userId: ObjectID, cardId: $TSFixMe): void {
+    public async update(userId: ObjectID, cardId: $TSFixMe): void {
         const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -211,7 +217,7 @@ export default class StripeService {
         return card;
     }
 
-    async delete(cardId: $TSFixMe, userId: ObjectID): void {
+    public async delete(cardId: $TSFixMe, userId: ObjectID): void {
         const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -232,7 +238,7 @@ export default class StripeService {
         return card;
     }
 
-    async get(userId: ObjectID, cardId: $TSFixMe): void {
+    public async get(userId: ObjectID, cardId: $TSFixMe): void {
         const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -265,7 +271,7 @@ export default class StripeService {
         }
     }
 
-    async chargeCustomerForBalance(
+    public async chargeCustomerForBalance(
         userId: ObjectID,
         chargeAmount: $TSFixMe,
         projectId: ObjectID,
@@ -299,7 +305,7 @@ export default class StripeService {
         return paymentIntent;
     }
 
-    async updateBalance(paymentIntent: $TSFixMe): void {
+    public async updateBalance(paymentIntent: $TSFixMe): void {
         if (paymentIntent.status === 'succeeded') {
             const amountRechargedStripe: $TSFixMe = Number(
                 paymentIntent.amount_received
@@ -369,7 +375,7 @@ export default class StripeService {
         return false;
     }
 
-    async addBalance(
+    public async addBalance(
         userId: ObjectID,
         chargeAmount: $TSFixMe,
         projectId: ObjectID
@@ -396,7 +402,7 @@ export default class StripeService {
         return paymentIntent;
     }
 
-    async createInvoice(
+    public async createInvoice(
         amount: $TSFixMe,
         stripeCustomerId: $TSFixMe,
         description: $TSFixMe,
@@ -441,7 +447,7 @@ export default class StripeService {
         return updatedPaymentIntent;
     }
 
-    async makeTestCharge(
+    public async makeTestCharge(
         tokenId: $TSFixMe,
         email: $TSFixMe,
         companyName: $TSFixMe
@@ -472,7 +478,7 @@ export default class StripeService {
         return paymentIntent;
     }
 
-    async confirmPayment(paymentIntent: $TSFixMe): void {
+    public async confirmPayment(paymentIntent: $TSFixMe): void {
         const confirmedPaymentIntent: $TSFixMe =
             await stripe.paymentIntents.confirm(paymentIntent.id);
 
@@ -490,14 +496,14 @@ export default class StripeService {
         return confirmedPaymentIntent;
     }
 
-    async retrievePaymentIntent(intentId: $TSFixMe): void {
+    public async retrievePaymentIntent(intentId: $TSFixMe): void {
         const paymentIntent: $TSFixMe = await stripe.paymentIntents.retrieve(
             intentId
         );
         return paymentIntent;
     }
 
-    async fetchTrialInformation(subscriptionId: $TSFixMe): void {
+    public async fetchTrialInformation(subscriptionId: $TSFixMe): void {
         const subscription: $TSFixMe = await stripe.subscriptions.retrieve(
             subscriptionId
         );

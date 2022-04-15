@@ -23,7 +23,7 @@ if ('function' === typeof importScripts) {
 
         precacheAndRoute(self.__WB_MANIFEST, { cleanUrls: false });
 
-        self.addEventListener('push', e => {
+        self.addEventListener('push', (e: $TSFixMe) => {
             const data: $TSFixMe = e.data.json();
 
             self.registration.showNotification(data.title, {

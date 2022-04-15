@@ -193,22 +193,25 @@ export default function scheduledEvent(
                 ...state.subProjectOngoingScheduledEvent.events,
             ];
 
-            state.subProjectOngoingScheduledEvent.events.forEach(eventData => {
-                if (
-                    String(eventData.project) ===
-                    String(action.payload.projectId._id)
-                ) {
-                    eventData.ongoingScheduledEvents.forEach(
-                        (event: $TSFixMe) => {
-                            if (
-                                String(event._id) === String(action.payload._id)
-                            ) {
-                                existingOngoingEvent = true;
+            state.subProjectOngoingScheduledEvent.events.forEach(
+                (eventData: $TSFixMe) => {
+                    if (
+                        String(eventData.project) ===
+                        String(action.payload.projectId._id)
+                    ) {
+                        eventData.ongoingScheduledEvents.forEach(
+                            (event: $TSFixMe) => {
+                                if (
+                                    String(event._id) ===
+                                    String(action.payload._id)
+                                ) {
+                                    existingOngoingEvent = true;
+                                }
                             }
-                        }
-                    );
+                        );
+                    }
                 }
-            });
+            );
 
             if (!existingOngoingEvent) {
                 if (startDate <= currentDate && endDate > currentDate) {

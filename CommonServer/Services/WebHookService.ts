@@ -16,7 +16,7 @@ import {
 
 export default class Service {
     // process external subscriber webhook
-    async sendSubscriberNotification(
+    public async sendSubscriberNotification(
         subscriber: $TSFixMe,
         projectId: ObjectID,
         incident: $TSFixMe,
@@ -52,7 +52,7 @@ export default class Service {
         );
     }
     // process messages to be sent to slack workspace channels
-    async sendIntegrationNotification(
+    public async sendIntegrationNotification(
         projectId: ObjectID,
         incident: $TSFixMe,
         monitor: $TSFixMe,
@@ -137,7 +137,7 @@ export default class Service {
     }
 
     // send notification to slack workspace channels
-    async notify(
+    public async notify(
         project: $TSFixMe,
         monitor: $TSFixMe,
         incident: $TSFixMe,

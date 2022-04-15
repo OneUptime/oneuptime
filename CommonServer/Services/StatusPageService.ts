@@ -113,7 +113,7 @@ const StatusPageServiceBase: $TSFixMe = new ServiceBase({
 });
 
 export default class Service {
-    async findBy({
+public async findBy({
         query,
         skip,
         limit,
@@ -131,7 +131,7 @@ export default class Service {
         });
     }
 
-    async findOneBy({ query, select, populate, skip, sort }: $TSFixMe): void {
+public async findOneBy({ query, select, populate, skip, sort }: $TSFixMe): void {
         return await StatusPageServiceBase.findOneBy({
             query,
             skip,
@@ -141,11 +141,11 @@ export default class Service {
         });
     }
 
-    async countBy(query: Query): void {
+public async countBy(query: Query): void {
         return await StatusPageServiceBase.countBy({ query });
     }
 
-    async create({ data }: $TSFixMe): void {
+public async create({ data }: $TSFixMe): void {
         data.domains = data.domains || [];
         data.colors = data.colors || defaultStatusPageColors.default;
         data.monitors = Array.isArray(data.monitors) ? [...data.monitors] : [];
@@ -181,7 +181,7 @@ export default class Service {
         return newStatusPage;
     }
 
-    async createDomain(
+public async createDomain(
         subDomain: $TSFixMe,
         projectId: ObjectID,
         statusPageId: $TSFixMe,
@@ -285,7 +285,7 @@ export default class Service {
 
     // update all the occurence of the old domain to the new domain
     // use regex to replace the value
-    async updateCustomDomain(
+public async updateCustomDomain(
         domainId: $TSFixMe,
         newDomain: $TSFixMe,
         oldDomain: $TSFixMe
@@ -329,7 +329,7 @@ export default class Service {
         }
     }
 
-    async updateDomain(
+public async updateDomain(
         projectId: ObjectID,
         statusPageId: $TSFixMe,
         domainId: $TSFixMe,
@@ -447,7 +447,7 @@ export default class Service {
         return result;
     }
 
-    async deleteDomain(statusPageId: $TSFixMe, domainId: $TSFixMe): void {
+public async deleteDomain(statusPageId: $TSFixMe, domainId: $TSFixMe): void {
         const populateStatusPage: $TSFixMe = [
             {
                 path: 'domains.domainVerificationToken',
@@ -500,7 +500,7 @@ export default class Service {
         );
     }
 
-    async duplicateStatusPage(
+public async duplicateStatusPage(
         statusPageProjectId: ObjectID,
         statusPageSlug: $TSFixMe,
         statusPageName: $TSFixMe,
@@ -559,7 +559,7 @@ export default class Service {
         return this.create(data);
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -622,7 +622,7 @@ export default class Service {
         return statusPage;
     }
 
-    async removeMonitor(monitorId: $TSFixMe): void {
+public async removeMonitor(monitorId: $TSFixMe): void {
         const populateStatusPage: $TSFixMe = [
             {
                 path: 'monitors.monitor',
@@ -651,7 +651,7 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+public async updateOneBy(query: Query, data: $TSFixMe): void {
         const existingStatusPage: $TSFixMe = await this.findBy({
             query: {
                 name: data.name,
@@ -729,7 +729,7 @@ export default class Service {
         return updatedStatusPage;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -768,7 +768,7 @@ export default class Service {
         return updatedData;
     }
 
-    async getNotes(
+public async getNotes(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -869,7 +869,7 @@ export default class Service {
         }
     }
 
-    async getIncident(query: Query): void {
+public async getIncident(query: Query): void {
         const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
@@ -901,7 +901,7 @@ export default class Service {
         return incident;
     }
 
-    async getIncidentNotes(
+public async getIncidentNotes(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -952,7 +952,7 @@ export default class Service {
         return { message, count };
     }
 
-    async getNotesByDate(
+public async getNotesByDate(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -997,7 +997,7 @@ export default class Service {
         return { investigationNotes, count };
     }
 
-    async getEvents(
+public async getEvents(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1106,7 +1106,7 @@ export default class Service {
         }
     }
 
-    async getFutureEvents(
+public async getFutureEvents(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1217,7 +1217,7 @@ export default class Service {
         }
     }
 
-    async getPastEvents(
+public async getPastEvents(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1325,7 +1325,7 @@ export default class Service {
         }
     }
 
-    async getEvent(query: Query): void {
+public async getEvent(query: Query): void {
         const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1350,7 +1350,7 @@ export default class Service {
         return scheduledEvent;
     }
 
-    async getEventNotes(
+public async getEventNotes(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1404,7 +1404,7 @@ export default class Service {
         return { notes: eventNote, count };
     }
 
-    async getEventsByDate(
+public async getEventsByDate(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1439,7 +1439,7 @@ export default class Service {
         return { scheduledEvents, count };
     }
 
-    async getStatusPage({ query, userId, populate, select }: $TSFixMe): void {
+public async getStatusPage({ query, userId, populate, select }: $TSFixMe): void {
         const thisObj: $TSFixMe = this;
         if (!query) {
             query = {};
@@ -1531,7 +1531,7 @@ export default class Service {
         return statusPage;
     }
 
-    async getIncidents(query: Query): void {
+public async getIncidents(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -1593,7 +1593,7 @@ export default class Service {
         }
     }
 
-    async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {
+public async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {
         const fn: Function = async (resolve: $TSFixMe): void => {
             if (statusPage.isPrivate) {
                 if (userId) {
@@ -1624,7 +1624,7 @@ export default class Service {
         return fn;
     }
 
-    async getStatusPagesByProjectId({
+public async getStatusPagesByProjectId({
         projectId,
         skip = 0,
         limit = 10,
@@ -1648,7 +1648,7 @@ export default class Service {
         };
     }
 
-    async restoreBy(query: Query): void {
+public async restoreBy(query: Query): void {
         query.deleted = true;
 
         const populateStatusPage: $TSFixMe = [
@@ -1699,7 +1699,7 @@ export default class Service {
         }
     }
     // get status pages for this incident
-    async getStatusPagesForIncident(
+public async getStatusPagesForIncident(
         incidentId: $TSFixMe,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1734,7 +1734,7 @@ export default class Service {
         return { statusPages: statusPages || [], count };
     }
 
-    async getStatusBubble(statusPages: $TSFixMe, probes: $TSFixMe): void {
+public async getStatusBubble(statusPages: $TSFixMe, probes: $TSFixMe): void {
         if (statusPages && statusPages[0]) {
             statusPages = statusPages[0];
         }
@@ -1769,7 +1769,7 @@ export default class Service {
         return { bubble, statusMessage };
     }
 
-    async doesDomainExist(domain: $TSFixMe): void {
+public async doesDomainExist(domain: $TSFixMe): void {
         const statusPage: $TSFixMe = await this.countBy({
             query: {
                 domains: { $elemMatch: { domain } },
@@ -1783,7 +1783,7 @@ export default class Service {
         return true;
     }
 
-    async createExternalStatusPage(data: $TSFixMe): void {
+public async createExternalStatusPage(data: $TSFixMe): void {
         const externalStatusPage: $TSFixMe = new ExternalStatusPageModel();
 
         externalStatusPage.url = data.url || null;
@@ -1802,7 +1802,7 @@ export default class Service {
         return newExternalStatusPage;
     }
 
-    async getExternalStatusPage(
+public async getExternalStatusPage(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1832,7 +1832,7 @@ export default class Service {
         return externalStatusPages;
     }
 
-    async updateExternalStatusPage(
+public async updateExternalStatusPage(
         projectId: ObjectID,
         _id: $TSFixMe,
         data: $TSFixMe
@@ -1852,7 +1852,7 @@ export default class Service {
         return externalStatusPages;
     }
 
-    async deleteExternalStatusPage(
+public async deleteExternalStatusPage(
         projectId: ObjectID,
         _id: $TSFixMe,
         userId: ObjectID
@@ -1876,7 +1876,7 @@ export default class Service {
         return externalStatusPages;
     }
 
-    async createAnnouncement(data: $TSFixMe): void {
+public async createAnnouncement(data: $TSFixMe): void {
         // reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
             monitorId: monitor,
@@ -1906,7 +1906,7 @@ export default class Service {
         return newAnnouncement;
     }
 
-    async getAnnouncements(
+public async getAnnouncements(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1941,7 +1941,7 @@ export default class Service {
         return allAnnouncements;
     }
 
-    async countAnnouncements(query: Query): void {
+public async countAnnouncements(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -1950,7 +1950,7 @@ export default class Service {
         return count;
     }
 
-    async getSingleAnnouncement(query: Query): void {
+public async getSingleAnnouncement(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -1959,7 +1959,7 @@ export default class Service {
         return response;
     }
 
-    async updateAnnouncement(query: Query, data: $TSFixMe): void {
+public async updateAnnouncement(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -2000,7 +2000,7 @@ export default class Service {
         return response;
     }
 
-    async updateManyAnnouncement(query: Query): void {
+public async updateManyAnnouncement(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -2017,7 +2017,7 @@ export default class Service {
         return response;
     }
 
-    async deleteAnnouncement(query: Query, userId: ObjectID): void {
+public async deleteAnnouncement(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -2038,7 +2038,7 @@ export default class Service {
         return response;
     }
 
-    async createAnnouncementLog(data: $TSFixMe): void {
+public async createAnnouncementLog(data: $TSFixMe): void {
         const announcementLog: $TSFixMe = new AnnouncementLogModel();
 
         announcementLog.announcementId = data.announcementId || null;
@@ -2056,7 +2056,7 @@ export default class Service {
         return newAnnouncementLog;
     }
 
-    async updateAnnouncementLog(query: Query, data: $TSFixMe): void {
+public async updateAnnouncementLog(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -2073,7 +2073,7 @@ export default class Service {
         return response;
     }
 
-    async getAnnouncementLogs(
+public async getAnnouncementLogs(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -2111,7 +2111,7 @@ export default class Service {
         return announcementLogs;
     }
 
-    async deleteAnnouncementLog(query: Query, userId: ObjectID): void {
+public async deleteAnnouncementLog(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -2132,7 +2132,7 @@ export default class Service {
         return response;
     }
 
-    async countAnnouncementLogs(query: Query): void {
+public async countAnnouncementLogs(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -2141,7 +2141,7 @@ export default class Service {
         return count;
     }
 
-    async fetchTweets(handle: $TSFixMe): void {
+public async fetchTweets(handle: $TSFixMe): void {
         const userData: $TSFixMe = await axios.get(
             `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
             {

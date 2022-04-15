@@ -4,19 +4,19 @@ export default class Service {
     //Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
     //Returns: promise
 
-    async find({ tableName, view, limit }: $TSFixMe): void {
+    public async find({ tableName, view, limit }: $TSFixMe): void {
         return base(tableName).select({ view, pageSize: limit }).firstPage();
     }
 
-    async update({ tableName, id, fields }: $TSFixMe): void {
+    public async update({ tableName, id, fields }: $TSFixMe): void {
         return base(tableName).update(id, fields);
     }
 
-    async create({ tableName, fields }: $TSFixMe): void {
+    public async create({ tableName, fields }: $TSFixMe): void {
         return base(tableName).create(fields);
     }
 
-    async delete({ tableName, id }: $TSFixMe): void {
+    public async delete({ tableName, id }: $TSFixMe): void {
         return base(tableName).destroy(id);
     }
 
@@ -112,7 +112,7 @@ export default class Service {
         return base('Feedback').destroy(airtableId);
     }
 
-    async deleteAll({ tableName, view, limit }: $TSFixMe): void {
+    public async deleteAll({ tableName, view, limit }: $TSFixMe): void {
         if (!view) {
             view = 'Grid view';
         }

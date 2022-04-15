@@ -4,7 +4,7 @@ import Query from '../Types/DB/Query';
 import FindBy from '../Types/DB/FindBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
-    async findBy({ query, limit, skip, sort }: FindBy): void {
+    public async findBy({ query, limit, skip, sort }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -53,7 +53,7 @@ export default class Service {
         return response;
     }
 
-    async findOneBy(query: Query): void {
+    public async findOneBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -72,7 +72,7 @@ export default class Service {
         return group;
     }
 
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const groupExist: $TSFixMe = await this.findOneBy({
             name: data.name,
             projectId: data.projectId,
@@ -92,7 +92,7 @@ export default class Service {
         return group;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -102,7 +102,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         const group: $TSFixMe = await GroupModel.findOneAndUpdate(
             query,
             {
@@ -119,7 +119,11 @@ export default class Service {
         return group;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, projectId: ObjectID): void {
+    public async updateOneBy(
+        query: Query,
+        data: $TSFixMe,
+        projectId: ObjectID
+    ): void {
         if (!query) {
             query = {};
         }
@@ -149,7 +153,10 @@ export default class Service {
         return group;
     }
 
-    async removeGroupMember(groupId: $TSFixMe, memberId: $TSFixMe): void {
+    public async removeGroupMember(
+        groupId: $TSFixMe,
+        memberId: $TSFixMe
+    ): void {
         const group: $TSFixMe = await this.findOneBy({ _id: groupId });
         const teamMembers: $TSFixMe = group.teams;
         const data: $TSFixMe = teamMembers.filter((id: $TSFixMe) => {

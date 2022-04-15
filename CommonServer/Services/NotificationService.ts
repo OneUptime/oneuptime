@@ -4,7 +4,7 @@ import RealTimeService from './realTimeService';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(
+    public async create(
         projectId: ObjectID,
         message: $TSFixMe,
         userId: ObjectID,
@@ -54,7 +54,7 @@ export default class Service {
         return populatedNotification || notification;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }

@@ -10,7 +10,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         // prepare issue model
         let issue: $TSFixMe = new IssueModel();
 
@@ -47,7 +47,14 @@ export default class Service {
         return issue;
     }
     // find a list of Issues
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -85,7 +92,7 @@ export default class Service {
         return issues;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -104,7 +111,7 @@ export default class Service {
         return issue;
     }
 
-    async findOneByHashAndErrorTracker(
+    public async findOneByHashAndErrorTracker(
         fingerprint: $TSFixMe,
         errorTrackerId: $TSFixMe
     ): void {
@@ -125,7 +132,11 @@ export default class Service {
         return issue;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null): void {
+    public async updateOneBy(
+        query: Query,
+        data: $TSFixMe,
+        unsetData = null
+    ): void {
         if (!query) {
             query = {};
         }
@@ -169,7 +180,7 @@ export default class Service {
         return issue;
     }
 
-    async deleteBy(
+    public async deleteBy(
         query: Query,
         userId: ObjectID,
         componentId: $TSFixMe
@@ -210,7 +221,7 @@ export default class Service {
         }
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

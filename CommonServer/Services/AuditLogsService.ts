@@ -1,5 +1,12 @@
 export default class Service {
-    async findBy({ query, skip, limit, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        skip,
+        limit,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         const auditLogsQuery: $TSFixMe = AuditLogsModel.find(query)
             .lean()
             .sort(sort)
@@ -14,7 +21,7 @@ export default class Service {
         return auditLogs;
     }
 
-    async countBy({ query }: Query): void {
+    public async countBy({ query }: Query): void {
         if (!query) {
             query = {};
         }
@@ -23,7 +30,7 @@ export default class Service {
         return count;
     }
 
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const auditLogsModel: $TSFixMe = new AuditLogsModel({
             userId: data.userId,
             projectId: data.projectId,
@@ -35,7 +42,7 @@ export default class Service {
         return auditLog;
     }
 
-    async search({ filter, skip, limit }: $TSFixMe): void {
+    public async search({ filter, skip, limit }: $TSFixMe): void {
         const query: $TSFixMe = {
             'request.apiSection': {
                 $regex: new RegExp(filter),
@@ -66,7 +73,7 @@ export default class Service {
         return { searchedAuditLogs, totalSearchCount };
     }
 
-    async hardDeleteBy({ query }: $TSFixMe): void {
+    public async hardDeleteBy({ query }: $TSFixMe): void {
         await AuditLogsModel.deleteMany(query);
     }
 }

@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const Log: $TSFixMe = new LighthouseLogModel();
 
         Log.monitorId = data.monitorId;
@@ -33,7 +33,7 @@ export default class Service {
         return savedLog;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -50,7 +50,7 @@ export default class Service {
         return lighthouseLog;
     }
 
-    async updateManyBy(query: Query, data: $TSFixMe): void {
+    public async updateManyBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -66,7 +66,14 @@ export default class Service {
         return lighthouseLog;
     }
 
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -101,7 +108,7 @@ export default class Service {
         return lighthouseLogs;
     }
 
-    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
+    public async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -119,7 +126,12 @@ export default class Service {
         return lighthouseLog;
     }
 
-    async findLastestScan({ monitorId, url, skip, limit }: $TSFixMe): void {
+    public async findLastestScan({
+        monitorId,
+        url,
+        skip,
+        limit,
+    }: $TSFixMe): void {
         if (!skip) {
             skip = 0;
         }
@@ -197,7 +209,7 @@ export default class Service {
         };
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -207,7 +219,7 @@ export default class Service {
         return count;
     }
 
-    async sendLighthouseLog(data: $TSFixMe): void {
+    public async sendLighthouseLog(data: $TSFixMe): void {
         const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: data.monitorId },
             select: 'projectId',
@@ -218,7 +230,7 @@ export default class Service {
             RealTimeService.updateLighthouseLog(data, monitor.projectId._id);
         }
     }
-    async updateAllLighthouseLogs(
+    public async updateAllLighthouseLogs(
         projectId: ObjectID,
         monitorId: $TSFixMe,
         query: Query

@@ -148,7 +148,7 @@ export default function subProject(state = initialState, action: Action): void {
 
         case types.RESET_SUBPROJECT_TOKEN_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
-            index = subProjects.findIndex(subProject => {
+            index = subProjects.findIndex((subProject: $TSFixMe) => {
                 return subProject._id === action.payload._id;
             });
 
@@ -200,7 +200,7 @@ export default function subProject(state = initialState, action: Action): void {
 
         case types.RENAME_SUBPROJECT_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
-            index = subProjects.findIndex(subProject => {
+            index = subProjects.findIndex((subProject: $TSFixMe) => {
                 return subProject._id === action.payload._id;
             });
 
@@ -251,7 +251,7 @@ export default function subProject(state = initialState, action: Action): void {
 
         case types.DELETE_SUBPROJECT_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
-            subProjects = subProjects.filter(subProject => {
+            subProjects = subProjects.filter((subProject: $TSFixMe) => {
                 return subProject._id !== action.payload;
             });
             return Object.assign({}, state, {

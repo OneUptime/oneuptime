@@ -7,7 +7,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const subscriberModel: $TSFixMe = new SubscriberModel();
 
         subscriberModel.projectId = data.projectId || null;
@@ -44,7 +44,7 @@ export default class Service {
         });
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -65,7 +65,7 @@ export default class Service {
         return updatedSubscriber;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -88,7 +88,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         const subscriber: $TSFixMe = await SubscriberModel.findOneAndUpdate(
             query,
             {
@@ -105,7 +105,14 @@ export default class Service {
         return subscriber;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -176,7 +183,7 @@ export default class Service {
         return subscribersArr;
     }
 
-    async subscribersForAlert(query: Query): void {
+    public async subscribersForAlert(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -230,7 +237,7 @@ export default class Service {
         return subscribersArr;
     }
 
-    async subscribe(data: $TSFixMe, monitors: $TSFixMe): void {
+    public async subscribe(data: $TSFixMe, monitors: $TSFixMe): void {
         const populateStatusPage: $TSFixMe = [
             { path: 'monitors.monitor', select: '_id' },
         ];
@@ -291,7 +298,7 @@ export default class Service {
         return subscriber;
     }
 
-    async subscribeFromCSVFile(subscribers: $TSFixMe): void {
+    public async subscribeFromCSVFile(subscribers: $TSFixMe): void {
         const { data, projectId, monitorId }: $TSFixMe = subscribers;
         const success: $TSFixMe = data.map(async (subscriber: $TSFixMe) => {
             const newSubscriber: $TSFixMe = Object.assign({}, subscriber, {
@@ -309,7 +316,7 @@ export default class Service {
         return await Promise.all(success);
     }
 
-    async subscriberCheck(subscriber: $TSFixMe): void {
+    public async subscriberCheck(subscriber: $TSFixMe): void {
         const existingSubscriber: $TSFixMe = await this.findByOne({
             query: {
                 monitorId: subscriber.monitorId,
@@ -334,7 +341,7 @@ export default class Service {
         return existingSubscriber !== null;
     }
 
-    async findByOne({ query, select, populate, sort }: FindOneBy): void {
+    public async findByOne({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -352,7 +359,7 @@ export default class Service {
         return subscriber;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -362,12 +369,12 @@ export default class Service {
         return count;
     }
 
-    async removeBy(query: Query): void {
+    public async removeBy(query: Query): void {
         await SubscriberModel.deleteMany(query);
         return 'Subscriber(s) removed successfully';
     }
 
-    async restoreBy(query: Query): void {
+    public async restoreBy(query: Query): void {
         query.deleted = true;
         let subscriber: $TSFixMe = await this.findBy({ query, select: '_id' });
         if (subscriber && subscriber.length > 1) {

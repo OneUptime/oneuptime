@@ -53,7 +53,7 @@ const _this: $TSFixMe = {
             'exception',
             'message',
             'error',
-        ].filter(elem => {
+        ].filter((elem: $TSFixMe) => {
             return elem === data.type;
         });
         if (allowedLogType.length < 1) {

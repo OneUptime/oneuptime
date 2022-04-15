@@ -28,7 +28,7 @@ export default class Service {
      * @param {string} alertPhoneNumber phone number of the recipient
      * @returns { (Promise<{error : (string) }> | Promise< {closingBalance : number, chargeAmount:number}>} an object containing error or closing balance and charge amount
      */
-    async chargeAlertAndGetProjectBalance(
+    public async chargeAlertAndGetProjectBalance(
         userId,
 
         project,
@@ -83,7 +83,7 @@ export default class Service {
      * @param {*} alertType type of alert
      * @return {boolean} whether the project has enough balance
      */
-    async hasEnoughBalance(
+    public async hasEnoughBalance(
         projectId,
 
         alertPhoneNumber,
@@ -131,7 +131,7 @@ export default class Service {
      * @returns {boolean} whether the balance is recharged to the project
      */
 
-    async fillProjectBalance(userId, project): void {
+    public async fillProjectBalance(userId, project): void {
         try {
             let balanceRecharged: $TSFixMe;
 
@@ -161,7 +161,7 @@ export default class Service {
      * @param {*} alertType type of alert
      * @returns {{success : boolean, message : string}} whether the balance is recharged successfully
      */
-    async checkAndRechargeProjectBalance(
+    public async checkAndRechargeProjectBalance(
         project,
 
         userId,
@@ -213,7 +213,7 @@ export default class Service {
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
 
-    async checkPaymentIntent(paymentIntent: $TSFixMe): void {
+    public async checkPaymentIntent(paymentIntent: $TSFixMe): void {
         const processedPaymentIntent: $TSFixMe =
             await stripe.paymentIntents.retrieve(paymentIntent.id);
         return processedPaymentIntent;
@@ -225,7 +225,7 @@ export default class Service {
     //Param 2: user: User details
     //Returns: promise
 
-    async createCustomer(email: Email, companyName: string): void {
+    public async createCustomer(email: Email, companyName: string): void {
         const customer: $TSFixMe = await stripe.customers.create({
             email: email,
             description: companyName,
@@ -233,7 +233,7 @@ export default class Service {
         return customer.id;
     }
 
-    async addPayment(customerId: ObjectID): void {
+    public async addPayment(customerId: ObjectID): void {
         const card: $TSFixMe = await stripe.customers.createSource(customerId);
         return card;
     }
@@ -244,7 +244,7 @@ export default class Service {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
 
-    async subscribePlan(
+    public async subscribePlan(
         stripePlanId: ObjectID,
         stripeCustomerId: ObjectID,
         coupon: string
@@ -286,7 +286,7 @@ export default class Service {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
 
-    async changeSeats(subscriptionId, seats): void {
+    public async changeSeats(subscriptionId, seats): void {
         if (subscriptionId === null) {
             return;
         }
@@ -347,7 +347,7 @@ export default class Service {
         }
     }
 
-    async createSubscription(stripeCustomerId, amount): void {
+    public async createSubscription(stripeCustomerId, amount): void {
         const productId: $TSFixMe = Plans.getReserveNumberProductId();
 
         const subscriptions: $TSFixMe = await stripe.subscriptions.create({
@@ -368,14 +368,14 @@ export default class Service {
         return subscriptions;
     }
 
-    async removeSubscription(stripeSubscriptionId: $TSFixMe): void {
+    public async removeSubscription(stripeSubscriptionId: $TSFixMe): void {
         const confirmations: $TSFixMe = [];
 
         confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
         return confirmations;
     }
 
-    async changePlan(subscriptionId, planId, seats): void {
+    public async changePlan(subscriptionId, planId, seats): void {
         let subscriptionObj: $TSFixMe = {};
 
         const subscription: $TSFixMe = await stripe.subscriptions.retrieve(
@@ -412,7 +412,7 @@ export default class Service {
         return subscriptions.id;
     }
 
-    async chargeAlert(userId, projectId, chargeAmount): void {
+    public async chargeAlert(userId, projectId, chargeAmount): void {
         let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'balance alertOptions _id',
@@ -475,7 +475,7 @@ export default class Service {
     //Params:
     //Param 1: stripeCustomerId: Received during signup process.
     //Returns : promise
-    async chargeExtraUser(
+    public async chargeExtraUser(
         stripeCustomerId,
 
         extraUserPlanId,

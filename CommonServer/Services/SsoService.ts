@@ -1,7 +1,7 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class Service {
-    async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -26,7 +26,7 @@ export default class Service {
         return sso;
     }
 
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const sso: $TSFixMe = new SsoModel();
 
         sso['saml-enabled'] = data['saml-enabled'] || false;
@@ -74,7 +74,7 @@ export default class Service {
         return savedSso;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -92,7 +92,7 @@ export default class Service {
         return sso;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -125,7 +125,7 @@ export default class Service {
         return sso;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

@@ -6,7 +6,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -23,7 +23,7 @@ export default class Service {
         return customField;
     }
 
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         let customField: $TSFixMe = await CustomFieldModel.create({
             ...data,
         });
@@ -42,7 +42,7 @@ export default class Service {
         return customField;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -119,7 +119,14 @@ export default class Service {
         return customField;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip || isNaN(skip)) {
             skip = 0;
         }
@@ -155,7 +162,7 @@ export default class Service {
         return customFields;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -164,7 +171,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         // when a custom field is deleted
         // it should be removed from the corresponding incoming request
         const select: $TSFixMe =
@@ -223,7 +230,7 @@ export default class Service {
         return customField;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }

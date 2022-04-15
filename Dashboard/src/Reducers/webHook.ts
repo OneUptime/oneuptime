@@ -113,7 +113,7 @@ export default (state = initialState, action: Action): void => {
         case DELETE_WEB_HOOK_SUCCESS:
             webHooks = Object.assign([], state.webHook.webHooks);
 
-            index = webHooks.findIndex(team => {
+            index = webHooks.findIndex((team: $TSFixMe) => {
                 return team._id === action.payload._id;
             });
             webHooks.splice(index, 1);
@@ -217,7 +217,7 @@ export default (state = initialState, action: Action): void => {
         case UPDATE_WEB_HOOK_SUCCESS:
             webHooks = Object.assign([], state.webHook.webHooks);
 
-            index = webHooks.findIndex(hook => {
+            index = webHooks.findIndex((hook: $TSFixMe) => {
                 return hook._id === action.payload._id;
             });
 

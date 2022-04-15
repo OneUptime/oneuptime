@@ -163,7 +163,7 @@ export default {
         const plans: $TSFixMe = this.getPlans();
         if (id) {
             return (
-                plans.find(plan => {
+                plans.find((plan: $TSFixMe) => {
                     return plan.planId === id;
                 }) || null
             );
@@ -176,7 +176,7 @@ export default {
         const plans: $TSFixMe = this.getPlans();
         if (id) {
             return (
-                plans.find(plan => {
+                plans.find((plan: $TSFixMe) => {
                     return plan.extraUserPlanId === id;
                 }) || null
             );

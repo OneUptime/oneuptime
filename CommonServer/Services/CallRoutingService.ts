@@ -72,7 +72,7 @@ class Service extends DatabaseService<typeof Model> {
         });
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -101,7 +101,7 @@ class Service extends DatabaseService<typeof Model> {
         return numbers;
     }
 
-    async reserveNumber(data: $TSFixMe, projectId: ObjectID): void {
+    public async reserveNumber(data: $TSFixMe, projectId: ObjectID): void {
         let confirmBuy: $TSFixMe = null;
         const hasCustomTwilioSettings: $TSFixMe =
             await TwilioService.hasCustomSettings(projectId);
@@ -154,7 +154,7 @@ class Service extends DatabaseService<typeof Model> {
         return CallRouting;
     }
 
-    async findTeamMember(type: $TSFixMe, id: $TSFixMe): void {
+    public async findTeamMember(type: $TSFixMe, id: $TSFixMe): void {
         let user: $TSFixMe;
         const selectEscalation: string = 'teams createdAt deleted deletedAt';
 
@@ -276,7 +276,7 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    async chargeRoutedCall(projectId: ObjectID, body: $TSFixMe): void {
+    public async chargeRoutedCall(projectId: ObjectID, body: $TSFixMe): void {
         const callSid: $TSFixMe = body['CallSid'];
         const callStatus: $TSFixMe = body['CallStatus'] || null;
         const callDetails: $TSFixMe = await TwilioService.getCallDetails(
@@ -340,7 +340,7 @@ class Service extends DatabaseService<typeof Model> {
         return 'Customer has been successfully charged for the call.';
     }
 
-    async getCallResponse(
+    public async getCallResponse(
         data: $TSFixMe,
         to: $TSFixMe,
         body: $TSFixMe,
@@ -562,7 +562,7 @@ class Service extends DatabaseService<typeof Model> {
         return response;
     }
 
-    async updateRoutingSchema(data: $TSFixMe): void {
+    public async updateRoutingSchema(data: $TSFixMe): void {
         const currentCallRouting: $TSFixMe = await this.findOneBy({
             query: { _id: data.callRoutingId },
             select: 'routingSchema',
@@ -614,7 +614,7 @@ class Service extends DatabaseService<typeof Model> {
         return CallRouting;
     }
 
-    async updateRoutingSchemaAudio(data: $TSFixMe): void {
+    public async updateRoutingSchemaAudio(data: $TSFixMe): void {
         const currentCallRouting: $TSFixMe = await this.findOneBy({
             query: { _id: data.callRoutingId },
             select: 'routingSchema',
@@ -672,7 +672,7 @@ class Service extends DatabaseService<typeof Model> {
         return CallRouting;
     }
 
-    async getCallRoutingLogs(projectId: ObjectID): void {
+    public async getCallRoutingLogs(projectId: ObjectID): void {
         let logs: $TSFixMe = [];
         const callRouting: $TSFixMe = await this.findBy({
             query: { projectId },

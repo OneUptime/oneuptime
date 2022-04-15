@@ -553,7 +553,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                         };
                     }
                 });
-                noteData.forEach(elem => {
+                noteData.forEach((elem: $TSFixMe) => {
                     if (String(elem._id) === String(oneNote._id)) {
                         elem = oneNote;
                     }

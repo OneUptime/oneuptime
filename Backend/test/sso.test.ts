@@ -238,7 +238,7 @@ describe('SSO API', function (): void {
     describe('DELETE /sso', (): void => {
         it('should delete sso', (done: $TSFixMe): void => {
             const authorization: string = `Basic ${token}`;
-            SsoService.create(ssoObject).then(sso => {
+            SsoService.create(ssoObject).then((sso: $TSFixMe) => {
                 const { _id: ssoId } = sso;
                 request
                     .delete(`/sso/${ssoId}`)
@@ -270,7 +270,7 @@ describe('SSO API', function (): void {
     describe('UPDATE /sso', (): void => {
         it('should update SSO', (done: $TSFixMe): void => {
             const authorization: string = `Basic ${token}`;
-            SsoService.create(ssoObject).then(sso => {
+            SsoService.create(ssoObject).then((sso: $TSFixMe) => {
                 const { _id: ssoId } = sso;
                 const updatedSsoObject: $TSFixMe = { ...ssoObject };
                 updatedSsoObject.domain = 'updated.hackerbay.com';

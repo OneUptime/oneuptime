@@ -8,7 +8,7 @@ export default class Service {
     //         that helps to fetch items fro the next list.
     //Returns : promise
 
-    async get(userId, startingAfter, endingBefore): void {
+    public async get(userId, startingAfter, endingBefore): void {
         const user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',

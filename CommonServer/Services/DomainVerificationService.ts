@@ -13,7 +13,7 @@ import Query from '../Types/DB/Query';
 import errorService from '../Utils/error';
 
 export default class Service {
-    async create({ domain, projectId }: $TSFixMe): void {
+public async create({ domain, projectId }: $TSFixMe): void {
         const parsed: $TSFixMe = psl.parse(domain);
         const token: string = 'oneuptime=' + randomChar();
 
@@ -28,7 +28,7 @@ export default class Service {
         return await DomainVerificationTokenModel.create(creationData);
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+public async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -79,7 +79,7 @@ export default class Service {
         return domains;
     }
 
-    async resetDomain(domain: $TSFixMe): void {
+public async resetDomain(domain: $TSFixMe): void {
         const updateObj: $TSFixMe = {
             verificationToken: 'oneuptime=' + randomChar(),
             verified: false,
@@ -92,7 +92,7 @@ export default class Service {
         return updatedDomain;
     }
 
-    async doesTxtRecordExist(
+public async doesTxtRecordExist(
         subDomain: $TSFixMe,
         verificationToken: $TSFixMe
     ): void {
@@ -149,7 +149,7 @@ export default class Service {
         }
     }
 
-    async doesDomainBelongToProject(
+public async doesDomainBelongToProject(
         projectId: ObjectID,
         subDomain: $TSFixMe
     ): void {
@@ -213,7 +213,7 @@ export default class Service {
         return false;
     }
 
-    async deleteBy(query: Query): void {
+public async deleteBy(query: Query): void {
         const domainCount: $TSFixMe = await this.countBy(query);
 
         if (!domainCount || domainCount === 0) {
@@ -262,7 +262,7 @@ export default class Service {
         return domain;
     }
 
-    async findDomain(domainId: $TSFixMe, projectArr = []): void {
+public async findDomain(domainId: $TSFixMe, projectArr = []): void {
         let projectId: $TSFixMe;
         for (const pId of projectArr) {
             const populateDomainVerify: $TSFixMe = [

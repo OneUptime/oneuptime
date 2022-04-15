@@ -81,7 +81,7 @@ class Service extends DatabaseService<typeof Model> {
         return Promise.resolve({ data } as CreateBy);
     }
 
-    async sendProbe(probeId, monitorId): void {
+public async sendProbe(probeId, monitorId): void {
         const selectProbe: $TSFixMe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
 
@@ -96,7 +96,7 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    async createMonitorDisabledStatus(data: $TSFixMe): void {
+public async createMonitorDisabledStatus(data: $TSFixMe): void {
         const select: $TSFixMe =
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
         let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
@@ -116,7 +116,7 @@ class Service extends DatabaseService<typeof Model> {
         return monitorStatus;
     }
 
-    async saveMonitorLog(data: $TSFixMe): void {
+public async saveMonitorLog(data: $TSFixMe): void {
         let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
             query: { monitorId: data.monitorId, probeId: data.probeId },
             select: 'status',
@@ -217,7 +217,7 @@ class Service extends DatabaseService<typeof Model> {
         return log;
     }
 
-    async getMonitorLog(data: $TSFixMe): void {
+public async getMonitorLog(data: $TSFixMe): void {
         const date: $TSFixMe = new Date();
 
         const selectMonitorLog: $TSFixMe =
@@ -241,7 +241,7 @@ class Service extends DatabaseService<typeof Model> {
         return log;
     }
 
-    async incidentCreateOrUpdate(data: $TSFixMe): void {
+public async incidentCreateOrUpdate(data: $TSFixMe): void {
         const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
@@ -531,7 +531,7 @@ class Service extends DatabaseService<typeof Model> {
         return incidentIds;
     }
 
-    async incidentResolveOrAcknowledge(data, allCriteria): void {
+public async incidentResolveOrAcknowledge(data, allCriteria): void {
         const populate: $TSFixMe = [
             {
                 path: 'probes.probeId',
@@ -562,7 +562,7 @@ class Service extends DatabaseService<typeof Model> {
 
         let autoAcknowledge: $TSFixMe, autoResolve: $TSFixMe;
         if (incidents && incidents.length > 0) {
-            incidents.forEach(incident => {
+            incidents.forEach((incident: $TSFixMe) => {
                 let criteriaId: $TSFixMe = null;
                 if (
                     incident &&
@@ -572,7 +572,7 @@ class Service extends DatabaseService<typeof Model> {
                     criteriaId = String(incident.criterionCause._id);
                 }
 
-                allCriteria.forEach(criteria => {
+                allCriteria.forEach((criteria: $TSFixMe) => {
                     if (
                         String(criteria._id) === criteriaId ||
                         criteria.name === incident.criterionCause.name
@@ -592,13 +592,13 @@ class Service extends DatabaseService<typeof Model> {
             // is this check needed at all??
             // if (lastStatus && lastStatus !== data.status) {
 
-            incidents.forEach(incident => {
+            incidents.forEach((incident: $TSFixMe) => {
                 if (
                     incident.probes &&
                     incident.probes.length > 0 &&
                     monitor.type !== 'incomingHttpRequest'
                 ) {
-                    incident.probes.some(probe => {
+                    incident.probes.some((probe: $TSFixMe) => {
                         if (
                             probe.probeId &&
                             String(probe.probeId._id || probe.probeId) ===
@@ -667,7 +667,7 @@ class Service extends DatabaseService<typeof Model> {
             const trueArray: $TSFixMe = [];
             const falseArray: $TSFixMe = [];
 
-            incident.probes.forEach(probe => {
+            incident.probes.forEach((probe: $TSFixMe) => {
                 if (probe.status) {
                     trueArray.push(probe);
                 } else {
@@ -702,7 +702,7 @@ class Service extends DatabaseService<typeof Model> {
         return {};
     }
 
-    async updateProbeStatus(probeId: $TSFixMe): void {
+public async updateProbeStatus(probeId: $TSFixMe): void {
         const probe: $TSFixMe = await ProbeModel.findOneAndUpdate(
             { _id: probeId },
             { $set: { lastAlive: Date.now() } },
@@ -721,7 +721,7 @@ class Service extends DatabaseService<typeof Model> {
         let eventOccurred: $TSFixMe = false;
         let matchedCriterion: $TSFixMe;
         if (con && con.length) {
-            eventOccurred = con.some(condition => {
+            eventOccurred = con.some((condition: $TSFixMe) => {
                 let stat: $TSFixMe = true;
                 if (
                     condition &&
@@ -923,7 +923,7 @@ class Service extends DatabaseService<typeof Model> {
         return null;
     }
 
-    async processHttpRequest(data: $TSFixMe): void {
+public async processHttpRequest(data: $TSFixMe): void {
         const { monitor, body }: $TSFixMe = data;
         let {queryParams, headers}: $TSFixMe = data;
         queryParams = this.toArray(queryParams);
@@ -1047,7 +1047,7 @@ class Service extends DatabaseService<typeof Model> {
         return log;
     }
 
-    async probeHttpRequest(monitor, probeId): void {
+public async probeHttpRequest(monitor, probeId): void {
         let status: $TSFixMe, reason: $TSFixMe;
         let matchedCriterion: $TSFixMe;
         const lastPingTime: $TSFixMe = monitor.lastPingTime;
@@ -3497,7 +3497,7 @@ const checkAnd: Function = (
                             failedReasons.push('Pod is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.podData.allPods.forEach(pod => {
+                            payload.podData.allPods.forEach((pod: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -3535,7 +3535,7 @@ const checkAnd: Function = (
                             failedReasons.push('Pod is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.podData.allPods.forEach(pod => {
+                            payload.podData.allPods.forEach((pod: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -3579,7 +3579,7 @@ const checkAnd: Function = (
                             failedReasons.push('Job is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.jobData.allJobs.forEach(job => {
+                            payload.jobData.allJobs.forEach((job: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -3617,7 +3617,7 @@ const checkAnd: Function = (
                             failedReasons.push('Job is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.jobData.allJobs.forEach(job => {
+                            payload.jobData.allJobs.forEach((job: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -5765,7 +5765,7 @@ const checkOr: Function = (
                             failedReasons.push('Pod is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.podData.allPods.forEach(pod => {
+                            payload.podData.allPods.forEach((pod: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -5802,7 +5802,7 @@ const checkOr: Function = (
                             failedReasons.push('Pod is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.podData.allPods.forEach(pod => {
+                            payload.podData.allPods.forEach((pod: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -5845,7 +5845,7 @@ const checkOr: Function = (
                             failedReasons.push('Job is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.jobData.allJobs.forEach(job => {
+                            payload.jobData.allJobs.forEach((job: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -5882,7 +5882,7 @@ const checkOr: Function = (
                             failedReasons.push('Job is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.jobData.allJobs.forEach(job => {
+                            payload.jobData.allJobs.forEach((job: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&

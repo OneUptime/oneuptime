@@ -10,7 +10,7 @@ import {
 
 export default class Service {
     // process messages to be sent to slack workspace channels
-    async sendNotification(
+    public async sendNotification(
         projectId: ObjectID,
         incident: $TSFixMe,
         monitor: $TSFixMe,
@@ -85,7 +85,7 @@ export default class Service {
     }
 
     // send notification to slack workspace channels
-    async notify(
+    public async notify(
         project: $TSFixMe,
         monitor: $TSFixMe,
         incident: $TSFixMe,
@@ -218,7 +218,7 @@ export default class Service {
         return 'Webhook successfully pinged';
     }
 
-    async sendIncidentNoteNotification(
+    public async sendIncidentNoteNotification(
         projectId: ObjectID,
         incident: $TSFixMe,
         data: $TSFixMe,
@@ -273,7 +273,7 @@ export default class Service {
     }
 
     // send notification to slack workspace channels when note is created
-    async noteNotify(
+    public async noteNotify(
         project: $TSFixMe,
         incident: $TSFixMe,
         integration: $TSFixMe,

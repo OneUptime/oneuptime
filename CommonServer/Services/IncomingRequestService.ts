@@ -24,7 +24,7 @@ import Query from '../Types/DB/Query';
 // import RealTimeService from './realTimeService'
 
 export default class Service {
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -43,7 +43,7 @@ export default class Service {
         return result;
     }
 
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         if (
             !data.selectAllMonitors &&
             data.createIncident &&
@@ -151,7 +151,7 @@ export default class Service {
         return incomingRequest;
     }
 
-    async getRequestUrl(projectId: ObjectID, requestId: $TSFixMe): void {
+    public async getRequestUrl(projectId: ObjectID, requestId: $TSFixMe): void {
         // create a unique request url
         // update incomingRequest collection with the new url
 
@@ -164,7 +164,7 @@ export default class Service {
         return updatedIncomingRequest;
     }
 
-    async updateOneBy(
+    public async updateOneBy(
         query: Query,
         data: $TSFixMe,
         excludeMonitors: $TSFixMe
@@ -372,7 +372,7 @@ export default class Service {
         return updatedIncomingRequest;
     }
 
-    async updateCustomFieldBy(query: Query, data: $TSFixMe): void {
+    public async updateCustomFieldBy(query: Query, data: $TSFixMe): void {
         const incomingRequest: $TSFixMe =
             await IncomingRequestModel.findOneAndUpdate(
                 query,
@@ -382,7 +382,14 @@ export default class Service {
         return incomingRequest;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip || isNaN(skip)) {
             skip = 0;
         }
@@ -417,7 +424,7 @@ export default class Service {
         return result;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -428,7 +435,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         const incomingRequest: $TSFixMe =
             await IncomingRequestModel.findOneAndUpdate(
                 query,
@@ -455,7 +462,7 @@ export default class Service {
         return incomingRequest;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -493,7 +500,7 @@ export default class Service {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    async removeMonitor(monitorId: $TSFixMe): void {
+    public async removeMonitor(monitorId: $TSFixMe): void {
         const allIncomingRequest: $TSFixMe = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors',
@@ -560,7 +567,7 @@ export default class Service {
         );
     }
 
-    async handleIncomingRequestAction(data: $TSFixMe): void {
+    public async handleIncomingRequestAction(data: $TSFixMe): void {
         const selectIncPriority: $TSFixMe =
             'projectId name color createdAt deletedAt deleted deletedById';
         const selectIncSettings: $TSFixMe =
@@ -969,7 +976,7 @@ export default class Service {
                 }
             }
 
-            let created_incidents = new Set(
+            let created_incidents: $TSFixMe = new Set(
                 incidentResponse.map((response: $TSFixMe) => {
                     return response.idNumber;
                 })
@@ -1335,7 +1342,7 @@ export default class Service {
                         fieldType: 'string',
                     });
 
-                    updatedFilters.forEach(filter => {
+                    updatedFilters.forEach((filter: $TSFixMe) => {
                         for (const field of incidentCustomFields) {
                             const filterCriteria: $TSFixMe =
                                     filter.filterCriteria,
@@ -1890,7 +1897,7 @@ export default class Service {
                         fieldType: 'string',
                     });
 
-                    updatedFilters.forEach(filter => {
+                    updatedFilters.forEach((filter: $TSFixMe) => {
                         for (const field of incidentCustomFields) {
                             const filterCriteria: $TSFixMe =
                                     filter.filterCriteria,

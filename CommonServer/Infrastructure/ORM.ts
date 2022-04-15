@@ -18,7 +18,7 @@ mongoose
     .then(() => {
         return logger.info('Mongo connected');
     })
-    .catch(err => {
+    .catch((err: $TSFixMe) => {
         // mongoose connection error will be handled here
         logger.error(err);
         process.exit(1);

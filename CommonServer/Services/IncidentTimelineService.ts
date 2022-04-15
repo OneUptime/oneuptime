@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         let incidentTimeline: $TSFixMe = new IncidentTimelineModel();
 
         incidentTimeline.incidentId = data.incidentId;
@@ -66,7 +66,7 @@ export default class Service {
         return incidentTimeline;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -99,7 +99,7 @@ export default class Service {
         return incidentTimeline;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -128,7 +128,14 @@ export default class Service {
         return incidentTimelines;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -164,7 +171,7 @@ export default class Service {
         return incidentTimelines;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -183,7 +190,7 @@ export default class Service {
         return incidentTimeline;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -198,7 +205,7 @@ export default class Service {
 
     // fetches just the last/latest incident timeline
     // this timelines will be used in status page
-    async getIncidentLastTimelines(incidents: $TSFixMe): void {
+    public async getIncidentLastTimelines(incidents: $TSFixMe): void {
         const skip: $TSFixMe = 0,
             limit = 1;
 
@@ -228,7 +235,7 @@ export default class Service {
         return timelines;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }

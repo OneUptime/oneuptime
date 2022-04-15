@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const query: $TSFixMe = {};
 
         if (data.monitorId) {
@@ -69,7 +69,7 @@ export default class Service {
 
     // allData is an array of object
     // to be bulk written to the db
-    async createMany(allData: $TSFixMe): void {
+    public async createMany(allData: $TSFixMe): void {
         const dataList: $TSFixMe = [];
         for (const data of allData) {
             const query: $TSFixMe = {};
@@ -135,7 +135,7 @@ export default class Service {
         return null;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -153,7 +153,7 @@ export default class Service {
         return updatedMonitorStatus;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -168,7 +168,14 @@ export default class Service {
         return updatedData;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -205,7 +212,7 @@ export default class Service {
         return monitorStatus;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -223,7 +230,7 @@ export default class Service {
         return monitorStatus;
     }
 
-    async sendMonitorStatus(data: $TSFixMe): void {
+    public async sendMonitorStatus(data: $TSFixMe): void {
         const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: data.monitorId },
             select: 'projectId',
@@ -235,7 +242,7 @@ export default class Service {
         }
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }

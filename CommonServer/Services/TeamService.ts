@@ -6,7 +6,7 @@ export default class Service {
     //Param 1: projectId: Project id.
     //Param 2: subProjectId: SubProject id
     //Returns: list of team members
-    async getTeamMembersBy(query: Query): void {
+public async getTeamMembersBy(query: Query): void {
         let projectMembers: $TSFixMe = [];
 
         const projects: $TSFixMe = await ProjectService.findBy({
@@ -67,7 +67,7 @@ export default class Service {
         return response;
     }
 
-    async getTeamMemberBy(
+public async getTeamMemberBy(
         projectId: ObjectID,
         teamMemberUserId: ObjectID
     ): void {
@@ -119,14 +119,14 @@ export default class Service {
         }
     }
 
-    async getSeats(members: $TSFixMe): void {
+public async getSeats(members: $TSFixMe): void {
         let seats: $TSFixMe = members.filter(async (user: $TSFixMe) => {
             let count: $TSFixMe = 0;
             const user_member: $TSFixMe = await UserService.findOneBy({
                 query: { _id: user.userId },
                 select: 'email',
             });
-            domains.domains.forEach(domain => {
+            domains.domains.forEach((domain: $TSFixMe) => {
                 if (user_member.email.indexOf(domain) > -1) {
                     count++;
                 }
@@ -148,7 +148,7 @@ export default class Service {
     //Param 2: emails: Emails of new user added by Admin.
     //Param 3: role: Role set by Admin.
     //Returns: promise
-    async inviteTeamMembers(
+public async inviteTeamMembers(
         addedByUserId: ObjectID,
         projectId: ObjectID,
         emails: $TSFixMe,
@@ -253,7 +253,7 @@ export default class Service {
     //Params:
     //Param 1: projectId: Project id.
     //Returns: promise
-    async getTeamMembers(projectId: ObjectID): void {
+public async getTeamMembers(projectId: ObjectID): void {
         const subProject: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId',
@@ -288,7 +288,7 @@ export default class Service {
         return valid;
     }
 
-    async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe): void {
+public async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe): void {
         const teamMembersEmail: $TSFixMe = [];
 
         for (let i: $TSFixMe = 0; i < teamMembers.length; i++) {
@@ -319,7 +319,7 @@ export default class Service {
     //Param 4: addedBy: Admin who added the user.
     //Param 5: project: Project.
     //Returns: promise
-    async inviteTeamMembersMethod(
+public async inviteTeamMembersMethod(
         projectId: ObjectID,
         emails: $TSFixMe,
         role: $TSFixMe,
@@ -575,7 +575,7 @@ export default class Service {
     //Param 2: userId: User id of admin.
     //Param 3: teamMemberUserId: Team Member Id of user to delete by Owner.
     //Returns: promise
-    async removeTeamMember(
+public async removeTeamMember(
         projectId: ObjectID,
         userId: ObjectID,
         teamMemberUserId: ObjectID
@@ -755,7 +755,7 @@ export default class Service {
     //Param 3: teamMemberUserId: id of Team Member.
     //Param 4: nextRole: Role of user to updated by Admin.
     //Returns: promise
-    async updateTeamMemberRole(
+public async updateTeamMemberRole(
         projectId: ObjectID,
         userId: ObjectID,
         teamMemberUserId: ObjectID,

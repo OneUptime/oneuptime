@@ -9,7 +9,7 @@ import Query from '../Types/DB/Query';
 import fs from 'fs';
 
 export default class Service {
-    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
+    public async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -29,7 +29,14 @@ export default class Service {
         return gitCredential;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -69,7 +76,7 @@ export default class Service {
         return gitCredentials;
     }
 
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const {
             gitUsername,
             gitPassword,
@@ -124,7 +131,7 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -177,7 +184,7 @@ export default class Service {
         return gitCredential;
     }
 
-    async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         let gitCredential: $TSFixMe = await this.findOneBy({
             query,
             select: '_id',

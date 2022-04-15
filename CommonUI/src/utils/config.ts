@@ -5,8 +5,8 @@ export const env: Function = (key: string): string => {
     return process.env[`REACT_APP_${key}`] || '';
 };
 
-export const IS_SAAS_SERVICE = env('IS_SAAS_SERVICE'): $TSFixMe === 'true';
-export const DISABLE_SIGNUP = env('DISABLE_SIGNUP'): $TSFixMe === 'true';
+export const IS_SAAS_SERVICE: $TSFixMe = env('IS_SAAS_SERVICE'): $TSFixMe === 'true';
+export const DISABLE_SIGNUP: $TSFixMe = env('DISABLE_SIGNUP'): $TSFixMe === 'true';
 export const VERSION: $TSFixMe = env('VERSION');
 
 export const BACKEND_HOSTNAME: $TSFixMe = new Hostname(`${window.location.hostname}/api`);

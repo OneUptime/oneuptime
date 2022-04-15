@@ -289,9 +289,11 @@ describe('Team API with Sub-Projects', async function (): void {
                 emails: userData.newUser.email,
                 role: 'Member',
             });
-        const subProjectTeamMembers: $TSFixMe = res.body.find(teamMembers => {
-            return teamMembers.projectId === subProjectId;
-        }).team;
+        const subProjectTeamMembers: $TSFixMe = res.body.find(
+            (teamMembers: $TSFixMe) => {
+                return teamMembers.projectId === subProjectId;
+            }
+        ).team;
         subProjectTeamMemberId = subProjectTeamMembers[0].userId;
 
         const project: $TSFixMe = await ProjectService.findOneBy({
@@ -314,12 +316,16 @@ describe('Team API with Sub-Projects', async function (): void {
                 emails: userData.anotherUser.email,
                 role: 'Administrator',
             });
-        const subProjectTeamMembers: $TSFixMe = res.body.find(teamMembers => {
-            return teamMembers.projectId === subProjectId;
-        }).team;
-        const projectTeamMembers: $TSFixMe = res.body.find(teamMembers => {
-            return teamMembers.projectId === projectId;
-        }).team;
+        const subProjectTeamMembers: $TSFixMe = res.body.find(
+            (teamMembers: $TSFixMe) => {
+                return teamMembers.projectId === subProjectId;
+            }
+        ).team;
+        const projectTeamMembers: $TSFixMe = res.body.find(
+            (teamMembers: $TSFixMe) => {
+                return teamMembers.projectId === projectId;
+            }
+        ).team;
         projectTeamMemberId = projectTeamMembers[0].userId;
 
         const project: $TSFixMe = await ProjectService.findOneBy({
@@ -347,9 +353,11 @@ describe('Team API with Sub-Projects', async function (): void {
                 role: 'Administrator',
             });
 
-        const subProjectTeamMembers: $TSFixMe = res.body.find(teamMembers => {
-            return teamMembers.projectId === subProjectId;
-        }).team;
+        const subProjectTeamMembers: $TSFixMe = res.body.find(
+            (teamMembers: $TSFixMe) => {
+                return teamMembers.projectId === subProjectId;
+            }
+        ).team;
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
         expect(subProjectTeamMembers[1].role).to.equal('Administrator');
@@ -364,9 +372,11 @@ describe('Team API with Sub-Projects', async function (): void {
             .send({
                 role: 'Member',
             });
-        const projectTeamMembers: $TSFixMe = res.body.find(teamMembers => {
-            return teamMembers.projectId === projectId;
-        }).team;
+        const projectTeamMembers: $TSFixMe = res.body.find(
+            (teamMembers: $TSFixMe) => {
+                return teamMembers.projectId === projectId;
+            }
+        ).team;
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
         expect(projectTeamMembers[0].role).to.equal('Member');
@@ -405,9 +415,11 @@ describe('Team API with Sub-Projects', async function (): void {
 
             .delete(`/team/${subProjectId}/${subProjectTeamMemberId}`)
             .set('Authorization', authorization);
-        const subProjectTeamMembers: $TSFixMe = res.body.find(teamMembers => {
-            return teamMembers.projectId === subProjectId;
-        }).team;
+        const subProjectTeamMembers: $TSFixMe = res.body.find(
+            (teamMembers: $TSFixMe) => {
+                return teamMembers.projectId === subProjectId;
+            }
+        ).team;
 
         const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
@@ -424,9 +436,11 @@ describe('Team API with Sub-Projects', async function (): void {
 
             .delete(`/team/${projectId}/${projectTeamMemberId}`)
             .set('Authorization', authorization);
-        const projectTeamMembers: $TSFixMe = res.body.find(teamMembers => {
-            return teamMembers.projectId === projectId;
-        }).team;
+        const projectTeamMembers: $TSFixMe = res.body.find(
+            (teamMembers: $TSFixMe) => {
+                return teamMembers.projectId === projectId;
+            }
+        ).team;
 
         const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },

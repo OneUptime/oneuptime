@@ -141,7 +141,7 @@ class Service extends DatabaseService<typeof Model> {
         return Promise.resolve({ data } as CreateBy);
     }
 
-    async updatePush({ userId, data }: $TSFixMe): void {
+    public async updatePush({ userId, data }: $TSFixMe): void {
         const user: $TSFixMe = await UserModel.findOne({ _id: userId });
         const checkExist: $TSFixMe = await user.identification.find(
             (user: $TSFixMe) => {
@@ -167,7 +167,7 @@ class Service extends DatabaseService<typeof Model> {
         return userData;
     }
 
-    async closeTutorialBy(
+    public async closeTutorialBy(
         query: Query,
         type: $TSFixMe,
         data: $TSFixMe,
@@ -197,7 +197,7 @@ class Service extends DatabaseService<typeof Model> {
         return tutorial || null;
     }
 
-    async sendToken(user: $TSFixMe, email: $TSFixMe): void {
+    public async sendToken(user: $TSFixMe, email: $TSFixMe): void {
         const verificationTokenModel: $TSFixMe = new VerificationTokenModel({
             userId: user._id,
             token: crypto.randomBytes(16).toString('hex'),
@@ -234,7 +234,7 @@ class Service extends DatabaseService<typeof Model> {
     //Params:
     //Param 1: data: User details.
     //Returns: promise.
-    async signup(data: $TSFixMe): void {
+    public async signup(data: $TSFixMe): void {
         const email: $TSFixMe = data.email;
         const stripePlanId: $TSFixMe = data.planId || null;
         const paymentIntent: $TSFixMe = data.paymentIntent || null;
@@ -322,7 +322,7 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    async getUserIpLocation(clientIP: $TSFixMe): void {
+    public async getUserIpLocation(clientIP: $TSFixMe): void {
         try {
             const geo: $TSFixMe = geoip.lookup(clientIP);
             if (geo) {
@@ -335,7 +335,7 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    async generateUserBackupCodes(
+    public async generateUserBackupCodes(
         secretKey: $TSFixMe,
         numberOfCodes: $TSFixMe,
         firstCounter = 0
@@ -352,7 +352,7 @@ class Service extends DatabaseService<typeof Model> {
         return backupCodes;
     }
 
-    async verifyUserBackupCode(
+    public async verifyUserBackupCode(
         code: $TSFixMe,
         secretKey: $TSFixMe,
         counter: $TSFixMe
@@ -383,7 +383,7 @@ class Service extends DatabaseService<typeof Model> {
         return isValid;
     }
 
-    async generateTwoFactorSecret(userId: ObjectID): void {
+    public async generateTwoFactorSecret(userId: ObjectID): void {
         const user: $TSFixMe = await this.findOneBy({
             query: { _id: userId },
             select: 'email',
@@ -405,7 +405,7 @@ class Service extends DatabaseService<typeof Model> {
         return { otpauth_url: secretCode.otpauth_url };
     }
 
-    async verifyAuthToken(token: $TSFixMe, userId: ObjectID): void {
+    public async verifyAuthToken(token: $TSFixMe, userId: ObjectID): void {
         const user: $TSFixMe = await this.findOneBy({
             query: { _id: userId },
             select: '_id twoFactorSecretCode',
@@ -430,7 +430,7 @@ class Service extends DatabaseService<typeof Model> {
     //Param 1: email: User email.
     //Param 2: password: User password.
     //Returns: promise.
-    async login(
+    public async login(
         email: $TSFixMe,
         password: $TSFixMe,
         clientIP: $TSFixMe,
@@ -579,7 +579,7 @@ class Service extends DatabaseService<typeof Model> {
     //Params:
     //Param 1: email: User email.
     //Returns: promise.
-    async forgotPassword(email: $TSFixMe): void {
+    public async forgotPassword(email: $TSFixMe): void {
         if (util.isEmailValid(email)) {
             let user: $TSFixMe = await this.findOneBy({
                 query: { email: email },
@@ -622,7 +622,7 @@ class Service extends DatabaseService<typeof Model> {
     //Param 1:  password: User password.
     //Param 2:  token: token generated in forgot password function.
     //Returns: promise.
-    async resetPassword(password: $TSFixMe, token: $TSFixMe): void {
+    public async resetPassword(password: $TSFixMe, token: $TSFixMe): void {
         let user: $TSFixMe = await this.findOneBy({
             query: {
                 resetPasswordToken: token,
@@ -668,7 +668,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     // Description: replace password temporarily in "admin mode"
-    async switchToAdminMode(
+    public async switchToAdminMode(
         userId: ObjectID,
         temporaryPassword: $TSFixMe
     ): void {
@@ -716,7 +716,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     // Descripiton: revert from admin mode and replce user password
-    async exitAdminMode(userId: ObjectID): void {
+    public async exitAdminMode(userId: ObjectID): void {
         const user: $TSFixMe = await this.findOneBy({
             query: { _id: userId },
             select: 'isAdminMode cachedPassword password',
@@ -754,7 +754,7 @@ class Service extends DatabaseService<typeof Model> {
     //Params:
     //Param 1:  refreshToken: Refresh token.
     //Returns: promise.
-    async getNewToken(refreshToken: $TSFixMe): void {
+    public async getNewToken(refreshToken: $TSFixMe): void {
         let user: $TSFixMe = await this.findOneBy({
             query: { jwtRefreshToken: refreshToken },
             select: '_id',
@@ -783,7 +783,7 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    async changePassword(data: $TSFixMe): void {
+    public async changePassword(data: $TSFixMe): void {
         const currentPassword: $TSFixMe = data.currentPassword;
         let user: $TSFixMe = await this.findOneBy({
             query: { _id: data._id },
@@ -822,7 +822,10 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    async getAllUsers(skip: PositiveNumber, limit: PositiveNumber): void {
+    public async getAllUsers(
+        skip: PositiveNumber,
+        limit: PositiveNumber
+    ): void {
         const select: $TSFixMe =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
         let users: $TSFixMe = await this.findBy({
@@ -892,7 +895,7 @@ class Service extends DatabaseService<typeof Model> {
         return users;
     }
 
-    async restoreBy(query: Query): void {
+    public async restoreBy(query: Query): void {
         query.deleted = true;
 
         const select: string = '_id';
@@ -924,7 +927,7 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    async addNotes(userId: ObjectID, notes: $TSFixMe): void {
+    public async addNotes(userId: ObjectID, notes: $TSFixMe): void {
         const user: $TSFixMe = await this.updateOneBy(
             {
                 _id: userId,
@@ -936,7 +939,7 @@ class Service extends DatabaseService<typeof Model> {
         return user;
     }
 
-    async searchUsers(
+    public async searchUsers(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber

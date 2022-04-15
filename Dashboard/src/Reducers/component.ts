@@ -467,7 +467,7 @@ export default function component(state = INITIAL_STATE, action: Action): void {
 
         case DELETE_PROJECT_COMPONENTS:
             components = Object.assign([], state.componentList.components);
-            components = components.filter(component => {
+            components = components.filter((component: $TSFixMe) => {
                 return action.payload !== component.projectId;
             });
 

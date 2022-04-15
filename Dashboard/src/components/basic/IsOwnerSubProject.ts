@@ -7,13 +7,13 @@ import { User } from '../../config';
 export default function IsOwnerSubProject(subProject: $TSFixMe): void {
     const userId: $TSFixMe = User.getUserId();
     return (
-        [null, undefined].every(i => {
+        [null, undefined].every((i: $TSFixMe) => {
             return i !== userId;
         }) &&
-        [null, undefined].every(i => {
+        [null, undefined].every((i: $TSFixMe) => {
             return i !== subProject;
         }) &&
-        [null, undefined].every(i => {
+        [null, undefined].every((i: $TSFixMe) => {
             return i !== subProject.users;
         }) &&
         subProject.users.length > 0 &&

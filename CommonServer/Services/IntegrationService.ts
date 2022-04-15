@@ -1,5 +1,12 @@
 export default class Service {
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
@@ -16,7 +23,7 @@ export default class Service {
     }
 
     // create a new integration
-    async create(
+    public async create(
         projectId: ObjectID,
         userId: ObjectID,
         data: $TSFixMe,
@@ -67,7 +74,7 @@ export default class Service {
         return integration;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -77,7 +84,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -97,7 +104,7 @@ export default class Service {
         return integration;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -115,7 +122,7 @@ export default class Service {
         return result;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -173,7 +180,7 @@ export default class Service {
         }
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -199,7 +206,7 @@ export default class Service {
         return updatedData;
     }
 
-    async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
+    public async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
         let query: $TSFixMe = {};
         if (monitorId) {
             query = { monitorId: monitorId };
@@ -219,7 +226,7 @@ export default class Service {
         return integrations;
     }
 
-    async restoreBy(query: Query): void {
+    public async restoreBy(query: Query): void {
         query.deleted = true;
         const select: $TSFixMe =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';

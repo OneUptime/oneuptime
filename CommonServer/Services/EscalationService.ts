@@ -9,7 +9,14 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async findBy({ query, limit, skip, sort, select, populate }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        sort,
+        select,
+        populate,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -46,7 +53,7 @@ export default class Service {
         return escalations;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -71,7 +78,7 @@ export default class Service {
         return escalation;
     }
 
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const escalationModel: $TSFixMe = new EscalationModel({
             call: data.call,
             email: data.email,
@@ -96,7 +103,7 @@ export default class Service {
         return escalation;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -106,7 +113,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         const escalation: $TSFixMe = await EscalationModel.findOneAndUpdate(
             query,
             {
@@ -123,7 +130,7 @@ export default class Service {
         return escalation;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -143,7 +150,7 @@ export default class Service {
         return escalation;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -178,7 +185,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteEscalationMember(
+    public async deleteEscalationMember(
         projectId: ObjectID,
         memberId: $TSFixMe,
         deletedById: $TSFixMe
@@ -261,7 +268,7 @@ export default class Service {
         }
     }
 
-    async restoreBy(query: Query): void {
+    public async restoreBy(query: Query): void {
         query.deleted = true;
         let escalation: $TSFixMe = await this.findBy({ query, select: '_id' });
         if (escalation && escalation.length > 1) {

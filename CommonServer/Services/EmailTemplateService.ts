@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const emailTemplateModel: $TSFixMe = new EmailTemplateModel();
 
         emailTemplateModel.projectId = data.projectId || null;
@@ -16,7 +16,7 @@ export default class Service {
         return emailTemplate;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -41,7 +41,7 @@ export default class Service {
         return updatedEmailTemplate;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -62,7 +62,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         const emailTemplate: $TSFixMe =
             await EmailTemplateModel.findOneAndUpdate(
                 query,
@@ -80,7 +80,14 @@ export default class Service {
         return emailTemplate;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         query['deleted'] = false;
         const emailTemplates: $TSFixMe = EmailTemplateModel.find(query)
             .lean()
@@ -94,7 +101,7 @@ export default class Service {
         return result;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -111,7 +118,7 @@ export default class Service {
         return result;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -121,7 +128,7 @@ export default class Service {
         return count;
     }
 
-    async getTemplates(projectId: ObjectID): void {
+    public async getTemplates(projectId: ObjectID): void {
         const select: string =
             'projectId subject body emailType allowedVariables';
         const templates: $TSFixMe = await Promise.all(
@@ -142,7 +149,10 @@ export default class Service {
         return templates;
     }
 
-    async resetTemplate(projectId: ObjectID, templateId: $TSFixMe): void {
+    public async resetTemplate(
+        projectId: ObjectID,
+        templateId: $TSFixMe
+    ): void {
         const select: string =
             'projectId subject body emailType allowedVariables';
         const oldTemplate: $TSFixMe = await this.findOneBy({
@@ -150,9 +160,11 @@ export default class Service {
             select,
             populate: [{ path: 'projectId', select: 'nmae' }],
         });
-        const newTemplate: $TSFixMe = defaultTemplate.filter(template => {
-            return template.emailType === oldTemplate.emailType;
-        })[0];
+        const newTemplate: $TSFixMe = defaultTemplate.filter(
+            (template: $TSFixMe) => {
+                return template.emailType === oldTemplate.emailType;
+            }
+        )[0];
         const resetTemplate: $TSFixMe = await this.updateOneBy(
             {
                 _id: oldTemplate._id,

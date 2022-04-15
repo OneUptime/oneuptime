@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         let incidentMessage: $TSFixMe = new IncidentMessageModel();
 
         incidentMessage.content = data.content;
@@ -42,7 +42,7 @@ export default class Service {
         return incidentMessage;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -76,7 +76,7 @@ export default class Service {
         return incidentMessage;
     }
 
-    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
+    public async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -97,7 +97,14 @@ export default class Service {
         return incidentMessage;
     }
 
-    async findBy({ query, skip, limit, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        skip,
+        limit,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -129,7 +136,7 @@ export default class Service {
         return incidentMessages;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -144,7 +151,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }

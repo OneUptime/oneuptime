@@ -13,7 +13,7 @@ import IncidentMessageModel from '../Models/incidentMessage';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 export default class Service {
-    async findBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -27,7 +27,7 @@ export default class Service {
         return zap;
     }
 
-    async test(projectId: ObjectID, apiKey: string): void {
+    public async test(projectId: ObjectID, apiKey: string): void {
         const project: $TSFixMe = await ProjectService.findOneBy({
             query: { apiKey: apiKey, _id: projectId },
             select: 'name',
@@ -46,7 +46,7 @@ export default class Service {
         }
     }
 
-    async getIncidents(projectId: ObjectID): void {
+    public async getIncidents(projectId: ObjectID): void {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse: $TSFixMe = {};
 
@@ -107,7 +107,7 @@ export default class Service {
         }
     }
 
-    async getIncidentsNotes(projectId: ObjectID): void {
+    public async getIncidentsNotes(projectId: ObjectID): void {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse: $TSFixMe = {};
 
@@ -177,7 +177,7 @@ export default class Service {
         }
     }
 
-    async createIncidentNote(data: $TSFixMe): void {
+    public async createIncidentNote(data: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentNoteArr: $TSFixMe = [];
         const populateIncidentMessage: $TSFixMe = [
@@ -220,7 +220,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async getAcknowledgedIncidents(projectId: ObjectID): void {
+    public async getAcknowledgedIncidents(projectId: ObjectID): void {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse: $TSFixMe = {};
 
@@ -280,7 +280,7 @@ export default class Service {
         }
     }
 
-    async getResolvedIncidents(projectId: ObjectID): void {
+    public async getResolvedIncidents(projectId: ObjectID): void {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse: $TSFixMe = {};
 
@@ -340,7 +340,7 @@ export default class Service {
         }
     }
 
-    async createIncident(monitors: $TSFixMe): void {
+    public async createIncident(monitors: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentArr: $TSFixMe = [];
         await Promise.all(
@@ -403,7 +403,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async acknowledgeLastIncident(monitors: $TSFixMe): void {
+    public async acknowledgeLastIncident(monitors: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentArr: $TSFixMe = [];
         await Promise.all(
@@ -454,7 +454,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async acknowledgeAllIncidents(monitors: $TSFixMe): void {
+    public async acknowledgeAllIncidents(monitors: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         let incidentArr: $TSFixMe = [];
         await Promise.all(
@@ -509,7 +509,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async acknowledgeIncident(incidents: $TSFixMe): void {
+    public async acknowledgeIncident(incidents: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentArr: $TSFixMe = [];
         const populate: $TSFixMe = [
@@ -577,7 +577,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async resolveLastIncident(monitors: $TSFixMe): void {
+    public async resolveLastIncident(monitors: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentArr: $TSFixMe = [];
         const populate: $TSFixMe = [
@@ -651,7 +651,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async resolveAllIncidents(monitors: $TSFixMe): void {
+    public async resolveAllIncidents(monitors: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         let incidentArr: $TSFixMe = [];
         const populate: $TSFixMe = [
@@ -729,7 +729,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async resolveIncident(incidents: $TSFixMe): void {
+    public async resolveIncident(incidents: $TSFixMe): void {
         const zapierResponse: $TSFixMe = {};
         const incidentArr: $TSFixMe = [];
         const populate: $TSFixMe = [
@@ -797,7 +797,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async mapIncidentToResponse(
+    public async mapIncidentToResponse(
         incident: $TSFixMe,
         incidentObj: $TSFixMe,
         incidentNote: $TSFixMe,
@@ -852,7 +852,7 @@ export default class Service {
         return incidentObj;
     }
 
-    async subscribe(
+    public async subscribe(
         projectId: ObjectID,
         url: URL,
         type: $TSFixMe,
@@ -871,7 +871,7 @@ export default class Service {
         return { id: zap._id };
     }
 
-    async unsubscribe(id: $TSFixMe): void {
+    public async unsubscribe(id: $TSFixMe): void {
         await ZapierModel.findOneAndUpdate(
             { _id: id },
             {
@@ -884,7 +884,7 @@ export default class Service {
         return;
     }
 
-    async pushToZapier(
+    public async pushToZapier(
         type: $TSFixMe,
         incident: $TSFixMe,
         incidentNote: $TSFixMe

@@ -216,12 +216,15 @@ export default function incident(state = initialState, action: Action): void {
 
         case types.CREATE_INCIDENT_SUCCESS:
         case 'ADD_NEW_INCIDENT_TO_MONITORS':
-            isExistingIncident = state.incidents.incidents.find(incident => {
-                return (
-                    incident._id ===
-                    (action.payload.projectId._id || action.payload.projectId)
-                );
-            });
+            isExistingIncident = state.incidents.incidents.find(
+                (incident: $TSFixMe) => {
+                    return (
+                        incident._id ===
+                        (action.payload.projectId._id ||
+                            action.payload.projectId)
+                    );
+                }
+            );
             return Object.assign({}, state, {
                 newIncident: {
                     requesting: false,
@@ -330,7 +333,7 @@ export default function incident(state = initialState, action: Action): void {
 
         case types.UPDATE_INCIDENT_SUCCESS:
             incidents = Object.assign([], state.incidents.incidents);
-            index = incidents.findIndex(incident => {
+            index = incidents.findIndex((incident: $TSFixMe) => {
                 return incident._id === action.payload._id;
             });
 
@@ -351,7 +354,7 @@ export default function incident(state = initialState, action: Action): void {
                 [],
                 state.unresolvedincidents.incidents
             );
-            index1 = unresolvedincidents.findIndex(incident => {
+            index1 = unresolvedincidents.findIndex((incident: $TSFixMe) => {
                 return incident._id === action.payload._id;
             });
 
@@ -790,7 +793,7 @@ export default function incident(state = initialState, action: Action): void {
 
         case types.DELETE_PROJECT_INCIDENTS:
             incidents = Object.assign([], state.incidents);
-            incidents = incidents.filter(incident => {
+            incidents = incidents.filter((incident: $TSFixMe) => {
                 return (
                     (incident.projectId._id || incident.projectId) !==
                     action.payload

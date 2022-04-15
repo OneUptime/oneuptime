@@ -121,7 +121,7 @@ export default function card(state = initialState, action: Action): void {
                 },
                 fetchCards: {
                     ...state.fetchCards,
-                    cards: state.fetchCards.cards.filter(card => {
+                    cards: state.fetchCards.cards.filter((card: $TSFixMe) => {
                         if (action.payload.id === card.id) {
                             return false;
                         }

@@ -15,7 +15,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         // check if component exists
         const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: data.componentId,
@@ -75,7 +75,14 @@ export default class Service {
         return performanceTracker;
     }
     //Description: Gets all application logs by component.
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -113,7 +120,7 @@ export default class Service {
         return performanceTracker;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -141,7 +148,7 @@ export default class Service {
         return performanceTracker;
     }
 
-    async getPerformanceTrackerByComponentId(
+    public async getPerformanceTrackerByComponentId(
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -182,7 +189,7 @@ export default class Service {
         return performanceTracker;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -227,7 +234,11 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null): void {
+    public async updateOneBy(
+        query: Query,
+        data: $TSFixMe,
+        unsetData = null
+    ): void {
         if (!query) {
             query = {};
         }
@@ -283,7 +294,7 @@ export default class Service {
         return performanceTracker;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

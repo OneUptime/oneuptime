@@ -81,7 +81,7 @@ export default function probes(state = initialState, action: Action): void {
             return Object.assign({}, state, {
                 probes: {
                     ...state.probes,
-                    data: state.probes.data.filter(d => {
+                    data: state.probes.data.filter((d: $TSFixMe) => {
                         return d._id !== action.payload;
                     }),
 

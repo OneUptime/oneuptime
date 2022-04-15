@@ -102,10 +102,10 @@ const ping: Function = (
                         si.cpuTemperature(),
                         si.cpu(),
                     ])
-                        .then(data => {
+                        .then((data: $TSFixMe) => {
                             const storage: $TSFixMe =
                                 data[2] && data[2].length > 0
-                                    ? data[2].filter(partition => {
+                                    ? data[2].filter((partition: $TSFixMe) => {
                                           return (
                                               partition.size === data[2][0].size
                                           );
@@ -146,7 +146,7 @@ const ping: Function = (
                                 maxTemp: data[3].max,
                             };
                         })
-                        .then(data => {
+                        .then((data: $TSFixMe) => {
                             post(
                                 apiUrl,
                                 `monitor/${projectId}/log/${monitorId}`,

@@ -113,7 +113,7 @@ export default (state = initialState, action: Action): void => {
         case DELETE_SLACK_WEBHOOK_SUCCESS:
             slacks = Object.assign([], state.slacks.slacks);
 
-            index = slacks.findIndex(slack => {
+            index = slacks.findIndex((slack: $TSFixMe) => {
                 return slack._id === action.payload._id;
             });
             slacks.splice(index, 1);
@@ -217,7 +217,7 @@ export default (state = initialState, action: Action): void => {
         case UPDATE_SLACK_WEBHOOK_SUCCESS:
             slacks = Object.assign([], state.slacks.slacks);
 
-            index = slacks.findIndex(hook => {
+            index = slacks.findIndex((hook: $TSFixMe) => {
                 return hook._id === action.payload._id;
             });
 

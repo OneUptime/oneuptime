@@ -6,7 +6,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const monitorSlaCount: $TSFixMe = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -47,7 +47,7 @@ export default class Service {
         return createdMonitorSla;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -67,7 +67,14 @@ export default class Service {
         return monitorSla;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -106,7 +113,7 @@ export default class Service {
         return monitorSla;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -222,7 +229,7 @@ export default class Service {
         return updatedMonitorSla;
     }
 
-    async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         const deletedSla: $TSFixMe = await MonitorSlaModel.findOneAndUpdate(
             query,
             {
@@ -237,11 +244,11 @@ export default class Service {
         return deletedSla;
     }
 
-    async hardDelete(query: Query): void {
+    public async hardDelete(query: Query): void {
         await MonitorSlaModel.deleteMany(query);
         return 'Monitor SLA(s) deleted successfully';
     }
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

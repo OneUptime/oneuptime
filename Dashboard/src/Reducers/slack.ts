@@ -92,7 +92,7 @@ export default (state = initialState, action: Action): void => {
         case DELETE_SLACK_LINK_SUCCESS:
             teams = Object.assign([], state.teams.teams);
 
-            index = teams.findIndex(team => {
+            index = teams.findIndex((team: $TSFixMe) => {
                 return team._id === action.payload._id;
             });
             action.payload.n === 1 &&

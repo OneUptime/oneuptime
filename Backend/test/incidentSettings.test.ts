@@ -82,7 +82,7 @@ describe('Incident Settings API', function (): void {
                                             ComponentModel.create({
                                                 name: 'New Component',
                                                 projectId,
-                                            }).then(component => {
+                                            }).then((component: $TSFixMe) => {
                                                 componentId = component._id;
                                                 request
                                                     .post(

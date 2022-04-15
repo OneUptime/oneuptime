@@ -14,7 +14,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(
+    public async create(
         { projectId }: $TSFixMe,
         data: $TSFixMe,
         recurring: $TSFixMe
@@ -156,7 +156,7 @@ export default class Service {
         return scheduledEvent;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -253,7 +253,7 @@ export default class Service {
         return updatedScheduledEvent;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -289,7 +289,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         const scheduledEvent: $TSFixMe =
             await ScheduledEventModel.findOneAndUpdate(
                 query,
@@ -326,7 +326,14 @@ export default class Service {
         return scheduledEvent;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -362,7 +369,7 @@ export default class Service {
         return scheduledEvents;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -398,7 +405,7 @@ export default class Service {
         return scheduledEvent;
     }
 
-    async getSubProjectScheduledEvents(subProjectIds: $TSFixMe): void {
+    public async getSubProjectScheduledEvents(subProjectIds: $TSFixMe): void {
         const populateScheduledEvent: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -434,7 +441,7 @@ export default class Service {
         return subProjectScheduledEvents;
     }
 
-    async getSubProjectOngoingScheduledEvents(
+    public async getSubProjectOngoingScheduledEvents(
         subProjectIds: $TSFixMe,
         query: Query
     ): void {
@@ -479,7 +486,7 @@ export default class Service {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
+    public async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
         const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -556,7 +563,7 @@ export default class Service {
      * @param {object} query query parameter to use for db manipulation
      * @param {object} data data to be used to update the schedule
      */
-    async resolveScheduledEvent(query: Query, data: $TSFixMe): void {
+    public async resolveScheduledEvent(query: Query, data: $TSFixMe): void {
         data.resolved = true;
         data.resolvedAt = Date.now();
         let resolvedScheduledEvent: $TSFixMe =
@@ -684,7 +691,7 @@ export default class Service {
     /**
      * @description Create Started note for all schedule events
      */
-    async createScheduledEventStartedNote(): void {
+    public async createScheduledEventStartedNote(): void {
         const currentTime: $TSFixMe = moment();
 
         //fetch events that have started

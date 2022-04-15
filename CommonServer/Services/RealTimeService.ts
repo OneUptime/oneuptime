@@ -18,7 +18,7 @@ export default class Service {
         };
     }
 
-    async send(
+    public async send(
         projectId: ObjectID,
         eventType: string,
         data: JSONObjectOrArray

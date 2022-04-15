@@ -34,10 +34,10 @@ router.post(
             } = req.body;
             const { monitorId }: $TSFixMe = req.params;
 
-            let status,
-                log,
-                reason,
-                data = {};
+            let status: $TSFixMe,
+                log: $TSFixMe,
+                reason: $TSFixMe,
+                data: $TSFixMe = {};
             let matchedCriterion: $TSFixMe;
 
             if (type === 'incomingHttpRequest') {

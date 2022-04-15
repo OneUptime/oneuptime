@@ -162,9 +162,11 @@ export default function incident(state = initialState, action: Action): void {
 
         case types.CHANGE_SHOWING_TEMPLATE:
             return Object.assign({}, state, {
-                showingTemplate: state.emailTemplates.templates.find(temp => {
-                    return temp.emailType === action.payload;
-                }),
+                showingTemplate: state.emailTemplates.templates.find(
+                    (temp: $TSFixMe) => {
+                        return temp.emailType === action.payload;
+                    }
+                ),
             });
 
         case types.SET_REVEAL_VARIABLE:

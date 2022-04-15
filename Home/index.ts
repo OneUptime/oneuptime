@@ -882,12 +882,12 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
     const urlset: $TSFixMe = builder.create().ele('urlset');
 
     // apply attributes to root element
-    urlsetAttr.forEach(attr => {
+    urlsetAttr.forEach((attr: $TSFixMe) => {
         urlset.att(attr);
     });
 
     //append urls to root element
-    siteUrls.forEach(url => {
+    siteUrls.forEach((url: $TSFixMe) => {
         const urlElement: $TSFixMe = urlset.ele('url');
         urlElement.ele('loc').txt(url);
         urlElement.ele('lastmod').txt(timestamp);

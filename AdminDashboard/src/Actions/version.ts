@@ -59,7 +59,7 @@ export const getVersion: Function = (): void => {
         promise.then(
             (versions: $TSFixMe): void => {
                 let versionsObject: $TSFixMe = {};
-                versions.forEach(version => {
+                versions.forEach((version: $TSFixMe) => {
                     versionsObject = { ...versionsObject, ...version.data };
                 });
 

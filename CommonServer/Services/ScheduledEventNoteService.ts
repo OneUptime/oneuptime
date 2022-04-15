@@ -9,7 +9,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe, projectId: ObjectID): void {
+    public async create(data: $TSFixMe, projectId: ObjectID): void {
         let scheduledEventMessage: $TSFixMe =
             await ScheduledEventNoteModel.create(data);
 
@@ -65,7 +65,11 @@ export default class Service {
         return scheduledEventMessage;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, projectId: ObjectID): void {
+    public async updateOneBy(
+        query: Query,
+        data: $TSFixMe,
+        projectId: ObjectID
+    ): void {
         if (!query) {
             query = {};
         }
@@ -121,7 +125,7 @@ export default class Service {
         return eventMessage;
     }
 
-    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
+    public async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -142,7 +146,14 @@ export default class Service {
         return eventMessage;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -176,7 +187,7 @@ export default class Service {
         return eventMessage;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -186,7 +197,11 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: ObjectID, projectId: ObjectID): void {
+    public async deleteBy(
+        query: Query,
+        userId: ObjectID,
+        projectId: ObjectID
+    ): void {
         const data: $TSFixMe = {
             deleted: true,
             event_state: 'Deleted',
@@ -220,7 +235,7 @@ export default class Service {
         return deletedEventMessage;
     }
 
-    async hardDelete(query: Query): void {
+    public async hardDelete(query: Query): void {
         await ScheduledEventNoteModel.deleteMany(query);
         return 'Scheduled Event Note(s) removed successfully!';
     }

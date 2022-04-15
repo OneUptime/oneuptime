@@ -84,7 +84,7 @@ public clearTimeline(eventId: $TSFixMe): void {
     }
     // set up dom listener
     private _setUpDomListener(): void {
-        Object.keys(window).forEach(key => {
+        Object.keys(window).forEach((key: $TSFixMe) => {
             if (/^on(keypress|click)/.test(key)) {
                 window.addEventListener(key.slice(2), event => {
                     if (!this.keypressTimeout) {
@@ -310,7 +310,7 @@ public logCustomTimelineEvent(timelineObj: $TSFixMe): void {
     }
     private _getEventTree(event: $TSFixMe): void {
         const tree: $TSFixMe = [];
-        const MAX_UP_TREE = 5; // we just want to go up the DOM for 5 times
+        const MAX_UP_TREE: $TSFixMe = 5; // we just want to go up the DOM for 5 times
         let current: $TSFixMe = 0;
         const fullPath: $TSFixMe = [];
         while (current < MAX_UP_TREE && event.path[current]) {
@@ -338,7 +338,7 @@ public logCustomTimelineEvent(timelineObj: $TSFixMe): void {
                     this._getElementAttributes(currentElem);
                 if (attributes.length > 0) {
                     let attributesForElement: $TSFixMe = '';
-                    attributes.forEach(element => {
+                    attributes.forEach((element: $TSFixMe) => {
                         if (element.key !== 'id') {
                             attributesForElement += `${element.key}=${element.value},`;
                         }

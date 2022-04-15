@@ -100,7 +100,7 @@ describe('Scheduled Event Note', function (): void {
                                             const authorization: string = `Basic ${token}`;
                                             ComponentModel.create({
                                                 name: 'Test Component',
-                                            }).then(component => {
+                                            }).then((component: $TSFixMe) => {
                                                 componentId = component._id;
                                                 request
                                                     .post(

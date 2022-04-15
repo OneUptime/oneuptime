@@ -104,7 +104,7 @@ class DataStore {
     setValue(id: $TSFixMe, value: $TSFixMe): void {
         return this.store.set(id, value);
     }
-    async sendData(): void {
+    public async sendData(): void {
         const data: $TSFixMe = {
             incoming: Object.fromEntries(this.incoming),
 
@@ -116,7 +116,7 @@ class DataStore {
         await this._makeApiRequest(data);
         this.clearData();
     }
-    async processDataOnExit(): void {
+    public async processDataOnExit(): void {
         if (!this.sendingData) {
             this.sendingData = true;
 
@@ -143,7 +143,7 @@ class DataStore {
                 .then((res: $TSFixMe) => {
                     resolve(res);
                 })
-                .catch(err => {
+                .catch((err: $TSFixMe) => {
                     reject(err);
                 });
         });

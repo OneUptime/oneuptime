@@ -83,7 +83,7 @@ async function run(): void {
 
     const files: $TSFixMe = fs
         .readdirSync('./scripts')
-        .filter(file => {
+        .filter((file: $TSFixMe) => {
             return excludedScripts.indexOf(file) < 0;
         }) // Exclude index, start and end scripts
         .sort((a, b) => {

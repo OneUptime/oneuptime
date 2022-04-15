@@ -1,7 +1,7 @@
 import { readFile } from 'fs';
 import * as LRUMap from 'lru_map';
 
-const CONTENT_CACHE = new LRUMap.default.LRUMap(100);
+const CONTENT_CACHE: $TSFixMe = new LRUMap.default.LRUMap(100);
 class Util {
     options: $TSFixMe;
     constructor(options: $TSFixMe) {

@@ -34,7 +34,14 @@ import Query from '../Types/DB/Query';
 import getSlug from '../Utils/getSlug';
 
 export default class Service {
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
@@ -52,7 +59,7 @@ export default class Service {
         return incidents;
     }
 
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         if (!data.monitors || data.monitors.length === 0) {
             const error: $TSFixMe = new Error(
                 'You need at least one monitor to create an incident'
@@ -396,7 +403,7 @@ export default class Service {
         }
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -408,7 +415,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -477,7 +484,7 @@ export default class Service {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
+    public async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -495,7 +502,7 @@ export default class Service {
         return incident;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -570,7 +577,7 @@ export default class Service {
         return updatedIncident;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -706,7 +713,7 @@ export default class Service {
      * @param {string} name Name of user performing the action.
      * @returns {object} Promise with incident or error.
      */
-    async acknowledge(
+    public async acknowledge(
         incidentId: $TSFixMe,
         userId: ObjectID,
         name: $TSFixMe,
@@ -892,7 +899,7 @@ export default class Service {
     // Params:
     // Param 1: data: {incidentId}
     // Returns: promise with incident or error.
-    async resolve(
+    public async resolve(
         incidentId: $TSFixMe,
         userId: ObjectID,
         name: $TSFixMe,
@@ -1018,7 +1025,7 @@ export default class Service {
     }
 
     //
-    async close(incidentId: $TSFixMe, userId: ObjectID): void {
+    public async close(incidentId: $TSFixMe, userId: ObjectID): void {
         const incident: $TSFixMe = await IncidentModel.findByIdAndUpdate(
             incidentId,
             {
@@ -1029,7 +1036,7 @@ export default class Service {
         return incident;
     }
 
-    async getUnresolvedIncidents(
+    public async getUnresolvedIncidents(
         subProjectIds: $TSFixMe,
         userId: ObjectID,
         isHome = false
@@ -1094,7 +1101,7 @@ export default class Service {
             : incidentsUnresolved.concat(incidentsResolved);
     }
 
-    async getSubProjectIncidents(projectId: ObjectID): void {
+    public async getSubProjectIncidents(projectId: ObjectID): void {
         const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
@@ -1146,7 +1153,7 @@ export default class Service {
         return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
     }
 
-    async getComponentIncidents(
+    public async getComponentIncidents(
         projectId: ObjectID,
         componentId: $TSFixMe
     ): void {
@@ -1197,7 +1204,7 @@ export default class Service {
         return componentIncidents;
     }
 
-    async getProjectComponentIncidents(
+    public async getProjectComponentIncidents(
         projectId: ObjectID,
         componentId: $TSFixMe,
         limit: PositiveNumber,
@@ -1248,7 +1255,7 @@ export default class Service {
         return { incidents, count, _id: projectId };
     }
 
-    async sendIncidentResolvedNotification(
+    public async sendIncidentResolvedNotification(
         incident: $TSFixMe,
         name: $TSFixMe,
         monitor: $TSFixMe
@@ -1328,7 +1335,7 @@ export default class Service {
         );
     }
 
-    async sendIncidentNoteAdded(
+    public async sendIncidentNoteAdded(
         projectId: ObjectID,
         incident: $TSFixMe,
         data: $TSFixMe
@@ -1357,7 +1364,7 @@ export default class Service {
         ZapierService.pushToZapier('incident_note', incident, data);
     }
 
-    async restoreBy(query: Query): void {
+    public async restoreBy(query: Query): void {
         query.deleted = true;
         let incident: $TSFixMe = await this.findBy({ query, select: '_id' });
         if (incident && incident.length > 0) {
@@ -1403,7 +1410,7 @@ export default class Service {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
+    public async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
         const incidents: $TSFixMe = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors _id',
@@ -1503,7 +1510,7 @@ export default class Service {
         );
     }
 
-    async startInterval(
+    public async startInterval(
         projectId: ObjectID,
         monitors: $TSFixMe,
         incident: $TSFixMe
@@ -1633,7 +1640,7 @@ export default class Service {
     }
 
     clearInterval(incidentId: $TSFixMe): void {
-        intervals = intervals.filter(interval => {
+        intervals = intervals.filter((interval: $TSFixMe) => {
             if (String(interval.incidentId) === String(incidentId)) {
                 clearInterval(interval.intervalId);
                 return false;
@@ -1642,7 +1649,7 @@ export default class Service {
         });
     }
 
-    async refreshInterval(incidentId: $TSFixMe): void {
+    public async refreshInterval(incidentId: $TSFixMe): void {
         for (const interval of intervals) {
             if (String(interval.incidentId) === String(incidentId)) {
                 this.clearInterval(incidentId);

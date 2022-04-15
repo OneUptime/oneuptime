@@ -68,7 +68,7 @@ describe('Reports API', function (): void {
                                             const authorization: string = `Basic ${token}`;
                                             ComponentModel.create({
                                                 name: 'Test Component',
-                                            }).then(component => {
+                                            }).then((component: $TSFixMe) => {
                                                 request
                                                     .post(
                                                         `/monitor/${projectId}`

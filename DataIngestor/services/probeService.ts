@@ -521,7 +521,7 @@ export default {
 
         let autoAcknowledge: $TSFixMe, autoResolve: $TSFixMe;
         if (incidents && incidents.length > 0) {
-            incidents.forEach(incident => {
+            incidents.forEach((incident: $TSFixMe) => {
                 let criteriaId: $TSFixMe = null;
                 if (
                     incident &&
@@ -531,7 +531,7 @@ export default {
                     criteriaId = String(incident.criterionCause._id);
                 }
 
-                allCriteria.forEach(criteria => {
+                allCriteria.forEach((criteria: $TSFixMe) => {
                     if (
                         String(criteria?._id) === criteriaId ||
                         criteria?.name === incident?.criterionCause?.name
@@ -550,13 +550,13 @@ export default {
             // is this check needed at all??
             // if (lastStatus && lastStatus !== data.status) {
 
-            incidents.forEach(incident => {
+            incidents.forEach((incident: $TSFixMe) => {
                 if (
                     incident.probes &&
                     incident.probes.length > 0 &&
                     monitor.type !== 'incomingHttpRequest'
                 ) {
-                    incident.probes.some(probe => {
+                    incident.probes.some((probe: $TSFixMe) => {
                         if (
                             probe.probeId &&
                             String(probe.probeId._id || probe.probeId) ===
@@ -622,7 +622,7 @@ export default {
             const trueArray: $TSFixMe = [];
             const falseArray: $TSFixMe = [];
 
-            incident.probes.forEach(probe => {
+            incident.probes.forEach((probe: $TSFixMe) => {
                 if (probe.status) {
                     trueArray.push(probe);
                 } else {
@@ -695,7 +695,7 @@ export default {
         let eventOccurred: $TSFixMe = false;
         let matchedCriterion: $TSFixMe;
         if (con && con.length) {
-            eventOccurred = con.some(condition => {
+            eventOccurred = con.some((condition: $TSFixMe) => {
                 let stat: $TSFixMe = true;
                 if (
                     condition &&
@@ -3337,7 +3337,7 @@ const checkAnd: Function = (
                             failedReasons.push('Pod is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.podData.allPods.forEach(pod => {
+                            payload.podData.allPods.forEach((pod: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -3375,7 +3375,7 @@ const checkAnd: Function = (
                             failedReasons.push('Pod is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.podData.allPods.forEach(pod => {
+                            payload.podData.allPods.forEach((pod: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -3419,7 +3419,7 @@ const checkAnd: Function = (
                             failedReasons.push('Job is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.jobData.allJobs.forEach(job => {
+                            payload.jobData.allJobs.forEach((job: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -3457,7 +3457,7 @@ const checkAnd: Function = (
                             failedReasons.push('Job is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.jobData.allJobs.forEach(job => {
+                            payload.jobData.allJobs.forEach((job: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -5593,7 +5593,7 @@ const checkOr: Function = (
                             failedReasons.push('Pod is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.podData.allPods.forEach(pod => {
+                            payload.podData.allPods.forEach((pod: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -5630,7 +5630,7 @@ const checkOr: Function = (
                             failedReasons.push('Pod is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.podData.allPods.forEach(pod => {
+                            payload.podData.allPods.forEach((pod: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -5673,7 +5673,7 @@ const checkOr: Function = (
                             failedReasons.push('Job is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.jobData.allJobs.forEach(job => {
+                            payload.jobData.allJobs.forEach((job: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
@@ -5710,7 +5710,7 @@ const checkOr: Function = (
                             failedReasons.push('Job is not available');
                         } else {
                             // eslint-disable-next-line no-loop-func
-                            payload.jobData.allJobs.forEach(job => {
+                            payload.jobData.allJobs.forEach((job: $TSFixMe) => {
                                 if (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&

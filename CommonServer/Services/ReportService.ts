@@ -8,7 +8,7 @@ export default class Service {
      * @param { string } projectId of project to query
      * @returns {Promise} rejected if their is an error resolves if all is good
      */
-    async getMostActiveMembers(
+    public async getMostActiveMembers(
         subProjectIds: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
@@ -102,7 +102,7 @@ export default class Service {
      * @param { string } projectId of project to query
      * @returns {Promise} rejected if their is an error resolves if all is good
      */
-    async getMostActiveMonitors(
+    public async getMostActiveMonitors(
         subProjectIds: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
@@ -196,7 +196,7 @@ export default class Service {
      * @description get the average resolve time for the current month
      * @returns { Promise } array if resolved || error if rejected
      */
-    async getAverageTimeBy(
+    public async getAverageTimeBy(
         subProjectIds: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
@@ -327,7 +327,7 @@ export default class Service {
      * @description get the number of incidents for the past 12 months
      * @returns { Promise } array if resolved || error if rejected
      */
-    async getIncidentCountBy(
+    public async getIncidentCountBy(
         subProjectIds: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe,

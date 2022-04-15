@@ -6,7 +6,7 @@ import UserService from './UserService';
 import FindBy from '../Types/DB/FindBy';
 
 export default class Service {
-    async create(
+    public async create(
         user: $TSFixMe,
         clientIP: $TSFixMe,
         userAgent: $TSFixMe,
@@ -33,7 +33,14 @@ export default class Service {
         );
     }
 
-    async findBy({ query, skip, limit, select, populate, sort }: FindBy): void {
+    public async findBy({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+        sort,
+    }: FindBy): void {
         const logsQuery: $TSFixMe = LoginHistoryModel.find(query)
             .lean()
             .sort(sort)

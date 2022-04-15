@@ -11,7 +11,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+public async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -46,7 +46,7 @@ export default class Service {
         return sortDataList;
     }
 
-    async countBy(query: Query): void {
+public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -55,7 +55,7 @@ export default class Service {
         return count;
     }
 
-    async countLogsBy(query: Query): void {
+public async countLogsBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -64,7 +64,7 @@ export default class Service {
         return count;
     }
 
-    async create(data: $TSFixMe): void {
+public async create(data: $TSFixMe): void {
         const script: $TSFixMe = new ScriptModel();
 
         script.name = data.name || null;
@@ -85,7 +85,7 @@ export default class Service {
         return newScript;
     }
 
-    async createLog(id: $TSFixMe, data: $TSFixMe): void {
+public async createLog(id: $TSFixMe, data: $TSFixMe): void {
         const scriptLog: $TSFixMe = new ScriptModelLog();
 
         scriptLog.automationScriptId = id || null;
@@ -108,7 +108,7 @@ export default class Service {
         return newScriptLog;
     }
 
-    async updateOne(query: Query, data: $TSFixMe): void {
+public async updateOne(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -125,7 +125,7 @@ export default class Service {
         return response;
     }
 
-    async findAllLogs(
+public async findAllLogs(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -159,7 +159,7 @@ export default class Service {
         return response;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -174,7 +174,7 @@ export default class Service {
         return response;
     }
 
-    async getAutomatedLogs(
+public async getAutomatedLogs(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -183,12 +183,12 @@ export default class Service {
         return response;
     }
 
-    async createScript(data: $TSFixMe): void {
+public async createScript(data: $TSFixMe): void {
         const response: $TSFixMe = await this.create(data);
         return response;
     }
 
-    async runResource({
+public async runResource({
         triggeredId,
         triggeredBy,
         resources,
@@ -250,7 +250,7 @@ export default class Service {
         return Promise.all(eventPromises);
     }
 
-    async runAutomatedScript({
+public async runAutomatedScript({
         automatedScriptId,
         triggeredId,
         triggeredBy = 'script',
@@ -330,7 +330,7 @@ export default class Service {
         return automatedScriptLog;
     }
 
-    async removeScriptFromEvent({ projectId, id }: $TSFixMe): void {
+public async removeScriptFromEvent({ projectId, id }: $TSFixMe): void {
         const scripts: $TSFixMe = await ScriptModel.find({ projectId }).lean();
         await Promise.all(
             scripts.map(async (script: $TSFixMe) => {
@@ -350,7 +350,7 @@ export default class Service {
         );
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -372,7 +372,7 @@ export default class Service {
         return response;
     }
 
-    async hardDeleteBy({ query }: $TSFixMe): void {
+public async hardDeleteBy({ query }: $TSFixMe): void {
         await ScriptModel.deleteMany(query);
     }
 }

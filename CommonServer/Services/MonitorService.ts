@@ -40,7 +40,7 @@ export default class Service {
     //Params:
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         let subProject: $TSFixMe = null;
 
         const query: $TSFixMe = {
@@ -263,7 +263,7 @@ export default class Service {
         }
     }
 
-    async markMonitorsAsShouldNotMonitor(monitorIds: $TSFixMe): void {
+    public async markMonitorsAsShouldNotMonitor(monitorIds: $TSFixMe): void {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -274,7 +274,7 @@ export default class Service {
         );
     }
 
-    async markMonitorsAsShouldMonitor(monitorIds: $TSFixMe): void {
+    public async markMonitorsAsShouldMonitor(monitorIds: $TSFixMe): void {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -285,7 +285,7 @@ export default class Service {
         );
     }
 
-    async unsetColumnsOfManyMonitors(
+    public async unsetColumnsOfManyMonitors(
         monitorIds: $TSFixMe,
         columns: $TSFixMe
     ): void {
@@ -299,7 +299,7 @@ export default class Service {
         );
     }
 
-    async updateManyIncidentCommunicationSla(
+    public async updateManyIncidentCommunicationSla(
         monitorIds: $TSFixMe,
         incidentCommunicationSlaId: $TSFixMe
     ): void {
@@ -315,7 +315,7 @@ export default class Service {
         );
     }
 
-    async updateManyMonitorSla(
+    public async updateManyMonitorSla(
         monitorIds: $TSFixMe,
         monitorSlaId: $TSFixMe
     ): void {
@@ -329,7 +329,10 @@ export default class Service {
         );
     }
 
-    async updateCriterion(_id: $TSFixMe, lastMatchedCriterion: $TSFixMe): void {
+    public async updateCriterion(
+        _id: $TSFixMe,
+        lastMatchedCriterion: $TSFixMe
+    ): void {
         await MonitorModel.updateOne(
             { _id },
             { $set: { lastMatchedCriterion } },
@@ -339,7 +342,7 @@ export default class Service {
         );
     }
 
-    async updateLighthouseScanStatus(
+    public async updateLighthouseScanStatus(
         _id: $TSFixMe,
         lighthouseScanStatus: $TSFixMe,
         lighthouseScannedBy: $TSFixMe
@@ -390,7 +393,10 @@ export default class Service {
         return monitor;
     }
 
-    async disableMonitor(_id: $TSFixMe, isDisabledOrEnable: $TSFixMe): void {
+    public async disableMonitor(
+        _id: $TSFixMe,
+        isDisabledOrEnable: $TSFixMe
+    ): void {
         await MonitorModel.updateOne(
             { _id },
             {
@@ -401,7 +407,7 @@ export default class Service {
         );
     }
 
-    async updateScriptStatus(
+    public async updateScriptStatus(
         _id: $TSFixMe,
         scriptRunStatus: $TSFixMe,
         scriptRunBy: $TSFixMe
@@ -420,7 +426,11 @@ export default class Service {
         );
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, unsetData: $TSFixMe): void {
+    public async updateOneBy(
+        query: Query,
+        data: $TSFixMe,
+        unsetData: $TSFixMe
+    ): void {
         if (!query) {
             query = {};
         }
@@ -515,7 +525,7 @@ export default class Service {
         return monitor;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -542,7 +552,7 @@ export default class Service {
 
     // To be used to know the current status of a monitor
     // online, offline or degraded
-    async updateAllMonitorStatus(query: Query, data: $TSFixMe): void {
+    public async updateAllMonitorStatus(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -560,7 +570,14 @@ export default class Service {
     //Params:
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
-    async findBy({ query, limit, skip, sort, populate, select }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        sort,
+        populate,
+        select,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -598,7 +615,7 @@ export default class Service {
         return monitors;
     }
 
-    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
+    public async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -618,7 +635,7 @@ export default class Service {
         return monitor;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -630,7 +647,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -750,7 +767,7 @@ export default class Service {
         }
     }
 
-    async getMonitorsBySubprojects(
+    public async getMonitorsBySubprojects(
         subProjectIds: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -871,7 +888,7 @@ export default class Service {
         return subProjectMonitors;
     }
 
-    async getMonitorsBySubprojectsPaginate(
+    public async getMonitorsBySubprojectsPaginate(
         projectId: ObjectID,
         componentId: $TSFixMe,
         limit: PositiveNumber,
@@ -989,7 +1006,7 @@ export default class Service {
         };
     }
 
-    async getProbeMonitors(probeId: $TSFixMe, date: $TSFixMe): void {
+    public async getProbeMonitors(probeId: $TSFixMe, date: $TSFixMe): void {
         const newdate: $TSFixMe = new Date();
         const monitors: $TSFixMe = await MonitorModel.find({
             $and: [
@@ -1121,7 +1138,7 @@ export default class Service {
         }
     }
 
-    async getScriptMonitors({ limit, skip }: $TSFixMe): void {
+    public async getScriptMonitors({ limit, skip }: $TSFixMe): void {
         import moment from 'moment';
         const monitors: $TSFixMe = await MonitorModel.find({
             $and: [
@@ -1171,7 +1188,7 @@ export default class Service {
         }
     }
 
-    async getUrlMonitorsNotScannedByLightHouseInPastOneDay(): void {
+    public async getUrlMonitorsNotScannedByLightHouseInPastOneDay(): void {
         const oneDay: $TSFixMe = moment().subtract(1, 'days').toDate();
 
         const monitors: $TSFixMe = await MonitorModel.find({
@@ -1203,7 +1220,7 @@ export default class Service {
         return monitors;
     }
 
-    async updateMonitorPingTime(id: $TSFixMe): void {
+    public async updateMonitorPingTime(id: $TSFixMe): void {
         const newdate: $TSFixMe = new Date();
 
         const monitor: $TSFixMe = await MonitorModel.findOneAndUpdate(
@@ -1216,7 +1233,7 @@ export default class Service {
         return monitor;
     }
 
-    async updateDeviceMonitorPingTime(
+    public async updateDeviceMonitorPingTime(
         projectId: ObjectID,
         deviceId: $TSFixMe
     ): void {
@@ -1239,7 +1256,7 @@ export default class Service {
         }
     }
 
-    async getMonitorLogs(
+    public async getMonitorLogs(
         monitorId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -1339,7 +1356,7 @@ export default class Service {
         return probeLogs;
     }
 
-    async getMonitorLogsByDay(
+    public async getMonitorLogsByDay(
         monitorId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
@@ -1390,7 +1407,7 @@ export default class Service {
         return probeLogs;
     }
 
-    async getMonitorStatuses(
+    public async getMonitorStatuses(
         monitorId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -1458,7 +1475,7 @@ export default class Service {
         return probeStatuses;
     }
 
-    async addSeat(query: Query): void {
+    public async addSeat(query: Query): void {
         const project: $TSFixMe = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -1481,7 +1498,7 @@ export default class Service {
         return 'A new seat added. Now you can add a monitor';
     }
 
-    async addSiteUrl(query: Query, data: $TSFixMe): void {
+    public async addSiteUrl(query: Query, data: $TSFixMe): void {
         let monitor: $TSFixMe = await this.findOneBy({
             query,
             select: 'siteUrls',
@@ -1502,7 +1519,7 @@ export default class Service {
         return monitor;
     }
 
-    async removeSiteUrl(query: Query, data: $TSFixMe): void {
+    public async removeSiteUrl(query: Query, data: $TSFixMe): void {
         let monitor: $TSFixMe = await this.findOneBy({
             query,
             select: 'siteUrls',
@@ -1527,7 +1544,7 @@ export default class Service {
     }
 
     // yet to be edited
-    async getManualMonitorTime(monitorId: $TSFixMe): void {
+    public async getManualMonitorTime(monitorId: $TSFixMe): void {
         const [monitorTime, monitorIncidents]: $TSFixMe = await Promise.all([
             this.findOneBy({
                 query: { _id: monitorId },
@@ -1655,7 +1672,7 @@ export default class Service {
         return times;
     }
 
-    async restoreBy(query: Query): void {
+    public async restoreBy(query: Query): void {
         query.deleted = true;
         const select: string = '_id';
         const monitor: $TSFixMe = await this.findBy({ query, select });
@@ -1691,7 +1708,7 @@ export default class Service {
 
     // checks if the monitor uptime stat is within the defined uptime on monitor sla
     // then update the monitor => breachedMonitorSla
-    async updateMonitorSlaStat(query: Query): void {
+    public async updateMonitorSlaStat(query: Query): void {
         const currentDate: $TSFixMe = moment().format();
         let startDate: $TSFixMe = moment(currentDate).subtract(30, 'days'); // default frequency
         const populate: $TSFixMe = [
@@ -1959,7 +1976,7 @@ export default class Service {
             }
             //Remove events having start and end time equal.
             incidentsHappenedDuringTheDay =
-                incidentsHappenedDuringTheDay.filter(event => {
+                incidentsHappenedDuringTheDay.filter((event: $TSFixMe) => {
                     return !moment(event.start).isSame(event.end);
                 });
             //Last step
@@ -1995,7 +2012,7 @@ export default class Service {
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     }
 
-    async closeBreachedMonitorSla(
+    public async closeBreachedMonitorSla(
         projectId: ObjectID,
         monitorId: $TSFixMe,
         userId: ObjectID
@@ -2016,7 +2033,7 @@ export default class Service {
         return monitor;
     }
 
-    async changeMonitorComponent(
+    public async changeMonitorComponent(
         projectId: ObjectID,
         monitorId: $TSFixMe,
         componentId: $TSFixMe
@@ -2262,7 +2279,7 @@ export default class Service {
             }
             //Remove events having start and end time equal.
             incidentsHappenedDuringTheDay =
-                incidentsHappenedDuringTheDay.filter(event => {
+                incidentsHappenedDuringTheDay.filter((event: $TSFixMe) => {
                     return !moment(event.start).isSame(event.end);
                 });
             //Last step

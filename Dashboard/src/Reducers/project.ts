@@ -230,7 +230,7 @@ export default function project(state = initialState, action: Action): void {
 
         case types.RESET_PROJECT_TOKEN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => {
+            projects = projects.filter((project: $TSFixMe) => {
                 return project._id !== action.payload._id;
             });
 
@@ -279,7 +279,7 @@ export default function project(state = initialState, action: Action): void {
 
         case types.RENAME_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => {
+            projects = projects.filter((project: $TSFixMe) => {
                 return project._id !== action.payload._id;
             });
 
@@ -355,7 +355,7 @@ export default function project(state = initialState, action: Action): void {
             });
         case types.DELETE_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => {
+            projects = projects.filter((project: $TSFixMe) => {
                 return project._id !== action.payload;
             });
             return Object.assign({}, state, {
@@ -402,7 +402,7 @@ export default function project(state = initialState, action: Action): void {
 
         case types.MARK_PROJECT_DELETE_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => {
+            projects = projects.filter((project: $TSFixMe) => {
                 return project._id !== action.payload;
             });
             return Object.assign({}, state, {
@@ -498,7 +498,7 @@ export default function project(state = initialState, action: Action): void {
 
         case types.CHANGE_PLAN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(project => {
+            projects = projects.filter((project: $TSFixMe) => {
                 return project._id !== action.payload._id;
             });
 
@@ -582,7 +582,7 @@ export default function project(state = initialState, action: Action): void {
             return Object.assign({}, state, {
                 currentProject: {
                     ...state.currentProject,
-                    users: action.payload.find(team => {
+                    users: action.payload.find((team: $TSFixMe) => {
                         return team.projectId === state.currentProject._id;
                     }).team,
                 },

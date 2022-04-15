@@ -6,19 +6,19 @@ import FindOneBy from '../Types/DB/FindOneBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const performanceTrackerMetric: $TSFixMe =
             await PerformanceTrackerMetricModel.create(data);
         return performanceTrackerMetric;
     }
 
-    async createMany(allData: $TSFixMe): void {
+    public async createMany(allData: $TSFixMe): void {
         const allMetrics: $TSFixMe =
             await PerformanceTrackerMetricModel.insertMany(allData);
         return allMetrics;
     }
     //Description: Gets all performance metrics by component.
-    async findBy({
+    public async findBy({
         query,
         limit,
         skip,
@@ -64,7 +64,7 @@ export default class Service {
         return performanceTrackerMetrics;
     }
 
-    async mergeMetrics({
+    public async mergeMetrics({
         query,
 
         // limit,
@@ -154,7 +154,7 @@ export default class Service {
         return trackerMetrics;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -172,7 +172,7 @@ export default class Service {
         return performanceTrackerMetric;
     }
 
-    async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -193,7 +193,7 @@ export default class Service {
         return performanceTrackerMetric;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -213,7 +213,7 @@ export default class Service {
         return performanceTrackerMetric;
     }
 
-    async createMetricsData(
+    public async createMetricsData(
         appId: $TSFixMe,
         type: $TSFixMe,
         data: $TSFixMe,
@@ -258,7 +258,7 @@ export default class Service {
         RealTimeService.sendErrorMetrics(appId, error);
     }
 
-    async structureMetricsTime(
+    public async structureMetricsTime(
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -311,7 +311,7 @@ export default class Service {
     }
 
     // setup the throughput data for frontend
-    async structureMetricsCount(
+    public async structureMetricsCount(
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -361,7 +361,7 @@ export default class Service {
         return finalOutput;
     }
 
-    async structureMetricsError(
+    public async structureMetricsError(
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe

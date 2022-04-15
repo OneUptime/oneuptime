@@ -79,7 +79,7 @@ class Service extends DatabaseService<typeof Model> {
         return Promise.resolve({ data } as CreateBy);
     }
 
-    async updateStatus(applicationScannerId: ObjectID): void {
+    public async updateStatus(applicationScannerId: ObjectID): void {
         const data: $TSFixMe = new Document<typeof Model>();
         data.set('lastAlive', OneUptimeDate.getCurrentDate());
 

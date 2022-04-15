@@ -7,7 +7,7 @@ import Query from '../Types/DB/Query';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         // prepare  log model
         let log: $TSFixMe = new LogModel();
         let content: $TSFixMe;
@@ -51,7 +51,7 @@ export default class Service {
         });
         return log;
     }
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -68,7 +68,14 @@ export default class Service {
 
         return log;
     }
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -105,7 +112,7 @@ export default class Service {
 
         return logs.reverse();
     }
-    async getLogsByApplicationLogId(
+    public async getLogsByApplicationLogId(
         applicationLogId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -144,7 +151,7 @@ export default class Service {
         });
         return logs;
     }
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -154,7 +161,7 @@ export default class Service {
         return count;
     }
 
-    async search(
+    public async search(
         query: Query,
         filter: $TSFixMe,
         skip: PositiveNumber,
@@ -184,7 +191,7 @@ export default class Service {
         return { searchedLogs, totalSearchCount };
     }
 
-    async searchByDuration(query: Query): void {
+    public async searchByDuration(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -220,7 +227,7 @@ export default class Service {
         return { searchedLogs, totalSearchCount };
     }
     // Introduce this to know the current date range of the query incase it wasnt given by the user
-    async getDateRange(query: Query): void {
+    public async getDateRange(query: Query): void {
         if (!query) {
             query = {};
         }

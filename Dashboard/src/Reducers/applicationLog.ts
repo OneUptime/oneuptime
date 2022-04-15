@@ -189,9 +189,11 @@ export default function applicationLog(
                 [],
                 state.applicationLogsList.applicationLogs
             );
-            applicationLogs = applicationLogs.filter(applicationLog => {
-                return action.payload !== applicationLog.componentId;
-            });
+            applicationLogs = applicationLogs.filter(
+                (applicationLog: $TSFixMe) => {
+                    return action.payload !== applicationLog.componentId;
+                }
+            );
 
             return Object.assign({}, state, {
                 applicationLogsList: {

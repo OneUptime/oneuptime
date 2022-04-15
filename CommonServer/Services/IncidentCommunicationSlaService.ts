@@ -6,7 +6,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const incidentCommunicationSla: $TSFixMe = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -48,7 +48,7 @@ export default class Service {
         return createdIncidentCommunicationSla;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -69,7 +69,14 @@ export default class Service {
         return incidentCommunicationSla;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
@@ -90,7 +97,7 @@ export default class Service {
         return incidentCommunicationSla;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -214,7 +221,7 @@ export default class Service {
         return updatedIncidentCommunicationSla;
     }
 
-    async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         const deletedSla: $TSFixMe =
             await IncidentCommunicationSlaModel.findOneAndUpdate(
                 query,
@@ -230,11 +237,11 @@ export default class Service {
         return deletedSla;
     }
 
-    async hardDelete(query: Query): void {
+    public async hardDelete(query: Query): void {
         await IncidentCommunicationSlaModel.deleteMany(query);
         return 'Incident Communication SLA(s) deleted successfully';
     }
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

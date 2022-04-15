@@ -317,7 +317,7 @@ export default function card(state = initialState, action: Action): void {
                 },
                 allNumbers: {
                     ...state.allNumbers,
-                    numbers: state.allNumbers.numbers.filter(n => {
+                    numbers: state.allNumbers.numbers.filter((n: $TSFixMe) => {
                         return String(n._id) !== String(action.payload._id);
                     }),
                 },

@@ -20,7 +20,7 @@ export default class Service {
     //Params:
     //Param 1: data: ComponentModal.
     //Returns: promise with component model or error.
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const existingComponentCount: $TSFixMe = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -135,7 +135,11 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, unsetData: $TSFixMe): void {
+    public async updateOneBy(
+        query: Query,
+        data: $TSFixMe,
+        unsetData: $TSFixMe
+    ): void {
         if (!query) {
             query = {};
         }
@@ -183,7 +187,7 @@ export default class Service {
         return component;
     }
 
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -213,7 +217,14 @@ export default class Service {
     //Params:
     //Param 1: data: ComponentModal.
     //Returns: promise with component model or error.
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -250,7 +261,7 @@ export default class Service {
         return components;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -269,7 +280,7 @@ export default class Service {
         return component;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -281,7 +292,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -382,7 +393,7 @@ export default class Service {
         }
     }
 
-    async getComponentsBySubprojects(
+    public async getComponentsBySubprojects(
         subProjectIds: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -418,7 +429,7 @@ export default class Service {
         return subProjectComponents;
     }
 
-    async getComponentsByPaginate(
+    public async getComponentsByPaginate(
         projectId: ObjectID,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -451,7 +462,7 @@ export default class Service {
         return { components, count, _id: projectId, skip, limit };
     }
 
-    async addSeat(query: Query): void {
+    public async addSeat(query: Query): void {
         const project: $TSFixMe = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -474,7 +485,7 @@ export default class Service {
         return 'A new seat added. Now you can add a component';
     }
 
-    async restoreBy(query: Query): void {
+    public async restoreBy(query: Query): void {
         query.deleted = true;
         const populateComponent: $TSFixMe = [
             { path: 'projectId', select: 'name' },

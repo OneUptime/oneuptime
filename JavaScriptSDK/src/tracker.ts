@@ -116,7 +116,7 @@ class ErrorTracker {
         if (!Array.isArray(tags)) {
             return 'Invalid Tags type';
         }
-        tags.forEach(element => {
+        tags.forEach((element: $TSFixMe) => {
             if (element.key && element.value) {
                 this.setTag(element.key, element.value);
             }
@@ -314,7 +314,7 @@ class ErrorTracker {
                 .then((res: $TSFixMe) => {
                     resolve(res);
                 })
-                .catch(err => {
+                .catch((err: $TSFixMe) => {
                     reject(err);
                 });
         });

@@ -1,6 +1,6 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const {
             projectId,
             title,
@@ -55,7 +55,14 @@ export default class Service {
         return await incidentSettings.save();
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -93,7 +100,7 @@ export default class Service {
 
         return result;
     }
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -103,7 +110,7 @@ export default class Service {
         }
         return await incidentSettingsModel.countDocuments(query);
     }
-    async findOne({ query, select, populate, sort }: FindOneBy): void {
+    public async findOne({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -122,7 +129,7 @@ export default class Service {
         return incidentSettings;
     }
 
-    async updateOne(query: Query, data: $TSFixMe): void {
+    public async updateOne(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -178,7 +185,7 @@ export default class Service {
         });
         return incidentSettings;
     }
-    async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -202,7 +209,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         const incidentSetting: $TSFixMe = await this.findOne({
             query,
             select: 'projectId title description incidentPriority isDefault name createdAt',

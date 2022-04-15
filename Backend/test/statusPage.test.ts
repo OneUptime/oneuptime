@@ -111,7 +111,7 @@ describe('Status API', function (): void {
                                                 resourceCategoryId;
                                             ComponentModel.create({
                                                 name: 'New Component',
-                                            }).then(component => {
+                                            }).then((component: $TSFixMe) => {
                                                 componentId = component._id;
                                                 request
                                                     .post(
@@ -885,130 +885,146 @@ describe('Status API', function (): void {
         const authorization: string = `Basic ${token}`;
         const data: $TSFixMe = { domain: 'app.oneuptimeapp.com' };
 
-        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
-            // select the first domain
+        StatusService.findOneBy({ _id: statusPageId }).then(
+            (statusPage: $TSFixMe) => {
+                // select the first domain
 
-            const { _id: domainId } = statusPage.domains[0];
-            request
-                .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
-                .send(data)
-                .set('Authorization', authorization)
-                .end((err: $TSFixMe, res: $TSFixMe) => {
-                    if (err) {
-                        throw err;
-                    }
-                    expect(res).to.have.status(200);
-                    done();
-                });
-        });
+                const { _id: domainId } = statusPage.domains[0];
+                request
+                    .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
+                    .send(data)
+                    .set('Authorization', authorization)
+                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                        if (err) {
+                            throw err;
+                        }
+                        expect(res).to.have.status(200);
+                        done();
+                    });
+            }
+        );
     });
 
     it('should not update a domain on a status page if the domain field is empty', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         const data: $TSFixMe = { domain: '' };
 
-        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
-            // select the first domain
+        StatusService.findOneBy({ _id: statusPageId }).then(
+            (statusPage: $TSFixMe) => {
+                // select the first domain
 
-            const { _id: domainId } = statusPage.domains[0];
-            request
-                .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
-                .send(data)
-                .set('Authorization', authorization)
-                .end((err: $TSFixMe, res: $TSFixMe) => {
-                    if (err) {
-                        throw err;
-                    }
-                    expect(res).to.have.status(400);
-                    done();
-                });
-        });
+                const { _id: domainId } = statusPage.domains[0];
+                request
+                    .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
+                    .send(data)
+                    .set('Authorization', authorization)
+                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                        if (err) {
+                            throw err;
+                        }
+                        expect(res).to.have.status(400);
+                        done();
+                    });
+            }
+        );
     });
 
     it('should not update a domain on a status page if the domain is not a string', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         const data: $TSFixMe = { domain: { url: 'shop.oneuptimeapp.com' } };
 
-        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
-            // select the first domain
+        StatusService.findOneBy({ _id: statusPageId }).then(
+            (statusPage: $TSFixMe) => {
+                // select the first domain
 
-            const { _id: domainId } = statusPage.domains[0];
-            request
-                .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
-                .send(data)
-                .set('Authorization', authorization)
-                .end((err: $TSFixMe, res: $TSFixMe) => {
-                    if (err) {
-                        throw err;
-                    }
-                    expect(res).to.have.status(400);
-                    done();
-                });
-        });
+                const { _id: domainId } = statusPage.domains[0];
+                request
+                    .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
+                    .send(data)
+                    .set('Authorization', authorization)
+                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                        if (err) {
+                            throw err;
+                        }
+                        expect(res).to.have.status(400);
+                        done();
+                    });
+            }
+        );
     });
 
     it('should not update a domain on a status page if the status page is missing or not found', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         const data: $TSFixMe = { domain: { url: 'shop.oneuptimeapp.com' } };
 
-        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
-            // select the first domain
+        StatusService.findOneBy({ _id: statusPageId }).then(
+            (statusPage: $TSFixMe) => {
+                // select the first domain
 
-            const { _id: domainId } = statusPage.domains[0];
-            // provide a random object id
-            const statusPageId: string = '5ea70eb4be9f4b177a1719ad';
-            request
-                .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
-                .send(data)
-                .set('Authorization', authorization)
-                .end((err: $TSFixMe, res: $TSFixMe) => {
-                    if (err) {
-                        throw err;
-                    }
-                    expect(res).to.have.status(400);
-                    done();
-                });
-        });
+                const { _id: domainId } = statusPage.domains[0];
+                // provide a random object id
+                const statusPageId: string = '5ea70eb4be9f4b177a1719ad';
+                request
+                    .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
+                    .send(data)
+                    .set('Authorization', authorization)
+                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                        if (err) {
+                            throw err;
+                        }
+                        expect(res).to.have.status(400);
+                        done();
+                    });
+            }
+        );
     });
 
     it('should delete a domain from a status page', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
-            // select the first domain
+        StatusService.findOneBy({ _id: statusPageId }).then(
+            (statusPage: $TSFixMe) => {
+                // select the first domain
 
-            const { _id: domainId } = statusPage.domains[0];
-            request
-                .delete(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
-                .set('Authorization', authorization)
-                .end((err: $TSFixMe, res: $TSFixMe) => {
-                    if (err) {
-                        throw err;
-                    }
-                    expect(res).to.have.status(200);
-                    done();
-                });
-        });
+                const { _id: domainId } = statusPage.domains[0];
+                request
+                    .delete(
+                        `/StatusPage/${projectId}/${statusPageId}/${domainId}`
+                    )
+                    .set('Authorization', authorization)
+                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                        if (err) {
+                            throw err;
+                        }
+                        expect(res).to.have.status(200);
+                        done();
+                    });
+            }
+        );
     });
 
     it('should not delete any domain if status page does not exist or not found', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
-            // select the first domain
+        StatusService.findOneBy({ _id: statusPageId }).then(
+            (statusPage: $TSFixMe) => {
+                // select the first domain
 
-            const { _id: domainId } = statusPage.domains[0];
-            // create random status page id
-            const statusPageId: string = '5ea70eb4be9f4b177a1719ad';
-            request
-                .delete(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
-                .set('Authorization', authorization)
-                .end((err: $TSFixMe, res: $TSFixMe) => {
-                    if (err) {
-                        throw err;
-                    }
-                    expect(res).to.have.status(400);
-                    done();
-                });
-        });
+                const { _id: domainId } = statusPage.domains[0];
+                // create random status page id
+                const statusPageId: string = '5ea70eb4be9f4b177a1719ad';
+                request
+                    .delete(
+                        `/StatusPage/${projectId}/${statusPageId}/${domainId}`
+                    )
+                    .set('Authorization', authorization)
+                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                        if (err) {
+                            throw err;
+                        }
+                        expect(res).to.have.status(400);
+                        done();
+                    });
+            }
+        );
     });
 });
 

@@ -11,7 +11,7 @@ import Query from '../Types/DB/Query';
 import moment from 'moment';
 
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const Log: $TSFixMe = new MonitorLogModel();
         let responseBody: $TSFixMe = '';
         if (data.resp && data.resp.body) {
@@ -78,7 +78,7 @@ export default class Service {
         return savedLog;
     }
 
-    async updateAggregateLogs(data: $TSFixMe): void {
+    public async updateAggregateLogs(data: $TSFixMe): void {
         const now: $TSFixMe = new Date();
 
         const intervalHourDate: $TSFixMe =
@@ -221,7 +221,7 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -237,7 +237,14 @@ export default class Service {
         return monitorLog;
     }
 
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -270,7 +277,7 @@ export default class Service {
         return monitorLogs;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -285,7 +292,7 @@ export default class Service {
         return monitorLog;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -295,7 +302,7 @@ export default class Service {
         return count;
     }
 
-    async sendMonitorLog(data: $TSFixMe): void {
+    public async sendMonitorLog(data: $TSFixMe): void {
         const selectMonitorLog: $TSFixMe =
             'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
 

@@ -90,7 +90,7 @@ describe('Subscriber API', function (): void {
                                             const authorization: string = `Basic ${token}`;
                                             ComponentModel.create({
                                                 name: 'New Component',
-                                            }).then(component => {
+                                            }).then((component: $TSFixMe) => {
                                                 componentId = component._id;
                                                 request
                                                     .post(

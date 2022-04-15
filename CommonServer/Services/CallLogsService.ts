@@ -1,5 +1,12 @@
 export default class Service {
-    async findBy({ query, limit, skip, sort, select, populate }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        sort,
+        select,
+        populate,
+    }: FindBy): void {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
@@ -16,7 +23,7 @@ export default class Service {
         return items;
     }
 
-    async create(
+    public async create(
         from: $TSFixMe,
         to: $TSFixMe,
         projectId: ObjectID,
@@ -42,7 +49,7 @@ export default class Service {
         return item;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -54,7 +61,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -70,11 +77,11 @@ export default class Service {
         return items;
     }
 
-    async hardDeleteBy({ query }: $TSFixMe): void {
+    public async hardDeleteBy({ query }: $TSFixMe): void {
         await CallLogsModel.deleteMany(query);
     }
 
-    async search({ filter, skip, limit }: $TSFixMe): void {
+    public async search({ filter, skip, limit }: $TSFixMe): void {
         const query: $TSFixMe = {
             to: { $regex: new RegExp(filter), $options: 'i' },
         };

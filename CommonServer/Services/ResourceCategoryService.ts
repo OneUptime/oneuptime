@@ -8,7 +8,7 @@ import ContainerSecurityModel from '../Models/containerSecurity';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         const resourceCategory: $TSFixMe =
             await ResourceCategoryModel.findOneAndUpdate(
                 query,

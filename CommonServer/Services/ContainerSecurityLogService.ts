@@ -5,7 +5,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create({ securityId, componentId, data }: $TSFixMe): void {
+    public async create({ securityId, componentId, data }: $TSFixMe): void {
         if (!securityId) {
             throw new BadDataException('Security ID is required');
         }
@@ -39,7 +39,7 @@ export default class Service {
         return securityLog;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -61,7 +61,14 @@ export default class Service {
         return securityLog;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -101,7 +108,7 @@ export default class Service {
         return securityLogs;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -131,7 +138,7 @@ export default class Service {
         return containerSecurityLog;
     }
 
-    async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         let securityLog: $TSFixMe = await this.findOneBy({
             query,
             select: '_id',
@@ -154,7 +161,7 @@ export default class Service {
         return securityLog;
     }
 
-    async hardDelete(query: Query): void {
+    public async hardDelete(query: Query): void {
         await ContainerSecurityLogModel.deleteMany(query);
         return 'Container Security logs deleted successfully';
     }

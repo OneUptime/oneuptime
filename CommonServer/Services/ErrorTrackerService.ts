@@ -1,7 +1,7 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
-    async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         // check if component exist
         const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: data.componentId,
@@ -65,7 +65,7 @@ export default class Service {
         return errorTracker;
     }
 
-    async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -78,7 +78,14 @@ export default class Service {
     }
 
     // find a list of error trackers
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -114,7 +121,7 @@ export default class Service {
         return result;
     }
     // find a particular error tracker
-    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -131,7 +138,7 @@ export default class Service {
         return result;
     }
     // get all error trackers by component ID
-    async getErrorTrackersByComponentId(
+    public async getErrorTrackersByComponentId(
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -172,7 +179,7 @@ export default class Service {
         return { errorTrackers, count, skip, limit };
     }
 
-    async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -208,7 +215,11 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null): void {
+    public async updateOneBy(
+        query: Query,
+        data: $TSFixMe,
+        unsetData = null
+    ): void {
         if (!query) {
             query = {};
         }

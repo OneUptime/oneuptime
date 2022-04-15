@@ -65,7 +65,7 @@ class Service extends DatabaseService<typeof Model> {
         });
     }
 
-    async validateDockerCredential({
+    public async validateDockerCredential({
         username,
         password,
     }: {

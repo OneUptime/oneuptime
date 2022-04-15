@@ -64,31 +64,35 @@ describe('Enterprise Monitor API', function (): void {
     it('should create a new monitor for project with no billing plan', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
 
-        ComponentModel.create({ name: 'Test Component' }).then(component => {
-            request
-                .post('/project/create')
-                .set('Authorization', authorization)
-                .send({
-                    projectName: 'Test Project',
-                })
-                .end((err: $TSFixMe, res: $TSFixMe): void => {
-                    newProjectId = res.body._id;
-                    request
-                        .post(`/monitor/${newProjectId}`)
-                        .set('Authorization', authorization)
-                        .send({
-                            name: 'New Monitor',
-                            type: 'url',
-                            data: { url: 'http://www.tests.org' },
-                            componentId: component._id,
-                        })
-                        .end((err: $TSFixMe, res: $TSFixMe): void => {
-                            monitorId = res.body._id;
-                            expect(res).to.have.status(200);
-                            expect(res.body.name).to.be.equal('New Monitor');
-                            done();
-                        });
-                });
-        });
+        ComponentModel.create({ name: 'Test Component' }).then(
+            (component: $TSFixMe) => {
+                request
+                    .post('/project/create')
+                    .set('Authorization', authorization)
+                    .send({
+                        projectName: 'Test Project',
+                    })
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
+                        newProjectId = res.body._id;
+                        request
+                            .post(`/monitor/${newProjectId}`)
+                            .set('Authorization', authorization)
+                            .send({
+                                name: 'New Monitor',
+                                type: 'url',
+                                data: { url: 'http://www.tests.org' },
+                                componentId: component._id,
+                            })
+                            .end((err: $TSFixMe, res: $TSFixMe): void => {
+                                monitorId = res.body._id;
+                                expect(res).to.have.status(200);
+                                expect(res.body.name).to.be.equal(
+                                    'New Monitor'
+                                );
+                                done();
+                            });
+                    });
+            }
+        );
     });
 });

@@ -253,7 +253,7 @@ describe('OneUptimeLogger', function (): void {
             expect(response.data.tags).to.be.an('array');
 
             expect(response.data.tags).to.have.lengthOf(tags.length);
-            tags.forEach(tag => {
+            tags.forEach((tag: $TSFixMe) => {
                 expect(response.data.tags).to.include(tag);
             });
         });

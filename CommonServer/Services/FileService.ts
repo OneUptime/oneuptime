@@ -2,7 +2,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Database from '../Infrastructure/Database';
 import ObjectID from 'Common/Types/ObjectID';
 class FileService {
-    async getFileById(fileId: ObjectID): void {
+    public async getFileById(fileId: ObjectID): void {
         const gfs: $TSFixMe = await Database.getFileClient();
         const file: $TSFixMe = await gfs.findOne({ _id: fileId });
 
@@ -13,7 +13,7 @@ class FileService {
         return file;
     }
 
-    async deleteFileById(fileId: ObjectID): void {
+    public async deleteFileById(fileId: ObjectID): void {
         const gfs: $TSFixMe = await Database.getFileClient();
         await gfs.deleteOne({ _id: fileId });
     }

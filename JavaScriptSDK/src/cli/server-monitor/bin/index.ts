@@ -90,11 +90,13 @@ const checkParams: Function = (params: $TSFixMe): void => {
         resolve(
             params.reduce((promiseChain, param) => {
                 return promiseChain.then(() => {
-                    return getParamValue(params, param.name).then(value => {
-                        values.push(value);
+                    return getParamValue(params, param.name).then(
+                        (value: $TSFixMe) => {
+                            values.push(value);
 
-                        return values;
-                    });
+                            return values;
+                        }
+                    );
                 });
             }, Promise.resolve())
         );
@@ -124,10 +126,10 @@ const getParamValue: Function = (params, name): void => {
                         resolve(null);
                     } else {
                         prompt(
-                            params.filter(param => {
+                            params.filter((param: $TSFixMe) => {
                                 return param.name === name;
                             })
-                        ).then(values => {
+                        ).then((values: $TSFixMe) => {
                             resolve(values[name]);
                         });
                     }
@@ -140,7 +142,7 @@ const getParamValue: Function = (params, name): void => {
 };
 
 /** Init server monitor cli. */
-checkParams(questions).then(values => {
+checkParams(questions).then((values: $TSFixMe) => {
     const [projectId, apiUrl, apiKey, monitorId, daemon] = values;
 
     if (daemon) {
@@ -258,13 +260,15 @@ checkParams(questions).then(values => {
             apiKey,
             monitorId:
                 monitorId ||
-                (data => {
+                ((data: $TSFixMe) => {
                     return new Promise((resolve: $TSFixMe) => {
-                        const question: $TSFixMe = questions.filter(param => {
-                            return param.name === 'monitorId';
-                        });
+                        const question: $TSFixMe = questions.filter(
+                            (param: $TSFixMe) => {
+                                return param.name === 'monitorId';
+                            }
+                        );
 
-                        question[0].choices = data.map(monitor => {
+                        question[0].choices = data.map((monitor: $TSFixMe) => {
                             return `${monitor.componentId.name} / ${monitor.name} (${monitor._id})`;
                         });
 

@@ -67,8 +67,8 @@ if (process.env['ONEUPTIME_HOST']) {
 app.get(
     ['/env.js', '/StatusPage/env.js'],
     (req: ExpressRequest, res: ExpressResponse) => {
-        let REACT_APP_ONEUPTIME_HOST = null;
-        let REACT_APP_BACKEND_PROTOCOL = null;
+        let REACT_APP_ONEUPTIME_HOST: $TSFixMe = null;
+        let REACT_APP_BACKEND_PROTOCOL: $TSFixMe = null;
         if (!process.env['ONEUPTIME_HOST']) {
             REACT_APP_ONEUPTIME_HOST = req.hostname;
         } else {
