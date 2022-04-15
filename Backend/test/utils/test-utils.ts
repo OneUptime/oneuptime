@@ -178,7 +178,7 @@ const methods: $TSFixMe = {
         request,
         authorization,
         projectId,
-        skip: number = 0
+        skip = 0,
         limit = 999,
     }: $TSFixMe) => {
         return await request

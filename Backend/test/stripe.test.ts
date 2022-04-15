@@ -17,7 +17,7 @@ import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 import AirtableService from '../backend/services/airtableService';
 
-let token, projectId: ObjectID, userId: ObjectID;
+let token: $TSFixMe, projectId: ObjectID, userId: ObjectID;
 import VerificationTokenModel from '../backend/models/verificationToken';
 
 let cardId: $TSFixMe, authorization: $TSFixMe;

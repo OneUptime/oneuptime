@@ -890,16 +890,16 @@ class Service extends DatabaseService<typeof Model> {
         };
     }
 
-    incomingCondition(payload: $TSFixMe, conditions: $TSFixMe): void {
+    public incomingCondition(payload: $TSFixMe, conditions: $TSFixMe): void {
         let eventOccurred: $TSFixMe = false;
         let matchedCriterion: $TSFixMe;
         if (conditions && conditions.length) {
             eventOccurred = some(conditions, (condition: $TSFixMe) => {
                 let response: $TSFixMe = false;
                 let respAnd: $TSFixMe = false,
-                    respOr = false,
-                    countAnd = 0,
-                    countOr = 0;
+                    respOr: $TSFixMe = false,
+                    countAnd : $TSFixMe= 0,
+                    countOr: $TSFixMe = 0;
 
                 if (
                     condition &&
@@ -1032,7 +1032,7 @@ class Service extends DatabaseService<typeof Model> {
                 ...upFailedReasons,
             ];
             if (monitor.criteria.down) {
-                matchedCriterion = monitor.criteria.down.find(criterion => {
+                matchedCriterion = monitor.criteria.down.find((criterion: $TSFixMe) => {
                     return criterion.default === true;
                 });
             }
@@ -1117,7 +1117,7 @@ class Service extends DatabaseService<typeof Model> {
         } =
             monitor && monitor.criteria && monitor.criteria.down
                 ? this.incomingCondition(payload, [
-                      ...monitor.criteria.down.filter(criterion => {
+                      ...monitor.criteria.down.filter((criterion: $TSFixMe) => {
                           return criterion.default !== true;
                       }),
                   ])
@@ -1147,7 +1147,7 @@ class Service extends DatabaseService<typeof Model> {
             status = 'offline';
             reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             if (monitor.criteria.down) {
-                matchedCriterion = monitor.criteria.down.find(criterion => {
+                matchedCriterion = monitor.criteria.down.find((criterion: $TSFixMe) => {
                     return criterion.default === true;
                 });
             }
@@ -1516,27 +1516,27 @@ const incomingCheckOr: Function = (
 };
 
 const checkAnd: Function = (
-    payload,
+    payload: $TSFixMe,
 
-    con,
+    con: $TSFixMe,
 
-    statusCode,
+    statusCode,: $TSFixMe
 
-    body,
+    body: $TSFixMe,
 
-    ssl,
+    ssl: $TSFixMe,
 
-    response,
+    response: $TSFixMe,
 
-    successReasons,
+    successReasons: $TSFixMe,
 
-    failedReasons,
+    failedReasons: $TSFixMe,
 
-    type,
+    type: $TSFixMe,
 
-    queryParams,
+    queryParams: $TSFixMe,
 
-    headers
+    headers: $TSFixMe
 ): void => {
     let validity: $TSFixMe = true;
     if (con && con.criteria && con.criteria.length > 0) {
@@ -3782,7 +3782,7 @@ const checkAnd: Function = (
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                statefulset => {
+                                (statefulset: $TSFixMe) => {
                                     if (
                                         statefulset.desiredStatefulsets ===
                                         statefulset.readyStatefulsets

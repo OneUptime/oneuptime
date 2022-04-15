@@ -23,7 +23,7 @@ import AirtableService from '../backend/services/airtableService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import ComponentModel from '../backend/models/component';
 
-let token: $TSFixMe, userId, projectId: ObjectID, monitorId: $TSFixMe;
+let token: $TSFixMe, userId: $TSFixMe, projectId: ObjectID, monitorId: $TSFixMe;
 const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',

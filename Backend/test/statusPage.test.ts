@@ -30,12 +30,12 @@ import ComponentModel from '../backend/models/component';
 let token: $TSFixMe,
     projectId: ObjectID,
     monitorId: $TSFixMe,
-    resourceCategoryId,
+    resourceCategoryId: $TSFixMe,
     scheduledEventId: $TSFixMe,
     statusPageId: $TSFixMe,
     privateStatusPageId: $TSFixMe,
-    userId,
-    componentId;
+    userId: $TSFixMe,
+    componentId: $TSFixMe;
 
 const monitor: $TSFixMe = {
     name: 'New Monitor',
@@ -542,7 +542,7 @@ describe('Status API', function (): void {
         DomainVerificationService.updateOneBy(
             { domain },
             { verificationToken }
-        ).then(({ _id: domainId, verificationToken }): void => {
+        ).then(({ _id: domainId, verificationToken }: $TSFixMe): void => {
             request
                 .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
                 .set('Authorization', authorization)
@@ -628,7 +628,7 @@ describe('Status API', function (): void {
         DomainVerificationService.updateOneBy(
             { domain },
             { verificationToken, verified: false, verifiedAt: null }
-        ).then(({ _id: domainId, verificationToken }): void => {
+        ).then(({ _id: domainId, verificationToken }: $TSFixMe): void => {
             request
                 .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
                 .set('Authorization', authorization)
@@ -658,7 +658,7 @@ describe('Status API', function (): void {
                     query: { domain },
                     select: selectDomainVerify,
                     populate: populateDomainVerify,
-                }).then(({ domain, verificationToken, _id: domainId }) => {
+                }).then(({ domain, verificationToken, _id: domainId }: $TSFixMe) => {
                     request
                         .put(
                             `/domainVerificationToken/${projectId}/verify/${domainId}`

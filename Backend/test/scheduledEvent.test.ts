@@ -21,11 +21,11 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
-    userId,
+    userId: $TSFixMe,
     projectId: ObjectID,
     scheduleEventId: $TSFixMe,
     monitorId: $TSFixMe,
-    componentId;
+    componentId: $TSFixMe;
 
 const scheduledEvent: $TSFixMe = {
     name: 'New scheduled Event',

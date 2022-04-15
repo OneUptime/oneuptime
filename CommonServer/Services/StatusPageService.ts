@@ -113,7 +113,7 @@ const StatusPageServiceBase: $TSFixMe = new ServiceBase({
 });
 
 export default class Service {
-public async findBy({
+    public async findBy({
         query,
         skip,
         limit,
@@ -131,7 +131,13 @@ public async findBy({
         });
     }
 
-public async findOneBy({ query, select, populate, skip, sort }: $TSFixMe): void {
+    public async findOneBy({
+        query,
+        select,
+        populate,
+        skip,
+        sort,
+    }: $TSFixMe): void {
         return await StatusPageServiceBase.findOneBy({
             query,
             skip,
@@ -141,11 +147,11 @@ public async findOneBy({ query, select, populate, skip, sort }: $TSFixMe): void 
         });
     }
 
-public async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         return await StatusPageServiceBase.countBy({ query });
     }
 
-public async create({ data }: $TSFixMe): void {
+    public async create({ data }: $TSFixMe): void {
         data.domains = data.domains || [];
         data.colors = data.colors || defaultStatusPageColors.default;
         data.monitors = Array.isArray(data.monitors) ? [...data.monitors] : [];
@@ -181,7 +187,7 @@ public async create({ data }: $TSFixMe): void {
         return newStatusPage;
     }
 
-public async createDomain(
+    public async createDomain(
         subDomain: $TSFixMe,
         projectId: ObjectID,
         statusPageId: $TSFixMe,
@@ -194,12 +200,13 @@ public async createDomain(
 
         // check if domain already exist
         // only one domain in the db is allowed
-        const existingBaseDomain: $TSFixMe = await DomainVerificationService.findOneBy({
-            query: {
-                domain: subDomain,
-            },
-            select: '_id',
-        });
+        const existingBaseDomain: $TSFixMe =
+            await DomainVerificationService.findOneBy({
+                query: {
+                    domain: subDomain,
+                },
+                select: '_id',
+            });
 
         if (!existingBaseDomain) {
             const creationData: $TSFixMe = {
@@ -228,8 +235,10 @@ public async createDomain(
         if (statusPage) {
             // attach the domain id to statuspage collection and update it
 
-            const domain: $TSFixMe = statusPage.domains.find((domain: $TSFixMe) =>
-                domain.domain === subDomain ? true : false
+            const domain: $TSFixMe = statusPage.domains.find(
+                (domain: $TSFixMe) => {
+                    return domain.domain === subDomain ? true : false;
+                }
             );
             if (domain) {
                 throw new BadDataException('Domain already exists');
@@ -243,10 +252,11 @@ public async createDomain(
                 // before adding any domain
                 // check if there's a certificate already created in the store
                 // if there's none, add the domain to the flow
-                const certificate: $TSFixMe = await CertificateStoreService.findOneBy({
-                    query: { subject: subDomain },
-                    select: 'id',
-                });
+                const certificate: $TSFixMe =
+                    await CertificateStoreService.findOneBy({
+                        query: { subject: subDomain },
+                        select: 'id',
+                    });
 
                 const greenlock: $TSFixMe = global.greenlock;
                 if (!certificate && greenlock) {
@@ -285,7 +295,7 @@ public async createDomain(
 
     // update all the occurence of the old domain to the new domain
     // use regex to replace the value
-public async updateCustomDomain(
+    public async updateCustomDomain(
         domainId: $TSFixMe,
         newDomain: $TSFixMe,
         oldDomain: $TSFixMe
@@ -329,7 +339,7 @@ public async updateCustomDomain(
         }
     }
 
-public async updateDomain(
+    public async updateDomain(
         projectId: ObjectID,
         statusPageId: $TSFixMe,
         domainId: $TSFixMe,
@@ -341,10 +351,11 @@ public async updateDomain(
     ): void {
         let createdDomain: $TSFixMe = {};
 
-        const existingBaseDomain: $TSFixMe = await DomainVerificationService.findOneBy({
-            query: { domain: newDomain },
-            select: '_id',
-        });
+        const existingBaseDomain: $TSFixMe =
+            await DomainVerificationService.findOneBy({
+                query: { domain: newDomain },
+                select: '_id',
+            });
 
         if (!existingBaseDomain) {
             const creationData: $TSFixMe = {
@@ -405,12 +416,11 @@ public async updateDomain(
                     // before adding any domain
                     // check if there's a certificate already created in the store
                     // if there's none, add the domain to the flow
-                    const certificate: $TSFixMe = await CertificateStoreService.findOneBy(
-                        {
+                    const certificate: $TSFixMe =
+                        await CertificateStoreService.findOneBy({
                             query: { subject: eachDomain.domain },
                             select: 'id',
-                        }
-                    );
+                        });
 
                     const greenlock: $TSFixMe = global.greenlock;
                     if (!certificate && greenlock) {
@@ -447,7 +457,10 @@ public async updateDomain(
         return result;
     }
 
-public async deleteDomain(statusPageId: $TSFixMe, domainId: $TSFixMe): void {
+    public async deleteDomain(
+        statusPageId: $TSFixMe,
+        domainId: $TSFixMe
+    ): void {
         const populateStatusPage: $TSFixMe = [
             {
                 path: 'domains.domainVerificationToken',
@@ -500,7 +513,7 @@ public async deleteDomain(statusPageId: $TSFixMe, domainId: $TSFixMe): void {
         );
     }
 
-public async duplicateStatusPage(
+    public async duplicateStatusPage(
         statusPageProjectId: ObjectID,
         statusPageSlug: $TSFixMe,
         statusPageName: $TSFixMe,
@@ -559,7 +572,7 @@ public async duplicateStatusPage(
         return this.create(data);
     }
 
-public async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -622,7 +635,7 @@ public async deleteBy(query: Query, userId: ObjectID): void {
         return statusPage;
     }
 
-public async removeMonitor(monitorId: $TSFixMe): void {
+    public async removeMonitor(monitorId: $TSFixMe): void {
         const populateStatusPage: $TSFixMe = [
             {
                 path: 'monitors.monitor',
@@ -640,9 +653,13 @@ public async removeMonitor(monitorId: $TSFixMe): void {
 
         for (const statusPage of statusPages) {
             const monitors: $TSFixMe = statusPage.monitors.filter(
-                (monitorData: $TSFixMe) =>
-                    String(monitorData.monitor._id || monitorData.monitor) !==
-                    String(monitorId)
+                (monitorData: $TSFixMe) => {
+                    return (
+                        String(
+                            monitorData.monitor._id || monitorData.monitor
+                        ) !== String(monitorId)
+                    );
+                }
             );
 
             if (monitors.length !== statusPage.monitors.length) {
@@ -651,7 +668,7 @@ public async removeMonitor(monitorId: $TSFixMe): void {
         }
     }
 
-public async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         const existingStatusPage: $TSFixMe = await this.findBy({
             query: {
                 name: data.name,
@@ -686,7 +703,9 @@ public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (data && data.groupedMonitors) {
             for (const [key, value] of Object.entries(data.groupedMonitors)) {
                 const monitorIds: $TSFixMe = value.map(
-                    (monitorObj: $TSFixMe) => monitorObj.monitor
+                    (monitorObj: $TSFixMe) => {
+                        return monitorObj.monitor;
+                    }
                 );
                 MonitorService.updateBy(
                     { _id: { $in: monitorIds } },
@@ -695,15 +714,16 @@ public async updateOneBy(query: Query, data: $TSFixMe): void {
             }
         }
 
-        let updatedStatusPage: $TSFixMe = await StatusPageModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            {
-                new: true,
-            }
-        );
+        let updatedStatusPage: $TSFixMe =
+            await StatusPageModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
 
         const populateStatusPage: $TSFixMe = [
             { path: 'projectId', select: 'parentProjectId' },
@@ -729,7 +749,7 @@ public async updateOneBy(query: Query, data: $TSFixMe): void {
         return updatedStatusPage;
     }
 
-public async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -768,7 +788,7 @@ public async updateBy(query: Query, data: $TSFixMe): void {
         return updatedData;
     }
 
-public async getNotes(
+    public async getNotes(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -815,11 +835,15 @@ public async getNotes(
         }
 
         const withMonitors: $TSFixMe = statuspages.filter(
-            (statusPage: $TSFixMe) => statusPage.monitors.length
+            (statusPage: $TSFixMe) => {
+                return statusPage.monitors.length;
+            }
         );
         const statuspage: $TSFixMe = withMonitors[0];
         const monitorIds: $TSFixMe = statuspage
-            ? statuspage.monitors.map((m: $TSFixMe) => m.monitor._id)
+            ? statuspage.monitors.map((m: $TSFixMe) => {
+                  return m.monitor._id;
+              })
             : [];
         if (monitorIds && monitorIds.length) {
             const populate: $TSFixMe = [
@@ -869,7 +893,7 @@ public async getNotes(
         }
     }
 
-public async getIncident(query: Query): void {
+    public async getIncident(query: Query): void {
         const populate: $TSFixMe = [
             {
                 path: 'monitors.monitorId',
@@ -901,7 +925,7 @@ public async getIncident(query: Query): void {
         return incident;
     }
 
-public async getIncidentNotes(
+    public async getIncidentNotes(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -952,7 +976,7 @@ public async getIncidentNotes(
         return { message, count };
     }
 
-public async getNotesByDate(
+    public async getNotesByDate(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -990,14 +1014,16 @@ public async getNotesByDate(
             IncidentService.countBy(query),
         ]);
 
-        const investigationNotes: $TSFixMe = incidents.map((incident: $TSFixMe) => {
-            // return all the incident object
-            return incident;
-        });
+        const investigationNotes: $TSFixMe = incidents.map(
+            (incident: $TSFixMe) => {
+                // return all the incident object
+                return incident;
+            }
+        );
         return { investigationNotes, count };
     }
 
-public async getEvents(
+    public async getEvents(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1037,11 +1063,15 @@ public async getEvents(
         });
 
         const withMonitors: $TSFixMe = statuspages.filter(
-            (statusPage: $TSFixMe) => statusPage.monitors.length
+            (statusPage: $TSFixMe) => {
+                return statusPage.monitors.length;
+            }
         );
         const statuspage: $TSFixMe = withMonitors[0];
         const monitorIds: $TSFixMe = statuspage
-            ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
+            ? statuspage.monitors.map((m: $TSFixMe) => {
+                  return m.monitor;
+              })
             : [];
         if (monitorIds && monitorIds.length) {
             const currentDate: $TSFixMe = moment();
@@ -1065,8 +1095,8 @@ public async getEvents(
 
             let events: $TSFixMe = await Promise.all(
                 monitorIds.map(async (monitorId: $TSFixMe) => {
-                    const scheduledEvents: $TSFixMe = await ScheduledEventsService.findBy(
-                        {
+                    const scheduledEvents: $TSFixMe =
+                        await ScheduledEventsService.findBy({
                             query: {
                                 'monitors.monitorId': monitorId,
                                 showEventOnStatusPage: true,
@@ -1078,8 +1108,7 @@ public async getEvents(
                             },
                             select,
                             populate,
-                        }
-                    );
+                        });
                     scheduledEvents.map((event: $TSFixMe) => {
                         const id: $TSFixMe = String(event._id);
                         if (!eventIds.includes(id)) {
@@ -1095,8 +1124,10 @@ public async getEvents(
             events = flattenArray(events);
             // do not repeat the same event two times
 
-            events = eventIds.map((id: $TSFixMe) =>  {
-                return events.find((event : $TSFixMe) =>String(event._id) === String(id));
+            events = eventIds.map((id: $TSFixMe) => {
+                return events.find((event: $TSFixMe) => {
+                    return String(event._id) === String(id);
+                });
             });
             const count: $TSFixMe = events.length;
 
@@ -1106,7 +1137,7 @@ public async getEvents(
         }
     }
 
-public async getFutureEvents(
+    public async getFutureEvents(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1146,15 +1177,19 @@ public async getFutureEvents(
         });
 
         const withMonitors: $TSFixMe = statuspages.filter(
-            (statusPage: $TSFixMe) => statusPage.monitors.length
+            (statusPage: $TSFixMe) => {
+                return statusPage.monitors.length;
+            }
         );
         const statuspage: $TSFixMe = withMonitors[0];
         let monitorIds: $TSFixMe = statuspage
-            ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
+            ? statuspage.monitors.map((m: $TSFixMe) => {
+                  return m.monitor;
+              })
             : [];
-        monitorIds = monitorIds.map(
-            (monitor: $TSFixMe) => monitor._id || monitor
-        );
+        monitorIds = monitorIds.map((monitor: $TSFixMe) => {
+            return monitor._id || monitor;
+        });
         if (monitorIds && monitorIds.length) {
             const currentDate: $TSFixMe = moment();
             const eventIds: $TSFixMe = [];
@@ -1176,8 +1211,8 @@ public async getFutureEvents(
 
             let events: $TSFixMe = await Promise.all(
                 monitorIds.map(async (monitorId: $TSFixMe) => {
-                    const scheduledEvents: $TSFixMe = await ScheduledEventsService.findBy(
-                        {
+                    const scheduledEvents: $TSFixMe =
+                        await ScheduledEventsService.findBy({
                             query: {
                                 'monitors.monitorId': monitorId,
                                 showEventOnStatusPage: true,
@@ -1185,8 +1220,7 @@ public async getFutureEvents(
                             },
                             select,
                             populate,
-                        }
-                    );
+                        });
                     scheduledEvents.map((event: $TSFixMe) => {
                         const id: $TSFixMe = String(event._id);
                         if (!eventIds.includes(id)) {
@@ -1202,13 +1236,17 @@ public async getFutureEvents(
             events = flattenArray(events);
             // do not repeat the same event two times
 
-            events = eventIds.map((id: $TSFixMe) =>  {
-                return events.find((event : $TSFixMe) =>String(event._id) === String(id));
+            events = eventIds.map((id: $TSFixMe) => {
+                return events.find((event: $TSFixMe) => {
+                    return String(event._id) === String(id);
+                });
             });
 
             // // sort in ascending start date
 
-            events = events.sort((a: $TSFixMe, b: $TSFixMe) => b.startDate - a.startDate);
+            events = events.sort((a: $TSFixMe, b: $TSFixMe) => {
+                return b.startDate - a.startDate;
+            });
 
             const count: $TSFixMe = events.length;
             return { events, count };
@@ -1217,7 +1255,7 @@ public async getFutureEvents(
         }
     }
 
-public async getPastEvents(
+    public async getPastEvents(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1257,11 +1295,15 @@ public async getPastEvents(
         });
 
         const withMonitors: $TSFixMe = statuspages.filter(
-            (statusPage: $TSFixMe) => statusPage.monitors.length
+            (statusPage: $TSFixMe) => {
+                return statusPage.monitors.length;
+            }
         );
         const statuspage: $TSFixMe = withMonitors[0];
         const monitorIds: $TSFixMe = statuspage
-            ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
+            ? statuspage.monitors.map((m: $TSFixMe) => {
+                  return m.monitor;
+              })
             : [];
         if (monitorIds && monitorIds.length) {
             const currentDate: $TSFixMe = moment();
@@ -1284,8 +1326,8 @@ public async getPastEvents(
 
             let events: $TSFixMe = await Promise.all(
                 monitorIds.map(async (monitorId: $TSFixMe) => {
-                    const scheduledEvents: $TSFixMe = await ScheduledEventsService.findBy(
-                        {
+                    const scheduledEvents: $TSFixMe =
+                        await ScheduledEventsService.findBy({
                             query: {
                                 'monitors.monitorId': monitorId,
                                 showEventOnStatusPage: true,
@@ -1293,8 +1335,7 @@ public async getPastEvents(
                             },
                             populate,
                             select,
-                        }
-                    );
+                        });
                     scheduledEvents.map((event: $TSFixMe) => {
                         const id: $TSFixMe = String(event._id);
                         if (!eventIds.includes(id)) {
@@ -1310,13 +1351,17 @@ public async getPastEvents(
             events = flattenArray(events);
             // do not repeat the same event two times
 
-            events = eventIds.map((id: $TSFixMe) =>  {
-                return events.find((event : $TSFixMe) =>String(event._id) === String(id));
+            events = eventIds.map((id: $TSFixMe) => {
+                return events.find((event: $TSFixMe) => {
+                    return String(event._id) === String(id);
+                });
             });
 
             // sort in ascending start date
 
-            events = events.sort((a: $TSFixMe, b: $TSFixMe) => a.startDate - b.startDate);
+            events = events.sort((a: $TSFixMe, b: $TSFixMe) => {
+                return a.startDate - b.startDate;
+            });
 
             const count: $TSFixMe = events.length;
             return { events: limitEvents(events, limit, skip), count };
@@ -1325,7 +1370,7 @@ public async getPastEvents(
         }
     }
 
-public async getEvent(query: Query): void {
+    public async getEvent(query: Query): void {
         const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1342,15 +1387,17 @@ public async getEvent(query: Query): void {
         const select: $TSFixMe =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const scheduledEvent: $TSFixMe = await ScheduledEventsService.findOneBy({
-            query,
-            select,
-            populate,
-        });
+        const scheduledEvent: $TSFixMe = await ScheduledEventsService.findOneBy(
+            {
+                query,
+                select,
+                populate,
+            }
+        );
         return scheduledEvent;
     }
 
-public async getEventNotes(
+    public async getEventNotes(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1404,7 +1451,7 @@ public async getEventNotes(
         return { notes: eventNote, count };
     }
 
-public async getEventsByDate(
+    public async getEventsByDate(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1439,7 +1486,12 @@ public async getEventsByDate(
         return { scheduledEvents, count };
     }
 
-public async getStatusPage({ query, userId, populate, select }: $TSFixMe): void {
+    public async getStatusPage({
+        query,
+        userId,
+        populate,
+        select,
+    }: $TSFixMe): void {
         const thisObj: $TSFixMe = this;
         if (!query) {
             query = {};
@@ -1465,16 +1517,21 @@ public async getStatusPage({ query, userId, populate, select }: $TSFixMe): void 
             const domain: $TSFixMe = query.domains.$elemMatch.domain;
 
             const verifiedStatusPages: $TSFixMe = statusPages.filter(
-                (page: $TSFixMe) =>
-                    page &&
-                    page.domains.length > 0 &&
-                    page.domains.filter(
-                        (domainItem: $TSFixMe) =>
-                            domainItem &&
-                            domainItem.domain === domain &&
-                            domainItem.domainVerificationToken &&
-                            domainItem.domainVerificationToken.verified === true
-                    ).length > 0
+                (page: $TSFixMe) => {
+                    return (
+                        page &&
+                        page.domains.length > 0 &&
+                        page.domains.filter((domainItem: $TSFixMe) => {
+                            return (
+                                domainItem &&
+                                domainItem.domain === domain &&
+                                domainItem.domainVerificationToken &&
+                                domainItem.domainVerificationToken.verified ===
+                                    true
+                            );
+                        }).length > 0
+                    );
+                }
             );
             if (verifiedStatusPages.length > 0) {
                 statusPage = verifiedStatusPages[0];
@@ -1486,7 +1543,10 @@ public async getStatusPage({ query, userId, populate, select }: $TSFixMe): void 
         }
 
         if (statusPage && (statusPage._id || statusPage.id)) {
-            const permitted: $TSFixMe = await thisObj.isPermitted(userId, statusPage);
+            const permitted: $TSFixMe = await thisObj.isPermitted(
+                userId,
+                statusPage
+            );
             if (!permitted) {
                 const error: $TSFixMe = new Error(
                     'You are unauthorized to access the page please login to continue.'
@@ -1496,10 +1556,13 @@ public async getStatusPage({ query, userId, populate, select }: $TSFixMe): void 
                 throw error;
             }
 
-            const monitorIds: $TSFixMe = statusPage.monitors.map((monitorObj: $TSFixMe) =>
-                String(monitorObj.monitor._id || monitorObj.monitor)
+            const monitorIds: $TSFixMe = statusPage.monitors.map(
+                (monitorObj: $TSFixMe) => {
+                    return String(monitorObj.monitor._id || monitorObj.monitor);
+                }
             );
-            const projectId: $TSFixMe = statusPage.projectId._id || statusPage.projectId;
+            const projectId: $TSFixMe =
+                statusPage.projectId._id || statusPage.projectId;
 
             const subProjects: $TSFixMe = await ProjectService.findBy({
                 query: {
@@ -1508,18 +1571,23 @@ public async getStatusPage({ query, userId, populate, select }: $TSFixMe): void 
                 select: '_id',
             });
             const subProjectIds: $TSFixMe = subProjects
-                ? subProjects.map((project: $TSFixMe) => project._id)
+                ? subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
-            const monitors: $TSFixMe = await MonitorService.getMonitorsBySubprojects(
-                subProjectIds,
-                0,
-                0
-            );
-            const filteredMonitorData: $TSFixMe = monitors.map((subProject: $TSFixMe) => {
-                return subProject.monitors.filter((monitor: $TSFixMe) =>
-                    monitorIds.includes(monitor._id.toString())
+            const monitors: $TSFixMe =
+                await MonitorService.getMonitorsBySubprojects(
+                    subProjectIds,
+                    0,
+                    0
                 );
-            });
+            const filteredMonitorData: $TSFixMe = monitors.map(
+                (subProject: $TSFixMe) => {
+                    return subProject.monitors.filter((monitor: $TSFixMe) => {
+                        return monitorIds.includes(monitor._id.toString());
+                    });
+                }
+            );
             statusPage.monitorsData = _.flatten(filteredMonitorData);
         } else {
             if (statusPages.length > 0) {
@@ -1531,7 +1599,7 @@ public async getStatusPage({ query, userId, populate, select }: $TSFixMe): void 
         return statusPage;
     }
 
-public async getIncidents(query: Query): void {
+    public async getIncidents(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -1548,12 +1616,16 @@ public async getIncidents(query: Query): void {
         });
 
         const withMonitors: $TSFixMe = statuspages.filter(
-            (statusPage: $TSFixMe) => statusPage.monitors.length
+            (statusPage: $TSFixMe) => {
+                return statusPage.monitors.length;
+            }
         );
         const statuspage: $TSFixMe = withMonitors[0];
         const monitorIds: $TSFixMe =
             statuspage &&
-            statuspage.monitors.map((m: $TSFixMe) => m.monitor._id);
+            statuspage.monitors.map((m: $TSFixMe) => {
+                return m.monitor._id;
+            });
         if (monitorIds && monitorIds.length) {
             const populate: $TSFixMe = [
                 {
@@ -1593,7 +1665,7 @@ public async getIncidents(query: Query): void {
         }
     }
 
-public async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {
+    public async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {
         const fn: Function = async (resolve: $TSFixMe): void => {
             if (statusPage.isPrivate) {
                 if (userId) {
@@ -1603,9 +1675,9 @@ public async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {
                     });
                     if (project && project._id) {
                         if (
-                            project.users.some(
-                                (user: $TSFixMe) => user.userId === userId
-                            )
+                            project.users.some((user: $TSFixMe) => {
+                                return user.userId === userId;
+                            })
                         ) {
                             resolve(true);
                         } else {
@@ -1624,7 +1696,7 @@ public async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {
         return fn;
     }
 
-public async getStatusPagesByProjectId({
+    public async getStatusPagesByProjectId({
         projectId,
         skip = 0,
         limit = 10,
@@ -1648,7 +1720,7 @@ public async getStatusPagesByProjectId({
         };
     }
 
-public async restoreBy(query: Query): void {
+    public async restoreBy(query: Query): void {
         query.deleted = true;
 
         const populateStatusPage: $TSFixMe = [
@@ -1699,23 +1771,22 @@ public async restoreBy(query: Query): void {
         }
     }
     // get status pages for this incident
-public async getStatusPagesForIncident(
+    public async getStatusPagesForIncident(
         incidentId: $TSFixMe,
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
         // first get the monitor, then scan status page collection containing the monitor
-        let { monitors }: $TSFixMe = await IncidentModel.findById(incidentId).select(
-            'monitors.monitorId'
-        );
+        let { monitors }: $TSFixMe = await IncidentModel.findById(
+            incidentId
+        ).select('monitors.monitorId');
 
         let statusPages: $TSFixMe = [];
         let count: $TSFixMe = 0;
         if (monitors) {
-            monitors = monitors.map(
-                (monitor: $TSFixMe) =>
-                    monitor.monitorId._id || monitor.monitorId
-            );
+            monitors = monitors.map((monitor: $TSFixMe) => {
+                return monitor.monitorId._id || monitor.monitorId;
+            });
             count = await StatusPageModel.find({
                 'monitors.monitor': { $in: monitors },
             }).countDocuments({ 'monitors.monitor': { $in: monitors } });
@@ -1734,7 +1805,10 @@ public async getStatusPagesForIncident(
         return { statusPages: statusPages || [], count };
     }
 
-public async getStatusBubble(statusPages: $TSFixMe, probes: $TSFixMe): void {
+    public async getStatusBubble(
+        statusPages: $TSFixMe,
+        probes: $TSFixMe
+    ): void {
         if (statusPages && statusPages[0]) {
             statusPages = statusPages[0];
         }
@@ -1742,9 +1816,9 @@ public async getStatusBubble(statusPages: $TSFixMe, probes: $TSFixMe): void {
         const startDate: $TSFixMe = moment(Date.now()).subtract(90, 'days');
         const monitorsIds: $TSFixMe =
             statusPages && statusPages.monitors
-                ? statusPages.monitors.map((m: $TSFixMe) =>
-                      m.monitor && m.monitor._id ? m.monitor._id : null
-                  )
+                ? statusPages.monitors.map((m: $TSFixMe) => {
+                      return m.monitor && m.monitor._id ? m.monitor._id : null;
+                  })
                 : [];
         const statuses: $TSFixMe = await Promise.all(
             monitorsIds.map(async (m: $TSFixMe) => {
@@ -1769,7 +1843,7 @@ public async getStatusBubble(statusPages: $TSFixMe, probes: $TSFixMe): void {
         return { bubble, statusMessage };
     }
 
-public async doesDomainExist(domain: $TSFixMe): void {
+    public async doesDomainExist(domain: $TSFixMe): void {
         const statusPage: $TSFixMe = await this.countBy({
             query: {
                 domains: { $elemMatch: { domain } },
@@ -1783,7 +1857,7 @@ public async doesDomainExist(domain: $TSFixMe): void {
         return true;
     }
 
-public async createExternalStatusPage(data: $TSFixMe): void {
+    public async createExternalStatusPage(data: $TSFixMe): void {
         const externalStatusPage: $TSFixMe = new ExternalStatusPageModel();
 
         externalStatusPage.url = data.url || null;
@@ -1802,7 +1876,7 @@ public async createExternalStatusPage(data: $TSFixMe): void {
         return newExternalStatusPage;
     }
 
-public async getExternalStatusPage(
+    public async getExternalStatusPage(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1828,11 +1902,12 @@ public async getExternalStatusPage(
         }
 
         query['deleted'] = false;
-        const externalStatusPages: $TSFixMe = await ExternalStatusPageModel.find(query);
+        const externalStatusPages: $TSFixMe =
+            await ExternalStatusPageModel.find(query);
         return externalStatusPages;
     }
 
-public async updateExternalStatusPage(
+    public async updateExternalStatusPage(
         projectId: ObjectID,
         _id: $TSFixMe,
         data: $TSFixMe
@@ -1852,7 +1927,7 @@ public async updateExternalStatusPage(
         return externalStatusPages;
     }
 
-public async deleteExternalStatusPage(
+    public async deleteExternalStatusPage(
         projectId: ObjectID,
         _id: $TSFixMe,
         userId: ObjectID
@@ -1876,11 +1951,13 @@ public async deleteExternalStatusPage(
         return externalStatusPages;
     }
 
-public async createAnnouncement(data: $TSFixMe): void {
+    public async createAnnouncement(data: $TSFixMe): void {
         // reassign data.monitors with a restructured monitor data
-        data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-            monitorId: monitor,
-        }));
+        data.monitors = data.monitors.map((monitor: $TSFixMe) => {
+            return {
+                monitorId: monitor,
+            };
+        });
         // slugify announcement name
         if (data && data.name) {
             data.slug = getSlug(data.name);
@@ -1906,7 +1983,7 @@ public async createAnnouncement(data: $TSFixMe): void {
         return newAnnouncement;
     }
 
-public async getAnnouncements(
+    public async getAnnouncements(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1941,7 +2018,7 @@ public async getAnnouncements(
         return allAnnouncements;
     }
 
-public async countAnnouncements(query: Query): void {
+    public async countAnnouncements(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -1950,7 +2027,7 @@ public async countAnnouncements(query: Query): void {
         return count;
     }
 
-public async getSingleAnnouncement(query: Query): void {
+    public async getSingleAnnouncement(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -1959,7 +2036,7 @@ public async getSingleAnnouncement(query: Query): void {
         return response;
     }
 
-public async updateAnnouncement(query: Query, data: $TSFixMe): void {
+    public async updateAnnouncement(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -2000,7 +2077,7 @@ public async updateAnnouncement(query: Query, data: $TSFixMe): void {
         return response;
     }
 
-public async updateManyAnnouncement(query: Query): void {
+    public async updateManyAnnouncement(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -2017,7 +2094,7 @@ public async updateManyAnnouncement(query: Query): void {
         return response;
     }
 
-public async deleteAnnouncement(query: Query, userId: ObjectID): void {
+    public async deleteAnnouncement(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -2038,7 +2115,7 @@ public async deleteAnnouncement(query: Query, userId: ObjectID): void {
         return response;
     }
 
-public async createAnnouncementLog(data: $TSFixMe): void {
+    public async createAnnouncementLog(data: $TSFixMe): void {
         const announcementLog: $TSFixMe = new AnnouncementLogModel();
 
         announcementLog.announcementId = data.announcementId || null;
@@ -2056,7 +2133,7 @@ public async createAnnouncementLog(data: $TSFixMe): void {
         return newAnnouncementLog;
     }
 
-public async updateAnnouncementLog(query: Query, data: $TSFixMe): void {
+    public async updateAnnouncementLog(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -2073,7 +2150,7 @@ public async updateAnnouncementLog(query: Query, data: $TSFixMe): void {
         return response;
     }
 
-public async getAnnouncementLogs(
+    public async getAnnouncementLogs(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -2099,7 +2176,9 @@ public async getAnnouncementLogs(
         }
 
         query['deleted'] = false;
-        const announcementLogs: $TSFixMe = await AnnouncementLogModel.find(query)
+        const announcementLogs: $TSFixMe = await AnnouncementLogModel.find(
+            query
+        )
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -2111,7 +2190,7 @@ public async getAnnouncementLogs(
         return announcementLogs;
     }
 
-public async deleteAnnouncementLog(query: Query, userId: ObjectID): void {
+    public async deleteAnnouncementLog(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -2132,16 +2211,18 @@ public async deleteAnnouncementLog(query: Query, userId: ObjectID): void {
         return response;
     }
 
-public async countAnnouncementLogs(query: Query): void {
+    public async countAnnouncementLogs(query: Query): void {
         if (!query) {
             query = {};
         }
         query['deleted'] = false;
-        const count: $TSFixMe = await AnnouncementLogModel.countDocuments(query);
+        const count: $TSFixMe = await AnnouncementLogModel.countDocuments(
+            query
+        );
         return count;
     }
 
-public async fetchTweets(handle: $TSFixMe): void {
+    public async fetchTweets(handle: $TSFixMe): void {
         const userData: $TSFixMe = await axios.get(
             `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
             {
@@ -2188,7 +2269,8 @@ const filterProbeData: Function = (
     monitor: $TSFixMe,
     probe: $TSFixMe
 ): void => {
-    const monitorStatuses: $TSFixMe = monitor && monitor.length > 0 ? monitor : null;
+    const monitorStatuses: $TSFixMe =
+        monitor && monitor.length > 0 ? monitor : null;
 
     const probesStatus: $TSFixMe =
         monitorStatuses && monitorStatuses.length > 0

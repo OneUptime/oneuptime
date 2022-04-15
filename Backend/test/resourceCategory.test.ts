@@ -384,9 +384,9 @@ describe('Non-admin user access to create, delete and access resource category.'
                                                                             userId,
                                                                         },
                                                                         (
-                                                                            err,
+                                                                            err: $TSFixMe,
 
-                                                                            verificationToken
+                                                                            verificationToken: $TSFixMe
                                                                         ) => {
                                                                             request
                                                                                 .get(

@@ -19,7 +19,10 @@ import NotificationService from '../backend/services/notificationService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
 
-let token: $TSFixMe, projectId: ObjectID, emailTemplateId: $TSFixMe, userId: $TSFixMe;
+let token: $TSFixMe,
+    projectId: ObjectID,
+    emailTemplateId: $TSFixMe,
+    userId: $TSFixMe;
 
 describe('Email Template API', function (): void {
     this.timeout(20000);

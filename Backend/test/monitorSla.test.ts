@@ -28,8 +28,8 @@ const monitorSlaPayload: $TSFixMe = {
 describe('Monitor SLA', function (): void {
     const timeout: $TSFixMe = 30000;
     let projectId: ObjectID,
-        userId,
-        token,
+        userId: $TSFixMe,
+        token: $TSFixMe,
         authorization: $TSFixMe,
         slaId: $TSFixMe;
 
