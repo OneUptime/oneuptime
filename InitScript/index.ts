@@ -86,7 +86,7 @@ async function run(): void {
         .filter((file: $TSFixMe) => {
             return excludedScripts.indexOf(file) < 0;
         }) // Exclude index, start and end scripts
-        .sort((a, b) => {
+        .sort((a: $TSFixMe, b: $TSFixMe) => {
             return parseInt(a.split('.')[2]) > parseInt(b.split('.')[2])
                 ? 1
                 : 0;

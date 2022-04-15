@@ -122,9 +122,9 @@ export default class Service {
                 };
 
                 let avgTime: $TSFixMe = 0,
-                    maxTime = 0,
-                    throughput = 0,
-                    errorCount = 0;
+                    maxTime: $TSFixMe = 0,
+                    throughput: $TSFixMe = 0,
+                    errorCount: $TSFixMe = 0;
 
                 value.forEach((eachValue: $TSFixMe) => {
                     avgTime += eachValue.metrics.avgTime;

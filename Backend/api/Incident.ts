@@ -1690,7 +1690,7 @@ router.get(
                         ...callScheduleStatus,
                     ];
                     incidentMessages.sort(
-                        (a, b) =>
+                        (a: $TSFixMe, b: $TSFixMe) =>
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
                     );

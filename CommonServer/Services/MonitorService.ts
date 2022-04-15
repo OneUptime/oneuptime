@@ -1797,7 +1797,7 @@ export default class Service {
         }
     }
 
-    calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
+    public calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
         const timeBlock: $TSFixMe = [];
         let totalUptime: $TSFixMe = 0;
         let totalTime: $TSFixMe = 0;
@@ -1863,7 +1863,7 @@ export default class Service {
             });
             //Second step
 
-            incidentsHappenedDuringTheDay.sort((a, b) => {
+            incidentsHappenedDuringTheDay.sort((a: $TSFixMe, b: $TSFixMe) => {
                 return moment(a.start).isSame(b.start)
                     ? 0
                     : moment(a.start).isAfter(b.start)
@@ -2067,7 +2067,7 @@ export default class Service {
         return updatedMonitor;
     }
 
-    calcTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
+    public calcTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
         const timeBlock: $TSFixMe = [];
         let totalUptime: $TSFixMe = 0;
         let totalTime: $TSFixMe = 0;
@@ -2164,7 +2164,7 @@ export default class Service {
             );
             //Second step
 
-            incidentsHappenedDuringTheDay.sort((a, b) => {
+            incidentsHappenedDuringTheDay.sort((a: $TSFixMe, b: $TSFixMe) => {
                 return moment(a.start).isSame(b.start)
                     ? 0
                     : moment(a.start).isAfter(b.start)

@@ -307,7 +307,7 @@ export default class Service {
                 'Your subscription cannot be retrieved.'
             );
         } else {
-            let trial_end_date;
+            let trial_end_date:$TSFixMe;
             if (
                 subscription.trial_end !== null &&
                 subscription.trial_end * 1000 > Date.now() //ensure the trial end date is in the future

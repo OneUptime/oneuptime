@@ -310,7 +310,7 @@ public async incidentCreateOrUpdate(data: $TSFixMe): void {
                 const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes: $TSFixMe = incident.probes.map(probe: $TSFixMe => ({
+                        const initialProbes: $TSFixMe = incident.probes.map((probe: $TSFixMe) => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
                             status: probe.status,
@@ -385,7 +385,7 @@ public async incidentCreateOrUpdate(data: $TSFixMe): void {
                 const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes: $TSFixMe = incident.probes.map(probe: $TSFixMe => ({
+                        const initialProbes: $TSFixMe = incident.probes.map((probe: $TSFixMe) => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
                             status: probe.status,
@@ -459,7 +459,7 @@ public async incidentCreateOrUpdate(data: $TSFixMe): void {
                 const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes: $TSFixMe = incident.probes.map(probe: $TSFixMe => ({
+                        const initialProbes: $TSFixMe = incident.probes.map((probe: $TSFixMe) => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
                             status: probe.status,
@@ -624,7 +624,7 @@ public async incidentResolveOrAcknowledge(data, allCriteria): void {
                     incident.probes.length > 0 &&
                     monitor.type !== 'incomingHttpRequest'
                 ) {
-                    const initialProbes: $TSFixMe = incident.probes.map(probe: $TSFixMe => ({
+                    const initialProbes: $TSFixMe = incident.probes.map((probe: $TSFixMe) => ({
                         probeId: probe.probeId._id || probe.probeId,
                         updatedAt: probe.updatedAt,
                         status: probe.status,

@@ -10,7 +10,7 @@ const runConfig: $TSFixMe = {
 };
 
 class ScriptError extends Error {
-    errors: $TSFixMe;
+    public errors: $TSFixMe;
     public constructor(errors: $TSFixMe, message = 'Script resource error') {
         super();
         this.message = message;

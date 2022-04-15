@@ -44,7 +44,7 @@ const _this: $TSFixMe = {
         });
     },
 
-    get: (url: URL, limit = 10) => {
+    get: (url: URL, limit: number = 10) => {
         const headers: $TSFixMe = this.getHeaders();
         return new Promise((resolve: Function, reject: Function) => {
             axios({
