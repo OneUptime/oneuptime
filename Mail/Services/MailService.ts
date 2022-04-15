@@ -176,9 +176,7 @@ export default class MailService {
             extName: '.hbs',
         };
 
-        let privateMailer: $TSFixMe;
-
-        privateMailer = nodemailer.createTransport({
+        let privateMailer: $TSFixMe = nodemailer.createTransport({
             host: mailServer.host.toString(),
             port: mailServer.port.toNumber(),
             secure: mailServer.secure,

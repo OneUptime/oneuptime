@@ -89,7 +89,7 @@ class Util {
         }
         return obj;
     }
-    _getUserDeviceDetails(): void {
+private _getUserDeviceDetails(): void {
         const deviceDetails: $TSFixMe = { device: null, browser: null };
         if (typeof window !== 'undefined') {
             const details: $TSFixMe = window.navigator.appVersion;
@@ -157,7 +157,7 @@ class Util {
         errorObj.stacktrace.frames = frames;
         return errorObj;
     }
-    _readFileFromSource(fileName: $TSFixMe): void {
+private _readFileFromSource(fileName: $TSFixMe): void {
         return new Promise((resolve: $TSFixMe) =>  {
             readFile(fileName, (err: $TSFixMe, data: $TSFixMe){
                 const content: $TSFixMe = err ? null : data.toString();
@@ -167,7 +167,7 @@ class Util {
             });
         });
     }
-    _formatFileName(fileName: $TSFixMe): void {
+private _formatFileName(fileName: $TSFixMe): void {
         const fileIndicator: string = 'file://';
         let localFileName: $TSFixMe = fileName;
         if (fileName.indexOf(fileIndicator) > -1) {
@@ -178,7 +178,7 @@ class Util {
         }
         return localFileName;
     }
-    _addCodeSnippetToFrame(
+private _addCodeSnippetToFrame(
         lines: $TSFixMe,
         frame: $TSFixMe,
         linesOfContext = 5

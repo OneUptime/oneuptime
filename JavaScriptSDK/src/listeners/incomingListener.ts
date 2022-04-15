@@ -18,7 +18,7 @@ class IncomingListener {
         this.app = app;
         this._setUpIncomingListener();
     }
-    _setUpIncomingListener(): void {
+private _setUpIncomingListener(): void {
         override(Http);
         override(Https);
 

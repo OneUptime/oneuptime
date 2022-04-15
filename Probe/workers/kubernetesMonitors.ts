@@ -550,14 +550,14 @@ export default {
 
                                 // handle statefulset output
                                 let desiredStatefulsets: $TSFixMe = 0,
-                                    readyStatefulsets = 0;
+                                    readyStatefulsets: $TSFixMe = 0;
 
                                 const healthyStatefulsets: $TSFixMe = [],
-                                    unhealthyStatefulsets = [],
-                                    allStatefulset = [],
-                                    healthyStatefulsetData = [],
-                                    unhealthyStatefulsetData = [],
-                                    allStatefulsetData = [];
+                                    unhealthyStatefulsets: $TSFixMe = [],
+                                    allStatefulset: $TSFixMe = [],
+                                    healthyStatefulsetData: $TSFixMe = [],
+                                    unhealthyStatefulsetData: $TSFixMe = [],
+                                    allStatefulsetData: $TSFixMe = [];
 
                                 statefulsetOutput.items.forEach(
                                     (item: $TSFixMe) => {

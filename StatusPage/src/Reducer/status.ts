@@ -604,9 +604,11 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
         }
 
         case 'DELETE_INCIDENT_NOTE': {
-            const notes: $TSFixMe = state.incidentNotes.notes.filter((note: $TSFixMe) => {
-                return String(note._id) !== String(action.payload._id);
-            });
+            const notes: $TSFixMe = state.incidentNotes.notes.filter(
+                (note: $TSFixMe) => {
+                    return String(note._id) !== String(action.payload._id);
+                }
+            );
             return {
                 ...state,
                 incidentNotes: {
@@ -680,9 +682,11 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
             });
 
         case 'RESOLVE_SCHEDULED_EVENT': {
-            const events: $TSFixMe = state.events.events.filter((event: $TSFixMe) => {
-                return String(event._id) !== String(action.payload._id);
-            });
+            const events: $TSFixMe = state.events.events.filter(
+                (event: $TSFixMe) => {
+                    return String(event._id) !== String(action.payload._id);
+                }
+            );
             return {
                 ...state,
                 events: {
@@ -912,9 +916,11 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                 updatedFutureEvent.unshift(action.payload);
             }
 
-            const removeEvent: $TSFixMe = state.events.events.filter((event: $TSFixMe) => {
-                return String(event._id) !== String(action.payload._id);
-            });
+            const removeEvent: $TSFixMe = state.events.events.filter(
+                (event: $TSFixMe) => {
+                    return String(event._id) !== String(action.payload._id);
+                }
+            );
 
             const removeFutureEvent: $TSFixMe =
                 state.futureEvents.events.filter((event: $TSFixMe) => {
@@ -1530,9 +1536,11 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                 String(action.payload.scheduledEventId._id)
             ) {
                 reduceCount = true;
-                eventNotes = state.eventNoteList.eventNotes.filter((note: $TSFixMe) => {
-                    return String(note._id) !== String(action.payload._id);
-                });
+                eventNotes = state.eventNoteList.eventNotes.filter(
+                    (note: $TSFixMe) => {
+                        return String(note._id) !== String(action.payload._id);
+                    }
+                );
             }
             return {
                 ...state,
@@ -1748,9 +1756,11 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
         }
 
         case 'INCIDENT_DELETED': {
-            const notes: $TSFixMe = state.notes.notes.filter((note: $TSFixMe) => {
-                return String(note._id) !== String(action.payload._id);
-            });
+            const notes: $TSFixMe = state.notes.notes.filter(
+                (note: $TSFixMe) => {
+                    return String(note._id) !== String(action.payload._id);
+                }
+            );
             return {
                 ...state,
                 notes: {
