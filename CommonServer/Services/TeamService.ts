@@ -137,9 +137,8 @@ export default class Service {
             });
             if (count > 0) {
                 return false;
-            } else {
-                return true;
             }
+            return true;
         });
         await Promise.all(seats);
         seats = seats.length;

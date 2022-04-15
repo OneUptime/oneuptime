@@ -214,15 +214,14 @@ app.use(
                     return res.end();
                 }
                 return next();
-            } else {
-                if (req.secure) {
-                    res.writeHead(301, {
-                        Location: `http://${host}${req.url}`,
-                    });
-                    return res.end();
-                }
-                return next();
             }
+            if (req.secure) {
+                res.writeHead(301, {
+                    Location: `http://${host}${req.url}`,
+                });
+                return res.end();
+            }
+            return next();
         } catch (error) {
             logger.info('Error with fetch', error);
             return next();
@@ -329,7 +328,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
         let j: $TSFixMe;
         for (j = 0; j < M; j++) {
             if (txt[i + j] != pat[j]) {
-                break;
+                break;!==
             }
         }
 

@@ -20,12 +20,11 @@ export default {
 
         if (masterAdmin) {
             return next();
-        } else {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Not master-admin')
-            );
         }
+        return sendErrorResponse(
+            req,
+            res,
+            new BadDataException('Not master-admin')
+        );
     },
 };

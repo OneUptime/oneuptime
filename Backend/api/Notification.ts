@@ -112,12 +112,11 @@ router.put(
                 );
             if (notification) {
                 return sendItemResponse(req, res, notification);
-            } else {
-                const error: $TSFixMe = new Error('Notification not found.');
-
-                error.code = 400;
-                return sendErrorResponse(req, res, error as Exception);
             }
+            const error: $TSFixMe = new Error('Notification not found.');
+
+            error.code = 400;
+            return sendErrorResponse(req, res, error as Exception);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -149,12 +148,11 @@ router.put(
                     count: notifications.n,
                     read: notifications.nModified,
                 });
-            } else {
-                const error: $TSFixMe = new Error('No notification found.');
-
-                error.code = 400;
-                return sendErrorResponse(req, res, error as Exception);
             }
+            const error: $TSFixMe = new Error('No notification found.');
+
+            error.code = 400;
+            return sendErrorResponse(req, res, error as Exception);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -176,12 +174,11 @@ router.put(
                 );
             if (notification) {
                 return sendItemResponse(req, res, notification);
-            } else {
-                const error: $TSFixMe = new Error('Notification not found.');
-
-                error.code = 400;
-                return sendErrorResponse(req, res, error as Exception);
             }
+            const error: $TSFixMe = new Error('Notification not found.');
+
+            error.code = 400;
+            return sendErrorResponse(req, res, error as Exception);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

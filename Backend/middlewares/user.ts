@@ -52,9 +52,8 @@ const _this: $TSFixMe = {
                     code: 401,
                     message: 'Session Token must be present.',
                 });
-            } else {
-                return null;
             }
+            return null;
         }
 
         if (typeof accessToken !== 'string') {
@@ -63,9 +62,8 @@ const _this: $TSFixMe = {
                     code: 401,
                     message: 'Token is not of type string.',
                 });
-            } else {
-                return null;
             }
+            return null;
         }
 
         const token: $TSFixMe = accessToken.split(' ')[1] || accessToken;
@@ -80,9 +78,8 @@ const _this: $TSFixMe = {
                     code: 401,
                     message: 'You are unauthorized to access the page',
                 });
-            } else {
-                return null;
             }
+            return null;
         }
         req.user = decoded;
         const user: $TSFixMe = await UserService.findOneBy({
@@ -95,9 +92,8 @@ const _this: $TSFixMe = {
                     code: 401,
                     message: 'You are unauthorized to access the page',
                 });
-            } else {
-                return null;
             }
+            return null;
         }
         if (user.role === 'master-admin') {
             req.authorizationType = 'MASTER-ADMIN';
@@ -112,9 +108,8 @@ const _this: $TSFixMe = {
 
         if (next) {
             return next();
-        } else {
-            return req;
         }
+        return req;
     },
 
     checkUser: function (
@@ -129,38 +124,32 @@ const _this: $TSFixMe = {
         if (!accessToken) {
             req.user = null;
             return next();
-        } else {
-            if (accessToken && typeof accessToken !== 'string') {
+        }
+        if (accessToken && typeof accessToken !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'Token is not of type string',
+            });
+        }
+
+        const token: $TSFixMe = accessToken.split(' ')[1] || accessToken;
+
+        //Decode the token
+        jwt.verify(token, jwtSecretKey, (err: $TSFixMe, decoded: $TSFixMe) => {
+            if (err) {
                 return sendErrorResponse(req, res, {
                     code: 401,
-                    message: 'Token is not of type string',
+                    message: 'You are unauthorized to access the page.',
                 });
             }
-
-            const token: $TSFixMe = accessToken.split(' ')[1] || accessToken;
-
-            //Decode the token
-            jwt.verify(
-                token,
-                jwtSecretKey,
-                (err: $TSFixMe, decoded: $TSFixMe) => {
-                    if (err) {
-                        return sendErrorResponse(req, res, {
-                            code: 401,
-                            message: 'You are unauthorized to access the page.',
-                        });
-                    } else {
-                        req.authorizationType = 'USER';
-                        req.user = decoded;
-                        UserService.updateOneBy(
-                            { _id: req.user.id },
-                            { lastActive: Date.now() }
-                        );
-                        return next();
-                    }
-                }
+            req.authorizationType = 'USER';
+            req.user = decoded;
+            UserService.updateOneBy(
+                { _id: req.user.id },
+                { lastActive: Date.now() }
             );
-        }
+            return next();
+        });
     },
     checkUserBelongToProject: function (
         req: ExpressRequest,
@@ -173,79 +162,72 @@ const _this: $TSFixMe = {
         if (!accessToken) {
             req.user = null;
             return next();
-        } else {
-            if (accessToken && typeof accessToken !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 401,
-                    message: 'Token is not of type string',
-                });
-            }
-            const token: $TSFixMe = accessToken.split(' ')[1] || accessToken;
-            jwt.verify(
-                token,
-                jwtSecretKey,
-                async (err: $TSFixMe, decoded: $TSFixMe) => {
-                    if (err) {
-                        return sendErrorResponse(req, res, {
-                            code: 401,
-                            message: 'You are unauthorized to access the page.',
-                        });
-                    } else {
-                        req.authorizationType = 'USER';
-                        req.user = decoded;
+        }
+        if (accessToken && typeof accessToken !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 401,
+                message: 'Token is not of type string',
+            });
+        }
+        const token: $TSFixMe = accessToken.split(' ')[1] || accessToken;
+        jwt.verify(
+            token,
+            jwtSecretKey,
+            async (err: $TSFixMe, decoded: $TSFixMe) => {
+                if (err) {
+                    return sendErrorResponse(req, res, {
+                        code: 401,
+                        message: 'You are unauthorized to access the page.',
+                    });
+                }
+                req.authorizationType = 'USER';
+                req.user = decoded;
 
-                        const userId: $TSFixMe = req.user
-                            ? req.user.id
-                            : null || url.parse(req.url, true).query.userId;
-                        const projectId: $TSFixMe =
-                            req.params.projectId ||
-                            req.body.projectId ||
-                            url.parse(req.url, true).query.projectId;
-                        if (!projectId) {
-                            return res.status(400).send({
-                                code: 400,
-                                message: 'Project id is not present.',
-                            });
-                        }
-                        const [project]: $TSFixMe = await Promise.all([
-                            ProjectService.findOneBy({
-                                _id: projectId,
-                            }),
-                            UserService.updateOneBy(
-                                { _id: req.user.id },
-                                { lastActive: Date.now() }
-                            ),
-                        ]);
-                        let isUserPresentInProject: $TSFixMe = false;
-                        if (project) {
-                            for (
-                                let i: $TSFixMe = 0;
-                                i < project.users.length;
-                                i++
-                            ) {
-                                if (project.users[i].userId === userId) {
-                                    isUserPresentInProject = true;
-                                    break;
-                                }
-                            }
-                        } else {
-                            return sendErrorResponse(req, res, {
-                                code: 400,
-                                message: 'Project does not exist.',
-                            });
-                        }
-                        if (isUserPresentInProject) {
-                            return next();
-                        } else {
-                            return sendErrorResponse(req, res, {
-                                code: 400,
-                                message: 'You are not present in this project.',
-                            });
+                const userId: $TSFixMe = req.user
+                    ? req.user.id
+                    : null || url.parse(req.url, true).query.userId;
+                const projectId: $TSFixMe =
+                    req.params.projectId ||
+                    req.body.projectId ||
+                    url.parse(req.url, true).query.projectId;
+                if (!projectId) {
+                    return res.status(400).send({
+                        code: 400,
+                        message: 'Project id is not present.',
+                    });
+                }
+                const [project]: $TSFixMe = await Promise.all([
+                    ProjectService.findOneBy({
+                        _id: projectId,
+                    }),
+                    UserService.updateOneBy(
+                        { _id: req.user.id },
+                        { lastActive: Date.now() }
+                    ),
+                ]);
+                let isUserPresentInProject: $TSFixMe = false;
+                if (project) {
+                    for (let i: $TSFixMe = 0; i < project.users.length; i++) {
+                        if (project.users[i].userId === userId) {
+                            isUserPresentInProject = true;
+                            break;
                         }
                     }
+                } else {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Project does not exist.',
+                    });
                 }
-            );
-        }
+                if (isUserPresentInProject) {
+                    return next();
+                }
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'You are not present in this project.',
+                });
+            }
+        );
     },
 
     isUserMasterAdmin: async function (
@@ -260,19 +242,16 @@ const _this: $TSFixMe = {
         if (req && req.authorizationType === 'MASTER-ADMIN') {
             if (next) {
                 return next();
-            } else {
-                return true;
             }
-        } else {
-            if (res) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'You are not authorized.',
-                });
-            } else {
-                return false;
-            }
+            return true;
         }
+        if (res) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You are not authorized.',
+            });
+        }
+        return false;
     },
 
     isScaleOrMasterAdmin: async function (
@@ -285,9 +264,8 @@ const _this: $TSFixMe = {
         if (this.isUserMasterAdmin(req, res)) {
             if (next) {
                 return next();
-            } else {
-                return true;
             }
+            return true;
         }
 
         if (projectId) {
@@ -307,9 +285,8 @@ const _this: $TSFixMe = {
                     code: 400,
                     message: 'Project Id is missing',
                 });
-            } else {
-                return false;
             }
+            return false;
         }
 
         const project: $TSFixMe = await ProjectService.findOneBy({
@@ -324,19 +301,16 @@ const _this: $TSFixMe = {
         if (isScalePlan) {
             if (next) {
                 return next();
-            } else {
-                return true;
             }
-        } else {
-            if (res) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'You are not authorized.',
-                });
-            } else {
-                return false;
-            }
+            return true;
         }
+        if (res) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You are not authorized.',
+            });
+        }
+        return false;
     },
 };
 

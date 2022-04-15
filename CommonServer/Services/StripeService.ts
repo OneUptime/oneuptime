@@ -200,9 +200,8 @@ export default class StripeService {
                 source
             );
             return paymentIntent;
-        } else {
-            throw new BadDataException('Cannot add duplicate card');
         }
+        throw new BadDataException('Cannot add duplicate card');
     }
 
     public async update(userId: ObjectID, cardId: $TSFixMe): void {
@@ -253,22 +252,21 @@ export default class StripeService {
                 cardId
             );
             return card;
-        } else {
-            const cards: $TSFixMe = await stripe.customers.listSources(
-                stripeCustomerId,
-                {
-                    object: 'card',
-                }
-            );
-            cards.data = await cards.data.map((card: $TSFixMe) => {
-                if (card.id === customer.default_source) {
-                    card.default_source = true;
-                    return card;
-                }
-                return card;
-            });
-            return cards;
         }
+        const cards: $TSFixMe = await stripe.customers.listSources(
+            stripeCustomerId,
+            {
+                object: 'card',
+            }
+        );
+        cards.data = await cards.data.map((card: $TSFixMe) => {
+            if (card.id === customer.default_source) {
+                card.default_source = true;
+                return card;
+            }
+            return card;
+        });
+        return cards;
     }
 
     public async chargeCustomerForBalance(
@@ -513,8 +511,7 @@ export default class StripeService {
                 subscription.trial_end * 1000
             );
             return chargeDate;
-        } else {
-            return false;
         }
+        return false;
     }
 }

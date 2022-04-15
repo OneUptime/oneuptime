@@ -59,11 +59,8 @@ router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
     request(options, (error: $TSFixMe, response: $TSFixMe) => {
         if (error || response.statusCode === 400) {
             return sendErrorResponse(req, res, error as Exception);
-        } else {
-            return res.redirect(
-                `${APP_ROUTE}/project/${projectId}/integrations`
-            );
         }
+        return res.redirect(`${APP_ROUTE}/project/${projectId}/integrations`);
     });
 });
 
@@ -113,32 +110,31 @@ router.post(
                 const JSONresponse: $TSFixMe = JSON.parse(body);
                 if (!JSONresponse.ok) {
                     return sendErrorResponse(req, res, JSONresponse.error);
-                } else {
-                    // Get slack response object
-                    const data: $TSFixMe = {
-                        userId: JSONresponse.user_id,
-                        teamName: JSONresponse.team_name,
-                        accessToken: JSONresponse.access_token,
-                        teamId: JSONresponse.team_id,
-                        channelId: JSONresponse.incoming_webhook.channel_id,
-                        channel: JSONresponse.incoming_webhook.channel,
-                        botUserId: JSONresponse.bot.bot_user_id,
-                        botAccessToken: JSONresponse.bot.bot_access_token,
-                    };
+                }
+                // Get slack response object
+                const data: $TSFixMe = {
+                    userId: JSONresponse.user_id,
+                    teamName: JSONresponse.team_name,
+                    accessToken: JSONresponse.access_token,
+                    teamId: JSONresponse.team_id,
+                    channelId: JSONresponse.incoming_webhook.channel_id,
+                    channel: JSONresponse.incoming_webhook.channel,
+                    botUserId: JSONresponse.bot.bot_user_id,
+                    botAccessToken: JSONresponse.bot.bot_access_token,
+                };
 
-                    const integrationType: string = 'slack';
-                    try {
-                        const slack: $TSFixMe = await IntegrationService.create(
-                            projectId,
-                            userId,
-                            data,
-                            integrationType,
-                            null
-                        );
-                        return sendItemResponse(req, res, slack);
-                    } catch (error) {
-                        return sendErrorResponse(req, res, error as Exception);
-                    }
+                const integrationType: string = 'slack';
+                try {
+                    const slack: $TSFixMe = await IntegrationService.create(
+                        projectId,
+                        userId,
+                        data,
+                        integrationType,
+                        null
+                    );
+                    return sendItemResponse(req, res, slack);
+                } catch (error) {
+                    return sendErrorResponse(req, res, error as Exception);
                 }
             }
         );

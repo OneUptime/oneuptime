@@ -975,9 +975,8 @@ router.get(
                     code: 401,
                     message: 'You are unauthorized to access the page.',
                 });
-            } else {
-                return sendItemResponse(req, res, statusPage);
             }
+            return sendItemResponse(req, res, statusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -1059,74 +1058,72 @@ router.get(
                     code: 401,
                     message: 'You are unauthorized to access the page.',
                 });
-            } else {
-                const { incidents }: $TSFixMe =
-                    await StatusPageService.getIncidents({
-                        _id: statusPageId,
-                    });
-                const refinedIncidents: $TSFixMe = [];
-                for (const incident of incidents) {
-                    refinedIncidents.push({
-                        item: {
-                            title: incident.title,
-
-                            guid: `${global.apiHost}/StatusPage/${statusPageId}/rss/${incident._id}`,
-                            pubDate: new Date(incident.createdAt).toUTCString(),
-                            description: `<![CDATA[Description: ${
-                                incident.description
-                            }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
-                                incident.monitors
-                            )}<br>Acknowledge Time: ${
-                                incident.acknowledgedAt
-                            }<br>Resolve Time: ${incident.resolvedAt}<br>${
-                                incident.investigationNote
-                                    ? `Investigation Note: ${incident.investigationNote}`
-                                    : ''
-                            }]]>`,
-                        },
-                    });
-                }
-                const xmlOptions: $TSFixMe = {
-                    indent: '  ',
-                    header: true,
-                };
-
-                const feedObj: $TSFixMe = {
-                    _name: 'rss',
-                    _attrs: {
-                        version: '2.0',
-                        'xmlns:content':
-                            'http://purl.org/rss/1.0/modules/content/',
-                        'xmlns:wfw': 'http://wellformedweb.org/CommentAPI/',
-                    },
-                    _content: {
-                        channel: [
-                            {
-                                title: `Incidents for status page ${statusPage.name}`,
-                            },
-                            {
-                                description:
-                                    'RSS feed for all incidents related to monitors attached to status page',
-                            },
-                            {
-                                link: `${global.apiHost}/StatusPage/${statusPageId}/rss`,
-                            },
-                            {
-                                lastBuildDate: () => {
-                                    return new Date().toUTCString();
-                                },
-                            },
-                            {
-                                language: 'en',
-                            },
-                            ...refinedIncidents,
-                        ],
-                    },
-                };
-                const finalFeed: $TSFixMe = toXML(feedObj, xmlOptions);
-                res.contentType('application/rss+xml');
-                return sendItemResponse(req, res, finalFeed);
             }
+            const { incidents }: $TSFixMe =
+                await StatusPageService.getIncidents({
+                    _id: statusPageId,
+                });
+            const refinedIncidents: $TSFixMe = [];
+            for (const incident of incidents) {
+                refinedIncidents.push({
+                    item: {
+                        title: incident.title,
+
+                        guid: `${global.apiHost}/StatusPage/${statusPageId}/rss/${incident._id}`,
+                        pubDate: new Date(incident.createdAt).toUTCString(),
+                        description: `<![CDATA[Description: ${
+                            incident.description
+                        }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
+                            incident.monitors
+                        )}<br>Acknowledge Time: ${
+                            incident.acknowledgedAt
+                        }<br>Resolve Time: ${incident.resolvedAt}<br>${
+                            incident.investigationNote
+                                ? `Investigation Note: ${incident.investigationNote}`
+                                : ''
+                        }]]>`,
+                    },
+                });
+            }
+            const xmlOptions: $TSFixMe = {
+                indent: '  ',
+                header: true,
+            };
+
+            const feedObj: $TSFixMe = {
+                _name: 'rss',
+                _attrs: {
+                    version: '2.0',
+                    'xmlns:content': 'http://purl.org/rss/1.0/modules/content/',
+                    'xmlns:wfw': 'http://wellformedweb.org/CommentAPI/',
+                },
+                _content: {
+                    channel: [
+                        {
+                            title: `Incidents for status page ${statusPage.name}`,
+                        },
+                        {
+                            description:
+                                'RSS feed for all incidents related to monitors attached to status page',
+                        },
+                        {
+                            link: `${global.apiHost}/StatusPage/${statusPageId}/rss`,
+                        },
+                        {
+                            lastBuildDate: () => {
+                                return new Date().toUTCString();
+                            },
+                        },
+                        {
+                            language: 'en',
+                        },
+                        ...refinedIncidents,
+                    ],
+                },
+            };
+            const finalFeed: $TSFixMe = toXML(feedObj, xmlOptions);
+            res.contentType('application/rss+xml');
+            return sendItemResponse(req, res, finalFeed);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -2802,9 +2799,8 @@ async function getStatusPage(
                 message: 'You are unauthorized to access the page.',
             },
         };
-    } else {
-        return statusPage;
     }
+    return statusPage;
 }
 
 async function getOngoingScheduledEvents(

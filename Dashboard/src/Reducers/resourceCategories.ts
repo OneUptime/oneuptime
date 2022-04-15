@@ -196,9 +196,8 @@ export default function resourceCategory(
                             (resourceCategory: $TSFixMe) => {
                                 if (resourceCategory._id === action.payload) {
                                     return false;
-                                } else {
-                                    return true;
                                 }
+                                return true;
                             }
                         ),
                 },
@@ -209,9 +208,8 @@ export default function resourceCategory(
                             (resourceCategory: $TSFixMe) => {
                                 if (resourceCategory._id === action.payload) {
                                     return false;
-                                } else {
-                                    return true;
                                 }
+                                return true;
                             }
                         ),
 

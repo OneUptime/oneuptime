@@ -262,9 +262,8 @@ export default function card(
                     numbers: state.allNumbers.numbers.map((n: $TSFixMe) => {
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
-                        } else {
-                            return n;
                         }
+                        return n;
                     }),
                 },
             });
@@ -368,9 +367,8 @@ export default function card(
                         callRoutingId: action.payload.callRoutingId,
                     },
                 });
-            } else {
-                return Object.assign({}, state, {});
             }
+            return Object.assign({}, state, {});
 
         case types.UPLOAD_CALL_ROUTING_AUDIO_SUCCESS:
             if (
@@ -395,9 +393,8 @@ export default function card(
                                 String(action.payload.data._id)
                             ) {
                                 return action.payload.data;
-                            } else {
-                                return n;
                             }
+                            return n;
                         }),
                     },
                 });
@@ -423,15 +420,13 @@ export default function card(
                                 String(action.payload.data._id)
                             ) {
                                 return action.payload.data;
-                            } else {
-                                return n;
                             }
+                            return n;
                         }),
                     },
                 });
-            } else {
-                return Object.assign({}, state, {});
             }
+            return Object.assign({}, state, {});
 
         case types.UPLOAD_CALL_ROUTING_AUDIO_FAILURE:
             if (
@@ -464,9 +459,8 @@ export default function card(
                         callRoutingId: action.payload.callRoutingId,
                     },
                 });
-            } else {
-                return Object.assign({}, state, {});
             }
+            return Object.assign({}, state, {});
 
         case types.REMOVE_INTRO_AUDIO_REQUEST:
             return Object.assign({}, state, {
@@ -493,9 +487,8 @@ export default function card(
                     numbers: state.allNumbers.numbers.map((n: $TSFixMe) => {
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
-                        } else {
-                            return n;
                         }
+                        return n;
                     }),
                 },
             });
@@ -536,9 +529,8 @@ export default function card(
                     numbers: state.allNumbers.numbers.map((n: $TSFixMe) => {
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
-                        } else {
-                            return n;
                         }
+                        return n;
                     }),
                 },
             });

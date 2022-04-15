@@ -117,9 +117,8 @@ export default function incident(
                         incident,
                     },
                 };
-            } else {
-                return state;
             }
+            return state;
         }
         case 'UPDATE_INCIDENT': {
             return {
@@ -437,16 +436,15 @@ export default function incident(
                         incidents: state.unresolvedincidents.incidents,
                     },
                 });
-            } else {
-                return Object.assign({}, state, {
-                    incident: {
-                        ...state.incident,
-                        requesting: false,
-                        error: action.payload,
-                        success: false,
-                    },
-                });
             }
+            return Object.assign({}, state, {
+                incident: {
+                    ...state.incident,
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
 
         case types.INCIDENT_RESET:
             return Object.assign({}, state, {
@@ -615,39 +613,36 @@ export default function incident(
                             (incident: $TSFixMe) => {
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
-                                } else {
-                                    return incident;
                                 }
-                            }
-                        ),
-                    },
-                });
-            } else {
-                return Object.assign({}, state, {
-                    incident: {
-                        requesting: false,
-                        resolving: false,
-                        error: null,
-                        success: true,
-                        incident: action.payload.data,
-                    },
-                    unresolvedincidents: {
-                        requesting: false,
-                        resolving: false,
-                        error: null,
-                        success: true,
-                        incidents: state.unresolvedincidents.incidents.map(
-                            (incident: $TSFixMe) => {
-                                if (incident._id === action.payload.data._id) {
-                                    return action.payload.data;
-                                } else {
-                                    return incident;
-                                }
+                                return incident;
                             }
                         ),
                     },
                 });
             }
+            return Object.assign({}, state, {
+                incident: {
+                    requesting: false,
+                    resolving: false,
+                    error: null,
+                    success: true,
+                    incident: action.payload.data,
+                },
+                unresolvedincidents: {
+                    requesting: false,
+                    resolving: false,
+                    error: null,
+                    success: true,
+                    incidents: state.unresolvedincidents.incidents.map(
+                        (incident: $TSFixMe) => {
+                            if (incident._id === action.payload.data._id) {
+                                return action.payload.data;
+                            }
+                            return incident;
+                        }
+                    ),
+                },
+            });
 
         case types.RESOLVE_INCIDENT_SUCCESS:
             if (action.payload.multiple) {
@@ -665,39 +660,36 @@ export default function incident(
                             (incident: $TSFixMe) => {
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
-                                } else {
-                                    return incident;
                                 }
-                            }
-                        ),
-                    },
-                });
-            } else {
-                return Object.assign({}, state, {
-                    incident: {
-                        requesting: false,
-                        resolving: false,
-                        error: null,
-                        success: true,
-                        incident: action.payload.data,
-                    },
-                    unresolvedincidents: {
-                        requesting: false,
-                        resolving: false,
-                        error: null,
-                        success: true,
-                        incidents: state.unresolvedincidents.incidents.map(
-                            (incident: $TSFixMe) => {
-                                if (incident._id === action.payload.data._id) {
-                                    return action.payload.data;
-                                } else {
-                                    return incident;
-                                }
+                                return incident;
                             }
                         ),
                     },
                 });
             }
+            return Object.assign({}, state, {
+                incident: {
+                    requesting: false,
+                    resolving: false,
+                    error: null,
+                    success: true,
+                    incident: action.payload.data,
+                },
+                unresolvedincidents: {
+                    requesting: false,
+                    resolving: false,
+                    error: null,
+                    success: true,
+                    incidents: state.unresolvedincidents.incidents.map(
+                        (incident: $TSFixMe) => {
+                            if (incident._id === action.payload.data._id) {
+                                return action.payload.data;
+                            }
+                            return incident;
+                        }
+                    ),
+                },
+            });
 
         case 'SET_ACTIVE_INCIDENT':
             return {
@@ -716,17 +708,16 @@ export default function incident(
                         resolving: false,
                     },
                 });
-            } else {
-                return Object.assign({}, state, {
-                    incident: {
-                        ...state.incident,
-                        requesting: false,
-                        success: false,
-                        error: null,
-                        resolving: false,
-                    },
-                });
             }
+            return Object.assign({}, state, {
+                incident: {
+                    ...state.incident,
+                    requesting: false,
+                    success: false,
+                    error: null,
+                    resolving: false,
+                },
+            });
 
         case types.RESOLVE_INCIDENT_REQUEST:
             if (action.payload.multiple) {
@@ -739,17 +730,16 @@ export default function incident(
                         resolving: true,
                     },
                 });
-            } else {
-                return Object.assign({}, state, {
-                    incident: {
-                        ...state.incident,
-                        requesting: false,
-                        success: false,
-                        error: null,
-                        resolving: true,
-                    },
-                });
             }
+            return Object.assign({}, state, {
+                incident: {
+                    ...state.incident,
+                    requesting: false,
+                    success: false,
+                    error: null,
+                    resolving: true,
+                },
+            });
 
         case types.UNRESOLVED_INCIDENTS_SUCCESS: {
             return Object.assign({}, state, {
@@ -1079,9 +1069,8 @@ export default function incident(
                                 String(action.payload.data._id)
                             ) {
                                 return action.payload.data;
-                            } else {
-                                return incident;
                             }
+                            return incident;
                         }
                     ),
                 },
@@ -1136,9 +1125,8 @@ export default function incident(
                                 String(action.payload.data._id)
                             ) {
                                 return action.payload.data;
-                            } else {
-                                return incident;
                             }
+                            return incident;
                         }
                     ),
                 },
@@ -1252,9 +1240,8 @@ export default function incident(
                         (incident: $TSFixMe) => {
                             if (incident._id === action.payload._id) {
                                 return false;
-                            } else {
-                                return true;
                             }
+                            return true;
                         }
                     ),
                 },

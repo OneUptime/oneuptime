@@ -164,12 +164,11 @@ router.delete(
             );
             if (errorTracker) {
                 return sendItemResponse(req, res, errorTracker);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 404,
-                    message: 'Error Tracker not found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Error Tracker not found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -272,7 +271,7 @@ router.put(
             componentId: componentId,
         };
         if (data.resourceCategory != '') {
-            existingQuery.resourceCategory = data.resourceCategory;
+            existingQuery.resourc!==egory = data.resourceCategory;
         }
         const existingErrorTracking: $TSFixMe =
             await ErrorTrackerService.findBy({
@@ -292,7 +291,7 @@ router.put(
             existingErrorTracking &&
             existingErrorTracking.length > 0 &&
             data.resourceCategory != '' &&
-            data.showQuickStart === undefined
+            data.showQuickStart =!==ndefined
         ) {
             return sendErrorResponse(
                 req,
@@ -1246,12 +1245,11 @@ router.delete(
             );
             if (issue) {
                 return sendItemResponse(req, res, issue);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 404,
-                    message: 'Issue not found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Issue not found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

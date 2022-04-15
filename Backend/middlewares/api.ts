@@ -42,9 +42,8 @@ export default {
                     code: 400,
                     message: 'Project ID not found.',
                 });
-            } else {
-                return false;
             }
+            return false;
         }
 
         if (req.query && req.query.apiKey) {
@@ -59,9 +58,8 @@ export default {
                     code: 400,
                     message: 'API Key not found.',
                 });
-            } else {
-                return false;
             }
+            return false;
         }
 
         const projectCount: $TSFixMe = await ProjectService.countBy({
@@ -79,20 +77,16 @@ export default {
 
             if (next) {
                 return next();
-            } else {
-                return true;
             }
-        } else {
-            if (res) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'No Project found with this API Key and Project ID.',
-                });
-            } else {
-                return false;
-            }
+            return true;
         }
+        if (res) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'No Project found with this API Key and Project ID.',
+            });
+        }
+        return false;
     },
 
     isValidProjectId: function (projectId: ObjectID): void {
@@ -190,16 +184,14 @@ export default {
                     message:
                         'Sorry this monitor is disabled. Please enable it to start monitoring again.',
                 });
-            } else {
-                req.monitor = monitor;
-                return next();
             }
-        } else {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('No Monitor found with this ID.')
-            );
+            req.monitor = monitor;
+            return next();
         }
+        return sendErrorResponse(
+            req,
+            res,
+            new BadDataException('No Monitor found with this ID.')
+        );
     },
 };

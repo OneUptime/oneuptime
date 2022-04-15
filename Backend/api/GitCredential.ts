@@ -43,12 +43,11 @@ router.post(
                     projectId,
                 });
                 return sendItemResponse(req, res, response);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Git Credential or Ssh is required',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Git Credential or Ssh is required',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

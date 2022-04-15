@@ -505,10 +505,9 @@ export default function monitor(
                                             monitor.editMode = false;
                                         }
                                         return monitor;
-                                    } else {
-                                        monitor.editMode = false;
-                                        return monitor;
                                     }
+                                    monitor.editMode = false;
+                                    return monitor;
                                 }
                             );
                             return monitor;
@@ -548,9 +547,8 @@ export default function monitor(
                                                   monitor.count =
                                                       action.payload.count;
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -582,9 +580,8 @@ export default function monitor(
                                                   monitor.count =
                                                       action.payload.count;
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -645,9 +642,8 @@ export default function monitor(
                                                           .count,
                                                   };
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -702,9 +698,8 @@ export default function monitor(
                                                   monitor.logs =
                                                       action.payload.logs.data;
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -730,9 +725,8 @@ export default function monitor(
                                                   monitor.logs =
                                                       action.payload.logs.data;
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -789,9 +783,8 @@ export default function monitor(
                                                   monitor.statuses =
                                                       action.payload.statuses.data;
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -817,9 +810,8 @@ export default function monitor(
                                                   monitor.statuses =
                                                       action.payload.statuses.data;
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -896,9 +888,8 @@ export default function monitor(
                                                           .count,
                                                   };
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -949,9 +940,8 @@ export default function monitor(
                                                           .count,
                                                   };
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -1242,18 +1232,16 @@ export default function monitor(
                                                                                         ),
                                                                                     ],
                                                                                 };
-                                                                            } else {
-                                                                                return {
-                                                                                    _id: probeId,
-                                                                                    logs: [
-                                                                                        logData,
-                                                                                        ...probeLogs.logs,
-                                                                                    ],
-                                                                                };
                                                                             }
-                                                                        } else {
-                                                                            return probeLogs;
+                                                                            return {
+                                                                                _id: probeId,
+                                                                                logs: [
+                                                                                    logData,
+                                                                                    ...probeLogs.logs,
+                                                                                ],
+                                                                            };
                                                                         }
+                                                                        return probeLogs;
                                                                     }
                                                                 )
                                                               : [
@@ -1285,9 +1273,8 @@ export default function monitor(
                                                             ];
 
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -1384,9 +1371,8 @@ export default function monitor(
                                                                                       ),
                                                                                   ],
                                                                           };
-                                                                      } else {
-                                                                          return probeStatuses;
                                                                       }
+                                                                      return probeStatuses;
                                                                   }
                                                               );
 
@@ -1555,9 +1541,8 @@ export default function monitor(
                                                   }
 
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -1619,9 +1604,8 @@ export default function monitor(
                                                       count: 1,
                                                   };
                                                   return monitor;
-                                              } else {
-                                                  return monitor;
                                               }
+                                              return monitor;
                                           }
                                       )
                                     : monitor.monitors;
@@ -1802,9 +1786,8 @@ export default function monitor(
                                             monitor.disabled =
                                                 action.payload.disable;
                                             return monitor;
-                                        } else {
-                                            return monitor;
                                         }
+                                        return monitor;
                                     }
                                 );
                             return subProjectMonitor;
@@ -1856,9 +1839,8 @@ export default function monitor(
                                             monitor.componentId =
                                                 action.payload.newComponentId;
                                             return monitor;
-                                        } else {
-                                            return monitor;
                                         }
+                                        return monitor;
                                     }
                                 );
                             return subProjectMonitor;
@@ -1936,9 +1918,8 @@ export default function monitor(
                                                                         ._id
                                                                 ) {
                                                                     return action.payload;
-                                                                } else {
-                                                                    return incident;
                                                                 }
+                                                                return incident;
                                                             }
                                                         )
                                                       : [action.payload];
@@ -1979,9 +1960,8 @@ export default function monitor(
                                                                         ._id
                                                                 ) {
                                                                     return action.payload;
-                                                                } else {
-                                                                    return incident;
                                                                 }
+                                                                return incident;
                                                             }
                                                         )
                                                       : [action.payload];
@@ -2026,9 +2006,8 @@ export default function monitor(
                                                                     return action
                                                                         .payload
                                                                         .data;
-                                                                } else {
-                                                                    return incident;
                                                                 }
+                                                                return incident;
                                                             }
                                                         )
                                                       : [action.payload.data];
@@ -2073,9 +2052,8 @@ export default function monitor(
                                                                     return action
                                                                         .payload
                                                                         .data;
-                                                                } else {
-                                                                    return incident;
                                                                 }
+                                                                return incident;
                                                             }
                                                         )
                                                       : [action.payload.data];

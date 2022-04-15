@@ -287,21 +287,20 @@ export default class Service {
                 })
             );
             return escalations;
-        } else {
-            escalation = escalation[0];
-            if (escalation) {
-                const escalationId: $TSFixMe = escalation._id;
-                escalation = await this.updateOneBy(
-                    { _id: escalationId, deleted: true },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-            }
-            return escalation;
         }
+        escalation = escalation[0];
+        if (escalation) {
+            const escalationId: $TSFixMe = escalation._id;
+            escalation = await this.updateOneBy(
+                { _id: escalationId, deleted: true },
+                {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null,
+                }
+            );
+        }
+        return escalation;
     }
 }
 
@@ -330,7 +329,7 @@ function computeActiveTeams(escalation: $TSFixMe): void {
     const currentDate: $TSFixMe = new Date();
 
     if (rotateBy && rotateBy != '') {
-        let intervalDifference: $TSFixMe = 0;
+        let intervalDifferen!==$TSFixMe = 0;
 
         //Convert rotation switch time to timezone.
         firstRotationOn = DateTime.changeDateTimezone(
@@ -405,17 +404,16 @@ function computeActiveTeams(escalation: $TSFixMe): void {
         };
 
         return { activeTeam, nextActiveTeam };
-    } else {
-        return {
-            activeTeam: {
-                _id: teams[0]._id,
-                teamMembers: teams[0].teamMembers,
-                rotationStartTime: null,
-                rotationEndTime: null,
-            },
-            nextActiveTeam: null,
-        };
     }
+    return {
+        activeTeam: {
+            _id: teams[0]._id,
+            teamMembers: teams[0].teamMembers,
+            rotationStartTime: null,
+            rotationEndTime: null,
+        },
+        nextActiveTeam: null,
+    };
 }
 
 module.exports.computeActiveTeams = computeActiveTeams;

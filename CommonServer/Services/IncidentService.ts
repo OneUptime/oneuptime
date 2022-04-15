@@ -1061,9 +1061,8 @@ export default class Service {
                     { _id: incident._id },
                     { notClosedBy: [userId] }
                 );
-            } else {
-                return incident;
             }
+            return incident;
         });
         await Promise.all(incidentsUnresolved);
         const populate: $TSFixMe = [
@@ -1396,23 +1395,22 @@ export default class Service {
                 })
             );
             return incidents;
-        } else {
-            incident = incident[0];
-            if (incident) {
-                const incidentId: $TSFixMe = incident._id;
-                incident = await this.updateOneBy(
-                    {
-                        _id: incidentId,
-                    },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-            }
-            return incident;
         }
+        incident = incident[0];
+        if (incident) {
+            const incidentId: $TSFixMe = incident._id;
+            incident = await this.updateOneBy(
+                {
+                    _id: incidentId,
+                },
+                {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null,
+                }
+            );
+        }
+        return incident;
     }
 
     /**

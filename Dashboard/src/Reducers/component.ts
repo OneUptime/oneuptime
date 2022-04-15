@@ -407,10 +407,9 @@ export default function component(
                                             component.editMode = false;
                                         }
                                         return component;
-                                    } else {
-                                        component.editMode = false;
-                                        return component;
                                     }
+                                    component.editMode = false;
+                                    return component;
                                 }
                             );
                             return component;

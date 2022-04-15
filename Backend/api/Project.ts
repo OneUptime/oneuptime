@@ -159,70 +159,64 @@ router.post(
                         );
                     }
                     return sendItemResponse(req, res, project);
-                } else {
-                    if (IS_SAAS_SERVICE) {
-                        const subscription: $TSFixMe =
-                            await PaymentService.subscribePlan(
-                                stripePlanId,
-                                user.stripeCustomerId
-                            );
-                        if (
-                            subscription.subscriptionPaymentStatus ===
-                                'canceled' ||
-                            subscription.subscriptionPaymentStatus === 'unpaid'
-                        ) {
-                            user = await UserService.findOneBy({
-                                query: { _id: userId },
-                                select: 'email name',
-                            });
-                            try {
-                                MailService.sendPaymentFailedEmail(
-                                    projectName,
-                                    user.email,
-                                    user.name
-                                );
-                            } catch (error) {
-                                ErrorService.log(
-                                    'mailService.sendPaymentFailedEmail',
-                                    error
-                                );
-                            }
-                        }
-                        if (!data.stripeSubscriptionId) {
-                            data.stripeSubscriptionId =
-                                subscription.stripeSubscriptionId;
-                        }
-                    }
-
-                    const [project, foundUser]: $TSFixMe = await Promise.all([
-                        ProjectService.create(data),
-                        UserService.findOneBy({
-                            query: { _id: userId },
-                            select: 'email',
-                        }),
-                    ]);
-
-                    user = foundUser;
-
-                    try {
-                        MailService.sendCreateProjectMail(
-                            projectName,
-                            user.email
-                        );
-                    } catch (error) {
-                        ErrorService.log(
-                            'mailService.sendCreateProjectMail',
-                            error
-                        );
-                    }
-                    return sendItemResponse(req, res, project);
                 }
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'You already have project with same name.',
-                });
+                if (IS_SAAS_SERVICE) {
+                    const subscription: $TSFixMe =
+                        await PaymentService.subscribePlan(
+                            stripePlanId,
+                            user.stripeCustomerId
+                        );
+                    if (
+                        subscription.subscriptionPaymentStatus === 'canceled' ||
+                        subscription.subscriptionPaymentStatus === 'unpaid'
+                    ) {
+                        user = await UserService.findOneBy({
+                            query: { _id: userId },
+                            select: 'email name',
+                        });
+                        try {
+                            MailService.sendPaymentFailedEmail(
+                                projectName,
+                                user.email,
+                                user.name
+                            );
+                        } catch (error) {
+                            ErrorService.log(
+                                'mailService.sendPaymentFailedEmail',
+                                error
+                            );
+                        }
+                    }
+                    if (!data.stripeSubscriptionId) {
+                        data.stripeSubscriptionId =
+                            subscription.stripeSubscriptionId;
+                    }
+                }
+
+                const [project, foundUser]: $TSFixMe = await Promise.all([
+                    ProjectService.create(data),
+                    UserService.findOneBy({
+                        query: { _id: userId },
+                        select: 'email',
+                    }),
+                ]);
+
+                user = foundUser;
+
+                try {
+                    MailService.sendCreateProjectMail(projectName, user.email);
+                } catch (error) {
+                    ErrorService.log(
+                        'mailService.sendCreateProjectMail',
+                        error
+                    );
+                }
+                return sendItemResponse(req, res, project);
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You already have project with same name.',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -771,46 +765,45 @@ router.put(
                 const response: $TSFixMe =
                     await ProjectService.upgradeToEnterprise(projectId);
                 return sendItemResponse(req, res, response);
-            } else {
-                if (!oldPlan) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Old Plan must be present.',
-                    });
-                }
-
-                if (!newPlan) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'New Plan must be present.',
-                    });
-                }
-
-                const project: $TSFixMe = await ProjectService.findOneBy({
-                    query: { _id: projectId },
-                    select: 'users',
-                });
-                const owner: $TSFixMe = project.users.find((user: $TSFixMe) => {
-                    return user.role === 'Owner';
-                });
-                const [updatedProject, user]: $TSFixMe = await Promise.all([
-                    ProjectService.changePlan(projectId, owner.userId, planId),
-                    UserService.findOneBy({
-                        query: { _id: userId },
-                        select: 'email',
-                    }),
-                ]);
-                const email: $TSFixMe = user.email;
-
-                MailService.sendChangePlanMail(
-                    projectName,
-                    oldPlan,
-                    newPlan,
-                    email
-                );
-
-                return sendItemResponse(req, res, updatedProject);
             }
+            if (!oldPlan) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Old Plan must be present.',
+                });
+            }
+
+            if (!newPlan) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'New Plan must be present.',
+                });
+            }
+
+            const project: $TSFixMe = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'users',
+            });
+            const owner: $TSFixMe = project.users.find((user: $TSFixMe) => {
+                return user.role === 'Owner';
+            });
+            const [updatedProject, user]: $TSFixMe = await Promise.all([
+                ProjectService.changePlan(projectId, owner.userId, planId),
+                UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'email',
+                }),
+            ]);
+            const email: $TSFixMe = user.email;
+
+            MailService.sendChangePlanMail(
+                projectName,
+                oldPlan,
+                newPlan,
+                email
+            );
+
+            return sendItemResponse(req, res, updatedProject);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -1307,19 +1300,17 @@ router.post(
                         data
                     );
                     return sendItemResponse(req, res, project);
-                } else {
-                    const project: $TSFixMe = await ProjectService.addNotes(
-                        projectId,
-                        data
-                    );
-                    return sendItemResponse(req, res, project);
                 }
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Admin notes are expected in array format.',
-                });
+                const project: $TSFixMe = await ProjectService.addNotes(
+                    projectId,
+                    data
+                );
+                return sendItemResponse(req, res, project);
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Admin notes are expected in array format.',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

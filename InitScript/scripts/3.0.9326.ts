@@ -33,9 +33,8 @@ async function run(): void {
                             ...user,
                             show: true,
                         };
-                    } else {
-                        return user;
                     }
+                    return user;
                 });
             } else {
                 projectUsers =

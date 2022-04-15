@@ -171,12 +171,11 @@ router.delete(
                 );
             if (performanceTracker) {
                 return sendItemResponse(req, res, performanceTracker);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 404,
-                    message: 'Performance tracker not found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Performance tracker not found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

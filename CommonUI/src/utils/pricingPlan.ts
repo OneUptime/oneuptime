@@ -52,52 +52,51 @@ export default class PricingPlan {
                     details: '$99/mo per user paid annually. ',
                 },
             ];
-        } else {
-            return [
-                {
-                    category: 'Startup',
-                    planId: 'plan_GoVgVbvNdbWwlm',
-                    type: 'month',
-                    amount: 25,
-                    details: '$25 / Month / User',
-                },
-                {
-                    category: 'Startup',
-                    planId: 'plan_GoVgJu5PKMLRJU',
-                    type: 'annual',
-                    amount: 264,
-                    details: '$22/mo per user paid annually. ',
-                },
-                {
-                    category: 'Growth',
-                    planId: 'plan_GoVi9EIa6MU0fG',
-                    type: 'month',
-                    amount: 59,
-                    details: '$59 / Month / User',
-                },
-                {
-                    category: 'Growth',
-                    planId: 'plan_GoViZshjqzZ0vv',
-                    type: 'annual',
-                    amount: 588,
-                    details: '$49/mo per user paid annually. ',
-                },
-                {
-                    category: 'Scale',
-                    planId: 'plan_H9Ii6Qj3HLdtty',
-                    type: 'month',
-                    amount: 99,
-                    details: '$120 / Month / User',
-                },
-                {
-                    category: 'Scale',
-                    planId: 'plan_H9IjvX2Flsvlcg',
-                    type: 'annual',
-                    amount: 1188,
-                    details: '$99/mo per user paid annually. ',
-                },
-            ];
         }
+        return [
+            {
+                category: 'Startup',
+                planId: 'plan_GoVgVbvNdbWwlm',
+                type: 'month',
+                amount: 25,
+                details: '$25 / Month / User',
+            },
+            {
+                category: 'Startup',
+                planId: 'plan_GoVgJu5PKMLRJU',
+                type: 'annual',
+                amount: 264,
+                details: '$22/mo per user paid annually. ',
+            },
+            {
+                category: 'Growth',
+                planId: 'plan_GoVi9EIa6MU0fG',
+                type: 'month',
+                amount: 59,
+                details: '$59 / Month / User',
+            },
+            {
+                category: 'Growth',
+                planId: 'plan_GoViZshjqzZ0vv',
+                type: 'annual',
+                amount: 588,
+                details: '$49/mo per user paid annually. ',
+            },
+            {
+                category: 'Scale',
+                planId: 'plan_H9Ii6Qj3HLdtty',
+                type: 'month',
+                amount: 99,
+                details: '$120 / Month / User',
+            },
+            {
+                category: 'Scale',
+                planId: 'plan_H9IjvX2Flsvlcg',
+                type: 'annual',
+                amount: 1188,
+                details: '$99/mo per user paid annually. ',
+            },
+        ];
     }
 
     public static getPlanById(id: string): PricingPlanType {
@@ -108,8 +107,7 @@ export default class PricingPlan {
 
         if (plan) {
             return plan;
-        } else {
-            throw new BadDataException(`Plan with id ${id} not found`);
         }
+        throw new BadDataException(`Plan with id ${id} not found`);
     }
 }

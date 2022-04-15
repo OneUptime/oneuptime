@@ -167,19 +167,19 @@ class ErrorTracker {
             const substring: string = 'script error';
             if (string.indexOf(substring) > -1) {
                 return; // Third party error
-            } else {
-                // Construct the error object
-                const errorObj: $TSFixMe =
-                    await this.utilObj._getErrorStackTrace(errorEvent);
-
-                // Set the a handled tag
-                this.setTag('handled', 'false');
-                // Prepare to send to server
-                this.prepareErrorObject('error', errorObj);
-
-                // Send to the server
-                this.sendErrorEventToServer();
             }
+            // Construct the error object
+            const errorObj: $TSFixMe = await this.utilObj._getErrorStackTrace(
+                errorEvent
+            );
+
+            // Set the a handled tag
+            this.setTag('handled', 'false');
+            // Prepare to send to server
+            this.prepareErrorObject('error', errorObj);
+
+            // Send to the server
+            this.sendErrorEventToServer();
         };
     }
     private _setUpNodeErrorListener(): void {

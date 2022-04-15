@@ -508,12 +508,11 @@ export const removeIntroAudioSuccess: Function = (
             type: types.REMOVE_BACKUP_INTRO_AUDIO_SUCCESS,
             payload: numbers,
         };
-    } else {
-        return {
-            type: types.REMOVE_INTRO_AUDIO_SUCCESS,
-            payload: numbers,
-        };
     }
+    return {
+        type: types.REMOVE_INTRO_AUDIO_SUCCESS,
+        payload: numbers,
+    };
 };
 
 export function removeIntroAudioRequest(
@@ -525,12 +524,11 @@ export function removeIntroAudioRequest(
             type: types.REMOVE_BACKUP_INTRO_AUDIO_REQUEST,
             payload: callRoutingId,
         };
-    } else {
-        return {
-            type: types.REMOVE_INTRO_AUDIO_REQUEST,
-            payload: callRoutingId,
-        };
     }
+    return {
+        type: types.REMOVE_INTRO_AUDIO_REQUEST,
+        payload: callRoutingId,
+    };
 }
 
 export const removeIntroAudioFailure: Function = (
@@ -542,10 +540,9 @@ export const removeIntroAudioFailure: Function = (
             type: types.REMOVE_BACKUP_INTRO_AUDIO_FAILURE,
             payload: error,
         };
-    } else {
-        return {
-            type: types.REMOVE_INTRO_AUDIO_FAILURE,
-            payload: error,
-        };
     }
+    return {
+        type: types.REMOVE_INTRO_AUDIO_FAILURE,
+        payload: error,
+    };
 };

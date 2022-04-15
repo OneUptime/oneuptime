@@ -210,9 +210,8 @@ export default class Service {
             );
             RealTimeService.sendErrorTrackerDelete(errorTracker);
             return errorTracker;
-        } else {
-            return null;
         }
+        return null;
     }
 
     public async updateOneBy(

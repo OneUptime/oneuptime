@@ -562,30 +562,29 @@ class Service extends DatabaseService<typeof Model> {
                             'successful'
                         );
                         return user;
-                    } else {
-                        /*
-                         * Show a different error message in admin mode as user most
-                         * Likely provided a wrong password
-                         */
-                        let error: $TSFixMe;
-                        if (user.isAdminMode && user.cachedPassword) {
-                            error = new Error(
-                                'Your account is currently under maintenance. Please try again later'
-                            );
-                        } else {
-                            error = new Error('Password is incorrect.');
-                        }
-
-                        LoginHistoryService.create(
-                            user,
-                            clientIP,
-                            userAgent,
-                            'incorrect password'
-                        );
-
-                        error.code = 400;
-                        throw error;
                     }
+                    /*
+                     * Show a different error message in admin mode as user most
+                     * Likely provided a wrong password
+                     */
+                    let error: $TSFixMe;
+                    if (user.isAdminMode && user.cachedPassword) {
+                        error = new Error(
+                            'Your account is currently under maintenance. Please try again later'
+                        );
+                    } else {
+                        error = new Error('Password is incorrect.');
+                    }
+
+                    LoginHistoryService.create(
+                        user,
+                        clientIP,
+                        userAgent,
+                        'incorrect password'
+                    );
+
+                    error.code = 400;
+                    throw error;
                 }
             }
         } else {
@@ -657,36 +656,35 @@ class Service extends DatabaseService<typeof Model> {
 
         if (!user) {
             return null;
-        } else {
-            // Ensure user is not in admin mode
-            if (user.isAdminMode && user.cachedPassword) {
-                const error: $TSFixMe = new Error(
-                    'Your account is currently under maintenance. Please try again later'
-                );
-
-                error.code = 400;
-                throw error;
-            }
-
-            const hash: $TSFixMe = await bcrypt.hash(
-                password,
-                constants.saltRounds
-            );
-
-            //Update a user.
-            user = await this.updateOneBy(
-                {
-                    _id: user._id,
-                },
-                {
-                    password: hash,
-                    resetPasswordToken: '',
-                    resetPasswordExpires: '',
-                }
-            );
-
-            return user;
         }
+        // Ensure user is not in admin mode
+        if (user.isAdminMode && user.cachedPassword) {
+            const error: $TSFixMe = new Error(
+                'Your account is currently under maintenance. Please try again later'
+            );
+
+            error.code = 400;
+            throw error;
+        }
+
+        const hash: $TSFixMe = await bcrypt.hash(
+            password,
+            constants.saltRounds
+        );
+
+        //Update a user.
+        user = await this.updateOneBy(
+            {
+                _id: user._id,
+            },
+            {
+                password: hash,
+                resetPasswordToken: '',
+                resetPasswordExpires: '',
+            }
+        );
+
+        return user;
     }
 
     // Description: replace password temporarily in "admin mode"
@@ -843,9 +841,8 @@ class Service extends DatabaseService<typeof Model> {
             user = await this.updateOneBy({ _id: data._id }, data);
 
             return user;
-        } else {
-            throw new BadDataException('Current Password is incorrect.');
         }
+        throw new BadDataException('Current Password is incorrect.');
     }
 
     public async getAllUsers(
@@ -939,18 +936,17 @@ class Service extends DatabaseService<typeof Model> {
                 })
             );
             return users;
-        } else {
-            user = user[0];
-            if (user) {
-                query._id = user._id;
-                user = await this.updateOneBy(query, {
-                    deleted: false,
-                    deletedBy: null,
-                    deletedAt: null,
-                });
-            }
-            return user;
         }
+        user = user[0];
+        if (user) {
+            query._id = user._id;
+            user = await this.updateOneBy(query, {
+                deleted: false,
+                deletedBy: null,
+                deletedAt: null,
+            });
+        }
+        return user;
     }
 
     public async addNotes(userId: ObjectID, notes: $TSFixMe): void {

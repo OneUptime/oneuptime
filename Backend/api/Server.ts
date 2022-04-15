@@ -11,9 +11,8 @@ import { sendItemResponse } from 'CommonServer/Utils/response';
 router.get('/is-saas-service', (req: ExpressRequest, res: ExpressResponse) => {
     if (IS_SAAS_SERVICE) {
         return sendItemResponse(req, res, { result: true });
-    } else {
-        return sendItemResponse(req, res, { result: false });
     }
+    return sendItemResponse(req, res, { result: false });
 });
 
 router.get('/hosts', (req: ExpressRequest, res: ExpressResponse) => {

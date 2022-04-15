@@ -254,14 +254,13 @@ export default class Service {
                     });
                 }
                 return populatedMonitor || savedMonitor;
-            } else {
-                const error: $TSFixMe = new Error(
-                    "You can't add any more monitors. Please upgrade your account."
-                );
-
-                error.code = 400;
-                throw error;
             }
+            const error: $TSFixMe = new Error(
+                "You can't add any more monitors. Please upgrade your account."
+            );
+
+            error.code = 400;
+            throw error;
         }
     }
 
@@ -770,9 +769,8 @@ export default class Service {
             RealTimeService.sendMonitorDelete(monitor);
 
             return monitor;
-        } else {
-            return null;
         }
+        return null;
     }
 
     public async getMonitorsBySubprojects(
@@ -1141,9 +1139,8 @@ export default class Service {
             await Promise.all(updatePromises);
 
             return monitors;
-        } else {
-            return [];
         }
+        return [];
     }
 
     public async getScriptMonitors({ limit, skip }: $TSFixMe): void {
@@ -1193,9 +1190,8 @@ export default class Service {
             });
 
             return monitors;
-        } else {
-            return [];
         }
+        return [];
     }
 
     public async getUrlMonitorsNotScannedByLightHouseInPastOneDay(): void {
@@ -1602,9 +1598,8 @@ export default class Service {
                         );
                     if (creatediff > -1 && resolveddiff < 1) {
                         return true;
-                    } else {
-                        return false;
                     }
+                    return false;
                 });
                 status = incidents.some((inc: $TSFixMe) => {
                     return inc.resolvedAt

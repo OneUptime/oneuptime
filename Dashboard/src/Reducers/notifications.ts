@@ -108,9 +108,8 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                                         action.payload.userId,
                                     ]),
                                 };
-                            } else {
-                                return notification;
                             }
+                            return notification;
                         }
                     ),
                 },
@@ -132,9 +131,8 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                                         action.payload.userId,
                                     ]),
                                 };
-                            } else {
-                                return notification;
                             }
+                            return notification;
                         }
                     ),
                 },

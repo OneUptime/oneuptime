@@ -543,37 +543,36 @@ export default class Service {
                      * );
                      */
                     return updatedIncomingRequest;
-                } else {
-                    /*
-                     * Delete the incomingRequest when:
-                     * 1. No monitor is remaining in the monitors array
-                     * 2. It does not select all monitors
-                     */
-                    if (!incomingRequest.selectAllMonitors) {
-                        let deletedIncomingRequest: $TSFixMe =
-                            await IncomingRequestModel.findOneAndUpdate(
-                                { _id: incomingRequest._id },
-                                {
-                                    $set: {
-                                        monitors: incomingRequest.monitors,
-                                        deleted: true,
-                                        deletedAt: Date.now(),
-                                    },
+                }
+                /*
+                 * Delete the incomingRequest when:
+                 * 1. No monitor is remaining in the monitors array
+                 * 2. It does not select all monitors
+                 */
+                if (!incomingRequest.selectAllMonitors) {
+                    let deletedIncomingRequest: $TSFixMe =
+                        await IncomingRequestModel.findOneAndUpdate(
+                            { _id: incomingRequest._id },
+                            {
+                                $set: {
+                                    monitors: incomingRequest.monitors,
+                                    deleted: true,
+                                    deletedAt: Date.now(),
                                 },
-                                { new: true }
-                            );
-                        deletedIncomingRequest = await deletedIncomingRequest
-                            .populate('monitors.monitorId', 'name')
-                            .populate('projectId', 'name')
-                            .execPopulate();
+                            },
+                            { new: true }
+                        );
+                    deletedIncomingRequest = await deletedIncomingRequest
+                        .populate('monitors.monitorId', 'name')
+                        .populate('projectId', 'name')
+                        .execPopulate();
 
-                        /*
-                         * Await RealTimeService.deleteScheduledEvent(
-                         *     DeletedIncomingRequest
-                         * );
-                         */
-                        return deletedIncomingRequest;
-                    }
+                    /*
+                     * Await RealTimeService.deleteScheduledEvent(
+                     *     DeletedIncomingRequest
+                     * );
+                     */
+                    return deletedIncomingRequest;
                 }
             })
         );

@@ -97,70 +97,69 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
+            }
+            const creds: $TSFixMe = await this.getSettings();
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    userId,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const alertLimit: $TSFixMe =
+                await AlertService.checkPhoneAlertsLimit(projectId);
+            if (alertLimit) {
+                options.from = creds.phone;
+                // Create incidentSMSAction entry for matching sms from twilio.
+                const incidentSMSAction: $TSFixMe =
+                    new incidentSMSActionModel();
+
+                incidentSMSAction.incidentId = incidentId;
+
+                incidentSMSAction.userId = userId;
+
+                incidentSMSAction.number = number;
+
+                incidentSMSAction.name = name;
+                await incidentSMSAction.save();
+
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
                 );
 
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        userId,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const alertLimit: $TSFixMe =
-                    await AlertService.checkPhoneAlertsLimit(projectId);
-                if (alertLimit) {
-                    options.from = creds.phone;
-                    // Create incidentSMSAction entry for matching sms from twilio.
-                    const incidentSMSAction: $TSFixMe =
-                        new incidentSMSActionModel();
-
-                    incidentSMSAction.incidentId = incidentId;
-
-                    incidentSMSAction.userId = userId;
-
-                    incidentSMSAction.number = number;
-
-                    incidentSMSAction.name = name;
-                    await incidentSMSAction.save();
-
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        userId,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new BadDataException(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        userId,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
+                await SmsCountService.create(
+                    userId,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
             }
+            const error: $TSFixMe = new BadDataException(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                userId,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 userId,
@@ -234,66 +233,63 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const options: $TSFixMe = {
-                    body: template,
-                    from: creds.phone,
-                    to: number,
-                };
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
-                let alertLimit: $TSFixMe = true;
-
-                alertLimit = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
-
-                if (alertLimit) {
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-
-                    error.code = 400;
-                    return error;
-                }
             }
+            const creds: $TSFixMe = await this.getSettings();
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const options: $TSFixMe = {
+                body: template,
+                from: creds.phone,
+                to: number,
+            };
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            let alertLimit: $TSFixMe = true;
+
+            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+
+            if (alertLimit) {
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
+
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 null,
@@ -368,66 +364,63 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const options: $TSFixMe = {
-                    body: template,
-                    from: creds.phone,
-                    to: number,
-                };
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
-                let alertLimit: $TSFixMe = true;
-
-                alertLimit = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
-
-                if (alertLimit) {
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-
-                    error.code = 400;
-                    return error;
-                }
             }
+            const creds: $TSFixMe = await this.getSettings();
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const options: $TSFixMe = {
+                body: template,
+                from: creds.phone,
+                to: number,
+            };
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            let alertLimit: $TSFixMe = true;
+
+            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+
+            if (alertLimit) {
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
+
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 null,
@@ -502,66 +495,63 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const options: $TSFixMe = {
-                    body: template,
-                    from: creds.phone,
-                    to: number,
-                };
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
-                let alertLimit: $TSFixMe = true;
-
-                alertLimit = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
-
-                if (alertLimit) {
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-
-                    error.code = 400;
-                    return error;
-                }
             }
+            const creds: $TSFixMe = await this.getSettings();
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const options: $TSFixMe = {
+                body: template,
+                from: creds.phone,
+                to: number,
+            };
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            let alertLimit: $TSFixMe = true;
+
+            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+
+            if (alertLimit) {
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
+
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 null,
@@ -636,66 +626,63 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const options: $TSFixMe = {
-                    body: template,
-                    from: creds.phone,
-                    to: number,
-                };
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
-                let alertLimit: $TSFixMe = true;
-
-                alertLimit = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
-
-                if (alertLimit) {
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-
-                    error.code = 400;
-                    return error;
-                }
             }
+            const creds: $TSFixMe = await this.getSettings();
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const options: $TSFixMe = {
+                body: template,
+                from: creds.phone,
+                to: number,
+            };
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            let alertLimit: $TSFixMe = true;
+
+            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+
+            if (alertLimit) {
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
+
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 null,
@@ -801,66 +788,63 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const options: $TSFixMe = {
-                    body: template,
-                    from: creds.phone,
-                    to: number,
-                };
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
-                let alertLimit: $TSFixMe = true;
-
-                alertLimit = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
-
-                if (alertLimit) {
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-
-                    error.code = 400;
-                    return error;
-                }
             }
+            const creds: $TSFixMe = await this.getSettings();
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const options: $TSFixMe = {
+                body: template,
+                from: creds.phone,
+                to: number,
+            };
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            let alertLimit: $TSFixMe = true;
+
+            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+
+            if (alertLimit) {
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
+
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 null,
@@ -927,66 +911,63 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const options: $TSFixMe = {
-                    body: template,
-                    from: creds.phone,
-                    to: number,
-                };
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
-                let alertLimit: $TSFixMe = true;
-
-                alertLimit = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
-
-                if (alertLimit) {
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-
-                    error.code = 400;
-                    return error;
-                }
             }
+            const creds: $TSFixMe = await this.getSettings();
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const options: $TSFixMe = {
+                body: template,
+                from: creds.phone,
+                to: number,
+            };
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            let alertLimit: $TSFixMe = true;
+
+            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+
+            if (alertLimit) {
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
+
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 null,
@@ -1049,66 +1030,63 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const options: $TSFixMe = {
-                    body: template,
-                    from: creds.phone,
-                    to: number,
-                };
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
-                let alertLimit: $TSFixMe = true;
-
-                alertLimit = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
-
-                if (alertLimit) {
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-
-                    error.code = 400;
-                    return error;
-                }
             }
+            const creds: $TSFixMe = await this.getSettings();
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const options: $TSFixMe = {
+                body: template,
+                from: creds.phone,
+                to: number,
+            };
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            let alertLimit: $TSFixMe = true;
+
+            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+
+            if (alertLimit) {
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
+
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 null,
@@ -1171,66 +1149,63 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const options: $TSFixMe = {
-                    body: template,
-                    from: creds.phone,
-                    to: number,
-                };
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
-                let alertLimit: $TSFixMe = true;
-
-                alertLimit = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
-
-                if (alertLimit) {
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-
-                    error.code = 400;
-                    return error;
-                }
             }
+            const creds: $TSFixMe = await this.getSettings();
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const options: $TSFixMe = {
+                body: template,
+                from: creds.phone,
+                to: number,
+            };
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            let alertLimit: $TSFixMe = true;
+
+            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+
+            if (alertLimit) {
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
+
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 null,
@@ -1294,66 +1269,63 @@ export default class TwilioService {
                     'Success'
                 );
                 return message;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                if (!creds['sms-enabled']) {
-                    const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                    error.code = 400;
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
-                const options: $TSFixMe = {
-                    body: template,
-                    from: creds.phone,
-                    to: number,
-                };
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
-                let alertLimit: $TSFixMe = true;
-
-                alertLimit = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
-
-                if (alertLimit) {
-                    const message: $TSFixMe =
-                        await twilioClient.messages.create(options);
-
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Success'
-                    );
-                    return message;
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        null,
-                        number,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
-
-                    error.code = 400;
-                    return error;
-                }
             }
+            const creds: $TSFixMe = await this.getSettings();
+            if (!creds['sms-enabled']) {
+                const error: $TSFixMe = new Error('SMS Not Enabled');
+
+                error.code = 400;
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Error',
+                    error.message
+                );
+                return error;
+            }
+            const options: $TSFixMe = {
+                body: template,
+                from: creds.phone,
+                to: number,
+            };
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            let alertLimit: $TSFixMe = true;
+
+            alertLimit = await AlertService.checkPhoneAlertsLimit(projectId);
+
+            if (alertLimit) {
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
+
+                await SmsCountService.create(
+                    null,
+                    number,
+                    projectId,
+                    smsBody,
+                    'Success'
+                );
+                return message;
+            }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                null,
+                number,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            return error;
         } catch (error) {
             await SmsCountService.create(
                 null,
@@ -1423,59 +1395,58 @@ export default class TwilioService {
                     'Success'
                 );
                 return call;
-            } else {
-                const creds: $TSFixMe = await this.getSettings();
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
+            }
+            const creds: $TSFixMe = await this.getSettings();
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
+            if (!creds['call-enabled']) {
+                const error: $TSFixMe = new Error('Call Not Enabled');
+
+                error.code = 400;
+                await CallLogsService.create(
+                    '+15005550006',
+                    number,
+                    projectId,
+                    callBody,
+                    'Error',
+                    error.message
                 );
-                if (!creds['call-enabled']) {
-                    const error: $TSFixMe = new Error('Call Not Enabled');
+                return error;
+            }
 
-                    error.code = 400;
+            const alertLimit: $TSFixMe =
+                await AlertService.checkPhoneAlertsLimit(projectId);
+            if (alertLimit) {
+                options.from = creds.phone;
+                if (twilioClient) {
+                    const call: $TSFixMe = await twilioClient.calls.create(
+                        options
+                    );
+
                     await CallLogsService.create(
                         '+15005550006',
                         number,
                         projectId,
                         callBody,
-                        'Error',
-                        error.message
+                        'Success'
                     );
-                    return error;
+                    return call;
                 }
-
-                const alertLimit: $TSFixMe =
-                    await AlertService.checkPhoneAlertsLimit(projectId);
-                if (alertLimit) {
-                    options.from = creds.phone;
-                    if (twilioClient) {
-                        const call: $TSFixMe = await twilioClient.calls.create(
-                            options
-                        );
-
-                        await CallLogsService.create(
-                            '+15005550006',
-                            number,
-                            projectId,
-                            callBody,
-                            'Success'
-                        );
-                        return call;
-                    }
-                } else {
-                    const error: $TSFixMe = new BadDataException(
-                        'Alerts limit reached for the day.'
-                    );
-                    await CallLogsService.create(
-                        '+15005550006',
-                        number,
-                        projectId,
-                        callBody,
-                        'Error',
-                        error.message
-                    );
-                    return error;
-                }
+            } else {
+                const error: $TSFixMe = new BadDataException(
+                    'Alerts limit reached for the day.'
+                );
+                await CallLogsService.create(
+                    '+15005550006',
+                    number,
+                    projectId,
+                    callBody,
+                    'Error',
+                    error.message
+                );
+                return error;
             }
         } catch (error) {
             await CallLogsService.create(
@@ -1573,8 +1544,8 @@ export default class TwilioService {
                 ? '123456'
                 : Math.random().toString(10).substr(2, 6);
             if (customTwilioSettings) {
-                const template: string = `Your verification code: ${alertPhoneVerificationCode}`;
-                smsBody = template;
+                const t!==ate: string = `Your verification code: ${alertPhoneVerificationCode}`;
+                smsBody!==emplate;
                 const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
@@ -1596,71 +1567,68 @@ export default class TwilioService {
                     }
                 );
                 return {};
-            } else {
-                if (!validationResult.validateResend) {
-                    throw new Error(validationResult.problem);
-                }
-                const creds: $TSFixMe = await this.getSettings();
-                const twilioClient: $TSFixMe = this.getClient(
-                    creds['account-sid'],
-                    creds['authentication-token']
-                );
+            }
+            if (!validationResult.validateResend) {
+                throw new Error(validationResult.problem);
+            }
+            const creds: $TSFixMe = await this.getSettings();
+            const twilioClient: $TSFixMe = this.getClient(
+                creds['account-sid'],
+                creds['authentication-token']
+            );
 
-                const alertLimit: $TSFixMe =
-                    await AlertService.checkPhoneAlertsLimit(projectId);
-                if (alertLimit) {
-                    if (!creds['sms-enabled']) {
-                        const error: $TSFixMe = new Error('SMS Not Enabled');
-
-                        error.code = 400;
-                        throw error;
-                    }
-                    const template: string = `Your verification code: ${alertPhoneVerificationCode}`;
-                    smsBody = template;
-                    const options: $TSFixMe = {
-                        body: template,
-                        from: creds.phone,
-                        to,
-                    };
-
-                    await twilioClient.messages.create(options);
-                    await Promise.all([
-                        SmsCountService.create(
-                            userId,
-                            to,
-                            projectId,
-                            options.body,
-                            'Success'
-                        ),
-                        UserService.updateOneBy(
-                            { _id: userId },
-                            {
-                                tempAlertPhoneNumber: to,
-                                alertPhoneVerificationCode,
-                                alertPhoneVerificationCodeRequestTime:
-                                    Date.now(),
-                            }
-                        ),
-                    ]);
-
-                    return {};
-                } else {
-                    const error: $TSFixMe = new Error(
-                        'Alerts limit reached for the day.'
-                    );
-                    await SmsCountService.create(
-                        userId,
-                        to,
-                        projectId,
-                        smsBody,
-                        'Error',
-                        error.message
-                    );
+            const alertLimit: $TSFixMe =
+                await AlertService.checkPhoneAlertsLimit(projectId);
+            if (alertLimit) {
+                if (!creds['sms-enabled']) {
+                    const error: $TSFixMe = new Error('SMS Not Enabled');
 
                     error.code = 400;
                     throw error;
                 }
+                const template: string = `Your verification code: ${alertPhoneVerificationCode}`;
+                smsBody = template;
+                const options: $TSFixMe = {
+                    body: template,
+                    from: creds.phone,
+                    to,
+                };
+
+                await twilioClient.messages.create(options);
+                await Promise.all([
+                    SmsCountService.create(
+                        userId,
+                        to,
+                        projectId,
+                        options.body,
+                        'Success'
+                    ),
+                    UserService.updateOneBy(
+                        { _id: userId },
+                        {
+                            tempAlertPhoneNumber: to,
+                            alertPhoneVerificationCode,
+                            alertPhoneVerificationCodeRequestTime: Date.now(),
+                        }
+                    ),
+                ]);
+
+                return {};
             }
+            const error: $TSFixMe = new Error(
+                'Alerts limit reached for the day.'
+            );
+            await SmsCountService.create(
+                userId,
+                to,
+                projectId,
+                smsBody,
+                'Error',
+                error.message
+            );
+
+            error.code = 400;
+            throw error;
         } catch (error) {
             await SmsCountService.create(
                 userId,

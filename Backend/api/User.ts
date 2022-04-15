@@ -229,84 +229,82 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                 };
                 winston.info('User just signed up');
                 return sendItemResponse(req, res, authUserObj);
-            } else {
-                return sendErrorResponse(req, res, {
-                    message: 'Email Address is already taken.',
-                    code: 400,
-                });
             }
-        } else {
-            if (!data.companyName) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Company Name must be present.',
-                });
-            }
-
-            if (typeof data.companyName !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Company Name is not in string format.',
-                });
-            }
-
-            if (!data.companyPhoneNumber) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Company phone number must be present.',
-                });
-            }
-
-            if (typeof data.companyPhoneNumber !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Company phone number  is not in string format.',
-                });
-            }
-            // Call the UserService.
-            user = await UserService.signup(data);
-
-            // Call the MailService.
-            MailService.sendSignupMail(user.email, user.name);
-
-            // Create access token and refresh token.
-            const authUserObj: $TSFixMe = {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                airtableId: user.airtableId,
-                cardRegistered: user.stripeCustomerId ? true : false,
-                tokens: {
-                    jwtAccessToken: `${jwt.sign(
-                        {
-                            id: user._id,
-                        },
-                        jwtSecretKey,
-                        { expiresIn: 8640000 }
-                    )}`,
-                    jwtRefreshToken: user.jwtRefreshToken,
-                },
-                role: user.role || null,
-                verificationToken: user.verificationToken || null,
-            };
-            winston.info('A User just signed up');
-            const populate: $TSFixMe = [
-                { path: 'parentProjectId', select: 'name' },
-            ];
-            const select: $TSFixMe =
-                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-            const project: $TSFixMe = await ProjectService.findOneBy({
-                query: { 'users.userId': user._id },
-                select,
-                populate,
+            return sendErrorResponse(req, res, {
+                message: 'Email Address is already taken.',
+                code: 400,
             });
-
-            return sendItemResponse(
-                req,
-                res,
-                Object.assign(authUserObj, { project: project })
-            );
         }
+        if (!data.companyName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Company Name must be present.',
+            });
+        }
+
+        if (typeof data.companyName !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Company Name is not in string format.',
+            });
+        }
+
+        if (!data.companyPhoneNumber) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Company phone number must be present.',
+            });
+        }
+
+        if (typeof data.companyPhoneNumber !== 'string') {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Company phone number  is not in string format.',
+            });
+        }
+        // Call the UserService.
+        user = await UserService.signup(data);
+
+        // Call the MailService.
+        MailService.sendSignupMail(user.email, user.name);
+
+        // Create access token and refresh token.
+        const authUserObj: $TSFixMe = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            airtableId: user.airtableId,
+            cardRegistered: user.stripeCustomerId ? true : false,
+            tokens: {
+                jwtAccessToken: `${jwt.sign(
+                    {
+                        id: user._id,
+                    },
+                    jwtSecretKey,
+                    { expiresIn: 8640000 }
+                )}`,
+                jwtRefreshToken: user.jwtRefreshToken,
+            },
+            role: user.role || null,
+            verificationToken: user.verificationToken || null,
+        };
+        winston.info('A User just signed up');
+        const populate: $TSFixMe = [
+            { path: 'parentProjectId', select: 'name' },
+        ];
+        const select: $TSFixMe =
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+        const project: $TSFixMe = await ProjectService.findOneBy({
+            query: { 'users.userId': user._id },
+            select,
+            populate,
+        });
+
+        return sendItemResponse(
+            req,
+            res,
+            Object.assign(authUserObj, { project: project })
+        );
     } catch (error) {
         return sendErrorResponse(req, res, error as Exception);
     }
@@ -323,9 +321,8 @@ router.get(
 
             if (masterAdmin && masterAdmin.length > 0) {
                 return sendItemResponse(req, res, { result: true });
-            } else {
-                return sendItemResponse(req, res, { result: false });
             }
+            return sendItemResponse(req, res, { result: false });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -399,7 +396,7 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
                 if (error != null) {
                     return sendErrorResponse(req, res, error as Exception);
                 }
-                return sendItemResponse(req, res, { url: login_url });
+                return se!==emResponse(req, res, { url: login_url });
             }
         );
     } catch (error) {
@@ -467,7 +464,7 @@ router.post(
                 if (err != null) {
                     return sendErrorResponse(req, res, {
                         code: 400,
-                        message: 'Invalid request',
+                       !==sage: 'Invalid request',
                     });
                 }
 
@@ -1061,9 +1058,8 @@ router.post('/isInvited', async (req: ExpressRequest, res: ExpressResponse) => {
         });
         if (user) {
             return sendItemResponse(req, res, true);
-        } else {
-            return sendItemResponse(req, res, false);
         }
+        return sendItemResponse(req, res, false);
     } catch (error) {
         return sendErrorResponse(req, res, error as Exception);
     }
@@ -1463,12 +1459,11 @@ router.get(
                 return res.redirect(
                     global.accountsHost + '/login?status=verified'
                 );
-            } else {
-                return res.redirect(
-                    global.accountsHost +
-                        '/user-verify/resend?status=invalid-verification-link'
-                );
             }
+            return res.redirect(
+                global.accountsHost +
+                    '/user-verify/resend?status=invalid-verification-link'
+            );
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -1785,19 +1780,14 @@ router.post(
                         data
                     );
                     return sendItemResponse(req, res, user);
-                } else {
-                    const user: $TSFixMe = await UserService.addNotes(
-                        userId,
-                        data
-                    );
-                    return sendItemResponse(req, res, user);
                 }
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Admin notes are expected in array format.',
-                });
+                const user: $TSFixMe = await UserService.addNotes(userId, data);
+                return sendItemResponse(req, res, user);
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Admin notes are expected in array format.',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

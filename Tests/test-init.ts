@@ -2530,9 +2530,8 @@ const _this: $TSFixMe = {
     isElementOnPage: async function (page: $TSFixMe, selector: $TSFixMe): void {
         if (await page.$(selector)) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     },
     pageClickNavigate: async function (
         page: $TSFixMe,

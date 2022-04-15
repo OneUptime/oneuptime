@@ -233,9 +233,8 @@ export default class Service {
              * );
              */
             return performanceTracker;
-        } else {
-            return null;
         }
+        return null;
     }
 
     public async updateOneBy(

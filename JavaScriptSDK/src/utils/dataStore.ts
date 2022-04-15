@@ -47,15 +47,14 @@ class DataStore {
                 method: s.method,
                 errorCount: s.errorCount + errorCount,
             };
-        } else {
-            return {
-                requests: 1,
-                avgTime: time,
-                maxTime: time,
-                method,
-                errorCount,
-            };
         }
+        return {
+            requests: 1,
+            avgTime: time,
+            maxTime: time,
+            method,
+            errorCount,
+        };
     }
     public destroy(id: $TSFixMe): void {
         if (this.store.has(id)) {

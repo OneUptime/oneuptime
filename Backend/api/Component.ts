@@ -127,12 +127,11 @@ router.put(
             );
             if (component) {
                 return sendItemResponse(req, res, component);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Component not found.',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Component not found.',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -396,12 +395,11 @@ router.post(
 
                 // Return response
                 return sendListResponse(req, res, monitors);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 404,
-                    message: 'Monitors not Found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Monitors not Found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -818,11 +816,10 @@ router.delete(
             );
             if (component) {
                 return sendItemResponse(req, res, component);
-            } else {
-                return sendErrorResponse(req, res, {
-                    message: 'Component not found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                message: 'Component not found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

@@ -216,9 +216,8 @@ export default class Service {
             // Run in the background
             RealTimeService.sendErrorTrackerIssueDelete(issue);
             return issue;
-        } else {
-            return null;
         }
+        return null;
     }
 
     public async countBy(query: Query): void {

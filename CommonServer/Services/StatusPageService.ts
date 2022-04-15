@@ -292,11 +292,8 @@ export default class Service {
                     domains: statusPage.domains,
                 }
             );
-        } else {
-            throw new BadDataException(
-                'Status page not found or does not exist'
-            );
         }
+        throw new BadDataException('Status page not found or does not exist');
     }
 
     /*
@@ -906,9 +903,8 @@ export default class Service {
             ]);
 
             return { notes, count };
-        } else {
-            throw new BadDataException('No monitors on this status page');
         }
+        throw new BadDataException('No monitors on this status page');
     }
 
     public async getIncident(query: Query): void {
@@ -1150,9 +1146,8 @@ export default class Service {
             const count: $TSFixMe = events.length;
 
             return { events, count };
-        } else {
-            throw new BadDataException('No monitors on this status page');
         }
+        throw new BadDataException('No monitors on this status page');
     }
 
     public async getFutureEvents(
@@ -1268,9 +1263,8 @@ export default class Service {
 
             const count: $TSFixMe = events.length;
             return { events, count };
-        } else {
-            throw new BadDataException('No monitors on this status page');
         }
+        throw new BadDataException('No monitors on this status page');
     }
 
     public async getPastEvents(
@@ -1383,9 +1377,8 @@ export default class Service {
 
             const count: $TSFixMe = events.length;
             return { events: limitEvents(events, limit, skip), count };
-        } else {
-            throw new BadDataException('No monitors on this status page');
         }
+        throw new BadDataException('No monitors on this status page');
     }
 
     public async getEvent(query: Query): void {
@@ -1678,9 +1671,8 @@ export default class Service {
                 }),
             ]);
             return { incidents, count };
-        } else {
-            throw new BadDataException('No monitors on this status page');
         }
+        throw new BadDataException('No monitors on this status page');
     }
 
     public async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {

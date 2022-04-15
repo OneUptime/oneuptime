@@ -1162,24 +1162,22 @@ export default class Service {
                         alertProgress: pushProgress,
                     });
                 });
-        } else {
-            return await this.create({
-                projectId: incident.projectId._id || incident.projectId,
-                monitorId: monitor._id,
-                schedule: schedule._id,
-                escalation: escalation._id,
-                onCallScheduleStatus: onCallScheduleStatus._id,
-                alertVia: `${AlertType.Push} Notification`,
-                userId: user._id,
-                incidentId: incident._id,
-                eventType,
-                alertStatus: 'Cannot Send',
-                error: true,
-                errorMessage:
-                    'Push Notification not allowed in the user dashboard',
-                alertProgress: pushProgress,
-            });
         }
+        return await this.create({
+            projectId: incident.projectId._id || incident.projectId,
+            monitorId: monitor._id,
+            schedule: schedule._id,
+            escalation: escalation._id,
+            onCallScheduleStatus: onCallScheduleStatus._id,
+            alertVia: `${AlertType.Push} Notification`,
+            userId: user._id,
+            incidentId: incident._id,
+            eventType,
+            alertStatus: 'Cannot Send',
+            error: true,
+            errorMessage: 'Push Notification not allowed in the user dashboard',
+            alertProgress: pushProgress,
+        });
     }
 
     public async sendEmailAlert({
@@ -4010,23 +4008,22 @@ export default class Service {
                 })
             );
             return alerts;
-        } else {
-            alert = alert[0];
-            if (alert) {
-                const alertId: $TSFixMe = alert._id;
-                alert = await this.updateOneBy(
-                    {
-                        _id: alertId,
-                    },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-            }
-            return alert;
         }
+        alert = alert[0];
+        if (alert) {
+            const alertId: $TSFixMe = alert._id;
+            alert = await this.updateOneBy(
+                {
+                    _id: alertId,
+                },
+                {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null,
+                }
+            );
+        }
+        return alert;
     }
 
     //Return true, if the limit is not reached yet.
@@ -4067,13 +4064,12 @@ export default class Service {
         }
         if (alerts + smsCounts <= limit) {
             return true;
-        } else {
-            await ProjectService.updateOneBy(
-                { _id: projectId },
-                { alertLimitReached: true }
-            );
-            return false;
         }
+        await ProjectService.updateOneBy(
+            { _id: projectId },
+            { alertLimitReached: true }
+        );
+        return false;
     }
 
     public async sendUnpaidSubscriptionEmail(

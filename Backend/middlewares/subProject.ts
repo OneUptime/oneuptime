@@ -67,12 +67,11 @@ export default {
             if (subProjects.length > 0) {
                 req.user.subProjects = subProjects;
                 return next();
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'You are not present in any subProject.',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You are not present in any subProject.',
+            });
         } catch (error) {
             return sendErrorResponse(
                 req,

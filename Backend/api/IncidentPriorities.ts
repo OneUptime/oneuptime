@@ -175,11 +175,10 @@ router.delete(
                 });
             if (IncidentPriority) {
                 return sendItemResponse(req, res, IncidentPriority);
-            } else {
-                return sendErrorResponse(req, res, {
-                    message: 'Incident priority not found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                message: 'Incident priority not found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

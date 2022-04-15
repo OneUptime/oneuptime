@@ -173,9 +173,8 @@ export default class Service {
             ).populate('deletedById', 'name');
         if (incidentMessage) {
             return incidentMessage;
-        } else {
-            return null;
         }
+        return null;
     }
 }
 

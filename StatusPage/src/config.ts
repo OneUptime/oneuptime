@@ -308,16 +308,15 @@ export const handleResources: Function = (
      */
     if (monitorCount === monitorState.length) {
         return 'All resources are affected';
-    } else {
-        const result: $TSFixMe = affectedMonitors
-
-            .map((monitor: $TSFixMe) => {
-                return capitalize(monitor.name);
-            })
-            .join(', ')
-            .replace(/, ([^,]*)$/, ' and $1');
-        return result;
     }
+    const result: $TSFixMe = affectedMonitors
+
+        .map((monitor: $TSFixMe) => {
+            return capitalize(monitor.name);
+        })
+        .join(', ')
+        .replace(/, ([^,]*)$/, ' and $1');
+    return result;
 };
 
 export const cacheProvider: $TSFixMe = {

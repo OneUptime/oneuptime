@@ -162,12 +162,11 @@ router.delete(
                 );
             if (applicationLog) {
                 return sendItemResponse(req, res, applicationLog);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 404,
-                    message: 'Application Log not found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Application Log not found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -407,7 +406,7 @@ router.put(
             componentId: componentId,
         };
 
-        if (data.resourceCategory != '') {
+        if (data.resourceCategory!=='') {
             existingQuery.resourceCategory = data.resourceCategory;
         }
         const existingApplicationCount: $TSFixMe =
@@ -415,7 +414,7 @@ router.put(
 
         if (
             existingApplicationCount > 0 &&
-            data.resourceCategory != '' &&
+            data.resourceCategory!=='' &&
             data.showQuickStart === undefined
         ) {
             return sendErrorResponse(

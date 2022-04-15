@@ -135,49 +135,48 @@ export default class Service {
                 data.integrationType
             );
             return integration;
-        } else {
-            query.deleted = false;
-
-            let updatedIntegration: $TSFixMe =
-                await IntegrationModel.findOneAndUpdate(
-                    query,
-                    {
-                        $set: {
-                            monitors: data.monitors,
-                            'data.webHookName': data.webHookName,
-                            'data.endpoint': data.endpoint,
-                            'data.monitors': data.monitors,
-                            'data.endpointType': data.endpointType,
-                            'notificationOptions.incidentCreated':
-                                data.incidentCreated,
-                            'notificationOptions.incidentResolved':
-                                data.incidentResolved,
-                            'notificationOptions.incidentAcknowledged':
-                                data.incidentAcknowledged,
-                            'notificationOptions.incidentNoteAdded':
-                                data.incidentNoteAdded,
-                        },
-                    },
-                    { new: true }
-                );
-            const select: $TSFixMe =
-                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-            const populate: $TSFixMe = [
-                { path: 'createdById', select: 'name' },
-                { path: 'projectId', select: 'name' },
-                {
-                    path: 'monitors.monitorId',
-                    select: 'name',
-                    populate: [{ path: 'componentId', select: 'name' }],
-                },
-            ];
-            updatedIntegration = await this.findOneBy({
-                query: { _id: updatedIntegration._id },
-                select,
-                populate,
-            });
-            return updatedIntegration;
         }
+        query.deleted = false;
+
+        let updatedIntegration: $TSFixMe =
+            await IntegrationModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        monitors: data.monitors,
+                        'data.webHookName': data.webHookName,
+                        'data.endpoint': data.endpoint,
+                        'data.monitors': data.monitors,
+                        'data.endpointType': data.endpointType,
+                        'notificationOptions.incidentCreated':
+                            data.incidentCreated,
+                        'notificationOptions.incidentResolved':
+                            data.incidentResolved,
+                        'notificationOptions.incidentAcknowledged':
+                            data.incidentAcknowledged,
+                        'notificationOptions.incidentNoteAdded':
+                            data.incidentNoteAdded,
+                    },
+                },
+                { new: true }
+            );
+        const select: $TSFixMe =
+            'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+        const populate: $TSFixMe = [
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: [{ path: 'componentId', select: 'name' }],
+            },
+        ];
+        updatedIntegration = await this.findOneBy({
+            query: { _id: updatedIntegration._id },
+            select,
+            populate,
+        });
+        return updatedIntegration;
     }
 
     public async updateBy(query: Query, data: $TSFixMe): void {

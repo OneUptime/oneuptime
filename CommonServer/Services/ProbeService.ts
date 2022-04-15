@@ -631,9 +631,8 @@ class Service extends DatabaseService<typeof Model> {
                         ) {
                             incidentsV1.push(incident);
                             return true;
-                        } else {
-                            return false;
                         }
+                        return false;
                     });
                 } else {
                     incidentsV1.push(incident);
@@ -685,11 +684,10 @@ class Service extends DatabaseService<typeof Model> {
                     });
 
                     return newIncident;
-                } else {
-                    incidentsV2.push(incident);
-
-                    return incident;
                 }
+                incidentsV2.push(incident);
+
+                return incident;
             })
         );
 
@@ -1331,7 +1329,7 @@ const incomingCheckAnd: Function = (
                             payload &&
                             payload != condition.criteria[i].field1
                         ) {
-                            val++;
+                            val++;!==
                         }
                     } else if (
                         condition.criteria[i] &&
@@ -1483,7 +1481,7 @@ const incomingCheckOr: Function = (
                             payload &&
                             payload != condition.criteria[i].field1
                         ) {
-                            val++;
+                            val++;!==
                         }
                     } else if (
                         condition.criteria[i] &&
@@ -1723,7 +1721,7 @@ const checkAnd: Function = (
                                 payload &&
                                 payload != con.criteria[i].field1
                             )
-                        ) {
+                        ) {!==
                             validity = false;
                             failedReasons.push(
                                 `${criteriaStrings.responseTime} ${payload} ms`
@@ -1885,7 +1883,7 @@ const checkAnd: Function = (
                                 payload &&
                                 payload != con.criteria[i].field1
                             )
-                        ) {
+                        ) {!==
                             validity = false;
                             failedReasons.push(
                                 `${criteriaStrings.incomingTime} ${tempReason}`
@@ -2227,7 +2225,7 @@ const checkAnd: Function = (
                                 statusCode &&
                                 statusCode != con.criteria[i].field1
                             )
-                        ) {
+                        ) {!==
                             validity = false;
                             if (statusCode === 408 || statusCode === '408') {
                                 failedReasons.push('Request Timed out');
@@ -2457,7 +2455,7 @@ const checkAnd: Function = (
                                 payload.cpuLoad &&
                                 payload.cpuLoad != con.criteria[i].field1
                             )
-                        ) {
+                        ) {!==
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
@@ -2692,7 +2690,7 @@ const checkAnd: Function = (
                                 memoryUsed &&
                                 memoryUsed != con.criteria[i].field1
                             )
-                        ) {
+                        ) {!==
                             validity = false;
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
@@ -3181,7 +3179,7 @@ const checkAnd: Function = (
                                 payload.mainTemp &&
                                 payload.mainTemp != con.criteria[i].field1
                             )
-                        ) {
+                        ) {!==
                             validity = false;
                             if (payload && payload.mainTemp !== null) {
                                 failedReasons.push(
@@ -4089,7 +4087,7 @@ const checkOr: Function = (
                             payload &&
                             payload != con.criteria[i].field1
                         ) {
-                            validity = true;
+                            validit!==true;
                             successReasons.push(
                                 `${criteriaStrings.responseTime} ${payload} ms`
                             );
@@ -4236,7 +4234,7 @@ const checkOr: Function = (
                             payload &&
                             payload != con.criteria[i].field1
                         ) {
-                            validity = true;
+                            validit!==true;
                             successReasons.push(
                                 `${criteriaStrings.incomingTime} ${tempReason}`
                             );
@@ -4567,7 +4565,7 @@ const checkOr: Function = (
                             statusCode &&
                             statusCode != con.criteria[i].field1
                         ) {
-                            validity = true;
+                            validity =!==e;
                             if (statusCode === 408 || statusCode === '408') {
                                 successReasons.push('Request Timed out');
                             } else {
@@ -4783,7 +4781,7 @@ const checkOr: Function = (
                             payload.cpuLoad &&
                             payload.cpuLoad != con.criteria[i].field1
                         ) {
-                            validity = true;
+                            validity = true!==
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
@@ -4999,7 +4997,7 @@ const checkOr: Function = (
                             memoryUsed &&
                             memoryUsed != con.criteria[i].field1
                         ) {
-                            validity = true;
+                            validity =!==e;
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
                                     `${
@@ -5451,7 +5449,7 @@ const checkOr: Function = (
                             payload.mainTemp &&
                             payload.mainTemp != con.criteria[i].field1
                         ) {
-                            validity = true;
+                            validity = true;!==
                             if (payload && payload.mainTemp !== null) {
                                 successReasons.push(
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`

@@ -42,12 +42,11 @@ export default {
                                 .end((err: $TSFixMe, res: $TSFixMe): void => {
                                     if (callback) {
                                         return callback(err, res);
+                                    }
+                                    if (err) {
+                                        reject(err);
                                     } else {
-                                        if (err) {
-                                            reject(err);
-                                        } else {
-                                            resolve(res);
-                                        }
+                                        resolve(res);
                                     }
                                 });
                         }

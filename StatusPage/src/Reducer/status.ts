@@ -1225,9 +1225,8 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                                                             ),
                                                         ],
                                                     };
-                                                } else {
-                                                    return probeStatuses;
                                                 }
+                                                return probeStatuses;
                                             }
                                         );
 

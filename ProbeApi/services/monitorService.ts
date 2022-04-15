@@ -69,8 +69,7 @@ export default {
             );
 
             return monitors;
-        } else {
-            return [];
         }
+        return [];
     },
 };

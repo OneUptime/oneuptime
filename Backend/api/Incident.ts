@@ -1387,9 +1387,8 @@ router.get(
                         parseInt(req.query.limit) || 10
                     );
                 return sendListResponse(req, res, statusPages, count);
-            } else {
-                return sendListResponse(req, res, [], 0);
             }
+            return sendListResponse(req, res, [], 0);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -1574,12 +1573,11 @@ router.delete(
                 }
                 /* eslint-enable prefer-const */
                 return sendItemResponse(req, res, result);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 404,
-                    message: 'Incident Message not found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Incident Message not found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -1777,11 +1775,10 @@ router.delete(
                 RealTimeService.deleteIncident(incident);
 
                 return sendItemResponse(req, res, incident);
-            } else {
-                return sendErrorResponse(req, res, {
-                    message: 'Incident not found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                message: 'Incident not found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

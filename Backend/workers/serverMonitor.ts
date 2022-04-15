@@ -54,7 +54,7 @@ const job: Function = async (monitor: $TSFixMe): void => {
             status: 'offline',
             reason: await successReasons.filter(
                 (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) => {
-                    return self.indexOf(item) == pos;
+                    return self.indexOf(item)===pos;
                 }
             ),
         });

@@ -294,34 +294,33 @@ router.post(
                     code: 400,
                     message: 'You are already subscribed to this monitor.',
                 });
-            } else {
-                let subscriber: $TSFixMe;
-                if (data.alertVia === 'email') {
-                    const subscriberExist: $TSFixMe =
-                        await SubscriberService.findByOne({
-                            query: {
-                                monitorId: data.monitorId,
-                                contactEmail: data.contactEmail,
-                                subscribed: false,
-                            },
-                            select: '_id',
-                        });
-                    if (subscriberExist) {
-                        subscriber = await SubscriberService.updateOneBy(
-                            {
-                                monitorId: data.monitorId,
-                                contactEmail: data.contactEmail,
-                            },
-                            { subscribed: true }
-                        );
-                    } else {
-                        subscriber = await SubscriberService.create(data);
-                    }
+            }
+            let subscriber: $TSFixMe;
+            if (data.alertVia === 'email') {
+                const subscriberExist: $TSFixMe =
+                    await SubscriberService.findByOne({
+                        query: {
+                            monitorId: data.monitorId,
+                            contactEmail: data.contactEmail,
+                            subscribed: false,
+                        },
+                        select: '_id',
+                    });
+                if (subscriberExist) {
+                    subscriber = await SubscriberService.updateOneBy(
+                        {
+                            monitorId: data.monitorId,
+                            contactEmail: data.contactEmail,
+                        },
+                        { subscribed: true }
+                    );
                 } else {
                     subscriber = await SubscriberService.create(data);
                 }
-                return sendItemResponse(req, res, subscriber);
+            } else {
+                subscriber = await SubscriberService.create(data);
             }
+            return sendItemResponse(req, res, subscriber);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

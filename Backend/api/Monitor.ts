@@ -432,12 +432,11 @@ router.put(
 
             if (monitor) {
                 return sendItemResponse(req, res, monitor);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Monitor not found.',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitor not found.',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -692,11 +691,10 @@ router.delete(
             );
             if (monitor) {
                 return sendItemResponse(req, res, monitor);
-            } else {
-                return sendErrorResponse(req, res, {
-                    message: 'Monitor not found',
-                });
             }
+            return sendErrorResponse(req, res, {
+                message: 'Monitor not found',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -955,13 +953,12 @@ const _updateDeviceMonitorPingTime: $TSFixMe = async function (
             );
         if (monitor) {
             return sendItemResponse(req, res, monitor);
-        } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message:
-                    'Monitor not found or is not associated with this project.',
-            });
         }
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message:
+                'Monitor not found or is not associated with this project.',
+        });
     } catch (error) {
         return sendErrorResponse(req, res, error as Exception);
     }

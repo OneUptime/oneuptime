@@ -62,9 +62,8 @@ router.get(
                     });
                 }
                 return sendItemResponse(req, res, monitors); //Zapier expects this as an item response and not a list response.
-            } else {
-                return sendItemResponse(req, res, []);
             }
+            return sendItemResponse(req, res, []);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -150,9 +149,8 @@ router.get(
             // Zapier expects this as an item response and not a list response.
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
-            } else {
-                return sendItemResponse(req, res, []);
             }
+            return sendItemResponse(req, res, []);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -170,9 +168,8 @@ router.post(
             );
             if (incident) {
                 return sendItemResponse(req, res, incident);
-            } else {
-                return sendItemResponse(req, res, {});
             }
+            return sendItemResponse(req, res, {});
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -191,9 +188,8 @@ router.post(
             // Zapier expects this as an item response and not a list response.;
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
-            } else {
-                return sendItemResponse(req, res, {});
             }
+            return sendItemResponse(req, res, {});
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -211,9 +207,8 @@ router.post(
             // Zapier expects this as an item response and not a list response.
             if (resolvedIncidents) {
                 return sendItemResponse(req, res, resolvedIncidents);
-            } else {
-                return sendItemResponse(req, res, {});
             }
+            return sendItemResponse(req, res, {});
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -237,9 +232,8 @@ router.get(
             // Zapier expects this as an item response and not a list response.
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
-            } else {
-                return sendItemResponse(req, res, []);
             }
+            return sendItemResponse(req, res, []);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -256,9 +250,8 @@ router.post(
                 await ZapierService.acknowledgeLastIncident(monitors);
             if (incident) {
                 return sendItemResponse(req, res, incident);
-            } else {
-                return sendItemResponse(req, res, {});
             }
+            return sendItemResponse(req, res, {});
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -276,9 +269,8 @@ router.post(
             // Zapier expects this as an item response and not a list response.;
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
-            } else {
-                return sendItemResponse(req, res, {});
             }
+            return sendItemResponse(req, res, {});
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -296,9 +288,8 @@ router.post(
             // Zapier expects this as an item response and not a list response.
             if (acknowledgedIncidents) {
                 return sendItemResponse(req, res, acknowledgedIncidents);
-            } else {
-                return sendItemResponse(req, res, {});
             }
+            return sendItemResponse(req, res, {});
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

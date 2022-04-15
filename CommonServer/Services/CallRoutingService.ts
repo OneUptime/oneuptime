@@ -179,13 +179,12 @@ class Service extends DatabaseService<typeof Model> {
                     error: null,
                     userId: user && user._id ? user._id : null,
                 };
-            } else {
-                return {
-                    forwardingNumber: null,
-                    error: 'Active team have not added their phone number yet',
-                    userId: user && user._id ? user._id : null,
-                };
             }
+            return {
+                forwardingNumber: null,
+                error: 'Active team have not added their phone number yet',
+                userId: user && user._id ? user._id : null,
+            };
         } else if (type && type === 'Schedule') {
             const schedules: $TSFixMe = await ScheduleService.findOneBy({
                 query: { _id: id },

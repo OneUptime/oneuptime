@@ -286,12 +286,10 @@ export default class Service {
                             },
                             { subscribed: true }
                         );
-                    } else {
-                        return await this.create(newSubscriber);
                     }
-                } else {
                     return await this.create(newSubscriber);
                 }
+                return await this.create(newSubscriber);
             }
         });
         const subscriber: $TSFixMe = await Promise.all(success);
@@ -393,20 +391,19 @@ export default class Service {
                 })
             );
             return subscribers;
-        } else {
-            subscriber = subscriber[0];
-            if (subscriber) {
-                const subscriberId: $TSFixMe = subscriber._id;
-                subscriber = await this.updateOneBy(
-                    { _id: subscriberId, deleted: true },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-            }
-            return subscriber;
         }
+        subscriber = subscriber[0];
+        if (subscriber) {
+            const subscriberId: $TSFixMe = subscriber._id;
+            subscriber = await this.updateOneBy(
+                { _id: subscriberId, deleted: true },
+                {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null,
+                }
+            );
+        }
+        return subscriber;
     }
 }

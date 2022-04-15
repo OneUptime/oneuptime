@@ -26,80 +26,78 @@ export default {
             // Authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
-            } else {
-                const userId: $TSFixMe = req.user
-                    ? req.user.id
-                    : null || url.parse(req.url, true).query.userId;
-                const projectId: $TSFixMe =
-                    req.params.projectId ||
-                    req.body.projectId ||
-                    url.parse(req.url, true).query.projectId;
-                //Sanitize
-                if (!projectId) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Project id is not present.',
-                    });
-                }
-                // Calls the ProjectService
+            }
+            const userId: $TSFixMe = req.user
+                ? req.user.id
+                : null || url.parse(req.url, true).query.userId;
+            const projectId: $TSFixMe =
+                req.params.projectId ||
+                req.body.projectId ||
+                url.parse(req.url, true).query.projectId;
+            //Sanitize
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project id is not present.',
+                });
+            }
+            // Calls the ProjectService
 
-                const project: $TSFixMe = await ProjectService.findOneBy({
-                    query: { _id: projectId },
-                    select: '_id users',
+            const project: $TSFixMe = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: '_id users',
+            });
+
+            let isUserPresentInProject: $TSFixMe = false;
+
+            if (project) {
+                const projectUsers: $TSFixMe = project.users;
+
+                for (let i: $TSFixMe = 0; i < projectUsers.length; i++) {
+                    if (projectUsers[i].userId === userId) {
+                        isUserPresentInProject = true;
+                        return next();
+                    }
+                }
+
+                // If not in project, look at subprojects.
+
+                const subProjects: $TSFixMe = await ProjectService.findBy({
+                    query: { parentProjectId: project._id },
+                    select: 'users _id',
                 });
 
-                let isUserPresentInProject: $TSFixMe = false;
+                if (subProjects && subProjects.length > 0) {
+                    for (const subProject of subProjects) {
+                        // 'for in' iterate over the keys while 'for of' iterate over the values
+                        const subProjectUsers: $TSFixMe = subProject.users; // Using 'for in' made subProject.users === undefined
 
-                if (project) {
-                    const projectUsers: $TSFixMe = project.users;
-
-                    for (let i: $TSFixMe = 0; i < projectUsers.length; i++) {
-                        if (projectUsers[i].userId === userId) {
-                            isUserPresentInProject = true;
-                            return next();
-                        }
-                    }
-
-                    // If not in project, look at subprojects.
-
-                    const subProjects: $TSFixMe = await ProjectService.findBy({
-                        query: { parentProjectId: project._id },
-                        select: 'users _id',
-                    });
-
-                    if (subProjects && subProjects.length > 0) {
-                        for (const subProject of subProjects) {
-                            // 'for in' iterate over the keys while 'for of' iterate over the values
-                            const subProjectUsers: $TSFixMe = subProject.users; // Using 'for in' made subProject.users === undefined
-
-                            for (
-                                let i: $TSFixMe = 0;
-                                i < subProjectUsers.length;
-                                i++
-                            ) {
-                                if (subProjectUsers[i].userId === userId) {
-                                    isUserPresentInProject = true;
-                                    return next();
-                                }
+                        for (
+                            let i: $TSFixMe = 0;
+                            i < subProjectUsers.length;
+                            i++
+                        ) {
+                            if (subProjectUsers[i].userId === userId) {
+                                isUserPresentInProject = true;
+                                return next();
                             }
                         }
                     }
-                } else {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Project does not exist.',
-                    });
                 }
-
-                if (isUserPresentInProject) {
-                    return next();
-                } else {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'You are not present in this project.',
-                    });
-                }
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project does not exist.',
+                });
             }
+
+            if (isUserPresentInProject) {
+                return next();
+            }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'You are not present in this project.',
+            });
         } catch (error) {
             return sendErrorResponse(
                 req,
@@ -147,40 +145,37 @@ export default {
              */
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
-            } else {
-                const userId: $TSFixMe = req.user ? req.user.id : null;
+            }
+            const userId: $TSFixMe = req.user ? req.user.id : null;
 
-                const project: $TSFixMe = await ProjectService.findOneBy({
-                    query: {
-                        'users.userId': userId,
-                        _id: req.params.projectId,
-                    },
-                    select: 'users',
-                });
-                if (project) {
-                    let role: $TSFixMe;
-                    for (const user of project.users) {
-                        if (user.userId === userId) {
-                            role = user.role;
-                            break;
-                        }
+            const project: $TSFixMe = await ProjectService.findOneBy({
+                query: {
+                    'users.userId': userId,
+                    _id: req.params.projectId,
+                },
+                select: 'users',
+            });
+            if (project) {
+                let role: $TSFixMe;
+                for (const user of project.users) {
+                    if (user.userId === userId) {
+                        role = user.role;
+                        break;
                     }
-                    if (role !== 'Administrator' && role !== 'Owner') {
-                        return sendErrorResponse(req, res, {
-                            code: 400,
-                            message:
-                                "You cannot edit the project because you're not an admin.",
-                        });
-                    } else {
-                        return next();
-                    }
-                } else {
+                }
+                if (role !== 'Administrator' && role !== 'Owner') {
                     return sendErrorResponse(req, res, {
                         code: 400,
-                        message: "You're not authorized.",
+                        message:
+                            "You cannot edit the project because you're not an admin.",
                     });
                 }
+                return next();
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "You're not authorized.",
+            });
         } catch (error) {
             return sendErrorResponse(
                 req,
@@ -199,40 +194,37 @@ export default {
             // Authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
-            } else {
-                const UserId: $TSFixMe = req.user ? req.user.id : null;
+            }
+            const UserId: $TSFixMe = req.user ? req.user.id : null;
 
-                const project: $TSFixMe = await ProjectService.findOneBy({
-                    query: {
-                        'users.userId': UserId,
-                        _id: req.params.projectId,
-                    },
-                    select: 'users',
-                });
-                if (project) {
-                    let role: $TSFixMe;
-                    for (const user of project.users) {
-                        if (user.userId === UserId) {
-                            role = user.role;
-                            break;
-                        }
+            const project: $TSFixMe = await ProjectService.findOneBy({
+                query: {
+                    'users.userId': UserId,
+                    _id: req.params.projectId,
+                },
+                select: 'users',
+            });
+            if (project) {
+                let role: $TSFixMe;
+                for (const user of project.users) {
+                    if (user.userId === UserId) {
+                        role = user.role;
+                        break;
                     }
-                    if (role !== 'Owner') {
-                        return sendErrorResponse(req, res, {
-                            code: 400,
-                            message:
-                                "You cannot edit the project because you're not an owner.",
-                        });
-                    } else {
-                        return next();
-                    }
-                } else {
+                }
+                if (role !== 'Owner') {
                     return sendErrorResponse(req, res, {
                         code: 400,
-                        message: "You're not authorized.",
+                        message:
+                            "You cannot edit the project because you're not an owner.",
                     });
                 }
+                return next();
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "You're not authorized.",
+            });
         } catch (error) {
             return sendErrorResponse(
                 req,

@@ -96,9 +96,8 @@ class SocketApp extends Component<ComponentProps> {
                 socket.removeListener(`slaCountDown-${projectId}`);
             }
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public override render(): void {
@@ -425,20 +424,19 @@ class SocketApp extends Component<ComponentProps> {
                     : false;
                 if (isUserInProject) {
                     return thisObj.props.updateprobebysocket(data);
-                } else {
-                    const subProject: $TSFixMe = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => {
-                            return subProject._id === data.projectId;
-                        }
-                    );
-                    const isUserInSubProject: $TSFixMe = subProject
-                        ? subProject.users.some((user: $TSFixMe) => {
-                              return user.userId === loggedInUser;
-                          })
-                        : false;
-                    if (isUserInSubProject) {
-                        return thisObj.props.updateprobebysocket(data);
+                }
+                const subProject: $TSFixMe = thisObj.props.subProjects.find(
+                    (subProject: $TSFixMe) => {
+                        return subProject._id === data.projectId;
                     }
+                );
+                const isUserInSubProject: $TSFixMe = subProject
+                    ? subProject.users.some((user: $TSFixMe) => {
+                          return user.userId === loggedInUser;
+                      })
+                    : false;
+                if (isUserInSubProject) {
+                    return thisObj.props.updateprobebysocket(data);
                 }
             });
             socket.on(

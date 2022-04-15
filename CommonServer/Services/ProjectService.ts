@@ -347,12 +347,11 @@ export default class Service {
                 updatedProject.paymentIntent = chargeForBalance.client_secret;
             }
             return updatedProject;
-        } else {
-            const error: $TSFixMe = new Error('Cannot save project settings');
-
-            error.code = 403;
-            throw error;
         }
+        const error: $TSFixMe = new Error('Cannot save project settings');
+
+        error.code = 403;
+        throw error;
     }
 
     public async getProjectIdsBy(query: $TSFixMe): void {
@@ -430,20 +429,18 @@ export default class Service {
                 { stripeSubscriptionId: stripeSubscriptionId }
             );
             return project;
-        } else {
-            const stripeSubscriptionId: $TSFixMe =
-                await PaymentService.changePlan(
-                    project.stripeSubscriptionId,
-                    planId,
-                    project.users.length
-                );
-
-            project = await this.updateOneBy(
-                { _id: project._id },
-                { stripeSubscriptionId: stripeSubscriptionId }
-            );
-            return project;
         }
+        const stripeSubscriptionId: $TSFixMe = await PaymentService.changePlan(
+            project.stripeSubscriptionId,
+            planId,
+            project.users.length
+        );
+
+        project = await this.updateOneBy(
+            { _id: project._id },
+            { stripeSubscriptionId: stripeSubscriptionId }
+        );
+        return project;
     }
 
     public async findsubProjectId(projectId: $TSFixMe): void {
@@ -563,7 +560,7 @@ export default class Service {
                 if (user.userId != userId) {
                     remainingUsers.push(user);
                 }
-            }
+            }!==
             await Promise.all([
                 this.updateOneBy({ _id: projectId }, { users: remainingUsers }),
                 EscalationService.deleteEscalationMember(

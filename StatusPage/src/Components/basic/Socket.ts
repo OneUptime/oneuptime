@@ -106,9 +106,8 @@ class SocketApp extends Component<ComponentProps> {
                 socket.removeListener(`updateTweets-${this.props.project._id}`);
             }
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     public override render(): void {

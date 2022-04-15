@@ -36,14 +36,13 @@ export default class Service {
             return await Object.assign({}, project, {
                 projectName: project.name,
             });
-        } else {
-            const error: $TSFixMe = new Error(
-                'We are not able to authenticate you because your `API Key` or `Project ID` is not valid. Please go to your project settings and retrieve your API key and Project ID.'
-            );
-
-            error.code = 400;
-            throw error;
         }
+        const error: $TSFixMe = new Error(
+            'We are not able to authenticate you because your `API Key` or `Project ID` is not valid. Please go to your project settings and retrieve your API key and Project ID.'
+        );
+
+        error.code = 400;
+        throw error;
     }
 
     public async getIncidents(projectId: ObjectID): void {
@@ -102,9 +101,8 @@ export default class Service {
             }
 
             return zapierResponseArray;
-        } else {
-            return [];
         }
+        return [];
     }
 
     public async getIncidentsNotes(projectId: ObjectID): void {
@@ -172,9 +170,8 @@ export default class Service {
             );
 
             return zapierResponseArray;
-        } else {
-            return [];
         }
+        return [];
     }
 
     public async createIncidentNote(data: $TSFixMe): void {
@@ -275,9 +272,8 @@ export default class Service {
             }
 
             return zapierResponseArray;
-        } else {
-            return [];
         }
+        return [];
     }
 
     public async getResolvedIncidents(projectId: ObjectID): void {
@@ -335,9 +331,8 @@ export default class Service {
             }
 
             return zapierResponseArray;
-        } else {
-            return [];
         }
+        return [];
     }
 
     public async createIncident(monitors: $TSFixMe): void {

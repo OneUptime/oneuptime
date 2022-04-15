@@ -144,10 +144,9 @@ const _this: $TSFixMe = {
                     );
                 }
                 return parsed_addr.toString() == parsed_cidr_as_ip.toString();
-            } else {
-                const parsed_range: $TSFixMe = ipaddr.parseCIDR(cidr);
-                return parsed_addr.match(parsed_range);
             }
+            const parsed_range: $TSFixMe = ipaddr.parseCIDR(cidr);
+            return parsed_addr.match(parsed_range);
         } catch (e) {
             return false;
         }

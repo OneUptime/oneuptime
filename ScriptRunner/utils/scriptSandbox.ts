@@ -175,70 +175,69 @@ const run: Function = async (
                 maxSyncStatementDuration
             );
         });
-    } else {
-        // Worker_threads code
-
-        import { NodeVM } from 'vm2';
-        const vm: $TSFixMe = new NodeVM({
-            eval: false,
-            wasm: false,
-            require: {
-                root: './',
-                external: availableImports,
-                import: availableImports,
-            },
-            console: 'redirect',
-        });
-
-        vm.on('logger.info', (log: $TSFixMe) => {
-            parentPort.postMessage({
-                type: 'log',
-                payload: `[log]: ${
-                    typeof log === 'string' ? log : JSON.stringify(log, null, 2)
-                }`,
-            });
-        });
-
-        vm.on('logger.error', (error: $TSFixMe) => {
-            parentPort.postMessage({
-                type: 'log',
-                payload: `[error]: ${
-                    typeof error === 'string'
-                        ? error
-                        : JSON.stringify(error, null, 2)
-                }`,
-            });
-        });
-
-        vm.on('console.warn', (error: $TSFixMe) => {
-            parentPort.postMessage({
-                type: 'log',
-                payload: `[warn]: $${
-                    typeof error === 'string'
-                        ? error
-                        : JSON.stringify(error, null, 2)
-                }`,
-            });
-        });
-
-        const scriptCompletedCallback: Function = (err: $TSFixMe): void => {
-            if (err) {
-                throw new ScriptError(err);
-            }
-        };
-
-        const code: $TSFixMe = workerData.functionCode;
-        setInterval(() => {
-            return parentPort.postMessage({ type: 'ping' });
-        }, 500);
-        const sandboxFunction: $TSFixMe = await vm.run(
-            `export default ${code}`,
-            join(process.cwd(), 'node_modules')
-        );
-
-        await sandboxFunction(scriptCompletedCallback);
-        process.exit();
     }
+    // Worker_threads code
+
+    import { NodeVM } from 'vm2';
+    const vm: $TSFixMe = new NodeVM({
+        eval: false,
+        wasm: false,
+        require: {
+            root: './',
+            external: availableImports,
+            import: availableImports,
+        },
+        console: 'redirect',
+    });
+
+    vm.on('logger.info', (log: $TSFixMe) => {
+        parentPort.postMessage({
+            type: 'log',
+            payload: `[log]: ${
+                typeof log === 'string' ? log : JSON.stringify(log, null, 2)
+            }`,
+        });
+    });
+
+    vm.on('logger.error', (error: $TSFixMe) => {
+        parentPort.postMessage({
+            type: 'log',
+            payload: `[error]: ${
+                typeof error === 'string'
+                    ? error
+                    : JSON.stringify(error, null, 2)
+            }`,
+        });
+    });
+
+    vm.on('console.warn', (error: $TSFixMe) => {
+        parentPort.postMessage({
+            type: 'log',
+            payload: `[warn]: $${
+                typeof error === 'string'
+                    ? error
+                    : JSON.stringify(error, null, 2)
+            }`,
+        });
+    });
+
+    const scriptCompletedCallback: Function = (err: $TSFixMe): void => {
+        if (err) {
+            throw new ScriptError(err);
+        }
+    };
+
+    const code: $TSFixMe = workerData.functionCode;
+    setInterval(() => {
+        return parentPort.postMessage({ type: 'ping' });
+    }, 500);
+    const sandboxFunction: $TSFixMe = await vm.run(
+        `export default ${code}`,
+        join(process.cwd(), 'node_modules')
+    );
+
+    await sandboxFunction(scriptCompletedCallback);
+    process.exit();
 };
 
 export default run(); // DO NOT call default export directly (used by worker thread)

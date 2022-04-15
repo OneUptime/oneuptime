@@ -13,14 +13,13 @@ const run: Function = async (script: $TSFixMe): void => {
                     executionTime: performance.now() - start,
                     consoleLogs: err.message,
                 });
-            } else {
-                resolve({
-                    success: true,
-                    status: 'success',
-                    executionTime: performance.now() - start,
-                    consoleLogs: stdout,
-                });
             }
+            resolve({
+                success: true,
+                status: 'success',
+                executionTime: performance.now() - start,
+                consoleLogs: stdout,
+            });
         });
     });
 };

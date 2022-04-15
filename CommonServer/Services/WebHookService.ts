@@ -373,8 +373,7 @@ export default class Service {
                     return 500;
                 });
             return response === 200;
-        } else {
-            return false;
         }
+        return false;
     }
 }

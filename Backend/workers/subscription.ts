@@ -17,12 +17,11 @@ const handleFetchingUnpaidSubscriptions: Function = async (
             limit: 100, // Default limit is 10 and limit can range between 1 to 100
             starting_after: startAfter,
         });
-    } else {
-        return await stripe.subscriptions.list({
-            status: 'unpaid',
-            limit: 100, // Default limit is 10 and limit can range between 1 to 100
-        });
     }
+    return await stripe.subscriptions.list({
+        status: 'unpaid',
+        limit: 100, // Default limit is 10 and limit can range between 1 to 100
+    });
 };
 
 let data: $TSFixMe = [];

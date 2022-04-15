@@ -189,9 +189,8 @@ router.get(
                     statusCode: 400,
                     message: 'Requested resource not available.',
                 });
-            } else {
-                return sendErrorResponse(req, res, error as Exception);
             }
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

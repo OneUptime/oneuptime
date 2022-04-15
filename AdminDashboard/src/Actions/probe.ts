@@ -226,9 +226,8 @@ export const updateProbe: $TSFixMe = (values: $TSFixMe) => {
             if (Object.keys(resp).length > 0) {
                 dispatch(updateProbeSuccess(resp));
                 return 'ok';
-            } else {
-                dispatch(addProbeError('Network Error'));
             }
+            dispatch(addProbeError('Network Error'));
         } catch (error) {
             let errorMsg: $TSFixMe;
             if (error && error.response && error.response.data) {

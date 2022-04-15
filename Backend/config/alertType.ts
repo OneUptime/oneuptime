@@ -30,9 +30,8 @@ export default {
                     minimumBalance: 20,
                     pricingQuota: '$1.0 / sms / 160 chars',
                 };
-            } else {
-                return {};
             }
+            return {};
         } else if (type === 'email') {
             if (country === 'us') {
                 return {
@@ -55,9 +54,8 @@ export default {
                     price: 1.0,
                     minimumBalance: 0,
                 };
-            } else {
-                return {};
             }
+            return {};
         } else if (type === 'call') {
             if (country === 'us') {
                 return {
@@ -80,9 +78,8 @@ export default {
                     price: 5.0,
                     minimumBalance: 50,
                 };
-            } else {
-                return {};
             }
+            return {};
         } else if (type === 'callRouting') {
             if (country === 'us') {
                 return {
@@ -105,12 +102,10 @@ export default {
                     price: 0.1,
                     minimumBalance: 20,
                 };
-            } else {
-                return {};
             }
-        } else {
             return {};
         }
+        return {};
     },
     getCountryType: function (phoneNumber: $TSFixMe): void {
         if (phoneNumber.startsWith('+1') || phoneNumber.startsWith('+44')) {
@@ -129,8 +124,7 @@ export default {
             phoneNumber.startsWith('+216')
         ) {
             return 'risk';
-        } else {
-            return 'non-us';
         }
+        return 'non-us';
     },
 };

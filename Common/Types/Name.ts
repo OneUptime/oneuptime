@@ -26,17 +26,15 @@ export default class Name {
     public getLastName(): string {
         if (this.name.split(' ').length > 1) {
             return this.name.split(' ')[this.name.split(' ').length - 1] || '';
-        } else {
-            return '';
         }
+        return '';
     }
 
     public getMiddleName(): string {
         if (this.name.split(' ').length > 2) {
             return this.name.split(' ')[1] || '';
-        } else {
-            return '';
         }
+        return '';
     }
 
     public toString(): string {

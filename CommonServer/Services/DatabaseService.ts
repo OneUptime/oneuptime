@@ -627,9 +627,8 @@ class DatabaseService<ModelType> {
 
         if (documents && documents[0]) {
             return documents[0];
-        } else {
-            return null;
         }
+        return null;
     }
 
     private async _updateBy({

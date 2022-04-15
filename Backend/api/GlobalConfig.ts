@@ -102,9 +102,8 @@ router.post(
 
             if (globalConfigs.length > 1) {
                 return sendListResponse(req, res, globalConfigs);
-            } else {
-                return sendItemResponse(req, res, globalConfigs[0]);
             }
+            return sendItemResponse(req, res, globalConfigs[0]);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -133,12 +132,11 @@ router.post(
 
             if (globalConfigs && globalConfigs.length > 0) {
                 return sendListResponse(req, res, globalConfigs);
-            } else {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Global configs do not exists.',
-                });
             }
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Global configs do not exists.',
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -205,9 +203,8 @@ router.get(
 
             if (globalConfig) {
                 return sendItemResponse(req, res, globalConfig);
-            } else {
-                return sendItemResponse(req, res, {});
             }
+            return sendItemResponse(req, res, {});
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

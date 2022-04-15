@@ -223,15 +223,14 @@ router.post(
                     code: 400,
                     message: 'Something went wrong. Please try again.',
                 });
-            } else {
-                // Run in the background
-                RealTimeService.createTeamMember(projectId, {
-                    users,
-                    userId: userId.id,
-                });
-
-                return sendItemResponse(req, res, users);
             }
+            // Run in the background
+            RealTimeService.createTeamMember(projectId, {
+                users,
+                userId: userId.id,
+            });
+
+            return sendItemResponse(req, res, users);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -366,27 +365,26 @@ router.put(
                 );
 
                 return sendItemResponse(req, res, teamMembers);
-            } else {
-                // Call the TeamService
-                const updatedTeamMembers: $TSFixMe =
-                    await TeamService.updateTeamMemberRole(
-                        projectId,
-                        userId,
-                        teamMemberId,
-                        data.role
-                    );
-
-                NotificationService.create(
+            }
+            // Call the TeamService
+            const updatedTeamMembers: $TSFixMe =
+                await TeamService.updateTeamMemberRole(
                     projectId,
-
-                    `A team members role was updated by ${req.user.name}`,
-
-                    req.user.id,
-                    'information'
+                    userId,
+                    teamMemberId,
+                    data.role
                 );
 
-                return sendItemResponse(req, res, updatedTeamMembers);
-            }
+            NotificationService.create(
+                projectId,
+
+                `A team members role was updated by ${req.user.name}`,
+
+                req.user.id,
+                'information'
+            );
+
+            return sendItemResponse(req, res, updatedTeamMembers);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

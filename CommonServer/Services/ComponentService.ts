@@ -126,14 +126,13 @@ export default class Service {
                 });
 
                 return populatedComponent || savedComponent;
-            } else {
-                const error: $TSFixMe = new Error(
-                    "You can't add any more components. Please add an extra seat to add more components."
-                );
-
-                error.code = 400;
-                throw error;
             }
+            const error: $TSFixMe = new Error(
+                "You can't add any more components. Please add an extra seat to add more components."
+            );
+
+            error.code = 400;
+            throw error;
         }
     }
 
@@ -392,9 +391,8 @@ export default class Service {
             RealTimeService.sendComponentDelete(component);
 
             return component;
-        } else {
-            return null;
         }
+        return null;
     }
 
     public async getComponentsBySubprojects(
@@ -524,25 +522,24 @@ export default class Service {
                 })
             );
             return components;
-        } else {
-            component = component[0];
-            if (component) {
-                const componentId: $TSFixMe = component._id;
-
-                component = await this.updateOneBy(
-                    { _id: componentId, deleted: true },
-                    {
-                        deleted: false,
-                        deletedAt: null,
-                        deleteBy: null,
-                    }
-                );
-                await MonitorService.restoreBy({
-                    componentId,
-                    deleted: true,
-                });
-            }
-            return component;
         }
+        component = component[0];
+        if (component) {
+            const componentId: $TSFixMe = component._id;
+
+            component = await this.updateOneBy(
+                { _id: componentId, deleted: true },
+                {
+                    deleted: false,
+                    deletedAt: null,
+                    deleteBy: null,
+                }
+            );
+            await MonitorService.restoreBy({
+                componentId,
+                deleted: true,
+            });
+        }
+        return component;
     }
 }

@@ -121,9 +121,8 @@ export default class MailService {
                 secure: projectSmtp.get('secure'),
                 enabled: true,
             };
-        } else {
-            return await this.getGlobalSmtpSettings();
         }
+        return await this.getGlobalSmtpSettings();
     }
 
     private static async compileEmailBody(
