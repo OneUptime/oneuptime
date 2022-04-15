@@ -85,16 +85,17 @@ const initialState: $TSFixMe = {
 };
 
 export default function incident(state = initialState, action: Action): void {
-    let incident,
-        incidents,
-        unresolvedincidents,
-        index,
-        index1,
-        isExistingIncident,
-        failureIncidentMessage,
-        requestIncidentMessage,
-        incidentMessages,
-        noteStatus;
+    let incident: $TSFixMe,
+        incidents: $TSFixMe,
+        unresolvedincidents: $TSFixMe,
+        index: $TSFixMe,
+        index1: $TSFixMe,
+        isExistingIncident: $TSFixMe,
+        failureIncidentMessage: $TSFixMe,
+        requestIncidentMessage: $TSFixMe,
+        incidentMessages: $TSFixMe,
+        noteStatus: $TSFixMe;
+
     switch (action.type) {
         case 'SLA_COUNT_DOWN': {
             const { incident: incidentData, countDown } = action.payload;

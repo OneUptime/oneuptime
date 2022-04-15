@@ -13,10 +13,10 @@ export default {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        let applicationScannerKey,
-            applicationScannerName,
-            clusterKey,
-            applicationScannerVersion;
+        let applicationScannerKey: $TSFixMe,
+            applicationScannerName: $TSFixMe,
+            clusterKey: $TSFixMe,
+            applicationScannerVersion: $TSFixMe;
 
         if (req.params && req.params.applicationscannerkey) {
             applicationScannerKey = req.params.applicationscannerkey;

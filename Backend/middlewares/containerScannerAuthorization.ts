@@ -13,10 +13,10 @@ export default {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        let containerScannerKey,
-            containerScannerName,
-            clusterKey,
-            containerScannerVersion;
+        let containerScannerKey: $TSFixMe,
+            containerScannerName: $TSFixMe,
+            clusterKey: $TSFixMe,
+            containerScannerVersion: $TSFixMe;
 
         if (req.params && req.params.containerscannerkey) {
             containerScannerKey = req.params.containerscannerkey;

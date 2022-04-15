@@ -88,10 +88,10 @@ export default function errorTracker(
     state = INITIAL_STATE,
     action: Action
 ): void {
-    let temporaryIssues,
-        temporaryErrorEvents,
-        temporaryErrorTrackers,
-        temporaryIssue;
+    let temporaryIssues: $TSFixMe,
+        temporaryErrorEvents: $TSFixMe,
+        temporaryErrorTrackers: $TSFixMe,
+        temporaryIssue: $TSFixMe;
     switch (action.type) {
         case CREATE_ERROR_TRACKER_SUCCESS:
             return Object.assign({}, state, {

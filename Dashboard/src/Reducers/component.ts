@@ -84,10 +84,10 @@ const INITIAL_STATE: $TSFixMe = {
 };
 
 export default function component(state = INITIAL_STATE, action: Action): void {
-    let components,
-        isExistingComponent,
-        failureComponentResourceList,
-        requestComponentResourceList;
+    let components: $TSFixMe,
+        isExistingComponent: $TSFixMe,
+        failureComponentResourceList: $TSFixMe,
+        requestComponentResourceList: $TSFixMe;
     switch (action.type) {
         case CREATE_COMPONENT_SUCCESS:
             isExistingComponent = state.componentList.components.find(

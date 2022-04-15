@@ -63,13 +63,13 @@ export default function applicationLog(
     state = INITIAL_STATE,
     action: Action
 ): void {
-    let applicationLogs,
-        failureLogs,
-        requestLogs,
-        failureStats,
-        requestStats,
-        logCount,
-        typeCount;
+    let applicationLogs: $TSFixMe,
+        failureLogs: $TSFixMe,
+        requestLogs: $TSFixMe,
+        failureStats: $TSFixMe,
+        requestStats: $TSFixMe,
+        logCount: $TSFixMe,
+        typeCount: $TSFixMe;
     switch (action.type) {
         case CREATE_APPLICATION_LOG_SUCCESS:
             return Object.assign({}, state, {

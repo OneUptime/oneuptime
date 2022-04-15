@@ -202,11 +202,11 @@ describe('Team API', function (): void {
     });
 });
 
-let subProjectId,
-    newUserToken,
-    subProjectTeamMemberId,
-    projectTeamMemberId,
-    subProjectUserId;
+let subProjectId: $TSFixMe,
+    newUserToken: $TSFixMe,
+    subProjectTeamMemberId: $TSFixMe,
+    projectTeamMemberId: $TSFixMe,
+    subProjectUserId: $TSFixMe;
 userData.newUser.email = 'newUser@company.com'; // overide test emails to test project seats.
 userData.anotherUser.email = 'anotherUser@company.com'; // overide test emails to test project seats.
 

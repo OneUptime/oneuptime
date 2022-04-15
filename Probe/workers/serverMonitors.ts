@@ -96,17 +96,18 @@ const execCommands: Function = async (exec: $TSFixMe, os: $TSFixMe): void => {
     const isSSH: $TSFixMe = exec instanceof NodeSSH;
 
     // TODO: complete commands and make platform specific
-    let cpuLoad,
-        avgCpuLoad,
-        cpuCores,
-        memoryUsed,
-        totalMemory,
-        swapUsed,
-        storageUsed,
-        totalStorage,
-        storageUsage,
-        mainTemp,
-        maxTemp;
+    let cpuLoad: $TSFixMe,
+        avgCpuLoad: $TSFixMe,
+        cpuCores: $TSFixMe,
+        memoryUsed: $TSFixMe,
+        totalMemory: $TSFixMe,
+        swapUsed: $TSFixMe,
+        storageUsed: $TSFixMe,
+        totalStorage: $TSFixMe,
+        storageUsage: $TSFixMe,
+        mainTemp: $TSFixMe,
+        maxTemp: $TSFixMe;
+
 
     if (os === 'Linux') {
         const { stdout: load } = await (isSSH
