@@ -238,7 +238,7 @@ export default function scheduledEvent(
 
             const scheduledEvents: $TSFixMe =
                 state.subProjectScheduledEventList.scheduledEvents.map(
-                    (event : $TSFixMe) =>{
+                    (event: $TSFixMe) => {
                         if (
                             String(event.project) ===
                             String(action.payload.projectId._id)
@@ -338,7 +338,7 @@ export default function scheduledEvent(
         case FETCH_SCHEDULED_EVENTS_SUCCESS: {
             const scheduledEvents: $TSFixMe =
                 state.subProjectScheduledEventList.scheduledEvents.map(
-                    (event : $TSFixMe) =>{
+                    (event: $TSFixMe) => {
                         if (
                             action.payload.data.length > 0 &&
                             String(event.project) ===
@@ -536,7 +536,7 @@ export default function scheduledEvent(
 
             const scheduledEvents: $TSFixMe =
                 state.subProjectScheduledEventList.scheduledEvents.map(
-                    (subevent : $TSFixMe) =>{
+                    (subEvent: $TSFixMe) => {
                         if (
                             String(subEvent.project) ===
                             String(action.payload.projectId)
@@ -596,7 +596,7 @@ export default function scheduledEvent(
                     ...state.scheduledEventList,
                     scheduledEvents:
                         state.scheduledEventList.scheduledEvents.filter(
-                            (scheduledEvent : $TSFixMe) =>{
+                            (scheduledEvent: $TSFixMe) => {
                                 if (
                                     String(scheduledEvent._id) ===
                                     String(action.payload._id)
@@ -669,7 +669,7 @@ export default function scheduledEvent(
                 );
             const subEvents: $TSFixMe =
                 state.subProjectScheduledEventList.scheduledEvents.map(
-                    (subEvent : $TSFixMe) =>{
+                    (subEvent: $TSFixMe) => {
                         if (
                             String(subEvent.project) ===
                             String(action.payload.projectId._id)
@@ -795,7 +795,7 @@ export default function scheduledEvent(
                 );
             const subEvents: $TSFixMe =
                 state.subProjectScheduledEventList.scheduledEvents.map(
-                    (subEvent : $TSFixMe) =>{
+                    (subEvent: $TSFixMe) => {
                         if (
                             String(subEvent.project) ===
                             String(action.payload.projectId._id)
@@ -979,7 +979,7 @@ export default function scheduledEvent(
         case UPDATE_SCHEDULED_EVENT_NOTE_INVESTIGATION_SUCCESS: {
             const scheduledEventNotes: $TSFixMe =
                 state.scheduledEventInvestigationList.scheduledEventNotes.map(
-                    investigationNote => {
+                    (investigationNote: $TSFixMe) => {
                         if (
                             String(investigationNote._id) ===
                             String(action.payload._id)
@@ -1031,7 +1031,7 @@ export default function scheduledEvent(
         case UPDATE_SCHEDULED_EVENT_NOTE_INTERNAL_SUCCESS: {
             const scheduledEventNotes: $TSFixMe =
                 state.scheduledEventInternalList.scheduledEventNotes.map(
-                    internalNote => {
+                    (internalNote: $TSFixMe) => {
                         if (
                             String(internalNote._id) ===
                             String(action.payload._id)
@@ -1081,7 +1081,7 @@ export default function scheduledEvent(
         case DELETE_SCHEDULED_EVENT_NOTE_SUCCESS: {
             const scheduledEventNotes: $TSFixMe =
                 state.scheduledEventInternalList.scheduledEventNotes.map(
-                    internalNote => {
+                    (internalNote: $TSFixMe) => {
                         if (
                             String(internalNote._id) ===
                             String(action.payload._id)

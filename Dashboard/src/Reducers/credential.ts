@@ -249,7 +249,7 @@ export default function credential(
 
         case types.UPDATE_DOCKER_CREDENTIAL_SUCCESS: {
             const dockerCredentials: $TSFixMe = state.dockerCredentials.map(
-                (dockerCredential:$TSFixMe) => {
+                (dockerCredential: $TSFixMe) => {
                     if (
                         String(dockerCredential._id) ===
                         String(action.payload._id)

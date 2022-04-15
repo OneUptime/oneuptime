@@ -102,7 +102,7 @@ export function fetchErrorTrackers(
     projectId: ObjectID,
     componentId: $TSFixMe,
     skip: number = 0,
-    limit:number = 0,
+    limit: number = 0,
     fetchingPage: boolean = false
 ) {
     return function (dispatch: Dispatch): void {

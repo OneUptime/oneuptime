@@ -659,8 +659,8 @@ export const getApplicationSecuritiesFailure: Function = (
 export const getApplicationSecurities: $TSFixMe = ({
     projectId,
     componentId,
-    skip: number = 0,
-    limit:number = 0,
+    skip = 0,
+    limit = 0,
     fetchingPage = false,
 }: $TSFixMe) => {
     return async (dispatch: Dispatch) => {

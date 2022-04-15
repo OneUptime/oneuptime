@@ -137,17 +137,17 @@ public async saveMonitorLog(data: $TSFixMe): void {
 
         const allCriteria: $TSFixMe = [];
         if (data.matchedUpCriterion) {
-            data.matchedUpCriterion.forEach(criteria =>
+            data.matchedUpCriterion.forEach((criteria: $TSFixMe)=>
                 allCriteria.push(criteria)
             );
         }
         if (data.matchedDownCriterion) {
-            data.matchedDownCriterion.forEach(criteria =>
+            data.matchedDownCriterion.forEach((criteria: $TSFixMe)=>
                 allCriteria.push(criteria)
             );
         }
         if (data.matchedDegradedCriterion) {
-            data.matchedDegradedCriterion.forEach(criteria =>
+            data.matchedDegradedCriterion.forEach((criteria: $TSFixMe)=>
                 allCriteria.push(criteria)
             );
         }

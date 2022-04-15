@@ -80,7 +80,9 @@ const _this: $TSFixMe = {
         clientIp = clientIp.trim();
         const ipFound: $TSFixMe = ipWhitelist.some((ip: $TSFixMe) => {
             if (ip.indexOf('-') !== -1) {
-                const ipRange: $TSFixMe = ip.split('-').map((ip: $TSFixMe) => ip.trim());
+                const ipRange: $TSFixMe = ip.split('-').map((ip: $TSFixMe) => {
+                    return ip.trim();
+                });
                 return this.inRange(clientIp, ipRange);
             }
 
@@ -155,7 +157,9 @@ const _this: $TSFixMe = {
         return Number(
             ip
                 .split('.')
-                .map((d: $TSFixMe) => ('000' + d).substr(-3))
+                .map((d: $TSFixMe) => {
+                    return ('000' + d).substr(-3);
+                })
                 .join('')
         );
     },

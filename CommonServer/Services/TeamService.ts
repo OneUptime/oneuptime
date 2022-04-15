@@ -51,7 +51,7 @@ export default class Service {
 
         const response: $TSFixMe = [];
         for (let i: $TSFixMe = 0; i < users.length; i++) {
-            const memberDetail: $TSFixMe = projectMembers.filter(member => {
+            const memberDetail: $TSFixMe = projectMembers.filter((member: $TSFixMe)=> {
                 return member.userId === users[i]._id.toString();
             })[0];
 
@@ -380,7 +380,7 @@ export default class Service {
                 projectUsers = await this.getTeamMembersBy({
                     parentProjectId: project._id,
                 });
-                const userInProject: $TSFixMe = projectUsers.find(user => {
+                const userInProject: $TSFixMe = projectUsers.find((user: $TSFixMe)=> {
                     return user.userId === member._id;
                 });
                 try {
@@ -810,7 +810,7 @@ export default class Service {
                 return res.users;
             });
         const prevFlatTeams: $TSFixMe = flatten(prevTeams);
-        const prevTeamArr: $TSFixMe = prevFlatTeams.filter(user => {
+        const prevTeamArr: $TSFixMe = prevFlatTeams.filter((user: $TSFixMe)=> {
             return String(user.userId) === String(teamMemberUserId);
         });
         const checkPrevViewer: $TSFixMe = prevTeamArr.every(

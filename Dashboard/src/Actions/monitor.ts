@@ -15,8 +15,8 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 //props -> {name: '', type, data -> { data.url}}
 export const fetchMonitors: Function = (
     projectId: ObjectID,
-    skip: number = 0
-    limit = 0
+    skip: number = 0,
+    limit: number = 0
 ): void => {
     return function (dispatch: Dispatch): void {
         const promise: $TSFixMe = BackendAPI.get(

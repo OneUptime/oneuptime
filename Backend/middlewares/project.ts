@@ -68,7 +68,7 @@ export default {
                     if (subProjects && subProjects.length > 0) {
                         for (const subProject of subProjects) {
                             // 'for in' iterate over the keys while 'for of' iterate over the values
-                            const subProjectUsers: $TSFixMe = subProject.users; // Using 'for in' made subProject.users: $TSFixMe === undefined
+                            const subProjectUsers: $TSFixMe = subProject.users; // Using 'for in' made subProject.users === undefined
 
                             for (
                                 let i: $TSFixMe = 0;

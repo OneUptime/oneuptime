@@ -94,7 +94,7 @@ export default function component(
     switch (action.type) {
         case CREATE_COMPONENT_SUCCESS:
             isExistingComponent = state.componentList.components.find(
-                (component:  $TSFixMe) => {
+                (component: $TSFixMe) => {
                     return component._id === action.payload.projectId._id;
                 }
             );
@@ -117,7 +117,7 @@ export default function component(
                     components: isExistingComponent
                         ? state.componentList.components.length > 0
                             ? state.componentList.components.map(
-                                  (subProjectComponents: $TSFixMe) =>{
+                                  (subProjectComponents: $TSFixMe) => {
                                       return subProjectComponents._id ===
                                           action.payload.projectId._id
                                           ? {
@@ -394,7 +394,7 @@ export default function component(
                     error: null,
                     success: false,
                     components: state.componentList.components.map(
-                        (component:  $TSFixMe) => {
+                        (component: $TSFixMe) => {
                             component.components = component.components.map(
                                 (component: $TSFixMe, i: $TSFixMe) => {
                                     if (
@@ -432,7 +432,7 @@ export default function component(
                     error: null,
                     success: false,
                     components: state.componentList.components.map(
-                        (subProjectComponent:  $TSFixMe) => {
+                        (subProjectComponent: $TSFixMe) => {
                             subProjectComponent.components =
                                 subProjectComponent.components.filter(
                                     ({ _id }: $TSFixMe) => {
