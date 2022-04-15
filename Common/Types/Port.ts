@@ -10,7 +10,7 @@ export default class Port {
         this._port = v;
     }
 
-    constructor(port: number) {
+    public constructor(port: number) {
         if (port >= 0 && port <= 65535) {
             this.port = new PositiveNumber(port);
         } else {

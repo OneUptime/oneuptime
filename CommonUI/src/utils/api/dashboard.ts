@@ -2,7 +2,7 @@ import { DASHBOARD_HOSTNAME, API_PROTOCOL } from '../config';
 import API from 'Common/utils/api';
 
 class DashboardAPI extends API {
-    constructor() {
+    public constructor() {
         super(API_PROTOCOL, DASHBOARD_HOSTNAME);
     }
 }

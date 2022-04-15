@@ -39,7 +39,7 @@ export default class Domain {
         return false;
     }
 
-    constructor(domain: string) {
+    public constructor(domain: string) {
         const isValid: boolean = Domain.isValidDomain(domain);
 
         if (!isValid) {

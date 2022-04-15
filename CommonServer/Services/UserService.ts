@@ -39,7 +39,7 @@ import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/DB/CreateBy';
 
 class Service extends DatabaseService<typeof Model> {
-    constructor() {
+    public constructor() {
         super({
             model: Model,
             requiredFields: requiredFields,

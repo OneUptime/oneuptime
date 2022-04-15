@@ -8,8 +8,9 @@ import Model, {
 } from '../Models/SmsCount';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
+
 class Service extends DatabaseService<typeof Model> {
-    constructor() {
+    public constructor() {
         super({
             model: Model,
             requiredFields: requiredFields,
@@ -80,3 +81,5 @@ class Service extends DatabaseService<typeof Model> {
         return true;
     }
 }
+
+export default Service;

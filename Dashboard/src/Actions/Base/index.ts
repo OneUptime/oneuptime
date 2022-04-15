@@ -12,7 +12,7 @@ export default class Actions {
     getaction: Action;
     listaction: Action;
     updateaction: Action;
-    constructor({
+    public constructor({
         createActionProps,
         updateActionProps,
         deleteActionProps,

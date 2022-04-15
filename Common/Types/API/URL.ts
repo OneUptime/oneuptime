@@ -27,7 +27,7 @@ export default class URL {
         this._protocol = v;
     }
 
-    constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
+    public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
         this.hostname = hostname;
 
         this.protocol = protocol;

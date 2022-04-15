@@ -7,7 +7,7 @@ import Model, {
 import DatabaseService from './DatabaseService';
 
 class EmailSmtpService extends DatabaseService<typeof Model> {
-    constructor() {
+    public constructor() {
         super({
             model: Model,
             requiredFields: requiredFields,

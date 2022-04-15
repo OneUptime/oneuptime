@@ -19,7 +19,7 @@ import Model, {
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {
-    constructor() {
+    public constructor() {
         super({
             model: Model,
             requiredFields: requiredFields,

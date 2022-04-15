@@ -17,7 +17,13 @@ export default class Action {
         this._payload = v;
     }
 
-    constructor({ type, payload }: { type: string; payload: ActionPayload }) {
+    public constructor({
+        type,
+        payload,
+    }: {
+        type: string;
+        payload: ActionPayload;
+    }) {
         this.type = type;
         this.payload = payload;
     }

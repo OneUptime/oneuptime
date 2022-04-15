@@ -13,7 +13,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 
 class Service extends DatabaseService<typeof Model> {
-    constructor() {
+    public constructor() {
         super({
             model: Model,
             requiredFields: requiredFields,

@@ -7,7 +7,7 @@ export default class HTML {
         this._html = v;
     }
 
-    constructor(html: string) {
+    public constructor(html: string) {
         this.html = html;
     }
 

@@ -8,7 +8,7 @@ class OutgoingListener {
     private end;
     private store;
 
-    constructor(start, end, store) {
+    public constructor(start, end, store) {
         this.start = start;
         this.end = end;
         this.store = store;

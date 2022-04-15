@@ -27,7 +27,7 @@ export default class API {
         this._hostname = v;
     }
 
-    constructor(protocol: Protocol, hostname: Hostname) {
+    public constructor(protocol: Protocol, hostname: Hostname) {
         this.protocol = protocol;
         this.hostname = hostname;
     }

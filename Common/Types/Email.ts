@@ -9,7 +9,7 @@ export default class Email {
         this._email = v;
     }
 
-    constructor(email: string) {
+    public constructor(email: string) {
         const re: $TSFixMe =
             /^(([^<>()[\].,;:\s@"]+(.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+.)+[^<>()[\].,;:\s@"]{2,})$/i;
         const isValid: $TSFixMe = re.test(email);

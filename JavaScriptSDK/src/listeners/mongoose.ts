@@ -4,7 +4,7 @@ class MongooseListener {
     private start;
     private end;
 
-    constructor(start, end) {
+    public constructor(start, end) {
         this.start = start;
         this.end = end;
     }

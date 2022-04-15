@@ -7,7 +7,7 @@ export default class Hostname {
         this._route = v;
     }
 
-    constructor(hostname: string) {
+    public constructor(hostname: string) {
         if (hostname) {
             this.hostname = hostname;
         }

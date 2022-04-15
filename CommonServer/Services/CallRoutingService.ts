@@ -20,7 +20,7 @@ import DatabaseService from './DatabaseService';
 import CallRoutingLogService from './CallRoutingLogService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 class Service extends DatabaseService<typeof Model> {
-    constructor() {
+    public constructor() {
         super({
             model: Model,
             requiredFields: requiredFields,

@@ -18,7 +18,7 @@ const runConfig: $TSFixMe = {
 
 class ScriptMonitorError extends Error {
     errors: $TSFixMe;
-    constructor(errors: $TSFixMe, message = "Script monitor resource error") {
+    public constructor(errors: $TSFixMe, message = "Script monitor resource error") {
         super();
         this.message = message;
         this.errors = Array.isArray(errors)

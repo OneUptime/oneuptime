@@ -15,7 +15,7 @@ class PerformanceTracker {
     private start;
     private end;
     private store;
-    constructor({
+    public constructor({
         apiUrl,
         appId,
         appKey,

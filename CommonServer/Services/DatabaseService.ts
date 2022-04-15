@@ -51,8 +51,8 @@ class DatabaseService<ModelType> {
     public memberItemProps: ItemProps;
     public memberListProps: ListProps;
     public model: Model<ModelType>;
-    public publicItemProps: ItemProps;
-    public publicListProps: ListProps;
+    publicItemProps: ItemProps;
+    publicListProps: ListProps;
     public requiredFields: RequiredFields;
     public uniqueFields: UniqueFields;
     public encryptedFields: EncryptedFields;
@@ -61,7 +61,7 @@ class DatabaseService<ModelType> {
     public isResourceByProject: boolean;
     public slugifyField: string;
 
-    constructor({
+    public constructor({
         model,
         requiredFields,
         uniqueFields,

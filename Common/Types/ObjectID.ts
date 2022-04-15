@@ -10,7 +10,7 @@ export default class ObjectID {
         this._id = v;
     }
 
-    constructor(id: string) {
+    public constructor(id: string) {
         this.id = id;
     }
 

@@ -8,7 +8,7 @@ import HTTPErrorResponse from 'Common/Types/api/errorResponse';
 import Cookies from 'universal-cookie';
 
 class BackendAPI extends API {
-    constructor() {
+    public constructor() {
         super(API_PROTOCOL, BACKEND_HOSTNAME);
     }
 

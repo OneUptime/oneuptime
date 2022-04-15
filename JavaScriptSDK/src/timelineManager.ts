@@ -1,7 +1,7 @@
 class OneUptimeTimelineManager {
     private options: $TSFixMe;
     private timeLineStack: $TSFixMe;
-    constructor(options: $TSFixMe) {
+    public constructor(options: $TSFixMe) {
         this.options = options;
         this.timeLineStack = [];
     }

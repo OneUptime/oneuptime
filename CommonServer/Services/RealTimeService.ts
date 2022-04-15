@@ -11,7 +11,7 @@ export default class Service {
     private api: API;
     private headers: Headers;
 
-    constructor() {
+    public constructor() {
         this.api = new API(HttpProtocol, new Hostname(RealtimeHostname));
         this.headers = {
             CLUSTER_KEY: ClusterKey,

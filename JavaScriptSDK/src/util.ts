@@ -4,7 +4,7 @@ import * as LRUMap from 'lru_map';
 const CONTENT_CACHE: $TSFixMe = new LRUMap.default.LRUMap(100);
 class Util {
     options: $TSFixMe;
-    constructor(options: $TSFixMe) {
+    public constructor(options: $TSFixMe) {
         this.options = options;
     }
     getErrorType(): void {

@@ -15,7 +15,7 @@ export default class Name {
         this._name = v;
     }
 
-    constructor(name: string) {
+    public constructor(name: string) {
         this.name = name;
     }
 

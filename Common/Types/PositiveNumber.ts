@@ -9,7 +9,7 @@ export default class PositiveNumber {
         this._positiveNumber = v;
     }
 
-    constructor(positiveNumber: number) {
+    public constructor(positiveNumber: number) {
         if (positiveNumber < 0) {
             throw new BadDataException('positiveNumber cannot be less than 0');
         }

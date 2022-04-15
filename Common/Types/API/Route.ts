@@ -7,7 +7,7 @@ export default class Route {
         this._route = v;
     }
 
-    constructor(route?: string) {
+    public constructor(route?: string) {
         if (route) {
             this.route = route;
         }

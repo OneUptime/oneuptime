@@ -11,7 +11,7 @@ class IncomingListener {
     private store;
     private app;
 
-    constructor(start, end, store, app) {
+    public constructor(start, end, store, app) {
         this.start = start;
         this.end = end;
         this.store = store;

@@ -1,7 +1,7 @@
 import BaseAction from './base';
 
 class UpdateActionBase extends BaseAction {
-    constructor({
+    public constructor({
         friendlyName,
         apiPath,
         isResourceInProject,

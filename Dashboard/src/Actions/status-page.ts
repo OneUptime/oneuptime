@@ -1,7 +1,7 @@
 import Actions from './base/index';
 
 export default class StatusPageActions extends Actions {
-    constructor() {
+    public constructor() {
         super({
             createActionProps: {
                 isRequestAllowed: true,

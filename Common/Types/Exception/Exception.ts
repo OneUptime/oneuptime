@@ -11,7 +11,7 @@ export default class Exception extends Error {
         this._code = v;
     }
 
-    constructor(code: ExceptionCode, message: string) {
+    public constructor(code: ExceptionCode, message: string) {
         super(message);
         this.code = code;
     }

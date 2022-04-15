@@ -10,7 +10,7 @@ class BaseAction {
     friendlyName: $TSFixMe;
     isRequestAllowed: $TSFixMe;
     isResourceInProject: $TSFixMe;
-    constructor({
+    public constructor({
         friendlyName,
         apiPath,
         isResourceInProject,

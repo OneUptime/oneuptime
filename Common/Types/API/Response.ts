@@ -17,7 +17,7 @@ export default class HTTPResponse {
         this._data = v;
     }
 
-    constructor(statusCode: number, data: JSONObjectOrArray) {
+    public constructor(statusCode: number, data: JSONObjectOrArray) {
         this.statusCode = statusCode;
         this.data = data;
     }

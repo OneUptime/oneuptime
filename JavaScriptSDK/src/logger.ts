@@ -3,7 +3,7 @@ class Logger {
     private apiUrl: URL;
     private applicationLogId: $TSFixMe;
     private applicationLogKey: $TSFixMe;
-    constructor(
+    public constructor(
         apiUrl: URL,
         applicationLogId: $TSFixMe,
         applicationLogKey: $TSFixMe

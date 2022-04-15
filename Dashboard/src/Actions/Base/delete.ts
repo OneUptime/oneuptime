@@ -1,7 +1,7 @@
 import BaseAction from './base';
 
 class DeleteActionBase extends BaseAction {
-    constructor({
+    public constructor({
         friendlyName,
         apiPath,
         isResourceInProject,

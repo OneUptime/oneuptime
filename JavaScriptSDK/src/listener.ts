@@ -12,7 +12,7 @@ class OneUptimeListener {
     options: $TSFixMe;
     timelineObj: $TSFixMe;
     utilObj: $TSFixMe;
-    constructor(eventId: $TSFixMe, isWindow: $TSFixMe, options: $TSFixMe) {
+    public constructor(eventId: $TSFixMe, isWindow: $TSFixMe, options: $TSFixMe) {
         this.options = options;
         this.isWindow = isWindow;
         this.timelineObj = new OneUptimeTimelineManager(options);

@@ -17,7 +17,7 @@ export default class EmailWithName {
         this._name = v;
     }
 
-    constructor(name: string, email: string | Email) {
+    public constructor(name: string, email: string | Email) {
         if (typeof email === 'string') {
             this.email = new Email(email);
         }

@@ -21,7 +21,7 @@ class ErrorTracker {
     private tags: $TSFixMe;
     private utilObj: $TSFixMe;
     // constructor to set up global listeners
-    constructor(
+    public constructor(
         apiUrl: URL,
         errorTrackerId: $TSFixMe,
         errorTrackerKey: $TSFixMe,
