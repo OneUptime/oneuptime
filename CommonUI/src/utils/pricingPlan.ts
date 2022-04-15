@@ -102,7 +102,7 @@ export default class PricingPlan {
 
     public static getPlanById(id: string): PricingPlanType {
         const plans: $TSFixMe = this.getPlans();
-        const plan: $TSFixMe = plans.find((plan: $TSFixMe)=> {
+        const plan: $TSFixMe = plans.find((plan: $TSFixMe) => {
             return plan.planId === id;
         });
 

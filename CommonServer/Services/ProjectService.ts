@@ -500,7 +500,7 @@ export default class Service {
             query: { _id: projectId },
             select: 'users',
         });
-        teamMember = userProject.users.find((user: $TSFixMe)=> {
+        teamMember = userProject.users.find((user: $TSFixMe) => {
             return String(user.userId) === String(userId);
         });
         let subProject: $TSFixMe = null;
@@ -539,13 +539,13 @@ export default class Service {
             });
         const flatSubMembers: $TSFixMe = flattenArray(subMembers);
         const teams: $TSFixMe = flatSubMembers.concat(projectMembers);
-        const filteredTeam: $TSFixMe = teams.filter((user: $TSFixMe)=> {
+        const filteredTeam: $TSFixMe = teams.filter((user: $TSFixMe) => {
             return (
                 String(user.userId) === String(userId) &&
                 String(user._id) !== String(teamMember?._id)
             );
         });
-        const teamByUserId: $TSFixMe = teams.filter((user: $TSFixMe)=> {
+        const teamByUserId: $TSFixMe = teams.filter((user: $TSFixMe) => {
             return String(user.userId) === String(userId);
         });
         const isViewer: $TSFixMe = filteredTeam.every((data: $TSFixMe) => {
@@ -721,7 +721,7 @@ export default class Service {
                     return project.parentProjectId ? null : project;
                 })
 
-                .filter((project: $TSFixMe)=> {
+                .filter((project: $TSFixMe) => {
                     return project !== null;
                 });
 
@@ -808,9 +808,11 @@ export default class Service {
         }
 
         const projectId: $TSFixMe = project._id;
-        const projectOwners: $TSFixMe = project.users.filter((user: $TSFixMe)=> {
-            return user.role === 'Owner';
-        });
+        const projectOwners: $TSFixMe = project.users.filter(
+            (user: $TSFixMe) => {
+                return user.role === 'Owner';
+            }
+        );
         let subscription: $TSFixMe;
         await Promise.all(
             projectOwners.map(async (projectOwner: $TSFixMe) => {
