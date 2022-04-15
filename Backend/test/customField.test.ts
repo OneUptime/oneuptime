@@ -23,8 +23,8 @@ import IncidentCustomFieldService from '../backend/services/customFieldService';
 describe('Incident Custom Field API', function (): void {
     const timeout: $TSFixMe = 30000;
     let projectId: ObjectID,
-        userId,
-        token,
+        userId: $TSFixMe,
+        token: $TSFixMe,
         authorization: $TSFixMe,
         customFieldId: $TSFixMe;
 

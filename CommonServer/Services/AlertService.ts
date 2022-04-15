@@ -821,11 +821,11 @@ public async sendAlertsToTeamMembersInEscalationPolicy({
             });
         }
 
-        const groupUsers: $TSFixMe = teamGroup.map(group: $TSFixMe => group.teams);
+        const groupUsers: $TSFixMe = teamGroup.map((group: $TSFixMe) => group.teams);
         const groupUserIds: $TSFixMe = [].concat
             .apply([], groupUsers)
             .map((id: $TSFixMe) =>  ({ userId: id }));
-        const filterdUserIds: $TSFixMe = groupUserIds.filter(user: $TSFixMe =>
+        const filterdUserIds: $TSFixMe = groupUserIds.filter((user: $TSFixMe) =>
             activeTeam.teamMembers.some(
                 (team: $TSFixMe) => team.userId !== user.userId
             )

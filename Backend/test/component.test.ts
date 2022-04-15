@@ -30,7 +30,7 @@ let token: $TSFixMe,
     projectId: ObjectID,
     componentId: $TSFixMe,
     monitorId: $TSFixMe,
-    resourceCount = 0;
+    resourceCount: $TSFixMe = 0;
 
 describe('Component API', function (): void {
     this.timeout(30000);
@@ -381,9 +381,9 @@ describe('Component API', function (): void {
 
 let subProjectId: ObjectID,
     newUserToken: $TSFixMe,
-    newUserId,
+    newUserId: $TSFixMe,
     newProjectId: ObjectID,
-    otherUserId,
+    otherUserId: $TSFixMe,
     otherProjectId: ObjectID,
     subProjectComponentId: $TSFixMe,
     newComponentId: $TSFixMe;

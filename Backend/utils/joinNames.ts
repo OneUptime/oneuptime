@@ -4,7 +4,7 @@
  * @returns a string
  */
 
-export default (acc: $TSFixMe = []): void => {
+export default (arr: $TSFixMe = []): void => {
     if (!Array.isArray(arr)) {
         return '';
     }

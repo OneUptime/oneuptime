@@ -1208,7 +1208,7 @@ public async getFutureEvents(
 
             // // sort in ascending start date
 
-            events = events.sort((a: $TSFixMe, b: $TSFixMe)b.startDate - a.startDate);
+            events = events.sort((a: $TSFixMe, b: $TSFixMe) => b.startDate - a.startDate);
 
             const count: $TSFixMe = events.length;
             return { events, count };
@@ -1316,7 +1316,7 @@ public async getPastEvents(
 
             // sort in ascending start date
 
-            events = events.sort((a: $TSFixMe, b: $TSFixMe)a.startDate - b.startDate);
+            events = events.sort((a: $TSFixMe, b: $TSFixMe) => a.startDate - b.startDate);
 
             const count: $TSFixMe = events.length;
             return { events: limitEvents(events, limit, skip), count };

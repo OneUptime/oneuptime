@@ -465,7 +465,7 @@ export default class Service {
         if (!isFlatenArr) {
             for (const member of members) {
                 const track: $TSFixMe = {},
-                    data = [];
+                    data: $TSFixMe = [];
                 for (const user of member) {
                     if (!track[user.userId]) {
                         track[user.userId] = user.userId;

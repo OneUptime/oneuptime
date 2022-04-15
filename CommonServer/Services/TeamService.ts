@@ -283,7 +283,7 @@ export default class Service {
         return [];
     }
 
-    isValidBusinessEmails(emails: $TSFixMe): void {
+    public isValidBusinessEmails(emails: $TSFixMe): void {
         let valid: $TSFixMe = true;
         if (emails && emails.length > 0) {
             for (let i: $TSFixMe = 0; i < emails.length; i++) {

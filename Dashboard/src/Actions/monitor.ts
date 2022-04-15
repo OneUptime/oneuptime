@@ -67,8 +67,8 @@ export const resetFetchMonitors: Function = (): void => {
 //props -> {name: '', type, data -> { data.url}}
 export function fetchPaginatedMonitors({
     projectId,
-    skip: number = 0,
-    limit:number = 0,
+    skip = 0,
+    limit = 0,
     componentSlug,
     componentId,
     paginate = false,

@@ -12,7 +12,7 @@ import AlertService from './AlertService';
 import { IS_TESTING } from '../config/server';
 
 export default class TwilioService {
-    getClient(accountSid: $TSFixMe, authToken: $TSFixMe): void {
+    public getClient(accountSid: $TSFixMe, authToken: $TSFixMe): void {
         if (!accountSid || !authToken) {
             const error: $TSFixMe = new Error('Twilio credentials not found.');
 

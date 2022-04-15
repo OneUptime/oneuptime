@@ -83,7 +83,7 @@ export const updateCommunicationSla: $TSFixMe = (
     projectId: ObjectID,
     incidentSlaId: $TSFixMe,
     data: $TSFixMe,
-    handleDefault = false
+    handleDefault: $TSFixMe = false
 ) => {
     return async (dispatch: Dispatch) => {
         try {
