@@ -120,7 +120,7 @@ router.put(
     '/:projectId/:incidentSlaId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId, incidentSlaId }: $TSFixMe = req.params;
             const { name, handleDefault, alertTime, duration }: $TSFixMe =

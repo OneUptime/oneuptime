@@ -40,7 +40,7 @@ router.get(
 router.post(
     '/scanning',
     isAuthorizedApplicationScanner,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const security: $TSFixMe = req.body.security;
             const applicationSecurity: $TSFixMe =
@@ -64,7 +64,7 @@ router.post(
 router.post(
     '/failed',
     isAuthorizedApplicationScanner,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const security: $TSFixMe = req.body;
             const applicationSecurity: $TSFixMe =

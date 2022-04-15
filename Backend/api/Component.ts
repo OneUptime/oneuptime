@@ -45,7 +45,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             const projectId: $TSFixMe = req.params.projectId;
@@ -144,7 +144,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { limit, skip }: $TSFixMe = req.query;
 
@@ -168,7 +168,7 @@ router.get(
     '/:projectId/paginated',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId }: $TSFixMe = req.params;
             const { limit, skip }: $TSFixMe = req.query;
@@ -191,7 +191,7 @@ router.get(
     '/:projectId/slug/:slug',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { slug }: $TSFixMe = req.params;
             const populateComponent: $TSFixMe = [

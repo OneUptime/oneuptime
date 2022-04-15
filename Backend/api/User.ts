@@ -1182,7 +1182,7 @@ router.put(
     '/profile/:userId',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const upload: $TSFixMe = multer({
                 storage,
@@ -1518,7 +1518,7 @@ router.get(
     '/users/:userId',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const userId: $TSFixMe = req.params.userId;
             const select: $TSFixMe =
@@ -1569,7 +1569,7 @@ router.put(
     '/:userId/restoreUser',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const userId: $TSFixMe = req.params.userId;
 
@@ -1597,7 +1597,7 @@ router.put(
     '/:userId/blockUser',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const userId: $TSFixMe = req.params.userId;
 
@@ -1625,7 +1625,7 @@ router.put(
     '/:userId/unblockUser',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const userId: $TSFixMe = req.params.userId;
 
@@ -1717,7 +1717,7 @@ router.post(
     '/:userId/addNote',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const userId: $TSFixMe = req.params.userId;
             if (Array.isArray(req.body)) {
@@ -1772,7 +1772,7 @@ router.post(
     '/users/search',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const filter: $TSFixMe = req.body.filter;
             const skip: $TSFixMe = req.query['skip'] || 0;

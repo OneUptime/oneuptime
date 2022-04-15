@@ -119,7 +119,7 @@ router.get(
     '/:projectId/:componentId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const componentId: $TSFixMe = req.params.componentId;
             if (!componentId) {
@@ -344,7 +344,7 @@ router.put(
 router.post(
     '/:errorTrackerId/track',
     isErrorTrackerValid,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             const errorTrackerId: $TSFixMe = req.params.errorTrackerId;

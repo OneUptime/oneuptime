@@ -862,7 +862,7 @@ router.get(
     '/:projectId/probes',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const limit: $TSFixMe = req.query['limit'] || null;
             const skip: $TSFixMe = req.query['skip'] || null;

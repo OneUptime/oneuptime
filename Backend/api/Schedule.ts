@@ -23,7 +23,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
 
@@ -120,7 +120,7 @@ router.get(
     '/:projectId/schedule',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             const populate: $TSFixMe = [

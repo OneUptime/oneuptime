@@ -316,7 +316,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             // const subProjectIds: $TSFixMe = req.user.subProjects
             //     ? req.user.subProjects.map((project: $TSFixMe) =>  project._id)
@@ -383,7 +383,7 @@ router.get(
     '/:projectId/incident',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             const populate: $TSFixMe = [
@@ -1714,7 +1714,7 @@ router.delete(
     '/:projectId/:incidentId',
     getUser,
     isUserAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId, incidentId }: $TSFixMe = req.params;
             const incident: $TSFixMe = await IncidentService.deleteBy(

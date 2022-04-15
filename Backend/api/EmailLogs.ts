@@ -113,7 +113,7 @@ router.put(
     '/:emailLogsId',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             const emailLogsId: $TSFixMe = req.params.emailLogsId;

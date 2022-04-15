@@ -122,7 +122,7 @@ router.post(
     '/sms/sendVerificationToken',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { to }: $TSFixMe = req.body;
 

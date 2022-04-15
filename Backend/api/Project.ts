@@ -310,7 +310,7 @@ router.get(
     '/:projectId/balance',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             if (!projectId) {
@@ -337,7 +337,7 @@ router.get(
     '/:projectId/resetToken',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
 
@@ -887,7 +887,7 @@ router.post(
     '/:projectId/subProject',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const parentProjectId: $TSFixMe = req.params.projectId;
@@ -980,7 +980,7 @@ router.get(
     '/:projectId/subProjects',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         // Call the ProjectService
         try {
             const parentProjectId: $TSFixMe = req.params.projectId;
@@ -1017,7 +1017,7 @@ router.get(
     '/projects/user/:userId',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const userId: $TSFixMe = req.params.userId;
             const skip: $TSFixMe = req.query['skip'] || 0;
@@ -1035,7 +1035,7 @@ router.get(
     '/projects/allProjects',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const skip: $TSFixMe = req.query['skip'] || 0;
             const limit: $TSFixMe = req.query['limit'] || 10;
@@ -1057,7 +1057,7 @@ router.get(
     '/projects/:slug',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const slug: $TSFixMe = req.params.slug;
             const populate: $TSFixMe = [
@@ -1195,7 +1195,7 @@ router.put(
     '/:projectId/:subProjectId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const parentProjectId: $TSFixMe = req.params.projectId;
             const subProjectId: $TSFixMe = req.params.subProjectId;
@@ -1242,7 +1242,7 @@ router.post(
     '/:projectId/addNote',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             if (Array.isArray(req.body)) {
@@ -1297,7 +1297,7 @@ router.post(
     '/projects/search',
     getUser,
     isUserMasterAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const filter: $TSFixMe = req.body.filter;
             const skip: $TSFixMe = req.query['skip'] || 0;

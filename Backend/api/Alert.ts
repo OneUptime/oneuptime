@@ -55,7 +55,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -74,7 +74,7 @@ router.get(
     '/:projectId/alert',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             const populateAlert: $TSFixMe = [
@@ -215,7 +215,7 @@ router.get(
     '/:projectId/alert/charges',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
 

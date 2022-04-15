@@ -80,7 +80,7 @@ router.put(
     '/:projectId/:smsSmtpId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             const smsSmtpId: $TSFixMe = req.params.smsSmtpId;
@@ -102,7 +102,7 @@ router.delete(
     '/:projectId/:smsSmtpId',
     getUser,
     isUserOwner,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const smsSmtpId: $TSFixMe = req.params.smsSmtpId;
             const payload: $TSFixMe = {

@@ -46,7 +46,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             const projectId: $TSFixMe = req.params.projectId;
@@ -447,7 +447,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -472,7 +472,7 @@ router.get(
     '/:projectId/paginated',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             // const { projectId }: $TSFixMe = req.params;
             const { skip, limit, componentSlug }: $TSFixMe = req.query;
@@ -948,7 +948,7 @@ router.post(
     '/:projectId/addseat',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const seatresponse: $TSFixMe = await MonitorService.addSeat({
                 _id: req.params.projectId,

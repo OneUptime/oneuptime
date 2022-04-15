@@ -22,7 +22,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -161,7 +161,7 @@ router.put(
     '/:projectId/:notificationId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const notificationId: $TSFixMe = req.params.notificationId;
             const updateObject: $TSFixMe = req.body;

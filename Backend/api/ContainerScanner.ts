@@ -21,7 +21,7 @@ import ProjectService from '../services/projectService';
 router.get(
     '/containerSecurities',
     isAuthorizedContainerScanner,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const response: $TSFixMe =
                 await ContainerSecurityService.getSecuritiesToScan();
@@ -34,7 +34,7 @@ router.get(
 router.post(
     '/scanning',
     isAuthorizedContainerScanner,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const security: $TSFixMe = req.body.security;
             const containerSecurity: $TSFixMe =

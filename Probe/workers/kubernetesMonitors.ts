@@ -60,9 +60,9 @@ export default {
                                 const healthyPods: $TSFixMe = [],
                                     healthyPodData: $TSFixMe = [],
                                     unhealthyPods: $TSFixMe = [],
-                                    unhealthyPodData : $TSFixMe= [],
-                                    allPods : $TSFixMe= [],
-                                    allPodData : $TSFixMe= [];
+                                    unhealthyPodData: $TSFixMe = [],
+                                    allPods: $TSFixMe = [],
+                                    allPodData: $TSFixMe = [];
                                 let runningPods: $TSFixMe = 0,
                                     completedPods: $TSFixMe = 0,
                                     failedPods: $TSFixMe = 0;
@@ -233,9 +233,9 @@ export default {
                                 // handle job output
 
                                 const runningJobs: $TSFixMe = [],
-                                    succeededJobs : $TSFixMe= [],
-                                    failedJobs : $TSFixMe= [],
-                                    runningJobData : $TSFixMe= [],
+                                    succeededJobs: $TSFixMe = [],
+                                    failedJobs: $TSFixMe = [],
+                                    runningJobData: $TSFixMe = [],
                                     succeededJobData: $TSFixMe = [],
                                     failedJobData: $TSFixMe = [];
 
@@ -408,20 +408,97 @@ export default {
                                     healthyDeploymentData = [],
                                     allDeploymentData = [];
 
-                                deploymentOutput.items.forEach((item: $TSFixMe) => {
-                                    if (item.status.readyReplicas) {
-                                        readyDeployment +=
-                                            item.status.readyReplicas;
-                                    } else {
-                                        readyDeployment += 0;
-                                    }
-                                    desiredDeployment += item.status.replicas;
+                                deploymentOutput.items.forEach(
+                                    (item: $TSFixMe) => {
+                                        if (item.status.readyReplicas) {
+                                            readyDeployment +=
+                                                item.status.readyReplicas;
+                                        } else {
+                                            readyDeployment += 0;
+                                        }
+                                        desiredDeployment +=
+                                            item.status.replicas;
 
-                                    if (
-                                        item.status.readyReplicas !==
-                                        item.status.replicas
-                                    ) {
-                                        unhealthyDeployments.push({
+                                        if (
+                                            item.status.readyReplicas !==
+                                            item.status.replicas
+                                        ) {
+                                            unhealthyDeployments.push({
+                                                deploymentName:
+                                                    item.metadata.name,
+                                                deploymentNamespace:
+                                                    item.metadata.namespace,
+                                                deploymentCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyDeployment:
+                                                    item.status.readyReplicas ||
+                                                    0,
+                                                desiredDeployment:
+                                                    item.status.replicas,
+                                                deploymentResourceVersion:
+                                                    item.metadata
+                                                        .resourceVersion,
+                                                deploymentUid:
+                                                    item.metadata.uid,
+                                                deploymentSelfLink:
+                                                    item.metadata.selfLink,
+                                                deploymentConditions:
+                                                    item.status.conditions,
+                                            });
+                                            unhealthyDeploymentData.push({
+                                                deploymentName:
+                                                    item.metadata.name,
+                                                deploymentNamespace:
+                                                    item.metadata.namespace,
+                                                deploymentCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyDeployment:
+                                                    item.status.readyReplicas ||
+                                                    0,
+                                                desiredDeployment:
+                                                    item.status.replicas,
+                                            });
+                                        } else {
+                                            healthyDeployments.push({
+                                                deploymentName:
+                                                    item.metadata.name,
+                                                deploymentNamespace:
+                                                    item.metadata.namespace,
+                                                deploymentCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyDeployment:
+                                                    item.status.readyReplicas,
+                                                desiredDeployment:
+                                                    item.status.replicas,
+                                                deploymentResourceVersion:
+                                                    item.metadata
+                                                        .resourceVersion,
+                                                deploymentUid:
+                                                    item.metadata.uid,
+                                                deploymentSelfLink:
+                                                    item.metadata.selfLink,
+                                                deploymentConditions:
+                                                    item.status.conditions,
+                                            });
+                                            healthyDeploymentData.push({
+                                                deploymentName:
+                                                    item.metadata.name,
+                                                deploymentNamespace:
+                                                    item.metadata.namespace,
+                                                deploymentCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyDeployment:
+                                                    item.status.readyReplicas,
+                                                desiredDeployment:
+                                                    item.status.replicas,
+                                            });
+                                        }
+
+                                        allDeployments.push({
                                             deploymentName: item.metadata.name,
                                             deploymentNamespace:
                                                 item.metadata.namespace,
@@ -439,7 +516,7 @@ export default {
                                             deploymentConditions:
                                                 item.status.conditions,
                                         });
-                                        unhealthyDeploymentData.push({
+                                        allDeploymentData.push({
                                             deploymentName: item.metadata.name,
                                             deploymentNamespace:
                                                 item.metadata.namespace,
@@ -450,66 +527,8 @@ export default {
                                             desiredDeployment:
                                                 item.status.replicas,
                                         });
-                                    } else {
-                                        healthyDeployments.push({
-                                            deploymentName: item.metadata.name,
-                                            deploymentNamespace:
-                                                item.metadata.namespace,
-                                            deploymentCreationTimestamp:
-                                                item.metadata.creationTimestamp,
-                                            readyDeployment:
-                                                item.status.readyReplicas,
-                                            desiredDeployment:
-                                                item.status.replicas,
-                                            deploymentResourceVersion:
-                                                item.metadata.resourceVersion,
-                                            deploymentUid: item.metadata.uid,
-                                            deploymentSelfLink:
-                                                item.metadata.selfLink,
-                                            deploymentConditions:
-                                                item.status.conditions,
-                                        });
-                                        healthyDeploymentData.push({
-                                            deploymentName: item.metadata.name,
-                                            deploymentNamespace:
-                                                item.metadata.namespace,
-                                            deploymentCreationTimestamp:
-                                                item.metadata.creationTimestamp,
-                                            readyDeployment:
-                                                item.status.readyReplicas,
-                                            desiredDeployment:
-                                                item.status.replicas,
-                                        });
                                     }
-
-                                    allDeployments.push({
-                                        deploymentName: item.metadata.name,
-                                        deploymentNamespace:
-                                            item.metadata.namespace,
-                                        deploymentCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        readyDeployment:
-                                            item.status.readyReplicas || 0,
-                                        desiredDeployment: item.status.replicas,
-                                        deploymentResourceVersion:
-                                            item.metadata.resourceVersion,
-                                        deploymentUid: item.metadata.uid,
-                                        deploymentSelfLink:
-                                            item.metadata.selfLink,
-                                        deploymentConditions:
-                                            item.status.conditions,
-                                    });
-                                    allDeploymentData.push({
-                                        deploymentName: item.metadata.name,
-                                        deploymentNamespace:
-                                            item.metadata.namespace,
-                                        deploymentCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        readyDeployment:
-                                            item.status.readyReplicas || 0,
-                                        desiredDeployment: item.status.replicas,
-                                    });
-                                });
+                                );
                                 const deploymentData: $TSFixMe = {
                                     desiredDeployment,
                                     readyDeployment,
@@ -540,20 +559,93 @@ export default {
                                     unhealthyStatefulsetData = [],
                                     allStatefulsetData = [];
 
-                                statefulsetOutput.items.forEach((item: $TSFixMe) => {
-                                    if (item.status.readyReplicas) {
-                                        readyStatefulsets +=
-                                            item.status.readyReplicas;
-                                    } else {
-                                        readyStatefulsets += 0;
-                                    }
-                                    desiredStatefulsets += item.status.replicas;
+                                statefulsetOutput.items.forEach(
+                                    (item: $TSFixMe) => {
+                                        if (item.status.readyReplicas) {
+                                            readyStatefulsets +=
+                                                item.status.readyReplicas;
+                                        } else {
+                                            readyStatefulsets += 0;
+                                        }
+                                        desiredStatefulsets +=
+                                            item.status.replicas;
 
-                                    if (
-                                        item.status.readyReplicas !==
-                                        item.status.replicas
-                                    ) {
-                                        unhealthyStatefulsets.push({
+                                        if (
+                                            item.status.readyReplicas !==
+                                            item.status.replicas
+                                        ) {
+                                            unhealthyStatefulsets.push({
+                                                statefulsetName:
+                                                    item.metadata.name,
+                                                statefulsetNamespace:
+                                                    item.metadata.namespace,
+                                                statefulsetCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyStatefulsets:
+                                                    item.status.readyReplicas ||
+                                                    0,
+                                                desiredStatefulsets:
+                                                    item.status.replicas,
+                                                statefulsetResourceVersion:
+                                                    item.metadata
+                                                        .resourceVersion,
+                                                statefulsetUid:
+                                                    item.metadata.uid,
+                                                statefulsetSelfLink:
+                                                    item.metadata.selfLink,
+                                            });
+                                            unhealthyStatefulsetData.push({
+                                                statefulsetName:
+                                                    item.metadata.name,
+                                                statefulsetNamespace:
+                                                    item.metadata.namespace,
+                                                statefulsetCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyStatefulsets:
+                                                    item.status.readyReplicas ||
+                                                    0,
+                                                desiredStatefulsets:
+                                                    item.status.replicas,
+                                            });
+                                        } else {
+                                            healthyStatefulsets.push({
+                                                statefulsetName:
+                                                    item.metadata.name,
+                                                statefulsetNamespace:
+                                                    item.metadata.namespace,
+                                                statefulsetCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyStatefulsets:
+                                                    item.status.readyReplicas,
+                                                desiredStatefulsets:
+                                                    item.status.replicas,
+                                                statefulsetResourceVersion:
+                                                    item.metadata
+                                                        .resourceVersion,
+                                                statefulsetUid:
+                                                    item.metadata.uid,
+                                                statefulsetSelfLink:
+                                                    item.metadata.selfLink,
+                                            });
+                                            healthyStatefulsetData.push({
+                                                statefulsetName:
+                                                    item.metadata.name,
+                                                statefulsetNamespace:
+                                                    item.metadata.namespace,
+                                                statefulsetCreationTimestamp:
+                                                    item.metadata
+                                                        .creationTimestamp,
+                                                readyStatefulsets:
+                                                    item.status.readyReplicas,
+                                                desiredStatefulsets:
+                                                    item.status.replicas,
+                                            });
+                                        }
+
+                                        allStatefulset.push({
                                             statefulsetName: item.metadata.name,
                                             statefulsetNamespace:
                                                 item.metadata.namespace,
@@ -569,7 +661,7 @@ export default {
                                             statefulsetSelfLink:
                                                 item.metadata.selfLink,
                                         });
-                                        unhealthyStatefulsetData.push({
+                                        allStatefulsetData.push({
                                             statefulsetName: item.metadata.name,
                                             statefulsetNamespace:
                                                 item.metadata.namespace,
@@ -580,64 +672,8 @@ export default {
                                             desiredStatefulsets:
                                                 item.status.replicas,
                                         });
-                                    } else {
-                                        healthyStatefulsets.push({
-                                            statefulsetName: item.metadata.name,
-                                            statefulsetNamespace:
-                                                item.metadata.namespace,
-                                            statefulsetCreationTimestamp:
-                                                item.metadata.creationTimestamp,
-                                            readyStatefulsets:
-                                                item.status.readyReplicas,
-                                            desiredStatefulsets:
-                                                item.status.replicas,
-                                            statefulsetResourceVersion:
-                                                item.metadata.resourceVersion,
-                                            statefulsetUid: item.metadata.uid,
-                                            statefulsetSelfLink:
-                                                item.metadata.selfLink,
-                                        });
-                                        healthyStatefulsetData.push({
-                                            statefulsetName: item.metadata.name,
-                                            statefulsetNamespace:
-                                                item.metadata.namespace,
-                                            statefulsetCreationTimestamp:
-                                                item.metadata.creationTimestamp,
-                                            readyStatefulsets:
-                                                item.status.readyReplicas,
-                                            desiredStatefulsets:
-                                                item.status.replicas,
-                                        });
                                     }
-
-                                    allStatefulset.push({
-                                        statefulsetName: item.metadata.name,
-                                        statefulsetNamespace:
-                                            item.metadata.namespace,
-                                        statefulsetCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        readyStatefulsets:
-                                            item.status.readyReplicas || 0,
-                                        desiredStatefulsets:
-                                            item.status.replicas,
-                                        statefulsetResourceVersion:
-                                            item.metadata.resourceVersion,
-                                        statefulsetUid: item.metadata.uid,
-                                        statefulsetSelfLink:
-                                            item.metadata.selfLink,
-                                    });
-                                    allStatefulsetData.push({
-                                        statefulsetName: item.metadata.name,
-                                        statefulsetNamespace:
-                                            item.metadata.namespace,
-                                        statefulsetCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        readyStatefulsets:
-                                            item.status.readyReplicas || 0,
-                                        desiredStatefulsets:
-                                            item.status.replicas,
-                                    });
-                                });
+                                );
                                 const statefulsetData: $TSFixMe = {
                                     readyStatefulsets,
                                     desiredStatefulsets,

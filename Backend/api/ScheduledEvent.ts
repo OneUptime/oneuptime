@@ -113,7 +113,7 @@ router.put(
     '/:projectId/:eventId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             const { eventId, projectId }: $TSFixMe = req.params;
@@ -279,7 +279,7 @@ router.delete(
     '/:projectId/:eventId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const { eventId }: $TSFixMe = req.params;
@@ -301,7 +301,7 @@ router.put(
     '/:projectId/:eventId/cancel',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const { eventId }: $TSFixMe = req.params;
@@ -378,7 +378,7 @@ router.get(
     '/:projectId/ongoingEvent',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId }: $TSFixMe = req.params;
             const currentDate: $TSFixMe = moment();
@@ -467,7 +467,7 @@ router.get(
     '/:projectId/:eventId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId, eventId }: $TSFixMe = req.params;
 
@@ -691,7 +691,7 @@ router.post(
     '/:projectId/:eventId/notes',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { eventId, projectId }: $TSFixMe = req.params;
 
@@ -788,7 +788,7 @@ router.get(
     '/:projectId/:eventId/notes',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { eventId }: $TSFixMe = req.params;
 
@@ -944,7 +944,7 @@ router.get(
     '/:projectId/slug/:slug',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { slug }: $TSFixMe = req.params;
             const populate: $TSFixMe = [

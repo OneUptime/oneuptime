@@ -185,7 +185,7 @@ router.put(
     '/:projectId/:emailSmtpId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             const emailSmtpId: $TSFixMe = req.params.emailSmtpId;
@@ -256,7 +256,7 @@ router.delete(
     '/:projectId/:emailSmtpId',
     getUser,
     isUserOwner,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             data.deleted = true;

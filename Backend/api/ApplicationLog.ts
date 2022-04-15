@@ -116,7 +116,7 @@ router.get(
     '/:projectId/:componentId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const componentId: $TSFixMe = req.params.componentId;
             if (!componentId) {
@@ -175,7 +175,7 @@ router.delete(
 router.post(
     '/:applicationLogId/log',
     isApplicationLogValid,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             const applicationLogId: $TSFixMe = req.params.applicationLogId;

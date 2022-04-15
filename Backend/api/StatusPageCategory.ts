@@ -165,7 +165,7 @@ router.get(
     '/:projectId/:statusPageId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { statusPageId }: $TSFixMe = req.params;
             const { limit, skip }: $TSFixMe = req.query;

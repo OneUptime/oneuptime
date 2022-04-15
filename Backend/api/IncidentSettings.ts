@@ -31,7 +31,7 @@ router.get(
     '/:projectId/default',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId }: $TSFixMe = req.params;
             if (!projectId) {
@@ -127,7 +127,7 @@ router.put(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         const { projectId, templateId }: $TSFixMe = req.params;
         const {
             title,
@@ -214,7 +214,7 @@ router.delete(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId, templateId }: $TSFixMe = req.params;
 

@@ -87,7 +87,7 @@ router.put(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId, templateId }: $TSFixMe = req.params;
             const { name, incidentNote, incidentState }: $TSFixMe = req.body;
@@ -134,7 +134,7 @@ router.delete(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId, templateId }: $TSFixMe = req.params;
 

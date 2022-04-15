@@ -367,13 +367,15 @@ describe('Capture Exception', (): void => {
         let event: $TSFixMe, newEvent: $TSFixMe;
         const errorMessage: string = 'Error Found';
         const errorMessageObj: string = 'Object Error Found';
-        await tracker.captureMessage(errorMessage).then(evt => {
+        await tracker.captureMessage(errorMessage).then((evt: $TSFixMe) => {
             event = evt.data;
         });
 
-        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
-            newEvent = evt.data;
-        });
+        await tracker
+            .captureException(new Error(errorMessageObj))
+            .then((evt: $TSFixMe) => {
+                newEvent = evt.data;
+            });
 
         // ensure that the first event have a type message, same error message
 
@@ -404,15 +406,17 @@ describe('Capture Exception', (): void => {
         // add a timelie action to the first event
 
         tracker.addToTimeline(customTimeline);
-        await tracker.captureMessage(errorMessage).then(evt => {
+        await tracker.captureMessage(errorMessage).then((evt: $TSFixMe) => {
             event = evt.data;
         });
 
         // add a tag to the second event
         tracker.setTag('test', 'content');
-        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
-            newEvent = evt.data;
-        });
+        await tracker
+            .captureException(new Error(errorMessageObj))
+            .then((evt: $TSFixMe) => {
+                newEvent = evt.data;
+            });
 
         // ensure that the first event have a type message, same error message and two timeline (the custom and the generic one)
 
@@ -462,9 +466,11 @@ describe('Code Capture Snippet', (): void => {
         );
         let event: $TSFixMe = null;
         const errorMessageObj: string = 'Object Error Found';
-        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
-            event = evt.data;
-        });
+        await tracker
+            .captureException(new Error(errorMessageObj))
+            .then((evt: $TSFixMe) => {
+                event = evt.data;
+            });
 
         const incidentFrame: $TSFixMe = event.content.stacktrace.frames[0];
         expect(incidentFrame).to.have.property('linesBeforeError');
@@ -482,9 +488,11 @@ describe('Code Capture Snippet', (): void => {
         );
         let event: $TSFixMe = null;
         const errorMessageObj: string = 'Object Error Found';
-        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
-            event = evt.data;
-        });
+        await tracker
+            .captureException(new Error(errorMessageObj))
+            .then((evt: $TSFixMe) => {
+                event = evt.data;
+            });
 
         const incidentFrame: $TSFixMe = event.content.stacktrace.frames[0];
         expect(incidentFrame.errorLine).to.be.a('string');
@@ -502,9 +510,11 @@ describe('Code Capture Snippet', (): void => {
         );
         let event: $TSFixMe = null;
         const errorMessageObj: string = 'Object Error Found';
-        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
-            event = evt.data;
-        });
+        await tracker
+            .captureException(new Error(errorMessageObj))
+            .then((evt: $TSFixMe) => {
+                event = evt.data;
+            });
 
         const incidentFrame: $TSFixMe = event.content.stacktrace.frames[0];
         expect(incidentFrame).to.not.have.property('linesBeforeError');
@@ -522,9 +532,11 @@ describe('Code Capture Snippet', (): void => {
         );
         let event: $TSFixMe = null;
         const errorMessageObj: string = 'Object Error Found';
-        await tracker.captureException(new Error(errorMessageObj)).then(evt => {
-            event = evt.data;
-        });
+        await tracker
+            .captureException(new Error(errorMessageObj))
+            .then((evt: $TSFixMe) => {
+                event = evt.data;
+            });
 
         const incidentFrame: $TSFixMe = event.content.stacktrace.frames[0];
         expect(incidentFrame).to.have.property('linesBeforeError');

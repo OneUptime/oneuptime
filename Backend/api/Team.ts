@@ -78,7 +78,7 @@ router.get(
     '/:projectId/:teamMemberId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         const projectId: $TSFixMe = req.params.projectId;
         const teamMemberUserId: $TSFixMe = req.params.teamMemberId;
 
@@ -124,7 +124,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         const data: $TSFixMe = req.body;
 
         const userId: $TSFixMe = req.user ? req.user : null;

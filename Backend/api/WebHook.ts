@@ -18,7 +18,7 @@ router.post(
     '/:projectId/create',
     getUser,
     isUserAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             const body: $TSFixMe = req.body;
@@ -152,7 +152,7 @@ router.put(
     '/:projectId/:integrationId',
     getUser,
     isUserAdmin,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const data: $TSFixMe = req.body;
             const integrationId: $TSFixMe = req.params.integrationId;

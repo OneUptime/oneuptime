@@ -135,7 +135,7 @@ router.put(
     '/:projectId/:monitorSlaId',
     getUser,
     isAuthorized,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { projectId, monitorSlaId }: $TSFixMe = req.params;
             const { name, handleDefault, frequency, monitorUptime }: $TSFixMe =

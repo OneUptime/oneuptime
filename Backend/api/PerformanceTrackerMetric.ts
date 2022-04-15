@@ -120,7 +120,7 @@ router.get(
 router.get(
     '/:appId/key/:key/throughput',
     isValidAPIKey,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { appId }: $TSFixMe = req.params;
             let { startDate, endDate }: $TSFixMe = req.query;
@@ -350,7 +350,7 @@ router.get(
 router.delete(
     '/:appId/key/:key/:metricId',
     isValidAPIKey,
-    async (req, res): void => {
+    async (req: $TSFixMe, res: $TSFixMe) void => {
         try {
             const { metricId }: $TSFixMe = req.params;
             const deletedMetric: $TSFixMe =
