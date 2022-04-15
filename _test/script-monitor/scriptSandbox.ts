@@ -44,7 +44,7 @@ const runScript: Function = async (functionCode: $TSFixMe, isCalled: $TSFixMe, o
         const { maxScriptRunTime, maxSyncStatementDuration } = options;
         if (!isCalled) return;
         const start: $TSFixMe = performance.now();
-        return new Promise(resolve => {
+        return new Promise((resolve: $TSFixMe) =>  {
             const worker: $TSFixMe = new Worker(__filename, {
                 workerData: { functionCode },
                 execArgv: [

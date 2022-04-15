@@ -158,7 +158,7 @@ class Util {
         return errorObj;
     }
     _readFileFromSource(fileName: $TSFixMe): void {
-        return new Promise(resolve => {
+        return new Promise((resolve: $TSFixMe) =>  {
             readFile(fileName, (err: $TSFixMe, data: $TSFixMe){
                 const content: $TSFixMe = err ? null : data.toString();
 

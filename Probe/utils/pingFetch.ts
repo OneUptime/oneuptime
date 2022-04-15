@@ -11,7 +11,7 @@ const httpsAgent: $TSFixMe = new https.Agent({
 
 const httpAgent: $TSFixMe = new http.Agent();
 
-const pingfetch: $TSFixMe: Function = async (
+const pingfetch: Function = async (
     url: URL,
     method: $TSFixMe,
     body: $TSFixMe,

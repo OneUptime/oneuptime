@@ -101,7 +101,7 @@ router.post(
     }
 );
 
-const getComponents: $TSFixMe: Function = async (
+const getComponents: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
@@ -144,7 +144,7 @@ const getComponents: $TSFixMe: Function = async (
     return null;
 };
 
-const getMonitors: $TSFixMe: Function = async (
+const getMonitors: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
@@ -193,7 +193,7 @@ const getMonitors: $TSFixMe: Function = async (
     return null;
 };
 
-const getStatusPages: $TSFixMe: Function = async (
+const getStatusPages: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
@@ -291,7 +291,7 @@ const getUsers: Function = async (projectIds: $TSFixMe, val: $TSFixMe): void => 
     return null;
 };
 
-const getOnCallDuty: $TSFixMe: Function = async (
+const getOnCallDuty: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
@@ -345,7 +345,7 @@ const getOnCallDuty: $TSFixMe: Function = async (
     return null;
 };
 
-const getSchedultEvent: $TSFixMe: Function = async (
+const getSchedultEvent: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
@@ -393,7 +393,7 @@ const getSchedultEvent: $TSFixMe: Function = async (
     return null;
 };
 
-const getIncidents: $TSFixMe: Function = async (
+const getIncidents: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
@@ -457,7 +457,7 @@ const getIncidents: $TSFixMe: Function = async (
     return null;
 };
 
-const getErrorTrackers: $TSFixMe: Function = async (
+const getErrorTrackers: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
@@ -509,7 +509,7 @@ const getErrorTrackers: $TSFixMe: Function = async (
     return null;
 };
 
-const getLogContainers: $TSFixMe: Function = async (
+const getLogContainers: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID
@@ -565,7 +565,7 @@ const getLogContainers: $TSFixMe: Function = async (
     return null;
 };
 
-const getPerformanceTrackers: $TSFixMe: Function = async (
+const getPerformanceTrackers: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
     parentProjectId: ObjectID

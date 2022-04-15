@@ -535,7 +535,7 @@ class SocketApp extends Component<ComponentProps> {
                                 onClose: () => '',
 
                                 onConfirm: () =>
-                                    new Promise(resolve => resolve()),
+                                    new Promise((resolve: $TSFixMe) =>  resolve()),
                                 content: RemovedFromProjectModal,
                             });
                         }
@@ -568,7 +568,7 @@ class SocketApp extends Component<ComponentProps> {
                                 onClose: () => '',
 
                                 onConfirm: () =>
-                                    new Promise(resolve => resolve()),
+                                    new Promise((resolve: $TSFixMe) =>  resolve()),
                                 content: DataPathHoC(
                                     RemovedFromSubProjectModal,
                                     {

@@ -1889,7 +1889,7 @@ export default class Service {
             projectId,
         });
 
-        const sendSubscriberAlert: $TSFixMe: Function = async ({
+        const sendSubscriberAlert: Function = async ({
             subscriber,
             monitor,
             statusPageSlug,
@@ -1973,7 +1973,7 @@ export default class Service {
             'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
         const track: $TSFixMe = {};
-        const sendSubscriberAlert: $TSFixMe: Function = async ({
+        const sendSubscriberAlert: Function = async ({
             subscriber,
             monitor,
             enabledStatusPage,
@@ -2779,7 +2779,7 @@ export default class Service {
         const selectStatusPage: $TSFixMe =
             'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-        const sendSubscriberAlert: $TSFixMe: Function = async ({
+        const sendSubscriberAlert: Function = async ({
             subscriber,
             monitor,
             enabledStatusPage,
@@ -2882,7 +2882,7 @@ export default class Service {
         const selectStatusPage: $TSFixMe =
             'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-        const sendSubscriberAlert: $TSFixMe: Function = async ({
+        const sendSubscriberAlert: Function = async ({
             subscriber,
             monitor,
             enabledStatusPage,
@@ -4045,7 +4045,7 @@ export default class Service {
         const uuid: $TSFixMe = new Date().getTime();
         if (schedule) {
             const track: $TSFixMe = {};
-            const sendSubscribersAlert: $TSFixMe: Function = async ({
+            const sendSubscribersAlert: Function = async ({
                 subscriber,
                 component,
                 subscribers,
@@ -4095,7 +4095,7 @@ export default class Service {
         const uuid: $TSFixMe = new Date().getTime();
         if (schedule) {
             const track: $TSFixMe = {};
-            const sendSubscribersAlert: $TSFixMe: Function = async ({
+            const sendSubscribersAlert: Function = async ({
                 subscriber,
                 component,
                 subscribers,
@@ -5044,7 +5044,7 @@ export default class Service {
 
         if (message) {
             const track: $TSFixMe = {};
-            const sendAlerts: $TSFixMe: Function = async ({
+            const sendAlerts: Function = async ({
                 project,
                 subscriber,
                 projectId,

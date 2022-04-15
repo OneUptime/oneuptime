@@ -86,7 +86,7 @@ const questions: $TSFixMe = [
 const checkParams: Function = (params: $TSFixMe): void => {
     const values: $TSFixMe = [];
 
-    return new Promise(resolve => {
+    return new Promise((resolve: $TSFixMe) =>  {
         resolve(
             params.reduce(
                 (promiseChain, param) =>
@@ -112,7 +112,7 @@ const checkParams: Function = (params: $TSFixMe): void => {
 
 const getParamValue: Function = (params, name): void => {
     const options: $TSFixMe = program.opts();
-    return new Promise(resolve => {
+    return new Promise((resolve: $TSFixMe) =>  {
         if (options[name] === true || options[name] === undefined) {
             if (name === 'monitorId') {
                 resolve(process.env[name] || null);
@@ -259,7 +259,7 @@ checkParams(questions).then(values => {
             monitorId:
                 monitorId ||
                 (data => {
-                    return new Promise(resolve => {
+                    return new Promise((resolve: $TSFixMe) =>  {
                         const question: $TSFixMe = questions.filter(
                             param => param.name === 'monitorId'
                         );

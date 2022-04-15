@@ -18,7 +18,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
 
 const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
-    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+    new Promise((resolve: $TSFixMe) =>  setTimeout(resolve, waitTimeInMs));
 
 let userId: ObjectID, projectId: ObjectID;
 

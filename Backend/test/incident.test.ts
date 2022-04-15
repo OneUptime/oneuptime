@@ -45,7 +45,7 @@ const selectEmailStatus: $TSFixMe =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
 const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
-    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+    new Promise((resolve: $TSFixMe) =>  setTimeout(resolve, waitTimeInMs));
 
 let token: $TSFixMe,
     userId: ObjectID,

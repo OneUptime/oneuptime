@@ -43,7 +43,7 @@ const callForward: Function = async (req: ExpressRequest, res: ExpressResponse):
     }
 };
 
-const backupCallForward: $TSFixMe: Function = async (
+const backupCallForward: Function = async (
     req: ExpressRequest,
     res: ExpressResponse
 ): void => {
