@@ -83,7 +83,7 @@ class Logger {
         return new Promise((resolve: Function, reject: Function) => {
             axios
                 .post(this.apiUrl, requestData)
-                .then(res => {
+                .then((res: $TSFixMe) => {
                     resolve(res);
                 })
                 .catch(err => {

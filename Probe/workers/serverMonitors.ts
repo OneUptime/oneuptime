@@ -34,7 +34,7 @@ export default {
                 config.password = password;
             } else {
                 await fetch(`${serverUrl}/file/${identityFile}`).then(
-                    res =>
+                    (res: $TSFixMe) =>
                         new Promise((resolve: Function, reject: Function) => {
                             const dest: $TSFixMe = fs.createWriteStream(
                                 `./${identityFile}`

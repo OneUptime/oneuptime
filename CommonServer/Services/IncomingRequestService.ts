@@ -2031,7 +2031,7 @@ export default class Service {
                 return {
                     status: 'success',
                     resolved_incidents: resolveResponse.map(
-                        res => res.idNumber
+                        (res: $TSFixMe) => res.idNumber
                     ),
                 };
             } else if (
@@ -2053,7 +2053,7 @@ export default class Service {
                 return {
                     status: 'success',
                     acknowledged_incidents: acknowledgeResponse.map(
-                        res => res.idNumber
+                        (res: $TSFixMe) => res.idNumber
                     ),
                 };
             } else if (

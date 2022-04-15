@@ -378,7 +378,7 @@ export function switchProject(
     dispatch(setActiveSubProject(activesubProjectId));
 
     if (!currentProjectId || project._id !== currentProjectId) {
-        getSubProjects(project._id)(dispatch).then(res => {
+        getSubProjects(project._id)(dispatch).then((res: $TSFixMe) => {
             if (!switchToMainProject) {
                 const { data }: $TSFixMe = res.data;
                 const projectId: $TSFixMe = data[0]._id;

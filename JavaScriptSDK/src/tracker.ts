@@ -6,20 +6,20 @@ import axios from 'axios';
 import { name, version } from '../package.json';
 
 class ErrorTracker {
-    MAX_ITEMS_ALLOWED_IN_STACK: $TSFixMe;
-    apiUrl: URL;
-    configKeys: $TSFixMe;
-    errorTrackerId: $TSFixMe;
-    errorTrackerKey: $TSFixMe;
-    event: $TSFixMe;
-    eventId: $TSFixMe;
-    extras: $TSFixMe;
-    fingerprint: $TSFixMe;
-    isWindow: $TSFixMe;
-    listenerObj: $TSFixMe;
-    options: $TSFixMe;
-    tags: $TSFixMe;
-    utilObj: $TSFixMe;
+    private MAX_ITEMS_ALLOWED_IN_STACK: $TSFixMe;
+    private apiUrl: URL;
+    private configKeys: $TSFixMe;
+    private errorTrackerId: $TSFixMe;
+    private errorTrackerKey: $TSFixMe;
+    private event: $TSFixMe;
+    private eventId: $TSFixMe;
+    private extras: $TSFixMe;
+    private fingerprint: $TSFixMe;
+    private isWindow: $TSFixMe;
+    private listenerObj: $TSFixMe;
+    private options: $TSFixMe;
+    private tags: $TSFixMe;
+    private utilObj: $TSFixMe;
     // constructor to set up global listeners
     constructor(
         apiUrl: URL,
@@ -57,16 +57,16 @@ class ErrorTracker {
             this._setUpNodeErrorListener();
         }
     }
-    _setErrorTrackerId(errorTrackerId: $TSFixMe): void {
+    private _setErrorTrackerId(errorTrackerId: $TSFixMe): void {
         this.errorTrackerId = errorTrackerId;
     }
-    _setErrorTrackerKey(errorTrackerKey: $TSFixMe): void {
+    private _setErrorTrackerKey(errorTrackerKey: $TSFixMe): void {
         this.errorTrackerKey = errorTrackerKey;
     }
-    _setApiUrl(apiUrl: URL): void {
+    private _setApiUrl(apiUrl: URL): void {
         this.apiUrl = `${apiUrl}/error-tracker/${this.errorTrackerId}/track`;
     }
-    _setUpOptions(options: $TSFixMe): void {
+    private _setUpOptions(options: $TSFixMe): void {
         for (const [key, value] of Object.entries(options)) {
             // proceed with current key if it is not in the config keys
             if (!this.configKeys.includes(key)) {
@@ -89,13 +89,13 @@ class ErrorTracker {
             }
         }
     }
-    _setEventId(): void {
+    private _setEventId(): void {
         this.eventId = uuidv4();
     }
-    getEventId(): void {
+    public getEventId(): void {
         return this.eventId;
     }
-    setTag(key: $TSFixMe, value: $TSFixMe): void {
+    public setTag(key: $TSFixMe, value: $TSFixMe): void {
         if (!(typeof key === 'string') || !(typeof value === 'string')) {
             return 'Invalid Tags type';
         }
@@ -112,7 +112,7 @@ class ErrorTracker {
         }
     }
     // pass an array of tags
-    setTags(tags: $TSFixMe): void {
+    public setTags(tags: $TSFixMe): void {
         if (!Array.isArray(tags)) {
             return 'Invalid Tags type';
         }
@@ -122,10 +122,10 @@ class ErrorTracker {
             }
         });
     }
-    _getTags(): void {
+    private _getTags(): void {
         return this.tags;
     }
-    setExtras(extras: $TSFixMe): void {
+    public setExtras(extras: $TSFixMe): void {
         extras.forEach((element: $TSFixMe) => {
             if (element.key && element.extra) {
                 this.setExtra(element.key, element.extra);
@@ -133,16 +133,16 @@ class ErrorTracker {
         });
     }
 
-    setExtra(key: $TSFixMe, extra: $TSFixMe): void {
+    public setExtra(key: $TSFixMe, extra: $TSFixMe): void {
         this.extras = { ...this.extras, [key]: extra };
     }
-    setFingerprint(keys: $TSFixMe): void {
+    public setFingerprint(keys: $TSFixMe): void {
         if (!(typeof keys === 'string') && !Array.isArray(keys)) {
             return 'Invalid Fingerprint Format';
         }
         this.fingerprint = keys ? (Array.isArray(keys) ? keys : [keys]) : [];
     }
-    _getFingerprint(errorMessage: $TSFixMe): void {
+    private _getFingerprint(errorMessage: $TSFixMe): void {
         // if no fingerprint exist currently
         if (this.fingerprint.length < 1) {
             // set up finger print based on error since none exist
@@ -151,7 +151,7 @@ class ErrorTracker {
         return this.fingerprint;
     }
     // set up error listener
-    _setUpErrorListener(): void {
+    private _setUpErrorListener(): void {
         window.onerror = async function (
             message,
             file,
@@ -182,7 +182,7 @@ class ErrorTracker {
             }
         };
     }
-    _setUpNodeErrorListener(): void {
+    private _setUpNodeErrorListener(): void {
         process
             .on('uncaughtException', err => {
                 // display for the user
@@ -199,7 +199,7 @@ class ErrorTracker {
                 this._manageErrorNode(err);
             });
     }
-    async _manageErrorNode(error: $TSFixMe): void {
+    private async _manageErrorNode(error: $TSFixMe): void {
         // construct the error object
         const errorObj: $TSFixMe = await this.utilObj._getErrorStackTrace(
             error
@@ -213,7 +213,11 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    addToTimeline(category: $TSFixMe, content: $TSFixMe, type: $TSFixMe): void {
+    public addToTimeline(
+        category: $TSFixMe,
+        content: $TSFixMe,
+        type: $TSFixMe
+    ): void {
         const timeline: $TSFixMe = {
             category,
             data: {
@@ -223,10 +227,10 @@ class ErrorTracker {
         };
         this.listenerObj.logCustomTimelineEvent(timeline);
     }
-    getTimeline(): void {
+    public getTimeline(): void {
         return this.listenerObj.getTimeline();
     }
-    captureMessage(message: $TSFixMe): void {
+    public captureMessage(message: $TSFixMe): void {
         // set the a handled tag
         this.setTag('handled', 'true');
         this.prepareErrorObject('message', { message });
@@ -234,7 +238,7 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    async captureException(error: $TSFixMe): void {
+    public async captureException(error: $TSFixMe): void {
         // construct the error object
         const errorObj: $TSFixMe = await this.utilObj._getErrorStackTrace(
             error
@@ -248,7 +252,7 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    _setHost(): void {
+    private _setHost(): void {
         if (this.isWindow) {
             // Web apps
             this.setTag('url', window.location.origin);
@@ -257,7 +261,7 @@ class ErrorTracker {
             // TODO create a way to get host on the backend
         }
     }
-    prepareErrorObject(type: $TSFixMe, errorStackTrace: $TSFixMe): void {
+    public prepareErrorObject(type: $TSFixMe, errorStackTrace: $TSFixMe): void {
         // log event
         const content: $TSFixMe = {
             message: errorStackTrace.message,
@@ -288,7 +292,7 @@ class ErrorTracker {
             sdk: this.getSDKDetails(),
         };
     }
-    async sendErrorEventToServer(): void {
+    public async sendErrorEventToServer(): void {
         let content: $TSFixMe;
         await this._makeApiRequest(this.event)
             .then((response: $TSFixMe) => {
@@ -301,11 +305,11 @@ class ErrorTracker {
             .catch((error: Error) => (content = error));
         return content;
     }
-    _makeApiRequest(data: $TSFixMe): void {
+    private _makeApiRequest(data: $TSFixMe): void {
         return new Promise((resolve: Function, reject: Function) => {
             axios
                 .post(this.apiUrl, data)
-                .then(res => {
+                .then((res: $TSFixMe) => {
                     resolve(res);
                 })
                 .catch(err => {
@@ -313,13 +317,13 @@ class ErrorTracker {
                 });
         });
     }
-    getCurrentEvent(): void {
+    public getCurrentEvent(): void {
         return this.event;
     }
-    getSDKDetails(): void {
+    public getSDKDetails(): void {
         return { name, version };
     }
-    _clear(newEventId: $TSFixMe): void {
+    private _clear(newEventId: $TSFixMe): void {
         // clear tags
         this.tags = [];
         // clear extras

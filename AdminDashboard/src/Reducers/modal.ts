@@ -17,7 +17,7 @@ export default (state = initialState, action: Action): void => {
         case CLOSE_MODAL:
             return Object.assign({}, state, {
                 modals: state.modals.filter(
-                    item => item.id !== action.payload.id
+                    (item: $TSFixMe) => item.id !== action.payload.id
                 ),
             });
 

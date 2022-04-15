@@ -1,11 +1,11 @@
 class OneUptimeTimelineManager {
-    options: $TSFixMe;
-    timeLineStack: $TSFixMe;
+    private options: $TSFixMe;
+    private timeLineStack: $TSFixMe;
     constructor(options: $TSFixMe) {
         this.options = options;
         this.timeLineStack = [];
     }
-    _addItemToTimeline(item: $TSFixMe): void {
+    private _addItemToTimeline(item: $TSFixMe): void {
         // get the size of the stack
         if (this.timeLineStack.length === this.options.maxTimeline) {
             // this.timeLineStack.shift(); // remove the oldest item
@@ -17,15 +17,15 @@ class OneUptimeTimelineManager {
         this.timeLineStack.push(item);
         return true;
     }
-    addToTimeline(item: $TSFixMe): void {
+    public addToTimeline(item: $TSFixMe): void {
         this._addItemToTimeline(item);
     }
     // return the timeline
-    getTimeline(): void {
+    public getTimeline(): void {
         return this.timeLineStack;
     }
     // clear the timeline
-    clearTimeline(): void {
+    public clearTimeline(): void {
         this.timeLineStack = [];
     }
 }

@@ -159,7 +159,7 @@ public clearTimeline(eventId: $TSFixMe): void {
             const promise: Promise = currentFetch(url, options);
             // Do something with the promise
             promise.then(
-                res => {
+                (res: $TSFixMe) => {
                     obj.status_code = res.status;
                 },
                 err => {

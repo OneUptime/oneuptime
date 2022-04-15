@@ -27,54 +27,147 @@ export default {
             const namespace: $TSFixMe =
                 monitor.kubernetesNamespace || 'default';
 
-            await fetch(`${serverUrl}/file/${configurationFile}`).then(res => {
-                const dest: $TSFixMe = fs.createWriteStream(configPath);
+            await fetch(`${serverUrl}/file/${configurationFile}`).then(
+                (res: $TSFixMe) => {
+                    const dest: $TSFixMe = fs.createWriteStream(configPath);
 
-                res.body.pipe(dest);
-                // at this point, writing to the specified file is complete
-                dest.on('finish', async () => {
-                    if (fs.existsSync(configPath)) {
-                        const [
-                            podOutput,
-                            jobOutput,
-                            serviceOutput,
-                            deploymentOutput,
-                            statefulsetOutput,
-                        ] = await Promise.all([
-                            loadPodOutput(configPath, namespace),
-                            loadJobOutput(configPath, namespace),
-                            loadServiceOutput(configPath, namespace),
-                            loadDeploymentOutput(configPath, namespace),
-                            loadStatefulsetOutput(configPath, namespace),
-                        ]);
+                    res.body.pipe(dest);
+                    // at this point, writing to the specified file is complete
+                    dest.on('finish', async () => {
+                        if (fs.existsSync(configPath)) {
+                            const [
+                                podOutput,
+                                jobOutput,
+                                serviceOutput,
+                                deploymentOutput,
+                                statefulsetOutput,
+                            ] = await Promise.all([
+                                loadPodOutput(configPath, namespace),
+                                loadJobOutput(configPath, namespace),
+                                loadServiceOutput(configPath, namespace),
+                                loadDeploymentOutput(configPath, namespace),
+                                loadStatefulsetOutput(configPath, namespace),
+                            ]);
 
-                        if (
-                            podOutput &&
-                            jobOutput &&
-                            deploymentOutput &&
-                            statefulsetOutput
-                        ) {
-                            // handle pod output
+                            if (
+                                podOutput &&
+                                jobOutput &&
+                                deploymentOutput &&
+                                statefulsetOutput
+                            ) {
+                                // handle pod output
 
-                            const healthyPods: $TSFixMe = [],
-                                healthyPodData = [],
-                                unhealthyPods = [],
-                                unhealthyPodData = [],
-                                allPods = [],
-                                allPodData = [];
-                            let runningPods: $TSFixMe = 0,
-                                completedPods = 0,
-                                failedPods = 0;
+                                const healthyPods: $TSFixMe = [],
+                                    healthyPodData: $TSFixMe = [],
+                                    unhealthyPods: $TSFixMe = [],
+                                    unhealthyPodData : $TSFixMe= [],
+                                    allPods : $TSFixMe= [],
+                                    allPodData : $TSFixMe= [];
+                                let runningPods: $TSFixMe = 0,
+                                    completedPods: $TSFixMe = 0,
+                                    failedPods: $TSFixMe = 0;
 
-                            podOutput.items.forEach(item => {
-                                /**
-                                 *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
-                                 */
-                                if (
-                                    item.status.phase !== 'Running' &&
-                                    item.status.phase !== 'Succeeded'
-                                ) {
-                                    unhealthyPods.push({
+                                podOutput.items.forEach((item: $TSFixMe) => {
+                                    /**
+                                     *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
+                                     */
+                                    if (
+                                        item.status.phase !== 'Running' &&
+                                        item.status.phase !== 'Succeeded'
+                                    ) {
+                                        unhealthyPods.push({
+                                            podName: item.metadata.name,
+                                            podNamespace:
+                                                item.metadata.namespace,
+                                            podStatus: item.status.phase,
+                                            podCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            podRestart:
+                                                item.status &&
+                                                item.status.containerStatuses &&
+                                                item.status.containerStatuses[0]
+                                                    ? item.status
+                                                          .containerStatuses[0]
+                                                          .restartCount
+                                                    : 0,
+                                            podResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            podUid: item.metadata.uid,
+                                            podSelfLink: item.metadata.selfLink,
+                                            podConditions:
+                                                item.status.conditions,
+                                            podContainerStatuses:
+                                                item.status.containerStatuses,
+                                            podContainers: item.spec.containers,
+                                        });
+                                        unhealthyPodData.push({
+                                            podName: item.metadata.name,
+                                            podNamespace:
+                                                item.metadata.namespace,
+                                            podStatus: item.status.phase,
+                                            podCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            podRestart:
+                                                item.status &&
+                                                item.status.containerStatuses &&
+                                                item.status.containerStatuses[0]
+                                                    ? item.status
+                                                          .containerStatuses[0]
+                                                          .restartCount
+                                                    : 0,
+                                        });
+                                        failedPods += 1;
+                                    } else {
+                                        healthyPods.push({
+                                            podName: item.metadata.name,
+                                            podNamespace:
+                                                item.metadata.namespace,
+                                            podStatus: item.status.phase,
+                                            podCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            podRestart:
+                                                item.status &&
+                                                item.status.containerStatuses &&
+                                                item.status.containerStatuses[0]
+                                                    ? item.status
+                                                          .containerStatuses[0]
+                                                          .restartCount
+                                                    : 0,
+                                            podResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            podUid: item.metadata.uid,
+                                            podSelfLink: item.metadata.selfLink,
+                                            podConditions:
+                                                item.status.conditions,
+                                            podContainerStatuses:
+                                                item.status.containerStatuses,
+                                            podContainers: item.spec.containers,
+                                        });
+                                        healthyPodData.push({
+                                            podName: item.metadata.name,
+                                            podNamespace:
+                                                item.metadata.namespace,
+                                            podStatus: item.status.phase,
+                                            podCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            podRestart:
+                                                item.status &&
+                                                item.status.containerStatuses &&
+                                                item.status.containerStatuses[0]
+                                                    ? item.status
+                                                          .containerStatuses[0]
+                                                          .restartCount
+                                                    : 0,
+                                        });
+                                        if (item.status.phase === 'Running') {
+                                            ++runningPods;
+                                        }
+                                        if (item.status.phase === 'Succeeded') {
+                                            ++completedPods;
+                                        }
+                                    }
+
+                                    allPods.push({
                                         podName: item.metadata.name,
                                         podNamespace: item.metadata.namespace,
                                         podStatus: item.status.phase,
@@ -97,7 +190,7 @@ export default {
                                             item.status.containerStatuses,
                                         podContainers: item.spec.containers,
                                     });
-                                    unhealthyPodData.push({
+                                    allPodData.push({
                                         podName: item.metadata.name,
                                         podNamespace: item.metadata.namespace,
                                         podStatus: item.status.phase,
@@ -112,292 +205,284 @@ export default {
                                                       .restartCount
                                                 : 0,
                                     });
-                                    failedPods += 1;
-                                } else {
-                                    healthyPods.push({
-                                        podName: item.metadata.name,
-                                        podNamespace: item.metadata.namespace,
-                                        podStatus: item.status.phase,
-                                        podCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        podRestart:
-                                            item.status &&
-                                            item.status.containerStatuses &&
-                                            item.status.containerStatuses[0]
-                                                ? item.status
-                                                      .containerStatuses[0]
-                                                      .restartCount
-                                                : 0,
-                                        podResourceVersion:
-                                            item.metadata.resourceVersion,
-                                        podUid: item.metadata.uid,
-                                        podSelfLink: item.metadata.selfLink,
-                                        podConditions: item.status.conditions,
-                                        podContainerStatuses:
-                                            item.status.containerStatuses,
-                                        podContainers: item.spec.containers,
-                                    });
-                                    healthyPodData.push({
-                                        podName: item.metadata.name,
-                                        podNamespace: item.metadata.namespace,
-                                        podStatus: item.status.phase,
-                                        podCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        podRestart:
-                                            item.status &&
-                                            item.status.containerStatuses &&
-                                            item.status.containerStatuses[0]
-                                                ? item.status
-                                                      .containerStatuses[0]
-                                                      .restartCount
-                                                : 0,
-                                    });
-                                    if (item.status.phase === 'Running') {
-                                        ++runningPods;
-                                    }
-                                    if (item.status.phase === 'Succeeded') {
-                                        ++completedPods;
-                                    }
-                                }
-
-                                allPods.push({
-                                    podName: item.metadata.name,
-                                    podNamespace: item.metadata.namespace,
-                                    podStatus: item.status.phase,
-                                    podCreationTimestamp:
-                                        item.metadata.creationTimestamp,
-                                    podRestart:
-                                        item.status &&
-                                        item.status.containerStatuses &&
-                                        item.status.containerStatuses[0]
-                                            ? item.status.containerStatuses[0]
-                                                  .restartCount
-                                            : 0,
-                                    podResourceVersion:
-                                        item.metadata.resourceVersion,
-                                    podUid: item.metadata.uid,
-                                    podSelfLink: item.metadata.selfLink,
-                                    podConditions: item.status.conditions,
-                                    podContainerStatuses:
-                                        item.status.containerStatuses,
-                                    podContainers: item.spec.containers,
                                 });
-                                allPodData.push({
-                                    podName: item.metadata.name,
-                                    podNamespace: item.metadata.namespace,
-                                    podStatus: item.status.phase,
-                                    podCreationTimestamp:
-                                        item.metadata.creationTimestamp,
-                                    podRestart:
+                                const podData: $TSFixMe = {
+                                    podStat: {
+                                        healthy: healthyPods.length,
+                                        unhealthy: unhealthyPods.length,
+                                        runningPods,
+                                        completedPods,
+                                        failedPods,
+
+                                        totalPods: podOutput.items.length,
+                                    },
+
+                                    healthyPods,
+
+                                    unhealthyPods,
+
+                                    allPods,
+
+                                    healthyPodData,
+
+                                    unhealthyPodData,
+
+                                    allPodData,
+                                };
+
+                                // handle job output
+
+                                const runningJobs: $TSFixMe = [],
+                                    succeededJobs : $TSFixMe= [],
+                                    failedJobs : $TSFixMe= [],
+                                    runningJobData : $TSFixMe= [],
+                                    succeededJobData: $TSFixMe = [],
+                                    failedJobData: $TSFixMe = [];
+
+                                jobOutput.items.forEach((item: $TSFixMe) => {
+                                    /**
+                                     * https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#job-v1-batch
+                                     */
+                                    if (item.status && item.status.active > 0) {
+                                        runningJobs.push({
+                                            jobName: item.metadata.name,
+                                            jobNamespace:
+                                                item.metadata.namespace,
+                                            jobStatus: 'running',
+                                            jobCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            jobResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            jobUid: item.metadata.uid,
+                                            jobSelfLink: item.metadata.selfLink,
+                                            jobConditions:
+                                                item.status.conditions,
+                                        });
+                                        runningJobData.push({
+                                            jobName: item.metadata.name,
+                                            jobNamespace:
+                                                item.metadata.namespace,
+                                            jobStatus: 'running',
+                                            jobCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                        });
+                                    } else if (
                                         item.status &&
-                                        item.status.containerStatuses &&
-                                        item.status.containerStatuses[0]
-                                            ? item.status.containerStatuses[0]
-                                                  .restartCount
-                                            : 0,
+                                        item.status.succeeded > 0
+                                    ) {
+                                        succeededJobs.push({
+                                            jobName: item.metadata.name,
+                                            jobNamespace:
+                                                item.metadata.namespace,
+                                            jobStatus: 'succeeded',
+                                            jobCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            jobResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            jobUid: item.metadata.uid,
+                                            jobSelfLink: item.metadata.selfLink,
+                                            jobConditions:
+                                                item.status.conditions,
+                                        });
+                                        succeededJobData.push({
+                                            jobName: item.metadata.name,
+                                            jobNamespace:
+                                                item.metadata.namespace,
+                                            jobStatus: 'succeeded',
+                                            jobCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                        });
+                                    } else if (
+                                        item.status &&
+                                        item.status.failed > 0
+                                    ) {
+                                        failedJobs.push({
+                                            jobName: item.metadata.name,
+                                            jobNamespace:
+                                                item.metadata.namespace,
+                                            jobStatus: 'failed',
+                                            jobCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            jobResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            jobUid: item.metadata.uid,
+                                            jobSelfLink: item.metadata.selfLink,
+                                            jobConditions:
+                                                item.status.conditions,
+                                        });
+                                        failedJobData.push({
+                                            jobName: item.metadata.name,
+                                            jobNamespace:
+                                                item.metadata.namespace,
+                                            jobStatus: 'failed',
+                                            jobCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                        });
+                                    } else {
+                                        failedJobs.push({
+                                            jobName: item.metadata.name,
+                                            jobNamespace:
+                                                item.metadata.namespace,
+                                            jobStatus: 'failed',
+                                            jobCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            jobResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            jobUid: item.metadata.uid,
+                                            jobSelfLink: item.metadata.selfLink,
+                                            jobConditions:
+                                                item.status.conditions,
+                                        });
+                                        failedJobData.push({
+                                            jobName: item.metadata.name,
+                                            jobNamespace:
+                                                item.metadata.namespace,
+                                            jobStatus: 'failed',
+                                            jobCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                        });
+                                    }
                                 });
-                            });
-                            const podData: $TSFixMe = {
-                                podStat: {
-                                    healthy: healthyPods.length,
-                                    unhealthy: unhealthyPods.length,
-                                    runningPods,
-                                    completedPods,
-                                    failedPods,
+                                const jobData: $TSFixMe = {
+                                    jobStat: {
+                                        runningJobs: runningJobs.length,
+                                        succeededJobs: succeededJobs.length,
+                                        failedJobs: failedJobs.length,
+                                        totalJobs:
+                                            runningJobs.length +
+                                            succeededJobs.length +
+                                            failedJobs.length,
+                                        healthy:
+                                            runningJobs.length +
+                                            succeededJobs.length,
+                                        unhealthy: failedJobs.length,
+                                    },
 
-                                    totalPods: podOutput.items.length,
-                                },
+                                    runningJobs,
 
-                                healthyPods,
+                                    succeededJobs,
 
-                                unhealthyPods,
+                                    failedJobs,
+                                    allJobs: [
+                                        ...runningJobs,
 
-                                allPods,
+                                        ...succeededJobs,
 
-                                healthyPodData,
+                                        ...failedJobs,
+                                    ],
+                                    allJobData: [
+                                        ...runningJobData,
 
-                                unhealthyPodData,
+                                        ...succeededJobData,
 
-                                allPodData,
-                            };
+                                        ...failedJobData,
+                                    ],
+                                    healthyJobs: [
+                                        ...runningJobs,
+                                        ...succeededJobs,
+                                    ],
+                                    healthyJobData: [
+                                        ...runningJobData,
 
-                            // handle job output
+                                        ...succeededJobData,
+                                    ],
 
-                            const runningJobs: $TSFixMe = [],
-                                succeededJobs = [],
-                                failedJobs = [],
-                                runningJobData = [],
-                                succeededJobData = [],
-                                failedJobData = [];
+                                    unhealthyJobs: [...failedJobs],
 
-                            jobOutput.items.forEach(item => {
-                                /**
-                                 * https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#job-v1-batch
-                                 */
-                                if (item.status && item.status.active > 0) {
-                                    runningJobs.push({
-                                        jobName: item.metadata.name,
-                                        jobNamespace: item.metadata.namespace,
-                                        jobStatus: 'running',
-                                        jobCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        jobResourceVersion:
-                                            item.metadata.resourceVersion,
-                                        jobUid: item.metadata.uid,
-                                        jobSelfLink: item.metadata.selfLink,
-                                        jobConditions: item.status.conditions,
-                                    });
-                                    runningJobData.push({
-                                        jobName: item.metadata.name,
-                                        jobNamespace: item.metadata.namespace,
-                                        jobStatus: 'running',
-                                        jobCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                    });
-                                } else if (
-                                    item.status &&
-                                    item.status.succeeded > 0
-                                ) {
-                                    succeededJobs.push({
-                                        jobName: item.metadata.name,
-                                        jobNamespace: item.metadata.namespace,
-                                        jobStatus: 'succeeded',
-                                        jobCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        jobResourceVersion:
-                                            item.metadata.resourceVersion,
-                                        jobUid: item.metadata.uid,
-                                        jobSelfLink: item.metadata.selfLink,
-                                        jobConditions: item.status.conditions,
-                                    });
-                                    succeededJobData.push({
-                                        jobName: item.metadata.name,
-                                        jobNamespace: item.metadata.namespace,
-                                        jobStatus: 'succeeded',
-                                        jobCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                    });
-                                } else if (
-                                    item.status &&
-                                    item.status.failed > 0
-                                ) {
-                                    failedJobs.push({
-                                        jobName: item.metadata.name,
-                                        jobNamespace: item.metadata.namespace,
-                                        jobStatus: 'failed',
-                                        jobCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        jobResourceVersion:
-                                            item.metadata.resourceVersion,
-                                        jobUid: item.metadata.uid,
-                                        jobSelfLink: item.metadata.selfLink,
-                                        jobConditions: item.status.conditions,
-                                    });
-                                    failedJobData.push({
-                                        jobName: item.metadata.name,
-                                        jobNamespace: item.metadata.namespace,
-                                        jobStatus: 'failed',
-                                        jobCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                    });
-                                } else {
-                                    failedJobs.push({
-                                        jobName: item.metadata.name,
-                                        jobNamespace: item.metadata.namespace,
-                                        jobStatus: 'failed',
-                                        jobCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        jobResourceVersion:
-                                            item.metadata.resourceVersion,
-                                        jobUid: item.metadata.uid,
-                                        jobSelfLink: item.metadata.selfLink,
-                                        jobConditions: item.status.conditions,
-                                    });
-                                    failedJobData.push({
-                                        jobName: item.metadata.name,
-                                        jobNamespace: item.metadata.namespace,
-                                        jobStatus: 'failed',
-                                        jobCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                    });
-                                }
-                            });
-                            const jobData: $TSFixMe = {
-                                jobStat: {
-                                    runningJobs: runningJobs.length,
-                                    succeededJobs: succeededJobs.length,
-                                    failedJobs: failedJobs.length,
-                                    totalJobs:
-                                        runningJobs.length +
-                                        succeededJobs.length +
-                                        failedJobs.length,
-                                    healthy:
-                                        runningJobs.length +
-                                        succeededJobs.length,
-                                    unhealthy: failedJobs.length,
-                                },
+                                    unhealthyJobData: [...failedJobData],
+                                };
 
-                                runningJobs,
+                                // handle services output
+                                const serviceData: $TSFixMe = {
+                                    runningServices: serviceOutput.items.length,
+                                };
 
-                                succeededJobs,
+                                // handle deployment output
+                                let desiredDeployment: $TSFixMe = 0,
+                                    readyDeployment = 0;
 
-                                failedJobs,
-                                allJobs: [
-                                    ...runningJobs,
+                                const unhealthyDeployments: $TSFixMe = [],
+                                    healthyDeployments = [],
+                                    allDeployments = [],
+                                    unhealthyDeploymentData = [],
+                                    healthyDeploymentData = [],
+                                    allDeploymentData = [];
 
-                                    ...succeededJobs,
+                                deploymentOutput.items.forEach((item: $TSFixMe) => {
+                                    if (item.status.readyReplicas) {
+                                        readyDeployment +=
+                                            item.status.readyReplicas;
+                                    } else {
+                                        readyDeployment += 0;
+                                    }
+                                    desiredDeployment += item.status.replicas;
 
-                                    ...failedJobs,
-                                ],
-                                allJobData: [
-                                    ...runningJobData,
+                                    if (
+                                        item.status.readyReplicas !==
+                                        item.status.replicas
+                                    ) {
+                                        unhealthyDeployments.push({
+                                            deploymentName: item.metadata.name,
+                                            deploymentNamespace:
+                                                item.metadata.namespace,
+                                            deploymentCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyDeployment:
+                                                item.status.readyReplicas || 0,
+                                            desiredDeployment:
+                                                item.status.replicas,
+                                            deploymentResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            deploymentUid: item.metadata.uid,
+                                            deploymentSelfLink:
+                                                item.metadata.selfLink,
+                                            deploymentConditions:
+                                                item.status.conditions,
+                                        });
+                                        unhealthyDeploymentData.push({
+                                            deploymentName: item.metadata.name,
+                                            deploymentNamespace:
+                                                item.metadata.namespace,
+                                            deploymentCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyDeployment:
+                                                item.status.readyReplicas || 0,
+                                            desiredDeployment:
+                                                item.status.replicas,
+                                        });
+                                    } else {
+                                        healthyDeployments.push({
+                                            deploymentName: item.metadata.name,
+                                            deploymentNamespace:
+                                                item.metadata.namespace,
+                                            deploymentCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyDeployment:
+                                                item.status.readyReplicas,
+                                            desiredDeployment:
+                                                item.status.replicas,
+                                            deploymentResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            deploymentUid: item.metadata.uid,
+                                            deploymentSelfLink:
+                                                item.metadata.selfLink,
+                                            deploymentConditions:
+                                                item.status.conditions,
+                                        });
+                                        healthyDeploymentData.push({
+                                            deploymentName: item.metadata.name,
+                                            deploymentNamespace:
+                                                item.metadata.namespace,
+                                            deploymentCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyDeployment:
+                                                item.status.readyReplicas,
+                                            desiredDeployment:
+                                                item.status.replicas,
+                                        });
+                                    }
 
-                                    ...succeededJobData,
-
-                                    ...failedJobData,
-                                ],
-                                healthyJobs: [...runningJobs, ...succeededJobs],
-                                healthyJobData: [
-                                    ...runningJobData,
-
-                                    ...succeededJobData,
-                                ],
-
-                                unhealthyJobs: [...failedJobs],
-
-                                unhealthyJobData: [...failedJobData],
-                            };
-
-                            // handle services output
-                            const serviceData: $TSFixMe = {
-                                runningServices: serviceOutput.items.length,
-                            };
-
-                            // handle deployment output
-                            let desiredDeployment: $TSFixMe = 0,
-                                readyDeployment = 0;
-
-                            const unhealthyDeployments: $TSFixMe = [],
-                                healthyDeployments = [],
-                                allDeployments = [],
-                                unhealthyDeploymentData = [],
-                                healthyDeploymentData = [],
-                                allDeploymentData = [];
-
-                            deploymentOutput.items.forEach(item => {
-                                if (item.status.readyReplicas) {
-                                    readyDeployment +=
-                                        item.status.readyReplicas;
-                                } else {
-                                    readyDeployment += 0;
-                                }
-                                desiredDeployment += item.status.replicas;
-
-                                if (
-                                    item.status.readyReplicas !==
-                                    item.status.replicas
-                                ) {
-                                    unhealthyDeployments.push({
+                                    allDeployments.push({
                                         deploymentName: item.metadata.name,
                                         deploymentNamespace:
                                             item.metadata.namespace,
@@ -414,7 +499,7 @@ export default {
                                         deploymentConditions:
                                             item.status.conditions,
                                     });
-                                    unhealthyDeploymentData.push({
+                                    allDeploymentData.push({
                                         deploymentName: item.metadata.name,
                                         deploymentNamespace:
                                             item.metadata.namespace,
@@ -424,107 +509,108 @@ export default {
                                             item.status.readyReplicas || 0,
                                         desiredDeployment: item.status.replicas,
                                     });
-                                } else {
-                                    healthyDeployments.push({
-                                        deploymentName: item.metadata.name,
-                                        deploymentNamespace:
-                                            item.metadata.namespace,
-                                        deploymentCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        readyDeployment:
-                                            item.status.readyReplicas,
-                                        desiredDeployment: item.status.replicas,
-                                        deploymentResourceVersion:
-                                            item.metadata.resourceVersion,
-                                        deploymentUid: item.metadata.uid,
-                                        deploymentSelfLink:
-                                            item.metadata.selfLink,
-                                        deploymentConditions:
-                                            item.status.conditions,
-                                    });
-                                    healthyDeploymentData.push({
-                                        deploymentName: item.metadata.name,
-                                        deploymentNamespace:
-                                            item.metadata.namespace,
-                                        deploymentCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        readyDeployment:
-                                            item.status.readyReplicas,
-                                        desiredDeployment: item.status.replicas,
-                                    });
-                                }
-
-                                allDeployments.push({
-                                    deploymentName: item.metadata.name,
-                                    deploymentNamespace:
-                                        item.metadata.namespace,
-                                    deploymentCreationTimestamp:
-                                        item.metadata.creationTimestamp,
-                                    readyDeployment:
-                                        item.status.readyReplicas || 0,
-                                    desiredDeployment: item.status.replicas,
-                                    deploymentResourceVersion:
-                                        item.metadata.resourceVersion,
-                                    deploymentUid: item.metadata.uid,
-                                    deploymentSelfLink: item.metadata.selfLink,
-                                    deploymentConditions:
-                                        item.status.conditions,
                                 });
-                                allDeploymentData.push({
-                                    deploymentName: item.metadata.name,
-                                    deploymentNamespace:
-                                        item.metadata.namespace,
-                                    deploymentCreationTimestamp:
-                                        item.metadata.creationTimestamp,
-                                    readyDeployment:
-                                        item.status.readyReplicas || 0,
-                                    desiredDeployment: item.status.replicas,
-                                });
-                            });
-                            const deploymentData: $TSFixMe = {
-                                desiredDeployment,
-                                readyDeployment,
+                                const deploymentData: $TSFixMe = {
+                                    desiredDeployment,
+                                    readyDeployment,
 
-                                healthyDeployments,
+                                    healthyDeployments,
 
-                                unhealthyDeployments,
+                                    unhealthyDeployments,
 
-                                allDeployments,
-                                healthy: healthyDeployments.length,
-                                unhealthy: unhealthyDeployments.length,
+                                    allDeployments,
+                                    healthy: healthyDeployments.length,
+                                    unhealthy: unhealthyDeployments.length,
 
-                                healthyDeploymentData,
+                                    healthyDeploymentData,
 
-                                unhealthyDeploymentData,
+                                    unhealthyDeploymentData,
 
-                                allDeploymentData,
-                            };
+                                    allDeploymentData,
+                                };
 
-                            // handle statefulset output
-                            let desiredStatefulsets: $TSFixMe = 0,
-                                readyStatefulsets = 0;
+                                // handle statefulset output
+                                let desiredStatefulsets: $TSFixMe = 0,
+                                    readyStatefulsets = 0;
 
-                            const healthyStatefulsets: $TSFixMe = [],
-                                unhealthyStatefulsets = [],
-                                allStatefulset = [],
-                                healthyStatefulsetData = [],
-                                unhealthyStatefulsetData = [],
-                                allStatefulsetData = [];
+                                const healthyStatefulsets: $TSFixMe = [],
+                                    unhealthyStatefulsets = [],
+                                    allStatefulset = [],
+                                    healthyStatefulsetData = [],
+                                    unhealthyStatefulsetData = [],
+                                    allStatefulsetData = [];
 
-                            statefulsetOutput.items.forEach(item => {
-                                if (item.status.readyReplicas) {
-                                    readyStatefulsets +=
-                                        item.status.readyReplicas;
-                                } else {
-                                    readyStatefulsets += 0;
-                                }
-                                desiredStatefulsets += item.status.replicas;
+                                statefulsetOutput.items.forEach((item: $TSFixMe) => {
+                                    if (item.status.readyReplicas) {
+                                        readyStatefulsets +=
+                                            item.status.readyReplicas;
+                                    } else {
+                                        readyStatefulsets += 0;
+                                    }
+                                    desiredStatefulsets += item.status.replicas;
 
-                                if (
-                                    item.status.readyReplicas !==
-                                    item.status.replicas
-                                ) {
-                                    unhealthyStatefulsets.push({
+                                    if (
+                                        item.status.readyReplicas !==
+                                        item.status.replicas
+                                    ) {
+                                        unhealthyStatefulsets.push({
+                                            statefulsetName: item.metadata.name,
+                                            statefulsetNamespace:
+                                                item.metadata.namespace,
+                                            statefulsetCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyStatefulsets:
+                                                item.status.readyReplicas || 0,
+                                            desiredStatefulsets:
+                                                item.status.replicas,
+                                            statefulsetResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            statefulsetUid: item.metadata.uid,
+                                            statefulsetSelfLink:
+                                                item.metadata.selfLink,
+                                        });
+                                        unhealthyStatefulsetData.push({
+                                            statefulsetName: item.metadata.name,
+                                            statefulsetNamespace:
+                                                item.metadata.namespace,
+                                            statefulsetCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyStatefulsets:
+                                                item.status.readyReplicas || 0,
+                                            desiredStatefulsets:
+                                                item.status.replicas,
+                                        });
+                                    } else {
+                                        healthyStatefulsets.push({
+                                            statefulsetName: item.metadata.name,
+                                            statefulsetNamespace:
+                                                item.metadata.namespace,
+                                            statefulsetCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyStatefulsets:
+                                                item.status.readyReplicas,
+                                            desiredStatefulsets:
+                                                item.status.replicas,
+                                            statefulsetResourceVersion:
+                                                item.metadata.resourceVersion,
+                                            statefulsetUid: item.metadata.uid,
+                                            statefulsetSelfLink:
+                                                item.metadata.selfLink,
+                                        });
+                                        healthyStatefulsetData.push({
+                                            statefulsetName: item.metadata.name,
+                                            statefulsetNamespace:
+                                                item.metadata.namespace,
+                                            statefulsetCreationTimestamp:
+                                                item.metadata.creationTimestamp,
+                                            readyStatefulsets:
+                                                item.status.readyReplicas,
+                                            desiredStatefulsets:
+                                                item.status.replicas,
+                                        });
+                                    }
+
+                                    allStatefulset.push({
                                         statefulsetName: item.metadata.name,
                                         statefulsetNamespace:
                                             item.metadata.namespace,
@@ -540,7 +626,7 @@ export default {
                                         statefulsetSelfLink:
                                             item.metadata.selfLink,
                                     });
-                                    unhealthyStatefulsetData.push({
+                                    allStatefulsetData.push({
                                         statefulsetName: item.metadata.name,
                                         statefulsetNamespace:
                                             item.metadata.namespace,
@@ -551,108 +637,55 @@ export default {
                                         desiredStatefulsets:
                                             item.status.replicas,
                                     });
-                                } else {
-                                    healthyStatefulsets.push({
-                                        statefulsetName: item.metadata.name,
-                                        statefulsetNamespace:
-                                            item.metadata.namespace,
-                                        statefulsetCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        readyStatefulsets:
-                                            item.status.readyReplicas,
-                                        desiredStatefulsets:
-                                            item.status.replicas,
-                                        statefulsetResourceVersion:
-                                            item.metadata.resourceVersion,
-                                        statefulsetUid: item.metadata.uid,
-                                        statefulsetSelfLink:
-                                            item.metadata.selfLink,
-                                    });
-                                    healthyStatefulsetData.push({
-                                        statefulsetName: item.metadata.name,
-                                        statefulsetNamespace:
-                                            item.metadata.namespace,
-                                        statefulsetCreationTimestamp:
-                                            item.metadata.creationTimestamp,
-                                        readyStatefulsets:
-                                            item.status.readyReplicas,
-                                        desiredStatefulsets:
-                                            item.status.replicas,
-                                    });
-                                }
-
-                                allStatefulset.push({
-                                    statefulsetName: item.metadata.name,
-                                    statefulsetNamespace:
-                                        item.metadata.namespace,
-                                    statefulsetCreationTimestamp:
-                                        item.metadata.creationTimestamp,
-                                    readyStatefulsets:
-                                        item.status.readyReplicas || 0,
-                                    desiredStatefulsets: item.status.replicas,
-                                    statefulsetResourceVersion:
-                                        item.metadata.resourceVersion,
-                                    statefulsetUid: item.metadata.uid,
-                                    statefulsetSelfLink: item.metadata.selfLink,
                                 });
-                                allStatefulsetData.push({
-                                    statefulsetName: item.metadata.name,
-                                    statefulsetNamespace:
-                                        item.metadata.namespace,
-                                    statefulsetCreationTimestamp:
-                                        item.metadata.creationTimestamp,
-                                    readyStatefulsets:
-                                        item.status.readyReplicas || 0,
-                                    desiredStatefulsets: item.status.replicas,
+                                const statefulsetData: $TSFixMe = {
+                                    readyStatefulsets,
+                                    desiredStatefulsets,
+
+                                    healthyStatefulsets,
+
+                                    unhealthyStatefulsets,
+
+                                    allStatefulset,
+                                    healthy: healthyStatefulsets.length,
+                                    unhealthy: unhealthyStatefulsets.length,
+
+                                    healthyStatefulsetData,
+
+                                    unhealthyStatefulsetData,
+
+                                    allStatefulsetData,
+                                };
+
+                                const data: $TSFixMe = {
+                                    podData,
+                                    jobData,
+                                    serviceData,
+                                    deploymentData,
+                                    statefulsetData,
+                                };
+
+                                await ApiService.ping(monitor._id, {
+                                    monitor,
+                                    kubernetesData: data,
+                                    type: monitor.type,
                                 });
-                            });
-                            const statefulsetData: $TSFixMe = {
-                                readyStatefulsets,
-                                desiredStatefulsets,
 
-                                healthyStatefulsets,
-
-                                unhealthyStatefulsets,
-
-                                allStatefulset,
-                                healthy: healthyStatefulsets.length,
-                                unhealthy: unhealthyStatefulsets.length,
-
-                                healthyStatefulsetData,
-
-                                unhealthyStatefulsetData,
-
-                                allStatefulsetData,
-                            };
-
-                            const data: $TSFixMe = {
-                                podData,
-                                jobData,
-                                serviceData,
-                                deploymentData,
-                                statefulsetData,
-                            };
-
-                            await ApiService.ping(monitor._id, {
-                                monitor,
-                                kubernetesData: data,
-                                type: monitor.type,
-                            });
-
-                            // remove the config file
-                            await deleteFile(configPath);
+                                // remove the config file
+                                await deleteFile(configPath);
+                            }
                         }
-                    }
 
-                    // remove the config file
-                    await deleteFile(configPath);
-                });
+                        // remove the config file
+                        await deleteFile(configPath);
+                    });
 
-                dest.on('error', async (error: Error) => {
-                    await deleteFile(configPath);
-                    throw error;
-                });
-            });
+                    dest.on('error', async (error: Error) => {
+                        await deleteFile(configPath);
+                        throw error;
+                    });
+                }
+            );
         }
     },
 };

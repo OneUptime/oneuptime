@@ -117,7 +117,7 @@ export default function resourceCategory(
                     ...state.resourceCategoryList,
                     resourceCategories:
                         state.resourceCategoryList.resourceCategories.map(
-                            item => {
+                            (item: $TSFixMe) => {
                                 if (item._id === action.payload._id) {
                                     return {
                                         ...item,

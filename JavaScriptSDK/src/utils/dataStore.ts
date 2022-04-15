@@ -140,7 +140,7 @@ class DataStore {
                     `${this.apiUrl}/performanceMetric/${this.appId}/key/${this.appKey}`,
                     data
                 )
-                .then(res => {
+                .then((res: $TSFixMe) => {
                     resolve(res);
                 })
                 .catch(err => {

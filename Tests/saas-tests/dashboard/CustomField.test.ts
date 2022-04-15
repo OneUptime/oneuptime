@@ -16,7 +16,7 @@ const incidentFieldText: $TSFixMe = {
         fieldName: 'textField',
         fieldType: 'text',
     },
-    incidentFieldNumber = {
+    incidentFieldNumber: $TSFixMe = {
         fieldName: 'numField',
         fieldType: 'number',
     };

@@ -1005,7 +1005,7 @@ class Service extends DatabaseService<typeof Model> {
         }
         const index: $TSFixMe = reason.indexOf('Request Timed out');
         if (index > -1) {
-            reason = reason.filter(item => !item.includes('Response Time is'));
+            reason = reason.filter((item: $TSFixMe) => !item.includes('Response Time is'));
         }
         reason = reason.filter((item: $TSFixMe, pos: $TSFixMe,  self: $TSFixMe)self.indexOf(item) === pos);
         const logData: $TSFixMe = body;

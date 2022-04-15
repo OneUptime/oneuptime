@@ -538,7 +538,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
             }
             if (check && noteData) {
                 let oneNote: $TSFixMe;
-                noteData.forEach(item => {
+                noteData.forEach((item: $TSFixMe) => {
                     if (
                         String(item._id) ===
                         String(action.payload.incidentId._id)

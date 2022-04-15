@@ -29,7 +29,7 @@ export default (
         case ModalConstant.CLOSE_MODAL: {
             return Object.assign({}, state, {
                 modals: state.modals.filter(
-                    item =>
+                    (item: $TSFixMe) =>
                         item.id !==
                         (action.payload as CloseModalActionPayload).id
                 ),

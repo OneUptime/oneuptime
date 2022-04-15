@@ -168,7 +168,7 @@ export const getAllStatusPageResource: Function = (
                 timelines,
                 statusPageNote,
                 monitorStatuses,
-            ]) => {
+            ]: $TSFixMe) => {
                 const data: $TSFixMe = {
                     ongoingEvents: ongoingEvents.data,
 
@@ -288,9 +288,9 @@ export const getStatusPageNote: Function = (
     projectId: ObjectID,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber,
-    limit = 10,
-    days = 14,
-    newTheme = false
+    limit: PositiveNumber = 10,
+    days: PositiveNumber = 14,
+    newTheme: boolean = false
 ) => {
     return function (dispatch: Dispatch): void {
         const promise: $TSFixMe = BackendAPI.get(

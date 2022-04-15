@@ -3,7 +3,7 @@ import URL from 'Common/Types/API/URL';
 import WhitepaperType from '../Types/Whitepaper';
 
 export default class Whitepaper {
-    static getWhitepapers(): Array<WhitepaperType> {
+    public static getWhitepapers(): Array<WhitepaperType> {
         return [
             {
                 name: 'best-practices',

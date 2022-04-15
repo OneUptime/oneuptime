@@ -309,7 +309,7 @@ function createDir(dirPath: $TSFixMe): void {
 function readFileContent(filePath: $TSFixMe): void {
     return new Promise((resolve: Function, reject: Function) => {
         if (fs.existsSync(filePath)) {
-            fs.readFile(filePath, { encoding: 'utf8' }, (error, data): void => {
+            fs.readFile(filePath, { encoding: 'utf8' }, (error: $TSFixMe, data: $TSFixMe): void => {
                 if (error) {
                     reject(error);
                 }
