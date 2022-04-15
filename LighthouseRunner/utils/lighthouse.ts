@@ -16,7 +16,7 @@ function launchChromeAndRunLighthouse(
     });
 }
 
-process.on('message', url => {
+process.on('message', (url: $TSFixMe) => {
     launchChromeAndRunLighthouse(url)
         .then((results: $TSFixMe) => {
             const issues: $TSFixMe = {};

@@ -9,7 +9,7 @@ export default {
                     companyName: userData.companyName,
                 })
 
-                .end((err, res): void => {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     if (err) {
                         if (callback) {
                             return callback(err, res);
@@ -39,7 +39,7 @@ export default {
                                     ...userData,
                                 })
 
-                                .end((err, res): void => {
+                                .end((err: $TSFixMe, res: $TSFixMe): void => {
                                     if (callback) {
                                         return callback(err, res);
                                     } else {
@@ -61,7 +61,7 @@ export default {
             .post('/user/signup')
             .send(userData)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 return callback(err, res);
             });
     },

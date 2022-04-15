@@ -21,7 +21,7 @@ describe('OneUptimeLogger', function (): void {
     this.timeout(timeout + 1000);
     let projectId: ObjectID,
         token: $TSFixMe,
-        componentId,
+        componentId: $TSFixMe,
         applicationLog: $TSFixMe;
     // create a new user
     const component: $TSFixMe = { name: 'Our Component' };

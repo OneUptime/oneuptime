@@ -21,12 +21,12 @@ class DataStore {
         this.sendingData = false;
         this.runCron();
     }
-    runCron(): void {
+    public runCron(): void {
         return cron.schedule('*/5 * * * *', () => {
             this.sendData();
         });
     }
-    mapValue(
+    public mapValue(
         path: $TSFixMe,
         store: $TSFixMe,
         time: $TSFixMe,
@@ -57,33 +57,33 @@ class DataStore {
             };
         }
     }
-    destroy(id: $TSFixMe): void {
+    public destroy(id: $TSFixMe): void {
         if (this.store.has(id)) {
             this.store.delete(id);
         }
     }
 
-    getValue(id: $TSFixMe): void {
+    public getValue(id: $TSFixMe): void {
         return this.store.get(id);
     }
 
-    getAllData(): void {
+    public getAllData(): void {
         return {
             incoming: this.incoming,
             outgoing: this.outgoing,
             mongoose: this.mongoose,
         };
     }
-    clear(): void {
+    public clear(): void {
         return this.store.clear();
     }
-    clearData(): void {
+    public clearData(): void {
         this.incoming.clear();
         this.outgoing.clear();
         this.mongoose.clear();
         return {};
     }
-    setData(value: $TSFixMe): void {
+    public setData(value: $TSFixMe): void {
         const type: $TSFixMe = value.type;
         const path: $TSFixMe = value.path;
         const time: $TSFixMe = value.duration;
@@ -101,7 +101,7 @@ class DataStore {
             return this.mongoose.set(path, val);
         }
     }
-    setValue(id: $TSFixMe, value: $TSFixMe): void {
+    public setValue(id: $TSFixMe, value: $TSFixMe): void {
         return this.store.set(id, value);
     }
     public async sendData(): void {
@@ -133,7 +133,7 @@ class DataStore {
             process.exit(1);
         }
     }
-    _makeApiRequest(data: $TSFixMe): void {
+    private _makeApiRequest(data: $TSFixMe): void {
         return new Promise((resolve: Function, reject: Function) => {
             axios
                 .post(

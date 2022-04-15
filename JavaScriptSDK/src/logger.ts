@@ -1,8 +1,8 @@
 import axios from 'axios';
 class Logger {
-    apiUrl: URL;
-    applicationLogId: $TSFixMe;
-    applicationLogKey: $TSFixMe;
+    private apiUrl: URL;
+    private applicationLogId: $TSFixMe;
+    private applicationLogKey: $TSFixMe;
     constructor(
         apiUrl: URL,
         applicationLogId: $TSFixMe,
@@ -12,13 +12,13 @@ class Logger {
         this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);
     }
-    _setApplicationLogId(applicationLogId: $TSFixMe): void {
+    private _setApplicationLogId(applicationLogId: $TSFixMe): void {
         this.applicationLogId = applicationLogId;
     }
-    _setApplicationLogKey(applicationLogKey: $TSFixMe): void {
+    private _setApplicationLogKey(applicationLogKey: $TSFixMe): void {
         this.applicationLogKey = applicationLogKey;
     }
-    _setApiUrl(apiUrl: URL): void {
+    private _setApiUrl(apiUrl: URL): void {
         this.apiUrl = `${apiUrl}/application-log/${this.applicationLogId}/log`;
     }
 
@@ -71,7 +71,11 @@ class Logger {
         return await this._makeApiRequest(data, logType, tags);
     }
 
-    _makeApiRequest(data: $TSFixMe, logType: $TSFixMe, tags = null): void {
+    private _makeApiRequest(
+        data: $TSFixMe,
+        logType: $TSFixMe,
+        tags = null
+    ): void {
         const requestData: $TSFixMe = {
             content: data,
             applicationLogKey: this.applicationLogKey,

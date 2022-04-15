@@ -223,7 +223,7 @@ describe('Zapier API', function (): void {
         let authorization:string = `Basic ${token}`;
         request.get(`/zapier/test?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
-            .send().end(function (err, res):void {
+            .send().end(function (err: $TSFixMe, res: $TSFixMe):void {
                 expect(res).to.have.status(200);
                 done();
             });

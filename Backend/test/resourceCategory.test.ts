@@ -35,39 +35,50 @@ describe('Resource Category API', function (): void {
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
-            createUser(request, userData.user, (err, res): void => {
-                const project: $TSFixMe = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+            createUser(
+                request,
+                userData.user,
+                (err: $TSFixMe, res: $TSFixMe): void => {
+                    const project: $TSFixMe = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne(
-                    { userId },
-                    (
-                        err,
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        (
+                            err,
 
-                        verificationToken
-                    ) => {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end((): void => {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.user.email,
-                                        password: userData.user.password,
-                                    })
+                            verificationToken
+                        ) => {
+                            request
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end((): void => {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
 
-                                    .end((err, res): void => {
-                                        token = res.body.tokens.jwtAccessToken;
-                                        done();
-                                    });
-                            });
-                    }
-                );
-            });
+                                        .end(
+                                            (
+                                                err: $TSFixMe,
+                                                res: $TSFixMe
+                                            ): void => {
+                                                token =
+                                                    res.body.tokens
+                                                        .jwtAccessToken;
+                                                done();
+                                            }
+                                        );
+                                });
+                        }
+                    );
+                }
+            );
         });
     });
 
@@ -97,7 +108,7 @@ describe('Resource Category API', function (): void {
                 resourceCategoryName: 'unauthenticated user',
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -113,7 +124,7 @@ describe('Resource Category API', function (): void {
                 resourceCategoryName: null,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -127,7 +138,7 @@ describe('Resource Category API', function (): void {
             .set('Authorization', authorization)
             .send(resourceCategory)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 resourceCategoryId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(
@@ -144,7 +155,7 @@ describe('Resource Category API', function (): void {
             .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -163,7 +174,7 @@ describe('Resource Category API', function (): void {
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -176,42 +187,59 @@ describe('User from other project have access to read / write and delete API.', 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
-            createUser(request, userData.user, (err, res): void => {
-                const project: $TSFixMe = res.body.project;
-                projectId = project._id;
+            createUser(
+                request,
+                userData.user,
+                (err: $TSFixMe, res: $TSFixMe): void => {
+                    const project: $TSFixMe = res.body.project;
+                    projectId = project._id;
 
-                createUser(request, userData.newUser, (err, res): void => {
-                    userId = res.body.id;
-                    VerificationTokenModel.findOne(
-                        { userId },
-                        (
-                            err,
+                    createUser(
+                        request,
+                        userData.newUser,
+                        (err: $TSFixMe, res: $TSFixMe): void => {
+                            userId = res.body.id;
+                            VerificationTokenModel.findOne(
+                                { userId },
+                                (
+                                    err,
 
-                            verificationToken
-                        ) => {
-                            request
-                                .get(
-                                    `/user/confirmation/${verificationToken.token}`
-                                )
-                                .redirects(0)
-                                .end((): void => {
+                                    verificationToken
+                                ) => {
                                     request
-                                        .post('/user/login')
-                                        .send({
-                                            email: userData.newUser.email,
-                                            password: userData.newUser.password,
-                                        })
+                                        .get(
+                                            `/user/confirmation/${verificationToken.token}`
+                                        )
+                                        .redirects(0)
+                                        .end((): void => {
+                                            request
+                                                .post('/user/login')
+                                                .send({
+                                                    email: userData.newUser
+                                                        .email,
+                                                    password:
+                                                        userData.newUser
+                                                            .password,
+                                                })
 
-                                        .end((err, res): void => {
-                                            token =
-                                                res.body.tokens.jwtAccessToken;
-                                            done();
+                                                .end(
+                                                    (
+                                                        err: $TSFixMe,
+                                                        res: $TSFixMe
+                                                    ): void => {
+                                                        token =
+                                                            res.body.tokens
+                                                                .jwtAccessToken;
+                                                        done();
+                                                    }
+                                                );
                                         });
-                                });
+                                }
+                            );
                         }
                     );
-                });
-            });
+                }
+            );
         });
     });
 
@@ -240,7 +268,7 @@ describe('User from other project have access to read / write and delete API.', 
             .set('Authorization', authorization)
             .send(resourceCategory)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -253,7 +281,7 @@ describe('User from other project have access to read / write and delete API.', 
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -266,7 +294,7 @@ describe('User from other project have access to read / write and delete API.', 
             .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -282,131 +310,159 @@ describe('Non-admin user access to create, delete and access resource category.'
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
-            createUser(request, userData.user, (err, res): void => {
-                const project: $TSFixMe = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
-                VerificationTokenModel.findOne(
-                    { userId },
-                    (
-                        err,
+            createUser(
+                request,
+                userData.user,
+                (err: $TSFixMe, res: $TSFixMe): void => {
+                    const project: $TSFixMe = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        (
+                            err,
 
-                        verificationToken
-                    ) => {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end((): void => {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.user.email,
-                                        password: userData.user.password,
-                                    })
+                            verificationToken
+                        ) => {
+                            request
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end((): void => {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
 
-                                    .end((err, res): void => {
-                                        token = res.body.tokens.jwtAccessToken;
-                                        const authorization: string = `Basic ${token}`;
-                                        request
+                                        .end(
+                                            (
+                                                err: $TSFixMe,
+                                                res: $TSFixMe
+                                            ): void => {
+                                                token =
+                                                    res.body.tokens
+                                                        .jwtAccessToken;
+                                                const authorization: string = `Basic ${token}`;
+                                                request
 
-                                            .post(
-                                                `/resourceCategory/${projectId}`
-                                            )
-                                            .set('Authorization', authorization)
-                                            .send(resourceCategory)
+                                                    .post(
+                                                        `/resourceCategory/${projectId}`
+                                                    )
+                                                    .set(
+                                                        'Authorization',
+                                                        authorization
+                                                    )
+                                                    .send(resourceCategory)
 
-                                            .end((err, res): void => {
-                                                resourceCategoryId =
-                                                    res.body._id;
-                                                createUser(
-                                                    request,
-                                                    userData.newUser,
+                                                    .end(
+                                                        (
+                                                            err: $TSFixMe,
+                                                            res: $TSFixMe
+                                                        ): void => {
+                                                            resourceCategoryId =
+                                                                res.body._id;
+                                                            createUser(
+                                                                request,
+                                                                userData.newUser,
 
-                                                    (err, res): void => {
-                                                        projectIdSecondUser =
-                                                            res.body.project
-                                                                ._id;
-                                                        emailToBeInvited =
-                                                            userData.newUser
-                                                                .email;
-                                                        userId = res.body.id;
-                                                        VerificationTokenModel.findOne(
-                                                            { userId },
-                                                            (
-                                                                err,
+                                                                (
+                                                                    err: $TSFixMe,
+                                                                    res: $TSFixMe
+                                                                ): void => {
+                                                                    projectIdSecondUser =
+                                                                        res.body
+                                                                            .project
+                                                                            ._id;
+                                                                    emailToBeInvited =
+                                                                        userData
+                                                                            .newUser
+                                                                            .email;
+                                                                    userId =
+                                                                        res.body
+                                                                            .id;
+                                                                    VerificationTokenModel.findOne(
+                                                                        {
+                                                                            userId,
+                                                                        },
+                                                                        (
+                                                                            err,
 
-                                                                verificationToken
-                                                            ) => {
-                                                                request
-                                                                    .get(
-                                                                        `/user/confirmation/${verificationToken.token}`
-                                                                    )
-                                                                    .redirects(
-                                                                        0
-                                                                    )
-                                                                    .end(
-                                                                        (): void => {
+                                                                            verificationToken
+                                                                        ) => {
                                                                             request
-                                                                                .post(
-                                                                                    `/team/${projectId}`
+                                                                                .get(
+                                                                                    `/user/confirmation/${verificationToken.token}`
                                                                                 )
-                                                                                .set(
-                                                                                    'Authorization',
-                                                                                    authorization
-                                                                                )
-                                                                                .send(
-                                                                                    {
-                                                                                        emails: emailToBeInvited,
-                                                                                        role: 'Member',
-                                                                                    }
+                                                                                .redirects(
+                                                                                    0
                                                                                 )
                                                                                 .end(
                                                                                     (): void => {
                                                                                         request
                                                                                             .post(
-                                                                                                '/user/login'
+                                                                                                `/team/${projectId}`
+                                                                                            )
+                                                                                            .set(
+                                                                                                'Authorization',
+                                                                                                authorization
                                                                                             )
                                                                                             .send(
                                                                                                 {
-                                                                                                    email: userData
-                                                                                                        .newUser
-                                                                                                        .email,
-                                                                                                    password:
-                                                                                                        userData
-                                                                                                            .newUser
-                                                                                                            .password,
+                                                                                                    emails: emailToBeInvited,
+                                                                                                    role: 'Member',
                                                                                                 }
                                                                                             )
                                                                                             .end(
-                                                                                                (
-                                                                                                    err,
+                                                                                                (): void => {
+                                                                                                    request
+                                                                                                        .post(
+                                                                                                            '/user/login'
+                                                                                                        )
+                                                                                                        .send(
+                                                                                                            {
+                                                                                                                email: userData
+                                                                                                                    .newUser
+                                                                                                                    .email,
+                                                                                                                password:
+                                                                                                                    userData
+                                                                                                                        .newUser
+                                                                                                                        .password,
+                                                                                                            }
+                                                                                                        )
+                                                                                                        .end(
+                                                                                                            (
+                                                                                                                err,
 
-                                                                                                    res
-                                                                                                ) => {
-                                                                                                    token =
-                                                                                                        res
-                                                                                                            .body
-                                                                                                            .tokens
-                                                                                                            .jwtAccessToken;
-                                                                                                    done();
+                                                                                                                res
+                                                                                                            ) => {
+                                                                                                                token =
+                                                                                                                    res
+                                                                                                                        .body
+                                                                                                                        .tokens
+                                                                                                                        .jwtAccessToken;
+                                                                                                                done();
+                                                                                                            }
+                                                                                                        );
                                                                                                 }
                                                                                             );
                                                                                     }
                                                                                 );
                                                                         }
                                                                     );
-                                                            }
-                                                        );
-                                                    }
-                                                );
-                                            });
-                                    });
-                            });
-                    }
-                );
-            });
+                                                                }
+                                                            );
+                                                        }
+                                                    );
+                                            }
+                                        );
+                                });
+                        }
+                    );
+                }
+            );
         });
     });
 
@@ -436,7 +492,7 @@ describe('Non-admin user access to create, delete and access resource category.'
             .set('Authorization', authorization)
             .send(resourceCategory)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -449,7 +505,7 @@ describe('Non-admin user access to create, delete and access resource category.'
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -462,7 +518,7 @@ describe('Non-admin user access to create, delete and access resource category.'
             .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -481,12 +537,16 @@ describe('Resource Category APIs accesible through API key', function (): void {
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
-            createUser(request, userData.user, (err, res): void => {
-                const project: $TSFixMe = res.body.project;
-                projectId = project._id;
-                apiKey = project.apiKey;
-                done();
-            });
+            createUser(
+                request,
+                userData.user,
+                (err: $TSFixMe, res: $TSFixMe): void => {
+                    const project: $TSFixMe = res.body.project;
+                    projectId = project._id;
+                    apiKey = project.apiKey;
+                    done();
+                }
+            );
         });
     });
 
@@ -515,7 +575,7 @@ describe('Resource Category APIs accesible through API key', function (): void {
             .set('apiKey', apiKey)
             .send(resourceCategory)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 resourceCategoryId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(
@@ -532,7 +592,7 @@ describe('Resource Category APIs accesible through API key', function (): void {
 
             .set('apiKey', apiKey)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -551,7 +611,7 @@ describe('Resource Category APIs accesible through API key', function (): void {
 
             .set('apiKey', apiKey)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 done();
             });

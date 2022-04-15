@@ -34,39 +34,50 @@ describe('Project API', function (): void {
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then((): void => {
-            createUser(request, userData.user, (err, res): void => {
-                const project: $TSFixMe = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+            createUser(
+                request,
+                userData.user,
+                (err: $TSFixMe, res: $TSFixMe): void => {
+                    const project: $TSFixMe = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne(
-                    { userId },
-                    (
-                        err,
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        (
+                            err,
 
-                        verificationToken
-                    ) => {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end((): void => {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.user.email,
-                                        password: userData.user.password,
-                                    })
+                            verificationToken
+                        ) => {
+                            request
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end((): void => {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
 
-                                    .end((err, res): void => {
-                                        token = res.body.tokens.jwtAccessToken;
-                                        done();
-                                    });
-                            });
-                    }
-                );
-            });
+                                        .end(
+                                            (
+                                                err: $TSFixMe,
+                                                res: $TSFixMe
+                                            ): void => {
+                                                token =
+                                                    res.body.tokens
+                                                        .jwtAccessToken;
+                                                done();
+                                            }
+                                        );
+                                });
+                        }
+                    );
+                }
+            );
         });
     });
 
@@ -97,7 +108,7 @@ describe('Project API', function (): void {
                 planId: plans[0].planId,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -114,7 +125,7 @@ describe('Project API', function (): void {
                 planId: plans[0].planId,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -130,7 +141,7 @@ describe('Project API', function (): void {
                 planId: null,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -147,7 +158,7 @@ describe('Project API', function (): void {
                 planId: plans[0].planId,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 ProjectService.hardDeleteBy({ _id: res.body._id });
                 done();
@@ -160,7 +171,7 @@ describe('Project API', function (): void {
             .get('/project/projects')
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -180,7 +191,7 @@ describe('Project API', function (): void {
                 planId: plans[0].planId,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 request
                     .get(`/project/${res.body._id}/resetToken`)
                     .set('Authorization', authorization)
@@ -206,7 +217,7 @@ describe('Project API', function (): void {
                 projectName: null,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -223,7 +234,7 @@ describe('Project API', function (): void {
                 planId: plans[0].planId,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 request
                     .put(`/project/${res.body._id}/renameProject`)
                     .set('Authorization', authorization)
@@ -231,7 +242,7 @@ describe('Project API', function (): void {
                         projectName: 'Renamed Project',
                     })
 
-                    .end((err, res): void => {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         expect(res).to.have.status(200);
                         expect(res.body.name).to.not.equal('Old Project');
                         ProjectService.hardDeleteBy({ _id: res.body._id });
@@ -246,7 +257,7 @@ describe('Project API', function (): void {
             .get(`/project/${null}/balance`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -259,7 +270,7 @@ describe('Project API', function (): void {
             .get(`/project/${projectId}/balance`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.balance).to.be.eql(0);
                 done();
@@ -277,12 +288,12 @@ describe('Project API', function (): void {
                 planId: plans[0].planId,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 request
                     .delete(`/project/${res.body._id}/deleteProject`)
                     .set('Authorization', authorization)
 
-                    .end((err, res): void => {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         expect(res).to.have.status(200);
                         ProjectService.hardDeleteBy({ _id: res.body._id });
                         done();
@@ -386,7 +397,7 @@ describe('Project API', function (): void {
             .delete(`/project/${projectId}/user/${userId}/exitProject`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 log(res.text);
                 expect(res).to.have.status(200);
                 expect(res.text).to.be.equal(
@@ -408,7 +419,7 @@ describe('Project API', function (): void {
                 sendResolvedIncidentNotificationEmail: true,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.sendCreatedIncidentNotificationEmail).to.be
                     .false;
@@ -428,7 +439,7 @@ describe('Project API', function (): void {
                 sendResolvedIncidentNotificationEmail: true,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.sendAcknowledgedIncidentNotificationEmail).to.be
                     .false;
@@ -448,7 +459,7 @@ describe('Project API', function (): void {
                 sendResolvedIncidentNotificationEmail: false,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.sendResolvedIncidentNotificationEmail).to.be
                     .false;
@@ -468,7 +479,7 @@ describe('Project API', function (): void {
                 sendResolvedIncidentNotificationSms: true,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.sendCreatedIncidentNotificationSms).to.be.false;
                 done();
@@ -487,7 +498,7 @@ describe('Project API', function (): void {
                 sendResolvedIncidentNotificationSms: true,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.sendAcknowledgedIncidentNotificationSms).to.be
                     .false;
@@ -507,7 +518,7 @@ describe('Project API', function (): void {
                 sendResolvedIncidentNotificationSms: false,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.sendResolvedIncidentNotificationSms).to.be
                     .false;
@@ -522,36 +533,48 @@ describe('Projects SubProjects API', function (): void {
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
 
-        createUser(request, userData.user, (err, res): void => {
-            const project: $TSFixMe = res.body.project;
-            projectId = project._id;
-            userId = res.body.id;
-            VerificationTokenModel.findOne(
-                { userId },
-                (
-                    err,
+        createUser(
+            request,
+            userData.user,
+            (err: $TSFixMe, res: $TSFixMe): void => {
+                const project: $TSFixMe = res.body.project;
+                projectId = project._id;
+                userId = res.body.id;
+                VerificationTokenModel.findOne(
+                    { userId },
+                    (
+                        err,
 
-                    verificationToken
-                ) => {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end((): void => {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
+                        verificationToken
+                    ) => {
+                        request
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end((): void => {
+                                request
+                                    .post('/user/login')
+                                    .send({
+                                        email: userData.user.email,
+                                        password: userData.user.password,
+                                    })
 
-                                .end((err, res): void => {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
-                }
-            );
-        });
+                                    .end(
+                                        (
+                                            err: $TSFixMe,
+                                            res: $TSFixMe
+                                        ): void => {
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            done();
+                                        }
+                                    );
+                            });
+                    }
+                );
+            }
+        );
     });
 
     after(async (): void => {
@@ -577,7 +600,7 @@ describe('Projects SubProjects API', function (): void {
             .set('Authorization', authorization)
             .send({ subProjectName: '' })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Subproject name must be present.'
@@ -594,7 +617,7 @@ describe('Projects SubProjects API', function (): void {
             .set('Authorization', authorization)
             .send({ subProjectName: 'New SubProject' })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 subProjectId = res.body[0]._id;
                 expect(res).to.have.status(200);
                 done();
@@ -602,49 +625,70 @@ describe('Projects SubProjects API', function (): void {
     });
 
     it('should not get subprojects for a user not present in the project.', (done: $TSFixMe): void => {
-        createUser(request, userData.newUser, (err, res): void => {
-            userId = res.body.id;
-            VerificationTokenModel.findOne(
-                { userId },
-                (
-                    err,
+        createUser(
+            request,
+            userData.newUser,
+            (err: $TSFixMe, res: $TSFixMe): void => {
+                userId = res.body.id;
+                VerificationTokenModel.findOne(
+                    { userId },
+                    (
+                        err,
 
-                    verificationToken
-                ) => {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end((): void => {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.newUser.email,
-                                    password: userData.newUser.password,
-                                })
+                        verificationToken
+                    ) => {
+                        request
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end((): void => {
+                                request
+                                    .post('/user/login')
+                                    .send({
+                                        email: userData.newUser.email,
+                                        password: userData.newUser.password,
+                                    })
 
-                                .end((err, res): void => {
-                                    const authorization: string = `Basic ${res.body.tokens.jwtAccessToken}`;
-                                    request
+                                    .end(
+                                        (
+                                            err: $TSFixMe,
+                                            res: $TSFixMe
+                                        ): void => {
+                                            const authorization: string = `Basic ${res.body.tokens.jwtAccessToken}`;
+                                            request
 
-                                        .get(
-                                            `/project/${projectId}/subProjects`
-                                        )
-                                        .set('Authorization', authorization)
+                                                .get(
+                                                    `/project/${projectId}/subProjects`
+                                                )
+                                                .set(
+                                                    'Authorization',
+                                                    authorization
+                                                )
 
-                                        .end((err, res): void => {
-                                            expect(res).to.have.status(400);
-                                            expect(
-                                                res.body.message
-                                            ).to.be.equal(
-                                                'You are not present in this project.'
-                                            );
-                                            done();
-                                        });
-                                });
-                        });
-                }
-            );
-        });
+                                                .end(
+                                                    (
+                                                        err: $TSFixMe,
+                                                        res: $TSFixMe
+                                                    ): void => {
+                                                        expect(
+                                                            res
+                                                        ).to.have.status(400);
+                                                        expect(
+                                                            res.body.message
+                                                        ).to.be.equal(
+                                                            'You are not present in this project.'
+                                                        );
+                                                        done();
+                                                    }
+                                                );
+                                        }
+                                    );
+                            });
+                    }
+                );
+            }
+        );
     });
 
     it('should get subprojects for a valid user.', (done: $TSFixMe): void => {
@@ -654,7 +698,7 @@ describe('Projects SubProjects API', function (): void {
             .get(`/project/${projectId}/subProjects`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('array');
 
@@ -673,7 +717,7 @@ describe('Projects SubProjects API', function (): void {
                 subProjectName: null,
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -689,7 +733,7 @@ describe('Projects SubProjects API', function (): void {
                 subProjectName: 'Renamed SubProject',
             })
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('Renamed SubProject');
                 done();
@@ -703,7 +747,7 @@ describe('Projects SubProjects API', function (): void {
             .delete(`/project/${projectId}/${subProjectId}`)
             .set('Authorization', authorization)
 
-            .end((err, res): void => {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 done();
             });

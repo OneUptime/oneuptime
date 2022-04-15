@@ -90,6 +90,7 @@
         "react/no-is-mounted": "error",
         "react/no-find-dom-node": "error",
         "one-var-declaration-per-line": "error",
+        "arrow-parens": "error",
         "arrow-body-style": ["error", "always"],
         "@typescript-eslint/typedef": [
             "error",
