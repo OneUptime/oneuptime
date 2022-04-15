@@ -17,7 +17,11 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe, resourceCategoryId: $TSFixMe, apiKey: $TSFixMe;
+let token: $TSFixMe,
+    userId: $TSFixMe,
+    projectId: $TSFixMe,
+    resourceCategoryId: $TSFixMe,
+    apiKey: $TSFixMe;
 const resourceCategory: $TSFixMe = {
     resourceCategoryName: 'New Resource Category',
 };

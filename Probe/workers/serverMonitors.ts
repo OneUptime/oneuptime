@@ -108,7 +108,6 @@ const execCommands: Function = async (exec: $TSFixMe, os: $TSFixMe): void => {
         mainTemp: $TSFixMe,
         maxTemp: $TSFixMe;
 
-
     if (os === 'Linux') {
         const { stdout: load } = await (isSSH
             ? exec.execCommand(COMMAND.linux.load)

@@ -381,7 +381,10 @@ class Service extends DatabaseService<typeof Model> {
                 : {};
         let memberId: $TSFixMe = null;
         const response: $TSFixMe = new twilio.twiml.VoiceResponse();
-        let forwardingNumber: $TSFixMe, error: $TSFixMe, userId: $TSFixMe, scheduleId: $TSFixMe;
+        let forwardingNumber: $TSFixMe,
+            error: $TSFixMe,
+            userId: $TSFixMe,
+            scheduleId: $TSFixMe;
 
         const {
             type,

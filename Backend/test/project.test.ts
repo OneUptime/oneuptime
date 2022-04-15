@@ -23,7 +23,10 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 // let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe;
 
-let token: $TSFixMe, projectId: $TSFixMe, subProjectId: $TSFixMe, userId: $TSFixMe;
+let token: $TSFixMe,
+    projectId: $TSFixMe,
+    subProjectId: $TSFixMe,
+    userId: $TSFixMe;
 
 describe('Project API', function (): void {
     this.timeout(30000);

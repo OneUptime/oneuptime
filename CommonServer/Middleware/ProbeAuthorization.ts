@@ -18,7 +18,10 @@ export default {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        let probeKey: $TSFixMe, probeName: $TSFixMe, clusterKey: $TSFixMe, probeVersion: $TSFixMe;
+        let probeKey: $TSFixMe,
+            probeName: $TSFixMe,
+            clusterKey: $TSFixMe,
+            probeVersion: $TSFixMe;
 
         if (req.params && req.params.probeKey) {
             probeKey = req.params.probeKey;
