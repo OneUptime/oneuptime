@@ -332,7 +332,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
             }
         }
 
-        if (j == M) {
+        if (j===M) {
             res++;
             j = 0;
         }

@@ -3496,7 +3496,7 @@ export default class Service {
                     );
                     throw error;
                 }
-            } else if (subscriber.alertVia == AlertType.SMS) {
+            } else if (subscriber.alertVia===AlertType.SMS) {
                 let owner: $TSFixMe;
                 const hasGlobalTwilioSettings: $TSFixMe =
                     await GlobalConfigService.findOneBy({
@@ -3778,7 +3778,7 @@ export default class Service {
                             alertStatus = 'Disabled';
                         }
                     } else if (
-                        templateType == 'Investigation note is created'
+                        templateType==='Investigation note is created'
                     ) {
                         sendResult =
                             await TwilioService.sendInvestigationNoteToSubscribers(

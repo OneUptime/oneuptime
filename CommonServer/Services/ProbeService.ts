@@ -1314,7 +1314,7 @@ const incomingCheckAnd: Function = (
                             condition.criteria[i] &&
                             condition.criteria[i].field1 &&
                             payload &&
-                            payload == condition.criteria[i].field1
+                            payload===condition.criteria[i].field1
                         ) {
                             val++;
                         }
@@ -1466,7 +1466,7 @@ const incomingCheckOr: Function = (
                             condition.criteria[i] &&
                             condition.criteria[i].field1 &&
                             payload &&
-                            payload == condition.criteria[i].field1
+                            payload===condition.criteria[i].field1
                         ) {
                             val++;
                         }
@@ -1697,7 +1697,7 @@ const checkAnd: Function = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload == con.criteria[i].field1
+                                payload===con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1859,7 +1859,7 @@ const checkAnd: Function = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload == con.criteria[i].field1
+                                payload===con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2193,7 +2193,7 @@ const checkAnd: Function = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 statusCode &&
-                                statusCode == con.criteria[i].field1
+                                statusCode===con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2420,7 +2420,7 @@ const checkAnd: Function = (
                                 con.criteria[i].field1 &&
                                 payload &&
                                 payload.cpuLoad &&
-                                payload.cpuLoad == con.criteria[i].field1
+                                payload.cpuLoad===con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2657,7 +2657,7 @@ const checkAnd: Function = (
                                 con.criteria[i].field1 &&
                                 memoryUsedBytes &&
                                 memoryUsed &&
-                                memoryUsed == con.criteria[i].field1
+                                memoryUsed===con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3150,7 +3150,7 @@ const checkAnd: Function = (
                                 con.criteria[i].field1 &&
                                 payload &&
                                 payload.mainTemp &&
-                                payload.mainTemp == con.criteria[i].field1
+                                payload.mainTemp===con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -4065,7 +4065,7 @@ const checkOr: Function = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload == con.criteria[i].field1
+                            payload===con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4212,7 +4212,7 @@ const checkOr: Function = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload == con.criteria[i].field1
+                            payload===con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4535,7 +4535,7 @@ const checkOr: Function = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             statusCode &&
-                            statusCode == con.criteria[i].field1
+                            statusCode===con.criteria[i].field1
                         ) {
                             validity = true;
                             if (statusCode === 408 || statusCode === '408') {
@@ -4748,7 +4748,7 @@ const checkOr: Function = (
                             con.criteria[i].field1 &&
                             payload &&
                             payload.cpuLoad &&
-                            payload.cpuLoad == con.criteria[i].field1
+                            payload.cpuLoad===con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
@@ -4967,7 +4967,7 @@ const checkOr: Function = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             memoryUsed &&
-                            memoryUsed == con.criteria[i].field1
+                            memoryUsed===con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
@@ -5422,7 +5422,7 @@ const checkOr: Function = (
                             con.criteria[i].field1 &&
                             payload &&
                             payload.mainTemp &&
-                            payload.mainTemp == con.criteria[i].field1
+                            payload.mainTemp===con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.mainTemp !== null) {

@@ -483,7 +483,7 @@ export default class StripeService {
         if (confirmedPaymentIntent.status === 'succeeded') {
             await this.updateBalance(confirmedPaymentIntent);
         }
-        if (confirmedPaymentIntent.status == 'requires_payment_method') {
+        if (confirmedPaymentIntent.status==='requires_payment_method') {
             await sendSlackAlert(
                 'Confirm Payment Failed',
                 'stripeService.confirmPayment',

@@ -92,7 +92,7 @@ export default class Service {
         }
         if (subProject) {
             for (let i: $TSFixMe = 0; i < subProject.users.length; i++) {
-                if (teamMemberUserId == subProject.users[i].userId) {
+                if (teamMemberUserId===subProject.users[i].userId) {
                     index = i;
                     break;
                 } else {
@@ -101,7 +101,7 @@ export default class Service {
             }
         } else {
             for (let i: $TSFixMe = 0; i < project.users.length; i++) {
-                if (teamMemberUserId == project.users[i].userId) {
+                if (teamMemberUserId===project.users[i].userId) {
                     index = i;
                     break;
                 } else {
@@ -623,7 +623,7 @@ export default class Service {
             }
             if (subProject) {
                 for (let i: $TSFixMe = 0; i < subProject.users.length; i++) {
-                    if (teamMemberUserId == subProject.users[i].userId) {
+                    if (teamMemberUserId===subProject.users[i].userId) {
                         index = i;
                         break;
                     } else {
@@ -632,7 +632,7 @@ export default class Service {
                 }
             } else {
                 for (let i: $TSFixMe = 0; i < project.users.length; i++) {
-                    if (teamMemberUserId == project.users[i].userId) {
+                    if (teamMemberUserId===project.users[i].userId) {
                         index = i;
                         break;
                     } else {

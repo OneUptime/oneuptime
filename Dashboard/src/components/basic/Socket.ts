@@ -542,9 +542,7 @@ class SocketApp extends Component<ComponentProps> {
                                 },
 
                                 onConfirm: () => {
-                                    return new Promise((resolve: $TSFixMe) => {
-                                        return resolve();
-                                    });
+                                    return Promise.resolve();
                                 },
                                 content: RemovedFromProjectModal,
                             });
@@ -585,9 +583,7 @@ class SocketApp extends Component<ComponentProps> {
                                 },
 
                                 onConfirm: () => {
-                                    return new Promise((resolve: $TSFixMe) => {
-                                        return resolve();
-                                    });
+                                    return Promise.resolve();
                                 },
                                 content: DataPathHoC(
                                     RemovedFromSubProjectModal,
