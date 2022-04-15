@@ -362,7 +362,7 @@ describe('Capture Exception', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        let event, newEvent;
+        let event: $TSFixMe, newEvent: $TSFixMe;
         const errorMessage: string = 'Error Found';
         const errorMessageObj: string = 'Object Error Found';
         await tracker.captureMessage(errorMessage).then(evt => {
@@ -396,7 +396,7 @@ describe('Capture Exception', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        let event, newEvent;
+        let event: $TSFixMe, newEvent: $TSFixMe;
         const errorMessage: string = 'Error Found';
         const errorMessageObj: string = 'Object Error Found';
         // add a timelie action to the first event

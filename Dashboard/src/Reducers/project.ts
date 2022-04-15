@@ -129,7 +129,7 @@ const initialState: $TSFixMe = {
 };
 
 export default function project(state = initialState, action: Action): void {
-    let projects, newProjects;
+    let projects: $TSFixMe, newProjects: $TSFixMe;
     switch (action.type) {
         case types.CHANGE_DELETE_MODAL:
             return Object.assign({}, state, {

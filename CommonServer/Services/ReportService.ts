@@ -203,7 +203,7 @@ export default class Service {
         const format: string = 'ddd MMM DD YYYY H:m:s GMT';
         const start: $TSFixMe = moment(startDate, format).toDate();
         const end: $TSFixMe = moment(endDate, format).toDate();
-        let group, sort, inputFormat, outputFormat;
+        let group: $TSFixMe, sort: $TSFixMe, inputFormat: $TSFixMe, outputFormat: $TSFixMe;
 
         if (filter === 'day') {
             group = {
@@ -331,7 +331,7 @@ export default class Service {
         const format: string = 'ddd MMM DD YYYY H:m:s GMT';
         const start: $TSFixMe = moment(startDate, format).toDate();
         const end: $TSFixMe = moment(endDate, format).toDate();
-        let group, sort, inputFormat, outputFormat;
+        let group: $TSFixMe, sort: $TSFixMe, inputFormat: $TSFixMe, outputFormat: $TSFixMe;
 
         if (filter === 'day') {
             group = {

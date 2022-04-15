@@ -252,7 +252,7 @@ export default class Service {
         errorEventId: $TSFixMe,
         errorTrackerId: $TSFixMe
     ): void {
-        let previous, next;
+        let previous: $TSFixMe, next: $TSFixMe;
         const selectErrorTracker: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt issueId';
         const populateErrorTracker: $TSFixMe = [

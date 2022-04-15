@@ -32,7 +32,7 @@ const initialState: $TSFixMe = {
 };
 
 export default (state = initialState, action: Action): void => {
-    let teams, index, count;
+    let teams: $TSFixMe, index: $TSFixMe, count: $TSFixMe;
     switch (action.type) {
         case GET_SLACK_TEAM_FAILED:
             return Object.assign({}, state, {

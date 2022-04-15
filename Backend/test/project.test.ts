@@ -21,9 +21,9 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-// let token, userId, projectId;
+// let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe;
 
-let token, projectId, subProjectId, userId;
+let token: $TSFixMe, projectId: $TSFixMe, subProjectId: $TSFixMe, userId: $TSFixMe;
 
 describe('Project API', function (): void {
     this.timeout(30000);

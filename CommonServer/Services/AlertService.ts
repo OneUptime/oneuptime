@@ -3184,7 +3184,7 @@ export default class Service {
                     isStatusPageNoteAlert &&
                     !project.enableInvestigationNoteNotificationEmail;
 
-                let errorMessageText, eventType;
+                let errorMessageText: $TSFixMe, eventType: $TSFixMe;
                 if (
                     (!areEmailAlertsEnabledInGlobalSettings &&
                         !hasCustomSmtpSettings) ||
@@ -3466,7 +3466,7 @@ export default class Service {
                             (!IS_SAAS_SERVICE && !areAlertsEnabledGlobally))) ||
                     investigationNoteNotificationSMSDisabled
                 ) {
-                    let errorMessageText, eventType;
+                    let errorMessageText: $TSFixMe, eventType: $TSFixMe;
                     if (!hasGlobalTwilioSettings) {
                         errorMessageText =
                             'Twilio Settings not found on Admin Dashboard';
@@ -3525,7 +3525,7 @@ export default class Service {
                         );
                     if (!doesPhoneNumberComplyWithHighRiskConfig) {
                         const countryType: $TSFixMe = getCountryType(contactPhone);
-                        let errorMessageText, eventType;
+                        let errorMessageText: $TSFixMe, eventType: $TSFixMe;
                         if (countryType === 'us') {
                             errorMessageText =
                                 'SMS for numbers inside US not enabled for this project';

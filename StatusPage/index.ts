@@ -390,7 +390,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
                     domain
                 );
 
-                let certPath, privateKeyPath;
+                let certPath: $TSFixMe, privateKeyPath: $TSFixMe;
                 if (res) {
                     const {
                         cert,

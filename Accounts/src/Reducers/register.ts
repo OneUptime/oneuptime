@@ -48,7 +48,7 @@ const initialState: $TSFixMe = {
 };
 
 export default function register(state = initialState, action: Action): void {
-    let incCount, decCount, stage;
+    let incCount: $TSFixMe, decCount: $TSFixMe, stage: $TSFixMe;
     switch (action.type) {
         case SIGNUP_REQUEST:
             return Object.assign({}, state, {

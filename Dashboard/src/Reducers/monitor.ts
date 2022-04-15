@@ -156,7 +156,7 @@ const INITIAL_STATE: $TSFixMe = {
 };
 
 export default function monitor(state = INITIAL_STATE, action: Action): void {
-    let monitors, monitorType, initialValue;
+    let monitors: $TSFixMe, monitorType: $TSFixMe, initialValue: $TSFixMe;
     switch (action.type) {
         case CREATE_MONITOR_FAILURE:
             return Object.assign({}, state, {

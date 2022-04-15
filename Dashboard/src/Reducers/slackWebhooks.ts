@@ -53,7 +53,7 @@ const initialState: $TSFixMe = {
 };
 
 export default (state = initialState, action: Action): void => {
-    let slacks, index, count;
+    let slacks: $TSFixMe, index: $TSFixMe, count: $TSFixMe;
     switch (action.type) {
         case GET_SLACK_WEBHOOK_FAILED:
             return Object.assign({}, state, {

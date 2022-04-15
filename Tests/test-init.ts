@@ -23,7 +23,7 @@ const _this: $TSFixMe = {
             utils.BACKEND_URL.includes('staging.oneuptime.com')
         ) {
             const { email } = user;
-            let frame, elementHandle;
+            let frame: $TSFixMe, elementHandle: $TSFixMe;
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
             });
@@ -172,7 +172,7 @@ const _this: $TSFixMe = {
             utils.BACKEND_URL.includes('staging.oneuptime.com')
         ) {
             const { email } = user;
-            let frame, elementHandle;
+            let frame: $TSFixMe, elementHandle: $TSFixMe;
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
             });

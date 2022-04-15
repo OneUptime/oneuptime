@@ -348,7 +348,7 @@ export default function statusPage(
     state = INITIAL_STATE,
     action: Action
 ): void {
-    let status, statusPage, isExistingStatusPage;
+    let status: $TSFixMe, statusPage: $TSFixMe, isExistingStatusPage: $TSFixMe;
     switch (action.type) {
         //create statuspage
         case CREATE_STATUSPAGE_REQUEST:

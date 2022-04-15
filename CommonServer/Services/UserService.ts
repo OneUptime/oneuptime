@@ -246,7 +246,7 @@ class Service extends DatabaseService<typeof Model> {
             if (user) {
                 throw new BadDataException('User already exists.');
             } else {
-                let customerId, subscription;
+                let customerId: $TSFixMe, subscription: $TSFixMe;
                 if (IS_SAAS_SERVICE && paymentIntent !== null) {
                     // Check here is the payment intent is successfully paid. If yes then create the customer else not.
                     const processedPaymentIntent: $TSFixMe =

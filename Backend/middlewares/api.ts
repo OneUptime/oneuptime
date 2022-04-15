@@ -20,7 +20,7 @@ export default {
         next: NextFunction
     ): void {
         //get project id
-        let projectId, apiKey;
+        let projectId: $TSFixMe, apiKey: $TSFixMe;
 
         if (req.params && req.params.projectId) {
             projectId = req.params.projectId;

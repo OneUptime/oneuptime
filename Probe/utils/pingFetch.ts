@@ -18,7 +18,7 @@ const pingfetch: $TSFixMe: Function = async (
     headers: $TSFixMe
 ): void => {
     const now: $TSFixMe = new Date().getTime();
-    let resp, res, response;
+    let resp: $TSFixMe, res: $TSFixMe, response: $TSFixMe;
 
     if (!method) {
         method = 'GET';
@@ -26,7 +26,7 @@ const pingfetch: $TSFixMe: Function = async (
 
     try {
         logger.info(`Ping Start: ${method} ${url}`);
-        let sslCertificate, data;
+        let sslCertificate: $TSFixMe, data: $TSFixMe;
         const urlObject: $TSFixMe = new URL(url);
         const payload: $TSFixMe = {
             method: method,

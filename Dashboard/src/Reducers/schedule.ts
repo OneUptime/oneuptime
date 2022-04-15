@@ -126,7 +126,7 @@ const initialState: $TSFixMe = {
 };
 
 export default function schedule(state = initialState, action: Action): void {
-    let data, index, isExistingSchedule;
+    let data: $TSFixMe, index: $TSFixMe, isExistingSchedule: $TSFixMe;
     switch (action.type) {
         case SCHEDULE_FETCH_SUCCESS:
             return Object.assign({}, state, {

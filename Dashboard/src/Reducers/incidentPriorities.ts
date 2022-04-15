@@ -47,7 +47,7 @@ const INITIAL_STATE: $TSFixMe = {
 };
 
 export default (state = INITIAL_STATE, action: Action): void => {
-    let incidentPriorities, count, index;
+    let incidentPriorities: $TSFixMe, count: $TSFixMe, index: $TSFixMe;
     switch (action.type) {
         case FETCH_INCIDENT_PRIORITIES_SUCCESS:
             return Object.assign({}, state, {

@@ -43,7 +43,7 @@ const initialState: $TSFixMe = {
 };
 
 export default function subProject(state = initialState, action: Action): void {
-    let subProjects, index;
+    let subProjects: $TSFixMe, index: $TSFixMe;
     switch (action.type) {
         case types.SUBPROJECTS_SUCCESS:
             return Object.assign({}, state, {

@@ -560,7 +560,7 @@ class Service extends DatabaseService<typeof Model> {
         // check the id of each criteria against the id of criteria attached to an incident
         // ack / resolve according to the criteria
 
-        let autoAcknowledge, autoResolve;
+        let autoAcknowledge: $TSFixMe, autoResolve: $TSFixMe;
         if (incidents && incidents.length > 0) {
             incidents.forEach(incident => {
                 let criteriaId: $TSFixMe = null;
@@ -928,7 +928,7 @@ class Service extends DatabaseService<typeof Model> {
         let {queryParams, headers}: $TSFixMe = data;
         queryParams = this.toArray(queryParams);
         headers = this.toArray(headers);
-        let status, reason;
+        let status: $TSFixMe, reason: $TSFixMe;
         let matchedCriterion: $TSFixMe;
         const lastPingTime: $TSFixMe = monitor.lastPingTime;
         const payload: $TSFixMe = moment().diff(moment(lastPingTime), 'minutes');
@@ -1048,7 +1048,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async probeHttpRequest(monitor, probeId): void {
-        let status, reason;
+        let status: $TSFixMe, reason: $TSFixMe;
         let matchedCriterion: $TSFixMe;
         const lastPingTime: $TSFixMe = monitor.lastPingTime;
         const payload: $TSFixMe = moment().diff(moment(lastPingTime), 'minutes');

@@ -18,7 +18,7 @@ import payment from '../backend/config/payment';
 import Stripe from 'stripe';
 const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 
-let token, userId, projectId, stripeCustomerId, testPlan;
+let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe, stripeCustomerId: $TSFixMe, testPlan: $TSFixMe;
 
 describe('Invoice API', function (): void {
     this.timeout(200000);

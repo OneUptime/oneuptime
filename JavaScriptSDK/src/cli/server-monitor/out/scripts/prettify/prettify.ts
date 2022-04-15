@@ -476,7 +476,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                 g = d.length,
                 a = 0;
             d[g] = s;
-            let r, n;
+            let r: $TSFixMe, n: $TSFixMe;
             for (n = r = 0; n < g; )
                 d[n] !== d[n + 2]
                     ? ((d[r++] = d[n++]), (d[r++] = d[n++]))

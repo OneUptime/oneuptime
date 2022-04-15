@@ -24,7 +24,7 @@ const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 import VerificationTokenModel from '../backend/models/verificationToken';
 
 // eslint-disable-next-line
-let token, userId, projectId, anotherUser;
+let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe, anotherUser: $TSFixMe;
 
 describe('Team API', function (): void {
     this.timeout(20000);
