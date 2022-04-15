@@ -40,8 +40,8 @@ export const getStatusPage: Function = (
         dispatch(statusPageRequest());
 
         promise.then(
-            Data => {
-                dispatch(statusPageSuccess(Data.data));
+            (data: $TSFixMe) => {
+                dispatch(statusPageSuccess(data.data));
             },
             (error: Error) => {
                 if (
@@ -302,10 +302,10 @@ export const getStatusPageNote: Function = (
         dispatch(statusPageNoteRequest());
 
         promise.then(
-            Data => {
-                dispatch(statusPageNoteSuccess(Data.data));
+            (data: $TSFixMe) => {
+                dispatch(statusPageNoteSuccess(data.data));
 
-                dispatch(newThemeIncidentNote(Data.data));
+                dispatch(newThemeIncidentNote(data.data));
                 dispatch(individualNoteDisable());
             },
             (error: Error) => {
@@ -343,11 +343,11 @@ export const getStatusPageIndividualNote: Function = (
         dispatch(statusPageNoteRequest());
 
         promise.then(
-            Data => {
-                dispatch(statusPageNoteSuccess(Data.data));
+            (data: $TSFixMe) => {
+                dispatch(statusPageNoteSuccess(data.data));
                 dispatch(
                     individualNoteEnable({
-                        message: Data.data.message,
+                        message: data.data.message,
                         name: {
                             _id: monitorId,
                             name,
@@ -417,8 +417,8 @@ export const getScheduledEvent: Function = (
         dispatch(scheduledEventRequest());
 
         promise.then(
-            Data => {
-                dispatch(scheduledEventSuccess(Data.data));
+            (data: $TSFixMe) => {
+                dispatch(scheduledEventSuccess(data.data));
             },
             (error: Error) => {
                 if (error && error.response && error.response.data) {
@@ -481,8 +481,8 @@ export const getOngoingScheduledEvent: Function = (
         dispatch(ongoingEventRequest());
 
         promise.then(
-            Data => {
-                dispatch(ongoingEventSuccess(Data.data));
+            (data: $TSFixMe) => {
+                dispatch(ongoingEventSuccess(data.data));
             },
 
             (error: Error) => {
@@ -541,10 +541,10 @@ export const getIndividualEvent: Function = (
         dispatch(individualEventsRequest());
 
         promise.then(
-            Data => {
+            (data: $TSFixMe) => {
                 dispatch(
                     individualEventsSuccess({
-                        ...Data.data,
+                        ...data.data,
                         date,
                         monitorName: name,
                     })
@@ -720,8 +720,8 @@ export const getMoreNote: Function = (
 
         dispatch(moreNoteRequest());
         promise.then(
-            Data => {
-                dispatch(moreNoteSuccess(Data.data));
+            (data: $TSFixMe) => {
+                dispatch(moreNoteSuccess(data.data));
             },
             (error: Error) => {
                 if (error && error.response && error.response.data) {
@@ -774,8 +774,8 @@ export const getMoreEvent: Function = (
 
         dispatch(moreEventRequest());
         promise.then(
-            Data => {
-                dispatch(moreEventSuccess(Data.data));
+            (data: $TSFixMe) => {
+                dispatch(moreEventSuccess(data.data));
             },
             (error: Error) => {
                 if (error && error.response && error.response.data) {
@@ -1463,7 +1463,7 @@ export const getAnnouncementsFailure: Function = (data: $TSFixMe): void => {
 export function getAnnouncements(
     projectId: ObjectID,
     statusPageId: $TSFixMe,
-    skip = 0,
+    skip: number = 0
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
@@ -1572,7 +1572,7 @@ export const fetchAnnouncementLogsFailure: Function = (
 export function fetchAnnouncementLogs(
     projectId: ObjectID,
     statusPageId: $TSFixMe,
-    skip = 0,
+    skip: number = 0
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {

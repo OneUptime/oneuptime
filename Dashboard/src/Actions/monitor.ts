@@ -15,7 +15,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 //props -> {name: '', type, data -> { data.url}}
 export const fetchMonitors: Function = (
     projectId: ObjectID,
-    skip = 0,
+    skip: number = 0
     limit = 0
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -67,7 +67,7 @@ export const resetFetchMonitors: Function = (): void => {
 //props -> {name: '', type, data -> { data.url}}
 export function fetchPaginatedMonitors({
     projectId,
-    skip = 0,
+    skip: number = 0
     limit = 0,
     componentSlug,
     componentId,

@@ -45,7 +45,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
             const projectId: $TSFixMe = req.params.projectId;
@@ -144,7 +144,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { limit, skip }: $TSFixMe = req.query;
 
@@ -168,7 +168,7 @@ router.get(
     '/:projectId/paginated',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { projectId }: $TSFixMe = req.params;
             const { limit, skip }: $TSFixMe = req.query;
@@ -191,7 +191,7 @@ router.get(
     '/:projectId/slug/:slug',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { slug }: $TSFixMe = req.params;
             const populateComponent: $TSFixMe = [
@@ -224,7 +224,9 @@ router.get(
             const type: $TSFixMe = req.query.type;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             const query: $TSFixMe = type
                 ? { projectId: { $in: subProjectIds }, type }
@@ -268,7 +270,9 @@ router.get(
             const type: $TSFixMe = req.query.type;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             const query: $TSFixMe = type
                 ? { _id: componentId, projectId: { $in: subProjectIds }, type }
@@ -305,7 +309,9 @@ router.post(
             const componentId: $TSFixMe = req.params.componentId;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
 
             // Check that component exists
@@ -361,11 +367,12 @@ router.post(
                             );
 
                             const monitorUptime: $TSFixMe =
-                                uptimePercents.reduce(
-                                    (a, b) =>
+                                uptimePercents.reduce((a, b) => {
+                                    return (
                                         parseFloat(a || 100) +
                                         parseFloat(b || 100)
-                                ) / uptimePercents.length;
+                                    );
+                                }) / uptimePercents.length;
 
                             return {
                                 ...stat,
@@ -405,7 +412,9 @@ router.get(
             const type: $TSFixMe = req.query.type;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
 
             const query: $TSFixMe = type
@@ -717,7 +726,9 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
 
             // Call the ComponentService.

@@ -32,11 +32,10 @@ export const resetProbe: Function = (): void => {
 };
 
 // Gets project Probes
-export const getProbes: Function = (skip = 0, limit = 10): void => {
-    skip = parseInt(skip);
-
-    limit = parseInt(limit);
-
+export const getProbes: Function = (
+    skip: number = 0,
+    limit: number = 10
+): void => {
     return function (dispatch: Dispatch): void {
         let promise: $TSFixMe = null;
 

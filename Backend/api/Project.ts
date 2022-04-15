@@ -247,21 +247,28 @@ router.get(
             let projectIds: $TSFixMe = [];
             if (userProjects.length > 0) {
                 const subProjects: $TSFixMe = userProjects
-                    .map((project: $TSFixMe) =>
-                        project.parentProjectId ? project : null
-                    )
-                    .filter((subProject: $TSFixMe) => subProject !== null);
-                parentProjectIds = subProjects.map(
-                    (subProject: $TSFixMe) =>
+                    .map((project: $TSFixMe) => {
+                        return project.parentProjectId ? project : null;
+                    })
+                    .filter((subProject: $TSFixMe) => {
+                        return subProject !== null;
+                    });
+                parentProjectIds = subProjects.map((subProject: $TSFixMe) => {
+                    return (
                         subProject.parentProjectId._id ||
                         subProject.parentProjectId
-                );
+                    );
+                });
                 const projects: $TSFixMe = userProjects
-                    .map((project: $TSFixMe) =>
-                        project.parentProjectId ? null : project
-                    )
-                    .filter((project: $TSFixMe) => project !== null);
-                projectIds = projects.map((project: $TSFixMe) => project._id);
+                    .map((project: $TSFixMe) => {
+                        return project.parentProjectId ? null : project;
+                    })
+                    .filter((project: $TSFixMe) => {
+                        return project !== null;
+                    });
+                projectIds = projects.map((project: $TSFixMe) => {
+                    return project._id;
+                });
             }
 
             // query data
@@ -310,7 +317,7 @@ router.get(
     '/:projectId/balance',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             if (!projectId) {
@@ -337,7 +344,7 @@ router.get(
     '/:projectId/resetToken',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
 
@@ -765,9 +772,9 @@ router.put(
                     query: { _id: projectId },
                     select: 'users',
                 });
-                const owner: $TSFixMe = project.users.find(
-                    (user: $TSFixMe) => user.role === 'Owner'
-                );
+                const owner: $TSFixMe = project.users.find((user: $TSFixMe) => {
+                    return user.role === 'Owner';
+                });
                 const [updatedProject, user]: $TSFixMe = await Promise.all([
                     ProjectService.changePlan(projectId, owner.userId, planId),
                     UserService.findOneBy({
@@ -887,7 +894,7 @@ router.post(
     '/:projectId/subProject',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const parentProjectId: $TSFixMe = req.params.projectId;
@@ -980,7 +987,7 @@ router.get(
     '/:projectId/subProjects',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         // Call the ProjectService
         try {
             const parentProjectId: $TSFixMe = req.params.projectId;
@@ -1017,7 +1024,7 @@ router.get(
     '/projects/user/:userId',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.params.userId;
             const skip: $TSFixMe = req.query['skip'] || 0;
@@ -1035,7 +1042,7 @@ router.get(
     '/projects/allProjects',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const skip: $TSFixMe = req.query['skip'] || 0;
             const limit: $TSFixMe = req.query['limit'] || 10;
@@ -1057,7 +1064,7 @@ router.get(
     '/projects/:slug',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const slug: $TSFixMe = req.params.slug;
             const populate: $TSFixMe = [
@@ -1195,7 +1202,7 @@ router.put(
     '/:projectId/:subProjectId',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const parentProjectId: $TSFixMe = req.params.projectId;
             const subProjectId: $TSFixMe = req.params.subProjectId;
@@ -1242,7 +1249,7 @@ router.post(
     '/:projectId/addNote',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             if (Array.isArray(req.body)) {
@@ -1297,7 +1304,7 @@ router.post(
     '/projects/search',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const filter: $TSFixMe = req.body.filter;
             const skip: $TSFixMe = req.query['skip'] || 0;

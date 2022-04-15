@@ -169,7 +169,7 @@ router.get(
 router.post(
     '/ping/:monitorId',
     isAuthorizedProbe,
-    async (req, response): void => {
+    async (req: $TSFixMe, response: $TSFixMe): void => {
         try {
             const {
                 monitor,
@@ -252,8 +252,9 @@ router.post(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
+                                      (criterion: $TSFixMe) => {
+                                          return criterion.default !== true;
+                                      }
                                   ),
                               ],
                               res,
@@ -294,8 +295,9 @@ router.post(
                         ];
                         if (monitor.criteria.down) {
                             matchedCriterion = monitor.criteria.down.find(
-                                (criterion: $TSFixMe) =>
-                                    criterion.default === true
+                                (criterion: $TSFixMe) => {
+                                    return criterion.default === true;
+                                }
                             );
                         }
                     }
@@ -337,8 +339,9 @@ router.post(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
+                                      (criterion: $TSFixMe) => {
+                                          return criterion.default !== true;
+                                      }
                                   ),
                               ],
                               res,
@@ -371,8 +374,9 @@ router.post(
                         ];
                         if (monitor.criteria.down) {
                             matchedCriterion = monitor.criteria.down.find(
-                                (criterion: $TSFixMe) =>
-                                    criterion.default === true
+                                (criterion: $TSFixMe) => {
+                                    return criterion.default === true;
+                                }
                             );
                         }
                     }
@@ -410,8 +414,9 @@ router.post(
                     monitor.criteria.down
                         ? ProbeService.scriptConditions(resp, [
                               ...monitor.criteria.down.filter(
-                                  (criterion: $TSFixMe) =>
-                                      criterion.default !== true
+                                  (criterion: $TSFixMe) => {
+                                      return criterion.default !== true;
+                                  }
                               ),
                           ])
                         : {
@@ -463,8 +468,9 @@ router.post(
                         ];
                         if (monitor.criteria.down) {
                             matchedCriterion = monitor.criteria.down.find(
-                                (criterion: $TSFixMe) =>
-                                    criterion.default === true
+                                (criterion: $TSFixMe) => {
+                                    return criterion.default === true;
+                                }
                             );
                         }
                     }
@@ -523,8 +529,9 @@ router.post(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
+                                      (criterion: $TSFixMe) => {
+                                          return criterion.default !== true;
+                                      }
                                   ),
                               ],
                               data
@@ -567,8 +574,9 @@ router.post(
                         ];
                         if (monitor.criteria.down) {
                             matchedCriterion = monitor.criteria.down.find(
-                                (criterion: $TSFixMe) =>
-                                    criterion.default === true
+                                (criterion: $TSFixMe) => {
+                                    return criterion.default === true;
+                                }
                             );
                         }
                     }
@@ -671,8 +679,9 @@ router.post(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
+                                      (criterion: $TSFixMe) => {
+                                          return criterion.default !== true;
+                                      }
                                   ),
                               ],
 
@@ -716,8 +725,9 @@ router.post(
                         ];
                         if (monitor.criteria.down) {
                             matchedCriterion = monitor.criteria.down.find(
-                                (criterion: $TSFixMe) =>
-                                    criterion.default === true
+                                (criterion: $TSFixMe) => {
+                                    return criterion.default === true;
+                                }
                             );
                         }
                     }
@@ -747,8 +757,13 @@ router.post(
                 data.reason =
                     data && data.reason && data.reason.length
                         ? data.reason.filter(
-                              (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
-                                  self.indexOf(item) === pos
+                              (
+                                  item: $TSFixMe,
+                                  pos: $TSFixMe,
+                                  self: $TSFixMe
+                              ) => {
+                                  return self.indexOf(item) === pos;
+                              }
                           )
                         : data.reason;
                 const index: $TSFixMe =
@@ -756,10 +771,9 @@ router.post(
                 if (index > -1) {
                     data.reason =
                         data && data.reason && data.reason.length
-                            ? data.reason.filter(
-                                  (item: $TSFixMe) =>
-                                      !item.includes('Response Time is')
-                              )
+                            ? data.reason.filter((item: $TSFixMe) => {
+                                  return !item.includes('Response Time is');
+                              })
                             : data.reason;
                 }
 
@@ -862,7 +876,7 @@ router.get(
     '/:projectId/probes',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const limit: $TSFixMe = req.query['limit'] || null;
             const skip: $TSFixMe = req.query['skip'] || null;

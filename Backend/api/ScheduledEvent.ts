@@ -113,7 +113,7 @@ router.put(
     '/:projectId/:eventId',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
             const { eventId, projectId }: $TSFixMe = req.params;
@@ -279,7 +279,7 @@ router.delete(
     '/:projectId/:eventId',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const { eventId }: $TSFixMe = req.params;
@@ -301,7 +301,7 @@ router.put(
     '/:projectId/:eventId/cancel',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const { eventId }: $TSFixMe = req.params;
@@ -378,7 +378,7 @@ router.get(
     '/:projectId/ongoingEvent',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { projectId }: $TSFixMe = req.params;
             const currentDate: $TSFixMe = moment();
@@ -443,7 +443,9 @@ router.get(
             // this contains both projectIds and subProjectIds
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
 
             const ongoingScheduledEvents: $TSFixMe =
@@ -467,7 +469,7 @@ router.get(
     '/:projectId/:eventId',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { projectId, eventId }: $TSFixMe = req.params;
 
@@ -594,7 +596,9 @@ router.get(
             // this contains both projectIds and subProjectIds
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
 
             const scheduledEvents: $TSFixMe =
@@ -691,7 +695,7 @@ router.post(
     '/:projectId/:eventId/notes',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { eventId, projectId }: $TSFixMe = req.params;
 
@@ -788,7 +792,7 @@ router.get(
     '/:projectId/:eventId/notes',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { eventId }: $TSFixMe = req.params;
 
@@ -944,7 +948,7 @@ router.get(
     '/:projectId/slug/:slug',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { slug }: $TSFixMe = req.params;
             const populate: $TSFixMe = [

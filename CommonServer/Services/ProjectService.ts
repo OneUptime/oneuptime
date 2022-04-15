@@ -523,7 +523,7 @@ public async exitProject(projectId, userId, deletedById, saveUserSeat): void {
         const teamByUserId: $TSFixMe = teams.filter(
             user => String(user.userId) === String(userId)
         );
-        const isViewer: $TSFixMe = filteredTeam.every(data => data.role: $TSFixMe === 'Viewer');
+        const isViewer: $TSFixMe = filteredTeam.every((data: $TSFixMe) =>  data.role: $TSFixMe === 'Viewer');
         if (project) {
             const users: $TSFixMe = subProject ? subProject.users : project.users;
             projectId = subProject ? subProject._id : project._id;
@@ -587,7 +587,7 @@ public async exitProject(projectId, userId, deletedById, saveUserSeat): void {
                 const confirmParentProject: $TSFixMe =
                     allMembers[allMembers.length - 1]._id === projectId;
                 if (confirmParentProject) {
-                    if (!teamByUserId.every(data => data.role === 'Viewer')) {
+                    if (!teamByUserId.every((data: $TSFixMe) =>  data.role === 'Viewer')) {
                         projectSeats = projectSeats - 1;
                         this.updateSeatDetails(project, projectSeats);
                         return returnVal;

@@ -33,7 +33,7 @@ const getReducer: Function = ({ actionBase }: $TSFixMe): void => {
     const deleteConstants: $TSFixMe = actionBase.getDeleteConstants();
     const updateConstants: $TSFixMe = actionBase.getUpdateConstants();
 
-    return (state = INITIAL_STATE, action: Action) => {
+    return (state: $TSFixMe = INITIAL_STATE, action: Action) => {
         switch (action.type) {
             // request
             case createConstants.request: {

@@ -749,7 +749,9 @@ router.post(
                 });
             }
             const backupCode: $TSFixMe = user.backupCodes.filter(
-                (code: $TSFixMe) => code.code === data.code
+                (code: $TSFixMe) => {
+                    return code.code === data.code;
+                }
             );
             if (backupCode.length > 0 && backupCode[0].used) {
                 return sendErrorResponse(req, res, {
@@ -1182,7 +1184,7 @@ router.put(
     '/profile/:userId',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const upload: $TSFixMe = multer({
                 storage,
@@ -1518,7 +1520,7 @@ router.get(
     '/users/:userId',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.params.userId;
             const select: $TSFixMe =
@@ -1569,7 +1571,7 @@ router.put(
     '/:userId/restoreUser',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.params.userId;
 
@@ -1597,7 +1599,7 @@ router.put(
     '/:userId/blockUser',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.params.userId;
 
@@ -1625,7 +1627,7 @@ router.put(
     '/:userId/unblockUser',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.params.userId;
 
@@ -1717,7 +1719,7 @@ router.post(
     '/:userId/addNote',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.params.userId;
             if (Array.isArray(req.body)) {
@@ -1772,7 +1774,7 @@ router.post(
     '/users/search',
     getUser,
     isUserMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const filter: $TSFixMe = req.body.filter;
             const skip: $TSFixMe = req.query['skip'] || 0;
@@ -1859,12 +1861,13 @@ router.delete(
             const { projects }: $TSFixMe = user;
             projects
                 .filter((project: $TSFixMe) => {
-                    return project.users.find(
-                        (user: $TSFixMe) =>
+                    return project.users.find((user: $TSFixMe) => {
+                        return (
                             user.userId === userId &&
                             user.role === 'Owner' &&
                             project.users.length > 1
-                    );
+                        );
+                    });
                 })
                 .forEach(async (project: $TSFixMe) => {
                     const { _id: projectId } = project;
@@ -1874,19 +1877,20 @@ router.delete(
 
             projects
                 .filter((project: $TSFixMe) => {
-                    return project.users.find(
-                        (user: $TSFixMe) =>
+                    return project.users.find((user: $TSFixMe) => {
+                        return (
                             (user.userId === userId && user.role !== 'Owner') ||
                             (user.userId === userId &&
                                 user.role === 'Owner' &&
                                 project.users.length === 1)
-                    );
+                        );
+                    });
                 })
                 .forEach(async (project: $TSFixMe) => {
                     const { _id: projectId, users } = project;
-                    const user: $TSFixMe = users.find(
-                        (user: $TSFixMe) => user.userId === userId
-                    );
+                    const user: $TSFixMe = users.find((user: $TSFixMe) => {
+                        return user.userId === userId;
+                    });
                     if (user) {
                         if (user.role === 'Owner') {
                             await ProjectService.deleteBy(

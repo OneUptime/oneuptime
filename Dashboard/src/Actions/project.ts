@@ -401,7 +401,7 @@ export function switchProject(
     fetchAlert(activesubProjectId)(dispatch);
 
     fetchSubProjectStatusPages(activesubProjectId)(dispatch);
-    fetchComponents({ projectId: activesubProjectId })(dispatch); // default skip = 0, limit = 3
+    fetchComponents({ projectId: activesubProjectId })(dispatch); // default skip: number = 0 limit = 3
     fetchMonitors(activesubProjectId)(dispatch);
 
     fetchResourceCategories(project._id)(dispatch);
@@ -1268,7 +1268,7 @@ export const fetchProjectDomainsFailure: Function = (
 
 export const fetchProjectDomains: Function = (
     projectId: ObjectID,
-    skip = 0,
+    skip: number = 0
     limit = 10
 ): void => {
     return async function (dispatch: Dispatch): void {

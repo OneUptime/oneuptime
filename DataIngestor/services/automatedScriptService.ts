@@ -2,7 +2,9 @@ import BackendAPI from '../Utils/api';
 import Query from 'CommonServer/types/db/Query';
 import { scriptBaseUrl } from '../Config';
 
-const scriptLogCollection: $TSFixMe = global.db.collection('automationsriptlogs');
+const scriptLogCollection: $TSFixMe = global.db.collection(
+    'automationsriptlogs'
+);
 
 const scriptCollection: $TSFixMe = global.db.collection('automationsripts');
 import { ObjectId } from 'mongodb';
@@ -109,8 +111,10 @@ export default {
         if (stackSize > 2) {
             return;
         }
-        const events: $TSFixMe = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
-        const eventPromises: $TSFixMe = events.map(event: $TSFixMe => {
+        const events: $TSFixMe = Array.isArray(resources)
+            ? resources
+            : [resources]; // object property => {callSchedule?, automatedScript?}
+        const eventPromises: $TSFixMe = events.map((event: $TSFixMe) => {
             let resourceType: $TSFixMe;
             if (event.automatedScript) {
                 resourceType = 'automatedScript';

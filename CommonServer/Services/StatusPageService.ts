@@ -1626,7 +1626,7 @@ public async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {
 
 public async getStatusPagesByProjectId({
         projectId,
-        skip = 0,
+        skip: number = 0
         limit = 10,
     }: $TSFixMe): void {
         const selectStatusPage: string = 'slug title name description _id';

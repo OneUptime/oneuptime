@@ -101,7 +101,7 @@ export const fetchErrorTrackersByProject: Function = (
 export function fetchErrorTrackers(
     projectId: ObjectID,
     componentId: $TSFixMe,
-    skip = 0,
+    skip: number = 0
     limit = 0,
     fetchingPage = false
 ) {

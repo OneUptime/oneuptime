@@ -136,7 +136,10 @@ const INITIAL_STATE: $TSFixMe = {
     },
 };
 
-export default function user(state = INITIAL_STATE, action: Action): void {
+export default function user(
+    state: $TSFixMe = INITIAL_STATE,
+    action: Action
+): void {
     switch (action.type) {
         // fetch users list
         case FETCH_USERS_REQUEST:

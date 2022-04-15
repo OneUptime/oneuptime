@@ -46,7 +46,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
             const projectId: $TSFixMe = req.params.projectId;
@@ -447,10 +447,12 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
 
             const { limit, skip }: $TSFixMe = req.query;
@@ -472,7 +474,7 @@ router.get(
     '/:projectId/paginated',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             // const { projectId }: $TSFixMe = req.params;
             const { skip, limit, componentSlug }: $TSFixMe = req.query;
@@ -524,7 +526,9 @@ router.get(
             const type: $TSFixMe = req.query.type;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             const query: $TSFixMe = type
                 ? { projectId: { $in: subProjectIds }, type }
@@ -570,7 +574,9 @@ router.get(
             const type: $TSFixMe = req.query.type;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             const query: $TSFixMe = type
                 ? { _id: monitorId, projectId: { $in: subProjectIds }, type }
@@ -768,13 +774,14 @@ router.post(
             }
             const index: $TSFixMe = data.reason.indexOf('Request Timed out');
             if (index > -1) {
-                data.reason = data.reason.filter(
-                    (item: $TSFixMe) => !item.includes('Response Time is')
-                );
+                data.reason = data.reason.filter((item: $TSFixMe) => {
+                    return !item.includes('Response Time is');
+                });
             }
             data.reason = data.reason.filter(
-                (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
-                    self.indexOf(item) === pos
+                (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) => {
+                    return self.indexOf(item) === pos;
+                }
             );
             const log: $TSFixMe = await ProbeService.saveMonitorLog(data);
 
@@ -948,7 +955,7 @@ router.post(
     '/:projectId/addseat',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const seatresponse: $TSFixMe = await MonitorService.addSeat({
                 _id: req.params.projectId,

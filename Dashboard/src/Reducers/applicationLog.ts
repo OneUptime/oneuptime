@@ -60,7 +60,7 @@ const INITIAL_STATE: $TSFixMe = {
     stats: {},
 };
 export default function applicationLog(
-    state = INITIAL_STATE,
+    state: $TSFixMe = INITIAL_STATE,
     action: Action
 ): void {
     let applicationLogs: $TSFixMe,

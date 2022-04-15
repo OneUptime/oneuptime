@@ -50,7 +50,10 @@ const INITIAL_STATE: $TSFixMe = {
     },
 };
 
-export default function project(state = INITIAL_STATE, action: Action): void {
+export default function project(
+    state: $TSFixMe = INITIAL_STATE,
+    action: Action
+): void {
     switch (action.type) {
         // Fetch emailLogs list
         case FETCH_EMAILLOGS_REQUEST:

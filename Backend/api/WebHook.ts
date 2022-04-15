@@ -18,7 +18,7 @@ router.post(
     '/:projectId/create',
     getUser,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             const body: $TSFixMe = req.body;
@@ -152,7 +152,7 @@ router.put(
     '/:projectId/:integrationId',
     getUser,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
             const integrationId: $TSFixMe = req.params.integrationId;
@@ -233,9 +233,11 @@ router.put(
             // restructure the monitors into [{monitorId: 'xyz'}]
             data.monitors =
                 data.monitors &&
-                data.monitors.map((monitor: $TSFixMe) => ({
-                    monitorId: monitor,
-                }));
+                data.monitors.map((monitor: $TSFixMe) => {
+                    return {
+                        monitorId: monitor,
+                    };
+                });
 
             const existingWebhook: $TSFixMe =
                 await IntegrationService.findOneBy({

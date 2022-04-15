@@ -59,7 +59,10 @@ const INITIAL_STATE: $TSFixMe = {
     },
 };
 
-export default function (state = INITIAL_STATE, action: Action): void {
+export default function (
+    state: $TSFixMe = INITIAL_STATE,
+    action: Action
+): void {
     switch (action.type) {
         case types.SET_TIME_STARTDATE:
             return {

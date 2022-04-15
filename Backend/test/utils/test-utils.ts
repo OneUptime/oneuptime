@@ -165,7 +165,7 @@ const methods: $TSFixMe = {
         authorization,
         projectId,
         incidentId,
-        skip = 0,
+        skip: number = 0
         limit = 999,
     }: $TSFixMe) => {
         return await request
@@ -178,7 +178,7 @@ const methods: $TSFixMe = {
         request,
         authorization,
         projectId,
-        skip = 0,
+        skip: number = 0
         limit = 999,
     }: $TSFixMe) => {
         return await request
@@ -192,7 +192,7 @@ const methods: $TSFixMe = {
         authorization,
         projectId,
         incidentId,
-        skip = 0,
+        skip: number = 0
         limit = 999,
     }: $TSFixMe) => {
         return await request

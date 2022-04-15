@@ -116,7 +116,7 @@ router.get(
     '/:projectId/ssos',
     getUser,
     isScaleOrMasterAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const skip: $TSFixMe = req.query['skip'] || 0;
             const limit: $TSFixMe = req.query['limit'] || 10;

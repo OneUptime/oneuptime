@@ -75,7 +75,7 @@ export const resetCreateApplicationLog: Function = (): void => {
 export function fetchApplicationLogs(
     projectId: ObjectID,
     componentId: $TSFixMe,
-    skip = 0,
+    skip: number = 0
     limit = 0,
     paginated = false
 ) {

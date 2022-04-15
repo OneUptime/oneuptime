@@ -29,7 +29,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const resourceCategoryName: $TSFixMe =
                 req.body.resourceCategoryName;

@@ -22,10 +22,12 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
 
             const populateNotification: $TSFixMe = [
@@ -130,7 +132,9 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
@@ -161,7 +165,7 @@ router.put(
     '/:projectId/:notificationId',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const notificationId: $TSFixMe = req.params.notificationId;
             const updateObject: $TSFixMe = req.body;

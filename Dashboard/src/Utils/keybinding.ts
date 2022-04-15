@@ -41,7 +41,7 @@ const keyBind: Function = (
 export const navKeyBind: Function = (route: $TSFixMe, path: $TSFixMe): void => {
     let keys: $TSFixMe = [];
     const resetKeys: Function = (): void => {
-        return (keys = []);
+        return (acc: $TSFixMe = []);
     };
     // reasons to use keydown
     // 1 --> gives the user impression that they can press and hold two keys simultaneously
@@ -54,7 +54,7 @@ export const navKeyBind: Function = (route: $TSFixMe, path: $TSFixMe): void => {
 export const cleanBind: Function = (route: $TSFixMe, path: $TSFixMe): void => {
     let keys: $TSFixMe = [];
     const resetKeys: Function = (): void => {
-        return (keys = []);
+        return (acc: $TSFixMe = []);
     };
     window.removeEventListener('keydown', (e: $TSFixMe) => {
         return keyBind(e, route, path, keys, resetKeys);

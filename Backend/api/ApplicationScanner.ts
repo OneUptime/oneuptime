@@ -40,7 +40,7 @@ router.get(
 router.post(
     '/scanning',
     isAuthorizedApplicationScanner,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const security: $TSFixMe = req.body.security;
             const applicationSecurity: $TSFixMe =
@@ -64,7 +64,7 @@ router.post(
 router.post(
     '/failed',
     isAuthorizedApplicationScanner,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const security: $TSFixMe = req.body;
             const applicationSecurity: $TSFixMe =
@@ -117,10 +117,14 @@ router.post(
             });
 
             const userIds: $TSFixMe = project.users
-                .filter((e: $TSFixMe) => e.role !== 'Viewer')
-                .map((e: $TSFixMe) => ({
-                    id: e.userId,
-                })); // This cater for projects with multiple registered members
+                .filter((e: $TSFixMe) => {
+                    return e.role !== 'Viewer';
+                })
+                .map((e: $TSFixMe) => {
+                    return {
+                        id: e.userId,
+                    };
+                }); // This cater for projects with multiple registered members
 
             project.critical = findLog.data.vulnerabilities.critical;
 
@@ -131,35 +135,47 @@ router.post(
             project.low = findLog.data.vulnerabilities.low;
 
             const critical: $TSFixMe = findLog.data.advisories
-                .filter((e: $TSFixMe) => e.severity === 'critical')
+                .filter((e: $TSFixMe) => {
+                    return e.severity === 'critical';
+                })
                 .slice(0, 10);
 
             const high: $TSFixMe = findLog.data.advisories
-                .filter((e: $TSFixMe) => e.severity === 'high')
+                .filter((e: $TSFixMe) => {
+                    return e.severity === 'high';
+                })
                 .slice(0, 10);
 
             const moderate: $TSFixMe = findLog.data.advisories
-                .filter((e: $TSFixMe) => e.severity === 'moderate')
+                .filter((e: $TSFixMe) => {
+                    return e.severity === 'moderate';
+                })
                 .slice(0, 10);
 
             const low: $TSFixMe = findLog.data.advisories
-                .filter((e: $TSFixMe) => e.severity === 'low')
+                .filter((e: $TSFixMe) => {
+                    return e.severity === 'low';
+                })
                 .slice(0, 10);
             const criticalWithTitle: $TSFixMe = critical.map(
                 (advisories: $TSFixMe) => {
                     const filter: $TSFixMe = advisories.via.filter(
-                        (e: $TSFixMe) => e.severity === advisories.severity
+                        (e: $TSFixMe) => {
+                            return e.severity === advisories.severity;
+                        }
                     );
                     let filterBySeverity: $TSFixMe;
                     let filterByTitle: $TSFixMe;
                     //This is used to get the library name and description
                     if (filter.length > 0) {
                         filterBySeverity = advisories.via.find(
-                            (e: $TSFixMe) => e.severity === advisories.severity
+                            (e: $TSFixMe) => {
+                                return e.severity === advisories.severity;
+                            }
                         ).severity;
-                        filterByTitle = advisories.via.find(
-                            (e: $TSFixMe) => e.severity === advisories.severity
-                        ).title;
+                        filterByTitle = advisories.via.find((e: $TSFixMe) => {
+                            return e.severity === advisories.severity;
+                        }).title;
                     } else {
                         filterBySeverity = 'Nil';
                         filterByTitle = 'Nil';
@@ -172,18 +188,20 @@ router.post(
             );
             const highWithTitle: $TSFixMe = high.map((advisories: $TSFixMe) => {
                 const filter: $TSFixMe = advisories.via.filter(
-                    (e: $TSFixMe) => e.severity === advisories.severity
+                    (e: $TSFixMe) => {
+                        return e.severity === advisories.severity;
+                    }
                 );
                 let filterBySeverity: $TSFixMe;
                 let filterByTitle: $TSFixMe;
                 //This is used to get the library name and description
                 if (filter.length > 0) {
-                    filterBySeverity = advisories.via.find(
-                        (e: $TSFixMe) => e.severity === advisories.severity
-                    ).severity;
-                    filterByTitle = advisories.via.find(
-                        (e: $TSFixMe) => e.severity === advisories.severity
-                    ).title;
+                    filterBySeverity = advisories.via.find((e: $TSFixMe) => {
+                        return e.severity === advisories.severity;
+                    }).severity;
+                    filterByTitle = advisories.via.find((e: $TSFixMe) => {
+                        return e.severity === advisories.severity;
+                    }).title;
                 } else {
                     filterBySeverity = 'Nil';
                     filterByTitle = 'Nil';
@@ -197,18 +215,22 @@ router.post(
             const moderateWithTitle: $TSFixMe = moderate.map(
                 (advisories: $TSFixMe) => {
                     const filter: $TSFixMe = advisories.via.filter(
-                        (e: $TSFixMe) => e.severity === advisories.severity
+                        (e: $TSFixMe) => {
+                            return e.severity === advisories.severity;
+                        }
                     );
                     let filterBySeverity: $TSFixMe;
                     let filterByTitle: $TSFixMe;
                     //This is used to get the library name and description
                     if (filter.length > 0) {
                         filterBySeverity = advisories.via.find(
-                            (e: $TSFixMe) => e.severity === advisories.severity
+                            (e: $TSFixMe) => {
+                                return e.severity === advisories.severity;
+                            }
                         ).severity;
-                        filterByTitle = advisories.via.find(
-                            (e: $TSFixMe) => e.severity === advisories.severity
-                        ).title;
+                        filterByTitle = advisories.via.find((e: $TSFixMe) => {
+                            return e.severity === advisories.severity;
+                        }).title;
                     } else {
                         filterBySeverity = 'Nil';
                         filterByTitle = 'Nil';
@@ -222,18 +244,20 @@ router.post(
             );
             const lowWithTitle: $TSFixMe = low.map((advisories: $TSFixMe) => {
                 const filter: $TSFixMe = advisories.via.filter(
-                    (e: $TSFixMe) => e.severity === advisories.severity
+                    (e: $TSFixMe) => {
+                        return e.severity === advisories.severity;
+                    }
                 );
                 let filterBySeverity: $TSFixMe;
                 let filterByTitle: $TSFixMe;
                 //This is used to get the library name and description
                 if (filter.length > 0) {
-                    filterBySeverity = advisories.via.find(
-                        (e: $TSFixMe) => e.severity === advisories.severity
-                    ).severity;
-                    filterByTitle = advisories.via.find(
-                        (e: $TSFixMe) => e.severity === advisories.severity
-                    ).title;
+                    filterBySeverity = advisories.via.find((e: $TSFixMe) => {
+                        return e.severity === advisories.severity;
+                    }).severity;
+                    filterByTitle = advisories.via.find((e: $TSFixMe) => {
+                        return e.severity === advisories.severity;
+                    }).title;
                 } else {
                     filterBySeverity = 'Nil';
                     filterByTitle = 'Nil';

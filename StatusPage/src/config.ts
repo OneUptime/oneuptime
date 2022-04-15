@@ -124,7 +124,7 @@ export const getQueryVar: Function = (variable: $TSFixMe, url: URL): void => {
     }
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex: $TSFixMe = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
-        results = regex.exec(url);
+        results: $TSFixMe = regex.exec(url);
     if (!results) {
         return null;
     }

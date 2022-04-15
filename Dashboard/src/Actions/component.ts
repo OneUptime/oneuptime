@@ -20,7 +20,7 @@ export const hideDeleteModal: Function = (): void => {
 // props -> {name: '', type, data -> { data.url}}
 export const fetchComponents: Function = ({
     projectId,
-    skip = 0,
+    skip: number = 0
     limit = 3,
 }: $TSFixMe) => {
     return function (dispatch: Dispatch): void {
@@ -74,7 +74,7 @@ export const resetFetchComponents: Function = (): void => {
 // props -> {name: '', type, data -> { data.url}}
 export function fetchPaginatedComponents({
     projectId,
-    skip = 0,
+    skip: number = 0
     limit = 3,
 }: $TSFixMe) {
     return function (dispatch: Dispatch): void {

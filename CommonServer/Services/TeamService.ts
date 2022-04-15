@@ -514,7 +514,7 @@ public async inviteTeamMembersMethod(
         }
         for (const email of emails) {
             const user: $TSFixMe = existingUsers.find(
-                data => String(data.email) === String(email)
+                (data: $TSFixMe) =>  String(data.email) === String(email)
             );
             if (user) {
                 extraUsersToAdd = extraUsersToAdd - 1;
@@ -802,7 +802,7 @@ public async updateTeamMemberRole(
             user => String(user.userId) === String(teamMemberUserId)
         );
         const checkPrevViewer: $TSFixMe = prevTeamArr.every(
-            data => data.role === 'Viewer'
+            (data: $TSFixMe) =>  data.role === 'Viewer'
         );
 
         // Checks if user to be updated is present in the project.
@@ -930,7 +930,7 @@ public async updateTeamMemberRole(
                     team => String(team.userId) === String(teamMemberUserId)
                 );
                 const checkCurrentViewer: $TSFixMe = teamArr.every(
-                    data => data.role === 'Viewer'
+                    (data: $TSFixMe) =>  data.role === 'Viewer'
                 );
                 let projectSeats: $TSFixMe = project.seats;
 

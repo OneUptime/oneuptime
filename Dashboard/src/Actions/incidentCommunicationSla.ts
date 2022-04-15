@@ -136,7 +136,7 @@ export const fetchCommunicationSlasFailure: Function = (
 
 export const fetchCommunicationSlas: $TSFixMe = (
     projectId: ObjectID,
-    skip = 0,
+    skip: number = 0
     limit = 0
 ) => {
     return async (dispatch: Dispatch) => {

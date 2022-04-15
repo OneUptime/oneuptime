@@ -48,9 +48,9 @@ router.get(
                 },
                 select: '_id',
             });
-            const projectIds: $TSFixMe = projects.map(
-                (project: $TSFixMe) => project._id
-            );
+            const projectIds: $TSFixMe = projects.map((project: $TSFixMe) => {
+                return project._id;
+            });
             let monitors: $TSFixMe = await MonitorService.findBy({
                 query: { projectId: { $in: projectIds } },
                 select: '_id name',
@@ -162,7 +162,7 @@ router.get(
 router.post(
     '/incident/resolveLastIncident',
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const monitors: $TSFixMe = req.body.monitors || [];
             const incident: $TSFixMe = await ZapierService.resolveLastIncident(
@@ -182,7 +182,7 @@ router.post(
 router.post(
     '/incident/resolveAllIncidents',
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const monitors: $TSFixMe = req.body.monitors || [];
             const incidents: $TSFixMe = await ZapierService.resolveAllIncidents(
@@ -203,7 +203,7 @@ router.post(
 router.post(
     '/incident/resolveIncident',
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const incidents: $TSFixMe = req.body.incidents || [];
             const resolvedIncidents: $TSFixMe =
@@ -249,7 +249,7 @@ router.get(
 router.post(
     '/incident/acknowledgeLastIncident',
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const monitors: $TSFixMe = req.body.monitors || [];
             const incident: $TSFixMe =
@@ -268,7 +268,7 @@ router.post(
 router.post(
     '/incident/acknowledgeAllIncidents',
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const monitors: $TSFixMe = req.body.monitors || [];
             const incidents: $TSFixMe =
@@ -288,7 +288,7 @@ router.post(
 router.post(
     '/incident/acknowledgeIncident',
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const incidents: $TSFixMe = req.body.incidents || [];
             const acknowledgedIncidents: $TSFixMe =

@@ -345,7 +345,7 @@ const INITIAL_STATE: $TSFixMe = {
 };
 
 export default function statusPage(
-    state = INITIAL_STATE,
+    state: $TSFixMe = INITIAL_STATE,
     action: Action
 ): void {
     let status: $TSFixMe, statusPage: $TSFixMe, isExistingStatusPage: $TSFixMe;

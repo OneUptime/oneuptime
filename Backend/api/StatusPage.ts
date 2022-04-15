@@ -516,7 +516,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         const data: $TSFixMe = req.body;
         const upload: $TSFixMe = multer({
             storage,
@@ -790,7 +790,7 @@ router.get(
     '/:projectId/dashboard',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         const projectId: $TSFixMe = req.params.projectId;
         try {
             // Call the StatusPageService.
@@ -840,7 +840,7 @@ router.get(
     '/:projectId/StatusPages',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { data, count }: $TSFixMe =
                 await StatusPageService.getStatusPagesByProjectId({
@@ -859,7 +859,7 @@ router.get(
     '/:projectId/statuspage',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         const projectId: $TSFixMe = req.params.projectId;
 
         try {
@@ -908,7 +908,7 @@ router.get(
     '/:statusPageSlug',
     checkUser,
     ipWhitelist,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         const statusPageSlug: $TSFixMe = req.params.statusPageSlug;
         const url: $TSFixMe = req.query.url;
 
@@ -1177,7 +1177,7 @@ router.get(
 router.get(
     '/:projectId/incident/:incidentSlug',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { incidentSlug }: $TSFixMe = req.params;
 
@@ -1199,7 +1199,7 @@ router.get(
 router.get(
     '/:projectId/:incidentSlug/incidentNotes',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { incidentSlug }: $TSFixMe = req.params;
 
@@ -1225,7 +1225,7 @@ router.get(
 router.get(
     '/:projectId/:monitorId/individualnotes',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         let date: $TSFixMe = req.query.date;
 
         date = new Date(date);
@@ -1407,7 +1407,7 @@ const fetchNotes: Function = async (events: $TSFixMe, limit: PositiveNumber): vo
 router.get(
     '/:projectId/notes/:scheduledEventSlug',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         const { scheduledEventSlug }: $TSFixMe = req.params;
 
         const { skip, limit }: $TSFixMe = req.query;
@@ -1434,7 +1434,7 @@ router.get(
 router.get(
     '/:projectId/:monitorId/individualevents',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         let date: $TSFixMe = req.query.date;
 
         date = moment(date).endOf('day').format();
@@ -1509,7 +1509,7 @@ router.get(
 router.post(
     '/:projectId/:monitorId/monitorStatuses',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { startDate, endDate }: $TSFixMe = req.body;
             const monitorId: $TSFixMe = req.params.monitorId;
@@ -1528,7 +1528,7 @@ router.post(
 router.post(
     '/:projectId/:monitorId/monitorLogs',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { monitorId }: $TSFixMe = req.params;
             const endDate: $TSFixMe = moment(Date.now());
@@ -1621,7 +1621,7 @@ router.delete(
 router.get(
     '/:projectId/timeline/:incidentSlug',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { incidentSlug }: $TSFixMe = req.params;
 
@@ -1684,7 +1684,7 @@ router.get(
 router.get(
     '/:projectId/monitor/:statusPageId',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { statusPageId }: $TSFixMe = req.params;
             const skip: $TSFixMe = req.query['skip'] || 0;
@@ -2017,7 +2017,7 @@ router.post(
 router.post(
     '/:projectId/announcement/:statusPageId',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { projectId, statusPageId }: $TSFixMe = req.params;
             const { data }: $TSFixMe = req.body;
@@ -2200,7 +2200,7 @@ router.get(
 router.get(
     '/:projectId/announcement/:statusPageId',
     checkUser,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { projectId, statusPageId }: $TSFixMe = req.params;
             const { skip, limit, show }: $TSFixMe = req.query;
@@ -2293,7 +2293,7 @@ router.delete(
     }
 );
 
-const formatNotes: Function = (data = [], days: $TSFixMe): void => {
+const formatNotes: Function = (acc: $TSFixMe = [], days: $TSFixMe): void => {
     const result: $TSFixMe = [];
     const limit: $TSFixMe = days - 1;
 

@@ -50,7 +50,9 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         const subProjectIds: $TSFixMe = req.user.subProjects
-            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+            ? req.user.subProjects.map((project: $TSFixMe) => {
+                  return project._id;
+              })
             : null;
         try {
             const subProjectTeamMembers: $TSFixMe = await Promise.all(
@@ -78,7 +80,7 @@ router.get(
     '/:projectId/:teamMemberId',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         const projectId: $TSFixMe = req.params.projectId;
         const teamMemberUserId: $TSFixMe = req.params.teamMemberId;
 
@@ -124,7 +126,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         const data: $TSFixMe = req.body;
 
         const userId: $TSFixMe = req.user ? req.user : null;
@@ -190,9 +192,9 @@ router.post(
                     projectId
                 );
                 const withoutViewers: $TSFixMe = teamMembers
-                    ? teamMembers.filter(
-                          teamMember => teamMember.role !== 'Viewer'
-                      )
+                    ? teamMembers.filter((teamMember: $TSFixMe) => {
+                          return teamMember.role !== 'Viewer';
+                      })
                     : [];
                 const totalTeamMembers: $TSFixMe =
                     withoutViewers.length + emailArray.length;

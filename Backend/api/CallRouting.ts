@@ -200,7 +200,7 @@ router.post(
     '/:projectId/routingNumber',
     getUser,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
             const { projectId }: $TSFixMe = req.params;
@@ -217,7 +217,7 @@ router.put(
     '/:projectId/:callRoutingId',
     getUser,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { callRoutingId }: $TSFixMe = req.params;
             const data: $TSFixMe = req.body;

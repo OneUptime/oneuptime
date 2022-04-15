@@ -60,19 +60,17 @@ router.get(
                             status: 'call redial reached maximum',
                         });
                     }
-                    setTimeout(
-                        () =>
-                            sendIncidentCreatedCall(
-                                null,
-                                monitorName,
-                                To,
-                                accessToken,
-                                incidentId,
-                                projectId,
-                                newRedialCount
-                            ),
-                        1000 * 60
-                    );
+                    setTimeout(() => {
+                        return sendIncidentCreatedCall(
+                            null,
+                            monitorName,
+                            To,
+                            accessToken,
+                            incidentId,
+                            projectId,
+                            newRedialCount
+                        );
+                    }, 1000 * 60);
                     return sendItemResponse(req, res, {
                         status: 'call redial success',
                     });
@@ -83,19 +81,17 @@ router.get(
                         !incident.acknowledged &&
                         newRedialCount < 6
                     ) {
-                        setTimeout(
-                            () =>
-                                sendIncidentCreatedCall(
-                                    null,
-                                    monitorName,
-                                    To,
-                                    accessToken,
-                                    incidentId,
-                                    projectId,
-                                    newRedialCount
-                                ),
-                            1000 * 60
-                        );
+                        setTimeout(() => {
+                            return sendIncidentCreatedCall(
+                                null,
+                                monitorName,
+                                To,
+                                accessToken,
+                                incidentId,
+                                projectId,
+                                newRedialCount
+                            );
+                        }, 1000 * 60);
                         return sendItemResponse(req, res, {
                             status: 'call redial success',
                         });
@@ -122,7 +118,7 @@ router.post(
     '/sms/sendVerificationToken',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { to }: $TSFixMe = req.body;
 

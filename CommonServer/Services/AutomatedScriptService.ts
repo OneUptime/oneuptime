@@ -11,7 +11,14 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-public async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -46,7 +53,7 @@ public async findBy({ query, limit, skip, populate, select, sort }: FindBy): voi
         return sortDataList;
     }
 
-public async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -55,7 +62,7 @@ public async countBy(query: Query): void {
         return count;
     }
 
-public async countLogsBy(query: Query): void {
+    public async countLogsBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -64,7 +71,7 @@ public async countLogsBy(query: Query): void {
         return count;
     }
 
-public async create(data: $TSFixMe): void {
+    public async create(data: $TSFixMe): void {
         const script: $TSFixMe = new ScriptModel();
 
         script.name = data.name || null;
@@ -85,7 +92,7 @@ public async create(data: $TSFixMe): void {
         return newScript;
     }
 
-public async createLog(id: $TSFixMe, data: $TSFixMe): void {
+    public async createLog(id: $TSFixMe, data: $TSFixMe): void {
         const scriptLog: $TSFixMe = new ScriptModelLog();
 
         scriptLog.automationScriptId = id || null;
@@ -108,7 +115,7 @@ public async createLog(id: $TSFixMe, data: $TSFixMe): void {
         return newScriptLog;
     }
 
-public async updateOne(query: Query, data: $TSFixMe): void {
+    public async updateOne(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -125,7 +132,7 @@ public async updateOne(query: Query, data: $TSFixMe): void {
         return response;
     }
 
-public async findAllLogs(
+    public async findAllLogs(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -159,13 +166,15 @@ public async findAllLogs(
         return response;
     }
 
-public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
+    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
 
         query['deleted'] = false;
-        const responseQuery: $TSFixMe = ScriptModel.findOne(query).sort(sort).lean();
+        const responseQuery: $TSFixMe = ScriptModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         responseQuery.select(select);
         responseQuery.populate(populate);
@@ -174,7 +183,7 @@ public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         return response;
     }
 
-public async getAutomatedLogs(
+    public async getAutomatedLogs(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -183,12 +192,12 @@ public async getAutomatedLogs(
         return response;
     }
 
-public async createScript(data: $TSFixMe): void {
+    public async createScript(data: $TSFixMe): void {
         const response: $TSFixMe = await this.create(data);
         return response;
     }
 
-public async runResource({
+    public async runResource({
         triggeredId,
         triggeredBy,
         resources,
@@ -225,8 +234,10 @@ public async runResource({
         if (stackSize > 2) {
             return;
         }
-        const events: $TSFixMe = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
-        const eventPromises: $TSFixMe = events.map(event: $TSFixMe => {
+        const events: $TSFixMe = Array.isArray(resources)
+            ? resources
+            : [resources]; // object property => {callSchedule?, automatedScript?}
+        const eventPromises: $TSFixMe = events.map((event: $TSFixMe) => {
             let resourceType: $TSFixMe;
             if (event.automatedScript) {
                 resourceType = 'automatedScript';
@@ -250,7 +261,7 @@ public async runResource({
         return Promise.all(eventPromises);
     }
 
-public async runAutomatedScript({
+    public async runAutomatedScript({
         automatedScriptId,
         triggeredId,
         triggeredBy = 'script',
@@ -258,7 +269,9 @@ public async runAutomatedScript({
     }: $TSFixMe): void {
         const selectScript: $TSFixMe =
             'name script scriptType slug projectId successEvent failureEvent';
-        const populateScript: $TSFixMe = [{ path: 'createdById', select: 'name' }];
+        const populateScript: $TSFixMe = [
+            { path: 'createdById', select: 'name' },
+        ];
 
         const { script, scriptType, successEvent, failureEvent }: $TSFixMe =
             await this.findOneBy({
@@ -268,9 +281,12 @@ public async runAutomatedScript({
             });
         let data: $TSFixMe = null;
         if (scriptType === 'JavaScript') {
-            const result: $TSFixMe = await BackendAPI.post(`${scriptBaseUrl}/script/js`, {
-                script,
-            });
+            const result: $TSFixMe = await BackendAPI.post(
+                `${scriptBaseUrl}/script/js`,
+                {
+                    script,
+                }
+            );
             data = {
                 success: result.success,
                 message: result.message,
@@ -330,17 +346,19 @@ public async runAutomatedScript({
         return automatedScriptLog;
     }
 
-public async removeScriptFromEvent({ projectId, id }: $TSFixMe): void {
+    public async removeScriptFromEvent({ projectId, id }: $TSFixMe): void {
         const scripts: $TSFixMe = await ScriptModel.find({ projectId }).lean();
         await Promise.all(
             scripts.map(async (script: $TSFixMe) => {
                 const successEvent: $TSFixMe = script.successEvent.filter(
-                    (script: $TSFixMe) =>
-                        String(script.automatedScript) !== String(id)
+                    (script: $TSFixMe) => {
+                        return String(script.automatedScript) !== String(id);
+                    }
                 );
                 const failureEvent: $TSFixMe = script.failureEvent.filter(
-                    (script: $TSFixMe) =>
-                        String(script.automatedScript) !== String(id)
+                    (script: $TSFixMe) => {
+                        return String(script.automatedScript) !== String(id);
+                    }
                 );
                 return await this.updateOne(
                     { _id: script._id },
@@ -350,7 +368,7 @@ public async removeScriptFromEvent({ projectId, id }: $TSFixMe): void {
         );
     }
 
-public async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -372,7 +390,7 @@ public async deleteBy(query: Query, userId: ObjectID): void {
         return response;
     }
 
-public async hardDeleteBy({ query }: $TSFixMe): void {
+    public async hardDeleteBy({ query }: $TSFixMe): void {
         await ScriptModel.deleteMany(query);
     }
 }

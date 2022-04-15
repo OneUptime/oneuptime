@@ -13,7 +13,10 @@ const INITIAL_STATE: $TSFixMe = {
     skip: null,
 };
 
-export default function probes(state = INITIAL_STATE, action: Action): void {
+export default function probes(
+    state: $TSFixMe = INITIAL_STATE,
+    action: Action
+): void {
     switch (action.type) {
         case types.PROBE_SUCCESS:
             return Object.assign({}, state, {

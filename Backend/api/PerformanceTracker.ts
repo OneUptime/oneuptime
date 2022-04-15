@@ -78,7 +78,7 @@ router.get(
     '/:projectId/:componentId',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { componentId }: $TSFixMe = req.params;
             const { limit, skip }: $TSFixMe = req.query;

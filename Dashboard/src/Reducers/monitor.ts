@@ -155,7 +155,7 @@ const INITIAL_STATE: $TSFixMe = {
     configFileInputKey: null,
 };
 
-export default function monitor(state = INITIAL_STATE, action: Action): void {
+export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action): void {
     let monitors: $TSFixMe, monitorType: $TSFixMe, initialValue: $TSFixMe;
     switch (action.type) {
         case CREATE_MONITOR_FAILURE:

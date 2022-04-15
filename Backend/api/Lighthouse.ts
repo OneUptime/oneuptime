@@ -50,7 +50,7 @@ router.get(
 router.post(
     '/ping/:monitorId',
     isAuthorizedLighthouse,
-    async (req, response): void => {
+    async (req: $TSFixMe, response: $TSFixMe): void => {
         try {
             const { monitor, resp }: $TSFixMe = req.body;
 

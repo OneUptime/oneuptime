@@ -49,7 +49,10 @@ const INITIAL_STATE: $TSFixMe = {
     },
 };
 
-export default function component(state = INITIAL_STATE, action: Action): void {
+export default function component(
+    state: $TSFixMe = INITIAL_STATE,
+    action: Action
+): void {
     switch (action.type) {
         case RESET_AUTOMATED_SCRIPT:
             return Object.assign({}, state, {

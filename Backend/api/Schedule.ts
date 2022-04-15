@@ -23,7 +23,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
 
@@ -105,7 +105,9 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             const schedules: $TSFixMe =
                 await ScheduleService.getSubProjectSchedules(subProjectIds);
@@ -120,7 +122,7 @@ router.get(
     '/:projectId/schedule',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
             const populate: $TSFixMe = [
@@ -216,7 +218,9 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             const userId: $TSFixMe = req.params.userId;
             const escalations: $TSFixMe =
@@ -468,8 +472,12 @@ router.post(
                     }
 
                     const teamMemberUserIds: $TSFixMe = team.teamMembers
-                        .map((member: $TSFixMe) => member.userId)
-                        .filter((team: $TSFixMe) => team !== undefined);
+                        .map((member: $TSFixMe) => {
+                            return member.userId;
+                        })
+                        .filter((team: $TSFixMe) => {
+                            return team !== undefined;
+                        });
 
                     for (const teamMember of team.teamMembers) {
                         const data: $TSFixMe = {};
@@ -487,10 +495,9 @@ router.post(
 
                         if (
                             teamMember.userId &&
-                            teamMemberUserIds.filter(
-                                (userId: ObjectID) =>
-                                    userId == teamMember.userId
-                            ).length > 1
+                            teamMemberUserIds.filter((userId: ObjectID) => {
+                                return userId == teamMember.userId;
+                            }).length > 1
                         ) {
                             return sendErrorResponse(req, res, {
                                 code: 400,

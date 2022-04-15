@@ -21,7 +21,7 @@ import ProjectService from '../services/projectService';
 router.get(
     '/containerSecurities',
     isAuthorizedContainerScanner,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const response: $TSFixMe =
                 await ContainerSecurityService.getSecuritiesToScan();
@@ -34,7 +34,7 @@ router.get(
 router.post(
     '/scanning',
     isAuthorizedContainerScanner,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const security: $TSFixMe = req.body.security;
             const containerSecurity: $TSFixMe =
@@ -105,10 +105,14 @@ router.post(
                 select: '_id name users',
             });
             const userIds: $TSFixMe = project.users
-                .filter((e: $TSFixMe) => e.role !== 'Viewer')
-                .map((e: $TSFixMe) => ({
-                    id: e.userId,
-                })); // This cater for projects with multiple registered members
+                .filter((e: $TSFixMe) => {
+                    return e.role !== 'Viewer';
+                })
+                .map((e: $TSFixMe) => {
+                    return {
+                        id: e.userId,
+                    };
+                }); // This cater for projects with multiple registered members
 
             project.critical = findLog.data.vulnerabilityInfo.critical;
 
@@ -119,19 +123,27 @@ router.post(
             project.low = findLog.data.vulnerabilityInfo.low;
 
             const critical: $TSFixMe = findLog.data.vulnerabilityData
-                .filter((e: $TSFixMe) => e.severity === 'critical')
+                .filter((e: $TSFixMe) => {
+                    return e.severity === 'critical';
+                })
                 .slice(0, 10);
 
             const high: $TSFixMe = findLog.data.vulnerabilityData
-                .filter((e: $TSFixMe) => e.severity === 'high')
+                .filter((e: $TSFixMe) => {
+                    return e.severity === 'high';
+                })
                 .slice(0, 10);
 
             const moderate: $TSFixMe = findLog.data.vulnerabilityData
-                .filter((e: $TSFixMe) => e.severity === 'moderate')
+                .filter((e: $TSFixMe) => {
+                    return e.severity === 'moderate';
+                })
                 .slice(0, 5);
 
             const low: $TSFixMe = findLog.data.vulnerabilityData
-                .filter((e: $TSFixMe) => e.severity === 'low')
+                .filter((e: $TSFixMe) => {
+                    return e.severity === 'low';
+                })
                 .slice(0, 5);
             project.criticalIssues = critical;
             project.highIssues = high;

@@ -85,7 +85,7 @@ const INITIAL_STATE: $TSFixMe = {
     deleteErrorTrackerIssue: false,
 };
 export default function errorTracker(
-    state = INITIAL_STATE,
+    state: $TSFixMe = INITIAL_STATE,
     action: Action
 ): void {
     let temporaryIssues: $TSFixMe,

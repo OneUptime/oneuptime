@@ -47,7 +47,7 @@ export const validateToken: Function = (token: $TSFixMe): void => {
         dispatch(validateTokenRequest(promise));
 
         promise.then(
-            user => {
+            (user: $TSFixMe) => {
                 dispatch(validateTokenSuccess(user.data.tokens.jwtAccessToken));
             },
             (error: Error) => {

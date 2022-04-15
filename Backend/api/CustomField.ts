@@ -105,7 +105,7 @@ router.put(
     '/:projectId/:customFieldId',
     getUser,
     isAuthorized,
-    async (req: $TSFixMe, res: $TSFixMe) void => {
+    async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const { projectId, customFieldId }: $TSFixMe = req.params;
             const { fieldName, fieldType, uniqueField }: $TSFixMe = req.body;
