@@ -706,7 +706,7 @@ export default function statusPage(
 
         case CREATE_STATUSPAGE_SUCCESS:
             isExistingStatusPage = state.subProjectStatusPages.find(
-                statusPage => {
+                (statusPage: $TSFixMe) => {
                     return (
                         statusPage._id === action.payload.projectId ||
                         statusPage._id === action.payload.projectId._id
@@ -1529,7 +1529,7 @@ export default function statusPage(
         case FETCH_PROJECT_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 subProjectStatusPages: state.subProjectStatusPages.map(
-                    statusPage => {
+                    (statusPage: $TSFixMe) => {
                         return statusPage._id === action.payload.projectId ||
                             statusPage._id === action.payload.projectId._id
                             ? {
@@ -1571,11 +1571,11 @@ export default function statusPage(
                     success: true,
                     error: null,
                 },
-                statusPages: state.statusPages.filter(({ _id }) => {
+                statusPages: state.statusPages.filter(({ _id }: $TSFixMe) => {
                     return _id !== action.payload._id;
                 }),
                 subProjectStatusPages: state.subProjectStatusPages.map(
-                    subProjectStatusPage => {
+                    (subProjectStatusPage: $TSFixMe) => {
                         subProjectStatusPage.statusPages =
                             subProjectStatusPage.statusPages.filter(
                                 ({ _id }: $TSFixMe) => {

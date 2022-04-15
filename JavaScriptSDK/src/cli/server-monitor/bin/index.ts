@@ -272,7 +272,7 @@ checkParams(questions).then((values: $TSFixMe) => {
                             return `${monitor.componentId.name} / ${monitor.name} (${monitor._id})`;
                         });
 
-                        prompt(question).then(({ monitorId }) => {
+                        prompt(question).then(({ monitorId }: $TSFixMe) => {
                             resolve(
                                 monitorId
                                     .replace(/\/|\(|\)$/gi, '')

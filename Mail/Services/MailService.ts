@@ -292,10 +292,7 @@ export default class MailService {
         mail.body = await this.compileEmailBody(mail.templateType, mail.vars);
         mail.subject = this.compileSubject(mail.subject, mail.vars);
 
-        try {
-            await this.transportMail(mail, mailServer);
-        } catch (error) {
-            throw error;
-        }
+        await this.transportMail(mail, mailServer);
+
     }
 }

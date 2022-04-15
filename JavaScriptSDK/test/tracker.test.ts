@@ -28,7 +28,7 @@ describe('Tracker Timeline', function (): void {
         });
     };
     this.timeout(timeout + 1000);
-    let projectId: ObjectID, token: $TSFixMe, componentId;
+    let projectId: ObjectID, token: $TSFixMe, componentId: $TSFixMe;
     // create a new user
     const component: $TSFixMe = { name: 'Our Component' };
 

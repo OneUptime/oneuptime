@@ -13,7 +13,7 @@ export default class Hostname {
         }
     }
 
-    toString(): string {
+    public toString(): string {
         return this.hostname;
     }
 }

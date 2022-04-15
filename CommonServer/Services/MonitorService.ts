@@ -1707,7 +1707,7 @@ export default class Service {
     }
 
     // checks if the monitor uptime stat is within the defined uptime on monitor sla
-    // then update the monitor => breachedMonitorSla
+    // then update the (monitor: $TSFixMe) =>  breachedMonitorSla
     public async updateMonitorSlaStat(query: Query): void {
         const currentDate: $TSFixMe = moment().format();
         let startDate: $TSFixMe = moment(currentDate).subtract(30, 'days'); // default frequency

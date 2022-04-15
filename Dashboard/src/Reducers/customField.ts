@@ -72,9 +72,9 @@ export default function customField(
             };
 
         case types.DELETE_CUSTOM_FIELD_SUCCESS: {
-            const fields: $TSFixMe = state.customFields.fields.filter(
-                field => String(field._id) !== String(action.payload._id)
-            );
+            const fields: $TSFixMe = state.customFields.fields.filter((field: $TSFixMe) => {
+                return String(field._id) !== String(action.payload._id);
+            });
             return {
                 ...state,
                 customFields: {
@@ -150,13 +150,15 @@ export default function customField(
             };
 
         case types.UPDATE_CUSTOM_FIELD_SUCCESS: {
-            const fields: $TSFixMe = state.customFields.fields.map(field: $TSFixMe => {
-                if (String(field._id) === String(action.payload._id)) {
-                    field = action.payload;
-                }
+            const fields: $TSFixMe = state.customFields.fields.map(
+                (field: $TSFixMe) => {
+                    if (String(field._id) === String(action.payload._id)) {
+                        field = action.payload;
+                    }
 
-                return field;
-            });
+                    return field;
+                }
+            );
             return {
                 ...state,
                 customFields: {

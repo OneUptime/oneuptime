@@ -4,7 +4,7 @@
  * @returns a string
  */
 
-const joinNames: Function = (acc: $TSFixMe = [], arr: $TSFixMe): void => {
+const joinNames: Function = (arr: $TSFixMe): void => {
     if (!Array.isArray(arr)) {
         return '';
     }

@@ -168,7 +168,7 @@ export const getContainerSecuritiesFailure: Function = (
 export const getContainerSecurities: $TSFixMe = ({
     projectId,
     componentId,
-    skip: number = 0
+    skip = 0
     limit = 0,
     fetchingPage = false,
 }: $TSFixMe) => {

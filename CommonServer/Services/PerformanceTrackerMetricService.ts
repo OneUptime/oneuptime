@@ -416,7 +416,7 @@ function calcAvgTime(metric: $TSFixMe): void {
     const length: $TSFixMe = metric.length;
 
     let avgTimeCount: $TSFixMe = 0,
-        avgMaxTimeCount = 0;
+        avgMaxTimeCount: $TSFixMe = 0;
     metric.forEach((data: $TSFixMe) => {
         avgTimeCount += data.metrics.avgTime;
         avgMaxTimeCount += data.metrics.maxTime;

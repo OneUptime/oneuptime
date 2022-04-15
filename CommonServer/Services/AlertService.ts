@@ -343,7 +343,7 @@ public async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe): void {
             ...timeline,
             ...alerts,
             ...incidentMessages,
-        ].sort((a: $TSFixMe, b: $TSFixMe){
+        ].sort((a: $TSFixMe, b: $TSFixMe) => {
             return b.createdAt - a.createdAt;
         });
         incidentMessages = [

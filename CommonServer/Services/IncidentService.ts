@@ -618,7 +618,7 @@ export default class Service {
         return updatedData;
     }
 
-    async _sendIncidentCreatedAlert(incident: $TSFixMe): void {
+    public async _sendIncidentCreatedAlert(incident: $TSFixMe): void {
         ZapierService.pushToZapier('incident_created', incident);
         // await RealTimeService.sendCreatedIncident(incident);
 
@@ -1639,7 +1639,7 @@ export default class Service {
         }
     }
 
-    clearInterval(incidentId: $TSFixMe): void {
+    public clearInterval(incidentId: $TSFixMe): void {
         intervals = intervals.filter((interval: $TSFixMe) => {
             if (String(interval.incidentId) === String(incidentId)) {
                 clearInterval(interval.intervalId);

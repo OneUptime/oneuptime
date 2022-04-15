@@ -124,9 +124,16 @@ const ping: Function = (
                                               .map((partition: $TSFixMe) => {
                                                   return partition.used;
                                               })
-                                              .reduce((used, partitionUsed) => {
-                                                  return used + partitionUsed;
-                                              })
+                                              .reduce(
+                                                  (
+                                                      used: $TSFixMe,
+                                                      partitionUsed: $TSFixMe
+                                                  ) => {
+                                                      return (
+                                                          used + partitionUsed
+                                                      );
+                                                  }
+                                              )
                                         : storage.used,
                                 totalStorage:
                                     storage && storage.length > 0
@@ -138,7 +145,7 @@ const ping: Function = (
                                               .map((partition: $TSFixMe) => {
                                                   return partition.use;
                                               })
-                                              .reduce((use, partitionUse) => {
+                                              .reduce((use: $TSFixMe, partitionUse: $TSFixMe) => {
                                                   return use + partitionUse;
                                               })
                                         : storage.use,
@@ -189,7 +196,7 @@ export default function (
     monitorId: $TSFixMe
 ): void {
     let pingServer: $TSFixMe,
-        projectId = config,
+        projectId: $TSFixMe = config,
         interval: $TSFixMe,
         timeout: $TSFixMe,
         simulate: $TSFixMe,
@@ -212,7 +219,7 @@ export default function (
          * @param {string} id - The monitor id of the server monitor.
          * @return {(Object | number)} The ping server cron job or the error code.
          */
-        start: (id = monitorId) => {
+        start: (id: $TSFixMe = monitorId) => {
             const url: string = `monitor/${projectId}/monitor/${
                 id && typeof id === 'string' ? `${id}/` : ''
             }?type=server-monitor`;

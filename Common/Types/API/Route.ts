@@ -13,7 +13,7 @@ export default class Route {
         }
     }
 
-    toString(): string {
+    public toString(): string {
         return this.route;
     }
 }

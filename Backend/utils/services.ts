@@ -1,5 +1,5 @@
 export default {
-    deduplicate: async (acc: $TSFixMe = []) => {
+    deduplicate: async (arr: $TSFixMe = []) => {
         const map: $TSFixMe = {};
 
         let curr: $TSFixMe;
@@ -18,7 +18,7 @@ export default {
         return Object.values(map);
     },
 
-    rearrangeDuty: async (acc: $TSFixMe = []) => {
+    rearrangeDuty: async (main: $TSFixMe = []) => {
         let closeStringId: $TSFixMe;
         for (let i: $TSFixMe = 0; i < main.length; i++) {
             if (typeof main[i].schedule == 'object') {

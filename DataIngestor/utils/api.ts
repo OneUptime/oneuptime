@@ -41,7 +41,7 @@ const _this: $TSFixMe = {
         });
     },
 
-    get: (url: URL, withBaseUrl = false) => {
+    get: (url: URL, withBaseUrl: $TSFixMe = false) => {
         const headers: $TSFixMe = this.getHeaders();
         return new Promise((resolve: Function, reject: Function) => {
             axios({

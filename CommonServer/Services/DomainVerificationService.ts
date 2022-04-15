@@ -13,7 +13,7 @@ import Query from '../Types/DB/Query';
 import errorService from '../Utils/error';
 
 export default class Service {
-public async create({ domain, projectId }: $TSFixMe): void {
+    public async create({ domain, projectId }: $TSFixMe): void {
         const parsed: $TSFixMe = psl.parse(domain);
         const token: string = 'oneuptime=' + randomChar();
 
@@ -28,7 +28,14 @@ public async create({ domain, projectId }: $TSFixMe): void {
         return await DomainVerificationTokenModel.create(creationData);
     }
 
-public async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
+    public async findBy({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -61,7 +68,9 @@ public async findBy({ query, limit, skip, populate, select, sort }: FindBy): voi
                 query: { parentProjectId: query.projectId },
                 select: '_id',
             });
-            subProjects = subProjects.map((project: $TSFixMe) => project._id); // grab just the project ids
+            subProjects = subProjects.map((project: $TSFixMe) => {
+                return project._id;
+            }); // grab just the project ids
             const totalProjects: $TSFixMe = [query.projectId, ...subProjects];
 
             query = { ...query, projectId: { $in: totalProjects } };
@@ -79,7 +88,7 @@ public async findBy({ query, limit, skip, populate, select, sort }: FindBy): voi
         return domains;
     }
 
-public async resetDomain(domain: $TSFixMe): void {
+    public async resetDomain(domain: $TSFixMe): void {
         const updateObj: $TSFixMe = {
             verificationToken: 'oneuptime=' + randomChar(),
             verified: false,
@@ -92,7 +101,7 @@ public async resetDomain(domain: $TSFixMe): void {
         return updatedDomain;
     }
 
-public async doesTxtRecordExist(
+    public async doesTxtRecordExist(
         subDomain: $TSFixMe,
         verificationToken: $TSFixMe
     ): void {
@@ -110,9 +119,9 @@ public async doesTxtRecordExist(
             // records is an array of arrays
             // flatten the array to a single array
             const txtRecords: $TSFixMe = flatten(records);
-            const result: $TSFixMe = txtRecords.some(
-                txtRecord => verificationToken === txtRecord
-            );
+            const result: $TSFixMe = txtRecords.some((txtRecord: $TSFixMe) =>  {
+                return verificationToken === txtRecord;
+            });
 
             if (result) {
                 return { result, txtRecords };
@@ -123,9 +132,9 @@ public async doesTxtRecordExist(
                 // records is an array of arrays
                 // flatten the array to a single array
                 const txtRecords: $TSFixMe = flatten(records);
-                const result: $TSFixMe = txtRecords.some(
-                    txtRecord => verificationToken === txtRecord
-                );
+                const result: $TSFixMe = txtRecords.some((txtRecord: $TSFixMe) =>  {
+                    return verificationToken === txtRecord;
+                });
 
                 return { result, txtRecords };
             }
@@ -149,7 +158,7 @@ public async doesTxtRecordExist(
         }
     }
 
-public async doesDomainBelongToProject(
+    public async doesDomainBelongToProject(
         projectId: ObjectID,
         subDomain: $TSFixMe
     ): void {
@@ -183,11 +192,15 @@ public async doesDomainBelongToProject(
                 select: '_id',
             });
         }
-        subProjects = subProjects.map((project: $TSFixMe) => project._id); // grab just the project ids
+        subProjects = subProjects.map((project: $TSFixMe) => {
+            return project._id;
+        }); // grab just the project ids
         projectList.push(...subProjects);
 
         projectList = projectList.filter(
-            (projectId: $TSFixMe, index: $TSFixMe)projectList.indexOf(projectId) === index
+            (projectId: $TSFixMe, index: $TSFixMe) => {
+                return projectList.indexOf(projectId) === index;
+            }
         );
 
         const parsed: $TSFixMe = psl.parse(subDomain);
@@ -213,7 +226,7 @@ public async doesDomainBelongToProject(
         return false;
     }
 
-public async deleteBy(query: Query): void {
+    public async deleteBy(query: Query): void {
         const domainCount: $TSFixMe = await this.countBy(query);
 
         if (!domainCount || domainCount === 0) {
@@ -262,7 +275,7 @@ public async deleteBy(query: Query): void {
         return domain;
     }
 
-public async findDomain(domainId: $TSFixMe, projectArr = []): void {
+    public async findDomain(domainId: $TSFixMe, projectArr = []): void {
         let projectId: $TSFixMe;
         for (const pId of projectArr) {
             const populateDomainVerify: $TSFixMe = [

@@ -166,7 +166,7 @@ class OneUptimeListener {
                 (res: $TSFixMe) => {
                     obj.status_code = res.status;
                 },
-                err => {
+                (err: $TSFixMe)  => {
                     obj.status_code = err.status;
                 }
             );

@@ -79,9 +79,11 @@ export default function monitorSla(
             };
 
         case types.DELETE_MONITOR_SLA_SUCCESS: {
-            const slas: $TSFixMe = state.monitorSlas.slas.filter(sla => {
-                return String(sla._id) !== String(action.payload._id);
-            });
+            const slas: $TSFixMe = state.monitorSlas.slas.filter(
+                (sla: $TSFixMe) => {
+                    return String(sla._id) !== String(action.payload._id);
+                }
+            );
             return {
                 ...state,
                 monitorSlas: {

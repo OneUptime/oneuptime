@@ -58,7 +58,7 @@ class HTTPTestServerResponse {
         this._htmlBody = v;
     }
 
-    toJSON(): JSONObject {
+    public toJSON(): JSONObject {
         return {
             statusCode: this.statusCode.toNumber(),
             responseType: {

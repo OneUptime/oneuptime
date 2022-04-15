@@ -155,7 +155,10 @@ const INITIAL_STATE: $TSFixMe = {
     configFileInputKey: null,
 };
 
-export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action): void {
+export default function monitor(
+    state: $TSFixMe = INITIAL_STATE,
+    action: Action
+): void {
     let monitors: $TSFixMe, monitorType: $TSFixMe, initialValue: $TSFixMe;
     switch (action.type) {
         case CREATE_MONITOR_FAILURE:
@@ -240,29 +243,34 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
         case CREATE_MONITOR_SUCCESS:
         case 'CREATE_MONITOR': {
             let monitorFound: $TSFixMe = false;
-            const monitors: $TSFixMe = state.monitorsList.monitors.map(monitorData: $TSFixMe => {
-                let output: $TSFixMe = {
-                    ...monitorData,
-                    monitors: monitorData.monitors.map((monitor: $TSFixMe) =>  {
-                        if (
-                            String(monitor._id) === String(action.payload._id)
-                        ) {
-                            monitorFound = true;
-                            return action.payload;
-                        }
-                        return monitor;
-                    }),
-                };
-                if (!monitorFound) {
-                    output = {
-                        ...output,
-                        monitors: [action.payload, ...output.monitors],
-                        count: output.count + 1,
+            const monitors: $TSFixMe = state.monitorsList.monitors.map(
+                (monitorData: $TSFixMe) => {
+                    let output: $TSFixMe = {
+                        ...monitorData,
+                        monitors: monitorData.monitors.map(
+                            (monitor: $TSFixMe) => {
+                                if (
+                                    String(monitor._id) ===
+                                    String(action.payload._id)
+                                ) {
+                                    monitorFound = true;
+                                    return action.payload;
+                                }
+                                return monitor;
+                            }
+                        ),
                     };
-                }
+                    if (!monitorFound) {
+                        output = {
+                            ...output,
+                            monitors: [action.payload, ...output.monitors],
+                            count: output.count + 1,
+                        };
+                    }
 
-                return output;
-            });
+                    return output;
+                }
+            );
 
             return {
                 ...state,
@@ -357,80 +365,94 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: false,
-                    monitors: state.monitorsList.monitors.map((project: $TSFixMe) =>  {
-                        const subProject: $TSFixMe = Object.assign({}, project);
-                        const subProjectMonitors: $TSFixMe =
-                            subProject.monitors && subProject.monitors.slice();
-
-                        const newMonitor: $TSFixMe = Object.assign({}, action.payload);
-
-                        const monitorIndex: $TSFixMe =
-                            subProjectMonitors &&
-                            subProjectMonitors.findIndex(
-                                (monitor: $TSFixMe) =>
-                                    monitor._id === newMonitor._id
+                    monitors: state.monitorsList.monitors.map(
+                        (project: $TSFixMe) => {
+                            const subProject: $TSFixMe = Object.assign(
+                                {},
+                                project
                             );
-                        const isSubProjectMonitor: $TSFixMe = monitorIndex > -1;
+                            const subProjectMonitors: $TSFixMe =
+                                subProject.monitors &&
+                                subProject.monitors.slice();
 
-                        if (subProject._id === newMonitor.projectId) {
-                            if (isSubProjectMonitor) {
-                                const oldMonitor: $TSFixMe = Object.assign(
-                                    {},
-                                    subProjectMonitors[monitorIndex]
+                            const newMonitor: $TSFixMe = Object.assign(
+                                {},
+                                action.payload
+                            );
+
+                            const monitorIndex: $TSFixMe =
+                                subProjectMonitors &&
+                                subProjectMonitors.findIndex(
+                                    (monitor: $TSFixMe) => {
+                                        return monitor._id === newMonitor._id;
+                                    }
                                 );
+                            const isSubProjectMonitor: $TSFixMe =
+                                monitorIndex > -1;
 
-                                if (!newMonitor.logs) {
-                                    newMonitor.logs = oldMonitor.logs;
-                                }
-                                if (!newMonitor.statuses) {
-                                    newMonitor.statuses = oldMonitor.statuses;
-                                }
-                                if (!newMonitor.currentLighthouseLog) {
-                                    newMonitor.currentLighthouseLog =
-                                        oldMonitor.currentLighthouseLog;
-                                }
-                                if (!newMonitor.lighthouseLogs) {
-                                    newMonitor.lighthouseLogs =
-                                        oldMonitor.lighthouseLogs;
-                                }
-                                if (!newMonitor.incidents) {
-                                    newMonitor.incidents = oldMonitor.incidents;
-                                }
-                                if (!newMonitor.subscribers) {
-                                    newMonitor.subscribers =
-                                        oldMonitor.subscribers;
-                                }
-                                if (!newMonitor.skip) {
-                                    newMonitor.skip = oldMonitor.skip;
-                                }
-                                if (!newMonitor.limit) {
-                                    newMonitor.limit = oldMonitor.limit;
-                                }
-                                if (!newMonitor.count) {
-                                    newMonitor.count = oldMonitor.count;
-                                }
+                            if (subProject._id === newMonitor.projectId) {
+                                if (isSubProjectMonitor) {
+                                    const oldMonitor: $TSFixMe = Object.assign(
+                                        {},
+                                        subProjectMonitors[monitorIndex]
+                                    );
 
-                                subProjectMonitors[monitorIndex] = newMonitor;
+                                    if (!newMonitor.logs) {
+                                        newMonitor.logs = oldMonitor.logs;
+                                    }
+                                    if (!newMonitor.statuses) {
+                                        newMonitor.statuses =
+                                            oldMonitor.statuses;
+                                    }
+                                    if (!newMonitor.currentLighthouseLog) {
+                                        newMonitor.currentLighthouseLog =
+                                            oldMonitor.currentLighthouseLog;
+                                    }
+                                    if (!newMonitor.lighthouseLogs) {
+                                        newMonitor.lighthouseLogs =
+                                            oldMonitor.lighthouseLogs;
+                                    }
+                                    if (!newMonitor.incidents) {
+                                        newMonitor.incidents =
+                                            oldMonitor.incidents;
+                                    }
+                                    if (!newMonitor.subscribers) {
+                                        newMonitor.subscribers =
+                                            oldMonitor.subscribers;
+                                    }
+                                    if (!newMonitor.skip) {
+                                        newMonitor.skip = oldMonitor.skip;
+                                    }
+                                    if (!newMonitor.limit) {
+                                        newMonitor.limit = oldMonitor.limit;
+                                    }
+                                    if (!newMonitor.count) {
+                                        newMonitor.count = oldMonitor.count;
+                                    }
+
+                                    subProjectMonitors[monitorIndex] =
+                                        newMonitor;
+                                } else {
+                                    newMonitor.skip = 0;
+                                    newMonitor.limit = 0;
+                                    newMonitor.count = 0;
+
+                                    subProjectMonitors.unshift(newMonitor);
+
+                                    subProject.count += 1;
+                                }
                             } else {
-                                newMonitor.skip = 0;
-                                newMonitor.limit = 0;
-                                newMonitor.count = 0;
+                                if (isSubProjectMonitor) {
+                                    subProjectMonitors.splice(monitorIndex, 1);
 
-                                subProjectMonitors.unshift(newMonitor);
-
-                                subProject.count += 1;
+                                    subProject.count -= 1;
+                                }
                             }
-                        } else {
-                            if (isSubProjectMonitor) {
-                                subProjectMonitors.splice(monitorIndex, 1);
 
-                                subProject.count -= 1;
-                            }
+                            subProject.monitors = subProjectMonitors;
+                            return subProject;
                         }
-
-                        subProject.monitors = subProjectMonitors;
-                        return subProject;
-                    }),
+                    ),
                 },
                 editMonitor: {
                     requesting: false,
@@ -469,27 +491,29 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: false,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors = monitor.monitors.map(
-                            (monitor: $TSFixMe, i: $TSFixMe) => {
-                                if (
-                                    i === action.payload ||
-                                    monitor._id === action.payload
-                                ) {
-                                    if (!monitor.editMode) {
-                                        monitor.editMode = true;
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors = monitor.monitors.map(
+                                (monitor: $TSFixMe, i: $TSFixMe) => {
+                                    if (
+                                        i === action.payload ||
+                                        monitor._id === action.payload
+                                    ) {
+                                        if (!monitor.editMode) {
+                                            monitor.editMode = true;
+                                        } else {
+                                            monitor.editMode = false;
+                                        }
+                                        return monitor;
                                     } else {
                                         monitor.editMode = false;
+                                        return monitor;
                                     }
-                                    return monitor;
-                                } else {
-                                    monitor.editMode = false;
-                                    return monitor;
                                 }
-                            }
-                        );
-                        return monitor;
-                    }),
+                            );
+                            return monitor;
+                        }
+                    ),
                 },
                 editMonitor: {
                     requesting: false,
@@ -505,27 +529,34 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      if (
-                                          monitor._id ===
-                                          action.payload.monitorId
-                                      ) {
-                                          monitor.incidents =
-                                              action.payload.incidents.data;
-                                          monitor.skip = action.payload.skip;
-                                          monitor.limit = action.payload.limit;
-                                          monitor.count = action.payload.count;
-                                          return monitor;
-                                      } else {
-                                          return monitor;
-                                      }
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              if (
+                                                  monitor._id ===
+                                                  action.payload.monitorId
+                                              ) {
+                                                  monitor.incidents =
+                                                      action.payload.incidents.data;
+                                                  monitor.skip =
+                                                      action.payload.skip;
+                                                  monitor.limit =
+                                                      action.payload.limit;
+                                                  monitor.count =
+                                                      action.payload.count;
+                                                  return monitor;
+                                              } else {
+                                                  return monitor;
+                                              }
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
                 paginatedMonitorsList: {
                     ...state.paginatedMonitorsList,
@@ -533,7 +564,7 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     error: null,
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
-                        monitor => {
+                        (monitor: $TSFixMe) =>  {
                             monitor.monitors =
                                 monitor._id === action.payload.projectId
                                     ? monitor.monitors.map(
@@ -593,30 +624,36 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      if (
-                                          monitor._id ===
-                                          action.payload.monitorId
-                                      ) {
-                                          monitor.subscribers = {
-                                              subscribers:
-                                                  action.payload.subscribers
-                                                      .data,
-                                              skip: action.payload.skip,
-                                              limit: action.payload.limit,
-                                              count: action.payload.count,
-                                          };
-                                          return monitor;
-                                      } else {
-                                          return monitor;
-                                      }
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              if (
+                                                  monitor._id ===
+                                                  action.payload.monitorId
+                                              ) {
+                                                  monitor.subscribers = {
+                                                      subscribers:
+                                                          action.payload
+                                                              .subscribers.data,
+                                                      skip: action.payload.skip,
+                                                      limit: action.payload
+                                                          .limit,
+                                                      count: action.payload
+                                                          .count,
+                                                  };
+                                                  return monitor;
+                                              } else {
+                                                  return monitor;
+                                              }
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
                 fetchMonitorsSubscriberRequest: false,
             });
@@ -652,24 +689,28 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      if (
-                                          monitor._id ===
-                                          action.payload.monitorId
-                                      ) {
-                                          monitor.logs =
-                                              action.payload.logs.data;
-                                          return monitor;
-                                      } else {
-                                          return monitor;
-                                      }
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              if (
+                                                  monitor._id ===
+                                                  action.payload.monitorId
+                                              ) {
+                                                  monitor.logs =
+                                                      action.payload.logs.data;
+                                                  return monitor;
+                                              } else {
+                                                  return monitor;
+                                              }
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
                 paginatedMonitorsList: {
                     ...state.paginatedMonitorsList,
@@ -677,7 +718,7 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     error: null,
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
-                        monitor => {
+                        (monitor: $TSFixMe) =>  {
                             monitor.monitors =
                                 monitor._id === action.payload.projectId
                                     ? monitor.monitors.map(
@@ -735,24 +776,28 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      if (
-                                          monitor._id ===
-                                          action.payload.monitorId
-                                      ) {
-                                          monitor.statuses =
-                                              action.payload.statuses.data;
-                                          return monitor;
-                                      } else {
-                                          return monitor;
-                                      }
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              if (
+                                                  monitor._id ===
+                                                  action.payload.monitorId
+                                              ) {
+                                                  monitor.statuses =
+                                                      action.payload.statuses.data;
+                                                  return monitor;
+                                              } else {
+                                                  return monitor;
+                                              }
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
                 paginatedMonitorsList: {
                     ...state.paginatedMonitorsList,
@@ -760,7 +805,7 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     error: null,
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
-                        monitor => {
+                        (monitor: $TSFixMe) =>  {
                             monitor.monitors =
                                 monitor._id === action.payload.projectId
                                     ? monitor.monitors.map(
@@ -813,50 +858,8 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      if (
-                                          monitor._id ===
-                                          action.payload.monitorId
-                                      ) {
-                                          const mainSiteUrlLogs: $TSFixMe =
-                                              action.payload.logs.data.filter(
-                                                  (log: $TSFixMe) =>
-                                                      monitor.data &&
-                                                      monitor.data.url ===
-                                                          log.url
-                                              );
-                                          if (
-                                              mainSiteUrlLogs &&
-                                              mainSiteUrlLogs.length > 0
-                                          ) {
-                                              monitor.currentLighthouseLog =
-                                                  mainSiteUrlLogs[0];
-                                          }
-                                          monitor.lighthouseLogs = {
-                                              data: action.payload.logs.data,
-                                              skip: action.payload.skip,
-                                              limit: action.payload.limit,
-                                              count: action.payload.count,
-                                          };
-                                          return monitor;
-                                      } else {
-                                          return monitor;
-                                      }
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
-                },
-                paginatedMonitorsList: {
-                    ...state.paginatedMonitorsList,
-                    requesting: false,
-                    error: null,
-                    success: true,
-                    monitors: state.paginatedMonitorsList.monitors.map(
-                        monitor => {
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
                             monitor.monitors =
                                 monitor._id === action.payload.projectId
                                     ? monitor.monitors.map(
@@ -867,11 +870,67 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                                               ) {
                                                   const mainSiteUrlLogs: $TSFixMe =
                                                       action.payload.logs.data.filter(
-                                                          (log: $TSFixMe) =>
-                                                              monitor.data &&
-                                                              monitor.data
-                                                                  .url ===
-                                                                  log.url
+                                                          (log: $TSFixMe) => {
+                                                              return (
+                                                                  monitor.data &&
+                                                                  monitor.data
+                                                                      .url ===
+                                                                      log.url
+                                                              );
+                                                          }
+                                                      );
+                                                  if (
+                                                      mainSiteUrlLogs &&
+                                                      mainSiteUrlLogs.length > 0
+                                                  ) {
+                                                      monitor.currentLighthouseLog =
+                                                          mainSiteUrlLogs[0];
+                                                  }
+                                                  monitor.lighthouseLogs = {
+                                                      data: action.payload.logs
+                                                          .data,
+                                                      skip: action.payload.skip,
+                                                      limit: action.payload
+                                                          .limit,
+                                                      count: action.payload
+                                                          .count,
+                                                  };
+                                                  return monitor;
+                                              } else {
+                                                  return monitor;
+                                              }
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
+                },
+                paginatedMonitorsList: {
+                    ...state.paginatedMonitorsList,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    monitors: state.paginatedMonitorsList.monitors.map(
+                        (monitor: $TSFixMe) =>  {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              if (
+                                                  monitor._id ===
+                                                  action.payload.monitorId
+                                              ) {
+                                                  const mainSiteUrlLogs: $TSFixMe =
+                                                      action.payload.logs.data.filter(
+                                                          (log: $TSFixMe) => {
+                                                              return (
+                                                                  monitor.data &&
+                                                                  monitor.data
+                                                                      .url ===
+                                                                      log.url
+                                                              );
+                                                          }
                                                       );
                                                   if (
                                                       mainSiteUrlLogs &&
@@ -992,221 +1051,250 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      if (
-                                          monitor._id ===
-                                          action.payload.monitorId
-                                      ) {
-                                          const data: $TSFixMe = Object.assign(
-                                              {},
-                                              action.payload.data
-                                          );
-                                          const intervalInDays: $TSFixMe = moment(
-                                              state.monitorsList.endDate
-                                          ).diff(
-                                              moment(
-                                                  state.monitorsList.startDate
-                                              ),
-                                              'days'
-                                          );
-                                          const isNewMonitor: $TSFixMe =
-                                              moment(
-                                                  state.monitorsList.endDate
-                                              ).diff(
-                                                  moment(monitor.createdAt),
-                                                  'days'
-                                              ) < 2;
-
-                                          let dateFormat: $TSFixMe,
-                                              outputFormat;
-                                          if (
-                                              intervalInDays > 30 &&
-                                              !isNewMonitor
-                                          ) {
-                                              dateFormat = 'weeks';
-                                              outputFormat =
-                                                  'wo [week of] YYYY';
-                                          } else if (
-                                              intervalInDays > 2 &&
-                                              !isNewMonitor
-                                          ) {
-                                              dateFormat = 'days';
-                                              outputFormat = 'MMM Do YYYY';
-                                          } else {
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
                                               if (
-                                                  moment(
-                                                      state.monitorsList.endDate
-                                                  ).diff(
-                                                      moment(monitor.createdAt),
-                                                      'minutes'
-                                                  ) > 60
+                                                  monitor._id ===
+                                                  action.payload.monitorId
                                               ) {
-                                                  dateFormat = 'hours';
-                                                  outputFormat =
-                                                      'MMM Do YYYY, h A';
-                                              } else {
-                                                  dateFormat = 'minutes';
-                                                  outputFormat =
-                                                      'MMM Do YYYY, h:mm:ss A';
-                                              }
-                                          }
+                                                  const data: $TSFixMe =
+                                                      Object.assign(
+                                                          {},
+                                                          action.payload.data
+                                                      );
+                                                  const intervalInDays: $TSFixMe =
+                                                      moment(
+                                                          state.monitorsList
+                                                              .endDate
+                                                      ).diff(
+                                                          moment(
+                                                              state.monitorsList
+                                                                  .startDate
+                                                          ),
+                                                          'days'
+                                                      );
+                                                  const isNewMonitor: $TSFixMe =
+                                                      moment(
+                                                          state.monitorsList
+                                                              .endDate
+                                                      ).diff(
+                                                          moment(
+                                                              monitor.createdAt
+                                                          ),
+                                                          'days'
+                                                      ) < 2;
 
-                                          const logData: $TSFixMe = {
-                                              ...data,
-                                              maxResponseTime:
-                                                  data.responseTime,
-                                              maxCpuLoad: data.cpuLoad,
-                                              maxMemoryUsed: data.memoryUsed,
-                                              maxStorageUsed: data.storageUsed,
-                                              maxMainTemp: data.mainTemp,
-                                              intervalDate: moment(
-                                                  data.createdAt
-                                              ).format(outputFormat),
-                                          };
+                                                  let dateFormat: $TSFixMe,
+                                                      outputFormat;
+                                                  if (
+                                                      intervalInDays > 30 &&
+                                                      !isNewMonitor
+                                                  ) {
+                                                      dateFormat = 'weeks';
+                                                      outputFormat =
+                                                          'wo [week of] YYYY';
+                                                  } else if (
+                                                      intervalInDays > 2 &&
+                                                      !isNewMonitor
+                                                  ) {
+                                                      dateFormat = 'days';
+                                                      outputFormat =
+                                                          'MMM Do YYYY';
+                                                  } else {
+                                                      if (
+                                                          moment(
+                                                              state.monitorsList
+                                                                  .endDate
+                                                          ).diff(
+                                                              moment(
+                                                                  monitor.createdAt
+                                                              ),
+                                                              'minutes'
+                                                          ) > 60
+                                                      ) {
+                                                          dateFormat = 'hours';
+                                                          outputFormat =
+                                                              'MMM Do YYYY, h A';
+                                                      } else {
+                                                          dateFormat =
+                                                              'minutes';
+                                                          outputFormat =
+                                                              'MMM Do YYYY, h:mm:ss A';
+                                                      }
+                                                  }
 
-                                          monitor.logs =
-                                              monitor.logs &&
-                                              monitor.logs.length > 0
-                                                  ? monitor.logs
-                                                        .map(
-                                                            (a: $TSFixMe) =>
-                                                                a._id
-                                                        )
-                                                        .includes(
-                                                            logData.probeId
-                                                                ._id ||
-                                                                logData.probeId
-                                                        ) ||
-                                                    !(
-                                                        logData.probeId._id ||
-                                                        logData.probeId
-                                                    )
-                                                      ? monitor.logs.map(
-                                                            (
-                                                                probeLogs: $TSFixMe
-                                                            ) => {
-                                                                const probeId: $TSFixMe =
-                                                                    probeLogs._id;
+                                                  const logData: $TSFixMe = {
+                                                      ...data,
+                                                      maxResponseTime:
+                                                          data.responseTime,
+                                                      maxCpuLoad: data.cpuLoad,
+                                                      maxMemoryUsed:
+                                                          data.memoryUsed,
+                                                      maxStorageUsed:
+                                                          data.storageUsed,
+                                                      maxMainTemp:
+                                                          data.mainTemp,
+                                                      intervalDate: moment(
+                                                          data.createdAt
+                                                      ).format(outputFormat),
+                                                  };
 
-                                                                if (
-                                                                    probeId ===
-                                                                        (logData
-                                                                            .probeId
-                                                                            ._id ||
-                                                                            logData.probeId) ||
-                                                                    (!probeId &&
-                                                                        !(
-                                                                            logData
-                                                                                .probeId
-                                                                                ._id ||
-                                                                            logData.probeId
-                                                                        ))
-                                                                ) {
-                                                                    if (
-                                                                        probeLogs.logs &&
-                                                                        probeLogs
-                                                                            .logs
-                                                                            .length >
-                                                                            0 &&
-                                                                        moment(
-                                                                            probeLogs
-                                                                                .logs[0]
-                                                                                .createdAt
-                                                                        ).isSame(
-                                                                            moment(
-                                                                                logData.createdAt
-                                                                            ),
-                                                                            dateFormat
-                                                                        )
-                                                                    ) {
-                                                                        const currentLog: $TSFixMe =
-                                                                            probeLogs
-                                                                                .logs[0];
-
-                                                                        logData.maxResponseTime =
-                                                                            data.responseTime >
-                                                                            currentLog.maxResponseTime
-                                                                                ? data.responseTime
-                                                                                : currentLog.maxResponseTime;
-                                                                        logData.maxCpuLoad =
-                                                                            data.cpuLoad >
-                                                                            currentLog.maxCpuLoad
-                                                                                ? data.cpuLoad
-                                                                                : currentLog.maxCpuLoad;
-                                                                        logData.maxMemoryUsed =
-                                                                            data.memoryUsed >
-                                                                            currentLog.maxMemoryUsed
-                                                                                ? data.memoryUsed
-                                                                                : currentLog.maxMemoryUsed;
-                                                                        logData.maxStorageUsed =
-                                                                            data.storageUsed >
-                                                                            currentLog.maxStorageUsed
-                                                                                ? data.storageUsed
-                                                                                : currentLog.maxStorageUsed;
-                                                                        logData.maxMainTemp =
-                                                                            data.mainTemp >
-                                                                            currentLog.maxMainTemp
-                                                                                ? data.mainTemp
-                                                                                : currentLog.maxMainTemp;
-
-                                                                        return {
-                                                                            _id: probeId,
-                                                                            logs: [
-                                                                                logData,
-                                                                                ...probeLogs.logs.slice(
-                                                                                    1
-                                                                                ),
-                                                                            ],
-                                                                        };
-                                                                    } else {
-                                                                        return {
-                                                                            _id: probeId,
-                                                                            logs: [
-                                                                                logData,
-                                                                                ...probeLogs.logs,
-                                                                            ],
-                                                                        };
+                                                  monitor.logs =
+                                                      monitor.logs &&
+                                                      monitor.logs.length > 0
+                                                          ? monitor.logs
+                                                                .map(
+                                                                    (
+                                                                        a: $TSFixMe
+                                                                    ) => {
+                                                                        return a._id;
                                                                     }
-                                                                } else {
-                                                                    return probeLogs;
-                                                                }
-                                                            }
-                                                        )
-                                                      : [
-                                                            ...monitor.logs,
-                                                            {
-                                                                _id:
+                                                                )
+                                                                .includes(
                                                                     logData
                                                                         .probeId
                                                                         ._id ||
-                                                                    logData.probeId ||
-                                                                    null,
-                                                                logs: [logData],
-                                                            },
-                                                        ]
-                                                  : [
-                                                        {
-                                                            _id:
+                                                                        logData.probeId
+                                                                ) ||
+                                                            !(
                                                                 logData.probeId
                                                                     ._id ||
-                                                                logData.probeId ||
-                                                                null,
-                                                            logs: [logData],
-                                                        },
-                                                    ];
+                                                                logData.probeId
+                                                            )
+                                                              ? monitor.logs.map(
+                                                                    (
+                                                                        probeLogs: $TSFixMe
+                                                                    ) => {
+                                                                        const probeId: $TSFixMe =
+                                                                            probeLogs._id;
 
-                                          return monitor;
-                                      } else {
-                                          return monitor;
-                                      }
-                                  })
-                                : monitor.monitors;
+                                                                        if (
+                                                                            probeId ===
+                                                                                (logData
+                                                                                    .probeId
+                                                                                    ._id ||
+                                                                                    logData.probeId) ||
+                                                                            (!probeId &&
+                                                                                !(
+                                                                                    logData
+                                                                                        .probeId
+                                                                                        ._id ||
+                                                                                    logData.probeId
+                                                                                ))
+                                                                        ) {
+                                                                            if (
+                                                                                probeLogs.logs &&
+                                                                                probeLogs
+                                                                                    .logs
+                                                                                    .length >
+                                                                                    0 &&
+                                                                                moment(
+                                                                                    probeLogs
+                                                                                        .logs[0]
+                                                                                        .createdAt
+                                                                                ).isSame(
+                                                                                    moment(
+                                                                                        logData.createdAt
+                                                                                    ),
+                                                                                    dateFormat
+                                                                                )
+                                                                            ) {
+                                                                                const currentLog: $TSFixMe =
+                                                                                    probeLogs
+                                                                                        .logs[0];
 
-                        return monitor;
-                    }),
+                                                                                logData.maxResponseTime =
+                                                                                    data.responseTime >
+                                                                                    currentLog.maxResponseTime
+                                                                                        ? data.responseTime
+                                                                                        : currentLog.maxResponseTime;
+                                                                                logData.maxCpuLoad =
+                                                                                    data.cpuLoad >
+                                                                                    currentLog.maxCpuLoad
+                                                                                        ? data.cpuLoad
+                                                                                        : currentLog.maxCpuLoad;
+                                                                                logData.maxMemoryUsed =
+                                                                                    data.memoryUsed >
+                                                                                    currentLog.maxMemoryUsed
+                                                                                        ? data.memoryUsed
+                                                                                        : currentLog.maxMemoryUsed;
+                                                                                logData.maxStorageUsed =
+                                                                                    data.storageUsed >
+                                                                                    currentLog.maxStorageUsed
+                                                                                        ? data.storageUsed
+                                                                                        : currentLog.maxStorageUsed;
+                                                                                logData.maxMainTemp =
+                                                                                    data.mainTemp >
+                                                                                    currentLog.maxMainTemp
+                                                                                        ? data.mainTemp
+                                                                                        : currentLog.maxMainTemp;
+
+                                                                                return {
+                                                                                    _id: probeId,
+                                                                                    logs: [
+                                                                                        logData,
+                                                                                        ...probeLogs.logs.slice(
+                                                                                            1
+                                                                                        ),
+                                                                                    ],
+                                                                                };
+                                                                            } else {
+                                                                                return {
+                                                                                    _id: probeId,
+                                                                                    logs: [
+                                                                                        logData,
+                                                                                        ...probeLogs.logs,
+                                                                                    ],
+                                                                                };
+                                                                            }
+                                                                        } else {
+                                                                            return probeLogs;
+                                                                        }
+                                                                    }
+                                                                )
+                                                              : [
+                                                                    ...monitor.logs,
+                                                                    {
+                                                                        _id:
+                                                                            logData
+                                                                                .probeId
+                                                                                ._id ||
+                                                                            logData.probeId ||
+                                                                            null,
+                                                                        logs: [
+                                                                            logData,
+                                                                        ],
+                                                                    },
+                                                                ]
+                                                          : [
+                                                                {
+                                                                    _id:
+                                                                        logData
+                                                                            .probeId
+                                                                            ._id ||
+                                                                        logData.probeId ||
+                                                                        null,
+                                                                    logs: [
+                                                                        logData,
+                                                                    ],
+                                                                },
+                                                            ];
+
+                                                  return monitor;
+                                              } else {
+                                                  return monitor;
+                                              }
+                                          }
+                                      )
+                                    : monitor.monitors;
+
+                            return monitor;
+                        }
+                    ),
                 },
                 fetchMonitorLogsRequest: false,
             });
@@ -1219,164 +1307,184 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((subProject: $TSFixMe) =>  {
-                        subProject.monitors =
-                            subProject._id === action.payload.status.projectId
-                                ? subProject.monitors.map(
-                                      (monitor: $TSFixMe) => {
-                                          if (
-                                              monitor._id ===
-                                              action.payload.status.monitorId
-                                          ) {
-                                              const data: $TSFixMe = Object.assign(
-                                                  {},
-                                                  action.payload.status.data
-                                              );
-                                              const probes: $TSFixMe =
-                                                  action.payload.probes;
-                                              const isValidProbe: $TSFixMe =
-                                                  (monitor.type === 'url' ||
-                                                      monitor.type === 'api' ||
-                                                      monitor.type === 'ip') &&
-                                                  probes &&
-                                                  probes.length > 0;
-
+                    monitors: state.monitorsList.monitors.map(
+                        (subProject: $TSFixMe) => {
+                            subProject.monitors =
+                                subProject._id ===
+                                action.payload.status.projectId
+                                    ? subProject.monitors.map(
+                                          (monitor: $TSFixMe) => {
                                               if (
-                                                  monitor.statuses &&
-                                                  monitor.statuses.length > 0
+                                                  monitor._id ===
+                                                  action.payload.status
+                                                      .monitorId
                                               ) {
-                                                  const monitorProbes: $TSFixMe =
-                                                      monitor.statuses.map(
-                                                          (a: $TSFixMe) => a._id
+                                                  const data: $TSFixMe =
+                                                      Object.assign(
+                                                          {},
+                                                          action.payload.status
+                                                              .data
                                                       );
+                                                  const probes: $TSFixMe =
+                                                      action.payload.probes;
+                                                  const isValidProbe: $TSFixMe =
+                                                      (monitor.type === 'url' ||
+                                                          monitor.type ===
+                                                              'api' ||
+                                                          monitor.type ===
+                                                              'ip') &&
+                                                      probes &&
+                                                      probes.length > 0;
 
                                                   if (
-                                                      monitorProbes.includes(
-                                                          data.probeId
-                                                      ) ||
-                                                      !data.probeId
+                                                      monitor.statuses &&
+                                                      monitor.statuses.length >
+                                                          0
                                                   ) {
-                                                      monitor.statuses =
+                                                      const monitorProbes: $TSFixMe =
                                                           monitor.statuses.map(
-                                                              (
-                                                                  probeStatuses: $TSFixMe
-                                                              ) => {
-                                                                  const probeId: $TSFixMe =
-                                                                      probeStatuses._id;
-
-                                                                  if (
-                                                                      probeId ===
-                                                                          data.probeId ||
-                                                                      !data.probeId
-                                                                  ) {
-                                                                      const previousStatus: $TSFixMe =
-                                                                          probeStatuses
-                                                                              .statuses[0];
-                                                                      previousStatus.endTime =
-                                                                          new Date().toISOString();
-
-                                                                      return {
-                                                                          _id: probeId,
-                                                                          statuses:
-                                                                              [
-                                                                                  data,
-                                                                                  previousStatus,
-                                                                                  ...probeStatuses.statuses.slice(
-                                                                                      1
-                                                                                  ),
-                                                                              ],
-                                                                      };
-                                                                  } else {
-                                                                      return probeStatuses;
-                                                                  }
+                                                              (a: $TSFixMe) => {
+                                                                  return a._id;
                                                               }
                                                           );
 
                                                       if (
-                                                          isValidProbe &&
-                                                          !probes.every(
-                                                              (
-                                                                  probe: $TSFixMe
-                                                              ) =>
-                                                                  monitorProbes.includes(
-                                                                      probe._id
-                                                                  )
-                                                          )
+                                                          monitorProbes.includes(
+                                                              data.probeId
+                                                          ) ||
+                                                          !data.probeId
                                                       ) {
-                                                          // add manual status to all new probes
-                                                          const newProbeStatuses: $TSFixMe =
-                                                              [];
+                                                          monitor.statuses =
+                                                              monitor.statuses.map(
+                                                                  (
+                                                                      probeStatuses: $TSFixMe
+                                                                  ) => {
+                                                                      const probeId: $TSFixMe =
+                                                                          probeStatuses._id;
 
-                                                          probes.forEach(
-                                                              (
-                                                                  probe: $TSFixMe
-                                                              ) => {
-                                                                  if (
-                                                                      !monitorProbes.includes(
-                                                                          probe._id
-                                                                      )
-                                                                  ) {
-                                                                      newProbeStatuses.push(
-                                                                          {
-                                                                              _id: probe._id,
+                                                                      if (
+                                                                          probeId ===
+                                                                              data.probeId ||
+                                                                          !data.probeId
+                                                                      ) {
+                                                                          const previousStatus: $TSFixMe =
+                                                                              probeStatuses
+                                                                                  .statuses[0];
+                                                                          previousStatus.endTime =
+                                                                              new Date().toISOString();
+
+                                                                          return {
+                                                                              _id: probeId,
                                                                               statuses:
                                                                                   [
                                                                                       data,
+                                                                                      previousStatus,
+                                                                                      ...probeStatuses.statuses.slice(
+                                                                                          1
+                                                                                      ),
                                                                                   ],
-                                                                          }
+                                                                          };
+                                                                      } else {
+                                                                          return probeStatuses;
+                                                                      }
+                                                                  }
+                                                              );
+
+                                                          if (
+                                                              isValidProbe &&
+                                                              !probes.every(
+                                                                  (
+                                                                      probe: $TSFixMe
+                                                                  ) => {
+                                                                      return monitorProbes.includes(
+                                                                          probe._id
                                                                       );
                                                                   }
-                                                              }
-                                                          );
+                                                              )
+                                                          ) {
+                                                              // add manual status to all new probes
+                                                              const newProbeStatuses: $TSFixMe =
+                                                                  [];
 
+                                                              probes.forEach(
+                                                                  (
+                                                                      probe: $TSFixMe
+                                                                  ) => {
+                                                                      if (
+                                                                          !monitorProbes.includes(
+                                                                              probe._id
+                                                                          )
+                                                                      ) {
+                                                                          newProbeStatuses.push(
+                                                                              {
+                                                                                  _id: probe._id,
+                                                                                  statuses:
+                                                                                      [
+                                                                                          data,
+                                                                                      ],
+                                                                              }
+                                                                          );
+                                                                      }
+                                                                  }
+                                                              );
+
+                                                              monitor.statuses =
+                                                                  [
+                                                                      ...monitor.statuses,
+                                                                      ...newProbeStatuses,
+                                                                  ];
+                                                          }
+                                                      } else {
                                                           monitor.statuses = [
                                                               ...monitor.statuses,
-                                                              ...newProbeStatuses,
-                                                          ];
-                                                      }
-                                                  } else {
-                                                      monitor.statuses = [
-                                                          ...monitor.statuses,
-                                                          {
-                                                              _id:
-                                                                  data.probeId ||
-                                                                  null,
-                                                              statuses: [data],
-                                                          },
-                                                      ];
-                                                  }
-                                              } else {
-                                                  if (isValidProbe) {
-                                                      monitor.statuses =
-                                                          probes.map(
-                                                              (
-                                                                  probe: $TSFixMe
-                                                              ) => ({
-                                                                  _id: probe._id,
+                                                              {
+                                                                  _id:
+                                                                      data.probeId ||
+                                                                      null,
                                                                   statuses: [
                                                                       data,
                                                                   ],
-                                                              })
-                                                          );
+                                                              },
+                                                          ];
+                                                      }
                                                   } else {
-                                                      monitor.statuses = [
-                                                          {
-                                                              _id:
-                                                                  data.probeId ||
-                                                                  null,
-                                                              statuses: [data],
-                                                          },
-                                                      ];
+                                                      if (isValidProbe) {
+                                                          monitor.statuses =
+                                                              probes.map(
+                                                                  (
+                                                                      probe: $TSFixMe
+                                                                  ) => {
+                                                                      return {
+                                                                          _id: probe._id,
+                                                                          statuses:
+                                                                              [
+                                                                                  data,
+                                                                              ],
+                                                                      };
+                                                                  }
+                                                              );
+                                                      } else {
+                                                          monitor.statuses = [
+                                                              {
+                                                                  _id:
+                                                                      data.probeId ||
+                                                                      null,
+                                                                  statuses: [
+                                                                      data,
+                                                                  ],
+                                                              },
+                                                          ];
+                                                      }
                                                   }
                                               }
+                                              return monitor;
                                           }
-                                          return monitor;
-                                      }
-                                  )
-                                : subProject.monitors;
+                                      )
+                                    : subProject.monitors;
 
-                        return subProject;
-                    }),
+                            return subProject;
+                        }
+                    ),
                 },
                 fetchMonitorStatusesRequest: false,
             });
@@ -1388,57 +1496,74 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      if (
-                                          monitor._id ===
-                                          action.payload.monitorId
-                                      ) {
-                                          if (
-                                              monitor.data &&
-                                              monitor.data.url ===
-                                                  action.payload.data.url
-                                          ) {
-                                              monitor.currentLighthouseLog =
-                                                  action.payload.data;
-                                          }
-                                          if (
-                                              monitor.lighthouseLogs &&
-                                              monitor.lighthouseLogs.data &&
-                                              monitor.lighthouseLogs.data
-                                                  .length > 0
-                                          ) {
-                                              const logIndex: $TSFixMe =
-                                                  monitor.lighthouseLogs.data.findIndex(
-                                                      (log: $TSFixMe) =>
-                                                          log.url ===
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              if (
+                                                  monitor._id ===
+                                                  action.payload.monitorId
+                                              ) {
+                                                  if (
+                                                      monitor.data &&
+                                                      monitor.data.url ===
                                                           action.payload.data
                                                               .url
-                                                  );
-                                              if (logIndex > -1) {
-                                                  monitor.lighthouseLogs.data[
-                                                      logIndex
-                                                  ] = action.payload.data;
-                                              }
-                                          } else {
-                                              monitor.lighthouseLogs = {
-                                                  data: [action.payload.data],
-                                                  skip: 0,
-                                                  limit: 1,
-                                                  count: 1,
-                                              };
-                                          }
+                                                  ) {
+                                                      monitor.currentLighthouseLog =
+                                                          action.payload.data;
+                                                  }
+                                                  if (
+                                                      monitor.lighthouseLogs &&
+                                                      monitor.lighthouseLogs
+                                                          .data &&
+                                                      monitor.lighthouseLogs
+                                                          .data.length > 0
+                                                  ) {
+                                                      const logIndex: $TSFixMe =
+                                                          monitor.lighthouseLogs.data.findIndex(
+                                                              (
+                                                                  log: $TSFixMe
+                                                              ) => {
+                                                                  return (
+                                                                      log.url ===
+                                                                      action
+                                                                          .payload
+                                                                          .data
+                                                                          .url
+                                                                  );
+                                                              }
+                                                          );
+                                                      if (logIndex > -1) {
+                                                          monitor.lighthouseLogs.data[
+                                                              logIndex
+                                                          ] =
+                                                              action.payload.data;
+                                                      }
+                                                  } else {
+                                                      monitor.lighthouseLogs = {
+                                                          data: [
+                                                              action.payload
+                                                                  .data,
+                                                          ],
+                                                          skip: 0,
+                                                          limit: 1,
+                                                          count: 1,
+                                                      };
+                                                  }
 
-                                          return monitor;
-                                      } else {
-                                          return monitor;
-                                      }
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                                                  return monitor;
+                                              } else {
+                                                  return monitor;
+                                              }
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
                 fetchLighthouseLogsRequest: false,
             });
@@ -1449,50 +1574,60 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      if (
-                                          monitor.data &&
-                                          action.payload.data.logs.lighthouseLogs.some(
-                                              (log: $TSFixMe) =>
-                                                  monitor.currentLighthouseLog &&
-                                                  log._id ===
-                                                      monitor
-                                                          .currentLighthouseLog
-                                                          ._id
-                                          )
-                                      ) {
-                                          monitor.currentLighthouseLog =
-                                              action.payload.data.logs.lighthouseLogs.filter(
-                                                  (log: $TSFixMe) =>
-                                                      monitor.currentLighthouseLog &&
-                                                      log._id ===
-                                                          monitor
-                                                              .currentLighthouseLog
-                                                              ._id
-                                              )[0];
-                                      }
-                                      if (
-                                          monitor._id ===
-                                          action.payload.monitorId
-                                      ) {
-                                          monitor.lighthouseLogs = {
-                                              data: action.payload.data.logs
-                                                  .lighthouseLogs,
-                                              skip: 0,
-                                              limit: 1,
-                                              count: 1,
-                                          };
-                                          return monitor;
-                                      } else {
-                                          return monitor;
-                                      }
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              if (
+                                                  monitor.data &&
+                                                  action.payload.data.logs.lighthouseLogs.some(
+                                                      (log: $TSFixMe) => {
+                                                          return (
+                                                              monitor.currentLighthouseLog &&
+                                                              log._id ===
+                                                                  monitor
+                                                                      .currentLighthouseLog
+                                                                      ._id
+                                                          );
+                                                      }
+                                                  )
+                                              ) {
+                                                  monitor.currentLighthouseLog =
+                                                      action.payload.data.logs.lighthouseLogs.filter(
+                                                          (log: $TSFixMe) => {
+                                                              return (
+                                                                  monitor.currentLighthouseLog &&
+                                                                  log._id ===
+                                                                      monitor
+                                                                          .currentLighthouseLog
+                                                                          ._id
+                                                              );
+                                                          }
+                                                      )[0];
+                                              }
+                                              if (
+                                                  monitor._id ===
+                                                  action.payload.monitorId
+                                              ) {
+                                                  monitor.lighthouseLogs = {
+                                                      data: action.payload.data
+                                                          .logs.lighthouseLogs,
+                                                      skip: 0,
+                                                      limit: 1,
+                                                      count: 1,
+                                                  };
+                                                  return monitor;
+                                              } else {
+                                                  return monitor;
+                                              }
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
                 fetchLighthouseLogsRequest: false,
             });
@@ -1566,29 +1701,34 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors.find(
-                            (targetMonitor: $TSFixMe, index: $TSFixMe) => {
-                                if (
-                                    targetMonitor._id ===
-                                    action.payload.monitorId
-                                ) {
-                                    monitor.monitors[
-                                        index
-                                    ].subscribers.subscribers = monitor.monitors[
-                                        index
-                                    ].subscribers.subscribers.filter(
-                                        (subscriber: $TSFixMe) =>
-                                            subscriber._id !==
-                                            action.payload._id
-                                    );
-                                    return true;
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors.find(
+                                (targetMonitor: $TSFixMe, index: $TSFixMe) => {
+                                    if (
+                                        targetMonitor._id ===
+                                        action.payload.monitorId
+                                    ) {
+                                        monitor.monitors[
+                                            index
+                                        ].subscribers.subscribers = monitor.monitors[
+                                            index
+                                        ].subscribers.subscribers.filter(
+                                            (subscriber: $TSFixMe) => {
+                                                return (
+                                                    subscriber._id !==
+                                                    action.payload._id
+                                                );
+                                            }
+                                        );
+                                        return true;
+                                    }
+                                    return false;
                                 }
-                                return false;
-                            }
-                        );
-                        return monitor;
-                    }),
+                            );
+                            return monitor;
+                        }
+                    ),
                 },
             });
 
@@ -1600,11 +1740,15 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     error: null,
                     success: false,
                     monitors: state.monitorsList.monitors.map(
-                        subProjectMonitor => {
+                        (subProjectMonitor: $TSFixMe) =>  {
                             subProjectMonitor.monitors =
                                 subProjectMonitor.monitors.filter(
-                                    ({ _id }: $TSFixMe) =>
-                                        String(_id) !== String(action.payload)
+                                    ({ _id }: $TSFixMe) => {
+                                        return (
+                                            String(_id) !==
+                                            String(action.payload)
+                                        );
+                                    }
                                 );
 
                             subProjectMonitor.count =
@@ -1647,7 +1791,7 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     error: null,
                     success: false,
                     monitors: state.monitorsList.monitors.map(
-                        subProjectMonitor => {
+                        (subProjectMonitor: $TSFixMe) =>  {
                             subProjectMonitor.monitors =
                                 subProjectMonitor.monitors.map(
                                     (monitor: $TSFixMe) => {
@@ -1701,7 +1845,7 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(
-                        subProjectMonitor => {
+                        (subProjectMonitor: $TSFixMe) =>  {
                             subProjectMonitor.monitors =
                                 subProjectMonitor.monitors.map(
                                     (monitor: $TSFixMe) => {
@@ -1752,9 +1896,9 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
 
         case DELETE_PROJECT_MONITORS:
             monitors = Object.assign([], state.monitorsList.monitors);
-            monitors = monitors.filter(
-                monitor => action.payload !== monitor.projectId
-            );
+            monitors = monitors.filter((monitor: $TSFixMe) =>  {
+                return action.payload !== monitor.projectId;
+            });
 
             return Object.assign({}, state, {
                 monitorsList: {
@@ -1772,30 +1916,39 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId._id ||
-                            action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      monitor.incidents = monitor.incidents
-                                          ? monitor.incidents.map(
-                                                (incident: $TSFixMe) => {
-                                                    if (
-                                                        incident._id ===
-                                                        action.payload._id
-                                                    ) {
-                                                        return action.payload;
-                                                    } else {
-                                                        return incident;
-                                                    }
-                                                }
-                                            )
-                                          : [action.payload];
-                                      return monitor;
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId._id ||
+                                action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              monitor.incidents =
+                                                  monitor.incidents
+                                                      ? monitor.incidents.map(
+                                                            (
+                                                                incident: $TSFixMe
+                                                            ) => {
+                                                                if (
+                                                                    incident._id ===
+                                                                    action
+                                                                        .payload
+                                                                        ._id
+                                                                ) {
+                                                                    return action.payload;
+                                                                } else {
+                                                                    return incident;
+                                                                }
+                                                            }
+                                                        )
+                                                      : [action.payload];
+                                              return monitor;
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
             });
 
@@ -1806,30 +1959,39 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.projectId._id ||
-                            action.payload.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      monitor.incidents = monitor.incidents
-                                          ? monitor.incidents.map(
-                                                (incident: $TSFixMe) => {
-                                                    if (
-                                                        incident._id ===
-                                                        action.payload._id
-                                                    ) {
-                                                        return action.payload;
-                                                    } else {
-                                                        return incident;
-                                                    }
-                                                }
-                                            )
-                                          : [action.payload];
-                                      return monitor;
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id === action.payload.projectId._id ||
+                                action.payload.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              monitor.incidents =
+                                                  monitor.incidents
+                                                      ? monitor.incidents.map(
+                                                            (
+                                                                incident: $TSFixMe
+                                                            ) => {
+                                                                if (
+                                                                    incident._id ===
+                                                                    action
+                                                                        .payload
+                                                                        ._id
+                                                                ) {
+                                                                    return action.payload;
+                                                                } else {
+                                                                    return incident;
+                                                                }
+                                                            }
+                                                        )
+                                                      : [action.payload];
+                                              return monitor;
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
             });
 
@@ -1840,31 +2002,43 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.data.projectId._id ||
-                            action.payload.data.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      monitor.incidents = monitor.incidents
-                                          ? monitor.incidents.map(
-                                                (incident: $TSFixMe) => {
-                                                    if (
-                                                        incident._id ===
-                                                        action.payload.data._id
-                                                    ) {
-                                                        return action.payload
-                                                            .data;
-                                                    } else {
-                                                        return incident;
-                                                    }
-                                                }
-                                            )
-                                          : [action.payload.data];
-                                      return monitor;
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id ===
+                                    action.payload.data.projectId._id ||
+                                action.payload.data.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              monitor.incidents =
+                                                  monitor.incidents
+                                                      ? monitor.incidents.map(
+                                                            (
+                                                                incident: $TSFixMe
+                                                            ) => {
+                                                                if (
+                                                                    incident._id ===
+                                                                    action
+                                                                        .payload
+                                                                        .data
+                                                                        ._id
+                                                                ) {
+                                                                    return action
+                                                                        .payload
+                                                                        .data;
+                                                                } else {
+                                                                    return incident;
+                                                                }
+                                                            }
+                                                        )
+                                                      : [action.payload.data];
+                                              return monitor;
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
             });
 
@@ -1875,31 +2049,43 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id === action.payload.data.projectId._id ||
-                            action.payload.data.projectId
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      monitor.incidents = monitor.incidents
-                                          ? monitor.incidents.map(
-                                                (incident: $TSFixMe) => {
-                                                    if (
-                                                        incident._id ===
-                                                        action.payload.data._id
-                                                    ) {
-                                                        return action.payload
-                                                            .data;
-                                                    } else {
-                                                        return incident;
-                                                    }
-                                                }
-                                            )
-                                          : [action.payload.data];
-                                      return monitor;
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id ===
+                                    action.payload.data.projectId._id ||
+                                action.payload.data.projectId
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              monitor.incidents =
+                                                  monitor.incidents
+                                                      ? monitor.incidents.map(
+                                                            (
+                                                                incident: $TSFixMe
+                                                            ) => {
+                                                                if (
+                                                                    incident._id ===
+                                                                    action
+                                                                        .payload
+                                                                        .data
+                                                                        ._id
+                                                                ) {
+                                                                    return action
+                                                                        .payload
+                                                                        .data;
+                                                                } else {
+                                                                    return incident;
+                                                                }
+                                                            }
+                                                        )
+                                                      : [action.payload.data];
+                                              return monitor;
+                                          }
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
             });
 
@@ -1911,11 +2097,15 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
                     error: null,
                     success: false,
                     monitors: state.monitorsList.monitors.map(
-                        subProjectMonitor => {
+                        (subProjectMonitor: $TSFixMe) =>  {
                             subProjectMonitor.monitors =
                                 subProjectMonitor.monitors.filter(
-                                    ({ _id }: $TSFixMe) =>
-                                        String(_id) !== String(action.payload)
+                                    ({ _id }: $TSFixMe) => {
+                                        return (
+                                            String(_id) !==
+                                            String(action.payload)
+                                        );
+                                    }
                                 );
 
                             subProjectMonitor.count =
@@ -1930,74 +2120,88 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
-                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
-                        monitor.monitors =
-                            monitor._id ===
-                            (action.payload.projectId._id ||
-                                action.payload.projectId)
-                                ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      const monitors: $TSFixMe =
-                                          action.payload.monitors.map(
-                                              (monitor: $TSFixMe) =>
-                                                  monitor.monitorId
-                                          );
-                                      monitors.forEach(
-                                          (monitorObj: $TSFixMe) => {
-                                              if (
-                                                  monitor._id === monitorObj._id
-                                              ) {
-                                                  let incidents: $TSFixMe =
-                                                      monitor.incidents || [];
-
-                                                  if (
-                                                      incidents &&
-                                                      incidents.length
-                                                  ) {
+                    monitors: state.monitorsList.monitors.map(
+                        (monitor: $TSFixMe) => {
+                            monitor.monitors =
+                                monitor._id ===
+                                (action.payload.projectId._id ||
+                                    action.payload.projectId)
+                                    ? monitor.monitors.map(
+                                          (monitor: $TSFixMe) => {
+                                              const monitors: $TSFixMe =
+                                                  action.payload.monitors.map(
+                                                      (monitor: $TSFixMe) => {
+                                                          return monitor.monitorId;
+                                                      }
+                                                  );
+                                              monitors.forEach(
+                                                  (monitorObj: $TSFixMe) => {
                                                       if (
-                                                          incidents.length > 2
+                                                          monitor._id ===
+                                                          monitorObj._id
                                                       ) {
-                                                          incidents.splice(
-                                                              -1,
-                                                              1
-                                                          );
-                                                      }
-                                                      let found: $TSFixMe = false;
-                                                      for (const incident of incidents) {
+                                                          let incidents: $TSFixMe =
+                                                              monitor.incidents ||
+                                                              [];
+
                                                           if (
-                                                              String(
-                                                                  incident._id
-                                                              ) ===
-                                                              String(
-                                                                  action.payload
-                                                                      ._id
-                                                              )
+                                                              incidents &&
+                                                              incidents.length
                                                           ) {
-                                                              found = true;
-                                                              return;
+                                                              if (
+                                                                  incidents.length >
+                                                                  2
+                                                              ) {
+                                                                  incidents.splice(
+                                                                      -1,
+                                                                      1
+                                                                  );
+                                                              }
+                                                              let found: $TSFixMe =
+                                                                  false;
+                                                              for (const incident of incidents) {
+                                                                  if (
+                                                                      String(
+                                                                          incident._id
+                                                                      ) ===
+                                                                      String(
+                                                                          action
+                                                                              .payload
+                                                                              ._id
+                                                                      )
+                                                                  ) {
+                                                                      found =
+                                                                          true;
+                                                                      return;
+                                                                  }
+                                                              }
+                                                              !found &&
+                                                                  incidents.unshift(
+                                                                      action.payload
+                                                                  );
+                                                          } else {
+                                                              incidents = [
+                                                                  action.payload,
+                                                              ];
                                                           }
+                                                          monitor = {
+                                                              ...monitor,
+                                                              incidents:
+                                                                  incidents,
+                                                              count:
+                                                                  monitor.count +
+                                                                  1,
+                                                          };
                                                       }
-                                                      !found &&
-                                                          incidents.unshift(
-                                                              action.payload
-                                                          );
-                                                  } else {
-                                                      incidents = [
-                                                          action.payload,
-                                                      ];
                                                   }
-                                                  monitor = {
-                                                      ...monitor,
-                                                      incidents: incidents,
-                                                      count: monitor.count + 1,
-                                                  };
-                                              }
+                                              );
+                                              return monitor;
                                           }
-                                      );
-                                      return monitor;
-                                  })
-                                : monitor.monitors;
-                        return monitor;
-                    }),
+                                      )
+                                    : monitor.monitors;
+                            return monitor;
+                        }
+                    ),
                 },
             });
 
@@ -2168,9 +2372,10 @@ export default function monitor(state: $TSFixMe = INITIAL_STATE, action: Action)
             };
 
         case CLOSE_BREACHED_MONITOR_SLA_SUCCESS: {
-            const slaBreaches: $TSFixMe = state.monitorSlaBreaches.slaBreaches.filter(
-                monitor => String(monitor._id) !== String(action.payload._id)
-            );
+            const slaBreaches: $TSFixMe =
+                state.monitorSlaBreaches.slaBreaches.filter((monitor: $TSFixMe) =>  {
+                    return String(monitor._id) !== String(action.payload._id);
+                });
 
             return {
                 ...state,

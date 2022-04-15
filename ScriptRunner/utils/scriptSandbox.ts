@@ -150,8 +150,8 @@ const run: Function = async (
             });
 
             let totalRuntime: $TSFixMe = 0,
-                statementTimeExceeded = false,
-                scriptTimeExceeded = false;
+                statementTimeExceeded: $TSFixMe = false,
+                scriptTimeExceeded: $TSFixMe = false;
 
             const checker: $TSFixMe = setInterval(
                 () => {

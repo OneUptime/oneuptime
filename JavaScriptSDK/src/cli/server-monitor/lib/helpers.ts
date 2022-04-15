@@ -78,7 +78,7 @@ const post: Function = (
     data: $TSFixMe,
     key: $TSFixMe,
     success: $TSFixMe,
-    error = defaultErrorHandler
+    error: $TSFixMe = defaultErrorHandler
 ): void => {
     headers['apiKey'] = key;
 

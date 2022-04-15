@@ -927,7 +927,7 @@ public async updateTeamMemberRole(
                 const teams: $TSFixMe = response.map(res: $TSFixMe => res.team);
                 const flatTeams: $TSFixMe = flatten(teams);
                 const teamArr: $TSFixMe = flatTeams.filter(
-                    team => String(team.userId) === String(teamMemberUserId)
+                    (team: $TSFixMe) => String(team.userId) === String(teamMemberUserId)
                 );
                 const checkCurrentViewer: $TSFixMe = teamArr.every(
                     (data: $TSFixMe) =>  data.role === 'Viewer'

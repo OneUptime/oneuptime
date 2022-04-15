@@ -1463,7 +1463,7 @@ export const getAnnouncementsFailure: Function = (data: $TSFixMe): void => {
 export function getAnnouncements(
     projectId: ObjectID,
     statusPageId: $TSFixMe,
-    skip: number = 0
+    skip: number = 0,
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {

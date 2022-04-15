@@ -276,7 +276,7 @@ export default function applicationLog(
             });
         case RESET_APPLICATION_LOG_KEY_SUCCESS:
             applicationLogs = state.applicationLogsList.applicationLogs.map(
-                applicationLog => {
+                (applicationLog: $TSFixMe) =>  {
                     if (applicationLog._id === action.payload._id) {
                         applicationLog = action.payload;
                     }
@@ -319,7 +319,7 @@ export default function applicationLog(
             });
         case EDIT_APPLICATION_LOG_SWITCH:
             applicationLogs = state.applicationLogsList.applicationLogs.map(
-                applicationLog => {
+                (applicationLog: $TSFixMe) =>  {
                     if (applicationLog._id === action.payload) {
                         if (!applicationLog.editMode) {
                             applicationLog.editMode = true;
@@ -348,7 +348,7 @@ export default function applicationLog(
             });
         case EDIT_APPLICATION_LOG_SUCCESS:
             applicationLogs = state.applicationLogsList.applicationLogs.map(
-                applicationLog => {
+                (applicationLog: $TSFixMe) =>  {
                     if (applicationLog._id === action.payload._id) {
                         applicationLog = action.payload;
                     }

@@ -73,13 +73,13 @@ class PerformanceTracker {
         process.on('unhandledRejection', this._sendDataOnExit.bind(this));
         process.on('uncaughtException', this._sendDataOnExit.bind(this));
     }
-    async _sendDataOnExit(): void {
+    private async _sendDataOnExit(): void {
         await this.store.processDataOnExit();
     }
     private _setUpOutgoingListener(): void {
         return new OutgoingListener(this.start, this.end, this.store);
     }
-    setUpDataBaseListener(): void {
+    public setUpDataBaseListener(): void {
         const load: $TSFixMe = Module._load;
 
         Module._load = function (request: $TSFixMe): void {

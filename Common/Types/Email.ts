@@ -19,7 +19,7 @@ export default class Email {
         this.email = email;
     }
 
-    toString(): string {
+    public toString(): string {
         return this.email;
     }
 }

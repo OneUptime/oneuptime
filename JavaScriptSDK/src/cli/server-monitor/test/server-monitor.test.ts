@@ -21,7 +21,7 @@ const badProjectId: string = 'badProjectId',
     badApiKey: $TSFixMe = 'badApiKey';
 const invalidProjectId: string = utils.generateRandomString();
 const timeout: $TSFixMe = 5000,
-    monitor = {
+    monitor: $TSFixMe = {
         name: 'New Monitor',
         type: 'server-monitor',
         data: {},

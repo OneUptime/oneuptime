@@ -439,7 +439,7 @@ public async findsubProjectId(projectId: $TSFixMe): void {
             select: '_id',
         });
 
-        const subProjectId: $TSFixMe = subProject.map(sub: $TSFixMe => String(sub._id));
+        const subProjectId: $TSFixMe = subProject.map((sub: $TSFixMe) => String(sub._id));
         const projectIdArr: $TSFixMe = [projectId, ...subProjectId];
         return projectIdArr;
     }
@@ -662,9 +662,9 @@ public async getUserProjects(userId, skip, limit): void {
 
                 .map((project: $TSFixMe) =>  (project.parentProjectId ? project : null))
 
-                .filter(subProject => subProject !== null);
+                .filter((subProject: $TSFixMe) =>  subProject !== null);
             parentProjectIds = subProjects.map(
-                subProject =>
+                (subProject: $TSFixMe) => 
                     subProject.parentProjectId._id || subProject.parentProjectId
             );
             const projects: $TSFixMe = userProjects

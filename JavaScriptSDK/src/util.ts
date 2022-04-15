@@ -159,7 +159,7 @@ private _getUserDeviceDetails(): void {
     }
 private _readFileFromSource(fileName: $TSFixMe): void {
         return new Promise((resolve: $TSFixMe) =>  {
-            readFile(fileName, (err: $TSFixMe, data: $TSFixMe){
+            readFile(fileName: $TSFixMe, (err: $TSFixMe, data: $TSFixMe)=> {
                 const content: $TSFixMe = err ? null : data.toString();
 
                 CONTENT_CACHE.set(fileName, content);

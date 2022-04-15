@@ -9,7 +9,7 @@ class MongooseListener {
         this.end = end;
     }
 
-    wrapAsync(orig, name) {
+    public wrapAsync(orig: $TSFixMe, name: $TSFixMe) {
         return async function (): void {
             const uuid: $TSFixMe = uuidv4();
 

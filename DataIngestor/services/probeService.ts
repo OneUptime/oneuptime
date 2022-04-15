@@ -205,7 +205,7 @@ export default {
                 },
             });
 
-            const incidentIds: $TSFixMe = incidents.map(incident: $TSFixMe => incident._id);
+            const incidentIds: $TSFixMe = incidents.map((incident: $TSFixMe) => incident._id);
 
             if (incidentIds && incidentIds.length) {
                 log = await MonitorLogService.updateOneBy(

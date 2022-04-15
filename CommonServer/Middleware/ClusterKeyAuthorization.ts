@@ -9,7 +9,7 @@ import { sendErrorResponse } from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class ClusterKeyAuthorization {
-public static async isAuthorizedService(
+    public static async isAuthorizedService(
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
@@ -36,7 +36,7 @@ public static async isAuthorizedService(
             );
         }
 
-        const isAuthorized: $TSFixMe = clusterKey: $TSFixMe === CLUSTER_KEY;
+        const isAuthorized: $TSFixMe = clusterKey === CLUSTER_KEY;
 
         if (!isAuthorized) {
             return sendErrorResponse(
