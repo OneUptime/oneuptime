@@ -5,24 +5,33 @@ import ObjectID from 'Common/Types/ObjectID';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
-export const createMonitorSlaRequest: Function = (): void => ({
-    type: types.CREATE_MONITOR_SLA_REQUEST,
-});
+export const createMonitorSlaRequest: Function = (): void => {
+    return {
+        type: types.CREATE_MONITOR_SLA_REQUEST,
+    };
+};
 
-export const createMonitorSlaSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.CREATE_MONITOR_SLA_SUCCESS,
-    payload,
-});
+export const createMonitorSlaSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.CREATE_MONITOR_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const createMonitorSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.CREATE_MONITOR_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.CREATE_MONITOR_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const createMonitorSla: $TSFixMe =
-    (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
+export const createMonitorSla: $TSFixMe = (
+    projectId: ObjectID,
+    data: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(createMonitorSlaRequest());
 
@@ -44,31 +53,37 @@ export const createMonitorSla: $TSFixMe =
             dispatch(createMonitorSlaFailure(errorMsg));
         }
     };
+};
 
-export const updateMonitorSlaRequest: Function = (): void => ({
-    type: types.UPDATE_MONITOR_SLA_REQUEST,
-});
+export const updateMonitorSlaRequest: Function = (): void => {
+    return {
+        type: types.UPDATE_MONITOR_SLA_REQUEST,
+    };
+};
 
-export const updateMonitorSlaSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.UPDATE_MONITOR_SLA_SUCCESS,
-    payload,
-});
+export const updateMonitorSlaSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.UPDATE_MONITOR_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const updateMonitorSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.UPDATE_MONITOR_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.UPDATE_MONITOR_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const updateMonitorSla: $TSFixMe =
-    (
-        projectId: ObjectID,
-        monitorSlaId: $TSFixMe,
-        data: $TSFixMe,
-        handleDefault = false
-    ) =>
-    async (dispatch: Dispatch) => {
+export const updateMonitorSla: $TSFixMe = (
+    projectId: ObjectID,
+    monitorSlaId: $TSFixMe,
+    data: $TSFixMe,
+    handleDefault = false
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(updateMonitorSlaRequest());
 
@@ -91,26 +106,36 @@ export const updateMonitorSla: $TSFixMe =
             dispatch(updateMonitorSlaFailure(errorMsg));
         }
     };
+};
 
-export const fetchMonitorSlasRequest: Function = (): void => ({
-    type: types.FETCH_MONITOR_SLAS_REQUEST,
-});
+export const fetchMonitorSlasRequest: Function = (): void => {
+    return {
+        type: types.FETCH_MONITOR_SLAS_REQUEST,
+    };
+};
 
-export const fetchMonitorSlasSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.FETCH_MONITOR_SLAS_SUCCESS,
-    payload,
-});
+export const fetchMonitorSlasSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.FETCH_MONITOR_SLAS_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchMonitorSlasFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_MONITOR_SLAS_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_MONITOR_SLAS_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchMonitorSlas: $TSFixMe =
-    (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchMonitorSlas: $TSFixMe = (
+    projectId: ObjectID,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(fetchMonitorSlasRequest());
 
@@ -131,26 +156,35 @@ export const fetchMonitorSlas: $TSFixMe =
             dispatch(fetchMonitorSlasFailure(errorMsg));
         }
     };
+};
 
-export const deleteMonitorSlaRequest: Function = (): void => ({
-    type: types.DELETE_MONITOR_SLA_REQUEST,
-});
+export const deleteMonitorSlaRequest: Function = (): void => {
+    return {
+        type: types.DELETE_MONITOR_SLA_REQUEST,
+    };
+};
 
-export const deleteMonitorSlaSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.DELETE_MONITOR_SLA_SUCCESS,
-    payload,
-});
+export const deleteMonitorSlaSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.DELETE_MONITOR_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const deleteMonitorSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.DELETE_MONITOR_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.DELETE_MONITOR_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const deleteMonitorSla: $TSFixMe =
-    (projectId: ObjectID, monitorSlaId: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const deleteMonitorSla: $TSFixMe = (
+    projectId: ObjectID,
+    monitorSlaId: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(deleteMonitorSlaRequest());
 
@@ -170,35 +204,42 @@ export const deleteMonitorSla: $TSFixMe =
             dispatch(deleteMonitorSlaFailure(errorMsg));
         }
     };
+};
 
 // set active monitor sla
-export const setActiveMonitorSla: Function = (
-    monitorSlaId: $TSFixMe
-): void => ({
-    type: types.SET_ACTIVE_MONITOR_SLA,
-    payload: monitorSlaId,
-});
+export const setActiveMonitorSla: Function = (monitorSlaId: $TSFixMe): void => {
+    return {
+        type: types.SET_ACTIVE_MONITOR_SLA,
+        payload: monitorSlaId,
+    };
+};
 
-export const fetchDefaultMonitorSlaRequest: Function = (): void => ({
-    type: types.FETCH_DEFAULT_MONITOR_SLA_REQUEST,
-});
+export const fetchDefaultMonitorSlaRequest: Function = (): void => {
+    return {
+        type: types.FETCH_DEFAULT_MONITOR_SLA_REQUEST,
+    };
+};
 
 export const fetchDefaultMonitorSlaSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.FETCH_DEFAULT_MONITOR_SLA_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.FETCH_DEFAULT_MONITOR_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchDefaultMonitorSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_DEFAULT_MONITOR_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_DEFAULT_MONITOR_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchDefaultMonitorSla: $TSFixMe =
-    (projectId: ObjectID) => async (dispatch: Dispatch) => {
+export const fetchDefaultMonitorSla: $TSFixMe = (projectId: ObjectID) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultMonitorSlaRequest());
 
@@ -219,6 +260,7 @@ export const fetchDefaultMonitorSla: $TSFixMe =
             dispatch(fetchDefaultMonitorSlaFailure(errorMsg));
         }
     };
+};
 export const paginateNext: Function = (): void => {
     return {
         type: types.NEXT_MONITOR_SLA_PAGE,

@@ -56,9 +56,9 @@ describe('Monitor Detail API', () => {
             const addButtonSelector: string = '#addWebhookButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
-            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#endpoint');
 
@@ -71,9 +71,9 @@ describe('Monitor Detail API', () => {
 
             const createdWebhookSelector: string = '#webhook_name';
 
-            await init.page$Eval(page, '#createWebhook', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#createWebhook', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#createWebhook', {
                 hidden: true,
             });
@@ -83,7 +83,9 @@ describe('Monitor Detail API', () => {
             const createdWebhookEndpoint: $TSFixMe = await init.page$Eval(
                 page,
                 createdWebhookSelector,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(createdWebhookEndpoint).toEqual(webhookEndpoint);
@@ -110,9 +112,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i: $TSFixMe = 0; i < 10; i++) {
-                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
-                    e.click()
-                );
+                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
+                    return e.click();
+                });
 
                 await init.pageWaitForSelector(page, '#endpoint');
 
@@ -128,9 +130,9 @@ describe('Monitor Detail API', () => {
 
                         .click();
                 });
-                await init.page$Eval(page, '#createWebhook', (e: $TSFixMe) =>
-                    e.click()
-                );
+                await init.page$Eval(page, '#createWebhook', (e: $TSFixMe) => {
+                    return e.click();
+                });
                 await init.pageWaitForSelector(page, '#createWebhook', {
                     hidden: true,
                 });
@@ -162,9 +164,9 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#btnNextWebhook', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#btnNextWebhook', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
@@ -177,9 +179,9 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#btnPrevWebhook', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#btnPrevWebhook', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 

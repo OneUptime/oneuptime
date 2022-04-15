@@ -34,9 +34,11 @@ export default class Service {
         integrationModel.integrationType = integrationType;
         data.monitors =
             data.monitors &&
-            data.monitors.map((monitor: $TSFixMe) => ({
-                monitorId: monitor,
-            }));
+            data.monitors.map((monitor: $TSFixMe) => {
+                return {
+                    monitorId: monitor,
+                };
+            });
 
         integrationModel.monitorId = data.monitorId || null;
 

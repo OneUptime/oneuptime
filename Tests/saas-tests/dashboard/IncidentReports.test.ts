@@ -36,9 +36,9 @@ describe('Incident Reports API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) =>
-            e.click()
-        );
+        await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) => {
+            return e.click();
+        });
 
         await init.pageType(page, 'input[id=name]', monitorName);
 
@@ -47,12 +47,14 @@ describe('Incident Reports API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        await init.page$Eval(page, '#url', (e: $TSFixMe) => e.click());
+        await init.page$Eval(page, '#url', (e: $TSFixMe) => {
+            return e.click();
+        });
 
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
-        await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-            e.click()
-        );
+        await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+            return e.click();
+        });
         await init.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
             visible: true,
         });
@@ -65,12 +67,12 @@ describe('Incident Reports API', () => {
 
     test('should display why degraded incident was created', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-        await page.evaluate(
-            () => (document.getElementById('responseTime').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('statusCode').value = '')
-        );
+        await page.evaluate(() => {
+            return (document.getElementById('responseTime').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('statusCode').value = '');
+        });
 
         await init.pageWaitForSelector(page, '#responseTime');
 
@@ -113,12 +115,12 @@ describe('Incident Reports API', () => {
 
     test('should display why offline incident was created', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-        await page.evaluate(
-            () => (document.getElementById('responseTime').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('statusCode').value = '')
-        );
+        await page.evaluate(() => {
+            return (document.getElementById('responseTime').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('statusCode').value = '');
+        });
 
         await init.pageWaitForSelector(page, '#responseTime');
 

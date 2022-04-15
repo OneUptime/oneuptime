@@ -50,9 +50,9 @@ describe('Incident Created test', () => {
             // Rename project
 
             await init.pageWaitForSelector(page, '#projectSettings');
-            await init.page$Eval(page, '#projectSettings', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#projectSettings', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, 'input[name=project_name]');
             await init.pageClick(page, 'input[name=project_name]', {
@@ -65,7 +65,9 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 'button[id=btnCreateProject]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
             await init.pageWaitForSelector(page, `#cb${projectName}`, {
                 visible: true,
@@ -87,13 +89,15 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 'button[id=viewIncident-0]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => {
+                return e.click();
+            });
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             const closeAllButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -111,9 +115,9 @@ describe('Incident Created test', () => {
             // await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#btnResolve_0');
-            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#ResolveText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -137,7 +141,9 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 '#incidents-close-all-btn',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
             const closeButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -179,27 +185,29 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 'button[id=viewIncident-0]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => {
+                return e.click();
+            });
             // await init.pageWaitForSelector(page, '#ResolveText_0', { visible: true, timeout: init.timeout });
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             // Invite member on the project
 
             await init.pageWaitForSelector(page, '#teamMembers');
-            await init.page$Eval(page, '#teamMembers', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#teamMembers', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, `#btn_${projectName}`);
-            await init.page$Eval(page, `#btn_${projectName}`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#btn_${projectName}`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, 'input[name=emails]');
 
@@ -209,12 +217,16 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 `#${role}_${projectName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
             await init.page$Eval(
                 page,
                 `#btn_modal_${projectName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
             await init.pageWaitForSelector(page, `#btn_modal_${projectName}`, {
                 hidden: true,
@@ -235,9 +247,9 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#btnResolve_0');
-            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) => {
+                return e.click();
+            });
         },
         operationTimeOut
     );
@@ -254,18 +266,20 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 'button[id=viewIncident-0]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#btnResolve_0');
-            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#ResolveText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -318,15 +332,17 @@ describe('Incident Created test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, 'button[id=viewIncident-0]');
             await init.page$Eval(
                 page,
                 'button[id=viewIncident-0]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
             await init.pageWaitForSelector(page, '#cbIncident', {
                 visible: true,
@@ -352,9 +368,9 @@ describe('Incident Created test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             const closeButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#closeIncident_0',
@@ -403,7 +419,9 @@ describe('Incident Created test', () => {
             const activeIncidents: $TSFixMe = await init.page$$Eval(
                 page,
                 '.activeIncidentList',
-                (rows: $TSFixMe) => rows.length
+                (rows: $TSFixMe) => {
+                    return rows.length;
+                }
             );
 
             expect(activeIncidents).toEqual(2);
@@ -420,9 +438,9 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#activeIncidents');
-            await init.page$Eval(page, '#activeIncidents', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#activeIncidents', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#incident_header_modal');
             let activeIncidents: $TSFixMe = await init.page$(
@@ -453,30 +471,32 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 'button[id=viewIncident-0]',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             // Acknowledge this incident
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#backToMonitorView');
-            await init.page$Eval(page, '#backToMonitorView', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#backToMonitorView', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#filterToggle');
-            await init.page$Eval(page, '#filterToggle', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#filterToggle', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#Unacknowledged');
-            await init.page$Eval(page, '#Unacknowledged', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#Unacknowledged', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
 
@@ -497,53 +517,53 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#incidents');
-            await init.page$Eval(page, '#incidents', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#incidents', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             // Acknowledge the second incident
 
             await init.pageWaitForSelector(page, `tr#incident_1`);
-            await init.page$Eval(page, `tr#incident_1`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `tr#incident_1`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#incidents');
-            await init.page$Eval(page, '#incidents', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#incidents', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             // Acknowledge the third incident
 
             await init.pageWaitForSelector(page, `tr#incident_2`);
-            await init.page$Eval(page, `tr#incident_2`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `tr#incident_2`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#incidents');
-            await init.page$Eval(page, '#incidents', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#incidents', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#filterToggle');
-            await init.page$Eval(page, '#filterToggle', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#filterToggle', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#Unacknowledged');
-            await init.page$Eval(page, '#Unacknowledged', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#Unacknowledged', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             let filteredIncidents: $TSFixMe = await init.page$(
                 page,
@@ -565,9 +585,9 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -576,18 +596,20 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 `button[id=view-resource-${monitorName}]`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#filterToggle');
-            await init.page$Eval(page, '#filterToggle', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#filterToggle', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#Unresolved');
-            await init.page$Eval(page, '#Unresolved', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#Unresolved', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
 
@@ -608,9 +630,9 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -619,16 +641,20 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 `button[id=view-resource-${monitorName}]`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#filterToggle');
-            await init.page$Eval(page, '#filterToggle', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#filterToggle', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#clear');
-            await init.page$Eval(page, '#clear', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#clear', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
 
@@ -661,9 +687,9 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#incidents');
-            await init.page$Eval(page, '#incidents', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#incidents', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
 
@@ -685,9 +711,9 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#incidents');
-            await init.page$Eval(page, '#incidents', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#incidents', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -696,7 +722,9 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 `#btnCreateIncident_${projectName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#frmIncident');
@@ -708,9 +736,9 @@ describe('Incident Created test', () => {
             await init.pageClick(page, '#incidentType');
             await init.selectDropdownValue('#incidentTypeId', 'Degraded', page);
             await init.selectDropdownValue('#incidentPriority', 'Low', page);
-            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
             });
@@ -754,9 +782,9 @@ describe('Incident Created test', () => {
             // remove existing notification
 
             await init.pageWaitForSelector(page, '#incidents');
-            await init.page$Eval(page, '#incidents', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#incidents', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -765,7 +793,9 @@ describe('Incident Created test', () => {
             await init.page$Eval(
                 page,
                 `#btnCreateIncident_${projectName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#frmIncident');
@@ -777,16 +807,16 @@ describe('Incident Created test', () => {
             await init.pageClick(page, '#incidentType');
             await init.selectDropdownValue('#incidentTypeId', 'Online', page);
             await init.selectDropdownValue('#incidentPriority', 'Low', page);
-            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
             });
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            await init.page$Eval(page, `#viewIncident-0`, (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, `#viewIncident-0`, (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await init.pageWaitForSelector(page, '#closeIncident_2', {
                 hidden: true,
             });

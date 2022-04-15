@@ -116,7 +116,9 @@ describe('Twilio Settings API', () => {
             const errorMessage: $TSFixMe = await init.page$Eval(
                 page,
                 '#errors',
-                (element: $TSFixMe) => element.textContent
+                (element: $TSFixMe) => {
+                    return element.textContent;
+                }
             );
             expect(errorMessage).toEqual('accountSid must start with AC');
             await page.reload();
@@ -128,7 +130,9 @@ describe('Twilio Settings API', () => {
             const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=account-sid]',
-                (e: $TSFixMe) => e.value
+                (e: $TSFixMe) => {
+                    return e.value;
+                }
             );
             expect(value).toEqual('');
 
@@ -185,7 +189,9 @@ describe('Twilio Settings API', () => {
             const errorMessage: $TSFixMe = await init.page$Eval(
                 page,
                 '#errors',
-                (element: $TSFixMe) => element.textContent
+                (element: $TSFixMe) => {
+                    return element.textContent;
+                }
             );
             expect(errorMessage).toEqual(
                 'The From phone number +123 is not a valid, SMS-capable inbound phone number or short code for your account.'
@@ -199,7 +205,9 @@ describe('Twilio Settings API', () => {
             const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=account-sid]',
-                (e: $TSFixMe) => e.value
+                (e: $TSFixMe) => {
+                    return e.value;
+                }
             );
             expect(value).toEqual('');
 
@@ -223,9 +231,9 @@ describe('Twilio Settings API', () => {
 
             await init.pageWaitForSelector(page, '#twilio-form');
 
-            await init.page$Eval(page, '#sms-enabled', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#sms-enabled', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageClick(page, 'input[name=account-sid]');
 
@@ -272,7 +280,9 @@ describe('Twilio Settings API', () => {
             const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=account-sid]',
-                (e: $TSFixMe) => e.value
+                (e: $TSFixMe) => {
+                    return e.value;
+                }
             );
 
             expect(value).toEqual(utils.twilioCredentials.accountSid);
@@ -317,7 +327,9 @@ describe('Twilio Settings API', () => {
             const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#smsVerificationErrors',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(message).toEqual('Invalid code !');
 
@@ -367,7 +379,9 @@ describe('Twilio Settings API', () => {
             const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#successMessage',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(message).toEqual(
                 'Verification successful, this number has been updated.'
@@ -423,7 +437,9 @@ describe('Twilio Settings API', () => {
             const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#successMessage',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(message).toEqual(
                 'Verification successful, this number has been updated.'

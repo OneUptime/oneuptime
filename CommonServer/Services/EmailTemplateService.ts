@@ -150,9 +150,9 @@ export default class Service {
             select,
             populate: [{ path: 'projectId', select: 'nmae' }],
         });
-        const newTemplate: $TSFixMe = defaultTemplate.filter(
-            template => template.emailType === oldTemplate.emailType
-        )[0];
+        const newTemplate: $TSFixMe = defaultTemplate.filter(template => {
+            return template.emailType === oldTemplate.emailType;
+        })[0];
         const resetTemplate: $TSFixMe = await this.updateOneBy(
             {
                 _id: oldTemplate._id,

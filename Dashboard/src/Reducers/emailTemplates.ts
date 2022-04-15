@@ -90,10 +90,9 @@ export default function incident(state = initialState, action: Action): void {
                     error: null,
                     success: true,
                 },
-                showingTemplate: action.payload.find(
-                    (temp: $TSFixMe) =>
-                        temp.emailType === state.showingTemplate.emailType
-                ),
+                showingTemplate: action.payload.find((temp: $TSFixMe) => {
+                    return temp.emailType === state.showingTemplate.emailType;
+                }),
             });
 
         case types.EDIT_EMAIL_TEMPLATES_REQUEST:
@@ -138,10 +137,9 @@ export default function incident(state = initialState, action: Action): void {
                     error: null,
                     success: false,
                 },
-                showingTemplate: action.payload.find(
-                    (temp: $TSFixMe) =>
-                        temp.emailType === state.showingTemplate.emailType
-                ),
+                showingTemplate: action.payload.find((temp: $TSFixMe) => {
+                    return temp.emailType === state.showingTemplate.emailType;
+                }),
             });
 
         case types.RESET_EMAIL_TEMPLATES_REQUEST:
@@ -164,9 +162,9 @@ export default function incident(state = initialState, action: Action): void {
 
         case types.CHANGE_SHOWING_TEMPLATE:
             return Object.assign({}, state, {
-                showingTemplate: state.emailTemplates.templates.find(
-                    temp => temp.emailType === action.payload
-                ),
+                showingTemplate: state.emailTemplates.templates.find(temp => {
+                    return temp.emailType === action.payload;
+                }),
             });
 
         case types.SET_REVEAL_VARIABLE:

@@ -9,5 +9,6 @@ TimeZoneNames.map((tzName: $TSFixMe) => {
 });
 export const Zones: $TSFixMe = offsetTmz;
 export const currentTimeZone: $TSFixMe = momentTz.tz.guess();
-export const GMT: Function = (name: $TSFixMe): void =>
-    momentTz.tz(name).format('Z');
+export const GMT: Function = (name: $TSFixMe): void => {
+    return momentTz.tz(name).format('Z');
+};

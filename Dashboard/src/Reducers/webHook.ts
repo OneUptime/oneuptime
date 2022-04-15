@@ -113,7 +113,9 @@ export default (state = initialState, action: Action): void => {
         case DELETE_WEB_HOOK_SUCCESS:
             webHooks = Object.assign([], state.webHook.webHooks);
 
-            index = webHooks.findIndex(team => team._id === action.payload._id);
+            index = webHooks.findIndex(team => {
+                return team._id === action.payload._id;
+            });
             webHooks.splice(index, 1);
 
             count = state.webHook.count - 1;
@@ -215,7 +217,9 @@ export default (state = initialState, action: Action): void => {
         case UPDATE_WEB_HOOK_SUCCESS:
             webHooks = Object.assign([], state.webHook.webHooks);
 
-            index = webHooks.findIndex(hook => hook._id === action.payload._id);
+            index = webHooks.findIndex(hook => {
+                return hook._id === action.payload._id;
+            });
 
             webHooks[index] = action.payload;
 

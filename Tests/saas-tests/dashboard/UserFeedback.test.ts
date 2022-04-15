@@ -54,7 +54,9 @@ describe('User Feedback', () => {
             const feedbackMessage: $TSFixMe = await init.page$Eval(
                 page,
                 '#feedback-div',
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(feedbackMessage).toEqual('Thank you for your feedback.');

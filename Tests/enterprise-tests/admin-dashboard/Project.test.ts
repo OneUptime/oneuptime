@@ -44,9 +44,9 @@ describe('Project', () => {
 
             await init.createUserFromAdminDashboard({ email, password }, page);
 
-            await init.page$Eval(page, '#projects > a', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#projects > a', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await page.reload({ waitUntil: 'networkidle0' });
 
             const elem: $TSFixMe = await init.page$$(

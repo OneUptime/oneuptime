@@ -30,7 +30,9 @@ router.get(
             const { startDate, endDate, skip, limit }: $TSFixMe = req.query;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             // Call ReportService
             const members: $TSFixMe = await ReportService.getMostActiveMembers(
@@ -66,7 +68,9 @@ router.get(
             const { startDate, endDate, skip, limit }: $TSFixMe = req.query;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             // Call Reports Service
             const monitors: $TSFixMe =
@@ -103,7 +107,9 @@ router.get(
             const { startDate, endDate, filter }: $TSFixMe = req.query;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             // Reports Service
             const resolveTime: $TSFixMe = await ReportService.getAverageTimeBy(
@@ -135,7 +141,9 @@ router.get(
             const { startDate, endDate, filter }: $TSFixMe = req.query;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             // Reports Service
             const incidents: $TSFixMe = await ReportService.getIncidentCountBy(

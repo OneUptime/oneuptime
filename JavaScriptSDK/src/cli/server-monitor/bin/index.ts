@@ -88,17 +88,15 @@ const checkParams: Function = (params: $TSFixMe): void => {
 
     return new Promise((resolve: $TSFixMe) => {
         resolve(
-            params.reduce(
-                (promiseChain, param) =>
-                    promiseChain.then(() =>
-                        getParamValue(params, param.name).then(value => {
-                            values.push(value);
+            params.reduce((promiseChain, param) => {
+                return promiseChain.then(() => {
+                    return getParamValue(params, param.name).then(value => {
+                        values.push(value);
 
-                            return values;
-                        })
-                    ),
-                Promise.resolve()
-            )
+                        return values;
+                    });
+                });
+            }, Promise.resolve())
         );
     });
 };
@@ -126,7 +124,9 @@ const getParamValue: Function = (params, name): void => {
                         resolve(null);
                     } else {
                         prompt(
-                            params.filter(param => param.name === name)
+                            params.filter(param => {
+                                return param.name === name;
+                            })
                         ).then(values => {
                             resolve(values[name]);
                         });
@@ -260,14 +260,13 @@ checkParams(questions).then(values => {
                 monitorId ||
                 (data => {
                     return new Promise((resolve: $TSFixMe) => {
-                        const question: $TSFixMe = questions.filter(
-                            param => param.name === 'monitorId'
-                        );
+                        const question: $TSFixMe = questions.filter(param => {
+                            return param.name === 'monitorId';
+                        });
 
-                        question[0].choices = data.map(
-                            monitor =>
-                                `${monitor.componentId.name} / ${monitor.name} (${monitor._id})`
-                        );
+                        question[0].choices = data.map(monitor => {
+                            return `${monitor.componentId.name} / ${monitor.name} (${monitor._id})`;
+                        });
 
                         prompt(question).then(({ monitorId }) => {
                             resolve(

@@ -3,25 +3,30 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 // Add Git Credential
-export const addGitCredentialRequest: Function = (): void => ({
-    type: types.ADD_GIT_CREDENTIAL_REQUEST,
-});
+export const addGitCredentialRequest: Function = (): void => {
+    return {
+        type: types.ADD_GIT_CREDENTIAL_REQUEST,
+    };
+};
 
-export const addGitCredentialSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.ADD_GIT_CREDENTIAL_SUCCESS,
-    payload,
-});
+export const addGitCredentialSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.ADD_GIT_CREDENTIAL_SUCCESS,
+        payload,
+    };
+};
 
 export const addGitCredentialFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.ADD_GIT_CREDENTIAL_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.ADD_GIT_CREDENTIAL_FAILURE,
+        payload: error,
+    };
+};
 
-export const addGitCredential: $TSFixMe =
-    ({ projectId, data }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const addGitCredential: $TSFixMe = ({ projectId, data }: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(addGitCredentialRequest());
 
         try {
@@ -43,29 +48,39 @@ export const addGitCredential: $TSFixMe =
             dispatch(addGitCredentialFailure(errorMsg));
         }
     };
+};
 
 // Edit and update Git Credential
-export const updateGitCredentialRequest: Function = (): void => ({
-    type: types.UPDATE_GIT_CREDENTIAL_REQUEST,
-});
+export const updateGitCredentialRequest: Function = (): void => {
+    return {
+        type: types.UPDATE_GIT_CREDENTIAL_REQUEST,
+    };
+};
 
 export const updateGitCredentialSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.UPDATE_GIT_CREDENTIAL_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.UPDATE_GIT_CREDENTIAL_SUCCESS,
+        payload,
+    };
+};
 
 export const updateGitCredentialFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.UPDATE_GIT_CREDENTIAL_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.UPDATE_GIT_CREDENTIAL_FAILURE,
+        payload: error,
+    };
+};
 
-export const updateGitCredential: $TSFixMe =
-    ({ projectId, credentialId, data }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const updateGitCredential: $TSFixMe = ({
+    projectId,
+    credentialId,
+    data,
+}: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(updateGitCredentialRequest());
 
         try {
@@ -87,29 +102,33 @@ export const updateGitCredential: $TSFixMe =
             dispatch(updateGitCredentialFailure(errorMsg));
         }
     };
+};
 
 // Get Git Credential
-export const getGitCredentialsRequest: Function = (): void => ({
-    type: types.GET_GIT_CREDENTIALS_REQUEST,
-});
+export const getGitCredentialsRequest: Function = (): void => {
+    return {
+        type: types.GET_GIT_CREDENTIALS_REQUEST,
+    };
+};
 
-export const getGitCredentialsSuccess: Function = (
-    payload: $TSFixMe
-): void => ({
-    type: types.GET_GIT_CREDENTIALS_SUCCESS,
-    payload,
-});
+export const getGitCredentialsSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.GET_GIT_CREDENTIALS_SUCCESS,
+        payload,
+    };
+};
 
 export const getGitCredentialsFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.GET_GIT_CREDENTIALS_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.GET_GIT_CREDENTIALS_FAILURE,
+        payload: error,
+    };
+};
 
-export const getGitCredentials: $TSFixMe =
-    ({ projectId }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const getGitCredentials: $TSFixMe = ({ projectId }: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(getGitCredentialsRequest());
 
         try {
@@ -130,29 +149,38 @@ export const getGitCredentials: $TSFixMe =
             dispatch(getGitCredentialsFailure(errorMsg));
         }
     };
+};
 
 // Delete Git Credential
-export const deleteGitCredentialRequest: Function = (): void => ({
-    type: types.DELETE_GIT_CREDENTIAL_REQUEST,
-});
+export const deleteGitCredentialRequest: Function = (): void => {
+    return {
+        type: types.DELETE_GIT_CREDENTIAL_REQUEST,
+    };
+};
 
 export const deleteGitCredentialSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.DELETE_GIT_CREDENTIAL_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.DELETE_GIT_CREDENTIAL_SUCCESS,
+        payload,
+    };
+};
 
 export const deleteGitCredentialFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.DELETE_GIT_CREDENTIAL_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.DELETE_GIT_CREDENTIAL_FAILURE,
+        payload: error,
+    };
+};
 
-export const deleteGitCredential: $TSFixMe =
-    ({ projectId, credentialId }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const deleteGitCredential: $TSFixMe = ({
+    projectId,
+    credentialId,
+}: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(deleteGitCredentialRequest());
 
         try {
@@ -173,27 +201,36 @@ export const deleteGitCredential: $TSFixMe =
             dispatch(deleteGitCredentialFailure(errorMsg));
         }
     };
+};
 
 // Get securities based on git credential
-export const getGitSecuritiesRequest: Function = (): void => ({
-    type: types.GET_GIT_SECURITIES_REQUEST,
-});
+export const getGitSecuritiesRequest: Function = (): void => {
+    return {
+        type: types.GET_GIT_SECURITIES_REQUEST,
+    };
+};
 
-export const getGitSecuritiesSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.GET_GIT_SECURITIES_SUCCESS,
-    payload,
-});
+export const getGitSecuritiesSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.GET_GIT_SECURITIES_SUCCESS,
+        payload,
+    };
+};
 
 export const getGitSecuritiesFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.GET_GIT_SECURITIES_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.GET_GIT_SECURITIES_FAILURE,
+        payload: error,
+    };
+};
 
-export const getGitSecurities: $TSFixMe =
-    ({ projectId, credentialId }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const getGitSecurities: $TSFixMe = ({
+    projectId,
+    credentialId,
+}: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(getGitSecuritiesRequest());
 
         try {
@@ -215,29 +252,38 @@ export const getGitSecurities: $TSFixMe =
             dispatch(getGitSecuritiesFailure(errorMsg));
         }
     };
+};
 
 // Add Docker Credential
-export const addDockerCredentialRequest: Function = (): void => ({
-    type: types.ADD_DOCKER_CREDENTIAL_REQUEST,
-});
+export const addDockerCredentialRequest: Function = (): void => {
+    return {
+        type: types.ADD_DOCKER_CREDENTIAL_REQUEST,
+    };
+};
 
 export const addDockerCredentialSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.ADD_DOCKER_CREDENTIAL_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.ADD_DOCKER_CREDENTIAL_SUCCESS,
+        payload,
+    };
+};
 
 export const addDockerCredentialFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.ADD_DOCKER_CREDENTIAL_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.ADD_DOCKER_CREDENTIAL_FAILURE,
+        payload: error,
+    };
+};
 
-export const addDockerCredential: $TSFixMe =
-    ({ projectId, data }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const addDockerCredential: $TSFixMe = ({
+    projectId,
+    data,
+}: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(addDockerCredentialRequest());
 
         try {
@@ -259,29 +305,39 @@ export const addDockerCredential: $TSFixMe =
             dispatch(addDockerCredentialFailure(errorMsg));
         }
     };
+};
 
 // Edit and update Docker Credential
-export const updateDockerCredentialRequest: Function = (): void => ({
-    type: types.UPDATE_DOCKER_CREDENTIAL_REQUEST,
-});
+export const updateDockerCredentialRequest: Function = (): void => {
+    return {
+        type: types.UPDATE_DOCKER_CREDENTIAL_REQUEST,
+    };
+};
 
 export const updateDockerCredentialSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.UPDATE_DOCKER_CREDENTIAL_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.UPDATE_DOCKER_CREDENTIAL_SUCCESS,
+        payload,
+    };
+};
 
 export const updateDockerCredentialFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.UPDATE_DOCKER_CREDENTIAL_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.UPDATE_DOCKER_CREDENTIAL_FAILURE,
+        payload: error,
+    };
+};
 
-export const updateDockerCredential: $TSFixMe =
-    ({ projectId, credentialId, data }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const updateDockerCredential: $TSFixMe = ({
+    projectId,
+    credentialId,
+    data,
+}: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(updateDockerCredentialRequest());
 
         try {
@@ -303,29 +359,35 @@ export const updateDockerCredential: $TSFixMe =
             dispatch(updateDockerCredentialFailure(errorMsg));
         }
     };
+};
 
 // Get Docker Credential
-export const getDockerCredentialsRequest: Function = (): void => ({
-    type: types.GET_DOCKER_CREDENTIALS_REQUEST,
-});
+export const getDockerCredentialsRequest: Function = (): void => {
+    return {
+        type: types.GET_DOCKER_CREDENTIALS_REQUEST,
+    };
+};
 
 export const getDockerCredentialsSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.GET_DOCKER_CREDENTIALS_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.GET_DOCKER_CREDENTIALS_SUCCESS,
+        payload,
+    };
+};
 
 export const getDockerCredentialsFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.GET_DOCKER_CREDENTIALS_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.GET_DOCKER_CREDENTIALS_FAILURE,
+        payload: error,
+    };
+};
 
-export const getDockerCredentials: $TSFixMe =
-    ({ projectId }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const getDockerCredentials: $TSFixMe = ({ projectId }: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(getDockerCredentialsRequest());
 
         try {
@@ -346,29 +408,38 @@ export const getDockerCredentials: $TSFixMe =
             dispatch(getDockerCredentialsFailure(errorMsg));
         }
     };
+};
 
 // Delete Docker Credential
-export const deleteDockerCredentialRequest: Function = (): void => ({
-    type: types.DELETE_DOCKER_CREDENTIAL_REQUEST,
-});
+export const deleteDockerCredentialRequest: Function = (): void => {
+    return {
+        type: types.DELETE_DOCKER_CREDENTIAL_REQUEST,
+    };
+};
 
 export const deleteDockerCredentialSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.DELETE_DOCKER_CREDENTIAL_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.DELETE_DOCKER_CREDENTIAL_SUCCESS,
+        payload,
+    };
+};
 
 export const deleteDockerCredentialFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.DELETE_DOCKER_CREDENTIAL_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.DELETE_DOCKER_CREDENTIAL_FAILURE,
+        payload: error,
+    };
+};
 
-export const deleteDockerCredential: $TSFixMe =
-    ({ projectId, credentialId }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const deleteDockerCredential: $TSFixMe = ({
+    projectId,
+    credentialId,
+}: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(deleteDockerCredentialRequest());
 
         try {
@@ -389,29 +460,38 @@ export const deleteDockerCredential: $TSFixMe =
             dispatch(deleteDockerCredentialFailure(errorMsg));
         }
     };
+};
 
 // Get securities based on docker credential
-export const getDockerSecuritiesRequest: Function = (): void => ({
-    type: types.GET_DOCKER_SECURITIES_REQUEST,
-});
+export const getDockerSecuritiesRequest: Function = (): void => {
+    return {
+        type: types.GET_DOCKER_SECURITIES_REQUEST,
+    };
+};
 
 export const getDockerSecuritiesSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.GET_DOCKER_SECURITIES_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.GET_DOCKER_SECURITIES_SUCCESS,
+        payload,
+    };
+};
 
 export const getDockerSecuritiesFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.GET_DOCKER_SECURITIES_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.GET_DOCKER_SECURITIES_FAILURE,
+        payload: error,
+    };
+};
 
-export const getDockerSecurities: $TSFixMe =
-    ({ projectId, credentialId }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const getDockerSecurities: $TSFixMe = ({
+    projectId,
+    credentialId,
+}: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(getDockerSecuritiesRequest());
 
         try {
@@ -433,3 +513,4 @@ export const getDockerSecurities: $TSFixMe =
             dispatch(getDockerSecuritiesFailure(errorMsg));
         }
     };
+};

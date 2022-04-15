@@ -26,37 +26,48 @@ export const requestingSettingsFailed: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const testSmtpRequest: Function = (): void => ({
-    type: types.TEST_SMTP_REQUEST,
-});
+export const testSmtpRequest: Function = (): void => {
+    return {
+        type: types.TEST_SMTP_REQUEST,
+    };
+};
 
-export const testSmtpSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.TEST_SMTP_SUCCESS,
-    payload,
-});
+export const testSmtpSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.TEST_SMTP_SUCCESS,
+        payload,
+    };
+};
 
-export const testSmtpFailure: Function = (error: $TSFixMe): void => ({
-    type: types.TEST_SMTP_FAILURE,
-    payload: error,
-});
+export const testSmtpFailure: Function = (error: $TSFixMe): void => {
+    return {
+        type: types.TEST_SMTP_FAILURE,
+        payload: error,
+    };
+};
 
-export const testTwilioRequest: Function = (): void => ({
-    type: types.TEST_TWILIO_REQUEST,
-});
+export const testTwilioRequest: Function = (): void => {
+    return {
+        type: types.TEST_TWILIO_REQUEST,
+    };
+};
 
-export const testTwilioSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.TEST_TWILIO_SUCCESS,
-    payload,
-});
+export const testTwilioSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.TEST_TWILIO_SUCCESS,
+        payload,
+    };
+};
 
-export const testTwilioFailure: Function = (error: $TSFixMe): void => ({
-    type: types.TEST_TWILIO_FAILURE,
-    payload: error,
-});
+export const testTwilioFailure: Function = (error: $TSFixMe): void => {
+    return {
+        type: types.TEST_TWILIO_FAILURE,
+        payload: error,
+    };
+};
 
-export const testSmtp: $TSFixMe =
-    (payload: $TSFixMe) =>
-    async (dispatch: Dispatch): void => {
+export const testSmtp: $TSFixMe = (payload: $TSFixMe) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(testSmtpRequest());
 
         try {
@@ -80,10 +91,10 @@ export const testSmtp: $TSFixMe =
             return errorMsg;
         }
     };
+};
 
-export const testTwilio: $TSFixMe =
-    (payload: $TSFixMe) =>
-    async (dispatch: Dispatch): void => {
+export const testTwilio: $TSFixMe = (payload: $TSFixMe) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(testTwilioRequest());
 
         try {
@@ -107,10 +118,10 @@ export const testTwilio: $TSFixMe =
             return errorMsg;
         }
     };
+};
 
-export const fetchSettings: $TSFixMe =
-    (type: $TSFixMe) =>
-    async (dispatch: Dispatch): void => {
+export const fetchSettings: $TSFixMe = (type: $TSFixMe) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(requestingSettings());
         try {
             const response: $TSFixMe = await BackendAPI.get(
@@ -147,9 +158,10 @@ export const fetchSettings: $TSFixMe =
             dispatch(requestingSettingsFailed(errorMsg));
         }
     };
+};
 
-export const saveSettings: $TSFixMe =
-    (type: $TSFixMe, settings: $TSFixMe) => async (dispatch: Dispatch) => {
+export const saveSettings: $TSFixMe = (type: $TSFixMe, settings: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(requestingSettings());
         try {
             const response: $TSFixMe = await BackendAPI.post(`globalConfig`, {
@@ -176,3 +188,4 @@ export const saveSettings: $TSFixMe =
             dispatch(requestingSettingsFailed(errorMsg));
         }
     };
+};

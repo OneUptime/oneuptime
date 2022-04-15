@@ -113,7 +113,9 @@ export default (state = initialState, action: Action): void => {
         case DELETE_SLACK_WEBHOOK_SUCCESS:
             slacks = Object.assign([], state.slacks.slacks);
 
-            index = slacks.findIndex(slack => slack._id === action.payload._id);
+            index = slacks.findIndex(slack => {
+                return slack._id === action.payload._id;
+            });
             slacks.splice(index, 1);
 
             count = state.slacks.count - 1;
@@ -215,7 +217,9 @@ export default (state = initialState, action: Action): void => {
         case UPDATE_SLACK_WEBHOOK_SUCCESS:
             slacks = Object.assign([], state.slacks.slacks);
 
-            index = slacks.findIndex(hook => hook._id === action.payload._id);
+            index = slacks.findIndex(hook => {
+                return hook._id === action.payload._id;
+            });
 
             slacks[index] = action.payload;
 

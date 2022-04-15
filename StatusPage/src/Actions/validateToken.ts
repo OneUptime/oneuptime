@@ -30,9 +30,11 @@ export const validateTokenSuccess: Function = (accessToken: $TSFixMe): void => {
     };
 };
 
-export const resetvalidateToken: Function = (): void => ({
-    type: types.RESET_VALIDATE_TOKEN,
-});
+export const resetvalidateToken: Function = (): void => {
+    return {
+        type: types.RESET_VALIDATE_TOKEN,
+    };
+};
 
 // Calls the API to register a user.
 export const validateToken: Function = (token: $TSFixMe): void => {

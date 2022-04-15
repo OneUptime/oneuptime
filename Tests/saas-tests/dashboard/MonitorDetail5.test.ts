@@ -50,9 +50,9 @@ describe('Monitor Detail API', () => {
             await init.pageClick(page, '#newFormId');
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
-            await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageType(page, 'input[id=name]', urlMonitorName);
 
@@ -61,12 +61,14 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#url', (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, '#url', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             //Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -115,7 +117,9 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 `#addSiteUrl_${urlMonitorName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, 'input[id=siteUrl]');
@@ -125,9 +129,9 @@ describe('Monitor Detail API', () => {
                 'input[id=siteUrl]',
                 'https://oneuptime.com'
             );
-            await init.page$Eval(page, '#addSiteUrlButton', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#addSiteUrlButton', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#addSiteUrlButton', {
                 hidden: true,
@@ -167,13 +171,15 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 `#removeSiteUrl_${urlMonitorName}_0`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#websiteUrlDelete');
-            await init.page$Eval(page, '#websiteUrlDelete', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#websiteUrlDelete', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#websiteUrlDelete', {
                 hidden: true,
@@ -211,17 +217,17 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, editButtonSelector, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, editButtonSelector, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, 'input[id=name]', { clickCount: 3 });
 
             await init.pageType(page, 'input[id=name]', newMonitorName);
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 hidden: true,
             });
@@ -255,9 +261,9 @@ describe('Monitor Detail API', () => {
             await init.pageClick(page, '.advanced-options-tab');
 
             const deleteButtonSelector: string = `#delete_${newMonitorName}`;
-            await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             const confirmDeleteButtonSelector: string = '#deleteMonitor';
 
@@ -265,7 +271,9 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 confirmDeleteButtonSelector,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector, {
                 hidden: true,

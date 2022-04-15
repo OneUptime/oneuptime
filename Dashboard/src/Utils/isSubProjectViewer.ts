@@ -11,10 +11,9 @@ const isSubProjectViewer: Function = (
     subProject: $TSFixMe
 ): void => {
     const user: $TSFixMe = subProject
-        ? subProject.users.find(
-              (user: $TSFixMe) =>
-                  user.userId === userId && user.role === 'Viewer'
-          )
+        ? subProject.users.find((user: $TSFixMe) => {
+              return user.userId === userId && user.role === 'Viewer';
+          })
         : null;
     if (user) {
         return true;

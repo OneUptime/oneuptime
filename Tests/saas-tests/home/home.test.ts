@@ -52,9 +52,9 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted: $TSFixMe = await page.evaluate(
-                () => document.querySelector('.submitted-email').innerText
-            );
+            const emailSubmitted: $TSFixMe = await page.evaluate(() => {
+                return document.querySelector('.submitted-email').innerText;
+            });
             expect(emailSubmitted).toBe(utils.user.email);
             done();
         },
@@ -101,9 +101,9 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted: $TSFixMe = await page.evaluate(
-                () => document.querySelector('.submitted-email').innerText
-            );
+            const emailSubmitted: $TSFixMe = await page.evaluate(() => {
+                return document.querySelector('.submitted-email').innerText;
+            });
             expect(emailSubmitted).toBe(utils.user.email);
             done();
         },
@@ -150,9 +150,9 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted: $TSFixMe = await page.evaluate(
-                () => document.querySelector('.submitted-email').innerText
-            );
+            const emailSubmitted: $TSFixMe = await page.evaluate(() => {
+                return document.querySelector('.submitted-email').innerText;
+            });
             expect(emailSubmitted).toBe(utils.user.email);
             done();
         },
@@ -199,9 +199,9 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted: $TSFixMe = await page.evaluate(
-                () => document.querySelector('.submitted-email').innerText
-            );
+            const emailSubmitted: $TSFixMe = await page.evaluate(() => {
+                return document.querySelector('.submitted-email').innerText;
+            });
             expect(emailSubmitted).toBe(utils.user.email);
             done();
         },
@@ -248,9 +248,9 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted: $TSFixMe = await page.evaluate(
-                () => document.querySelector('.submitted-email').innerText
-            );
+            const emailSubmitted: $TSFixMe = await page.evaluate(() => {
+                return document.querySelector('.submitted-email').innerText;
+            });
             expect(emailSubmitted).toBe(utils.user.email);
             done();
         },

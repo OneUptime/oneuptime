@@ -72,7 +72,9 @@ describe('Incident Communication SLA', () => {
             await init.page$$Eval(
                 page,
                 '.communication-sla-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
@@ -145,7 +147,9 @@ describe('Incident Communication SLA', () => {
             await init.page$$Eval(
                 page,
                 '.communication-sla-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
@@ -218,7 +222,9 @@ describe('Incident Communication SLA', () => {
             await init.page$$Eval(
                 page,
                 '.communication-sla-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
@@ -291,7 +297,9 @@ describe('Incident Communication SLA', () => {
             await init.page$$Eval(
                 page,
                 '.communication-sla-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#addIncidentSlaBtn', {
@@ -314,9 +322,9 @@ describe('Incident Communication SLA', () => {
             await init.pageClick(page, '#alertTime');
 
             await init.pageType(page, '#alertTime', alertTime);
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageClick(page, '#createSlaBtn');
 
@@ -367,7 +375,9 @@ describe('Incident Communication SLA', () => {
             await init.page$$Eval(
                 page,
                 '.communication-sla-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(
@@ -438,7 +448,9 @@ describe('Incident Communication SLA', () => {
             await init.page$$Eval(
                 page,
                 '.communication-sla-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(
@@ -600,7 +612,9 @@ describe('Incident Communication SLA', () => {
             await init.page$$Eval(
                 page,
                 '.communication-sla-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(

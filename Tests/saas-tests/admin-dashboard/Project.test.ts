@@ -52,9 +52,9 @@ describe('Project', () => {
             await page.reload({ waitUntil: 'networkidle2' });
 
             await init.pageClick(page, '#projects');
-            await init.page$Eval(page, '#projects > a', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#projects > a', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '.Table > tbody tr');
 
@@ -80,11 +80,15 @@ describe('Project', () => {
                 timeout: init.timeout,
             });
 
-            await init.page$Eval(page, '#Enterprise', (elem: $TSFixMe) =>
-                elem.click()
-            );
-            await init.page$Eval(page, '#submitChangePlan', (elem: $TSFixMe) =>
-                elem.click()
+            await init.page$Eval(page, '#Enterprise', (elem: $TSFixMe) => {
+                return elem.click();
+            });
+            await init.page$Eval(
+                page,
+                '#submitChangePlan',
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -96,7 +100,9 @@ describe('Project', () => {
             const checked: $TSFixMe = await init.page$Eval(
                 page,
                 '#Enterprise',
-                (elem: $TSFixMe) => elem.checked
+                (elem: $TSFixMe) => {
+                    return elem.checked;
+                }
             );
 
             expect(checked).toEqual(true);
@@ -111,9 +117,9 @@ describe('Project', () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
 
             await init.pageClick(page, '#projects');
-            await init.page$Eval(page, '#projects > a', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#projects > a', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '.Table > tbody tr');
 
@@ -124,11 +130,15 @@ describe('Project', () => {
                 timeout: init.timeout,
             });
 
-            await init.page$Eval(page, '#Growth_annual', (elem: $TSFixMe) =>
-                elem.click()
-            );
-            await init.page$Eval(page, '#submitChangePlan', (elem: $TSFixMe) =>
-                elem.click()
+            await init.page$Eval(page, '#Growth_annual', (elem: $TSFixMe) => {
+                return elem.click();
+            });
+            await init.page$Eval(
+                page,
+                '#submitChangePlan',
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             const loader: $TSFixMe = await init.pageWaitForSelector(
@@ -144,7 +154,9 @@ describe('Project', () => {
             const checked: $TSFixMe = await init.page$Eval(
                 page,
                 '#Growth_annual',
-                (elem: $TSFixMe) => elem.checked
+                (elem: $TSFixMe) => {
+                    return elem.checked;
+                }
             );
 
             expect(loader).toBeNull();

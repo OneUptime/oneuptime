@@ -44,8 +44,11 @@ import {
 const selectEmailStatus: $TSFixMe =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
-    new Promise((resolve: $TSFixMe) => setTimeout(resolve, waitTimeInMs));
+const sleep: Function = (waitTimeInMs: $TSFixMe): void => {
+    return new Promise((resolve: $TSFixMe) => {
+        return setTimeout(resolve, waitTimeInMs);
+    });
+};
 
 let token: $TSFixMe,
     userId: ObjectID,
@@ -378,9 +381,12 @@ describe('Incident API', function (): void {
                 (
                     firstIncidentTimeline: $TSFixMe,
                     secondIncidentTimeline: $TSFixMe
-                ) =>
-                    Date.parse(firstIncidentTimeline.createdAt) >
-                    Date.parse(secondIncidentTimeline.createdAt)
+                ) => {
+                    return (
+                        Date.parse(firstIncidentTimeline.createdAt) >
+                        Date.parse(secondIncidentTimeline.createdAt)
+                    );
+                }
             )
         ).to.equal(res.body.data);
     });

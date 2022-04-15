@@ -440,7 +440,9 @@ describe('Application Security Page', () => {
             const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 `#applicationSecurityTitle_${newApplicationName}`,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(textContent).toEqual(newApplicationName);
 

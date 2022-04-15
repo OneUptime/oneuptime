@@ -62,7 +62,9 @@ export default class Service {
             select: '_id',
         });
         if (subProjects && subProjects.length > 0) {
-            subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
+            subProjectIds = subProjects.map((project: $TSFixMe) => {
+                return project._id;
+            });
         }
         subProjectIds.push(project._id);
         const count: $TSFixMe = await this.countBy({
@@ -320,9 +322,9 @@ export default class Service {
                 select: '_id',
             });
             if (subProjects && subProjects.length > 0) {
-                subProjectIds = subProjects.map(
-                    (project: $TSFixMe) => project._id
-                );
+                subProjectIds = subProjects.map((project: $TSFixMe) => {
+                    return project._id;
+                });
             }
             subProjectIds.push(project._id);
             const componentsCount: $TSFixMe = await this.countBy({

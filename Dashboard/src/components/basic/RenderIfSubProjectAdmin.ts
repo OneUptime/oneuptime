@@ -16,11 +16,12 @@ export const RenderIfSubProjectAdmin: Function = (props: $TSFixMe): void => {
         currentProject &&
         currentProject.users &&
         currentProject.users.length > 0 &&
-        currentProject.users.filter(
-            (user: $TSFixMe) =>
+        currentProject.users.filter((user: $TSFixMe) => {
+            return (
                 user.userId === userId &&
                 (user.role === 'Administrator' || user.role === 'Owner')
-        ).length > 0
+            );
+        }).length > 0
     ) {
         renderItems = children;
     } else {
@@ -29,12 +30,13 @@ export const RenderIfSubProjectAdmin: Function = (props: $TSFixMe): void => {
                 if (subProjectId) {
                     if (
                         subProject._id === subProjectId &&
-                        subProject.users.filter(
-                            (user: $TSFixMe) =>
+                        subProject.users.filter((user: $TSFixMe) => {
+                            return (
                                 user.userId === userId &&
                                 (user.role === 'Administrator' ||
                                     user.role === 'Owner')
-                        ).length > 0
+                            );
+                        }).length > 0
                     ) {
                         renderItems = children;
                     }
@@ -44,12 +46,13 @@ export const RenderIfSubProjectAdmin: Function = (props: $TSFixMe): void => {
                         subProject &&
                         subProject.users &&
                         subProject.users.length > 0 &&
-                        subProject.users.filter(
-                            (user: $TSFixMe) =>
+                        subProject.users.filter((user: $TSFixMe) => {
+                            return (
                                 user.userId === userId &&
                                 (user.role === 'Administrator' ||
                                     user.role === 'Owner')
-                        ).length > 0
+                            );
+                        }).length > 0
                     ) {
                         renderItems = children;
                     }

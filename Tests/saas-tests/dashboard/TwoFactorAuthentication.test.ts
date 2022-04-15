@@ -87,7 +87,9 @@ describe('TwoFactor Authentication API', () => {
             const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#modal-message',
-                (element: $TSFixMe) => element.innerHTML
+                (element: $TSFixMe) => {
+                    return element.innerHTML;
+                }
             );
             expect(message).equal('Invalid token.');
             done();
@@ -122,7 +124,9 @@ describe('TwoFactor Authentication API', () => {
             token = await init.page$Eval(
                 page,
                 '#otpath-url',
-                (element: $TSFixMe) => element.innerHTML
+                (element: $TSFixMe) => {
+                    return element.innerHTML;
+                }
             );
 
             const otp: $TSFixMe = await generateOtp(token);
@@ -175,7 +179,9 @@ describe('TwoFactor Authentication API', () => {
             const message: $TSFixMe = await init.page$Eval(
                 page,
                 '.message',
-                (element: $TSFixMe) => element.innerHTML
+                (element: $TSFixMe) => {
+                    return element.innerHTML;
+                }
             );
             expect(message).equal('Enter your auth token below to login.');
             done();
@@ -213,7 +219,9 @@ describe('TwoFactor Authentication API', () => {
             const message: $TSFixMe = await init.page$Eval(
                 page,
                 '.title span',
-                (element: $TSFixMe) => element.innerHTML
+                (element: $TSFixMe) => {
+                    return element.innerHTML;
+                }
             );
             expect(message).equal('Invalid token.');
             done();

@@ -27,15 +27,14 @@ export const getActiveMembersError: Function = (error: ErrorPayload): void => {
     };
 };
 
-export const getActiveMembers: $TSFixMe =
-    (
-        projectId: ObjectID,
-        startDate: $TSFixMe,
-        endDate: $TSFixMe,
-        skip: PositiveNumber,
-        limit: PositiveNumber
-    ) =>
-    async (dispatch: Dispatch) => {
+export const getActiveMembers: $TSFixMe = (
+    projectId: ObjectID,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             const promise: $TSFixMe = BackendAPI.get(
                 `reports/${projectId}/active-members?startDate=${startDate}&endDate=${endDate}&skip=${skip}&limit=${limit}`
@@ -60,6 +59,7 @@ export const getActiveMembers: $TSFixMe =
             dispatch(getActiveMembersError(newerror));
         }
     };
+};
 
 export const getActiveMonitorsRequest: Function = (promise: $TSFixMe): void => {
     return {
@@ -84,15 +84,14 @@ export const getActiveMonitorsError: Function = (error: ErrorPayload): void => {
     };
 };
 
-export const getActiveMonitors: $TSFixMe =
-    (
-        projectId: ObjectID,
-        startDate: $TSFixMe,
-        endDate: $TSFixMe,
-        skip: PositiveNumber,
-        limit: PositiveNumber
-    ) =>
-    async (dispatch: Dispatch) => {
+export const getActiveMonitors: $TSFixMe = (
+    projectId: ObjectID,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             const promise: $TSFixMe = BackendAPI.get(
                 `reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${
@@ -119,6 +118,7 @@ export const getActiveMonitors: $TSFixMe =
             dispatch(getActiveMonitorsError(newerror));
         }
     };
+};
 
 export const getIncidentsRequest: Function = (promise: $TSFixMe): void => {
     return {
@@ -141,14 +141,13 @@ export const getIncidentsError: Function = (error: ErrorPayload): void => {
     };
 };
 
-export const getIncidents: $TSFixMe =
-    (
-        projectId: ObjectID,
-        filter: $TSFixMe,
-        startDate: $TSFixMe,
-        endDate: $TSFixMe
-    ) =>
-    async (dispatch: Dispatch) => {
+export const getIncidents: $TSFixMe = (
+    projectId: ObjectID,
+    filter: $TSFixMe,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             const promise: $TSFixMe = BackendAPI.get(
                 `reports/${projectId}/incidents?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
@@ -173,6 +172,7 @@ export const getIncidents: $TSFixMe =
             dispatch(getIncidentsError(newerror));
         }
     };
+};
 
 export const getResolveTimeRequest: Function = (promise: $TSFixMe): void => {
     return {
@@ -195,14 +195,13 @@ export const getResolveTimeError: Function = (error: ErrorPayload): void => {
     };
 };
 
-export const getResolveTime: $TSFixMe =
-    (
-        projectId: ObjectID,
-        filter: $TSFixMe,
-        startDate: $TSFixMe,
-        endDate: $TSFixMe
-    ) =>
-    async (dispatch: Dispatch) => {
+export const getResolveTime: $TSFixMe = (
+    projectId: ObjectID,
+    filter: $TSFixMe,
+    startDate: $TSFixMe,
+    endDate: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             const promise: $TSFixMe = BackendAPI.get(
                 `reports/${projectId}/average-resolved?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
@@ -227,3 +226,4 @@ export const getResolveTime: $TSFixMe =
             dispatch(getResolveTimeError(newerror));
         }
     };
+};

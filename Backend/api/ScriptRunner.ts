@@ -71,9 +71,9 @@ router.post(
                 matchedCriterion: matchedDownCriterion,
             }: $TSFixMe = monitor && monitor.criteria && monitor.criteria.down
                 ? await ProbeService.scriptConditions(resp, [
-                      ...monitor.criteria.down.filter(
-                          (criterion: $TSFixMe) => criterion.default !== true
-                      ),
+                      ...monitor.criteria.down.filter((criterion: $TSFixMe) => {
+                          return criterion.default !== true;
+                      }),
                   ])
                 : { stat: false, successReasons: [], failedReasons: [] };
 
@@ -119,7 +119,9 @@ router.post(
                 ];
                 if (monitor.criteria.down) {
                     matchedCriterion = monitor.criteria.down.find(
-                        (criterion: $TSFixMe) => criterion.default === true
+                        (criterion: $TSFixMe) => {
+                            return criterion.default === true;
+                        }
                     );
                 }
             }
@@ -150,8 +152,9 @@ router.post(
             data.reason =
                 data && data.reason && data.reason.length
                     ? data.reason.filter(
-                          (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
-                              self.indexOf(item) === pos
+                          (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) => {
+                              return self.indexOf(item) === pos;
+                          }
                       )
                     : data.reason;
 

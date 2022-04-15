@@ -92,7 +92,9 @@ describe('Team API With SubProjects', () => {
             const memberCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${projectName}`,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(memberCount).toEqual('Page 1 of 1 (2 Team Members)');
 
@@ -207,7 +209,9 @@ describe('Team API With SubProjects', () => {
             const memberCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${subProjectName}`,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(memberCount).toEqual('Page 1 of 1 (1 Team Member)'); // Only one member in subproject
 
@@ -291,7 +295,9 @@ describe('Team API With SubProjects', () => {
             const memberCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${projectName}`,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(memberCount).toEqual('Page 1 of 1 (1 Team Member)');
 
@@ -401,13 +407,17 @@ describe('Team API With SubProjects', () => {
             const oldMemberRole: $TSFixMe = await init.page$Eval(
                 page,
                 `#Member_${memberEmailSelector}`,
-                (elem: $TSFixMe) => elem.innerHTML
+                (elem: $TSFixMe) => {
+                    return elem.innerHTML;
+                }
             );
             expect(oldMemberRole).toEqual('Member');
             const oldOwnerRole: $TSFixMe = await init.page$Eval(
                 page,
                 `#Owner_${ownerEmailSelector}`,
-                (elem: $TSFixMe) => elem.innerHTML
+                (elem: $TSFixMe) => {
+                    return elem.innerHTML;
+                }
             );
             expect(oldOwnerRole).toEqual('Owner');
 
@@ -424,13 +434,17 @@ describe('Team API With SubProjects', () => {
             const newMemberRole: $TSFixMe = await init.page$Eval(
                 page,
                 `#Owner_${memberEmailSelector}`,
-                (elem: $TSFixMe) => elem.innerHTML
+                (elem: $TSFixMe) => {
+                    return elem.innerHTML;
+                }
             );
             expect(newMemberRole).toEqual('Owner');
             const newOwnerRole: $TSFixMe = await init.page$Eval(
                 page,
                 `#Administrator_${ownerEmailSelector}`,
-                (elem: $TSFixMe) => elem.innerHTML
+                (elem: $TSFixMe) => {
+                    return elem.innerHTML;
+                }
             );
             expect(newOwnerRole).toEqual('Administrator');
 

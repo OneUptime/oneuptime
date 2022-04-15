@@ -15,11 +15,9 @@ class ScriptError extends Error {
         super();
         this.message = message;
         this.errors = Array.isArray(errors)
-            ? errors.reduce(
-                  (allErr: $TSFixMe, err: $TSFixMe) =>
-                      [...allErr, err.message].join(','),
-                  []
-              )
+            ? errors.reduce((allErr: $TSFixMe, err: $TSFixMe) => {
+                  return [...allErr, err.message].join(',');
+              }, [])
             : errors.message ?? errors;
     }
 }
@@ -230,7 +228,9 @@ const run: Function = async (
         };
 
         const code: $TSFixMe = workerData.functionCode;
-        setInterval(() => parentPort.postMessage({ type: 'ping' }), 500);
+        setInterval(() => {
+            return parentPort.postMessage({ type: 'ping' });
+        }, 500);
         const sandboxFunction: $TSFixMe = await vm.run(
             `export default ${code}`,
             join(process.cwd(), 'node_modules')

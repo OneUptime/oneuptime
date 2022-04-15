@@ -92,7 +92,9 @@ describe('Monitor Detail API', () => {
             const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 '#subscriber_contact',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(textContent.includes('+19173976123')).toEqual(true);
             done();
@@ -142,7 +144,9 @@ describe('Monitor Detail API', () => {
             const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 '#field-error',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(
                 textContent.includes('Please enter a contact number.')

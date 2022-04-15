@@ -163,7 +163,9 @@ describe('Monitor API', () => {
             const criterionName: $TSFixMe = await init.page$Eval(
                 page,
                 'input[id^=name_up]',
-                (el: $TSFixMe) => el.value
+                (el: $TSFixMe) => {
+                    return el.value;
+                }
             );
             expect(criterionName).toEqual(upCriterionName);
             done();

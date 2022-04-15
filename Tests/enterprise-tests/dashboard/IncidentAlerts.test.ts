@@ -71,17 +71,23 @@ describe('Schedule', () => {
         await init.page$Eval(
             page,
             'input[name="OnCallAlertBox[0].email"]',
-            (element: $TSFixMe) => element.click()
+            (element: $TSFixMe) => {
+                return element.click();
+            }
         );
         await init.page$Eval(
             page,
             'input[name="OnCallAlertBox[0].sms"]',
-            (element: $TSFixMe) => element.click()
+            (element: $TSFixMe) => {
+                return element.click();
+            }
         );
         await init.page$Eval(
             page,
             'input[name="OnCallAlertBox[0].call"]',
-            (element: $TSFixMe) => element.click()
+            (element: $TSFixMe) => {
+                return element.click();
+            }
         );
         await init.selectDropdownValue(
             'div[id="OnCallAlertBox[0].teams[0].teamMembers[0].userId"]',
@@ -125,7 +131,9 @@ describe('Schedule', () => {
             const firstOncallAlertStatus: $TSFixMe = await init.page$Eval(
                 page,
                 firstOncallAlertStatusSelector,
-                (element: $TSFixMe) => element.textContent
+                (element: $TSFixMe) => {
+                    return element.textContent;
+                }
             );
 
             expect(firstOncallAlertStatus).toEqual('Success');
@@ -139,14 +147,18 @@ describe('Schedule', () => {
             const subscriberAlertStatus: $TSFixMe = await init.page$Eval(
                 page,
                 subscriberAlertStatusSelector,
-                (element: $TSFixMe) => element.textContent
+                (element: $TSFixMe) => {
+                    return element.textContent;
+                }
             );
             expect(subscriberAlertStatus).toEqual('Sent');
 
             const subscriberAlertType: $TSFixMe = await init.page$Eval(
                 page,
                 subscriberAlertTypeSelector,
-                (element: $TSFixMe) => element.textContent
+                (element: $TSFixMe) => {
+                    return element.textContent;
+                }
             );
             expect(subscriberAlertType).toEqual('identified');
             done();

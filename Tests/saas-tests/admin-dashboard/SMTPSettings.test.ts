@@ -76,7 +76,11 @@ describe('SMTP Settings API', () => {
             const originalValues: $TSFixMe = await init.page$$Eval(
                 page,
                 'input',
-                (e: $TSFixMe) => e.map((field: $TSFixMe) => field.value)
+                (e: $TSFixMe) => {
+                    return e.map((field: $TSFixMe) => {
+                        return field.value;
+                    });
+                }
             );
 
             await init.pageClick(page, 'input[name=email]');
@@ -117,9 +121,11 @@ describe('SMTP Settings API', () => {
 
             // All fields should remain as were
             expect(
-                await init.page$$Eval(page, 'input', (e: $TSFixMe) =>
-                    e.map((field: $TSFixMe) => field.value)
-                )
+                await init.page$$Eval(page, 'input', (e: $TSFixMe) => {
+                    return e.map((field: $TSFixMe) => {
+                        return field.value;
+                    });
+                })
             ).toEqual(originalValues);
             done();
         },
@@ -188,9 +194,9 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, 'input[name=from-name]');
 
             await init.pageType(page, 'input[name=from-name]', smtpName);
-            await init.page$Eval(page, '#smtp-secure', (element: $TSFixMe) =>
-                element.click()
-            );
+            await init.page$Eval(page, '#smtp-secure', (element: $TSFixMe) => {
+                return element.click();
+            });
 
             await init.pageClick(page, 'button[type=submit]');
 
@@ -199,7 +205,9 @@ describe('SMTP Settings API', () => {
             const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=email]',
-                (e: $TSFixMe) => e.value
+                (e: $TSFixMe) => {
+                    return e.value;
+                }
             );
 
             expect(value).toEqual(utils.smtpCredential.user);

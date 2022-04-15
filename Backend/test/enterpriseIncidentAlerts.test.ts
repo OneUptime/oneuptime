@@ -38,8 +38,11 @@ import LoginIPLog from '../backend/models/loginIPLog';
 import UserModel from '../backend/models/user';
 import GlobalConfigModel from '../backend/models/globalConfig';
 
-const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
-    new Promise((resolve: $TSFixMe) => setTimeout(resolve, waitTimeInMs));
+const sleep: Function = (waitTimeInMs: $TSFixMe): void => {
+    return new Promise((resolve: $TSFixMe) => {
+        return setTimeout(resolve, waitTimeInMs);
+    });
+};
 
 let authorization: $TSFixMe,
     token,

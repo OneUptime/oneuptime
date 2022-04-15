@@ -13,9 +13,9 @@ const acknowledgeAllIncidents: Function = (
         url: `${bundle.authData.serverUrl}/zapier/incident/acknowledgeAllIncidents`,
         body: data,
     });
-    return responsePromise.then((response: $TSFixMe) =>
-        JSON.parse(response.content)
-    );
+    return responsePromise.then((response: $TSFixMe) => {
+        return JSON.parse(response.content);
+    });
 };
 
 export default {

@@ -24,9 +24,11 @@ export const fetchUsersError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch all users.
-export const fetchUsers: $TSFixMe =
-    (skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchUsers: $TSFixMe = (
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchUsersRequest());
@@ -56,6 +58,7 @@ export const fetchUsers: $TSFixMe =
             dispatch(fetchUsersError(errorMsg));
         }
     };
+};
 
 export const fetchUserRequest: Function = (): void => {
     return {
@@ -78,9 +81,8 @@ export const fetchUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch a user.
-export const fetchUser: $TSFixMe =
-    (userId: ObjectID) =>
-    async (dispatch: Dispatch): void => {
+export const fetchUser: $TSFixMe = (userId: ObjectID) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(fetchUserRequest());
 
         try {
@@ -108,6 +110,7 @@ export const fetchUser: $TSFixMe =
             dispatch(fetchUserError(errorMsg));
         }
     };
+};
 
 // Add user
 
@@ -138,9 +141,8 @@ export const resetAddUser: Function = (): void => {
 };
 
 // Calls the API to add user.
-export const addUser: $TSFixMe =
-    (user: $TSFixMe) =>
-    async (dispatch: Dispatch): void => {
+export const addUser: $TSFixMe = (user: $TSFixMe) => {
+    return async (dispatch: Dispatch): void => {
         try {
             dispatch(addUserRequest());
 
@@ -171,6 +173,7 @@ export const addUser: $TSFixMe =
             dispatch(addUserError(errorMsg));
         }
     };
+};
 
 //Update user setting
 
@@ -197,8 +200,8 @@ export const updateUserSettingError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to update user setting.
-export const updateUserSetting: $TSFixMe =
-    (values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const updateUserSetting: $TSFixMe = (values: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         const data: $TSFixMe = new FormData();
         if (values.profilePic && values.profilePic[0]) {
             data.append(
@@ -240,6 +243,7 @@ export const updateUserSetting: $TSFixMe =
             dispatch(updateUserSettingError(errorMsg));
         }
     };
+};
 
 export const logFile: Function = (file: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
@@ -281,9 +285,8 @@ export const deleteUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to delete a user.
-export const deleteUser: $TSFixMe =
-    (userId: ObjectID) =>
-    async (dispatch: Dispatch): void => {
+export const deleteUser: $TSFixMe = (userId: ObjectID) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(deleteUserRequest());
 
         try {
@@ -309,6 +312,7 @@ export const deleteUser: $TSFixMe =
             dispatch(deleteUserError(errorMsg));
         }
     };
+};
 
 //Restore user
 export const restoreUserRequest: Function = (): void => {
@@ -338,9 +342,8 @@ export const restoreUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to restore a user
-export const restoreUser: $TSFixMe =
-    (userId: ObjectID) =>
-    async (dispatch: Dispatch): void => {
+export const restoreUser: $TSFixMe = (userId: ObjectID) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(restoreUserRequest());
 
         try {
@@ -368,6 +371,7 @@ export const restoreUser: $TSFixMe =
             dispatch(restoreUserError(errorMsg));
         }
     };
+};
 
 //Block user
 export const blockUserRequest: Function = (): void => {
@@ -397,9 +401,8 @@ export const blockUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to restore a user
-export const blockUser: $TSFixMe =
-    (userId: ObjectID) =>
-    async (dispatch: Dispatch): void => {
+export const blockUser: $TSFixMe = (userId: ObjectID) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(blockUserRequest());
 
         try {
@@ -427,6 +430,7 @@ export const blockUser: $TSFixMe =
             dispatch(blockUserError(errorMsg));
         }
     };
+};
 
 //Enable Admin Mode
 export const enableAdminModeRequest: Function = (): void => {
@@ -456,8 +460,11 @@ export const enableAdminModeReset: Function = (): void => {
 };
 
 // Enable admin mode
-export const enableAdminMode: $TSFixMe =
-    (userId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const enableAdminMode: $TSFixMe = (
+    userId: ObjectID,
+    values: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         dispatch(enableAdminModeRequest());
 
         try {
@@ -486,6 +493,7 @@ export const enableAdminMode: $TSFixMe =
             dispatch(enableAdminModeError(errorMsg));
         }
     };
+};
 
 //Disable Admin Mode
 export const disableAdminModeRequest: Function = (): void => {
@@ -515,8 +523,8 @@ export const disableAdminModeReset: Function = (): void => {
 };
 
 // Disable admin mode
-export const disableAdminMode: $TSFixMe =
-    (userId: ObjectID) => async (dispatch: Dispatch) => {
+export const disableAdminMode: $TSFixMe = (userId: ObjectID) => {
+    return async (dispatch: Dispatch) => {
         dispatch(disableAdminModeRequest());
 
         try {
@@ -544,6 +552,7 @@ export const disableAdminMode: $TSFixMe =
             dispatch(disableAdminModeError(errorMsg));
         }
     };
+};
 
 //Unblock user
 export const unblockUserRequest: Function = (): void => {
@@ -573,9 +582,8 @@ export const unblockUserError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to unblock a user
-export const unblockUser: $TSFixMe =
-    (userId: ObjectID) =>
-    async (dispatch: Dispatch): void => {
+export const unblockUser: $TSFixMe = (userId: ObjectID) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(unblockUserRequest());
 
         try {
@@ -603,6 +611,7 @@ export const unblockUser: $TSFixMe =
             dispatch(unblockUserError(errorMsg));
         }
     };
+};
 
 //Add Project Notes
 export const addUserNoteRequest: Function = (): void => {
@@ -632,8 +641,8 @@ export const addUserNoteError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to add Admin Note
-export const addUserNote: $TSFixMe =
-    (userId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const addUserNote: $TSFixMe = (userId: ObjectID, values: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(addUserNoteRequest());
 
         try {
@@ -662,6 +671,7 @@ export const addUserNote: $TSFixMe =
             dispatch(addUserNoteError(errorMsg));
         }
     };
+};
 
 //Search Users
 export const searchUsersRequest: Function = (): void => {
@@ -691,9 +701,12 @@ export const searchUsersError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the search users api
-export const searchUsers: $TSFixMe =
-    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const searchUsers: $TSFixMe = (
+    filter: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
             filter,
         };
@@ -728,6 +741,7 @@ export const searchUsers: $TSFixMe =
             dispatch(searchUsersError(errorMsg));
         }
     };
+};
 
 // Update user twoFactorAuthToken
 export const twoFactorAuthTokenRequest: Function = (): void => {

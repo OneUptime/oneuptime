@@ -64,7 +64,9 @@ describe('Email Templates API', () => {
             defaultSubject = await init.page$Eval(
                 page,
                 '#name',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
             const resetBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -126,7 +128,9 @@ describe('Email Templates API', () => {
             const finalSubject: $TSFixMe = await init.page$Eval(
                 page,
                 '#name',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
 
             expect(finalSubject).toEqual(subject);
@@ -218,7 +222,9 @@ describe('Email Templates API', () => {
             const finalSubject: $TSFixMe = await init.page$Eval(
                 page,
                 '#name',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
             expect(defaultSubject).toEqual(finalSubject);
 

@@ -106,7 +106,9 @@ describe('Server Monitor', function (): void {
             apiKey,
             monitorId: (data: $TSFixMe) => {
                 const filteredMonitor: $TSFixMe = data.filter(
-                    (monitor: $TSFixMe) => monitor._id === monitorId
+                    (monitor: $TSFixMe) => {
+                        return monitor._id === monitorId;
+                    }
                 );
 
                 if (filteredMonitor.length > 0) {

@@ -3,26 +3,33 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const createCustomFieldRequest: Function = (): void => ({
-    type: types.CREATE_CUSTOM_FIELD_REQUEST,
-});
+export const createCustomFieldRequest: Function = (): void => {
+    return {
+        type: types.CREATE_CUSTOM_FIELD_REQUEST,
+    };
+};
 
-export const createCustomFieldSuccess: Function = (
-    payload: $TSFixMe
-): void => ({
-    type: types.CREATE_CUSTOM_FIELD_SUCCESS,
-    payload,
-});
+export const createCustomFieldSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.CREATE_CUSTOM_FIELD_SUCCESS,
+        payload,
+    };
+};
 
 export const createCustomFieldFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.CREATE_CUSTOM_FIELD_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.CREATE_CUSTOM_FIELD_FAILURE,
+        payload: error,
+    };
+};
 
-export const createCustomField: $TSFixMe =
-    (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
+export const createCustomField: $TSFixMe = (
+    projectId: ObjectID,
+    data: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(createCustomFieldRequest());
 
@@ -44,28 +51,36 @@ export const createCustomField: $TSFixMe =
             dispatch(createCustomFieldFailure(errorMsg));
         }
     };
+};
 
-export const updateCustomFieldRequest: Function = (): void => ({
-    type: types.UPDATE_CUSTOM_FIELD_REQUEST,
-});
+export const updateCustomFieldRequest: Function = (): void => {
+    return {
+        type: types.UPDATE_CUSTOM_FIELD_REQUEST,
+    };
+};
 
-export const updateCustomFieldSuccess: Function = (
-    payload: $TSFixMe
-): void => ({
-    type: types.UPDATE_CUSTOM_FIELD_SUCCESS,
-    payload,
-});
+export const updateCustomFieldSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.UPDATE_CUSTOM_FIELD_SUCCESS,
+        payload,
+    };
+};
 
 export const updateCustomFieldFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.UPDATE_CUSTOM_FIELD_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.UPDATE_CUSTOM_FIELD_FAILURE,
+        payload: error,
+    };
+};
 
-export const updateCustomField: $TSFixMe =
-    ({ projectId, customFieldId, data }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const updateCustomField: $TSFixMe = ({
+    projectId,
+    customFieldId,
+    data,
+}: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(updateCustomFieldRequest());
 
@@ -87,28 +102,36 @@ export const updateCustomField: $TSFixMe =
             dispatch(updateCustomFieldFailure(errorMsg));
         }
     };
+};
 
-export const fetchCustomFieldsRequest: Function = (): void => ({
-    type: types.FETCH_CUSTOM_FIELDS_REQUEST,
-});
+export const fetchCustomFieldsRequest: Function = (): void => {
+    return {
+        type: types.FETCH_CUSTOM_FIELDS_REQUEST,
+    };
+};
 
-export const fetchCustomFieldsSuccess: Function = (
-    payload: $TSFixMe
-): void => ({
-    type: types.FETCH_CUSTOM_FIELDS_SUCCESS,
-    payload,
-});
+export const fetchCustomFieldsSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.FETCH_CUSTOM_FIELDS_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchCustomFieldsFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_CUSTOM_FIELDS_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_CUSTOM_FIELDS_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchCustomFields: $TSFixMe =
-    (projectId: ObjectID, skip = 0, limit = 0) =>
-    async (dispatch: Dispatch) => {
+export const fetchCustomFields: $TSFixMe = (
+    projectId: ObjectID,
+    skip = 0,
+    limit = 0
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(fetchCustomFieldsRequest());
 
@@ -134,28 +157,35 @@ export const fetchCustomFields: $TSFixMe =
             dispatch(fetchCustomFieldsFailure(errorMsg));
         }
     };
+};
 
-export const deleteCustomFieldRequest: Function = (): void => ({
-    type: types.DELETE_CUSTOM_FIELD_REQUEST,
-});
+export const deleteCustomFieldRequest: Function = (): void => {
+    return {
+        type: types.DELETE_CUSTOM_FIELD_REQUEST,
+    };
+};
 
-export const deleteCustomFieldSuccess: Function = (
-    payload: $TSFixMe
-): void => ({
-    type: types.DELETE_CUSTOM_FIELD_SUCCESS,
-    payload,
-});
+export const deleteCustomFieldSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.DELETE_CUSTOM_FIELD_SUCCESS,
+        payload,
+    };
+};
 
 export const deleteCustomFieldFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.DELETE_CUSTOM_FIELD_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.DELETE_CUSTOM_FIELD_FAILURE,
+        payload: error,
+    };
+};
 
-export const deleteCustomField: $TSFixMe =
-    (projectId: ObjectID, customFieldId: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const deleteCustomField: $TSFixMe = (
+    projectId: ObjectID,
+    customFieldId: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCustomFieldRequest());
 
@@ -175,6 +205,7 @@ export const deleteCustomField: $TSFixMe =
             dispatch(deleteCustomFieldFailure(errorMsg));
         }
     };
+};
 
 export const paginate: Function = (type: $TSFixMe): void => {
     if (type === 'next') {

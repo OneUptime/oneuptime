@@ -201,7 +201,9 @@ export default class Service {
                 customFields: [],
             };
             data.customFields = request.customFields.filter(
-                (field: $TSFixMe) => field.fieldName !== customField.fieldName
+                (field: $TSFixMe) => {
+                    return field.fieldName !== customField.fieldName;
+                }
             );
 
             // make the update synchronous

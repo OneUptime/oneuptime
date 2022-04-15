@@ -125,14 +125,18 @@ export default class Service {
                 select: '_id',
             });
             const initialMonitorIds: $TSFixMe = monitors.map(
-                (monitor: $TSFixMe) => monitor._id
+                (monitor: $TSFixMe) => {
+                    return monitor._id;
+                }
             );
 
             const removedMonitors: $TSFixMe = [];
             if (data.monitors && data.monitors.length > 0) {
                 let monitorIds: $TSFixMe = [...data.monitors];
                 monitorIds = [...new Set(monitorIds)];
-                monitorIds = monitorIds.map((id: $TSFixMe) => String(id));
+                monitorIds = monitorIds.map((id: $TSFixMe) => {
+                    return String(id);
+                });
                 initialMonitorIds.forEach((monitorId: $TSFixMe) => {
                     if (!monitorIds.includes(String(monitorId))) {
                         removedMonitors.push(monitorId);

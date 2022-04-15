@@ -49,7 +49,9 @@ describe('Project Setting: Change Plan', () => {
             const checked: $TSFixMe = await init.page$Eval(
                 page,
                 'input#Growth_month',
-                (input: $TSFixMe) => input.checked
+                (input: $TSFixMe) => {
+                    return input.checked;
+                }
             );
             expect(checked).toBe(true);
         },
@@ -343,11 +345,9 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(
-                page,
-                '#alertEnable',
-                (checkbox: $TSFixMe) => checkbox.click
-            );
+            await init.page$Eval(page, '#alertEnable', (checkbox: $TSFixMe) => {
+                return checkbox.click;
+            });
 
             await init.pageClick(page, '#alertOptionSave');
             const unauthorisedModal: $TSFixMe = await init.pageWaitForSelector(

@@ -4,6 +4,7 @@ const NumberFormatter: $TSFixMe = new Intl.NumberFormat('en-US', {
 });
 
 export default {
-    formatBalance: (number: $TSFixMe) =>
-        parseFloat(NumberFormatter.format(number)),
+    formatBalance: (number: $TSFixMe) => {
+        return parseFloat(NumberFormatter.format(number));
+    },
 };

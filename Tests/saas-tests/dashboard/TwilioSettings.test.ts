@@ -101,7 +101,9 @@ describe('Custom Twilio Settings', () => {
             const savedAccountSid: $TSFixMe = await init.page$Eval(
                 page,
                 '#accountSid',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
             expect(savedAccountSid).toBe(twilioCredentials.accountSid);
 
@@ -152,14 +154,14 @@ describe('Custom Twilio Settings', () => {
             });
 
             await init.pageWaitForSelector(page, '#closeIncident_0');
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#incident_0');
 
@@ -172,14 +174,18 @@ describe('Custom Twilio Settings', () => {
             await init.page$Eval(
                 page,
                 '#subscriberAlertTable > tbody > tr',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#subscriber');
             const subscriber: $TSFixMe = await init.page$Eval(
                 page,
                 '#subscriber',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(subscriber).toEqual(`${countryCode}${phoneNumber}`);
 
@@ -199,14 +205,14 @@ describe('Custom Twilio Settings', () => {
             );
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -217,9 +223,9 @@ describe('Custom Twilio Settings', () => {
                 monitorName,
                 page
             );
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageClick(page, '.alert-tab');
 
@@ -231,14 +237,18 @@ describe('Custom Twilio Settings', () => {
             await init.page$Eval(
                 page,
                 '#subscriberAlertTable > tbody > tr',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#eventType');
             const eventType: $TSFixMe = await init.page$Eval(
                 page,
                 '#eventType',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(eventType).toEqual('acknowledged');
 
@@ -258,14 +268,14 @@ describe('Custom Twilio Settings', () => {
             );
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#btnResolve_0');
-            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#ResolveText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -275,9 +285,9 @@ describe('Custom Twilio Settings', () => {
                 monitorName,
                 page
             );
-            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageClick(page, '.alert-tab');
 
@@ -289,14 +299,18 @@ describe('Custom Twilio Settings', () => {
             await init.page$Eval(
                 page,
                 '#subscriberAlertTable > tbody > tr',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#eventType');
             const eventType: $TSFixMe = await init.page$Eval(
                 page,
                 '#eventType',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(eventType).toEqual('resolved');
 
@@ -334,7 +348,9 @@ describe('Custom Twilio Settings', () => {
             const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#smsVerificationErrors',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(message).toEqual('Invalid code !');
 
@@ -380,7 +396,9 @@ describe('Custom Twilio Settings', () => {
             const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#successMessage',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(message).toEqual(
                 'Verification successful, this number has been updated.'
@@ -430,7 +448,9 @@ describe('Custom Twilio Settings', () => {
             const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#successMessage',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(message).toEqual(
                 'Verification successful, this number has been updated.'

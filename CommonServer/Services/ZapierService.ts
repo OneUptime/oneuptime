@@ -66,9 +66,9 @@ export default class Service {
                 },
                 select: '_id',
             });
-            const projectIds: $TSFixMe = projects.map(
-                (project: $TSFixMe) => project._id
-            );
+            const projectIds: $TSFixMe = projects.map((project: $TSFixMe) => {
+                return project._id;
+            });
             const findquery: $TSFixMe = {
                 projectId: { $in: projectIds },
                 acknowledged: false,
@@ -85,7 +85,9 @@ export default class Service {
             });
             for (const incident of incidents) {
                 const monitors: $TSFixMe = incident.monitors.map(
-                    (monitor: $TSFixMe) => monitor.monitorId
+                    (monitor: $TSFixMe) => {
+                        return monitor.monitorId;
+                    }
                 );
                 for (const monitor of monitors) {
                     zapierResponseArray.push(
@@ -125,9 +127,9 @@ export default class Service {
                 },
                 select: '_id',
             });
-            const projectIds: $TSFixMe = projects.map(
-                (project: $TSFixMe) => project._id
-            );
+            const projectIds: $TSFixMe = projects.map((project: $TSFixMe) => {
+                return project._id;
+            });
             const findquery: $TSFixMe = {
                 projectId: { $in: projectIds },
             };
@@ -136,7 +138,9 @@ export default class Service {
                 select: '_id',
             });
             const incidentIds: $TSFixMe = incidents.map(
-                (incident: $TSFixMe) => incident._id
+                (incident: $TSFixMe) => {
+                    return incident._id;
+                }
             );
 
             const populateIncidentMessage: $TSFixMe = [
@@ -235,9 +239,9 @@ export default class Service {
                 },
                 select: '_id',
             });
-            const projectIds: $TSFixMe = projects.map(
-                (project: $TSFixMe) => project._id
-            );
+            const projectIds: $TSFixMe = projects.map((project: $TSFixMe) => {
+                return project._id;
+            });
             const findquery: $TSFixMe = {
                 projectId: { $in: projectIds },
                 acknowledged: true,
@@ -254,7 +258,9 @@ export default class Service {
             });
             for (const incident of incidents) {
                 const monitors: $TSFixMe = incident.monitors.map(
-                    (monitor: $TSFixMe) => monitor.monitorId
+                    (monitor: $TSFixMe) => {
+                        return monitor.monitorId;
+                    }
                 );
                 for (const monitor of monitors) {
                     zapierResponseArray.push(
@@ -293,9 +299,9 @@ export default class Service {
                 },
                 select: '_id',
             });
-            const projectIds: $TSFixMe = projects.map(
-                (project: $TSFixMe) => project._id
-            );
+            const projectIds: $TSFixMe = projects.map((project: $TSFixMe) => {
+                return project._id;
+            });
             const findquery: $TSFixMe = {
                 projectId: { $in: projectIds },
                 acknowledged: true,
@@ -312,7 +318,9 @@ export default class Service {
             });
             for (const incident of incidents) {
                 const monitors: $TSFixMe = incident.monitors.map(
-                    (monitor: $TSFixMe) => monitor.monitorId
+                    (monitor: $TSFixMe) => {
+                        return monitor.monitorId;
+                    }
                 );
                 for (const monitor of monitors) {
                     zapierResponseArray.push(
@@ -902,7 +910,9 @@ export default class Service {
                 });
             }
             const monitorIds: $TSFixMe = incident.monitors.map(
-                (monitor: $TSFixMe) => monitor.monitorId._id
+                (monitor: $TSFixMe) => {
+                    return monitor.monitorId._id;
+                }
             );
             zap = await this.findBy({
                 query: {
@@ -924,7 +934,9 @@ export default class Service {
                     zapierResponse.projectId = project._id;
                     if (incident) {
                         const monitors: $TSFixMe = incident.monitors.map(
-                            (monitor: $TSFixMe) => monitor.monitorId
+                            (monitor: $TSFixMe) => {
+                                return monitor.monitorId;
+                            }
                         );
                         for (const monitor of monitors) {
                             zapierResponse = await this.mapIncidentToResponse(

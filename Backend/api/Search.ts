@@ -33,7 +33,9 @@ router.post(
             const parentProjectId: $TSFixMe = req.params.projectId;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
 
             const searchResponse: $TSFixMe = [];
@@ -125,18 +127,20 @@ const getComponents: Function = async (
     if (components.length > 0) {
         const resultObj: $TSFixMe = {
             title: 'Components',
-            values: components.map((component: $TSFixMe) => ({
-                name: component.name,
-                componentSlug: component.slug,
-                url: 'component/' + component.slug + '/monitoring',
-                componentId: component._id,
-                projectId: component.projectId._id,
+            values: components.map((component: $TSFixMe) => {
+                return {
+                    name: component.name,
+                    componentSlug: component.slug,
+                    url: 'component/' + component.slug + '/monitoring',
+                    componentId: component._id,
+                    projectId: component.projectId._id,
 
-                parentProject:
-                    parentProjectId === String(component.projectId._id),
+                    parentProject:
+                        parentProjectId === String(component.projectId._id),
 
-                projectName: component.projectId.name,
-            })),
+                    projectName: component.projectId.name,
+                };
+            }),
         };
         return resultObj;
     }
@@ -170,22 +174,27 @@ const getMonitors: Function = async (
     if (monitors.length > 0) {
         const resultObj: $TSFixMe = {
             title: 'Monitors',
-            values: monitors.map((monitor: $TSFixMe) => ({
-                name: monitor.componentId.name + '/' + monitor.name,
-                componentSlug: monitor.componentId.slug,
-                type: monitor.type,
-                monitorId: monitor._id,
-                data: monitor.data ? monitor.data : null,
-                monitorSlug: monitor.slug,
-                url: monitor.componentId.slug + '/monitoring/' + monitor.slug,
-                componentId: monitor.componentId._id,
-                projectId: monitor.projectId._id,
+            values: monitors.map((monitor: $TSFixMe) => {
+                return {
+                    name: monitor.componentId.name + '/' + monitor.name,
+                    componentSlug: monitor.componentId.slug,
+                    type: monitor.type,
+                    monitorId: monitor._id,
+                    data: monitor.data ? monitor.data : null,
+                    monitorSlug: monitor.slug,
+                    url:
+                        monitor.componentId.slug +
+                        '/monitoring/' +
+                        monitor.slug,
+                    componentId: monitor.componentId._id,
+                    projectId: monitor.projectId._id,
 
-                parentProject:
-                    parentProjectId === String(monitor.projectId._id),
+                    parentProject:
+                        parentProjectId === String(monitor.projectId._id),
 
-                projectName: monitor.projectId.name,
-            })),
+                    projectName: monitor.projectId.name,
+                };
+            }),
         };
         return resultObj;
     }
@@ -231,17 +240,19 @@ const getStatusPages: Function = async (
         const resultObj: $TSFixMe = {
             title: 'Status Pages',
 
-            values: statusPages.map((statusPage: $TSFixMe) => ({
-                name: statusPage.name,
-                statusPageSlug: statusPage.slug,
-                statusPage: statusPage,
-                projectId: statusPage.projectId,
+            values: statusPages.map((statusPage: $TSFixMe) => {
+                return {
+                    name: statusPage.name,
+                    statusPageSlug: statusPage.slug,
+                    statusPage: statusPage,
+                    projectId: statusPage.projectId,
 
-                parentProject:
-                    parentProjectId === String(statusPage.projectId._id),
+                    parentProject:
+                        parentProjectId === String(statusPage.projectId._id),
 
-                projectName: statusPage.projectId.name,
-            })),
+                    projectName: statusPage.projectId.name,
+                };
+            }),
         };
         return resultObj;
     }
@@ -263,9 +274,9 @@ const getUsers: Function = async (
     projects.forEach((project: $TSFixMe) => {
         projectUsers.push(project.users);
     });
-    const userIds: $TSFixMe = projectUsers
-        .flat()
-        .map((user: $TSFixMe) => user.userId);
+    const userIds: $TSFixMe = projectUsers.flat().map((user: $TSFixMe) => {
+        return user.userId;
+    });
     const users: $TSFixMe = await UserService.findBy({
         query: {
             _id: { $in: userIds },
@@ -284,10 +295,12 @@ const getUsers: Function = async (
     if (users.length > 0) {
         const resultObj: $TSFixMe = {
             title: 'Team Members',
-            values: users.map((user: $TSFixMe) => ({
-                name: user.name,
-                userId: user._id,
-            })),
+            values: users.map((user: $TSFixMe) => {
+                return {
+                    name: user.name,
+                    userId: user._id,
+                };
+            }),
         };
 
         return resultObj;
@@ -333,16 +346,18 @@ const getOnCallDuty: Function = async (
     if (schedules.length > 0) {
         const resultObj: $TSFixMe = {
             title: 'On-Call Duty',
-            values: schedules.map((schedule: $TSFixMe) => ({
-                name: schedule.name,
-                scheduleSlug: schedule.slug,
-                projectId: schedule.projectId._id,
+            values: schedules.map((schedule: $TSFixMe) => {
+                return {
+                    name: schedule.name,
+                    scheduleSlug: schedule.slug,
+                    projectId: schedule.projectId._id,
 
-                parentProject:
-                    parentProjectId === String(schedule.projectId._id),
+                    parentProject:
+                        parentProjectId === String(schedule.projectId._id),
 
-                projectName: schedule.projectId.name,
-            })),
+                    projectName: schedule.projectId.name,
+                };
+            }),
         };
         return resultObj;
     }
@@ -380,17 +395,19 @@ const getSchedultEvent: Function = async (
     if (scheduleEvents.length > 0) {
         const resultObj: $TSFixMe = {
             title: 'Schedule Events',
-            values: scheduleEvents.map((scheduleEvent: $TSFixMe) => ({
-                name: scheduleEvent.name,
-                scheduleEventSlug: scheduleEvent.slug,
-                projectId: scheduleEvent.projectId._id,
-                scheduleEvents: scheduleEvent,
+            values: scheduleEvents.map((scheduleEvent: $TSFixMe) => {
+                return {
+                    name: scheduleEvent.name,
+                    scheduleEventSlug: scheduleEvent.slug,
+                    projectId: scheduleEvent.projectId._id,
+                    scheduleEvents: scheduleEvent,
 
-                parentProject:
-                    parentProjectId === String(scheduleEvent.projectId._id),
+                    parentProject:
+                        parentProjectId === String(scheduleEvent.projectId._id),
 
-                projectName: scheduleEvent.projectId.name,
-            })),
+                    projectName: scheduleEvent.projectId.name,
+                };
+            }),
         };
         return resultObj;
     }
@@ -471,9 +488,9 @@ const getErrorTrackers: Function = async (
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
-    const componentIds: $TSFixMe = components.map(
-        (component: $TSFixMe) => component._id
-    );
+    const componentIds: $TSFixMe = components.map((component: $TSFixMe) => {
+        return component._id;
+    });
     const select: $TSFixMe =
         'componentId name slug key showQuickStart resourceCategory createdById createdAt';
     const populate: $TSFixMe = [
@@ -496,19 +513,21 @@ const getErrorTrackers: Function = async (
     if (errorTrackers.length > 0) {
         const resultObj: $TSFixMe = {
             title: 'Error Trackers',
-            values: errorTrackers.map((errorTracker: $TSFixMe) => ({
-                name: errorTracker.name,
-                errorTrackerSlug: errorTracker.slug,
-                projectId: errorTracker.componentId.projectId._id,
-                errorTracker: errorTracker,
-                componentSlug: errorTracker.componentId.slug,
+            values: errorTrackers.map((errorTracker: $TSFixMe) => {
+                return {
+                    name: errorTracker.name,
+                    errorTrackerSlug: errorTracker.slug,
+                    projectId: errorTracker.componentId.projectId._id,
+                    errorTracker: errorTracker,
+                    componentSlug: errorTracker.componentId.slug,
 
-                parentProject:
-                    parentProjectId ===
-                    String(errorTracker.componentId.projectId._id),
+                    parentProject:
+                        parentProjectId ===
+                        String(errorTracker.componentId.projectId._id),
 
-                projectName: errorTracker.componentId.projectId.name,
-            })),
+                    projectName: errorTracker.componentId.projectId.name,
+                };
+            }),
         };
         return resultObj;
     }
@@ -525,9 +544,9 @@ const getLogContainers: Function = async (
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
-    const componentIds: $TSFixMe = components.map(
-        (component: $TSFixMe) => component._id
-    );
+    const componentIds: $TSFixMe = components.map((component: $TSFixMe) => {
+        return component._id;
+    });
     const populateAppLogs: $TSFixMe = [
         {
             path: 'componentId',
@@ -554,19 +573,21 @@ const getLogContainers: Function = async (
     if (logContainers.length > 0) {
         const resultObj: $TSFixMe = {
             title: 'Log Containers',
-            values: logContainers.map((logContainer: $TSFixMe) => ({
-                name: logContainer.name,
-                logContainerSlug: logContainer.slug,
-                projectId: logContainer.componentId.projectId._id,
-                logContainer: logContainer,
-                componentSlug: logContainer.componentId.slug,
+            values: logContainers.map((logContainer: $TSFixMe) => {
+                return {
+                    name: logContainer.name,
+                    logContainerSlug: logContainer.slug,
+                    projectId: logContainer.componentId.projectId._id,
+                    logContainer: logContainer,
+                    componentSlug: logContainer.componentId.slug,
 
-                parentProject:
-                    parentProjectId ===
-                    String(logContainer.componentId.projectId._id),
+                    parentProject:
+                        parentProjectId ===
+                        String(logContainer.componentId.projectId._id),
 
-                projectName: logContainer.componentId.projectId.name,
-            })),
+                    projectName: logContainer.componentId.projectId.name,
+                };
+            }),
         };
         return resultObj;
     }
@@ -584,9 +605,9 @@ const getPerformanceTrackers: Function = async (
         select: 'id',
     });
 
-    const componentIds: $TSFixMe = components.map(
-        (component: $TSFixMe) => component._id
-    );
+    const componentIds: $TSFixMe = components.map((component: $TSFixMe) => {
+        return component._id;
+    });
     const selectPerfTracker: $TSFixMe =
         'componentId name slug key showQuickStart createdById';
 
@@ -610,19 +631,21 @@ const getPerformanceTrackers: Function = async (
     if (performanceTrackers.length > 0) {
         const resultObj: $TSFixMe = {
             title: 'Performance Tracker',
-            values: performanceTrackers.map((performanceTracker: $TSFixMe) => ({
-                name: performanceTracker.name,
-                performanceTrackerSlug: performanceTracker.slug,
-                projectId: performanceTracker.componentId.projectId._id,
-                performanceTracker: performanceTracker,
-                componentSlug: performanceTracker.componentId.slug,
+            values: performanceTrackers.map((performanceTracker: $TSFixMe) => {
+                return {
+                    name: performanceTracker.name,
+                    performanceTrackerSlug: performanceTracker.slug,
+                    projectId: performanceTracker.componentId.projectId._id,
+                    performanceTracker: performanceTracker,
+                    componentSlug: performanceTracker.componentId.slug,
 
-                parentProject:
-                    parentProjectId ===
-                    String(performanceTracker.componentId.projectId._id),
+                    parentProject:
+                        parentProjectId ===
+                        String(performanceTracker.componentId.projectId._id),
 
-                projectName: performanceTracker.componentId.projectId.name,
-            })),
+                    projectName: performanceTracker.componentId.projectId.name,
+                };
+            }),
         };
         return resultObj;
     }

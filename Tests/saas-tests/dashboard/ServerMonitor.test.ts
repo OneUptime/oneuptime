@@ -422,13 +422,17 @@ describe('Server Monitor API', () => {
             await init.page$Eval(
                 page,
                 `#${monitorName}_EditIncidentDetails_0`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.page$Eval(
                 page,
                 `#${monitorName}_EditIncidentDetails_0`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, 'span#activeIncidentsText', {

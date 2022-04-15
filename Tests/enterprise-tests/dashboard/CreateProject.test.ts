@@ -41,9 +41,9 @@ describe('Enterprise Project API', () => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
             await init.pageWaitForSelector(page, '#selector', { visble: true });
-            await init.page$Eval(page, '#create-project', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#create-project', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#name', { visble: true });
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,

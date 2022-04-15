@@ -104,9 +104,9 @@ describe('Enterprise Dashboard API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
-                el.click()
-            );
+            await init.page$Eval(page, '#components', (el: $TSFixMe) => {
+                return el.click();
+            });
 
             // Fill and submit New Component form
 
@@ -125,9 +125,9 @@ describe('Enterprise Dashboard API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
-                el.click()
-            );
+            await init.page$Eval(page, '#components', (el: $TSFixMe) => {
+                return el.click();
+            });
 
             // Navigate to details page of component created in previous test
 
@@ -186,9 +186,9 @@ describe('Enterprise Dashboard API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
-                el.click()
-            );
+            await init.page$Eval(page, '#components', (el: $TSFixMe) => {
+                return el.click();
+            });
 
             // Navigate to details page of component created in previous test
 

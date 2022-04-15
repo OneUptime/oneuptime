@@ -113,7 +113,9 @@ export default (state = initialState, action: Action): void => {
         case DELETE_MS_TEAMS_SUCCESS:
             msTeams = Object.assign([], state.msTeams.msTeams);
 
-            index = msTeams.findIndex(team => team._id === action.payload._id);
+            index = msTeams.findIndex(team => {
+                return team._id === action.payload._id;
+            });
             msTeams.splice(index, 1);
 
             count = state.msTeams.count - 1;
@@ -215,7 +217,9 @@ export default (state = initialState, action: Action): void => {
         case UPDATE_MS_TEAMS_SUCCESS:
             msTeams = Object.assign([], state.msTeams.msTeams);
 
-            index = msTeams.findIndex(hook => hook._id === action.payload._id);
+            index = msTeams.findIndex(hook => {
+                return hook._id === action.payload._id;
+            });
 
             msTeams[index] = action.payload;
 

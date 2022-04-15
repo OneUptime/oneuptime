@@ -127,9 +127,9 @@ export default class Service {
                 query: { scheduleId: schedule._id },
                 select: '_id',
             });
-            await escalations.map(({ _id }: $TSFixMe) =>
-                EscalationService.deleteBy({ _id: _id }, userId)
-            );
+            await escalations.map(({ _id }: $TSFixMe) => {
+                return EscalationService.deleteBy({ _id: _id }, userId);
+            });
         }
 
         return schedule;
@@ -416,10 +416,12 @@ export default class Service {
             select: '_id escalationIds',
         });
 
-        scheduleIds = scheduleIds.escalationIds.map((i: $TSFixMe) =>
-            i.toString()
-        );
-        escalationIds = escalationIds.map((i: $TSFixMe) => i.toString());
+        scheduleIds = scheduleIds.escalationIds.map((i: $TSFixMe) => {
+            return i.toString();
+        });
+        escalationIds = escalationIds.map((i: $TSFixMe) => {
+            return i.toString();
+        });
 
         scheduleIds.map(async (id: $TSFixMe) => {
             if (escalationIds.indexOf(id) < 0) {

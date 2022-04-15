@@ -264,12 +264,14 @@ export const statusPageNoteReset: Function = (): void => {
     };
 };
 
-export const showIncidentCard: Function = (payload: $TSFixMe): void => ({
-    // payload => true or false
-    type: types.SHOW_INCIDENT_CARD,
+export const showIncidentCard: Function = (payload: $TSFixMe): void => {
+    return {
+        // payload => true or false
+        type: types.SHOW_INCIDENT_CARD,
 
-    payload,
-});
+        payload,
+    };
+};
 
 export const individualNoteEnable: Function = (message: $TSFixMe): void => {
     return {
@@ -502,21 +504,27 @@ export const getOngoingScheduledEvent: Function = (
     };
 };
 
-export const individualEventsRequest: Function = (): void => ({
-    type: types.INDIVIDUAL_EVENTS_REQUEST,
-});
+export const individualEventsRequest: Function = (): void => {
+    return {
+        type: types.INDIVIDUAL_EVENTS_REQUEST,
+    };
+};
 
-export const individualEventsSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.INDIVIDUAL_EVENTS_SUCCESS,
-    payload,
-});
+export const individualEventsSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.INDIVIDUAL_EVENTS_SUCCESS,
+        payload,
+    };
+};
 
 export const individualEventsFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.INDIVIDUAL_EVENTS_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.INDIVIDUAL_EVENTS_FAILURE,
+        payload: error,
+    };
+};
 
 export const getIndividualEvent: Function = (
     projectId: ObjectID,
@@ -561,29 +569,34 @@ export const getIndividualEvent: Function = (
     };
 };
 
-export const futureEventsRequest: Function = (): void => ({
-    type: types.FUTURE_EVENTS_REQUEST,
-});
+export const futureEventsRequest: Function = (): void => {
+    return {
+        type: types.FUTURE_EVENTS_REQUEST,
+    };
+};
 
-export const futureEventsSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.FUTURE_EVENTS_SUCCESS,
-    payload,
-});
+export const futureEventsSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.FUTURE_EVENTS_SUCCESS,
+        payload,
+    };
+};
 
-export const futureEventsFailure: Function = (error: ErrorPayload): void => ({
-    type: types.FUTURE_EVENTS_FAILURE,
-    payload: error,
-});
+export const futureEventsFailure: Function = (error: ErrorPayload): void => {
+    return {
+        type: types.FUTURE_EVENTS_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchFutureEvents: $TSFixMe =
-    (
-        projectId: ObjectID,
-        statusPageSlug: $TSFixMe,
-        skip: PositiveNumber,
-        theme: $TSFixMe,
-        limit: PositiveNumber
-    ) =>
-    async (dispatch: Dispatch) => {
+export const fetchFutureEvents: $TSFixMe = (
+    projectId: ObjectID,
+    statusPageSlug: $TSFixMe,
+    skip: PositiveNumber,
+    theme: $TSFixMe,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(futureEventsRequest());
             const response: $TSFixMe = await BackendAPI.get(
@@ -603,30 +616,36 @@ export const fetchFutureEvents: $TSFixMe =
             dispatch(futureEventsFailure(errorMsg));
         }
     };
+};
 
-export const pastEventsRequest: Function = (): void => ({
-    type: types.PAST_EVENTS_REQUEST,
-});
+export const pastEventsRequest: Function = (): void => {
+    return {
+        type: types.PAST_EVENTS_REQUEST,
+    };
+};
 
-export const pastEventsSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.PAST_EVENTS_SUCCESS,
-    payload,
-});
+export const pastEventsSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.PAST_EVENTS_SUCCESS,
+        payload,
+    };
+};
 
-export const pastEventsFailure: Function = (error: ErrorPayload): void => ({
-    type: types.PAST_EVENTS_FAILURE,
-    payload: error,
-});
+export const pastEventsFailure: Function = (error: ErrorPayload): void => {
+    return {
+        type: types.PAST_EVENTS_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchPastEvents: $TSFixMe =
-    (
-        projectId: ObjectID,
-        statusPageSlug: $TSFixMe,
-        skip: PositiveNumber,
-        theme: $TSFixMe,
-        limit: PositiveNumber
-    ) =>
-    async (dispatch: Dispatch) => {
+export const fetchPastEvents: $TSFixMe = (
+    projectId: ObjectID,
+    statusPageSlug: $TSFixMe,
+    skip: PositiveNumber,
+    theme: $TSFixMe,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(pastEventsRequest());
             const response: $TSFixMe = await BackendAPI.get(
@@ -646,6 +665,7 @@ export const fetchPastEvents: $TSFixMe =
             dispatch(pastEventsFailure(errorMsg));
         }
     };
+};
 
 export const notmonitoredDays: Function = (
     monitorId: $TSFixMe,
@@ -776,30 +796,35 @@ export const getMoreEvent: Function = (
     };
 };
 
-export const moreFutureEventsRequest: Function = (): void => ({
-    type: types.MORE_FUTURE_EVENTS_REQUEST,
-});
+export const moreFutureEventsRequest: Function = (): void => {
+    return {
+        type: types.MORE_FUTURE_EVENTS_REQUEST,
+    };
+};
 
-export const moreFutureEventsSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.MORE_FUTURE_EVENTS_SUCCESS,
-    payload,
-});
+export const moreFutureEventsSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.MORE_FUTURE_EVENTS_SUCCESS,
+        payload,
+    };
+};
 
 export const moreFutureEventsFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.MORE_FUTURE_EVENTS_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.MORE_FUTURE_EVENTS_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchMoreFutureEvents: $TSFixMe =
-    (
-        projectId: ObjectID,
-        statusPageSlug: $TSFixMe,
-        skip: PositiveNumber,
-        limit: PositiveNumber
-    ) =>
-    async (dispatch: Dispatch) => {
+export const fetchMoreFutureEvents: $TSFixMe = (
+    projectId: ObjectID,
+    statusPageSlug: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(moreFutureEventsRequest());
             const response: $TSFixMe = await BackendAPI.get(
@@ -819,24 +844,34 @@ export const fetchMoreFutureEvents: $TSFixMe =
             dispatch(moreFutureEventsFailure(errorMsg));
         }
     };
+};
 
-export const morePastEventsRequest: Function = (): void => ({
-    type: types.MORE_PAST_EVENTS_REQUEST,
-});
+export const morePastEventsRequest: Function = (): void => {
+    return {
+        type: types.MORE_PAST_EVENTS_REQUEST,
+    };
+};
 
-export const morePastEventsSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.MORE_PAST_EVENTS_SUCCESS,
-    payload,
-});
+export const morePastEventsSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.MORE_PAST_EVENTS_SUCCESS,
+        payload,
+    };
+};
 
-export const morePastEventsFailure: Function = (error: ErrorPayload): void => ({
-    type: types.MORE_PAST_EVENTS_FAILURE,
-    payload: error,
-});
+export const morePastEventsFailure: Function = (error: ErrorPayload): void => {
+    return {
+        type: types.MORE_PAST_EVENTS_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchMorePastEvents: $TSFixMe =
-    (projectId: ObjectID, statusPageSlug: $TSFixMe, skip: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchMorePastEvents: $TSFixMe = (
+    projectId: ObjectID,
+    statusPageSlug: $TSFixMe,
+    skip: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(morePastEventsRequest());
             const response: $TSFixMe = await BackendAPI.get(
@@ -856,6 +891,7 @@ export const fetchMorePastEvents: $TSFixMe =
             dispatch(morePastEventsFailure(errorMsg));
         }
     };
+};
 
 export const selectedProbe: Function = (val: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {

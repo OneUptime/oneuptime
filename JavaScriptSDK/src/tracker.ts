@@ -100,9 +100,9 @@ class ErrorTracker {
             return 'Invalid Tags type';
         }
         // get the index if the key exist already
-        const index: $TSFixMe = this.tags.findIndex(
-            (tag: $TSFixMe) => tag.key === key
-        );
+        const index: $TSFixMe = this.tags.findIndex((tag: $TSFixMe) => {
+            return tag.key === key;
+        });
         if (index !== -1) {
             // replace value if it exist
             this.tags[index].value = value;
@@ -302,7 +302,9 @@ class ErrorTracker {
                 // clear the timeline after a successful call to the server
                 this._clear(this.getEventId());
             })
-            .catch((error: Error) => (content = error));
+            .catch((error: Error) => {
+                return (content = error);
+            });
         return content;
     }
     private _makeApiRequest(data: $TSFixMe): void {

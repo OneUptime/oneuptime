@@ -81,9 +81,9 @@ export default function probes(state = initialState, action: Action): void {
             return Object.assign({}, state, {
                 probes: {
                     ...state.probes,
-                    data: state.probes.data.filter(
-                        d => d._id !== action.payload
-                    ),
+                    data: state.probes.data.filter(d => {
+                        return d._id !== action.payload;
+                    }),
 
                     count: state.probes.count - 1,
                 },

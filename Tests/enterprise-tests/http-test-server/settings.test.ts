@@ -25,14 +25,16 @@ describe('HTTP Settings page', () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
             waitUntil: 'networkidle2',
         });
-        await page.evaluate(
-            () => (document.getElementById('responseTime').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('statusCode').value = '')
-        );
+        await page.evaluate(() => {
+            return (document.getElementById('responseTime').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('statusCode').value = '');
+        });
 
-        await page.evaluate(() => (document.getElementById('body').value = ''));
+        await page.evaluate(() => {
+            return (document.getElementById('body').value = '');
+        });
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
         await page.type('input[name=responseTime]', '0');
@@ -62,14 +64,16 @@ describe('HTTP Settings page', () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
             waitUntil: 'networkidle2',
         });
-        await page.evaluate(
-            () => (document.getElementById('responseTime').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('statusCode').value = '')
-        );
+        await page.evaluate(() => {
+            return (document.getElementById('responseTime').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('statusCode').value = '');
+        });
 
-        await page.evaluate(() => (document.getElementById('body').value = ''));
+        await page.evaluate(() => {
+            return (document.getElementById('body').value = '');
+        });
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
         await page.type('input[name=responseTime]', 'not number');
@@ -99,14 +103,16 @@ describe('HTTP Settings page', () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
             waitUntil: 'networkidle2',
         });
-        await page.evaluate(
-            () => (document.getElementById('responseTime').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('statusCode').value = '')
-        );
+        await page.evaluate(() => {
+            return (document.getElementById('responseTime').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('statusCode').value = '');
+        });
 
-        await page.evaluate(() => (document.getElementById('body').value = ''));
+        await page.evaluate(() => {
+            return (document.getElementById('body').value = '');
+        });
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
         await page.type('input[name=responseTime]', '0');
@@ -136,14 +142,16 @@ describe('HTTP Settings page', () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
             waitUntil: 'networkidle2',
         });
-        await page.evaluate(
-            () => (document.getElementById('responseTime').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('statusCode').value = '')
-        );
+        await page.evaluate(() => {
+            return (document.getElementById('responseTime').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('statusCode').value = '');
+        });
 
-        await page.evaluate(() => (document.getElementById('body').value = ''));
+        await page.evaluate(() => {
+            return (document.getElementById('body').value = '');
+        });
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
         await page.type('input[name=responseTime]', '0');

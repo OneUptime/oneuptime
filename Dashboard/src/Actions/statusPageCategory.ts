@@ -3,27 +3,36 @@ import { Dispatch } from 'redux';
 import * as types from '../constants/statusPageCategory';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 // create status page category
-export const createStatusPageCategoryRequest: Function = (): void => ({
-    type: types.CREATE_STATUS_PAGE_CATEGORY_REQUEST,
-});
+export const createStatusPageCategoryRequest: Function = (): void => {
+    return {
+        type: types.CREATE_STATUS_PAGE_CATEGORY_REQUEST,
+    };
+};
 
 export const createStatusPageCategorySuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.CREATE_STATUS_PAGE_CATEGORY_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.CREATE_STATUS_PAGE_CATEGORY_SUCCESS,
+        payload,
+    };
+};
 
 export const createStatusPageCategoryFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.CREATE_STATUS_PAGE_CATEGORY_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.CREATE_STATUS_PAGE_CATEGORY_FAILURE,
+        payload: error,
+    };
+};
 
-export const createStatusPageCategory: $TSFixMe =
-    ({ projectId, statusPageId, statusPageCategoryName }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const createStatusPageCategory: $TSFixMe = ({
+    projectId,
+    statusPageId,
+    statusPageCategoryName,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         const promise: $TSFixMe = BackendAPI.post(
             `statusPageCategory/${projectId}/${statusPageId}`,
             {
@@ -42,29 +51,39 @@ export const createStatusPageCategory: $TSFixMe =
         );
         return promise;
     };
+};
 
 // update status page category
-export const updateStatusPageCategoryRequest: Function = (): void => ({
-    type: types.UPDATE_STATUS_PAGE_CATEGORY_REQUEST,
-});
+export const updateStatusPageCategoryRequest: Function = (): void => {
+    return {
+        type: types.UPDATE_STATUS_PAGE_CATEGORY_REQUEST,
+    };
+};
 
 export const updateStatusPageCategorySuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.UPDATE_STATUS_PAGE_CATEGORY_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.UPDATE_STATUS_PAGE_CATEGORY_SUCCESS,
+        payload,
+    };
+};
 
 export const updateStatusPageCategoryFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.UPDATE_STATUS_PAGE_CATEGORY_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.UPDATE_STATUS_PAGE_CATEGORY_FAILURE,
+        payload: error,
+    };
+};
 
-export const updateStatusPageCategory: $TSFixMe =
-    ({ projectId, statusPageCategoryId, statusPageCategoryName }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const updateStatusPageCategory: $TSFixMe = ({
+    projectId,
+    statusPageCategoryId,
+    statusPageCategoryName,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         const promise: $TSFixMe = BackendAPI.put(
             `statusPageCategory/${projectId}/${statusPageCategoryId}`,
             {
@@ -83,29 +102,40 @@ export const updateStatusPageCategory: $TSFixMe =
         );
         return promise;
     };
+};
 
 // fetch status page categories
-export const fetchStatusPageCategoriesRequest: Function = (): void => ({
-    type: types.FETCH_STATUS_PAGE_CATEGORIES_REQUEST,
-});
+export const fetchStatusPageCategoriesRequest: Function = (): void => {
+    return {
+        type: types.FETCH_STATUS_PAGE_CATEGORIES_REQUEST,
+    };
+};
 
 export const fetchStatusPageCategoriesSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.FETCH_STATUS_PAGE_CATEGORIES_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.FETCH_STATUS_PAGE_CATEGORIES_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchStatusPageCategoriesFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_STATUS_PAGE_CATEGORIES_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_STATUS_PAGE_CATEGORIES_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchStatusPageCategories: $TSFixMe =
-    ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const fetchStatusPageCategories: $TSFixMe = ({
+    projectId,
+    statusPageId,
+    skip,
+    limit,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         if (!skip) {
             skip = 0;
         }
@@ -127,29 +157,40 @@ export const fetchStatusPageCategories: $TSFixMe =
         );
         return promise;
     };
+};
 
 // fetch  status page categories
-export const fetchAllStatusPageCategoriesRequest: Function = (): void => ({
-    type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_REQUEST,
-});
+export const fetchAllStatusPageCategoriesRequest: Function = (): void => {
+    return {
+        type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_REQUEST,
+    };
+};
 
 export const fetchAllStatusPageCategoriesSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchAllStatusPageCategoriesFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchAllStatusPageCategories: $TSFixMe =
-    ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const fetchAllStatusPageCategories: $TSFixMe = ({
+    projectId,
+    statusPageId,
+    skip,
+    limit,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         if (!skip) {
             skip = 0;
         }
@@ -171,29 +212,38 @@ export const fetchAllStatusPageCategories: $TSFixMe =
         );
         return promise;
     };
+};
 
 // delete status page category
-export const deleteStatusPageCategoryRequest: Function = (): void => ({
-    type: types.DELETE_STATUS_PAGE_CATEGORY_REQUEST,
-});
+export const deleteStatusPageCategoryRequest: Function = (): void => {
+    return {
+        type: types.DELETE_STATUS_PAGE_CATEGORY_REQUEST,
+    };
+};
 
 export const deleteStatusPageCategorySuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.DELETE_STATUS_PAGE_CATEGORY_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.DELETE_STATUS_PAGE_CATEGORY_SUCCESS,
+        payload,
+    };
+};
 
 export const deleteStatusPageCategoryFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.DELETE_STATUS_PAGE_CATEGORY_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.DELETE_STATUS_PAGE_CATEGORY_FAILURE,
+        payload: error,
+    };
+};
 
-export const deleteStatusPageCategory: $TSFixMe =
-    ({ projectId, statusPageCategoryId }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const deleteStatusPageCategory: $TSFixMe = ({
+    projectId,
+    statusPageCategoryId,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         const promise: $TSFixMe =
             delete `statusPageCategory/${projectId}/${statusPageCategoryId}`;
         dispatch(updateStatusPageCategoryRequest());
@@ -208,3 +258,4 @@ export const deleteStatusPageCategory: $TSFixMe =
         );
         return promise;
     };
+};

@@ -154,7 +154,9 @@ export default function applicationLog(
                     success: true,
                     applicationLogs:
                         state.applicationLogsList.applicationLogs.filter(
-                            ({ _id }) => _id !== action.payload
+                            ({ _id }) => {
+                                return _id !== action.payload;
+                            }
                         ),
                 },
                 deleteApplicationLog: false,
@@ -187,9 +189,9 @@ export default function applicationLog(
                 [],
                 state.applicationLogsList.applicationLogs
             );
-            applicationLogs = applicationLogs.filter(
-                applicationLog => action.payload !== applicationLog.componentId
-            );
+            applicationLogs = applicationLogs.filter(applicationLog => {
+                return action.payload !== applicationLog.componentId;
+            });
 
             return Object.assign({}, state, {
                 applicationLogsList: {
@@ -453,9 +455,9 @@ export default function applicationLog(
                     action.payload.type
                 ] || 0; // current count of all logs of that type
             if (
-                requestLogs.filter(
-                    (log: $TSFixMe) => log._id === action.payload._id
-                ).length > 0
+                requestLogs.filter((log: $TSFixMe) => {
+                    return log._id === action.payload._id;
+                }).length > 0
             ) {
                 // If the new log exist maybe the event was emitted twice or more, just replace
 

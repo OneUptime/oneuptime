@@ -9,7 +9,9 @@ function launchChromeAndRunLighthouse(
     return chromeLauncher.launch(options).then(chrome => {
         options.port = chrome.port;
         return lighthouse(url, options, config).then((results: $TSFixMe) => {
-            return chrome.kill().then(() => results.lhr);
+            return chrome.kill().then(() => {
+                return results.lhr;
+            });
         });
     });
 }
@@ -22,18 +24,22 @@ process.on('message', url => {
             const audits: $TSFixMe = results.audits;
             for (const category in categories) {
                 const ids: $TSFixMe = categories[category].auditRefs.map(
-                    (auditRef: $TSFixMe) => auditRef.id
+                    (auditRef: $TSFixMe) => {
+                        return auditRef.id;
+                    }
                 );
 
                 issues[category] = ids
-                    .map((id: $TSFixMe) =>
-                        audits[id] &&
-                        audits[id].score !== null &&
-                        audits[id].score < 1
+                    .map((id: $TSFixMe) => {
+                        return audits[id] &&
+                            audits[id].score !== null &&
+                            audits[id].score < 1
                             ? audits[id]
-                            : id
-                    )
-                    .filter((id: $TSFixMe) => typeof id !== 'string');
+                            : id;
+                    })
+                    .filter((id: $TSFixMe) => {
+                        return typeof id !== 'string';
+                    });
             }
 
             const result: $TSFixMe = {

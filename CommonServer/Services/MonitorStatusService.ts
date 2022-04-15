@@ -126,7 +126,9 @@ export default class Service {
             );
             // we don't want to await this ):
 
-            docs.forEach((doc: $TSFixMe) => this.sendMonitorStatus(doc));
+            docs.forEach((doc: $TSFixMe) => {
+                return this.sendMonitorStatus(doc);
+            });
 
             return docs;
         }

@@ -6,14 +6,18 @@ import { expect } from 'chai';
 import decode from 'urldecode';
 
 const methods: $TSFixMe = {
-    getAuthorizationHeader: ({ jwtToken }: $TSFixMe) => `Basic ${jwtToken}`,
-    login: async ({ request, email, password }: $TSFixMe) =>
-        await request.post('/user/login').send({
+    getAuthorizationHeader: ({ jwtToken }: $TSFixMe) => {
+        return `Basic ${jwtToken}`;
+    },
+    login: async ({ request, email, password }: $TSFixMe) => {
+        return await request.post('/user/login').send({
             email,
             password,
-        }),
-    ssoLogin: async ({ request, email }: $TSFixMe) =>
-        await request.get(`/api/user/sso/login?email=${email}`),
+        });
+    },
+    ssoLogin: async ({ request, email }: $TSFixMe) => {
+        return await request.get(`/api/user/sso/login?email=${email}`);
+    },
     /**
    * Example of payload:
       const payload: $TSFixMe = {
@@ -267,19 +271,22 @@ const methods: $TSFixMe = {
      *  projectName: 'PROJECT_NAME'
      * }
      */
-    createProject: async ({ request, authorization, payload }: $TSFixMe) =>
-        await request
+    createProject: async ({ request, authorization, payload }: $TSFixMe) => {
+        return await request
             .post(`/api/project/create`)
             .set('Authorization', authorization)
-            .send(payload),
-    fetchProject: async ({ request, authorization, projectId }: $TSFixMe) =>
-        await request
+            .send(payload);
+    },
+    fetchProject: async ({ request, authorization, projectId }: $TSFixMe) => {
+        return await request
             .get(`/api/project/projects/${projectId}`)
-            .set('Authorization', authorization),
-    deleteProject: async ({ request, authorization, id }: $TSFixMe) =>
-        await request
+            .set('Authorization', authorization);
+    },
+    deleteProject: async ({ request, authorization, id }: $TSFixMe) => {
+        return await request
             .delete(`/api/project/${id}/deleteProject`)
-            .set('Authorization', authorization),
+            .set('Authorization', authorization);
+    },
     /**
      *  examplePayload = {
      *      'saml-enabled':
@@ -292,15 +299,17 @@ const methods: $TSFixMe = {
      *          'http://localhost:9876/logout',
      *  }
      */
-    createSso: async ({ request, authorization, payload }: $TSFixMe) =>
-        await request
+    createSso: async ({ request, authorization, payload }: $TSFixMe) => {
+        return await request
             .post(`/api/sso/`)
             .set('Authorization', authorization)
-            .send(payload),
-    deleteSso: async ({ request, authorization, id }: $TSFixMe) =>
-        await request
+            .send(payload);
+    },
+    deleteSso: async ({ request, authorization, id }: $TSFixMe) => {
+        return await request
             .delete(`/api/sso/${id}`)
-            .set('Authorization', authorization),
+            .set('Authorization', authorization);
+    },
     /**
      *  examplePayload = {
      *      domain: "6017d3105299cd0725598155",
@@ -312,33 +321,38 @@ const methods: $TSFixMe = {
         request,
         authorization,
         payload,
-    }: $TSFixMe) =>
-        await request
+    }: $TSFixMe) => {
+        return await request
             .post(`/api/ssoDefaultRoles/`)
             .set('Authorization', authorization)
-            .send(payload),
+            .send(payload);
+    },
     updateSsoDefaultRole: async ({
         request,
         authorization,
         id,
         payload,
-    }: $TSFixMe) =>
-        await request
+    }: $TSFixMe) => {
+        return await request
             .put(`/api/ssoDefaultRoles/${id}`)
             .set('Authorization', authorization)
-            .send(payload),
-    fetchSsoDefaultRoles: async ({ request, authorization }: $TSFixMe) =>
-        await request
+            .send(payload);
+    },
+    fetchSsoDefaultRoles: async ({ request, authorization }: $TSFixMe) => {
+        return await request
             .get(`/api/ssoDefaultRoles/`)
-            .set('Authorization', authorization),
-    fetchSsoDefaultRole: async ({ request, authorization, id }: $TSFixMe) =>
-        await request
+            .set('Authorization', authorization);
+    },
+    fetchSsoDefaultRole: async ({ request, authorization, id }: $TSFixMe) => {
+        return await request
             .get(`/api/ssoDefaultRoles/${id}`)
-            .set('Authorization', authorization),
-    deleteSsoDefaultRole: async ({ request, authorization, id }: $TSFixMe) =>
-        await request
+            .set('Authorization', authorization);
+    },
+    deleteSsoDefaultRole: async ({ request, authorization, id }: $TSFixMe) => {
+        return await request
             .delete(`/api/ssoDefaultRoles/${id}`)
-            .set('Authorization', authorization),
+            .set('Authorization', authorization);
+    },
     fetchIdpSAMLResponse: async ({
         SAMLRequest,
         username,
@@ -404,10 +418,14 @@ const proxy: $TSFixMe = new Proxy(methods, {
     },
     get: function (target, prop): void {
         if (this[prop]) {
-            return (args = {}) => this[prop](args);
+            return (args = {}) => {
+                return this[prop](args);
+            };
         }
 
-        return (args = {}) => target[prop]({ ...this.shared, ...args });
+        return (args = {}) => {
+            return target[prop]({ ...this.shared, ...args });
+        };
     },
 });
 

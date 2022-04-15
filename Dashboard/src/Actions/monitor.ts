@@ -227,18 +227,20 @@ export const uploadConfigurationFileRequest: Function = (): void => {
 };
 
 export const logConfigFile: Function = (file: $TSFixMe): void => {
-    return (dispatch: Dispatch) =>
-        dispatch({
+    return (dispatch: Dispatch) => {
+        return dispatch({
             type: types.UPLOAD_CONFIGURATION_FILE_SUCCESS,
             payload: file,
         });
+    };
 };
 
 export const resetConfigFile: Function = (): void => {
-    return (dispatch: Dispatch) =>
-        dispatch({
+    return (dispatch: Dispatch) => {
+        return dispatch({
             type: types.RESET_UPLOAD_CONFIGURATION_FILE,
         });
+    };
 };
 
 export const setConfigInputKey: Function = (value: $TSFixMe): void => {
@@ -1315,27 +1317,35 @@ export const selectedProbe: Function = (val: $TSFixMe): void => {
     };
 };
 
-export const closeBreachedMonitorSlaRequest: Function = (): void => ({
-    type: types.CLOSE_BREACHED_MONITOR_SLA_REQUEST,
-});
+export const closeBreachedMonitorSlaRequest: Function = (): void => {
+    return {
+        type: types.CLOSE_BREACHED_MONITOR_SLA_REQUEST,
+    };
+};
 
 export const closeBreachedMonitorSlaSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.CLOSE_BREACHED_MONITOR_SLA_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.CLOSE_BREACHED_MONITOR_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const closeBreachedMonitorSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.CLOSE_BREACHED_MONITOR_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.CLOSE_BREACHED_MONITOR_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const closeBreachedMonitorSla: $TSFixMe =
-    (projectId: ObjectID, monitorId: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const closeBreachedMonitorSla: $TSFixMe = (
+    projectId: ObjectID,
+    monitorId: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(closeBreachedMonitorSlaRequest());
 
@@ -1356,27 +1366,34 @@ export const closeBreachedMonitorSla: $TSFixMe =
             dispatch(closeBreachedMonitorSlaFailure(errorMsg));
         }
     };
+};
 
-export const fetchBreachedMonitorSlaRequest: Function = (): void => ({
-    type: types.FETCH_BREACHED_MONITOR_SLA_REQUEST,
-});
+export const fetchBreachedMonitorSlaRequest: Function = (): void => {
+    return {
+        type: types.FETCH_BREACHED_MONITOR_SLA_REQUEST,
+    };
+};
 
 export const fetchBreachedMonitorSlaSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.FETCH_BREACHED_MONITOR_SLA_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.FETCH_BREACHED_MONITOR_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchBreachedMonitorSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_BREACHED_MONITOR_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_BREACHED_MONITOR_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchBreachedMonitorSla: $TSFixMe =
-    (projectId: ObjectID) => async (dispatch: Dispatch) => {
+export const fetchBreachedMonitorSla: $TSFixMe = (projectId: ObjectID) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(fetchBreachedMonitorSlaRequest());
 
@@ -1397,3 +1414,4 @@ export const fetchBreachedMonitorSla: $TSFixMe =
             dispatch(fetchBreachedMonitorSlaFailure(errorMsg));
         }
     };
+};

@@ -13,7 +13,9 @@ const isMainProjectViewer: Function = (
     currentProject: $TSFixMe
 ): void => {
     let user: $TSFixMe = currentProject
-        ? currentProject.users.find((user: $TSFixMe) => user.userId === userId)
+        ? currentProject.users.find((user: $TSFixMe) => {
+              return user.userId === userId;
+          })
         : null;
     if (user) {
         if (user.role === 'Viewer') {
@@ -23,16 +25,16 @@ const isMainProjectViewer: Function = (
     }
     user =
         subProjects && subProjects.length > 0
-            ? subProjects.map((subProject: $TSFixMe) =>
-                  subProject.users.find(
-                      (user: $TSFixMe) => user.userId === userId
-                  )
-              )
+            ? subProjects.map((subProject: $TSFixMe) => {
+                  return subProject.users.find((user: $TSFixMe) => {
+                      return user.userId === userId;
+                  });
+              })
             : null;
     if (user && user.length > 0) {
-        const member: $TSFixMe = user.find(
-            (user: $TSFixMe) => user.role !== 'Viewer'
-        );
+        const member: $TSFixMe = user.find((user: $TSFixMe) => {
+            return user.role !== 'Viewer';
+        });
         if (member && member._id) {
             return false;
         }

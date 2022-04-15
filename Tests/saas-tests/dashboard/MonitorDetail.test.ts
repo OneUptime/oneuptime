@@ -81,7 +81,9 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 `#createIncident_${monitorName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#createIncident');
@@ -95,23 +97,25 @@ describe('Monitor Detail API', () => {
             // await page.keyboard.press('Backspace');
 
             await init.pageType(page, '#title', incidentTitle);
-            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#numberOfIncidents');
 
             const selector: $TSFixMe = await init.page$Eval(
                 page,
                 '#numberOfIncidents',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(selector).toMatch('1');
 
@@ -123,7 +127,9 @@ describe('Monitor Detail API', () => {
             const rowContent: $TSFixMe = await init.page$Eval(
                 page,
                 selector1,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(rowContent).toMatch(priorityName);
             done();
@@ -144,7 +150,9 @@ describe('Monitor Detail API', () => {
             const selector: string = `#incident_0`;
 
             await init.pageWaitForSelector(page, selector);
-            await init.page$Eval(page, selector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, selector, (e: $TSFixMe) => {
+                return e.click();
+            });
             const incidentTitleSelector: string = '#incidentTitle';
             await init.pageWaitForSelector(page, incidentTitleSelector, {
                 visible: true,
@@ -153,7 +161,9 @@ describe('Monitor Detail API', () => {
             let currentTitle: $TSFixMe = await init.page$Eval(
                 page,
                 incidentTitleSelector,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(currentTitle).toEqual(incidentTitle);
             // The Edit Button has been removed and replaced with another functions
@@ -169,7 +179,9 @@ describe('Monitor Detail API', () => {
             currentTitle = await init.page$Eval(
                 page,
                 incidentTitleSelector,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(currentTitle).toEqual(newIncidentTitle);
             done();
@@ -196,7 +208,9 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 `#monitorCreateIncident_${monitorName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#incidentTitleLabel');
@@ -234,7 +248,9 @@ describe('Monitor Detail API', () => {
             let countIncidents: $TSFixMe = await init.page$Eval(
                 page,
                 incidentRows,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(countIncidents).toEqual('1');
 
@@ -248,7 +264,9 @@ describe('Monitor Detail API', () => {
             countIncidents = await init.page$Eval(
                 page,
                 incidentRows,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(countIncidents).toEqual('1');
             done();
@@ -268,7 +286,9 @@ describe('Monitor Detail API', () => {
             const selector: string = `#incident_0`;
 
             await init.pageWaitForSelector(page, selector);
-            await init.page$Eval(page, selector, (e: $TSFixMe) => e.click());
+            await init.page$Eval(page, selector, (e: $TSFixMe) => {
+                return e.click();
+            });
             // click on advance option tab
 
             await init.pageClick(page, '.advanced-tab');
@@ -276,8 +296,12 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: 100000,
             });
-            await init.page$Eval(page, '#deleteIncidentButton', (e: $TSFixMe) =>
-                e.click()
+            await init.page$Eval(
+                page,
+                '#deleteIncidentButton',
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
             await init.pageWaitForSelector(page, '#confirmDeleteIncident', {
                 visible: true,
@@ -286,7 +310,9 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 '#confirmDeleteIncident',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
             await init.pageWaitForSelector(page, `#cb${monitorName}`, {
                 visible: true,

@@ -163,10 +163,9 @@ export default class StripeService {
             tokenCard.card
         ) {
             duplicateCard =
-                cards.data.filter(
-                    (card: $TSFixMe) =>
-                        card.fingerprint === tokenCard.card.fingerprint
-                ).length > 0;
+                cards.data.filter((card: $TSFixMe) => {
+                    return card.fingerprint === tokenCard.card.fingerprint;
+                }).length > 0;
         }
 
         if (!duplicateCard) {

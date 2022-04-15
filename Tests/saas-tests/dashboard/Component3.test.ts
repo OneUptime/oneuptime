@@ -52,9 +52,9 @@ describe('Components', () => {
             });
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             let componentSpanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -81,7 +81,9 @@ describe('Components', () => {
             );
             await monitorPage.$eval(
                 `#monitorCreateIncident_${monitorName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
             await monitorPage.waitForSelector('#createIncident');
             await init.selectDropdownValue(
@@ -105,17 +107,17 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await page.bringToFront();
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
             // check that the monitor is offline on component page
 
             componentSpanElement = await init.pageWaitForSelector(
@@ -132,22 +134,24 @@ describe('Components', () => {
             await monitorPage.bringToFront();
             // open incident details
             await monitorPage.waitForSelector(`#incident_0`);
-            await monitorPage.$eval(`#incident_0`, (e: $TSFixMe) => e.click());
+            await monitorPage.$eval(`#incident_0`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             // click acknowledge button
             // acknowledge incident
             await monitorPage.waitForSelector('#btnAcknowledge_0');
-            await monitorPage.$eval('#btnAcknowledge_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await monitorPage.$eval('#btnAcknowledge_0', (e: $TSFixMe) => {
+                return e.click();
+            });
             await monitorPage.waitForSelector('#AcknowledgeText_0');
 
             // click resolve button
             // resolve incident
             await monitorPage.waitForSelector('#btnResolve_0');
-            await monitorPage.$eval('#btnResolve_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await monitorPage.$eval('#btnResolve_0', (e: $TSFixMe) => {
+                return e.click();
+            });
             await monitorPage.waitForSelector('#ResolveText_0');
             // confirm it is resolved here
             const resolveTextSelector: $TSFixMe = await monitorPage.$(
@@ -160,9 +164,9 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
             // confirm that the monitor is back online!
 
             componentSpanElement = await init.pageWaitForSelector(
@@ -192,9 +196,9 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageClick(page, `#more-details-${componentName}`);
 
@@ -205,8 +209,12 @@ describe('Components', () => {
             await init.pageWaitForSelector(page, 'input[name=name]');
 
             await init.pageType(page, 'input[name=name]', '-two');
-            await init.page$Eval(page, '#editComponentButton', (e: $TSFixMe) =>
-                e.click()
+            await init.page$Eval(
+                page,
+                '#editComponentButton',
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
@@ -295,15 +303,17 @@ describe('Components', () => {
             await init.page$Eval(
                 page,
                 `#monitorCreateIncident_${newMonitorName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
             await init.selectDropdownValue('#incidentPriority', 'Low', page);
-            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#createIncident', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
             });
@@ -313,9 +323,9 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -324,18 +334,20 @@ describe('Components', () => {
             await init.page$Eval(
                 page,
                 `#incident_${newMonitorName}_0`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#AccountSwitcherId');
-            await init.page$Eval(page, '#AccountSwitcherId', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#AccountSwitcherId', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#create-project');
-            await init.page$Eval(page, '#create-project', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#create-project', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#name');
 
@@ -347,11 +359,13 @@ describe('Components', () => {
             await init.page$Eval(
                 page,
                 'label[for=Startup_month]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             let currentPage: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -378,18 +392,18 @@ describe('Components', () => {
             // Navigate to Components page
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             // Fill and submit New Component form
 
             await init.pageWaitForSelector(page, '#form-new-component');
 
             await init.pageType(page, 'input[id=name]', newComponentName);
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
 
@@ -406,9 +420,9 @@ describe('Components', () => {
             await init.pageClick(page, '#url');
 
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, `#cb${newMonitorName}`, {
                 visible: true,
                 timeout: init.timeout,
@@ -417,21 +431,23 @@ describe('Components', () => {
             await init.page$Eval(
                 page,
                 `#monitorCreateIncident_${newMonitorName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
-            await init.page$Eval(page, `#createIncident`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#createIncident`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#viewIncident-0');
 
             await page.goto(utils.DASHBOARD_URL);
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             // Check for resource status Id
 
@@ -442,10 +458,9 @@ describe('Components', () => {
             const element: $TSFixMe = await page.$(
                 `#resource_status_${newMonitorName}`
             );
-            const value: $TSFixMe = await page.evaluate(
-                (el: $TSFixMe) => el.textContent,
-                element
-            );
+            const value: $TSFixMe = await page.evaluate((el: $TSFixMe) => {
+                return el.textContent;
+            }, element);
 
             expect(value.trim()).toEqual('offline');
             done();

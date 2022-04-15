@@ -83,10 +83,14 @@ async function run(): void {
 
     const files: $TSFixMe = fs
         .readdirSync('./scripts')
-        .filter(file => excludedScripts.indexOf(file) < 0) // Exclude index, start and end scripts
-        .sort((a, b) =>
-            parseInt(a.split('.')[2]) > parseInt(b.split('.')[2]) ? 1 : 0
-        );
+        .filter(file => {
+            return excludedScripts.indexOf(file) < 0;
+        }) // Exclude index, start and end scripts
+        .sort((a, b) => {
+            return parseInt(a.split('.')[2]) > parseInt(b.split('.')[2])
+                ? 1
+                : 0;
+        });
 
     // Switched to for loop, forEach does not await the callback
     for (let i: $TSFixMe = 0; i < files.length; i++) {

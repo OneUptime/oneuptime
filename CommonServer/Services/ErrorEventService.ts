@@ -210,9 +210,11 @@ export default class Service {
         }
         // sort total error events by latest occurence date
 
-        totalErrorEvents.sort((eventA, eventB) =>
-            moment(eventB.latestOccurennce).isAfter(eventA.latestOccurennce)
-        );
+        totalErrorEvents.sort((eventA, eventB) => {
+            return moment(eventB.latestOccurennce).isAfter(
+                eventA.latestOccurennce
+            );
+        });
         let dateRange: $TSFixMe = { startDate: '', endDate: '' };
         // set the date time range
         if (query.createdAt) {

@@ -11,13 +11,14 @@ export default function IsMemberSubProject(subProject: $TSFixMe): void {
         subProject &&
         subProject.users &&
         subProject.users.length > 0 &&
-        subProject.users.filter(
-            (user: $TSFixMe) =>
+        subProject.users.filter((user: $TSFixMe) => {
+            return (
                 user.userId === userId &&
                 (user.role !== 'Administrator' ||
                     user.role !== 'Owner' ||
                     user.role !== 'Viewer')
-        ).length > 0
+            );
+        }).length > 0
     ) {
         return true;
     }

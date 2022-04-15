@@ -65,7 +65,9 @@ describe('Email Logs', () => {
             const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr',
-                (row: $TSFixMe) => row.textContent
+                (row: $TSFixMe) => {
+                    return row.textContent;
+                }
             );
 
             expect(rowNum).toEqual(undefined);
@@ -102,7 +104,9 @@ describe('Email Logs', () => {
             const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
-                (rows: $TSFixMe) => rows.length
+                (rows: $TSFixMe) => {
+                    return rows.length;
+                }
             );
 
             expect(rowNum).toBeGreaterThan(0);
@@ -293,7 +297,9 @@ describe('Email Logs', () => {
             await init.page$Eval(
                 page,
                 'input[name=emailStatusToggler]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             // click the submit button

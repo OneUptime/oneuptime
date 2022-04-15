@@ -284,10 +284,10 @@ describe('Scheduled event', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const eventName: $TSFixMe = await page.evaluate(
-                () =>
-                    document.querySelector('.scheduled-event-name').textContent
-            );
+            const eventName: $TSFixMe = await page.evaluate(() => {
+                return document.querySelector('.scheduled-event-name')
+                    .textContent;
+            });
             expect(eventName).toMatch(
                 utils.capitalize(newScheduledMaintenanceName)
             );
@@ -322,7 +322,9 @@ describe('Scheduled event', () => {
             await init.page$$Eval(
                 page,
                 '.advanced-options-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#deleteScheduleEvent', {

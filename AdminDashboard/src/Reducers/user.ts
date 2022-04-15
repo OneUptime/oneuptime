@@ -281,9 +281,11 @@ export default function user(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: state.users.users.map((user: $TSFixMe) =>
-                        user._id === action.payload._id ? action.payload : user
-                    ),
+                    users: state.users.users.map((user: $TSFixMe) => {
+                        return user._id === action.payload._id
+                            ? action.payload
+                            : user;
+                    }),
                     count: action.payload.count,
                     limit: action.payload.limit,
                     skip: action.payload.skip,

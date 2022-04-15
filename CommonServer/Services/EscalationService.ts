@@ -195,13 +195,12 @@ export default class Service {
                 for (const team of teams) {
                     const teamMembers: $TSFixMe = team.teamMembers;
                     const filtered: $TSFixMe = teamMembers
-                        .filter(
-                            (meamber: $TSFixMe) =>
-                                meamber['groupId'] !== memberId
-                        )
-                        .filter(
-                            (member: $TSFixMe) => member['userId'] !== memberId
-                        );
+                        .filter((meamber: $TSFixMe) => {
+                            return meamber['groupId'] !== memberId;
+                        })
+                        .filter((member: $TSFixMe) => {
+                            return member['userId'] !== memberId;
+                        });
                     newTeams.push({
                         _id: team._id,
                         teamMembers: filtered,
@@ -235,9 +234,12 @@ export default class Service {
                             });
                         const rmEscalation: $TSFixMe =
                             schedule.escalationIds.filter(
-                                (escalationId: $TSFixMe) =>
-                                    String(escalationId._id) !==
-                                    String(escalation._id)
+                                (escalationId: $TSFixMe) => {
+                                    return (
+                                        String(escalationId._id) !==
+                                        String(escalation._id)
+                                    );
+                                }
                             );
                         schedule.escalationIds = rmEscalation;
                         await Promise.all([

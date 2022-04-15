@@ -27,9 +27,8 @@ export const dashboardLoadFailed: $TSFixMe = function (
     };
 };
 
-export const loadDashboard: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const loadDashboard: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         const skip: $TSFixMe = 0;
         const limit: $TSFixMe = 10;
         dispatch(dashboardLoadRequest());
@@ -57,3 +56,4 @@ export const loadDashboard: $TSFixMe =
             dispatch(dashboardLoadFailed(errorMsg));
         }
     };
+};

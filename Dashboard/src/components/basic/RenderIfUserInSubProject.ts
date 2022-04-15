@@ -12,16 +12,16 @@ export const RenderIfUserInSubProject: Function = (props: $TSFixMe): void => {
     let renderItems: $TSFixMe = null;
     if (
         currentProject &&
-        currentProject.users.filter(
-            (user: $TSFixMe) => user.userId === userId && user.role !== 'Viewer'
-        ).length > 0
+        currentProject.users.filter((user: $TSFixMe) => {
+            return user.userId === userId && user.role !== 'Viewer';
+        }).length > 0
     ) {
         renderItems = children;
     } else if (
         currentProject &&
-        currentProject.users.filter(
-            (user: $TSFixMe) => user.userId === userId && user.role === 'Viewer'
-        ).length > 0
+        currentProject.users.filter((user: $TSFixMe) => {
+            return user.userId === userId && user.role === 'Viewer';
+        }).length > 0
     ) {
         renderItems = children;
     } else {

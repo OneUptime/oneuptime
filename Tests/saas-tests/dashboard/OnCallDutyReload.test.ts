@@ -49,17 +49,17 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             const createScheduleBtn: string = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, createScheduleBtn, (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, createScheduleBtn, (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,

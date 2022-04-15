@@ -216,11 +216,12 @@ export default function incident(state = initialState, action: Action): void {
 
         case types.CREATE_INCIDENT_SUCCESS:
         case 'ADD_NEW_INCIDENT_TO_MONITORS':
-            isExistingIncident = state.incidents.incidents.find(
-                incident =>
+            isExistingIncident = state.incidents.incidents.find(incident => {
+                return (
                     incident._id ===
                     (action.payload.projectId._id || action.payload.projectId)
-            );
+                );
+            });
             return Object.assign({}, state, {
                 newIncident: {
                     requesting: false,
@@ -248,11 +249,15 @@ export default function incident(state = initialState, action: Action): void {
                                                         (
                                                             inc: $TSFixMe,
                                                             index: $TSFixMe
-                                                        ) =>
-                                                            inc._id !==
-                                                                action.payload
-                                                                    ._id ||
-                                                            index < 9
+                                                        ) => {
+                                                            return (
+                                                                inc._id !==
+                                                                    action
+                                                                        .payload
+                                                                        ._id ||
+                                                                index < 9
+                                                            );
+                                                        }
                                                     ),
                                                 ],
 
@@ -325,9 +330,9 @@ export default function incident(state = initialState, action: Action): void {
 
         case types.UPDATE_INCIDENT_SUCCESS:
             incidents = Object.assign([], state.incidents.incidents);
-            index = incidents.findIndex(
-                incident => incident._id === action.payload._id
-            );
+            index = incidents.findIndex(incident => {
+                return incident._id === action.payload._id;
+            });
 
             if (index >= 0) {
                 incidents[index] = action.payload;
@@ -346,9 +351,9 @@ export default function incident(state = initialState, action: Action): void {
                 [],
                 state.unresolvedincidents.incidents
             );
-            index1 = unresolvedincidents.findIndex(
-                incident => incident._id === action.payload._id
-            );
+            index1 = unresolvedincidents.findIndex(incident => {
+                return incident._id === action.payload._id;
+            });
 
             if (index1 >= 0) {
                 unresolvedincidents[index1] = action.payload;
@@ -785,11 +790,12 @@ export default function incident(state = initialState, action: Action): void {
 
         case types.DELETE_PROJECT_INCIDENTS:
             incidents = Object.assign([], state.incidents);
-            incidents = incidents.filter(
-                incident =>
+            incidents = incidents.filter(incident => {
+                return (
                     (incident.projectId._id || incident.projectId) !==
                     action.payload
-            );
+                );
+            });
             return Object.assign({}, state, {
                 incidents: {
                     requesting: false,
@@ -806,10 +812,9 @@ export default function incident(state = initialState, action: Action): void {
             incidentMessages =
                 state.incidentMessages[action.payload.incidentId._id][
                     action.payload.type
-                ].incidentMessages.filter(
-                    (incidentMessage: $TSFixMe) =>
-                        incidentMessage._id === action.payload._id
-                ).length > 0
+                ].incidentMessages.filter((incidentMessage: $TSFixMe) => {
+                    return incidentMessage._id === action.payload._id;
+                }).length > 0
                     ? state.incidentMessages[action.payload.incidentId._id][
                           action.payload.type
                       ].incidentMessages.map((incidentMessage: $TSFixMe) => {
@@ -896,10 +901,9 @@ export default function incident(state = initialState, action: Action): void {
             incidentMessages =
                 state.incidentMessages[action.payload.incidentId._id][
                     action.payload.type
-                ].incidentMessages.filter(
-                    (incidentMessage: $TSFixMe) =>
-                        incidentMessage._id === action.payload._id
-                ).length > 0
+                ].incidentMessages.filter((incidentMessage: $TSFixMe) => {
+                    return incidentMessage._id === action.payload._id;
+                }).length > 0
                     ? state.incidentMessages[action.payload.incidentId._id][
                           action.payload.type
                       ].incidentMessages.map((incidentMessage: $TSFixMe) => {
@@ -1284,7 +1288,9 @@ export default function incident(state = initialState, action: Action): void {
                 unresolvedincidents: {
                     ...state.unresolvedincidents,
                     incidents: state.unresolvedincidents.incidents.filter(
-                        incident => incident._id !== action.payload
+                        incident => {
+                            return incident._id !== action.payload;
+                        }
                     ),
                 },
             });
@@ -1300,9 +1306,12 @@ export default function incident(state = initialState, action: Action): void {
                                 ...state.incidents.incidents[0],
                                 incidents:
                                     state.incidents.incidents[0].incidents.filter(
-                                        incident =>
-                                            String(incident._id) !==
-                                            String(action.payload._id)
+                                        incident => {
+                                            return (
+                                                String(incident._id) !==
+                                                String(action.payload._id)
+                                            );
+                                        }
                                     ),
                             },
                         ],
@@ -1310,9 +1319,12 @@ export default function incident(state = initialState, action: Action): void {
                     unresolvedincidents: {
                         ...state.unresolvedincidents,
                         incidents: state.unresolvedincidents.incidents.filter(
-                            incident =>
-                                String(incident._id) !==
-                                String(action.payload._id)
+                            incident => {
+                                return (
+                                    String(incident._id) !==
+                                    String(action.payload._id)
+                                );
+                            }
                         ),
                     },
                 };
@@ -1490,8 +1502,9 @@ export default function incident(state = initialState, action: Action): void {
             incidentMessages = state.incidentMessages[
                 action.payload.incidentId
             ][action.payload.type].incidentMessages.filter(
-                (incidentMessage: $TSFixMe) =>
-                    incidentMessage._id !== action.payload._id
+                (incidentMessage: $TSFixMe) => {
+                    return incidentMessage._id !== action.payload._id;
+                }
             );
             return Object.assign({}, state, {
                 incidentMessages: {

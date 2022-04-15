@@ -1,12 +1,14 @@
 import * as types from '../constants/invoice';
 import Action from 'CommonUI/src/types/action';
-const getInitialState: Function = (): void => ({
-    requesting: false,
-    error: null,
-    success: false,
-    invoices: [],
-    nextCount: 0,
-});
+const getInitialState: Function = (): void => {
+    return {
+        requesting: false,
+        error: null,
+        success: false,
+        invoices: [],
+        nextCount: 0,
+    };
+};
 
 export default function getInvoice(
     state = getInitialState(),

@@ -162,8 +162,9 @@ export default (state = initialState, action: Action): void => {
                 notifications: {
                     ...state.notifications,
                     notifications: state.notifications.notifications.filter(
-                        notification =>
-                            notification.projectId !== action.payload
+                        notification => {
+                            return notification.projectId !== action.payload;
+                        }
                     ),
                 },
             });

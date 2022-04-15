@@ -12,5 +12,7 @@ const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
 // script monitor cron job
 cron.schedule('* * * * *', () => {
-    setTimeout(() => main.runScriptMonitorsJob(), cronMinuteStartTime * 1000);
+    setTimeout(() => {
+        return main.runScriptMonitorsJob();
+    }, cronMinuteStartTime * 1000);
 });

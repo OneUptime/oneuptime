@@ -105,10 +105,11 @@ const ping: Function = (
                         .then(data => {
                             const storage: $TSFixMe =
                                 data[2] && data[2].length > 0
-                                    ? data[2].filter(
-                                          partition =>
+                                    ? data[2].filter(partition => {
+                                          return (
                                               partition.size === data[2][0].size
-                                      )
+                                          );
+                                      })
                                     : data[2];
                             return {
                                 cpuLoad: data[0].currentLoad,
@@ -120,14 +121,12 @@ const ping: Function = (
                                 storageUsed:
                                     storage && storage.length > 0
                                         ? storage
-                                              .map(
-                                                  (partition: $TSFixMe) =>
-                                                      partition.used
-                                              )
-                                              .reduce(
-                                                  (used, partitionUsed) =>
-                                                      used + partitionUsed
-                                              )
+                                              .map((partition: $TSFixMe) => {
+                                                  return partition.used;
+                                              })
+                                              .reduce((used, partitionUsed) => {
+                                                  return used + partitionUsed;
+                                              })
                                         : storage.used,
                                 totalStorage:
                                     storage && storage.length > 0
@@ -136,14 +135,12 @@ const ping: Function = (
                                 storageUsage:
                                     storage && storage.length > 0
                                         ? storage
-                                              .map(
-                                                  (partition: $TSFixMe) =>
-                                                      partition.use
-                                              )
-                                              .reduce(
-                                                  (use, partitionUse) =>
-                                                      use + partitionUse
-                                              )
+                                              .map((partition: $TSFixMe) => {
+                                                  return partition.use;
+                                              })
+                                              .reduce((use, partitionUse) => {
+                                                  return use + partitionUse;
+                                              })
                                         : storage.use,
                                 mainTemp: data[3].main,
                                 maxTemp: data[3].max,
@@ -161,7 +158,9 @@ const ping: Function = (
                                         `${monitorId} - System Information uploaded`
                                     );
                                 },
-                                (error: $TSFixMe) => logger.error(error)
+                                (error: $TSFixMe) => {
+                                    return logger.error(error);
+                                }
                             );
                         })
                         .catch((error: Error) => {

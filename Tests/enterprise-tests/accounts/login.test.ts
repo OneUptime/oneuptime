@@ -129,14 +129,16 @@ describe('SSO login', () => {
             );
             await Promise.all([
                 init.pageClick(page, 'button[type=submit]'),
-                page.waitForResponse((response: $TSFixMe) =>
-                    response.url().includes('/login')
-                ),
+                page.waitForResponse((response: $TSFixMe) => {
+                    return response.url().includes('/login');
+                }),
             ]);
             const html: $TSFixMe = await init.page$Eval(
                 page,
                 '#main-body',
-                (e: $TSFixMe) => e.innerHTML
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
             );
             html.should.containEql('Domain not found.');
 
@@ -165,14 +167,16 @@ describe('SSO login', () => {
             );
             await Promise.all([
                 init.pageClick(page, 'button[type=submit]'),
-                page.waitForResponse((response: $TSFixMe) =>
-                    response.url().includes('/login')
-                ),
+                page.waitForResponse((response: $TSFixMe) => {
+                    return response.url().includes('/login');
+                }),
             ]);
             const html: $TSFixMe = await init.page$Eval(
                 page,
                 '#main-body',
-                (e: $TSFixMe) => e.innerHTML
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
             );
             html.should.containEql('SSO disabled for this domain.');
 

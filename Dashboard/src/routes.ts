@@ -781,7 +781,9 @@ export const allRoutes: $TSFixMe = groups
 
     .reduce(joinFn);
 
-export const getGroups: Function = (): void => groups;
+export const getGroups: Function = (): void => {
+    return groups;
+};
 
 export default {
     groups,

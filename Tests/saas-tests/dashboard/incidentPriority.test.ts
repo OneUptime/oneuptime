@@ -59,7 +59,9 @@ describe('Incident Priority API', () => {
             await init.page$$Eval(
                 page,
                 '.incident-priority-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#addNewPriority');
@@ -84,7 +86,9 @@ describe('Incident Priority API', () => {
             await init.page$$Eval(
                 page,
                 '.incident-priority-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             // two incident priority is automatically added to a project
             // High incident priority is marked as default
@@ -94,7 +98,9 @@ describe('Incident Priority API', () => {
             const content: $TSFixMe = await init.page$Eval(
                 page,
                 lastRowFirstColumnIndentifier,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(content).toEqual(priorityName);
             done();
@@ -128,7 +134,9 @@ describe('Incident Priority API', () => {
             await init.page$$Eval(
                 page,
                 '.incident-priority-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             const editButtonLastRowIndentifier: string = `#priorityEdit_${priorityName}_2`;
 
@@ -157,7 +165,9 @@ describe('Incident Priority API', () => {
             await init.page$$Eval(
                 page,
                 '.incident-priority-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             const lastRowIndentifier: string = `#priority_${newPriorityName}_2`;
 
@@ -165,7 +175,9 @@ describe('Incident Priority API', () => {
             const content: $TSFixMe = await init.page$Eval(
                 page,
                 lastRowIndentifier,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(content).toEqual(newPriorityName);
             done();
@@ -199,7 +211,9 @@ describe('Incident Priority API', () => {
             await init.page$$Eval(
                 page,
                 '.incident-priority-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             const incidentPrioritiesCount: string = '#incidentPrioritiesCount';
 
@@ -207,7 +221,9 @@ describe('Incident Priority API', () => {
             const incidentsCountBeforeDeletion: $TSFixMe = await init.page$Eval(
                 page,
                 incidentPrioritiesCount,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(incidentsCountBeforeDeletion).toEqual(
                 'Page 1 of 1 (3 Priorities)'
@@ -233,14 +249,18 @@ describe('Incident Priority API', () => {
             await init.page$$Eval(
                 page,
                 '.incident-priority-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, incidentPrioritiesCount);
             const incidentsCountAfterDeletion: $TSFixMe = await init.page$Eval(
                 page,
                 incidentPrioritiesCount,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(incidentsCountAfterDeletion).toEqual(
                 'Page 1 of 1 (2 Priorities)'
@@ -276,7 +296,9 @@ describe('Incident Priority API', () => {
             await init.page$$Eval(
                 page,
                 '.incident-priority-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             // default priority
             await init.pageWaitForSelector(page, '#priorities', {
@@ -293,7 +315,9 @@ describe('Incident Priority API', () => {
             let incidentPrioritiesCount: $TSFixMe = await init.page$Eval(
                 page,
                 incidentPrioritiesCountIdentifier,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(incidentPrioritiesCount).toMatch(
                 'Page 1 of 1 (2 Priorities)'
@@ -333,7 +357,9 @@ describe('Incident Priority API', () => {
             await init.page$$Eval(
                 page,
                 '.incident-priority-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             // default priority
@@ -353,7 +379,9 @@ describe('Incident Priority API', () => {
             incidentPrioritiesCount = await init.page$Eval(
                 page,
                 incidentPrioritiesCountIdentifier,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(incidentPrioritiesCount).toMatch(
                 'Page 2 of 2 (13 Priorities)'
@@ -370,7 +398,9 @@ describe('Incident Priority API', () => {
             incidentPrioritiesCount = await init.page$Eval(
                 page,
                 incidentPrioritiesCountIdentifier,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(incidentPrioritiesCount).toMatch(
                 'Page 1 of 2 (13 Priorities)'

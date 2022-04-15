@@ -36,7 +36,9 @@ async function run(): void {
             let updatedMonitors: $TSFixMe = statusPage.monitors;
 
             const monitorIds: $TSFixMe = statusPage.monitors.map(
-                (monitorObj: $TSFixMe) => ObjectId(monitorObj.monitor)
+                (monitorObj: $TSFixMe) => {
+                    return ObjectId(monitorObj.monitor);
+                }
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
@@ -66,7 +68,9 @@ async function run(): void {
                     );
 
                     let monitorIds: $TSFixMe = monitors.map(
-                        (monitor: $TSFixMe) => ObjectId(monitor._id)
+                        (monitor: $TSFixMe) => {
+                            return ObjectId(monitor._id);
+                        }
                     );
                     await updateMany(
                         monitorCollection,
@@ -76,7 +80,9 @@ async function run(): void {
                     );
 
                     // stringify the ids
-                    monitorIds = monitorIds.map((id: $TSFixMe) => String(id));
+                    monitorIds = monitorIds.map((id: $TSFixMe) => {
+                        return String(id);
+                    });
                     updatedMonitors = statusPage.monitors.map(
                         (monitorObj: $TSFixMe) => {
                             if (
@@ -112,7 +118,9 @@ async function run(): void {
             let updatedMonitors: $TSFixMe = statusPage.monitors;
 
             const monitorIds: $TSFixMe = statusPage.monitors.map(
-                (monitorObj: $TSFixMe) => ObjectId(monitorObj.monitor)
+                (monitorObj: $TSFixMe) => {
+                    return ObjectId(monitorObj.monitor);
+                }
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
@@ -132,7 +140,9 @@ async function run(): void {
                     );
 
                     let monitorIds: $TSFixMe = monitors.map(
-                        (monitor: $TSFixMe) => ObjectId(monitor._id)
+                        (monitor: $TSFixMe) => {
+                            return ObjectId(monitor._id);
+                        }
                     );
                     await updateMany(
                         monitorCollection,
@@ -142,7 +152,9 @@ async function run(): void {
                     );
 
                     // stringify the ids
-                    monitorIds = monitorIds.map((id: $TSFixMe) => String(id));
+                    monitorIds = monitorIds.map((id: $TSFixMe) => {
+                        return String(id);
+                    });
                     updatedMonitors = statusPage.monitors.map(
                         (monitorObj: $TSFixMe) => {
                             if (

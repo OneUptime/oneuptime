@@ -81,7 +81,9 @@ describe('SMS Logs', () => {
             const alertLogs: $TSFixMe = await init.page$Eval(
                 page,
                 '#logsStatus',
-                (element: $TSFixMe) => element.textContent
+                (element: $TSFixMe) => {
+                    return element.textContent;
+                }
             );
             expect(alertLogs).toEqual("We don't have any logs yet");
             done();
@@ -125,7 +127,9 @@ describe('SMS Logs', () => {
             const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
-                (rows: $TSFixMe) => rows.length
+                (rows: $TSFixMe) => {
+                    return rows.length;
+                }
             );
 
             expect(rowNum).toBeGreaterThan(0);
@@ -192,7 +196,9 @@ describe('SMS Logs', () => {
             const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
-                (rows: $TSFixMe) => rows.length
+                (rows: $TSFixMe) => {
+                    return rows.length;
+                }
             );
 
             expect(rowNum).toBeGreaterThanOrEqual(0);
@@ -297,7 +303,9 @@ describe('SMS Logs', () => {
             await init.page$Eval(
                 page,
                 'input[name=smsStatusToggler]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             // click the submit button

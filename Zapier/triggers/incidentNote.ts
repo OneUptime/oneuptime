@@ -8,9 +8,9 @@ const fallbackHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
         url: `${bundle.authData.serverUrl}/zapier/incident-note`,
     };
 
-    return z
-        .request(options)
-        .then((response: $TSFixMe) => JSON.parse(response.content));
+    return z.request(options).then((response: $TSFixMe) => {
+        return JSON.parse(response.content);
+    });
 };
 const subscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     // bundle.targetUrl has the Hook URL this app should call when an incident is acknowledged.
@@ -27,9 +27,9 @@ const subscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     };
 
     // You may return a promise or a normal data structure from any perform method.
-    return z
-        .request(options)
-        .then((response: $TSFixMe) => JSON.parse(response.content));
+    return z.request(options).then((response: $TSFixMe) => {
+        return JSON.parse(response.content);
+    });
 };
 
 const unSubscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
@@ -45,9 +45,9 @@ const unSubscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     };
 
     // You may return a promise or a normal data structure from any perform method.
-    return z
-        .request(options)
-        .then((response: $TSFixMe) => JSON.parse(response.content));
+    return z.request(options).then((response: $TSFixMe) => {
+        return JSON.parse(response.content);
+    });
 };
 
 export default {

@@ -127,7 +127,9 @@ export default function subscriber(state = initialState, action: Action): void {
                 subscribers: {
                     ...state.subscribers,
                     subscribers: state.subscribers.subscribers.filter(
-                        subscriber => subscriber !== action.payload._id
+                        subscriber => {
+                            return subscriber !== action.payload._id;
+                        }
                     ),
                 },
             });

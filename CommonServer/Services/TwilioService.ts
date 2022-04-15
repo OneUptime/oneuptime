@@ -1535,7 +1535,9 @@ export default class TwilioService {
 
     async getTemplate(smsTemplate: $TSFixMe, smsTemplateType: $TSFixMe): void {
         const defaultTemplate: $TSFixMe = defaultSmsTemplates.filter(
-            template => template.smsType === smsTemplateType
+            template => {
+                return template.smsType === smsTemplateType;
+            }
         )[0];
         let smsContent: $TSFixMe = defaultTemplate.body;
         if (

@@ -170,8 +170,9 @@ export default {
             //and the rest happens here.
 
             const monitors: $TSFixMe = incident.monitors.map(
-                (monitor: $TSFixMe) =>
-                    monitor.monitorId._id || monitor.monitorId
+                (monitor: $TSFixMe) => {
+                    return monitor.monitorId._id || monitor.monitorId;
+                }
             );
             for (const monitor of monitors) {
                 AlertService.sendAlertsToTeamMembersInSchedule({

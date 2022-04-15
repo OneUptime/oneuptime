@@ -24,21 +24,27 @@ export default {
                     url,
                     method: 'post',
                     data: dataConfig,
-                }).finally(() => null); // always return null
+                }).finally(() => {
+                    return null;
+                }); // always return null
             },
 
             get: function (data: $TSFixMe): void {
                 const ch: $TSFixMe = data.challenge;
 
                 const url: string = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
-                return axios.get(url).then((result: $TSFixMe) => result);
+                return axios.get(url).then((result: $TSFixMe) => {
+                    return result;
+                });
             },
 
             remove: function (data: $TSFixMe): void {
                 const ch: $TSFixMe = data.challenge;
 
                 const url: string = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
-                return axios({ url, method: 'delete' }).finally(() => null); // always return null
+                return axios({ url, method: 'delete' }).finally(() => {
+                    return null;
+                }); // always return null
             },
 
             options: config,

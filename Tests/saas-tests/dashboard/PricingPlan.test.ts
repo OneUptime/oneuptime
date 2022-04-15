@@ -35,9 +35,9 @@ describe('Status Page -> Pricing Plan Component', () => {
         'should show upgrade modal if project is not available in a particular plan',
         async (done: $TSFixMe) => {
             await init.addProject(page, 'test');
-            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#btnCreateStatusPage_test');
 
@@ -64,12 +64,16 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.page$$Eval(
                 page,
                 '.advanced-options-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             await init.page$Eval(
                 page,
                 'input[name="isPrivate"]',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
             const modal: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -106,7 +110,9 @@ describe('Status Page -> Pricing Plan Component', () => {
             const rowLength: $TSFixMe = await init.page$$Eval(
                 page,
                 '#alertOptionRow > div.bs-Fieldset-row',
-                (rows: $TSFixMe) => rows.length
+                (rows: $TSFixMe) => {
+                    return rows.length;
+                }
             );
 
             if (rowLength === 1) {
@@ -138,9 +144,9 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             // select the first item from the table row
             const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -155,12 +161,16 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.page$$Eval(
                 page,
                 '.advanced-options-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             await init.page$Eval(
                 page,
                 'input[name="isPrivate"]',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#pricingPlanModal', {
@@ -199,9 +209,9 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             // select the first item from the table row
             const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -216,12 +226,16 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.page$$Eval(
                 page,
                 '.advanced-options-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             await init.page$Eval(
                 page,
                 'input[name="isPrivate"]',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#pricingPlanModal', {
@@ -253,18 +267,24 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.page$$Eval(
                 page,
                 '.advanced-options-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.page$Eval(
                 page,
                 'input[name="isPrivate"]',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
             const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name="isPrivate"]',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
             expect(utils.parseBoolean(value)).toBe(true);
             done();

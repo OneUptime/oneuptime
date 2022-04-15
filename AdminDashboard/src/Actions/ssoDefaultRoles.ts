@@ -27,9 +27,11 @@ export const fetchSsoDefaultRolesError: Function = (
     };
 };
 
-export const fetchSsoDefaultRoles: $TSFixMe =
-    (skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchSsoDefaultRoles: $TSFixMe = (
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchSsoDefaultRolesRequest());
@@ -55,6 +57,7 @@ export const fetchSsoDefaultRoles: $TSFixMe =
             return dispatch(fetchSsoDefaultRolesError(errorMsg));
         }
     };
+};
 
 export const fetchSsoDefaultRoleRequest: Function = (): void => {
     return {
@@ -78,8 +81,8 @@ export const fetchSsoDefaultRoleError: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const fetchSsoDefaultRole: $TSFixMe =
-    (ssoDefaultRoleId: $TSFixMe) => async (dispatch: Dispatch) => {
+export const fetchSsoDefaultRole: $TSFixMe = (ssoDefaultRoleId: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(fetchSsoDefaultRoleRequest());
         try {
             const response: $TSFixMe = await BackendAPI.get(
@@ -103,6 +106,7 @@ export const fetchSsoDefaultRole: $TSFixMe =
             dispatch(fetchSsoDefaultRoleError(errorMsg));
         }
     };
+};
 
 export const deleteSsoDefaultRoleRequest: Function = (): void => {
     return {
@@ -128,8 +132,8 @@ export const deleteSsoDefaultRoleError: Function = (
     };
 };
 
-export const deleteSsoDefaultRole: $TSFixMe =
-    (ssoId: $TSFixMe) => async (dispatch: Dispatch) => {
+export const deleteSsoDefaultRole: $TSFixMe = (ssoId: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(deleteSsoDefaultRoleRequest());
         try {
             const response: $TSFixMe = await delete `ssoDefaultRoles/${ssoId}`;
@@ -153,6 +157,7 @@ export const deleteSsoDefaultRole: $TSFixMe =
             dispatch(deleteSsoDefaultRoleError(errorMsg));
         }
     };
+};
 
 export const addSsoDefaultRoleRequest: Function = (): void => {
     return {
@@ -173,9 +178,8 @@ export const addSsoDefaultRoleError: Function = (payload: $TSFixMe): void => {
     };
 };
 
-export const addSsoDefaultRole: $TSFixMe =
-    ({ data }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const addSsoDefaultRole: $TSFixMe = ({ data }: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(addSsoDefaultRoleRequest());
         try {
             await BackendAPI.post(`ssoDefaultRoles/`, data);
@@ -198,6 +202,7 @@ export const addSsoDefaultRole: $TSFixMe =
             return false;
         }
     };
+};
 
 export const updateSsoDefaultRoleRequest: Function = (): void => {
     return {
@@ -220,9 +225,8 @@ export const updateSsoDefaultRoleError: Function = (
     };
 };
 
-export const updateSsoDefaultRole: $TSFixMe =
-    ({ id, data }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const updateSsoDefaultRole: $TSFixMe = ({ id, data }: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(updateSsoDefaultRoleRequest());
         try {
             await BackendAPI.put(`ssoDefaultRoles/${id}`, data);
@@ -245,6 +249,7 @@ export const updateSsoDefaultRole: $TSFixMe =
             return false;
         }
     };
+};
 
 export const paginate: Function = (type: $TSFixMe): void => {
     if (type === 'next') {

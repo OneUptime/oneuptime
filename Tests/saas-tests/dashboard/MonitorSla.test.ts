@@ -76,9 +76,9 @@ describe('Monitor SLA', () => {
                 monitorUptime,
                 page
             );
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageClick(page, '#createSlaBtn');
 
@@ -133,9 +133,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#name');
 
             await init.pageType(page, '#name', slaName);
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageClick(page, '#createSlaBtn');
 
@@ -201,9 +201,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#customMonitorUptime');
 
             await init.pageType(page, '#customMonitorUptime', '12uptime');
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageClick(page, '#createSlaBtn');
 
@@ -269,9 +269,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#customMonitorUptime');
 
             await init.pageType(page, '#customMonitorUptime', '120');
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageClick(page, '#createSlaBtn');
 
@@ -337,9 +337,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#customMonitorUptime');
 
             await init.pageType(page, '#customMonitorUptime', '0');
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageClick(page, '#createSlaBtn');
 
@@ -401,9 +401,9 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#customFrequency');
 
             await init.pageType(page, '#customFrequency', '12days');
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageClick(page, '#createSlaBtn');
 
@@ -510,9 +510,9 @@ describe('Monitor SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
-                elem.click()
-            ); // set isDefault to false
+            await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => {
+                return elem.click();
+            }); // set isDefault to false
 
             await init.pageClick(page, '#editSlaBtn');
 

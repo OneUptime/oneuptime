@@ -70,7 +70,9 @@ export default class Service {
         const arr: $TSFixMe = [];
         const wrapper: $TSFixMe = {};
         const filterMembers: $TSFixMe = result[0].members.filter(
-            (member: $TSFixMe) => member._id !== null
+            (member: $TSFixMe) => {
+                return member._id !== null;
+            }
         );
         for (const member of filterMembers) {
             const response: $TSFixMe = await UserService.findOneBy({

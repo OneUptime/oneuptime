@@ -22,31 +22,42 @@ export const setEndDate: Function = (date: $TSFixMe): void => {
 };
 
 // create performance tracker
-export const createPerformanceTrackerRequest: Function = (): void => ({
-    type: types.CREATE_PERFORMANCE_TRACKER_REQUEST,
-});
+export const createPerformanceTrackerRequest: Function = (): void => {
+    return {
+        type: types.CREATE_PERFORMANCE_TRACKER_REQUEST,
+    };
+};
 
 export const createPerformanceTrackerSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.CREATE_PERFORMANCE_TRACKER_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.CREATE_PERFORMANCE_TRACKER_SUCCESS,
+        payload,
+    };
+};
 
 export const createPerformanceTrackerFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.CREATE_PERFORMANCE_TRACKER_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.CREATE_PERFORMANCE_TRACKER_FAILURE,
+        payload: error,
+    };
+};
 
-export const createPerformanceTrackerReset: Function = (): void => ({
-    type: types.CREATE_PERFORMANCE_TRACKER_RESET,
-});
+export const createPerformanceTrackerReset: Function = (): void => {
+    return {
+        type: types.CREATE_PERFORMANCE_TRACKER_RESET,
+    };
+};
 
-export const createPerformanceTracker: $TSFixMe =
-    ({ projectId, componentId, values }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const createPerformanceTracker: $TSFixMe = ({
+    projectId,
+    componentId,
+    values,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(createPerformanceTrackerRequest());
         const promise: $TSFixMe = BackendAPI.post(
             `performanceTracker/${projectId}/${componentId}/create`,
@@ -72,33 +83,45 @@ export const createPerformanceTracker: $TSFixMe =
 
         return promise;
     };
+};
 
 // fetch a single performance tracker
-export const fetchPerformanceTrackerRequest: Function = (): void => ({
-    type: types.FETCH_PERFORMANCE_TRACKER_REQUEST,
-});
+export const fetchPerformanceTrackerRequest: Function = (): void => {
+    return {
+        type: types.FETCH_PERFORMANCE_TRACKER_REQUEST,
+    };
+};
 
 export const fetchPerformanceTrackerSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.FETCH_PERFORMANCE_TRACKER_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.FETCH_PERFORMANCE_TRACKER_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchPerformanceTrackerFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_PERFORMANCE_TRACKER_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_PERFORMANCE_TRACKER_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchPerformanceTrackerReset: Function = (): void => ({
-    type: types.FETCH_PERFORMANCE_TRACKER_RESET,
-});
+export const fetchPerformanceTrackerReset: Function = (): void => {
+    return {
+        type: types.FETCH_PERFORMANCE_TRACKER_RESET,
+    };
+};
 
-export const fetchPerformanceTracker: $TSFixMe =
-    ({ projectId, performanceTrackerId, slug }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const fetchPerformanceTracker: $TSFixMe = ({
+    projectId,
+    performanceTrackerId,
+    slug,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(fetchPerformanceTrackerRequest());
         const promise: $TSFixMe = BackendAPI.get(
             `performanceTracker/${projectId}/tracker/${performanceTrackerId}?slug=${slug}`
@@ -123,42 +146,50 @@ export const fetchPerformanceTracker: $TSFixMe =
 
         return promise;
     };
+};
 
 // fetch performance tracker list
 export const fetchPerformanceTrackersRequest: Function = (
     fetchingPage: $TSFixMe
-): void => ({
-    type: types.FETCH_PERFORMANCE_TRACKERS_REQUEST,
-    payload: fetchingPage,
-});
+): void => {
+    return {
+        type: types.FETCH_PERFORMANCE_TRACKERS_REQUEST,
+        payload: fetchingPage,
+    };
+};
 
 export const fetchPerformanceTrackersSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.FETCH_PERFORMANCE_TRACKERS_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.FETCH_PERFORMANCE_TRACKERS_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchPerformanceTrackersFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_PERFORMANCE_TRACKERS_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_PERFORMANCE_TRACKERS_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchPerformanceTrackersReset: Function = (): void => ({
-    type: types.FETCH_PERFORMANCE_TRACKERS_RESET,
-});
+export const fetchPerformanceTrackersReset: Function = (): void => {
+    return {
+        type: types.FETCH_PERFORMANCE_TRACKERS_RESET,
+    };
+};
 
-export const fetchPerformanceTrackers: $TSFixMe =
-    ({
-        projectId,
-        componentId,
-        skip = 0,
-        limit = 0,
-        fetchingPage = false,
-    }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const fetchPerformanceTrackers: $TSFixMe = ({
+    projectId,
+    componentId,
+    skip = 0,
+    limit = 0,
+    fetchingPage = false,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(fetchPerformanceTrackersRequest(fetchingPage));
         const promise: $TSFixMe = BackendAPI.get(
             `performanceTracker/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
@@ -183,33 +214,46 @@ export const fetchPerformanceTrackers: $TSFixMe =
 
         return promise;
     };
+};
 
 // update performance tracker
-export const updatePerformanceTrackerRequest: Function = (): void => ({
-    type: types.UPDATE_PERFORMANCE_TRACKER_REQUEST,
-});
+export const updatePerformanceTrackerRequest: Function = (): void => {
+    return {
+        type: types.UPDATE_PERFORMANCE_TRACKER_REQUEST,
+    };
+};
 
 export const updatePerformanceTrackerSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.UPDATE_PERFORMANCE_TRACKER_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.UPDATE_PERFORMANCE_TRACKER_SUCCESS,
+        payload,
+    };
+};
 
 export const updatePerformanceTrackerFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.UPDATE_PERFORMANCE_TRACKER_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.UPDATE_PERFORMANCE_TRACKER_FAILURE,
+        payload: error,
+    };
+};
 
-export const updatePerformanceTrackerReset: Function = (): void => ({
-    type: types.UPDATE_PERFORMANCE_TRACKER_RESET,
-});
+export const updatePerformanceTrackerReset: Function = (): void => {
+    return {
+        type: types.UPDATE_PERFORMANCE_TRACKER_RESET,
+    };
+};
 
-export const updatePerformanceTracker: $TSFixMe =
-    ({ projectId, componentId, performanceTrackerId, values }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const updatePerformanceTracker: $TSFixMe = ({
+    projectId,
+    componentId,
+    performanceTrackerId,
+    values,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(updatePerformanceTrackerRequest());
         const promise: $TSFixMe = BackendAPI.put(
             `performanceTracker/${projectId}/${componentId}/update-tracker/${performanceTrackerId}`,
@@ -235,33 +279,44 @@ export const updatePerformanceTracker: $TSFixMe =
 
         return promise;
     };
+};
 
 // delete performance tracker
-export const deletePerformanceTrackerRequest: Function = (): void => ({
-    type: types.DELETE_PERFORMANCE_TRACKER_REQUEST,
-});
+export const deletePerformanceTrackerRequest: Function = (): void => {
+    return {
+        type: types.DELETE_PERFORMANCE_TRACKER_REQUEST,
+    };
+};
 
 export const deletePerformanceTrackerSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.DELETE_PERFORMANCE_TRACKER_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.DELETE_PERFORMANCE_TRACKER_SUCCESS,
+        payload,
+    };
+};
 
 export const deletePerformanceTrackerFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.DELETE_PERFORMANCE_TRACKER_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.DELETE_PERFORMANCE_TRACKER_FAILURE,
+        payload: error,
+    };
+};
 
-export const deletePerformanceTrackerReset: Function = (): void => ({
-    type: types.DELETE_PERFORMANCE_TRACKER_RESET,
-});
+export const deletePerformanceTrackerReset: Function = (): void => {
+    return {
+        type: types.DELETE_PERFORMANCE_TRACKER_RESET,
+    };
+};
 
-export const deletePerformanceTracker: $TSFixMe =
-    ({ projectId, performanceTrackerId }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const deletePerformanceTracker: $TSFixMe = ({
+    projectId,
+    performanceTrackerId,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(deletePerformanceTrackerRequest());
 
         const promise: $TSFixMe =
@@ -286,33 +341,44 @@ export const deletePerformanceTracker: $TSFixMe =
 
         return promise;
     };
+};
 
 // reset performance tracker api key
-export const resetPerformanceTrackerKeyRequest: Function = (): void => ({
-    type: types.RESET_PERFORMANCE_TRACKER_KEY_REQUEST,
-});
+export const resetPerformanceTrackerKeyRequest: Function = (): void => {
+    return {
+        type: types.RESET_PERFORMANCE_TRACKER_KEY_REQUEST,
+    };
+};
 
 export const resetPerformanceTrackerKeySuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.RESET_PERFORMANCE_TRACKER_KEY_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.RESET_PERFORMANCE_TRACKER_KEY_SUCCESS,
+        payload,
+    };
+};
 
 export const resetPerformanceTrackerKeyFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.RESET_PERFORMANCE_TRACKER_KEY_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.RESET_PERFORMANCE_TRACKER_KEY_FAILURE,
+        payload: error,
+    };
+};
 
-export const resetPerformanceTrackerKeyReset: Function = (): void => ({
-    type: types.RESET_PERFORMANCE_TRACKER_KEY_RESET,
-});
+export const resetPerformanceTrackerKeyReset: Function = (): void => {
+    return {
+        type: types.RESET_PERFORMANCE_TRACKER_KEY_RESET,
+    };
+};
 
-export const resetPerformanceTrackerKey: $TSFixMe =
-    ({ projectId, performanceTrackerId }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const resetPerformanceTrackerKey: $TSFixMe = ({
+    projectId,
+    performanceTrackerId,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(resetPerformanceTrackerKeyRequest());
         const promise: $TSFixMe = BackendAPI.put(
             `performanceTracker/${projectId}/reset-key/${performanceTrackerId}`,
@@ -338,27 +404,36 @@ export const resetPerformanceTrackerKey: $TSFixMe =
 
         return promise;
     };
+};
 
 // remove quickstart guide
-export const removeQuickStartRequest: Function = (): void => ({
-    type: types.REMOVE_QUICK_START_REQUEST,
-});
+export const removeQuickStartRequest: Function = (): void => {
+    return {
+        type: types.REMOVE_QUICK_START_REQUEST,
+    };
+};
 
-export const removeQuickStartSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.REMOVE_QUICK_START_SUCCESS,
-    payload,
-});
+export const removeQuickStartSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.REMOVE_QUICK_START_SUCCESS,
+        payload,
+    };
+};
 
 export const removeQuickStartFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.REMOVE_QUICK_START_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.REMOVE_QUICK_START_FAILURE,
+        payload: error,
+    };
+};
 
-export const removeQuickStart: $TSFixMe =
-    ({ projectId, performanceTrackerId }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const removeQuickStart: $TSFixMe = ({
+    projectId,
+    performanceTrackerId,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(removeQuickStartRequest());
         const promise: $TSFixMe = BackendAPI.put(
             `performanceTracker/${projectId}/remove-quickstart/${performanceTrackerId}`,
@@ -384,27 +459,38 @@ export const removeQuickStart: $TSFixMe =
 
         return promise;
     };
+};
 
 // fetch last metrics
-export const fetchLastMetricsRequest: Function = (): void => ({
-    type: types.FETCH_LAST_METRICS_REQUEST,
-});
+export const fetchLastMetricsRequest: Function = (): void => {
+    return {
+        type: types.FETCH_LAST_METRICS_REQUEST,
+    };
+};
 
-export const fetchLastMetricsSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.FETCH_LAST_METRICS_SUCCESS,
-    payload,
-});
+export const fetchLastMetricsSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.FETCH_LAST_METRICS_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchLastMetricsFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_LAST_METRICS_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_LAST_METRICS_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchLastMetrics: $TSFixMe =
-    ({ projectId, performanceTrackerId, startDate, endDate }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
+export const fetchLastMetrics: $TSFixMe = ({
+    projectId,
+    performanceTrackerId,
+    startDate,
+    endDate,
+}: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(fetchLastMetricsRequest());
 
         startDate = encode(startDate);
@@ -433,11 +519,13 @@ export const fetchLastMetrics: $TSFixMe =
 
         return promise;
     };
+};
 
-export const addPerformanceTracker: $TSFixMe =
-    (payload: $TSFixMe) => (dispatch: Dispatch) => {
+export const addPerformanceTracker: $TSFixMe = (payload: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         return dispatch({
             type: types.ADD_PERFORMANCE_TRACKER,
             payload,
         });
     };
+};

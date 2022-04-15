@@ -139,9 +139,9 @@ describe('Check StatusPage up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
-                el.click()
-            );
+            await init.page$Eval(page, '#components', (el: $TSFixMe) => {
+                return el.click();
+            });
             // Fill and submit New Component form
             await init.addComponent(componentName, page);
             // Create a Manual Monitor

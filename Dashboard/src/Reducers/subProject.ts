@@ -148,9 +148,9 @@ export default function subProject(state = initialState, action: Action): void {
 
         case types.RESET_SUBPROJECT_TOKEN_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
-            index = subProjects.findIndex(
-                subProject => subProject._id === action.payload._id
-            );
+            index = subProjects.findIndex(subProject => {
+                return subProject._id === action.payload._id;
+            });
 
             subProjects[index] = action.payload;
             return Object.assign({}, state, {
@@ -200,9 +200,9 @@ export default function subProject(state = initialState, action: Action): void {
 
         case types.RENAME_SUBPROJECT_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
-            index = subProjects.findIndex(
-                subProject => subProject._id === action.payload._id
-            );
+            index = subProjects.findIndex(subProject => {
+                return subProject._id === action.payload._id;
+            });
 
             subProjects[index] = action.payload;
             return Object.assign({}, state, {
@@ -251,9 +251,9 @@ export default function subProject(state = initialState, action: Action): void {
 
         case types.DELETE_SUBPROJECT_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
-            subProjects = subProjects.filter(
-                subProject => subProject._id !== action.payload
-            );
+            subProjects = subProjects.filter(subProject => {
+                return subProject._id !== action.payload;
+            });
             return Object.assign({}, state, {
                 deleteSubProject: {
                     requesting: false,

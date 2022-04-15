@@ -28,11 +28,12 @@ export default (
 
         case ModalConstant.CLOSE_MODAL: {
             return Object.assign({}, state, {
-                modals: state.modals.filter(
-                    (item: $TSFixMe) =>
+                modals: state.modals.filter((item: $TSFixMe) => {
+                    return (
                         item.id !==
                         (action.payload as CloseModalActionPayload).id
-                ),
+                    );
+                }),
             });
         }
 

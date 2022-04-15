@@ -30,6 +30,8 @@ class HrTimer {
         return;
     };
 
-    store = (): void => this.dataStore;
+    store = (): void => {
+        return this.dataStore;
+    };
 }
 export default HrTimer;

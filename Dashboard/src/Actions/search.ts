@@ -20,12 +20,13 @@ export const closeSearchBar: $TSFixMe = function (): void {
         type: CLOSE_SEARCH_BAR,
     };
 };
-export const resetSearch: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void =>
-        dispatch({
+export const resetSearch: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
+        return dispatch({
             type: RESET_SEARCH_FIELDS,
         });
+    };
+};
 export const searchRequest: Function = (): void => {
     return {
         type: POPULATE_SEARCH_REQUEST,

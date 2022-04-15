@@ -62,7 +62,9 @@ describe('Audit Logs', () => {
             const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr',
-                (row: $TSFixMe) => row.textContent
+                (row: $TSFixMe) => {
+                    return row.textContent;
+                }
             );
 
             expect(rowNum).toEqual(undefined);
@@ -98,7 +100,9 @@ describe('Audit Logs', () => {
             const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
-                (rows: $TSFixMe) => rows.length
+                (rows: $TSFixMe) => {
+                    return rows.length;
+                }
             );
 
             expect(rowNum).toBeGreaterThan(0);
@@ -146,7 +150,9 @@ describe('Audit Logs', () => {
             const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
-                (rows: $TSFixMe) => rows.length
+                (rows: $TSFixMe) => {
+                    return rows.length;
+                }
             );
 
             expect(rowNum).toBeGreaterThanOrEqual(0);
@@ -180,7 +186,9 @@ describe('Audit Logs', () => {
             const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
-                (rows: $TSFixMe) => rows.length
+                (rows: $TSFixMe) => {
+                    return rows.length;
+                }
             );
 
             expect(rowNum).toBeGreaterThanOrEqual(0);
@@ -214,7 +222,9 @@ describe('Audit Logs', () => {
             const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr',
-                (row: $TSFixMe) => row.textContent
+                (row: $TSFixMe) => {
+                    return row.textContent;
+                }
             );
 
             expect(rowNum).toEqual(undefined);
@@ -305,7 +315,9 @@ describe('Audit Logs', () => {
             await init.page$Eval(
                 page,
                 'input[name=auditStatusToggler]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             // click the submit button
@@ -438,7 +450,9 @@ describe('Audit Logs', () => {
             await init.page$Eval(
                 page,
                 'input[name=auditStatusToggler]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             // click the submit button

@@ -102,9 +102,9 @@ describe('StatusPage Advanced Options', () => {
             });
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
-                el.click()
-            );
+            await init.page$Eval(page, '#components', (el: $TSFixMe) => {
+                return el.click();
+            });
 
             // Fill and submit New Component form
 
@@ -240,8 +240,12 @@ describe('StatusPage Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.subscribers-tab', (elems: $TSFixMe) =>
-                elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.subscribers-tab',
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#addSubscriberButton');
@@ -293,8 +297,12 @@ describe('StatusPage Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$$Eval(page, '.subscribers-tab', (elems: $TSFixMe) =>
-                elems[0].click()
+            await init.page$$Eval(
+                page,
+                '.subscribers-tab',
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             // To confirm that the subscriber created is present.
 
@@ -333,7 +341,9 @@ describe('StatusPage Advanced Options', () => {
             await init.page$$Eval(
                 page,
                 '.custom-domains-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#addMoreDomain');
@@ -384,7 +394,9 @@ describe('StatusPage Advanced Options', () => {
             await init.page$$Eval(
                 page,
                 '.advanced-options-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             // Add Enable Subscribers
 
@@ -476,7 +488,9 @@ describe('StatusPage Advanced Options', () => {
             await init.page$$Eval(
                 page,
                 '.advanced-options-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#delete');

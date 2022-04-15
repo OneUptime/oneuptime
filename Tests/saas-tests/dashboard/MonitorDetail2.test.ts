@@ -61,18 +61,18 @@ describe('Monitor Detail API', () => {
             const addButtonSelector: string = '#addSubscriberButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
-            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#alertViaId');
 
             await init.selectDropdownValue('#alertViaId', 'email', page);
 
             await init.pageType(page, 'input[name=email]', subscriberEmail);
-            await init.page$Eval(page, '#createSubscriber', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#createSubscriber', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#createSubscriber', {
                 hidden: true,
             });
@@ -84,7 +84,9 @@ describe('Monitor Detail API', () => {
             const createdSubscriberEmail: $TSFixMe = await init.page$Eval(
                 page,
                 createdSubscriberSelector,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(createdSubscriberEmail).toEqual(subscriberEmail);
@@ -111,9 +113,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i: $TSFixMe = 0; i < 5; i++) {
-                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
-                    e.click()
-                );
+                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
+                    return e.click();
+                });
 
                 await init.pageWaitForSelector(page, '#alertViaId');
                 await init.selectDropdownValue('#alertViaId', 'email', page);
@@ -123,8 +125,12 @@ describe('Monitor Detail API', () => {
                     'input[name=email]',
                     utils.generateRandomBusinessEmail()
                 );
-                await init.page$Eval(page, '#createSubscriber', (e: $TSFixMe) =>
-                    e.click()
+                await init.page$Eval(
+                    page,
+                    '#createSubscriber',
+                    (e: $TSFixMe) => {
+                        return e.click();
+                    }
                 );
                 await init.pageWaitForSelector(page, '#createSubscriber', {
                     hidden: true,
@@ -138,7 +144,9 @@ describe('Monitor Detail API', () => {
             let subscriberRows: $TSFixMe = await init.page$Eval(
                 page,
                 createdSubscriberSelector,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             let countSubscribers: $TSFixMe = subscriberRows;
             // Total number of subscribers is rendered and not first 5.
@@ -155,7 +163,9 @@ describe('Monitor Detail API', () => {
             subscriberRows = await init.page$Eval(
                 page,
                 createdSubscriberSelector,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             countSubscribers = subscriberRows;
 
@@ -173,7 +183,9 @@ describe('Monitor Detail API', () => {
             subscriberRows = await init.page$Eval(
                 page,
                 createdSubscriberSelector,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             countSubscribers = subscriberRows;
 
@@ -202,9 +214,9 @@ describe('Monitor Detail API', () => {
             const addButtonSelector: string = '#addMsTeamsButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
-            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#endpoint');
 
@@ -220,9 +232,9 @@ describe('Monitor Detail API', () => {
 
             const createdWebhookSelector: string = `#msteam_${webHookName}`;
 
-            await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#createMsTeams', {
                 hidden: true,
             });
@@ -235,7 +247,9 @@ describe('Monitor Detail API', () => {
             const createdWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 createdWebhookSelector,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
             expect(createdWebhookName).toEqual(webHookName);
             done();
@@ -263,7 +277,9 @@ describe('Monitor Detail API', () => {
             const existingWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 existingWebhookSelector,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(existingWebhookName).toEqual(webHookName);
@@ -272,7 +288,9 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 editWebhookButtonSelector,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             const newWebhookEndpoint: $TSFixMe = utils.generateRandomWebsite();
@@ -282,9 +300,9 @@ describe('Monitor Detail API', () => {
             await init.pageClick(page, '#endpoint', { clickCount: 3 });
 
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
-            await init.page$Eval(page, '#msteamsUpdate', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#msteamsUpdate', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#msteamsUpdate', {
                 hidden: true,
             });
@@ -293,7 +311,9 @@ describe('Monitor Detail API', () => {
             const updatedWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 `#msteam_${newWebHookName}`,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
             expect(updatedWebhookName).toEqual(newWebHookName);
             done();
@@ -330,13 +350,15 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 deleteWebhookButtonSelector,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#msteamsDelete');
-            await init.page$Eval(page, '#msteamsDelete', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#msteamsDelete', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#msteamsDelete', {
                 hidden: true,
             });
@@ -374,9 +396,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i: $TSFixMe = 0; i < 11; i++) {
-                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
-                    e.click()
-                );
+                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
+                    return e.click();
+                });
 
                 await init.pageWaitForSelector(page, '#endpoint');
 
@@ -397,9 +419,9 @@ describe('Monitor Detail API', () => {
 
                         .click();
                 });
-                await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) =>
-                    e.click()
-                );
+                await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) => {
+                    return e.click();
+                });
                 await init.pageWaitForSelector(page, '#createMsTeams', {
                     hidden: true,
                 });
@@ -427,9 +449,9 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#btnNextMsTeams', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#btnNextMsTeams', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
@@ -444,9 +466,9 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#btnPrevMsTeams', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#btnPrevMsTeams', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });

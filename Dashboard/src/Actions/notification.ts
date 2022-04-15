@@ -117,11 +117,12 @@ export const markAsRead: Function = (
     return async function (dispatch: Dispatch): void {
         try {
             const userId: $TSFixMe = User.getUserId();
-            notificationIds = notificationIds.map(
-                (notification: $TSFixMe) =>
+            notificationIds = notificationIds.map((notification: $TSFixMe) => {
+                return (
                     notification.notificationId ||
                     notification.notificaitonId._id
-            );
+                );
+            });
 
             const notifications: $TSFixMe = await BackendAPI.put(
                 `notification/${projectId}/read`,

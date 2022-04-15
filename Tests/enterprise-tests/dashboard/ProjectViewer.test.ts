@@ -103,7 +103,9 @@ describe('Sub-Project API', () => {
         let prevMemberCount: $TSFixMe = await init.page$Eval(
             page,
             `#count_${subProjectName}`,
-            (elem: $TSFixMe) => elem.textContent
+            (elem: $TSFixMe) => {
+                return elem.textContent;
+            }
         );
         prevMemberCount = Number(prevMemberCount.split(' ')[0]);
         await init.pageWaitForSelector(
@@ -137,7 +139,9 @@ describe('Sub-Project API', () => {
         let memberCount: $TSFixMe = await init.page$Eval(
             page,
             `#count_${subProjectName}`,
-            (elem: $TSFixMe) => elem.textContent
+            (elem: $TSFixMe) => {
+                return elem.textContent;
+            }
         );
         memberCount = Number(memberCount.split(' ')[0]);
         expect(memberCount).toEqual(prevMemberCount + 1);
@@ -160,7 +164,9 @@ describe('Sub-Project API', () => {
         let prevMemberCount: $TSFixMe = await init.page$Eval(
             page,
             `#count_${newProjectName}`,
-            (elem: $TSFixMe) => elem.textContent
+            (elem: $TSFixMe) => {
+                return elem.textContent;
+            }
         );
         prevMemberCount = Number(prevMemberCount.split(' ')[0]);
 
@@ -201,7 +207,9 @@ describe('Sub-Project API', () => {
         let memberCount: $TSFixMe = await init.page$Eval(
             page,
             `#count_${newProjectName}`,
-            (elem: $TSFixMe) => elem.textContent
+            (elem: $TSFixMe) => {
+                return elem.textContent;
+            }
         );
         memberCount = Number(memberCount.split(' ')[0]);
         expect(memberCount).toEqual(prevMemberCount + 1);
@@ -228,7 +236,9 @@ describe('Sub-Project API', () => {
         let oldStatusPageCounter: $TSFixMe = await init.page$Eval(
             page,
             `#status_page_count_${newProjectName}`,
-            (elem: $TSFixMe) => elem.textContent
+            (elem: $TSFixMe) => {
+                return elem.textContent;
+            }
         );
         oldStatusPageCounter = Number(oldStatusPageCounter.split(' ')[0]);
         await init.addStatusPageToProject(statusPageName, newProjectName, page);
@@ -243,7 +253,9 @@ describe('Sub-Project API', () => {
         let statusPageCounter: $TSFixMe = await init.page$Eval(
             page,
             `#status_page_count_${newProjectName}`,
-            (elem: $TSFixMe) => elem.textContent
+            (elem: $TSFixMe) => {
+                return elem.textContent;
+            }
         );
         statusPageCounter = Number(statusPageCounter.split(' ')[0]);
         expect(statusPageCounter).toEqual(oldStatusPageCounter + 1);

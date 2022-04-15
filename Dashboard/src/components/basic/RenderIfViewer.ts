@@ -10,9 +10,9 @@ export const RenderIfViewer: Function = (props: $TSFixMe): void => {
         currentProject &&
         currentProject.users &&
         currentProject.users.length > 0 &&
-        currentProject.users.filter(
-            (user: $TSFixMe) => user.userId === userId && user.role === 'Viewer'
-        ).length > 0
+        currentProject.users.filter((user: $TSFixMe) => {
+            return user.userId === userId && user.role === 'Viewer';
+        }).length > 0
     ) {
         renderItems = children;
     }

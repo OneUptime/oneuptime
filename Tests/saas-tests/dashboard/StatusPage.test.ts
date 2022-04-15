@@ -19,7 +19,9 @@ const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
     });
 
     await init.pageWaitForSelector(page, '#statusPages');
-    await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => e.click());
+    await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => {
+        return e.click();
+    });
     const rowItem: $TSFixMe = await init.pageWaitForSelector(
         page,
         '#statusPagesListContainer > tr',
@@ -115,7 +117,9 @@ describe('Status Page', () => {
             const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor-0',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(textContent.includes('A monitor must be selected.')).toEqual(
                 true
@@ -169,7 +173,9 @@ describe('Status Page', () => {
             const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor-1',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(
                 textContent.includes('This monitor is already selected.')

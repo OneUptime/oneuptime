@@ -24,9 +24,11 @@ export const fetchCallLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const fetchCallLogs: $TSFixMe =
-    (skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchCallLogs: $TSFixMe = (
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -58,6 +60,7 @@ export const fetchCallLogs: $TSFixMe =
             dispatch(fetchCallLogsError(errorMsg));
         }
     };
+};
 
 // Search Call Logs.
 export const searchCallLogsRequest: Function = (): void => {
@@ -80,9 +83,12 @@ export const searchCallLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const searchCallLogs: $TSFixMe =
-    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const searchCallLogs: $TSFixMe = (
+    filter: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
             filter,
         };
@@ -115,6 +121,7 @@ export const searchCallLogs: $TSFixMe =
             dispatch(searchCallLogsError(errorMsg));
         }
     };
+};
 
 // Delete All Call Logs
 export const deleteCallLogsRequest: Function = (): void => {
@@ -137,9 +144,8 @@ export const deleteCallLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteCallLogs: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const deleteCallLogs: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         dispatch(deleteCallLogsRequest());
 
         try {
@@ -164,6 +170,7 @@ export const deleteCallLogs: $TSFixMe =
             dispatch(deleteCallLogsError(errorMsg));
         }
     };
+};
 
 // fetch callLogStatus
 
@@ -199,9 +206,8 @@ export const resetFetchCallLogStatus: Function = (): void => {
 };
 
 // Calls the API to fetch callLogStatus
-export const fetchCallLogStatus: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const fetchCallLogStatus: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         dispatch(fetchCallLogStatusRequest());
 
         try {
@@ -228,6 +234,7 @@ export const fetchCallLogStatus: $TSFixMe =
             return 'error';
         }
     };
+};
 
 // change callLogStatus
 
@@ -263,8 +270,8 @@ export const resetConfirmCallLogStatus: Function = (): void => {
 };
 
 // Calls the API to change callLogStatus
-export const callLogStatusChange: $TSFixMe =
-    (values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const callLogStatusChange: $TSFixMe = (values: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(changeCallLogStatusRequest());
 
         try {
@@ -293,3 +300,4 @@ export const callLogStatusChange: $TSFixMe =
             return 'error';
         }
     };
+};

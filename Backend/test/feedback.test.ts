@@ -112,9 +112,9 @@ describe('Feedback API', function (): void {
             );
         } else {
             const subject: string = 'Welcome to OneUptime.';
-            const status: $TSFixMe = emailStatuses.find(
-                (status: $TSFixMe) => status.subject === subject
-            );
+            const status: $TSFixMe = emailStatuses.find((status: $TSFixMe) => {
+                return status.subject === subject;
+            });
             expect(status.subject).to.equal(subject);
         }
     });

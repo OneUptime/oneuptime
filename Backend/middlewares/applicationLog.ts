@@ -52,7 +52,9 @@ const _this: $TSFixMe = {
             );
         }
         const allowedLogType: $TSFixMe = ['info', 'warning', 'error'].filter(
-            elem => elem === data.type
+            elem => {
+                return elem === data.type;
+            }
         );
         if (allowedLogType.length < 1) {
             return sendErrorResponse(

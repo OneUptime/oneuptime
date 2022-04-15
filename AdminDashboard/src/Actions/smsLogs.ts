@@ -24,9 +24,11 @@ export const fetchSmsLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const fetchSmsLogs: $TSFixMe =
-    (skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchSmsLogs: $TSFixMe = (
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -58,6 +60,7 @@ export const fetchSmsLogs: $TSFixMe =
             dispatch(fetchSmsLogsError(errorMsg));
         }
     };
+};
 
 // Search Sms Logs.
 export const searchSmsLogsRequest: Function = (): void => {
@@ -80,9 +83,12 @@ export const searchSmsLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const searchSmsLogs: $TSFixMe =
-    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const searchSmsLogs: $TSFixMe = (
+    filter: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
             filter,
         };
@@ -115,6 +121,7 @@ export const searchSmsLogs: $TSFixMe =
             dispatch(searchSmsLogsError(errorMsg));
         }
     };
+};
 
 // Delete All Sms Logs
 export const deleteSmsLogsRequest: Function = (): void => {
@@ -137,9 +144,8 @@ export const deleteSmsLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteSmsLogs: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const deleteSmsLogs: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         dispatch(deleteSmsLogsRequest());
 
         try {
@@ -164,6 +170,7 @@ export const deleteSmsLogs: $TSFixMe =
             dispatch(deleteSmsLogsError(errorMsg));
         }
     };
+};
 
 // fetch smsLogStatus
 
@@ -197,9 +204,8 @@ export const resetFetchSmsLogStatus: Function = (): void => {
 };
 
 // Calls the API to fetch smsLogStatus
-export const fetchSmsLogStatus: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const fetchSmsLogStatus: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         dispatch(fetchSmsLogStatusRequest());
 
         try {
@@ -226,6 +232,7 @@ export const fetchSmsLogStatus: $TSFixMe =
             return 'error';
         }
     };
+};
 
 // change smsLogStatus
 
@@ -261,8 +268,8 @@ export const resetConfirmSmsLogStatus: Function = (): void => {
 };
 
 // Calls the API to change smsLogStatus
-export const smsLogStatusChange: $TSFixMe =
-    (values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const smsLogStatusChange: $TSFixMe = (values: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(changeSmsLogStatusRequest());
 
         try {
@@ -291,3 +298,4 @@ export const smsLogStatusChange: $TSFixMe =
             return 'error';
         }
     };
+};

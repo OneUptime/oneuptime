@@ -36,12 +36,14 @@ export default {
             .toArray();
 
         resourceCategories = resourceCategories.map(
-            (resourceCategory: $TSFixMe) => ({
-                name: resourceCategory.name,
+            (resourceCategory: $TSFixMe) => {
+                return {
+                    name: resourceCategory.name,
 
-                _id: ObjectId(resourceCategory._id),
-                createdAt: resourceCategory.createdAt,
-            })
+                    _id: ObjectId(resourceCategory._id),
+                    createdAt: resourceCategory.createdAt,
+                };
+            }
         );
         return resourceCategories;
     },

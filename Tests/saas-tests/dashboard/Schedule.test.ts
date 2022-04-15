@@ -49,17 +49,17 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             const createScheduleBtn: string = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, createScheduleBtn, (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, createScheduleBtn, (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#name');
 
@@ -105,9 +105,9 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
@@ -156,9 +156,9 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
@@ -194,17 +194,17 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             const createScheduleBtn: string = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, createScheduleBtn, (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, createScheduleBtn, (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#name');
 
@@ -224,7 +224,9 @@ describe('Schedule', () => {
             const onCallScheduleName: $TSFixMe = await init.page$Eval(
                 page,
                 `#cb${newScheduleName}`,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(onCallScheduleName).toEqual(newScheduleName);

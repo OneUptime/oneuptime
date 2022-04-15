@@ -21,7 +21,9 @@ const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
     });
 
     await init.pageWaitForSelector(page, '#statusPages');
-    await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => e.click());
+    await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => {
+        return e.click();
+    });
     const rowItem: $TSFixMe = await init.pageWaitForSelector(
         page,
         '#statusPagesListContainer > tr',
@@ -153,12 +155,16 @@ describe('Status Page', () => {
             const firstMonitorBeforeSwap: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor0 .uptime-stat-name',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             const secondMonitorBeforeSwap: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor1 .uptime-stat-name',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(firstMonitorBeforeSwap).toEqual(monitorName);
             expect(secondMonitorBeforeSwap).toEqual(monitorName1);
@@ -200,12 +206,16 @@ describe('Status Page', () => {
             const firstMonitorAfterSwap: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor0 .uptime-stat-name',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             const secondMonitorAfterSwap: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor1 .uptime-stat-name',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(firstMonitorAfterSwap).toEqual(secondMonitorBeforeSwap);
             expect(secondMonitorAfterSwap).toEqual(firstMonitorBeforeSwap);
@@ -382,7 +392,9 @@ describe('Status Page', () => {
             const initialLength: $TSFixMe = await init.page$$Eval(
                 page,
                 'fieldset[name="added-domain"]',
-                (domains: $TSFixMe) => domains.length
+                (domains: $TSFixMe) => {
+                    return domains.length;
+                }
             );
 
             // create one more domain on the status page
@@ -410,8 +422,12 @@ describe('Status Page', () => {
             await init.pageClick(page, '.custom-domains-tab');
 
             await init.pageWaitForSelector(page, '#btnDeleteDomain_0');
-            await init.page$Eval(page, '#btnDeleteDomain_0', (elem: $TSFixMe) =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#btnDeleteDomain_0',
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
             await init.pageWaitForSelector(page, '#confirmDomainDelete', {
                 visible: true,
@@ -420,7 +436,9 @@ describe('Status Page', () => {
             await init.page$Eval(
                 page,
                 '#confirmDomainDelete',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
             await init.pageWaitForSelector(page, '#confirmDomainDelete', {
                 hidden: true,
@@ -438,7 +456,9 @@ describe('Status Page', () => {
             const finalLength: $TSFixMe = await init.page$$Eval(
                 page,
                 'fieldset[name="added-domain"]',
-                (domains: $TSFixMe) => domains.length
+                (domains: $TSFixMe) => {
+                    return domains.length;
+                }
             );
 
             expect(finalLength).toEqual(initialLength);
@@ -466,7 +486,9 @@ describe('Status Page', () => {
             const initialLength: $TSFixMe = await init.page$$Eval(
                 page,
                 'fieldset[name="added-domain"]',
-                (domains: $TSFixMe) => domains.length
+                (domains: $TSFixMe) => {
+                    return domains.length;
+                }
             );
 
             // create one more domain on the status page
@@ -494,13 +516,19 @@ describe('Status Page', () => {
             await init.pageClick(page, '.custom-domains-tab');
 
             await init.pageWaitForSelector(page, '#btnDeleteDomain_0');
-            await init.page$Eval(page, '#btnDeleteDomain_0', (elem: $TSFixMe) =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#btnDeleteDomain_0',
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
             await init.page$Eval(
                 page,
                 '#cancelDomainDelete',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -515,7 +543,9 @@ describe('Status Page', () => {
             const finalLength: $TSFixMe = await init.page$$Eval(
                 page,
                 'fieldset[name="added-domain"]',
-                (domains: $TSFixMe) => domains.length
+                (domains: $TSFixMe) => {
+                    return domains.length;
+                }
             );
 
             expect(finalLength).toBeGreaterThan(initialLength);

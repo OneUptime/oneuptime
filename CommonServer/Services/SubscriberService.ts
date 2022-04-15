@@ -241,9 +241,9 @@ export default class Service {
                 populate: populateStatusPage,
             });
 
-            monitors = statusPage.monitors.map(
-                (monitorData: $TSFixMe) => monitorData.monitor
-            );
+            monitors = statusPage.monitors.map((monitorData: $TSFixMe) => {
+                return monitorData.monitor;
+            });
         }
 
         const success: $TSFixMe = monitors.map(async (monitor: $TSFixMe) => {

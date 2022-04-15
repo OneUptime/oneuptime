@@ -36,6 +36,8 @@ class PerfTimer {
         return performance.measure(`${type}-${id}`, `start-${id}`, `end-${id}`);
     };
 
-    store = (): void => this.dataStore;
+    store = (): void => {
+        return this.dataStore;
+    };
 }
 export default PerfTimer;

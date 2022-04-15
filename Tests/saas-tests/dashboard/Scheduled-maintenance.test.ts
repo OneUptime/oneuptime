@@ -116,9 +116,9 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#components', (el: $TSFixMe) =>
-                el.click()
-            );
+            await init.page$Eval(page, '#components', (el: $TSFixMe) => {
+                return el.click();
+            });
 
             // Fill and submit New Component form
             await init.pageWaitForSelector(page, '#form-new-component', {
@@ -398,7 +398,9 @@ describe('Check scheduled maintenace', () => {
             const eventName: $TSFixMe = await init.page$Eval(
                 page,
                 `#event-name-${scheduledMaintenanceName}`,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(eventName).toMatch(scheduledMaintenanceName);
 
@@ -411,7 +413,9 @@ describe('Check scheduled maintenace', () => {
             const eventDescription: $TSFixMe = await init.page$Eval(
                 page,
                 `#event-description-${scheduledMaintenanceDescription}`,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(eventDescription).toMatch(scheduledMaintenanceDescription);
 
@@ -423,7 +427,9 @@ describe('Check scheduled maintenace', () => {
             const eventDate: $TSFixMe = await init.page$Eval(
                 page,
                 '#event-date',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(eventDate).toBeDefined();
 
@@ -435,7 +441,9 @@ describe('Check scheduled maintenace', () => {
             const futureEvent: $TSFixMe = await init.page$Eval(
                 page,
                 '#ongoing-event',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(futureEvent).toMatch(futureEvent);
 

@@ -289,10 +289,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
         expect(projectRequest.body).to.have.property('users');
         expect(projectRequest.body.users).to.be.an('Array');
         expect(
-            projectRequest.body.users.some(
-                (user: $TSFixMe) =>
-                    user.role === 'Administrator' && user.userId === userId
-            )
+            projectRequest.body.users.some((user: $TSFixMe) => {
+                return user.role === 'Administrator' && user.userId === userId;
+            })
         ).to.equal(true);
     });
 
@@ -326,10 +325,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
         expect(projectRequest.body).to.have.property('users');
         expect(projectRequest.body.users).to.be.an('Array');
         expect(
-            projectRequest.body.users.some(
-                (user: $TSFixMe) =>
-                    user.role === 'Member' && user.userId === userId
-            )
+            projectRequest.body.users.some((user: $TSFixMe) => {
+                return user.role === 'Member' && user.userId === userId;
+            })
         ).to.equal(true);
     });
 
@@ -346,10 +344,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
         expect(projectRequest.body).to.have.property('users');
         expect(projectRequest.body.users).to.be.an('Array');
         expect(
-            projectRequest.body.users.some(
-                (user: $TSFixMe) =>
-                    user.role === 'Member' && user.userId === userId
-            )
+            projectRequest.body.users.some((user: $TSFixMe) => {
+                return user.role === 'Member' && user.userId === userId;
+            })
         ).to.equal(true);
     });
 

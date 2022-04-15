@@ -90,10 +90,9 @@ export default function incident(state = initialState, action: Action): void {
                     error: null,
                     success: true,
                 },
-                showingTemplate: action.payload.find(
-                    (temp: $TSFixMe) =>
-                        temp.smsType === state.showingTemplate.smsType
-                ),
+                showingTemplate: action.payload.find((temp: $TSFixMe) => {
+                    return temp.smsType === state.showingTemplate.smsType;
+                }),
             });
 
         case types.EDIT_SMS_TEMPLATES_REQUEST:
@@ -136,10 +135,9 @@ export default function incident(state = initialState, action: Action): void {
                     error: null,
                     success: false,
                 },
-                showingTemplate: action.payload.find(
-                    (temp: $TSFixMe) =>
-                        temp.smsType === state.showingTemplate.smsType
-                ),
+                showingTemplate: action.payload.find((temp: $TSFixMe) => {
+                    return temp.smsType === state.showingTemplate.smsType;
+                }),
             });
 
         case types.RESET_SMS_TEMPLATES_REQUEST:
@@ -162,9 +160,9 @@ export default function incident(state = initialState, action: Action): void {
 
         case types.CHANGE_SHOWING_TEMPLATE:
             return Object.assign({}, state, {
-                showingTemplate: state.smsTemplates.templates.find(
-                    temp => temp.smsType === action.payload
-                ),
+                showingTemplate: state.smsTemplates.templates.find(temp => {
+                    return temp.smsType === action.payload;
+                }),
             });
 
         case types.SET_REVEAL_VARIABLE:

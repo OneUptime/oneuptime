@@ -43,9 +43,9 @@ describe('Status Page', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await init.pageWaitForSelector(
                 page,
                 'button[type="button"] .bs-FileUploadButton',
@@ -80,12 +80,16 @@ describe('Status Page', () => {
             await init.page$$Eval(
                 page,
                 '.advanced-options-tab',
-                (elems: $TSFixMe) => elems[0].click()
+                (elems: $TSFixMe) => {
+                    return elems[0].click();
+                }
             );
             await init.page$Eval(
                 page,
                 'input[name="isPrivate"]',
-                (elem: $TSFixMe) => elem.click()
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             const modal: $TSFixMe = await page.$('#pricingPlanModal');

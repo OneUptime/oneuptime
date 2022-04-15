@@ -114,10 +114,9 @@ function capitalize(words: $TSFixMe): void {
     }
 
     words = words.split(' ');
-    words = words.map(
-        (word: $TSFixMe) =>
-            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    );
+    words = words.map((word: $TSFixMe) => {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    });
 
     return words.join(' ').trim();
 }

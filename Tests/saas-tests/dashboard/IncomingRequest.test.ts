@@ -75,15 +75,19 @@ describe('Incoming HTTP Request', () => {
             await init.pageClick(page, '#name');
 
             await init.pageType(page, '#name', incidentRequest.name);
-            await init.page$Eval(page, '#createIncident', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#createIncident', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await init.pageWaitForSelector(page, '#selectAllMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#selectAllMonitors', (elem: $TSFixMe) =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#selectAllMonitors',
+                (elem: $TSFixMe) => {
+                    return elem.click();
+                }
             );
 
             await init.pageClick(page, '#advancedOptionsBtn');

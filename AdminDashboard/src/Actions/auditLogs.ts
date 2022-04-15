@@ -24,9 +24,11 @@ export const fetchAuditLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const fetchAuditLogs: $TSFixMe =
-    (skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchAuditLogs: $TSFixMe = (
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -58,6 +60,7 @@ export const fetchAuditLogs: $TSFixMe =
             dispatch(fetchAuditLogsError(errorMsg));
         }
     };
+};
 
 // Search Audit Logs.
 export const searchAuditLogsRequest: Function = (): void => {
@@ -80,9 +83,12 @@ export const searchAuditLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const searchAuditLogs: $TSFixMe =
-    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const searchAuditLogs: $TSFixMe = (
+    filter: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
             filter,
         };
@@ -115,6 +121,7 @@ export const searchAuditLogs: $TSFixMe =
             dispatch(searchAuditLogsError(errorMsg));
         }
     };
+};
 
 // Delete All Audit Logs
 export const deleteAuditLogsRequest: Function = (): void => {
@@ -137,9 +144,8 @@ export const deleteAuditLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteAuditLogs: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const deleteAuditLogs: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         dispatch(deleteAuditLogsRequest());
 
         try {
@@ -164,6 +170,7 @@ export const deleteAuditLogs: $TSFixMe =
             dispatch(deleteAuditLogsError(errorMsg));
         }
     };
+};
 
 // fetch auditLogStatus
 
@@ -199,9 +206,8 @@ export const resetFetchAuditLogStatus: Function = (): void => {
 };
 
 // Calls the API to fetch auditLogStatus
-export const fetchAuditLogStatus: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const fetchAuditLogStatus: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         dispatch(fetchAuditLogStatusRequest());
 
         try {
@@ -228,6 +234,7 @@ export const fetchAuditLogStatus: $TSFixMe =
             return 'error';
         }
     };
+};
 
 // change auditLogStatus
 
@@ -263,8 +270,8 @@ export const resetConfirmAuditLogStatus: Function = (): void => {
 };
 
 // Calls the API to change auditLogStatus
-export const auditLogStatusChange: $TSFixMe =
-    (values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const auditLogStatusChange: $TSFixMe = (values: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(changeAuditLogStatusRequest());
 
         try {
@@ -293,3 +300,4 @@ export const auditLogStatusChange: $TSFixMe =
             return 'error';
         }
     };
+};

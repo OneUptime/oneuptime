@@ -7,9 +7,9 @@ async function run(): void {
         deleted: false,
         regions: { $exists: false },
     });
-    const monitorIds: $TSFixMe = monitors.map(
-        (monitor: $TSFixMe) => monitor._id
-    );
+    const monitorIds: $TSFixMe = monitors.map((monitor: $TSFixMe) => {
+        return monitor._id;
+    });
 
     // add regions field to monitors
     // regions = []

@@ -37,9 +37,11 @@ export default class Service {
         }
 
         // reassign data.monitors with a restructured monitor data
-        data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-            monitorId: monitor,
-        }));
+        data.monitors = data.monitors.map((monitor: $TSFixMe) => {
+            return {
+                monitorId: monitor,
+            };
+        });
 
         data.projectId = projectId;
         if (data && data.name) {
@@ -91,17 +93,17 @@ export default class Service {
             if (!data.monitorDuringEvent) {
                 if (data.monitors && data.monitors.length > 0) {
                     await MonitorService.markMonitorsAsShouldNotMonitor(
-                        data.monitors.map(
-                            (i: $TSFixMe) => i.monitorId._id || i.monitorId
-                        )
+                        data.monitors.map((i: $TSFixMe) => {
+                            return i.monitorId._id || i.monitorId;
+                        })
                     );
                 }
             } else {
                 if (data.monitors && data.monitors.length > 0) {
                     await MonitorService.markMonitorsAsShouldMonitor(
-                        data.monitors.map(
-                            (i: $TSFixMe) => i.monitorId._id || i.monitorId
-                        )
+                        data.monitors.map((i: $TSFixMe) => {
+                            return i.monitorId._id || i.monitorId;
+                        })
                     );
                 }
             }
@@ -121,9 +123,9 @@ export default class Service {
             // revert monitor to monitoring state
             if (!data.monitorDuringEvent) {
                 await MonitorService.markMonitorsAsShouldMonitor(
-                    data.monitors.map(
-                        (i: $TSFixMe) => i.monitorId._id || i.monitorId
-                    )
+                    data.monitors.map((i: $TSFixMe) => {
+                        return i.monitorId._id || i.monitorId;
+                    })
                 );
             }
 
@@ -182,21 +184,23 @@ export default class Service {
         }
 
         // reassign data.monitors with a restructured monitor data
-        data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-            monitorId: monitor,
-        }));
+        data.monitors = data.monitors.map((monitor: $TSFixMe) => {
+            return {
+                monitorId: monitor,
+            };
+        });
 
         if (!data.monitorDuringEvent) {
             await MonitorService.markMonitorsAsShouldNotMonitor(
-                data.monitors.map(
-                    (i: $TSFixMe) => i.monitorId._id || i.monitorId
-                )
+                data.monitors.map((i: $TSFixMe) => {
+                    return i.monitorId._id || i.monitorId;
+                })
             );
         } else {
             await MonitorService.markMonitorsAsShouldMonitor(
-                data.monitors.map(
-                    (i: $TSFixMe) => i.monitorId._id || i.monitorId
-                )
+                data.monitors.map((i: $TSFixMe) => {
+                    return i.monitorId._id || i.monitorId;
+                })
             );
         }
 
@@ -301,9 +305,9 @@ export default class Service {
 
         if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
             await MonitorService.markMonitorsAsShouldMonitor(
-                scheduledEvent.monitors.map(
-                    (i: $TSFixMe) => i.monitorId._id || i.monitorId
-                )
+                scheduledEvent.monitors.map((i: $TSFixMe) => {
+                    return i.monitorId._id || i.monitorId;
+                })
             );
         }
 
@@ -501,10 +505,9 @@ export default class Service {
         await Promise.all(
             scheduledEvents.map(async (event: $TSFixMe) => {
                 // remove the monitor from scheduled event monitors list
-                event.monitors = event.monitors.filter(
-                    (monitor: $TSFixMe) =>
-                        String(monitor.monitorId._id) !== String(monitorId)
-                );
+                event.monitors = event.monitors.filter((monitor: $TSFixMe) => {
+                    return String(monitor.monitorId._id) !== String(monitorId);
+                });
 
                 if (event.monitors.length > 0) {
                     let updatedEvent: $TSFixMe =
@@ -618,7 +621,9 @@ export default class Service {
             postObj.createdById = resolvedScheduledEvent.createdById;
             const projectId: $TSFixMe = resolvedScheduledEvent.projectId;
             const monitors: $TSFixMe = resolvedScheduledEvent.monitors.map(
-                (monitor: $TSFixMe) => monitor.monitorId
+                (monitor: $TSFixMe) => {
+                    return monitor.monitorId;
+                }
             );
 
             postObj.monitors = monitors;
@@ -705,9 +710,9 @@ export default class Service {
                     scheduledEvent.monitors.length > 0
                 ) {
                     await MonitorService.markMonitorsAsShouldNotMonitor(
-                        scheduledEvent.monitors.map(
-                            (i: $TSFixMe) => i.monitorId._id || i.monitorId
-                        )
+                        scheduledEvent.monitors.map((i: $TSFixMe) => {
+                            return i.monitorId._id || i.monitorId;
+                        })
                     );
                 }
             } else {
@@ -716,9 +721,9 @@ export default class Service {
                     scheduledEvent.monitors.length > 0
                 ) {
                     await MonitorService.markMonitorsAsShouldMonitor(
-                        scheduledEvent.monitors.map(
-                            (i: $TSFixMe) => i.monitorId._id || i.monitorId
-                        )
+                        scheduledEvent.monitors.map((i: $TSFixMe) => {
+                            return i.monitorId._id || i.monitorId;
+                        })
                     );
                 }
             }
@@ -765,9 +770,9 @@ async  */ createScheduledEventEndedNote(): void {
                     scheduledEvent.monitors.length > 0
                 ) {
                     await MonitorService.markMonitorsAsShouldMonitor(
-                        scheduledEvent.monitors.map(
-                            (i: $TSFixMe) => i.monitorId._id || i.monitorId
-                        )
+                        scheduledEvent.monitors.map((i: $TSFixMe) => {
+                            return i.monitorId._id || i.monitorId;
+                        })
                     );
                 }
             }

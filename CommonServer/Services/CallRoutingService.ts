@@ -110,9 +110,9 @@ class Service extends DatabaseService<typeof Model> {
                 query: { _id: projectId },
                 select: 'users',
             });
-            let owner: $TSFixMe = project.users.filter(
-                (user: $TSFixMe) => user.role === 'Owner'
-            );
+            let owner: $TSFixMe = project.users.filter((user: $TSFixMe) => {
+                return user.role === 'Owner';
+            });
             owner = owner && owner.length ? owner[0] : owner;
             const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: owner.userId },
@@ -297,9 +297,9 @@ class Service extends DatabaseService<typeof Model> {
                     query: { _id: projectId },
                     select: 'users',
                 });
-                let owner: $TSFixMe = project.users.filter(
-                    (user: $TSFixMe) => user.role === 'Owner'
-                );
+                let owner: $TSFixMe = project.users.filter((user: $TSFixMe) => {
+                    return user.role === 'Owner';
+                });
                 owner = owner && owner.length ? owner[0] : owner;
                 await PaymentService.chargeAlert(
                     owner.userId,

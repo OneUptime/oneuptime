@@ -92,7 +92,9 @@ describe('Alert Warning', () => {
             const rowLength: $TSFixMe = await init.page$$Eval(
                 page,
                 '#alertOptionRow > div.bs-Fieldset-row',
-                (rows: $TSFixMe) => rows.length
+                (rows: $TSFixMe) => {
+                    return rows.length;
+                }
             );
 
             if (rowLength === 1) {

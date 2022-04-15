@@ -101,9 +101,9 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#userProfile');
 
             await init.pageWaitForSelector(page, '#advanced');
-            await init.page$Eval(page, '#advanced', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#advanced', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#btn_delete_account');
 
@@ -171,9 +171,9 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#userProfile');
 
             await init.pageWaitForSelector(page, '#advanced');
-            await init.page$Eval(page, '#advanced', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#advanced', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#btn_delete_account');
 
@@ -250,9 +250,9 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#userProfile');
 
             await init.pageWaitForSelector(page, '#advanced');
-            await init.page$Eval(page, '#advanced', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#advanced', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#btn_delete_account');
 
@@ -291,9 +291,9 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#userProfile');
 
             await init.pageWaitForSelector(page, '#advanced');
-            await init.page$Eval(page, '#advanced', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#advanced', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, '#btn_delete_account');
 

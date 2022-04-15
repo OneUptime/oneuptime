@@ -14,18 +14,21 @@ const HasProjectOwner: Function = (
             project &&
             project.users &&
             project.users.length > 0 &&
-            project.users.some((user: $TSFixMe) => user.role === 'Owner')
+            project.users.some((user: $TSFixMe) => {
+                return user.role === 'Owner';
+            })
         );
     }
 
     return subProjects && subProjects.length > 0
-        ? subProjects.some(
-              (subProject: $TSFixMe) =>
+        ? subProjects.some((subProject: $TSFixMe) => {
+              return (
                   subProject._id === projectId &&
-                  subProject.users.some(
-                      (user: $TSFixMe) => user.role === 'Owner'
-                  )
-          )
+                  subProject.users.some((user: $TSFixMe) => {
+                      return user.role === 'Owner';
+                  })
+              );
+          })
         : false;
 };
 

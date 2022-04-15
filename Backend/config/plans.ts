@@ -162,7 +162,11 @@ export default {
     getPlanById(id: $TSFixMe) {
         const plans: $TSFixMe = this.getPlans();
         if (id) {
-            return plans.find(plan => plan.planId === id) || null;
+            return (
+                plans.find(plan => {
+                    return plan.planId === id;
+                }) || null
+            );
         } else {
             return null;
         }
@@ -171,7 +175,11 @@ export default {
     getPlanByExtraUserId(id: $TSFixMe) {
         const plans: $TSFixMe = this.getPlans();
         if (id) {
-            return plans.find(plan => plan.extraUserPlanId === id) || null;
+            return (
+                plans.find(plan => {
+                    return plan.extraUserPlanId === id;
+                }) || null
+            );
         } else {
             return null;
         }

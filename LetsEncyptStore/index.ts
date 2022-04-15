@@ -27,8 +27,12 @@ module.exports.create = function (config: $TSFixMe): void {
                 method: 'put',
                 data,
             })
-                .then((res: $TSFixMe) => res.data)
-                .finally(() => null);
+                .then((res: $TSFixMe) => {
+                    return res.data;
+                })
+                .finally(() => {
+                    return null;
+                });
         },
         checkKeypair: function (opts: $TSFixMe): void {
             const id: $TSFixMe =
@@ -39,8 +43,12 @@ module.exports.create = function (config: $TSFixMe): void {
                 url,
                 method: 'get',
             })
-                .then((res: $TSFixMe) => res.data)
-                .finally(() => null);
+                .then((res: $TSFixMe) => {
+                    return res.data;
+                })
+                .finally(() => {
+                    return null;
+                });
         },
         options: config,
     };
@@ -63,8 +71,12 @@ module.exports.create = function (config: $TSFixMe): void {
                 method: 'put',
                 data,
             })
-                .then((res: $TSFixMe) => res.data)
-                .finally(() => null);
+                .then((res: $TSFixMe) => {
+                    return res.data;
+                })
+                .finally(() => {
+                    return null;
+                });
         },
         checkKeypair: function (opts: $TSFixMe): void {
             const id: $TSFixMe =
@@ -77,8 +89,12 @@ module.exports.create = function (config: $TSFixMe): void {
                 url,
                 method: 'get',
             })
-                .then((res: $TSFixMe) => res.data)
-                .finally(() => null);
+                .then((res: $TSFixMe) => {
+                    return res.data;
+                })
+                .finally(() => {
+                    return null;
+                });
         },
         set: function (opts: $TSFixMe): void {
             const id: $TSFixMe =
@@ -95,8 +111,12 @@ module.exports.create = function (config: $TSFixMe): void {
                 method: 'put',
                 data,
             })
-                .then((res: $TSFixMe) => res.data)
-                .finally(() => null);
+                .then((res: $TSFixMe) => {
+                    return res.data;
+                })
+                .finally(() => {
+                    return null;
+                });
         },
         check: function (opts: $TSFixMe): void {
             const id: $TSFixMe =
@@ -107,8 +127,12 @@ module.exports.create = function (config: $TSFixMe): void {
                 url,
                 method: 'get',
             })
-                .then((res: $TSFixMe) => res.data)
-                .finally(() => null);
+                .then((res: $TSFixMe) => {
+                    return res.data;
+                })
+                .finally(() => {
+                    return null;
+                });
         },
         options: config,
     };

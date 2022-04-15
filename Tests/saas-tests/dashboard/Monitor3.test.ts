@@ -79,8 +79,11 @@ describe('Monitor API', () => {
             await init.page$$Eval(
                 page,
                 '[data-testId^=callSchedules_]',
-                (schedules: $TSFixMe) =>
-                    schedules.forEach((schedule: $TSFixMe) => schedule.click())
+                (schedules: $TSFixMe) => {
+                    return schedules.forEach((schedule: $TSFixMe) => {
+                        return schedule.click();
+                    });
+                }
             );
 
             await init.pageClick(page, 'button[type=submit]');
@@ -98,12 +101,17 @@ describe('Monitor API', () => {
             const checkboxValues: $TSFixMe = await init.page$$Eval(
                 page,
                 '[data-testId^=callSchedules_]',
-                (schedules: $TSFixMe) =>
-                    schedules.map((schedule: $TSFixMe) => schedule.checked)
+                (schedules: $TSFixMe) => {
+                    return schedules.map((schedule: $TSFixMe) => {
+                        return schedule.checked;
+                    });
+                }
             );
 
             const areAllChecked: $TSFixMe = checkboxValues.every(
-                (checked: $TSFixMe) => checked === true
+                (checked: $TSFixMe) => {
+                    return checked === true;
+                }
             );
             expect(areAllChecked).toEqual(true);
             done();

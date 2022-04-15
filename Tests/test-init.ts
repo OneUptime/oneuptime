@@ -157,7 +157,9 @@ const _this: $TSFixMe = {
             expect(home).toBeDefined(); // This ensures that we have been navigated to the dashboard page
 
             const signupResponse: $TSFixMe = await page.waitForResponse(
-                (response: $TSFixMe) => response.status() === 200
+                (response: $TSFixMe) => {
+                    return response.status() === 200;
+                }
                 // The page navigates however '/user/signup' is not strictly included in the response.
             );
             if (signupResponse._status !== 200) {
@@ -604,9 +606,12 @@ const _this: $TSFixMe = {
         await this.pageClick(page, 'button[type=submit]');
         try {
             const signupResponse: $TSFixMe = await page.waitForResponse(
-                (response: $TSFixMe) =>
-                    response.url().includes('/user/signup') &&
-                    response.status() === 200
+                (response: $TSFixMe) => {
+                    return (
+                        response.url().includes('/user/signup') &&
+                        response.status() === 200
+                    );
+                }
             );
             if (signupResponse) {
                 const signupData: $TSFixMe = await signupResponse.text();
@@ -775,7 +780,9 @@ const _this: $TSFixMe = {
         await this.page$Eval(
             page,
             `#more-details-${component}`,
-            (e: $TSFixMe) => e.click()
+            (e: $TSFixMe) => {
+                return e.click();
+            }
         );
     },
     addMonitorToStatusPage: async function (
@@ -872,9 +879,9 @@ const _this: $TSFixMe = {
             visible: true,
             timeout: this.timeout,
         });
-        await this.page$Eval(page, `#react-tabs-${tabId}`, (e: $TSFixMe) =>
-            e.click()
-        );
+        await this.page$Eval(page, `#react-tabs-${tabId}`, (e: $TSFixMe) => {
+            return e.click();
+        });
     },
     themeNavigationAndConfirmation: async function (
         page: $TSFixMe,
@@ -883,9 +890,9 @@ const _this: $TSFixMe = {
         await this.pageWaitForSelector(page, '.branding-tab', {
             visible: true,
         });
-        await this.page$$Eval(page, '.branding-tab', (elems: $TSFixMe) =>
-            elems[0].click()
-        );
+        await this.page$$Eval(page, '.branding-tab', (elems: $TSFixMe) => {
+            return elems[0].click();
+        });
         await this.pageWaitForSelector(page, `#${theme}`, {
             visible: true,
             timeout: this.timeout,
@@ -1012,7 +1019,9 @@ const _this: $TSFixMe = {
         }
 
         await Promise.all([
-            page.$eval('button[type=submit]', (e: $TSFixMe) => e.click()),
+            page.$eval('button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            }),
             page.waitForNavigation(),
         ]);
     },
@@ -1047,7 +1056,9 @@ const _this: $TSFixMe = {
         }
 
         await Promise.all([
-            page.$eval('button[type=submit]', (e: $TSFixMe) => e.click()),
+            page.$eval('button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            }),
             page.waitForNavigation(),
         ]);
     },
@@ -1529,7 +1540,9 @@ const _this: $TSFixMe = {
             await this.page$Eval(
                 page,
                 'input[name^=createAlert_up]',
-                (element: $TSFixMe) => element.click()
+                (element: $TSFixMe) => {
+                    return element.click();
+                }
             );
         }
 
@@ -1617,7 +1630,9 @@ const _this: $TSFixMe = {
         page: $TSFixMe
     ): void {
         await this.pageWaitForSelector(page, '#incidentLog');
-        await this.page$Eval(page, '#incidentLog', (e: $TSFixMe) => e.click());
+        await this.page$Eval(page, '#incidentLog', (e: $TSFixMe) => {
+            return e.click();
+        });
 
         await this.pageWaitForSelector(
             page,
@@ -1630,7 +1645,9 @@ const _this: $TSFixMe = {
         await this.page$Eval(
             page,
             `#btnCreateIncident_${projectName}`,
-            (e: $TSFixMe) => e.click()
+            (e: $TSFixMe) => {
+                return e.click();
+            }
         );
 
         await this.pageWaitForSelector(page, '#frmIncident');
@@ -1640,9 +1657,9 @@ const _this: $TSFixMe = {
         await this.pageClick(page, `#${monitorName}`);
 
         await this.pageClick(page, '#incidentType');
-        await this.page$Eval(page, '#createIncident', (e: $TSFixMe) =>
-            e.click()
-        );
+        await this.page$Eval(page, '#createIncident', (e: $TSFixMe) => {
+            return e.click();
+        });
 
         await this.pageWaitForSelector(page, '#createIncident', {
             hidden: true,
@@ -1674,7 +1691,9 @@ const _this: $TSFixMe = {
         await this.page$$Eval(
             page,
             '.incident-priority-tab',
-            (elems: $TSFixMe) => elems[0].click()
+            (elems: $TSFixMe) => {
+                return elems[0].click();
+            }
         );
 
         await this.pageWaitForSelector(page, '#addNewPriority');
@@ -2193,14 +2212,14 @@ const _this: $TSFixMe = {
 
         await this.pageWaitForSelector(page, '#call-enabled');
         if (enableCalls) {
-            await this.page$Eval(page, '#call-enabled', (element: $TSFixMe) =>
-                element.click()
-            );
+            await this.page$Eval(page, '#call-enabled', (element: $TSFixMe) => {
+                return element.click();
+            });
         }
         if (enableSms) {
-            await this.page$Eval(page, '#sms-enabled', (element: $TSFixMe) =>
-                element.click()
-            );
+            await this.page$Eval(page, '#sms-enabled', (element: $TSFixMe) => {
+                return element.click();
+            });
         }
 
         await this.pageType(page, '#account-sid', accountSid);
@@ -2244,9 +2263,9 @@ const _this: $TSFixMe = {
 
         await this.pageWaitForSelector(page, '#smtpswitch');
         if (enable) {
-            await this.page$Eval(page, '#smtpswitch', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await this.page$Eval(page, '#smtpswitch', (elem: $TSFixMe) => {
+                return elem.click();
+            });
         }
 
         await this.pageWaitForSelector(page, '#user');

@@ -7,12 +7,18 @@ import { User } from '../../config';
 export default function IsOwner(currentProject: $TSFixMe): void {
     const userId: $TSFixMe = User.getUserId();
     return (
-        [null, undefined].every(i => i !== userId) &&
-        [null, undefined].every(i => i !== currentProject) &&
-        [null, undefined].every(i => i !== currentProject.users) &&
+        [null, undefined].every(i => {
+            return i !== userId;
+        }) &&
+        [null, undefined].every(i => {
+            return i !== currentProject;
+        }) &&
+        [null, undefined].every(i => {
+            return i !== currentProject.users;
+        }) &&
         currentProject.users.length > 0 &&
-        currentProject.users.some(
-            (user: $TSFixMe) => user.userId === userId && user.role === 'Owner'
-        )
+        currentProject.users.some((user: $TSFixMe) => {
+            return user.userId === userId && user.role === 'Owner';
+        })
     );
 }

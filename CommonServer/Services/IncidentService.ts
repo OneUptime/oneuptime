@@ -74,7 +74,9 @@ export default class Service {
             query: { _id: { $in: data.monitors } },
             select: 'disabled name _id shouldNotMonitor',
         });
-        monitors = monitors.filter((monitor: $TSFixMe) => !monitor.disabled);
+        monitors = monitors.filter((monitor: $TSFixMe) => {
+            return !monitor.disabled;
+        });
         if (monitors.length === 0) {
             const error: $TSFixMe = new Error(
                 'You need at least one enabled monitor to create an incident'
@@ -83,14 +85,18 @@ export default class Service {
             error.code = 400;
             throw error;
         }
-        const monitorNames: $TSFixMe = monitors.map(
-            (monitor: $TSFixMe) => monitor.name
-        );
+        const monitorNames: $TSFixMe = monitors.map((monitor: $TSFixMe) => {
+            return monitor.name;
+        });
         monitors = monitors
-            .filter((monitor: $TSFixMe) => !monitor.shouldNotMonitor)
-            .map((monitor: $TSFixMe) => ({
-                monitorId: monitor._id,
-            }));
+            .filter((monitor: $TSFixMe) => {
+                return !monitor.shouldNotMonitor;
+            })
+            .map((monitor: $TSFixMe) => {
+                return {
+                    monitorId: monitor._id,
+                };
+            });
         if (monitors.length === 0) {
             const error: $TSFixMe = new Error(
                 'You need at least one monitor not undergoing scheduled maintenance'
@@ -108,7 +114,9 @@ export default class Service {
             });
             const users: $TSFixMe =
                 project && project.users && project.users.length
-                    ? project.users.map(({ userId }: $TSFixMe) => userId)
+                    ? project.users.map(({ userId }: $TSFixMe) => {
+                          return userId;
+                      })
                     : [];
 
             let errorMsg: $TSFixMe;
@@ -317,9 +325,11 @@ export default class Service {
                 await this._sendIncidentCreatedAlert(populatedIncident);
 
             incident.notifications = notifications.map(
-                (notification: $TSFixMe) => ({
-                    notificationId: notification._id,
-                })
+                (notification: $TSFixMe) => {
+                    return {
+                        notificationId: notification._id,
+                    };
+                }
             );
             incident = await incident.save();
 
@@ -427,8 +437,9 @@ export default class Service {
             }
 
             const monitors: $TSFixMe = incident.monitors.map(
-                (monitor: $TSFixMe) =>
-                    monitor.monitorId._id || monitor.monitorId
+                (monitor: $TSFixMe) => {
+                    return monitor.monitorId._id || monitor.monitorId;
+                }
             );
 
             // update all monitor status in the background to match incident type
@@ -607,7 +618,9 @@ export default class Service {
         const notifications: $TSFixMe = [];
 
         const monitors: $TSFixMe = incident.monitors.map(
-            (monitor: $TSFixMe) => monitor.monitorId
+            (monitor: $TSFixMe) => {
+                return monitor.monitorId;
+            }
         );
 
         // handle this asynchronous operation in the background
@@ -746,7 +759,9 @@ export default class Service {
 
             // Ping webhook
             const monitors: $TSFixMe = incident.monitors.map(
-                (monitor: $TSFixMe) => monitor.monitorId
+                (monitor: $TSFixMe) => {
+                    return monitor.monitorId;
+                }
             );
 
             // assuming all the monitors in the incident is from the same component
@@ -934,7 +949,9 @@ export default class Service {
         incident = await this.updateOneBy({ _id: incidentId }, data);
 
         const monitors: $TSFixMe = incident.monitors.map(
-            (monitor: $TSFixMe) => monitor.monitorId._id || monitor.monitorId
+            (monitor: $TSFixMe) => {
+                return monitor.monitorId._id || monitor.monitorId;
+            }
         );
 
         // update all monitor status in the background to match incident type
@@ -1107,9 +1124,9 @@ export default class Service {
             query: { projectId },
             select: '_id',
         });
-        const monitorIds: $TSFixMe = monitors.map(
-            (monitor: $TSFixMe) => monitor._id
-        );
+        const monitorIds: $TSFixMe = monitors.map((monitor: $TSFixMe) => {
+            return monitor._id;
+        });
 
         const query: $TSFixMe = {
             'monitors.monitorId': { $in: monitorIds },
@@ -1137,9 +1154,9 @@ export default class Service {
             query: { projectId, componentId },
             select: '_id',
         });
-        const monitorIds: $TSFixMe = monitors.map(
-            (monitor: $TSFixMe) => monitor._id
-        );
+        const monitorIds: $TSFixMe = monitors.map((monitor: $TSFixMe) => {
+            return monitor._id;
+        });
 
         const query: $TSFixMe = {
             'monitors.monitorId': { $in: monitorIds },
@@ -1190,9 +1207,9 @@ export default class Service {
             query: { componentId: componentId },
             select: '_id',
         });
-        const monitorIds: $TSFixMe = monitors.map(
-            (monitor: $TSFixMe) => monitor._id
-        );
+        const monitorIds: $TSFixMe = monitors.map((monitor: $TSFixMe) => {
+            return monitor._id;
+        });
 
         const query: $TSFixMe = {
             projectId,
@@ -1317,7 +1334,9 @@ export default class Service {
         data: $TSFixMe
     ): void {
         const monitors: $TSFixMe = incident.monitors.map(
-            (monitor: $TSFixMe) => monitor.monitorId
+            (monitor: $TSFixMe) => {
+                return monitor.monitorId;
+            }
         );
         for (const monitor of monitors) {
             SlackService.sendIncidentNoteNotification(
@@ -1394,13 +1413,15 @@ export default class Service {
             incidents.map(async (incident: $TSFixMe) => {
                 // only delete the incident, since the monitor can be restored
                 const monitors: $TSFixMe = incident.monitors
-                    .map((monitor: $TSFixMe) => ({
-                        monitorId: monitor.monitorId._id || monitor.monitorId,
-                    }))
-                    .filter(
-                        (monitor: $TSFixMe) =>
-                            String(monitor.monitorId) !== String(monitorId)
-                    );
+                    .map((monitor: $TSFixMe) => {
+                        return {
+                            monitorId:
+                                monitor.monitorId._id || monitor.monitorId,
+                        };
+                    })
+                    .filter((monitor: $TSFixMe) => {
+                        return String(monitor.monitorId) !== String(monitorId);
+                    });
 
                 let updatedIncident: $TSFixMe = null;
                 if (monitors.length === 0) {
@@ -1487,7 +1508,9 @@ export default class Service {
         monitors: $TSFixMe,
         incident: $TSFixMe
     ): void {
-        monitors = monitors.map((monitor: $TSFixMe) => monitor.monitorId);
+        monitors = monitors.map((monitor: $TSFixMe) => {
+            return monitor.monitorId;
+        });
         const [monitorList, currentIncident]: $TSFixMe = await Promise.all([
             MonitorService.findBy({
                 query: { _id: { $in: monitors } },

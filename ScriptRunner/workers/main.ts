@@ -9,7 +9,9 @@ export default {
         let monitors: $TSFixMe = await ApiService.getScriptMonitors();
         monitors = JSON.parse(monitors.data); // parse the stringified data
         await Promise.all(
-            monitors.map((monitor: $TSFixMe) => scriptMonitors.run(monitor))
+            monitors.map((monitor: $TSFixMe) => {
+                return scriptMonitors.run(monitor);
+            })
         );
     },
 };

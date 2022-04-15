@@ -86,8 +86,8 @@ export const deleteProbeError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to delete a probe
-export const deleteProbe: $TSFixMe =
-    (probeId: $TSFixMe) => async (dispatch: Dispatch) => {
+export const deleteProbe: $TSFixMe = (probeId: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(deleteProbeRequest());
 
         try {
@@ -110,6 +110,7 @@ export const deleteProbe: $TSFixMe =
             dispatch(deleteProbeError(errorMsg));
         }
     };
+};
 
 //Delete project
 export const addProbeRequest: Function = (): void => {
@@ -145,8 +146,8 @@ export const resetAddProbe: Function = (): void => {
 };
 
 // Calls the API to add a probe
-export const addProbe: $TSFixMe =
-    (probeKey: $TSFixMe, probeName: $TSFixMe) => async (dispatch: Dispatch) => {
+export const addProbe: $TSFixMe = (probeKey: $TSFixMe, probeName: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(addProbeRequest());
 
         try {
@@ -178,6 +179,7 @@ export const addProbe: $TSFixMe =
             return 'error';
         }
     };
+};
 
 //Update Probe
 export const updateProbeRequest: Function = (): void => {
@@ -207,9 +209,8 @@ export const updateProbeError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to update a probe
-export const updateProbe: $TSFixMe =
-    (values: $TSFixMe) =>
-    async (dispatch: Dispatch): void => {
+export const updateProbe: $TSFixMe = (values: $TSFixMe) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(updateProbeRequest());
 
         try {
@@ -246,3 +247,4 @@ export const updateProbe: $TSFixMe =
             return 'error';
         }
     };
+};

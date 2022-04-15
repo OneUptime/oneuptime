@@ -79,7 +79,9 @@ describe('Registration API', () => {
             const errorMsg: $TSFixMe = await init.page$Eval(
                 page,
                 '#email_error',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(errorMsg).toEqual('Email is not valid.');
         },
@@ -98,7 +100,9 @@ describe('Registration API', () => {
             const errorMsg: $TSFixMe = await init.page$Eval(
                 page,
                 '#error', // The previous validation is no longer in use.
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
 
             expect(errorMsg).toEqual('Business email address is required.');
@@ -161,7 +165,9 @@ describe('Registration API', () => {
             const email: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=email]',
-                (element: $TSFixMe) => element.value
+                (element: $TSFixMe) => {
+                    return element.value;
+                }
             );
             expect(email).toEqual('');
         },
@@ -231,7 +237,9 @@ describe('Registration API', () => {
             const email: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=email]',
-                (element: $TSFixMe) => element.value
+                (element: $TSFixMe) => {
+                    return element.value;
+                }
             );
             expect(email).toEqual('');
         },
@@ -247,7 +255,9 @@ describe('Registration API', () => {
             const innerText: $TSFixMe = await init.page$Eval(
                 page,
                 '#cbHome',
-                (elem: $TSFixMe) => elem.innerText
+                (elem: $TSFixMe) => {
+                    return elem.innerText;
+                }
             );
             page.url().should.containEql(utils.DASHBOARD_URL);
             expect(innerText).toEqual('Home');

@@ -60,7 +60,9 @@ describe('Monitor Detail API', () => {
         await init.page$Eval(
             page,
             `#scanWebsites_${urlMonitorName}`,
-            (e: $TSFixMe) => e.click()
+            (e: $TSFixMe) => {
+                return e.click();
+            }
         );
 
         await init.pageWaitForSelector(page, '#website_prescan');

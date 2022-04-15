@@ -132,8 +132,8 @@ export const loginUser: Function = (values: $TSFixMe): void => {
     };
 };
 
-export const loginUserSso: $TSFixMe =
-    (values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const loginUserSso: $TSFixMe = (values: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         try {
             const response: $TSFixMe = await BackendAPI.get(
                 `user/sso/login?email=${values.email}`
@@ -157,6 +157,7 @@ export const loginUserSso: $TSFixMe =
             dispatch(loginError(errorMsg));
         }
     };
+};
 
 // Calls the API to verify a user token and log them in.
 export const verifyAuthToken: Function = (values: $TSFixMe): void => {

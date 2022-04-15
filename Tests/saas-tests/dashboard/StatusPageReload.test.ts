@@ -50,9 +50,9 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#statusPages', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => {
+                return e.click();
+            });
             const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',

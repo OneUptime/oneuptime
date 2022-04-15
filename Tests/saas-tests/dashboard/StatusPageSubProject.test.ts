@@ -274,7 +274,9 @@ describe('StatusPage API With SubProjects', () => {
             const title: $TSFixMe = await init.page$Eval(
                 page,
                 '#title',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
 
             expect(title).toMatch(pageTitle);

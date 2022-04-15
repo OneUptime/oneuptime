@@ -25,9 +25,11 @@ export const fetchEmailLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const fetchEmailLogs: $TSFixMe =
-    (skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchEmailLogs: $TSFixMe = (
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -59,6 +61,7 @@ export const fetchEmailLogs: $TSFixMe =
             dispatch(fetchEmailLogsError(errorMsg));
         }
     };
+};
 
 // Search Email Logs.
 export const searchEmailLogsRequest: Function = (): void => {
@@ -81,9 +84,12 @@ export const searchEmailLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const searchEmailLogs: $TSFixMe =
-    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const searchEmailLogs: $TSFixMe = (
+    filter: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
             filter,
         };
@@ -116,6 +122,7 @@ export const searchEmailLogs: $TSFixMe =
             dispatch(searchEmailLogsError(errorMsg));
         }
     };
+};
 
 // Delete All Email Logs
 export const deleteEmailLogsRequest: Function = (): void => {
@@ -138,9 +145,8 @@ export const deleteEmailLogsError: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteEmailLogs: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const deleteEmailLogs: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         dispatch(deleteEmailLogsRequest());
 
         try {
@@ -165,6 +171,7 @@ export const deleteEmailLogs: $TSFixMe =
             dispatch(deleteEmailLogsError(errorMsg));
         }
     };
+};
 
 // fetch emailLogStatus
 
@@ -200,9 +207,8 @@ export const resetFetchEmailLogStatus: Function = (): void => {
 };
 
 // Calls the API to fetch emailLogStatus
-export const fetchEmailLogStatus: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const fetchEmailLogStatus: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         dispatch(fetchEmailLogStatusRequest());
 
         try {
@@ -229,6 +235,7 @@ export const fetchEmailLogStatus: $TSFixMe =
             return 'error';
         }
     };
+};
 
 // change emailLogStatus
 
@@ -264,8 +271,8 @@ export const resetConfirmEmailLogStatus: Function = (): void => {
 };
 
 // Calls the API to change emailLogStatus
-export const emailLogStatusChange: $TSFixMe =
-    (values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const emailLogStatusChange: $TSFixMe = (values: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(changeEmailLogStatusRequest());
 
         try {
@@ -294,3 +301,4 @@ export const emailLogStatusChange: $TSFixMe =
             return 'error';
         }
     };
+};

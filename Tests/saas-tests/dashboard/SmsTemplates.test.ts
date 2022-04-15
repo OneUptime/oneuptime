@@ -66,7 +66,9 @@ describe('SMS Templates API', () => {
             initialTemplate = await init.page$Eval(
                 page,
                 '#templateField',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
             const resetBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -135,7 +137,9 @@ describe('SMS Templates API', () => {
             const smsTemplateBody: $TSFixMe = await init.page$Eval(
                 page,
                 'textarea[name=body]',
-                (el: $TSFixMe) => el.value
+                (el: $TSFixMe) => {
+                    return el.value;
+                }
             );
             expect(smsTemplateBody).toEqual(newTemplate);
 
@@ -234,7 +238,9 @@ describe('SMS Templates API', () => {
             const template: $TSFixMe = await init.page$Eval(
                 page,
                 '#templateField',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
             expect(template).toEqual(initialTemplate);
 

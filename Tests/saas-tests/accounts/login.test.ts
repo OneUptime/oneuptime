@@ -56,13 +56,17 @@ describe('Login API', () => {
             const email: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=email]',
-                (element: $TSFixMe) => element.value
+                (element: $TSFixMe) => {
+                    return element.value;
+                }
             );
             expect(email).toEqual('');
             const password: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=password]',
-                (element: $TSFixMe) => element.value
+                (element: $TSFixMe) => {
+                    return element.value;
+                }
             );
             expect(password).toEqual('');
         },

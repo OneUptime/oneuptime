@@ -46,25 +46,25 @@ describe('Components', () => {
             });
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
             // Fill and submit New Component form
 
             await init.pageWaitForSelector(page, '#form-new-component');
 
             await init.pageType(page, 'input[id=name]', componentName);
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             let spanElement: $TSFixMe;
 
@@ -101,9 +101,9 @@ describe('Components', () => {
             await init.pageClick(page, '#url');
 
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -155,9 +155,9 @@ describe('Components', () => {
             await init.pageClick(page, '#url');
 
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -187,9 +187,9 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, monitorDetailsBtn, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, monitorDetailsBtn, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             const projectSelector: string = `#cbUnnamedProject`;
             const componentSelector: string = `#cb${componentName}`;
@@ -208,18 +208,22 @@ describe('Components', () => {
             });
 
             const projectBreadcrumb: $TSFixMe = await page.evaluate(
-                (projectSelector: $TSFixMe) =>
-                    document.querySelector(projectSelector).textContent,
+                (projectSelector: $TSFixMe) => {
+                    return document.querySelector(projectSelector).textContent;
+                },
                 projectSelector
             );
             const componentBreadcrumb: $TSFixMe = await page.evaluate(
-                (componentSelector: $TSFixMe) =>
-                    document.querySelector(componentSelector).textContent,
+                (componentSelector: $TSFixMe) => {
+                    return document.querySelector(componentSelector)
+                        .textContent;
+                },
                 componentSelector
             );
             const monitorBreadcrumb: $TSFixMe = await page.evaluate(
-                (monitorSelector: $TSFixMe) =>
-                    document.querySelector(monitorSelector).textContent,
+                (monitorSelector: $TSFixMe) => {
+                    return document.querySelector(monitorSelector).textContent;
+                },
                 monitorSelector
             );
             expect(projectBreadcrumb).toBe('Unnamed Project');
@@ -246,9 +250,9 @@ describe('Components', () => {
             await init.pageWaitForSelector(page, '#form-new-application-log');
 
             await init.pageType(page, 'input[id=name]', applicationLogName);
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             let spanElement: $TSFixMe;
 
@@ -273,9 +277,9 @@ describe('Components', () => {
             });
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             // Fill and submit New Component form
 
@@ -286,9 +290,9 @@ describe('Components', () => {
             await init.pageWaitForSelector(page, '#form-new-component');
 
             await init.pageType(page, 'input[id=name]', newComponentName);
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
 
@@ -305,9 +309,9 @@ describe('Components', () => {
             await init.pageClick(page, '#url');
 
             await init.pageType(page, '#url', 'https://google.com');
-            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, `#cb${newMonitorName}`, {
                 visible: true,
                 timeout: init.timeout,
@@ -316,9 +320,9 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL);
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
@@ -336,7 +340,9 @@ describe('Components', () => {
             const newResourceCount: $TSFixMe = await init.page$Eval(
                 page,
                 newComponentSelector,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(newResourceCount).toEqual('1 Resource');
 
@@ -344,7 +350,9 @@ describe('Components', () => {
             const firstResourceCount: $TSFixMe = await init.page$Eval(
                 page,
                 componentSelector,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(firstResourceCount).toEqual('3 Resources');
             done();
@@ -361,9 +369,9 @@ describe('Components', () => {
             });
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
@@ -373,7 +381,9 @@ describe('Components', () => {
             const firstResourceCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${componentName}`,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(firstResourceCount).toEqual('3 Resources');
 
@@ -417,9 +427,9 @@ describe('Components', () => {
             });
 
             await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#components', (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
@@ -429,14 +439,18 @@ describe('Components', () => {
             const firstResourceCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${componentName}`,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(firstResourceCount).toEqual('3 Resources'); // one log container and two monitor
 
             await init.page$Eval(
                 page,
                 `#view-resource-${applicationLogName}`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(

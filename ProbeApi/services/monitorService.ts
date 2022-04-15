@@ -60,7 +60,9 @@ export default {
             await monitorCollection.updateMany(
                 {
                     _id: {
-                        $in: monitors.map((monitor: $TSFixMe) => monitor._id),
+                        $in: monitors.map((monitor: $TSFixMe) => {
+                            return monitor._id;
+                        }),
                     },
                 },
                 { $set: { [key]: new Date(moment().format()) } }

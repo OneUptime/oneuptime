@@ -91,7 +91,9 @@ export default function component(state = INITIAL_STATE, action: Action): void {
     switch (action.type) {
         case CREATE_COMPONENT_SUCCESS:
             isExistingComponent = state.componentList.components.find(
-                component => component._id === action.payload.projectId._id
+                component => {
+                    return component._id === action.payload.projectId._id;
+                }
             );
             return Object.assign({}, state, {
                 ...state,
@@ -293,8 +295,11 @@ export default function component(state = INITIAL_STATE, action: Action): void {
                             const componentIndex: $TSFixMe =
                                 subProjectComponents &&
                                 subProjectComponents.findIndex(
-                                    (component: $TSFixMe) =>
-                                        component._id === newComponent._id
+                                    (component: $TSFixMe) => {
+                                        return (
+                                            component._id === newComponent._id
+                                        );
+                                    }
                                 );
                             const isSubProjectComponent: $TSFixMe =
                                 componentIndex > -1;
@@ -427,8 +432,9 @@ export default function component(state = INITIAL_STATE, action: Action): void {
                         subProjectComponent => {
                             subProjectComponent.components =
                                 subProjectComponent.components.filter(
-                                    ({ _id }: $TSFixMe) =>
-                                        _id !== action.payload
+                                    ({ _id }: $TSFixMe) => {
+                                        return _id !== action.payload;
+                                    }
                                 );
                             return subProjectComponent;
                         }
@@ -461,9 +467,9 @@ export default function component(state = INITIAL_STATE, action: Action): void {
 
         case DELETE_PROJECT_COMPONENTS:
             components = Object.assign([], state.componentList.components);
-            components = components.filter(
-                component => action.payload !== component.projectId
-            );
+            components = components.filter(component => {
+                return action.payload !== component.projectId;
+            });
 
             return Object.assign({}, state, {
                 componentList: {

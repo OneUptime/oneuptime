@@ -97,7 +97,9 @@ describe('Resource Category', () => {
             const createdResourceCategoryName: $TSFixMe = await init.page$Eval(
                 page,
                 createdResourceCategorySelector,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(createdResourceCategoryName).toEqual(
@@ -190,7 +192,9 @@ describe('Resource Category', () => {
             const createdMonitorName: $TSFixMe = await init.page$Eval(
                 page,
                 createdMonitorSelector,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(createdMonitorName).toEqual(utils.monitorName);
@@ -249,7 +253,9 @@ describe('Resource Category', () => {
             const resourceCategoryCount: $TSFixMe = await init.page$Eval(
                 page,
                 resourceCategoryCounterSelector,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(resourceCategoryCount).toEqual('0 Resource Category');

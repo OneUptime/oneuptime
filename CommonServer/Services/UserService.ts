@@ -144,13 +144,15 @@ class Service extends DatabaseService<typeof Model> {
     async updatePush({ userId, data }: $TSFixMe): void {
         const user: $TSFixMe = await UserModel.findOne({ _id: userId });
         const checkExist: $TSFixMe = await user.identification.find(
-            (user: $TSFixMe) =>
-                String(user.userAgent) === String(data.userAgent)
+            (user: $TSFixMe) => {
+                return String(user.userAgent) === String(data.userAgent);
+            }
         );
         if (!data.checked) {
             const findIndex: $TSFixMe = await user.identification.findIndex(
-                (user: $TSFixMe) =>
-                    String(user.userAgent) === String(data.userAgent)
+                (user: $TSFixMe) => {
+                    return String(user.userAgent) === String(data.userAgent);
+                }
             );
             await user.identification.splice(findIndex, 1);
         } else {
@@ -841,23 +843,30 @@ class Service extends DatabaseService<typeof Model> {
                 let projectIds: $TSFixMe = [];
                 if (userProjects.length > 0) {
                     const subProjects: $TSFixMe = userProjects
-                        .map((project: $TSFixMe) =>
-                            project.parentProjectId ? project : null
-                        )
-                        .filter((subProject: $TSFixMe) => subProject !== null);
+                        .map((project: $TSFixMe) => {
+                            return project.parentProjectId ? project : null;
+                        })
+                        .filter((subProject: $TSFixMe) => {
+                            return subProject !== null;
+                        });
                     parentProjectIds = subProjects.map(
-                        (subProject: $TSFixMe) =>
-                            subProject.parentProjectId._id ||
-                            subProject.parentProjectId
+                        (subProject: $TSFixMe) => {
+                            return (
+                                subProject.parentProjectId._id ||
+                                subProject.parentProjectId
+                            );
+                        }
                     );
                     const projects: $TSFixMe = userProjects
-                        .map((project: $TSFixMe) =>
-                            project.parentProjectId ? null : project
-                        )
-                        .filter((project: $TSFixMe) => project !== null);
-                    projectIds = projects.map(
-                        (project: $TSFixMe) => project._id
-                    );
+                        .map((project: $TSFixMe) => {
+                            return project.parentProjectId ? null : project;
+                        })
+                        .filter((project: $TSFixMe) => {
+                            return project !== null;
+                        });
+                    projectIds = projects.map((project: $TSFixMe) => {
+                        return project._id;
+                    });
                 }
                 const populate: $TSFixMe = [
                     { path: 'parentProjectId', select: 'name' },
@@ -947,23 +956,30 @@ class Service extends DatabaseService<typeof Model> {
                 let projectIds: $TSFixMe = [];
                 if (userProjects.length > 0) {
                     const subProjects: $TSFixMe = userProjects
-                        .map((project: $TSFixMe) =>
-                            project.parentProjectId ? project : null
-                        )
-                        .filter((subProject: $TSFixMe) => subProject !== null);
+                        .map((project: $TSFixMe) => {
+                            return project.parentProjectId ? project : null;
+                        })
+                        .filter((subProject: $TSFixMe) => {
+                            return subProject !== null;
+                        });
                     parentProjectIds = subProjects.map(
-                        (subProject: $TSFixMe) =>
-                            subProject.parentProjectId._id ||
-                            subProject.parentProjectId
+                        (subProject: $TSFixMe) => {
+                            return (
+                                subProject.parentProjectId._id ||
+                                subProject.parentProjectId
+                            );
+                        }
                     );
                     const projects: $TSFixMe = userProjects
-                        .map((project: $TSFixMe) =>
-                            project.parentProjectId ? null : project
-                        )
-                        .filter((project: $TSFixMe) => project !== null);
-                    projectIds = projects.map(
-                        (project: $TSFixMe) => project._id
-                    );
+                        .map((project: $TSFixMe) => {
+                            return project.parentProjectId ? null : project;
+                        })
+                        .filter((project: $TSFixMe) => {
+                            return project !== null;
+                        });
+                    projectIds = projects.map((project: $TSFixMe) => {
+                        return project._id;
+                    });
                 }
                 const populate: $TSFixMe = [
                     { path: 'parentProjectId', select: 'name' },

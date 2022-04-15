@@ -68,9 +68,11 @@ describe('Monitor Detail API', () => {
 
             const input: $TSFixMe = await init.page$(page, '#fileInput');
             await input.uploadFile(csvFile);
-            await input.evaluate((upload: $TSFixMe) =>
-                upload.dispatchEvent(new Event('change', { bubbles: true }))
-            );
+            await input.evaluate((upload: $TSFixMe) => {
+                return upload.dispatchEvent(
+                    new Event('change', { bubbles: true })
+                );
+            });
 
             await init.pageClick(page, '#importCsvButton');
             await init.pageWaitForSelector(page, '#importCsvButton', {
@@ -119,9 +121,11 @@ describe('Monitor Detail API', () => {
 
             const input: $TSFixMe = await init.page$(page, '#fileInput');
             await input.uploadFile(emptyFile);
-            await input.evaluate((upload: $TSFixMe) =>
-                upload.dispatchEvent(new Event('change', { bubbles: true }))
-            );
+            await input.evaluate((upload: $TSFixMe) => {
+                return upload.dispatchEvent(
+                    new Event('change', { bubbles: true })
+                );
+            });
 
             await init.pageClick(page, '#importCsvButton');
             let elementHandle: $TSFixMe;
@@ -165,9 +169,11 @@ describe('Monitor Detail API', () => {
 
             const input: $TSFixMe = await init.page$(page, '#fileInput');
             await input.uploadFile(csvFile);
-            await input.evaluate((upload: $TSFixMe) =>
-                upload.dispatchEvent(new Event('change', { bubbles: true }))
-            );
+            await input.evaluate((upload: $TSFixMe) => {
+                return upload.dispatchEvent(
+                    new Event('change', { bubbles: true })
+                );
+            });
 
             await init.pageClick(page, '#importCsvButton');
             await init.pageWaitForSelector(page, '#importCsvButton', {
@@ -215,9 +221,11 @@ describe('Monitor Detail API', () => {
 
             const input: $TSFixMe = await init.page$(page, '#fileInput');
             await input.uploadFile(existingSubscribers);
-            await input.evaluate((upload: $TSFixMe) =>
-                upload.dispatchEvent(new Event('change', { bubbles: true }))
-            );
+            await input.evaluate((upload: $TSFixMe) => {
+                return upload.dispatchEvent(
+                    new Event('change', { bubbles: true })
+                );
+            });
 
             await init.pageClick(page, '#importCsvButton');
             await init.pageWaitForSelector(page, '#importCsvButton', {

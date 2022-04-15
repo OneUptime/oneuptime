@@ -205,7 +205,9 @@ describe('Project Settings', () => {
             const childCount: $TSFixMe = await init.page$Eval(
                 page,
                 parentContainer,
-                (el: $TSFixMe) => el.childElementCount
+                (el: $TSFixMe) => {
+                    return el.childElementCount;
+                }
             );
             expect(childCount).toEqual(13);
             done();

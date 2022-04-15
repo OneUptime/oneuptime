@@ -12,9 +12,9 @@ const isOwnerOrAdmin: Function = (
 ): void => {
     const currentUser: $TSFixMe =
         project &&
-        project.users.filter(
-            (user: $TSFixMe) => String(user.userId) === String(userId)
-        );
+        project.users.filter((user: $TSFixMe) => {
+            return String(user.userId) === String(userId);
+        });
 
     return currentUser &&
         currentUser.length > 0 &&

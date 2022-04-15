@@ -3,26 +3,35 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const createCommunicationSlaRequest: Function = (): void => ({
-    type: types.CREATE_COMMUNICATION_SLA_REQUEST,
-});
+export const createCommunicationSlaRequest: Function = (): void => {
+    return {
+        type: types.CREATE_COMMUNICATION_SLA_REQUEST,
+    };
+};
 
 export const createCommunicationSlaSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.CREATE_COMMUNICATION_SLA_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.CREATE_COMMUNICATION_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const createCommunicationSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.CREATE_COMMUNICATION_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.CREATE_COMMUNICATION_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const createCommunicationSla: $TSFixMe =
-    (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
+export const createCommunicationSla: $TSFixMe = (
+    projectId: ObjectID,
+    data: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(createCommunicationSlaRequest());
 
@@ -44,33 +53,39 @@ export const createCommunicationSla: $TSFixMe =
             dispatch(createCommunicationSlaFailure(errorMsg));
         }
     };
+};
 
-export const updateCommunicationSlaRequest: Function = (): void => ({
-    type: types.UPDATE_COMMUNICATION_SLA_REQUEST,
-});
+export const updateCommunicationSlaRequest: Function = (): void => {
+    return {
+        type: types.UPDATE_COMMUNICATION_SLA_REQUEST,
+    };
+};
 
 export const updateCommunicationSlaSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.UPDATE_COMMUNICATION_SLA_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.UPDATE_COMMUNICATION_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const updateCommunicationSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.UPDATE_COMMUNICATION_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.UPDATE_COMMUNICATION_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const updateCommunicationSla: $TSFixMe =
-    (
-        projectId: ObjectID,
-        incidentSlaId: $TSFixMe,
-        data: $TSFixMe,
-        handleDefault = false
-    ) =>
-    async (dispatch: Dispatch) => {
+export const updateCommunicationSla: $TSFixMe = (
+    projectId: ObjectID,
+    incidentSlaId: $TSFixMe,
+    data: $TSFixMe,
+    handleDefault = false
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(updateCommunicationSlaRequest());
 
@@ -93,28 +108,38 @@ export const updateCommunicationSla: $TSFixMe =
             dispatch(updateCommunicationSlaFailure(errorMsg));
         }
     };
+};
 
-export const fetchCommunicationSlasRequest: Function = (): void => ({
-    type: types.FETCH_COMMUNICATION_SLAS_REQUEST,
-});
+export const fetchCommunicationSlasRequest: Function = (): void => {
+    return {
+        type: types.FETCH_COMMUNICATION_SLAS_REQUEST,
+    };
+};
 
 export const fetchCommunicationSlasSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.FETCH_COMMUNICATION_SLAS_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.FETCH_COMMUNICATION_SLAS_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchCommunicationSlasFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_COMMUNICATION_SLAS_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_COMMUNICATION_SLAS_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchCommunicationSlas: $TSFixMe =
-    (projectId: ObjectID, skip = 0, limit = 0) =>
-    async (dispatch: Dispatch) => {
+export const fetchCommunicationSlas: $TSFixMe = (
+    projectId: ObjectID,
+    skip = 0,
+    limit = 0
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(fetchCommunicationSlasRequest());
 
@@ -140,28 +165,37 @@ export const fetchCommunicationSlas: $TSFixMe =
             dispatch(fetchCommunicationSlasFailure(errorMsg));
         }
     };
+};
 
-export const deleteCommunicationSlaRequest: Function = (): void => ({
-    type: types.DELETE_COMMUNICATION_SLA_REQUEST,
-});
+export const deleteCommunicationSlaRequest: Function = (): void => {
+    return {
+        type: types.DELETE_COMMUNICATION_SLA_REQUEST,
+    };
+};
 
 export const deleteCommunicationSlaSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.DELETE_COMMUNICATION_SLA_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.DELETE_COMMUNICATION_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const deleteCommunicationSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.DELETE_COMMUNICATION_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.DELETE_COMMUNICATION_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const deleteCommunicationSla: $TSFixMe =
-    (projectId: ObjectID, incidentSlaId: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const deleteCommunicationSla: $TSFixMe = (
+    projectId: ObjectID,
+    incidentSlaId: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCommunicationSlaRequest());
 
@@ -181,33 +215,42 @@ export const deleteCommunicationSla: $TSFixMe =
             dispatch(deleteCommunicationSlaFailure(errorMsg));
         }
     };
+};
 
 // set active sla
-export const setActiveSla: Function = (incidentSlaId: $TSFixMe): void => ({
-    type: types.SET_ACTIVE_SLA,
-    payload: incidentSlaId,
-});
+export const setActiveSla: Function = (incidentSlaId: $TSFixMe): void => {
+    return {
+        type: types.SET_ACTIVE_SLA,
+        payload: incidentSlaId,
+    };
+};
 
-export const fetchDefaultCommunicationSlaRequest: Function = (): void => ({
-    type: types.FETCH_DEFAULT_COMMUNICATION_SLA_REQUEST,
-});
+export const fetchDefaultCommunicationSlaRequest: Function = (): void => {
+    return {
+        type: types.FETCH_DEFAULT_COMMUNICATION_SLA_REQUEST,
+    };
+};
 
 export const fetchDefaultCommunicationSlaSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.FETCH_DEFAULT_COMMUNICATION_SLA_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.FETCH_DEFAULT_COMMUNICATION_SLA_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchDefaultCommunicationSlaFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_DEFAULT_COMMUNICATION_SLA_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_DEFAULT_COMMUNICATION_SLA_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchDefaultCommunicationSla: $TSFixMe =
-    (projectId: ObjectID) => async (dispatch: Dispatch) => {
+export const fetchDefaultCommunicationSla: $TSFixMe = (projectId: ObjectID) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultCommunicationSlaRequest());
 
@@ -228,3 +271,4 @@ export const fetchDefaultCommunicationSla: $TSFixMe =
             dispatch(fetchDefaultCommunicationSlaFailure(errorMsg));
         }
     };
+};

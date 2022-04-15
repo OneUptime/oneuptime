@@ -321,7 +321,9 @@ export default function errorTracker(
                     error: null,
                     success: true,
                     errorTrackers: state.errorTrackersList.errorTrackers.filter(
-                        ({ _id }) => _id !== action.payload
+                        ({ _id }) => {
+                            return _id !== action.payload;
+                        }
                     ),
                 },
                 deleteErrorTracker: false,
@@ -469,8 +471,9 @@ export default function errorTracker(
                 : [...action.payload.ignoredIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
                 const issue: $TSFixMe = action.payload.ignoredIssues.filter(
-                    (ignoredIssue: $TSFixMe) =>
-                        ignoredIssue._id === errorTrackerIssues._id
+                    (ignoredIssue: $TSFixMe) => {
+                        return ignoredIssue._id === errorTrackerIssues._id;
+                    }
                 );
 
                 if (issue && issue.length > 0) {
@@ -542,8 +545,9 @@ export default function errorTracker(
                 : [...action.payload.unresolvedIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
                 const issue: $TSFixMe = action.payload.unresolvedIssues.filter(
-                    (unresolvedIssue: $TSFixMe) =>
-                        unresolvedIssue._id === errorTrackerIssues._id
+                    (unresolvedIssue: $TSFixMe) => {
+                        return unresolvedIssue._id === errorTrackerIssues._id;
+                    }
                 );
 
                 if (issue && issue.length > 0) {
@@ -615,8 +619,9 @@ export default function errorTracker(
                 : [...action.payload.resolvedIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
                 const issue: $TSFixMe = action.payload.resolvedIssues.filter(
-                    (resolvedIssue: $TSFixMe) =>
-                        resolvedIssue._id === errorTrackerIssues._id
+                    (resolvedIssue: $TSFixMe) => {
+                        return resolvedIssue._id === errorTrackerIssues._id;
+                    }
                 );
 
                 if (issue && issue.length > 0) {
@@ -753,10 +758,9 @@ export default function errorTracker(
                 state.errorTrackerIssues[
                     action.payload.errorEvent.errorTrackerId
                 ].errorTrackerIssues;
-            temporaryIssue = temporaryIssues.filter(
-                (issue: $TSFixMe) =>
-                    issue._id === action.payload.errorEvent.issueId
-            );
+            temporaryIssue = temporaryIssues.filter((issue: $TSFixMe) => {
+                return issue._id === action.payload.errorEvent.issueId;
+            });
             // if issue exist
             if (
                 temporaryIssue.length > 0 &&
@@ -796,9 +800,9 @@ export default function errorTracker(
                 state.errorTrackerIssues[action.payload.errorTrackerId]
                     .errorTrackerIssues;
 
-            temporaryIssues = temporaryIssues.filter(
-                ({ _id }: $TSFixMe) => _id !== action.payload._id
-            );
+            temporaryIssues = temporaryIssues.filter(({ _id }: $TSFixMe) => {
+                return _id !== action.payload._id;
+            });
             return Object.assign({}, state, {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,

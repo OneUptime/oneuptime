@@ -66,9 +66,9 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#settings a', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#settings a', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             // if element does not exist it will timeout and throw
             const licenseOption: $TSFixMe = await init.pageWaitForSelector(

@@ -17,13 +17,14 @@ function RenderIfSubProjectMember(props: $TSFixMe): void {
         currentProject &&
         currentProject.users &&
         currentProject.users.length > 0 &&
-        currentProject.users.filter(
-            (user: $TSFixMe) =>
+        currentProject.users.filter((user: $TSFixMe) => {
+            return (
                 user.userId === userId &&
                 user.role !== 'Administrator' &&
                 user.role !== 'Owner' &&
                 user.role !== 'Viewer'
-        ).length > 0
+            );
+        }).length > 0
     ) {
         renderItems = children;
     } else {
@@ -35,13 +36,14 @@ function RenderIfSubProjectMember(props: $TSFixMe): void {
                     subProject &&
                     subProject.users &&
                     subProject.users.length > 0 &&
-                    subProject.users.filter(
-                        (user: $TSFixMe) =>
+                    subProject.users.filter((user: $TSFixMe) => {
+                        return (
                             user.userId === userId &&
                             user.role !== 'Administrator' &&
                             user.role !== 'Owner' &&
                             user.role !== 'Viewer'
-                    ).length > 0
+                        );
+                    }).length > 0
                 ) {
                     renderItems = children;
                 }

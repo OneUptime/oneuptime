@@ -59,9 +59,9 @@ describe('Monitor Detail API', () => {
             const addButtonSelector: string = '#addSlackButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
-            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#endpoint');
 
@@ -76,9 +76,9 @@ describe('Monitor Detail API', () => {
             //Only the NAME is rendered as well as the ACTIONS to be performed.
             const createdWebhookSelector: string = `#name_slack_${webHookName}`;
 
-            await init.page$Eval(page, '#createSlack', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#createSlack', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#createSlack', {
                 hidden: true,
             });
@@ -88,7 +88,9 @@ describe('Monitor Detail API', () => {
             const createdWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 createdWebhookSelector,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
             expect(createdWebhookName).toEqual(webHookName);
             done();
@@ -116,7 +118,9 @@ describe('Monitor Detail API', () => {
             const existingWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 existingWebhookSelector,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(existingWebhookName).toEqual(webHookName);
@@ -125,7 +129,9 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 editWebhookButtonSelector,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             const newWebhookEndpoint: $TSFixMe = utils.generateRandomWebsite();
@@ -135,9 +141,9 @@ describe('Monitor Detail API', () => {
             await init.pageClick(page, '#endpoint', { clickCount: 3 });
 
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
-            await init.page$Eval(page, '#slackUpdate', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#slackUpdate', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#slackUpdate', {
                 hidden: true,
             });
@@ -149,7 +155,9 @@ describe('Monitor Detail API', () => {
             const updatedWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 `#name_slack_${newWebHookName}`,
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
             expect(updatedWebhookName).toEqual(newWebHookName);
             done();
@@ -185,13 +193,15 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(
                 page,
                 deleteWebhookButtonSelector,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(page, '#slackDelete');
-            await init.page$Eval(page, '#slackDelete', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#slackDelete', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#slackDelete', {
                 hidden: true,
             });
@@ -227,9 +237,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i: $TSFixMe = 0; i < 11; i++) {
-                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
-                    e.click()
-                );
+                await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
+                    return e.click();
+                });
 
                 await init.pageWaitForSelector(page, '#endpoint');
 
@@ -250,9 +260,9 @@ describe('Monitor Detail API', () => {
 
                         .click();
                 });
-                await init.page$Eval(page, '#createSlack', (e: $TSFixMe) =>
-                    e.click()
-                );
+                await init.page$Eval(page, '#createSlack', (e: $TSFixMe) => {
+                    return e.click();
+                });
                 await init.pageWaitForSelector(page, '#createSlack', {
                     hidden: true,
                 });

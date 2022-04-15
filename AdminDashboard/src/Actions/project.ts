@@ -26,9 +26,11 @@ export const fetchProjectsError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch all projects.
-export const fetchProjects: $TSFixMe =
-    (skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchProjects: $TSFixMe = (
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         skip = skip || 0;
         limit = limit || 10;
 
@@ -57,6 +59,7 @@ export const fetchProjects: $TSFixMe =
             dispatch(fetchProjectsError(errorMsg));
         }
     };
+};
 
 export const fetchProjectRequest: Function = (): void => {
     return {
@@ -79,9 +82,8 @@ export const fetchProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch a project.
-export const fetchProject: $TSFixMe =
-    (slug: $TSFixMe) =>
-    async (dispatch: Dispatch): void => {
+export const fetchProject: $TSFixMe = (slug: $TSFixMe) => {
+    return async (dispatch: Dispatch): void => {
         dispatch(fetchProjectRequest());
 
         try {
@@ -109,6 +111,7 @@ export const fetchProject: $TSFixMe =
             dispatch(fetchProjectError(errorMsg));
         }
     };
+};
 
 // Team create
 export const userCreateRequest: Function = (): void => {
@@ -142,9 +145,9 @@ export const userCreate: Function = (
         promise.then(
             (response: $TSFixMe): void => {
                 const data: $TSFixMe = response.data;
-                const projectUsers: $TSFixMe = data.filter(
-                    (team: $TSFixMe) => team.projectId === projectId
-                )[0];
+                const projectUsers: $TSFixMe = data.filter((team: $TSFixMe) => {
+                    return team.projectId === projectId;
+                })[0];
                 dispatch(userCreateSuccess(projectUsers.team));
             },
             (error: $TSFixMe): void => {
@@ -177,8 +180,8 @@ export const fetchUserProjectsError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch users belonging to a particular project
-export const fetchProjectTeam: $TSFixMe =
-    (projectId: ObjectID) => async (dispatch: Dispatch) => {
+export const fetchProjectTeam: $TSFixMe = (projectId: ObjectID) => {
+    return async (dispatch: Dispatch) => {
         dispatch(fetchProjectTeamRequest());
         try {
             const response: $TSFixMe = await BackendAPI.get(
@@ -186,9 +189,9 @@ export const fetchProjectTeam: $TSFixMe =
             );
 
             const team: $TSFixMe = response.data;
-            const projectTeam: $TSFixMe = team.filter(
-                (team: $TSFixMe) => team._id === projectId
-            )[0];
+            const projectTeam: $TSFixMe = team.filter((team: $TSFixMe) => {
+                return team._id === projectId;
+            })[0];
             dispatch(fetchProjectTeamSuccess(projectTeam));
             return response;
         } catch (error) {
@@ -207,6 +210,7 @@ export const fetchProjectTeam: $TSFixMe =
             dispatch(fetchProjectTeamError(errorMsg));
         }
     };
+};
 
 export const fetchProjectTeamRequest: Function = (): void => {
     return {
@@ -269,9 +273,9 @@ export const userUpdateRole: Function = (
         promise.then(
             (response: $TSFixMe): void => {
                 const data: $TSFixMe = response.data;
-                const projectUsers: $TSFixMe = data.filter(
-                    (user: $TSFixMe) => user.projectId === projectId
-                )[0];
+                const projectUsers: $TSFixMe = data.filter((user: $TSFixMe) => {
+                    return user.projectId === projectId;
+                })[0];
                 dispatch(userUpdateRoleSuccess(projectUsers));
             },
             (error: $TSFixMe): void => {
@@ -304,9 +308,11 @@ export const paginate: Function = (type: $TSFixMe): void => {
 };
 
 //Add Balance to a project
-export const updateBalance: $TSFixMe =
-    (projectId: ObjectID, rechargeBalanceAmount: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const updateBalance: $TSFixMe = (
+    projectId: ObjectID,
+    rechargeBalanceAmount: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         dispatch(updateProjectBalanceRequest());
 
         try {
@@ -336,6 +342,7 @@ export const updateBalance: $TSFixMe =
             dispatch(updateProjectBalanceError(errorMsg));
         }
     };
+};
 
 export const updateProjectBalanceRequest: Function = (): void => {
     return {
@@ -371,9 +378,9 @@ export const teamDelete: Function = (
         promise.then(
             (response: $TSFixMe): void => {
                 const team: $TSFixMe = response.data;
-                const projectTeam: $TSFixMe = team.filter(
-                    (team: $TSFixMe) => team.projectId === projectId
-                )[0];
+                const projectTeam: $TSFixMe = team.filter((team: $TSFixMe) => {
+                    return team.projectId === projectId;
+                })[0];
                 dispatch(teamDeleteSuccess(projectTeam.team));
                 return { team };
             },
@@ -419,9 +426,12 @@ export const resetTeamDelete: Function = (): void => {
 };
 
 // Calls the API to fetch all user projects.
-export const fetchUserProjects: $TSFixMe =
-    (userId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchUserProjects: $TSFixMe = (
+    userId: ObjectID,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -452,6 +462,7 @@ export const fetchUserProjects: $TSFixMe =
             dispatch(fetchUserProjectsError(errorMsg));
         }
     };
+};
 
 //Delete project
 export const deleteProjectRequest: Function = (): void => {
@@ -481,8 +492,8 @@ export const deleteProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to delete a project
-export const deleteProject: $TSFixMe =
-    (projectId: ObjectID) => async (dispatch: Dispatch) => {
+export const deleteProject: $TSFixMe = (projectId: ObjectID) => {
+    return async (dispatch: Dispatch) => {
         dispatch(deleteProjectRequest());
 
         try {
@@ -509,6 +520,7 @@ export const deleteProject: $TSFixMe =
             dispatch(deleteProjectError(errorMsg));
         }
     };
+};
 
 //Block project
 export const blockProjectRequest: Function = (): void => {
@@ -538,8 +550,8 @@ export const blockProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to block a project
-export const blockProject: $TSFixMe =
-    (projectId: ObjectID) => async (dispatch: Dispatch) => {
+export const blockProject: $TSFixMe = (projectId: ObjectID) => {
+    return async (dispatch: Dispatch) => {
         dispatch(blockProjectRequest());
 
         try {
@@ -567,6 +579,7 @@ export const blockProject: $TSFixMe =
             dispatch(blockProjectError(errorMsg));
         }
     };
+};
 
 //Renew Alert Limit
 export const renewAlertLimitRequest: Function = (): void => {
@@ -596,9 +609,11 @@ export const renewAlertLimitError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to block a project
-export const renewAlertLimit: $TSFixMe =
-    (projectId: ObjectID, alertLimit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const renewAlertLimit: $TSFixMe = (
+    projectId: ObjectID,
+    alertLimit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         dispatch(renewAlertLimitRequest());
 
         try {
@@ -629,6 +644,7 @@ export const renewAlertLimit: $TSFixMe =
             dispatch(renewAlertLimitError(errorMsg));
         }
     };
+};
 
 //Restore project
 export const restoreProjectRequest: Function = (): void => {
@@ -658,8 +674,8 @@ export const restoreProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to restore a project
-export const restoreProject: $TSFixMe =
-    (projectId: ObjectID) => async (dispatch: Dispatch) => {
+export const restoreProject: $TSFixMe = (projectId: ObjectID) => {
+    return async (dispatch: Dispatch) => {
         dispatch(restoreProjectRequest());
 
         try {
@@ -687,6 +703,7 @@ export const restoreProject: $TSFixMe =
             dispatch(restoreProjectError(errorMsg));
         }
     };
+};
 
 //Unblock project
 export const unblockProjectRequest: Function = (): void => {
@@ -716,8 +733,8 @@ export const unblockProjectError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to un-block a project
-export const unblockProject: $TSFixMe =
-    (projectId: ObjectID) => async (dispatch: Dispatch) => {
+export const unblockProject: $TSFixMe = (projectId: ObjectID) => {
+    return async (dispatch: Dispatch) => {
         dispatch(unblockProjectRequest());
 
         try {
@@ -745,6 +762,7 @@ export const unblockProject: $TSFixMe =
             dispatch(unblockProjectError(errorMsg));
         }
     };
+};
 
 //Add Project Notes
 export const addProjectNoteRequest: Function = (): void => {
@@ -776,8 +794,11 @@ export const addProjectNoteError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the API to add Admin Note
-export const addProjectNote: $TSFixMe =
-    (projectId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const addProjectNote: $TSFixMe = (
+    projectId: ObjectID,
+    values: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         dispatch(addProjectNoteRequest());
 
         try {
@@ -806,6 +827,7 @@ export const addProjectNote: $TSFixMe =
             dispatch(addProjectNoteError(errorMsg));
         }
     };
+};
 
 //Search Projects
 export const searchProjectsRequest: Function = (): void => {
@@ -835,9 +857,12 @@ export const searchProjectsError: Function = (error: $TSFixMe): void => {
 };
 
 // Calls the search projects api
-export const searchProjects: $TSFixMe =
-    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const searchProjects: $TSFixMe = (
+    filter: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         const values: $TSFixMe = {
             filter,
         };
@@ -870,6 +895,7 @@ export const searchProjects: $TSFixMe =
             dispatch(searchProjectsError(errorMsg));
         }
     };
+};
 
 // Upgrade a Project
 export const changePlanRequest: Function = (): void => {
@@ -892,15 +918,14 @@ export const changePlanFailure: Function = (error: $TSFixMe): void => {
     };
 };
 
-export const changePlan: $TSFixMe =
-    (
-        projectId: ObjectID,
-        planId: $TSFixMe,
-        projectName: $TSFixMe,
-        oldPlan: $TSFixMe,
-        newPlan: $TSFixMe
-    ) =>
-    async (dispatch: Dispatch) => {
+export const changePlan: $TSFixMe = (
+    projectId: ObjectID,
+    planId: $TSFixMe,
+    projectName: $TSFixMe,
+    oldPlan: $TSFixMe,
+    newPlan: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         dispatch(changePlanRequest());
 
         try {
@@ -927,6 +952,7 @@ export const changePlan: $TSFixMe =
             dispatch(changePlanFailure(errorMsg));
         }
     };
+};
 
 export const fetchProjectDomainsRequest: Function = (): void => {
     return {

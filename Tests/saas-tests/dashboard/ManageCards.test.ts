@@ -80,7 +80,9 @@ describe('Stripe cards API', () => {
             const cardsCount: $TSFixMe = await init.page$Eval(
                 page,
                 '#cardsCount',
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(cardsCount).toEqual('2 Cards');
@@ -109,7 +111,9 @@ describe('Stripe cards API', () => {
             const cardsCount: $TSFixMe = await init.page$Eval(
                 page,
                 '#cardsCount',
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(cardsCount).toEqual('1 Card');
@@ -146,7 +150,9 @@ describe('Stripe cards API', () => {
             const cardsCount: $TSFixMe = await init.page$Eval(
                 page,
                 '#cardsCount',
-                (el: $TSFixMe) => el.textContent
+                (el: $TSFixMe) => {
+                    return el.textContent;
+                }
             );
 
             expect(cardsCount).toEqual('1 Card');

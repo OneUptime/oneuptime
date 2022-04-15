@@ -253,8 +253,9 @@ class SocketApp extends Component<ComponentProps> {
             socket.on(
                 `resolveScheduledEvent-${this.props.project._id}`,
 
-                (event: $TSFixMe) =>
-                    thisObj.props.resolvescheduledeventbysocket(event)
+                (event: $TSFixMe) => {
+                    return thisObj.props.resolvescheduledeventbysocket(event);
+                }
             );
         }
         return null;
@@ -270,14 +271,16 @@ SocketApp.propTypes = {
     ]),
 };
 
-const mapStateToProps: Function = (state: RootState): void => ({
-    project: state.status.statusPage.projectId,
-    probes: state.probe.probes,
-    statusPage: state.status.statusPage,
-});
+const mapStateToProps: Function = (state: RootState): void => {
+    return {
+        project: state.status.statusPage.projectId,
+        probes: state.probe.probes,
+        statusPage: state.status.statusPage,
+    };
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch): void =>
-    bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch): void => {
+    return bindActionCreators(
         {
             updatestatuspagebysocket,
             updatemonitorbysocket,
@@ -302,5 +305,6 @@ const mapDispatchToProps: Function = (dispatch: Dispatch): void =>
         },
         dispatch
     );
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(SocketApp);

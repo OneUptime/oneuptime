@@ -155,9 +155,9 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 [],
                 state.incidentPrioritiesList.incidentPriorities
             );
-            index = incidentPriorities.findIndex(
-                incidentPriority => incidentPriority._id === action.payload._id
-            );
+            index = incidentPriorities.findIndex(incidentPriority => {
+                return incidentPriority._id === action.payload._id;
+            });
 
             incidentPriorities[index] = action.payload;
 
@@ -209,9 +209,9 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 [],
                 state.incidentPrioritiesList.incidentPriorities
             );
-            index = incidentPriorities.findIndex(
-                incidentPriority => incidentPriority._id === action.payload._id
-            );
+            index = incidentPriorities.findIndex(incidentPriority => {
+                return incidentPriority._id === action.payload._id;
+            });
             incidentPriorities.splice(index, 1);
 
             count = state.incidentPrioritiesList.count - 1;

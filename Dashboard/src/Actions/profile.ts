@@ -640,19 +640,25 @@ export const deleteAccount: Function = (
 };
 
 // Generate backup codes
-const generateBackupCodesRequest: Function = (): void => ({
-    type: types.GENERATE_BACKUP_CODES_REQUEST,
-});
+const generateBackupCodesRequest: Function = (): void => {
+    return {
+        type: types.GENERATE_BACKUP_CODES_REQUEST,
+    };
+};
 
-const generateBackupCodesSuccess: Function = (payload: $TSFixMe): void => ({
-    type: types.GENERATE_BACKUP_CODES_SUCCESS,
-    payload,
-});
+const generateBackupCodesSuccess: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.GENERATE_BACKUP_CODES_SUCCESS,
+        payload,
+    };
+};
 
-const generateBackupCodesFailure: Function = (payload: $TSFixMe): void => ({
-    type: types.GENERATE_BACKUP_CODES_FAILURE,
-    payload,
-});
+const generateBackupCodesFailure: Function = (payload: $TSFixMe): void => {
+    return {
+        type: types.GENERATE_BACKUP_CODES_FAILURE,
+        payload,
+    };
+};
 
 export const generateBackupCodes: Function = (): void => {
     return function (dispatch: Dispatch): void {

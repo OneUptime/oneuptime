@@ -173,13 +173,17 @@ describe('Incident Settings API', () => {
             const priorityFieldValue: $TSFixMe = await init.page$Eval(
                 page,
                 '#incidentTemplatePriority',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(priorityFieldValue).toEqual('Low');
             const titleFieldValue: $TSFixMe = await init.page$Eval(
                 page,
                 '#title',
-                (e: $TSFixMe) => e.value
+                (e: $TSFixMe) => {
+                    return e.value;
+                }
             );
             expect(titleFieldValue).toEqual(newDefaultIncidentTitle);
             done();
@@ -225,13 +229,17 @@ describe('Incident Settings API', () => {
             const title: $TSFixMe = await init.page$Eval(
                 page,
                 incidentTitleSelector,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
 
             const incidentPriority: $TSFixMe = await init.page$Eval(
                 page,
                 incidentPrioritySelector,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(title).toMatch(changedTitle);
             expect(incidentPriority).toMatch('Low');

@@ -230,9 +230,9 @@ export default function project(state = initialState, action: Action): void {
 
         case types.RESET_PROJECT_TOKEN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(
-                project => project._id !== action.payload._id
-            );
+            projects = projects.filter(project => {
+                return project._id !== action.payload._id;
+            });
 
             projects.push(action.payload);
             return Object.assign({}, state, {
@@ -279,9 +279,9 @@ export default function project(state = initialState, action: Action): void {
 
         case types.RENAME_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(
-                project => project._id !== action.payload._id
-            );
+            projects = projects.filter(project => {
+                return project._id !== action.payload._id;
+            });
 
             projects.push(action.payload);
             return Object.assign({}, state, {
@@ -355,9 +355,9 @@ export default function project(state = initialState, action: Action): void {
             });
         case types.DELETE_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(
-                project => project._id !== action.payload
-            );
+            projects = projects.filter(project => {
+                return project._id !== action.payload;
+            });
             return Object.assign({}, state, {
                 deleteProject: {
                     requesting: false,
@@ -402,9 +402,9 @@ export default function project(state = initialState, action: Action): void {
 
         case types.MARK_PROJECT_DELETE_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(
-                project => project._id !== action.payload
-            );
+            projects = projects.filter(project => {
+                return project._id !== action.payload;
+            });
             return Object.assign({}, state, {
                 deleteProject: {
                     requesting: false,
@@ -498,9 +498,9 @@ export default function project(state = initialState, action: Action): void {
 
         case types.CHANGE_PLAN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
-            projects = projects.filter(
-                project => project._id !== action.payload._id
-            );
+            projects = projects.filter(project => {
+                return project._id !== action.payload._id;
+            });
 
             projects.push(action.payload);
             return Object.assign({}, state, {
@@ -582,9 +582,9 @@ export default function project(state = initialState, action: Action): void {
             return Object.assign({}, state, {
                 currentProject: {
                     ...state.currentProject,
-                    users: action.payload.find(
-                        team => team.projectId === state.currentProject._id
-                    ).team,
+                    users: action.payload.find(team => {
+                        return team.projectId === state.currentProject._id;
+                    }).team,
                 },
             });
         case types.ALERT_OPTIONS_UPDATE_SUCCESS:

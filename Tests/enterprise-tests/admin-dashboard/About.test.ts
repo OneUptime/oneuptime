@@ -46,9 +46,9 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             const about: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#about-button',
@@ -72,16 +72,16 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#about-button', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#about-button', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await init.pageWaitForSelector(page, '.bs-Modal', {
                 visible: true,
                 timeout: init.timeout,
@@ -93,33 +93,45 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             const serverVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#server-version',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             const docsVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#docs-version',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             const helmVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#helm-version',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             const dashboardVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#dashboard-version',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             const adminDashboardVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#AdminDashboard-version',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
 
             const probeVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#probe-version',
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
 
             expect(serverVersion).toBeDefined();
@@ -142,16 +154,16 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#about-button', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#about-button', (elem: $TSFixMe) => {
+                return elem.click();
+            });
             await init.pageWaitForSelector(page, '.bs-Button', {
                 visible: true,
                 timeout: init.timeout,

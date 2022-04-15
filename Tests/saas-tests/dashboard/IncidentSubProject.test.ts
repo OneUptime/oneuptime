@@ -108,9 +108,9 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -181,7 +181,9 @@ describe('Incident API With SubProjects', () => {
                 await init.page$Eval(
                     page,
                     '#closeIncident_0',
-                    (elem: $TSFixMe) => elem.click()
+                    (elem: $TSFixMe) => {
+                        return elem.click();
+                    }
                 );
             }
 
@@ -218,9 +220,9 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -343,15 +345,21 @@ describe('Incident API With SubProjects', () => {
             await init.page$Eval(
                 page,
                 `#incident_${projectMonitorName1}_0`,
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             const type: string = 'internal';
             // fill internal message thread form
 
             await init.pageWaitForSelector(page, `#add-${type}-message`);
-            await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) =>
-                e.click()
+            await init.page$Eval(
+                page,
+                `#add-${type}-message`,
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(

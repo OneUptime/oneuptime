@@ -83,7 +83,9 @@ describe('Credential Page', () => {
             await init.page$Eval(
                 page,
                 '#cancelCredentialModalBtn',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 hidden: true,

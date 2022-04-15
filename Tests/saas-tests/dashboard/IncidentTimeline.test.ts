@@ -41,9 +41,9 @@ describe('Incident Timeline API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) =>
-            e.click()
-        );
+        await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) => {
+            return e.click();
+        });
 
         await init.pageType(page, 'input[id=name]', projectMonitorName);
 
@@ -52,12 +52,14 @@ describe('Incident Timeline API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        await init.page$Eval(page, '#url', (e: $TSFixMe) => e.click());
+        await init.page$Eval(page, '#url', (e: $TSFixMe) => {
+            return e.click();
+        });
 
         await init.pageType(page, '#url', 'https://google.com'); //'HTTP_TEST_SERVER' auto generates incidents and this breaks the test. Also, the tests are not dependent on HTTP_TEST_SERVER
-        await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
-            e.click()
-        );
+        await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) => {
+            return e.click();
+        });
         await init.pageWaitForSelector(
             page,
             `#monitor-title-${projectMonitorName}`,
@@ -115,9 +117,9 @@ describe('Incident Timeline API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => {
+                return e.click();
+            });
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
 
             // fill investigation message thread form
@@ -189,9 +191,9 @@ describe('Incident Timeline API', () => {
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
 
@@ -258,14 +260,18 @@ describe('Incident Timeline API', () => {
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => {
+                return e.click();
+            });
             // fill internal message thread form
 
             await init.pageWaitForSelector(page, `#add-${type}-message`);
-            await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) =>
-                e.click()
+            await init.page$Eval(
+                page,
+                `#add-${type}-message`,
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             await init.pageWaitForSelector(
@@ -336,9 +342,9 @@ describe('Incident Timeline API', () => {
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -407,9 +413,9 @@ describe('Incident Timeline API', () => {
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(
                 page,
@@ -458,9 +464,9 @@ describe('Incident Timeline API', () => {
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => {
+                return e.click();
+            });
             for (let i: $TSFixMe = 0; i < 10; i++) {
                 // add internal note
                 await init.pageWaitForSelector(page, `#add-${type}-message`, {
@@ -524,14 +530,14 @@ describe('Incident Timeline API', () => {
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -569,9 +575,9 @@ describe('Incident Timeline API', () => {
             await init.pageClick(page, `#more-details-${projectMonitorName}`);
 
             await init.pageWaitForSelector(page, `#incident_0`);
-            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#btnResolve_0');
 

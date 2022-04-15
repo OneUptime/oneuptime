@@ -128,10 +128,14 @@ router.post(
 
                     project.monitor = data.monitor.name;
                     const userIds: $TSFixMe = project.users
-                        .filter((e: $TSFixMe) => e.role !== 'Viewer')
-                        .map((e: $TSFixMe) => ({
-                            id: e.userId,
-                        })); // This cater for projects with multiple registered members
+                        .filter((e: $TSFixMe) => {
+                            return e.role !== 'Viewer';
+                        })
+                        .map((e: $TSFixMe) => {
+                            return {
+                                id: e.userId,
+                            };
+                        }); // This cater for projects with multiple registered members
 
                     const performance: $TSFixMe = data.performance;
 

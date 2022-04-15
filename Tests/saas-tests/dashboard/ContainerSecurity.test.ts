@@ -431,7 +431,9 @@ describe('Container Security Page', () => {
             const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 `#containerSecurityTitle_${newContainerSecurityName}`,
-                (elem: $TSFixMe) => elem.textContent
+                (elem: $TSFixMe) => {
+                    return elem.textContent;
+                }
             );
             expect(textContent).toEqual(newContainerSecurityName);
 

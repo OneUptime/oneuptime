@@ -93,8 +93,12 @@ export default {
                     );
                     if (Array.isArray(res.logBody)) {
                         modifiedRes.logBody = res.logBody.map(
-                            (element: $TSFixMe) =>
-                                _.omit(element, blackListedResBodyObjectPaths)
+                            (element: $TSFixMe) => {
+                                return _.omit(
+                                    element,
+                                    blackListedResBodyObjectPaths
+                                );
+                            }
                         );
                     }
 

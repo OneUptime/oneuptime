@@ -62,6 +62,7 @@ export default {
     // method whenver a user connects their account for the first time.
     test: testAuth,
     // assuming "username" is a key in the json returned from testAuth
-    connectionLabel: (z: $TSFixMe, bundle: $TSFixMe) =>
-        bundle.inputData.projectName,
+    connectionLabel: (z: $TSFixMe, bundle: $TSFixMe) => {
+        return bundle.inputData.projectName;
+    },
 };

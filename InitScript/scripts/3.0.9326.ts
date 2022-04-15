@@ -18,9 +18,9 @@ async function run(): void {
 
     for (const project of projects) {
         let projectUsers: $TSFixMe = project.users;
-        let mainUserIds: $TSFixMe = projectUsers.map(
-            (user: $TSFixMe) => user.userId
-        );
+        let mainUserIds: $TSFixMe = projectUsers.map((user: $TSFixMe) => {
+            return user.userId;
+        });
         if (adminUserId) {
             if (mainUserIds.includes(adminUserId.toString())) {
                 projectUsers = project.users?.map((user: $TSFixMe) => {
@@ -39,10 +39,12 @@ async function run(): void {
                 });
             } else {
                 projectUsers =
-                    project.users?.map((user: $TSFixMe) => ({
-                        ...user,
-                        show: true,
-                    })) || [];
+                    project.users?.map((user: $TSFixMe) => {
+                        return {
+                            ...user,
+                            show: true,
+                        };
+                    }) || [];
                 projectUsers.push({
                     show: false,
                     role: 'Administrator',
@@ -51,13 +53,17 @@ async function run(): void {
             }
         } else {
             projectUsers =
-                project.users?.map((users: $TSFixMe) => ({
-                    ...users,
-                    show: true,
-                })) || [];
+                project.users?.map((users: $TSFixMe) => {
+                    return {
+                        ...users,
+                        show: true,
+                    };
+                }) || [];
         }
 
-        mainUserIds = projectUsers.map((user: $TSFixMe) => user.userId);
+        mainUserIds = projectUsers.map((user: $TSFixMe) => {
+            return user.userId;
+        });
 
         // all subProjects
         const subProjects: $TSFixMe = await find(projectCollection, {
@@ -74,7 +80,9 @@ async function run(): void {
                 }) || [];
 
             const subProjectUserIds: $TSFixMe = subProjectUsers.map(
-                (user: $TSFixMe) => user.userId
+                (user: $TSFixMe) => {
+                    return user.userId;
+                }
             );
 
             if (

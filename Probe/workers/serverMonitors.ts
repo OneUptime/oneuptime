@@ -34,26 +34,29 @@ export default {
                 config.password = password;
             } else {
                 await fetch(`${serverUrl}/file/${identityFile}`).then(
-                    (res: $TSFixMe) =>
-                        new Promise((resolve: Function, reject: Function) => {
-                            const dest: $TSFixMe = fs.createWriteStream(
-                                `./${identityFile}`
-                            );
+                    (res: $TSFixMe) => {
+                        return new Promise(
+                            (resolve: Function, reject: Function) => {
+                                const dest: $TSFixMe = fs.createWriteStream(
+                                    `./${identityFile}`
+                                );
 
-                            res.body.pipe(dest);
+                                res.body.pipe(dest);
 
-                            res.body.on('end', () => {
-                                setTimeout(() => {
-                                    config.privateKey = fs.readFileSync(
-                                        `./${identityFile}`,
-                                        'utf8'
-                                    );
+                                res.body.on('end', () => {
+                                    setTimeout(() => {
+                                        config.privateKey = fs.readFileSync(
+                                            `./${identityFile}`,
+                                            'utf8'
+                                        );
 
-                                    resolve();
-                                }, 1000);
-                            });
-                            dest.on('error', reject);
-                        })
+                                        resolve();
+                                    }, 1000);
+                                });
+                                dest.on('error', reject);
+                            }
+                        );
+                    }
                 );
                 fs.unlinkSync(`./${identityFile}`);
             }
@@ -140,7 +143,9 @@ const execCommands: Function = async (exec: $TSFixMe, os: $TSFixMe): void => {
             .replace(/\t|:/gi, '')
             .trim()
             .split('\n')
-            .map((line: $TSFixMe) => line.replace(/\s+/g, ' ').trim());
+            .map((line: $TSFixMe) => {
+                return line.replace(/\s+/g, ' ').trim();
+            });
         const memLines: $TSFixMe = mem
             .replace(/\t|:/gi, '')
             .trim()

@@ -93,9 +93,9 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#userProfile');
 
             await init.pageWaitForSelector(page, '#changePassword');
-            await init.page$Eval(page, '#changePassword', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#changePassword', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, 'input[name=currentPassword]');
 
@@ -154,9 +154,9 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#userProfile');
 
             await init.pageWaitForSelector(page, '#changePassword');
-            await init.page$Eval(page, '#changePassword', (elem: $TSFixMe) =>
-                elem.click()
-            );
+            await init.page$Eval(page, '#changePassword', (elem: $TSFixMe) => {
+                return elem.click();
+            });
 
             await init.pageWaitForSelector(page, 'input[name=currentPassword]');
 
@@ -233,7 +233,9 @@ describe('Profile -> Delete Account Component test', () => {
             await init.page$Eval(
                 page,
                 'input[name=twoFactorAuthEnabled]',
-                (e: $TSFixMe) => e.click()
+                (e: $TSFixMe) => {
+                    return e.click();
+                }
             );
 
             //wait for the QR code to show

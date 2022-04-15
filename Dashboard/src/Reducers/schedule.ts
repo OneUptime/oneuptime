@@ -255,9 +255,9 @@ export default function schedule(state = initialState, action: Action): void {
             });
 
         case CREATE_SCHEDULE_SUCCESS:
-            isExistingSchedule = state.subProjectSchedules.find(
-                schedule => schedule._id === action.payload.projectId._id
-            );
+            isExistingSchedule = state.subProjectSchedules.find(schedule => {
+                return schedule._id === action.payload.projectId._id;
+            });
             return Object.assign({}, state, {
                 newSchedule: {
                     success: false,
@@ -279,7 +279,9 @@ export default function schedule(state = initialState, action: Action): void {
                                                     (
                                                         status: $TSFixMe,
                                                         index: $TSFixMe
-                                                    ) => index < 9
+                                                    ) => {
+                                                        return index < 9;
+                                                    }
                                                 ),
                                             ],
 
@@ -353,10 +355,12 @@ export default function schedule(state = initialState, action: Action): void {
                                   _id: action.payload[0].projectId._id,
 
                                   schedules: schedule.schedules.map(
-                                      (schedule: $TSFixMe) =>
-                                          schedule._id === action.payload[0]._id
+                                      (schedule: $TSFixMe) => {
+                                          return schedule._id ===
+                                              action.payload[0]._id
                                               ? action.payload[0]
-                                              : schedule
+                                              : schedule;
+                                      }
                                   ),
 
                                   count: schedule.count,
@@ -399,9 +403,9 @@ export default function schedule(state = initialState, action: Action): void {
 
         case DELETE_SCHEDULE_SUCCESS:
             data = Object.assign([], state.schedules.data);
-            index = data.findIndex(
-                schedule => schedule._id === action.payload.scheduleId
-            );
+            index = data.findIndex(schedule => {
+                return schedule._id === action.payload.scheduleId;
+            });
             action.payload.n === 1 &&
                 action.payload.ok === 1 &&
                 data.splice(index, 1);
@@ -422,9 +426,9 @@ export default function schedule(state = initialState, action: Action): void {
 
         case DELETE_PROJECT_SCHEDULES:
             data = Object.assign([], state.schedules.data);
-            data = data.filter(
-                schedule => action.payload !== schedule.projectId
-            );
+            data = data.filter(schedule => {
+                return action.payload !== schedule.projectId;
+            });
 
             return Object.assign({}, state, {
                 schedules: {
@@ -489,10 +493,12 @@ export default function schedule(state = initialState, action: Action): void {
                                   _id: action.payload[0].projectId._id,
 
                                   schedules: schedule.schedules.map(
-                                      (schedule: $TSFixMe) =>
-                                          schedule._id === action.payload[0]._id
+                                      (schedule: $TSFixMe) => {
+                                          return schedule._id ===
+                                              action.payload[0]._id
                                               ? action.payload[0]
-                                              : schedule
+                                              : schedule;
+                                      }
                                   ),
 
                                   count: schedule.count,
@@ -535,9 +541,9 @@ export default function schedule(state = initialState, action: Action): void {
 
         case ADD_USER_SUCCESS:
             data = Object.assign([], state.schedules.data);
-            index = data.findIndex(
-                schedule => schedule._id === action.payload._id
-            );
+            index = data.findIndex(schedule => {
+                return schedule._id === action.payload._id;
+            });
 
             data[index] = action.payload;
 

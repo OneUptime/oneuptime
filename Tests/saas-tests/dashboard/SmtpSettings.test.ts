@@ -94,11 +94,9 @@ describe('Custom SMTP Settings', () => {
             await init.pageClick(page, '#name');
 
             await init.pageType(page, '#name', name);
-            await init.page$Eval(
-                page,
-                '#secure',
-                (elem: $TSFixMe) => (elem.checked = true)
-            );
+            await init.page$Eval(page, '#secure', (elem: $TSFixMe) => {
+                return (elem.checked = true);
+            });
 
             await init.pageClick(page, '#saveSmtp');
 
@@ -113,7 +111,9 @@ describe('Custom SMTP Settings', () => {
             const host: $TSFixMe = await init.page$Eval(
                 page,
                 '#host',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
             expect(host).toEqual(smtpData.host);
 
@@ -170,7 +170,9 @@ describe('Custom SMTP Settings', () => {
             const fromVal: $TSFixMe = await init.page$Eval(
                 page,
                 '#from',
-                (elem: $TSFixMe) => elem.value
+                (elem: $TSFixMe) => {
+                    return elem.value;
+                }
             );
             expect(fromVal).toEqual(from);
 
@@ -218,7 +220,9 @@ describe('Custom SMTP Settings', () => {
             const emptyMessage: $TSFixMe = await init.page$Eval(
                 page,
                 '#port',
-                (element: $TSFixMe) => element.textContent
+                (element: $TSFixMe) => {
+                    return element.textContent;
+                }
             );
             // This confirms that the port is empty, hence could not be saved
             expect(emptyMessage).toEqual('');

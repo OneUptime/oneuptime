@@ -33,10 +33,9 @@ cron.schedule('* * * * *', () => {
 });
 
 cron.schedule('0 0 * * *', () => {
-    setTimeout(
-        () => subscription.handleUnpaidSubscription(),
-        subscriptionCronMinutesStartTime * 1000
-    );
+    setTimeout(() => {
+        return subscription.handleUnpaidSubscription();
+    }, subscriptionCronMinutesStartTime * 1000);
 });
 
 // ScheduledEvent: Create 'Started' Notes at event start time

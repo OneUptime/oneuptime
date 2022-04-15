@@ -20,7 +20,9 @@ const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
     });
 
     await init.pageWaitForSelector(page, '#statusPages');
-    await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => e.click());
+    await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => {
+        return e.click();
+    });
     const rowItem: $TSFixMe = await init.pageWaitForSelector(
         page,
         '#statusPagesListContainer > tr',
@@ -155,7 +157,9 @@ describe('Status Page', () => {
             const code: $TSFixMe = await init.page$Eval(
                 page,
                 '#js',
-                (script: $TSFixMe) => script.innerHTML,
+                (script: $TSFixMe) => {
+                    return script.innerHTML;
+                },
 
                 { hidden: true }
             );

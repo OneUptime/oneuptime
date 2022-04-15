@@ -548,7 +548,9 @@ describe('Error Tracker API', function (): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('issues');
                 const currentIssue: $TSFixMe = res.body.issues.filter(
-                    (issue: $TSFixMe) => issue._id === errorEvent.issueId
+                    (issue: $TSFixMe) => {
+                        return issue._id === errorEvent.issueId;
+                    }
                 )[0];
                 // expect it to have value of the user that ignored it
                 expect(currentIssue.ignoredById).to.have.property('_id');
@@ -569,7 +571,9 @@ describe('Error Tracker API', function (): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('issues');
                 const currentIssue: $TSFixMe = res.body.issues.filter(
-                    (issue: $TSFixMe) => issue._id === errorEvent.issueId
+                    (issue: $TSFixMe) => {
+                        return issue._id === errorEvent.issueId;
+                    }
                 )[0];
                 // expect it to have value of the user that resolved it
                 expect(currentIssue.resolvedById).to.have.property('_id');
@@ -593,7 +597,9 @@ describe('Error Tracker API', function (): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('issues');
                 const currentIssue: $TSFixMe = res.body.issues.filter(
-                    (issue: $TSFixMe) => issue._id === errorEvent.issueId
+                    (issue: $TSFixMe) => {
+                        return issue._id === errorEvent.issueId;
+                    }
                 )[0];
                 // expect it to null the resolved section
                 expect(currentIssue.resolvedById).to.be.equal(null);

@@ -31,22 +31,27 @@ import GlobalConfig from './utils/globalConfig';
 import AirtableService from '../backend/services/airtableService';
 let token: $TSFixMe, userId, projectId: ObjectID, componentId: $TSFixMe;
 const probeKey: string = 'test-key';
-const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
-    new Promise((resolve: $TSFixMe) => setTimeout(resolve, waitTimeInMs));
+const sleep: Function = (waitTimeInMs: $TSFixMe): void => {
+    return new Promise((resolve: $TSFixMe) => {
+        return setTimeout(resolve, waitTimeInMs);
+    });
+};
 const generateRandomString: $TSFixMe =
     require('./utils/string').generateRandomString;
 const probeServerRequestHeader: Function = ({
     probeName,
     probeKey,
     clusterKey,
-}: $TSFixMe): void => ({
-    'Access-Control-Allow-Origin': '*',
-    Accept: 'application/json',
-    'Content-Type': 'application/json;charset=UTF-8',
-    probeName,
-    probeKey,
-    clusterKey,
-});
+}: $TSFixMe): void => {
+    return {
+        'Access-Control-Allow-Origin': '*',
+        Accept: 'application/json',
+        'Content-Type': 'application/json;charset=UTF-8',
+        probeName,
+        probeKey,
+        clusterKey,
+    };
+};
 let probeServerName1: $TSFixMe, probeServerName2: $TSFixMe;
 
 describe('Probe API', function (): void {

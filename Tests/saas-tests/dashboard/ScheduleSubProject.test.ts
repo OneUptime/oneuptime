@@ -240,7 +240,9 @@ describe('Schedule API With SubProjects', () => {
             const monitorSelectValue: $TSFixMe = await init.page$Eval(
                 page,
                 'input[type=checkbox]',
-                (el: $TSFixMe) => el.value
+                (el: $TSFixMe) => {
+                    return el.value;
+                }
             );
             expect(monitorSelectValue).toBe('true');
 

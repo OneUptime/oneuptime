@@ -343,9 +343,9 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
 // and since we can't await outside an async function, we had to use an IIFE to handle that
 (async function (): void {
     // create http server
-    http.createServer(app).listen(3006, () =>
-        logger.info('Server running on port 3006')
-    );
+    http.createServer(app).listen(3006, () => {
+        return logger.info('Server running on port 3006');
+    });
 
     try {
         // create https server

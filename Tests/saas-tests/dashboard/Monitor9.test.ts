@@ -22,17 +22,19 @@ describe('API Monitor API', () => {
         await page.setUserAgent(utils.agent);
 
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-        await page.evaluate(
-            () => (document.getElementById('responseTime').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('statusCode').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('header').value = '')
-        );
+        await page.evaluate(() => {
+            return (document.getElementById('responseTime').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('statusCode').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('header').value = '');
+        });
 
-        await page.evaluate(() => (document.getElementById('body').value = ''));
+        await page.evaluate(() => {
+            return (document.getElementById('body').value = '');
+        });
 
         await init.pageWaitForSelector(page, '#responseTime');
 
@@ -142,9 +144,9 @@ describe('API Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, editButtonSelector, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, editButtonSelector, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
 
@@ -188,12 +190,12 @@ describe('API Monitor API', () => {
         'should evaluate response (degraded criteria) in advance options',
         async (done: $TSFixMe) => {
             await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-            await page.evaluate(
-                () => (document.getElementById('responseTime').value = '')
-            );
-            await page.evaluate(
-                () => (document.getElementById('body').value = '')
-            );
+            await page.evaluate(() => {
+                return (document.getElementById('responseTime').value = '');
+            });
+            await page.evaluate(() => {
+                return (document.getElementById('body').value = '');
+            });
 
             await init.pageWaitForSelector(page, '#responseTime');
 
@@ -268,12 +270,12 @@ describe('API Monitor API', () => {
         async (done: $TSFixMe) => {
             // This navigates to http-server and creates the appropriate settings before dashboard page.
             await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-            await page.evaluate(
-                () => (document.getElementById('statusCode').value = '')
-            );
-            await page.evaluate(
-                () => (document.getElementById('body').value = '')
-            );
+            await page.evaluate(() => {
+                return (document.getElementById('statusCode').value = '');
+            });
+            await page.evaluate(() => {
+                return (document.getElementById('body').value = '');
+            });
 
             await init.pageWaitForSelector(page, '#statusCode');
 
@@ -347,14 +349,16 @@ describe('API Monitor API', () => {
     test('should display offline status if evaluate response does not match in criteria', async (done: $TSFixMe) => {
         // This navigates to http-server and creates the appropriate settings before dashboard page.
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-        await page.evaluate(
-            () => (document.getElementById('responseTime').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('statusCode').value = '')
-        );
+        await page.evaluate(() => {
+            return (document.getElementById('responseTime').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('statusCode').value = '');
+        });
 
-        await page.evaluate(() => (document.getElementById('body').value = ''));
+        await page.evaluate(() => {
+            return (document.getElementById('body').value = '');
+        });
 
         await init.pageWaitForSelector(page, '#responseTime');
 
@@ -484,9 +488,9 @@ describe('API Monitor API', () => {
             const deleteButtonSelector: string = `#delete_${testMonitorName}`;
 
             await init.pageWaitForSelector(page, deleteButtonSelector);
-            await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) => {
+                return e.click();
+            });
 
             const confirmDeleteButtonSelector: string = '#deleteMonitor';
 

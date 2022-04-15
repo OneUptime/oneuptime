@@ -317,9 +317,9 @@ export default function card(state = initialState, action: Action): void {
                 },
                 allNumbers: {
                     ...state.allNumbers,
-                    numbers: state.allNumbers.numbers.filter(
-                        n => String(n._id) !== String(action.payload._id)
-                    ),
+                    numbers: state.allNumbers.numbers.filter(n => {
+                        return String(n._id) !== String(action.payload._id);
+                    }),
                 },
             });
 

@@ -242,9 +242,12 @@ export default function scheduledEvent(
                         ) {
                             const existingEvent: $TSFixMe =
                                 event.scheduledEvents.find(
-                                    (event: $TSFixMe) =>
-                                        String(event._id) ===
-                                        String(action.payload._id)
+                                    (event: $TSFixMe) => {
+                                        return (
+                                            String(event._id) ===
+                                            String(action.payload._id)
+                                        );
+                                    }
                                 );
                             if (!existingEvent) {
                                 event.scheduledEvents = [
@@ -569,9 +572,12 @@ export default function scheduledEvent(
                         ) {
                             eventData.ongoingScheduledEvents =
                                 eventData.ongoingScheduledEvents.filter(
-                                    (event: $TSFixMe) =>
-                                        String(event._id) !==
-                                        String(action.payload._id)
+                                    (event: $TSFixMe) => {
+                                        return (
+                                            String(event._id) !==
+                                            String(action.payload._id)
+                                        );
+                                    }
                                 );
 
                             eventData.count =
@@ -1200,9 +1206,12 @@ export default function scheduledEvent(
                         ) {
                             event.ongoingScheduledEvents =
                                 event.ongoingScheduledEvents.filter(
-                                    (ongoingEvent: $TSFixMe) =>
-                                        String(ongoingEvent._id) !==
-                                        String(action.payload._id)
+                                    (ongoingEvent: $TSFixMe) => {
+                                        return (
+                                            String(ongoingEvent._id) !==
+                                            String(action.payload._id)
+                                        );
+                                    }
                                 );
 
                             event.count = event.ongoingScheduledEvents.length;

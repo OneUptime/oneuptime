@@ -22,17 +22,19 @@ describe('API Monitor API', () => {
         await page.setUserAgent(utils.agent);
 
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
-        await page.evaluate(
-            () => (document.getElementById('responseTime').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('statusCode').value = '')
-        );
-        await page.evaluate(
-            () => (document.getElementById('header').value = '')
-        );
+        await page.evaluate(() => {
+            return (document.getElementById('responseTime').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('statusCode').value = '');
+        });
+        await page.evaluate(() => {
+            return (document.getElementById('header').value = '');
+        });
 
-        await page.evaluate(() => (document.getElementById('body').value = ''));
+        await page.evaluate(() => {
+            return (document.getElementById('body').value = '');
+        });
 
         await init.pageWaitForSelector(page, '#responseTime');
 

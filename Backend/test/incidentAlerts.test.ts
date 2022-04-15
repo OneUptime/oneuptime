@@ -68,8 +68,11 @@ import { generateRandomString } from './utils/string';
 import uuid from 'uuid';
 import axios from 'axios';
 
-const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
-    new Promise((resolve: $TSFixMe) => setTimeout(resolve, waitTimeInMs));
+const sleep: Function = (waitTimeInMs: $TSFixMe): void => {
+    return new Promise((resolve: $TSFixMe) => {
+        return setTimeout(resolve, waitTimeInMs);
+    });
+};
 
 let authorization: $TSFixMe,
     userId: ObjectID,
@@ -1029,9 +1032,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             // remove the added team members
             updatedProject = await TeamMembers.removeTeamMembersFromProject(
                 projectId,
-                updatedProject.users.filter(
-                    (user: $TSFixMe) => user.userId === newUserId
-                )
+                updatedProject.users.filter((user: $TSFixMe) => {
+                    return user.userId === newUserId;
+                })
             );
             expect(updatedProject.users).to.have.lengthOf(1);
             // remove the monitor
@@ -1191,9 +1194,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             // remove the added team members
             updatedProject = await TeamMembers.removeTeamMembersFromProject(
                 projectId,
-                updatedProject.users.filter(
-                    (user: $TSFixMe) => user.userId === newUserId
-                )
+                updatedProject.users.filter((user: $TSFixMe) => {
+                    return user.userId === newUserId;
+                })
             );
             expect(updatedProject.users).to.have.lengthOf(1);
             // remove the monitor
@@ -1342,9 +1345,9 @@ describe('SMS/Calls Incident Alerts', function (): void {
             // remove the added team members
             updatedProject = await TeamMembers.removeTeamMembersFromProject(
                 projectId,
-                updatedProject.users.filter(
-                    (user: $TSFixMe) => user.userId === newUserId
-                )
+                updatedProject.users.filter((user: $TSFixMe) => {
+                    return user.userId === newUserId;
+                })
             );
             expect(updatedProject.users).to.have.lengthOf(1);
 
@@ -1917,12 +1920,13 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(subscriberAlerts.body.data).to.be.an('array');
 
             const statusPageNoteNotificationAlert: $TSFixMe =
-                subscriberAlerts.body.data.find(
-                    (subscriberAlert: $TSFixMe) =>
+                subscriberAlerts.body.data.find((subscriberAlert: $TSFixMe) => {
+                    return (
                         subscriberAlert.alertVia === 'sms' &&
                         subscriberAlert.errorMessage ===
                             'Investigation Note SMS Notification Disabled'
-                );
+                    );
+                });
             expect(statusPageNoteNotificationAlert).to.be.an('object');
         });
 
@@ -3136,12 +3140,13 @@ describe('Email Incident Alerts', (): void => {
         expect(subscriberAlerts.body.data).to.be.an('array');
 
         const statusPageNoteNotificationAlert: $TSFixMe =
-            subscriberAlerts.body.data.find(
-                (subscriberAlert: $TSFixMe) =>
+            subscriberAlerts.body.data.find((subscriberAlert: $TSFixMe) => {
+                return (
                     subscriberAlert.alertVia === 'email' &&
                     subscriberAlert.errorMessage ===
                         'Investigation Note Email Notification Disabled'
-            );
+                );
+            });
         expect(statusPageNoteNotificationAlert).to.be.an('object');
     });
 
@@ -3550,12 +3555,13 @@ describe('Webhook Incident Alerts', function (): void {
         expect(subscriberAlerts.body.data).to.be.an('array');
 
         const statusPageNoteNotificationAlert: $TSFixMe =
-            subscriberAlerts.body.data.find(
-                (subscriberAlert: $TSFixMe) =>
+            subscriberAlerts.body.data.find((subscriberAlert: $TSFixMe) => {
+                return (
                     subscriberAlert.alertVia === 'webhook' &&
                     subscriberAlert.errorMessage ===
                         'Investigation Note Webhook Notification Disabled'
-            );
+                );
+            });
         expect(statusPageNoteNotificationAlert).to.be.an('object');
     });
 });

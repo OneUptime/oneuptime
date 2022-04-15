@@ -92,7 +92,9 @@ export default class Service {
         let userCount: $TSFixMe = 0;
         if (subProjects && subProjects.length > 0) {
             const userId: ObjectID = [];
-            subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
+            subProjectIds = subProjects.map((project: $TSFixMe) => {
+                return project._id;
+            });
             subProjects.map((subProject: $TSFixMe) => {
                 subProject.users.map((user: $TSFixMe) => {
                     if (!userId.includes(user.userId)) {
@@ -671,9 +673,9 @@ export default class Service {
                     select: '_id',
                 });
                 if (subProjects && subProjects.length > 0) {
-                    subProjectIds = subProjects.map(
-                        (project: $TSFixMe) => project._id
-                    );
+                    subProjectIds = subProjects.map((project: $TSFixMe) => {
+                        return project._id;
+                    });
                 }
                 subProjectIds.push(project._id);
                 const [monitorsCount, projectUsers]: $TSFixMe =
@@ -1076,9 +1078,9 @@ export default class Service {
             for (const monitor of monitors) {
                 if (
                     monitor.pollTime.length === 0 ||
-                    !monitor.pollTime.some(
-                        (pt: $TSFixMe) => String(pt.probeId) === String(probeId)
-                    )
+                    !monitor.pollTime.some((pt: $TSFixMe) => {
+                        return String(pt.probeId) === String(probeId);
+                    })
                 ) {
                     createNewPollTimeMonitorIds.push(monitor._id);
                 } else {
@@ -1577,8 +1579,8 @@ export default class Service {
                         return false;
                     }
                 });
-                status = incidents.some((inc: $TSFixMe) =>
-                    inc.resolvedAt
+                status = incidents.some((inc: $TSFixMe) => {
+                    return inc.resolvedAt
                         ? moment(inc.resolvedAt)
                               .utc()
                               .startOf('day')
@@ -1586,8 +1588,8 @@ export default class Service {
                                   moment(temp.date).utc().startOf('day'),
                                   'days'
                               ) > 0
-                        : true
-                )
+                        : true;
+                })
                     ? 'offline'
                     : 'online';
 
@@ -1633,7 +1635,9 @@ export default class Service {
             }
             if (incidents.length) {
                 const reduced: $TSFixMe = incidents.reduce(
-                    (inc: $TSFixMe, val: $TSFixMe) => inc + val
+                    (inc: $TSFixMe, val: $TSFixMe) => {
+                        return inc + val;
+                    }
                 );
 
                 temp.downTime = reduced < 1440 ? reduced : 1440;
@@ -1842,13 +1846,13 @@ export default class Service {
             });
             //Second step
 
-            incidentsHappenedDuringTheDay.sort((a, b) =>
-                moment(a.start).isSame(b.start)
+            incidentsHappenedDuringTheDay.sort((a, b) => {
+                return moment(a.start).isSame(b.start)
                     ? 0
                     : moment(a.start).isAfter(b.start)
                     ? 1
-                    : -1
-            );
+                    : -1;
+            });
             //Third step
             for (
                 let i: $TSFixMe = 0;
@@ -1955,9 +1959,9 @@ export default class Service {
             }
             //Remove events having start and end time equal.
             incidentsHappenedDuringTheDay =
-                incidentsHappenedDuringTheDay.filter(
-                    event => !moment(event.start).isSame(event.end)
-                );
+                incidentsHappenedDuringTheDay.filter(event => {
+                    return !moment(event.start).isSame(event.end);
+                });
             //Last step
             for (const incident of incidentsHappenedDuringTheDay) {
                 const { start, end, status }: $TSFixMe = incident;
@@ -2143,13 +2147,13 @@ export default class Service {
             );
             //Second step
 
-            incidentsHappenedDuringTheDay.sort((a, b) =>
-                moment(a.start).isSame(b.start)
+            incidentsHappenedDuringTheDay.sort((a, b) => {
+                return moment(a.start).isSame(b.start)
                     ? 0
                     : moment(a.start).isAfter(b.start)
                     ? 1
-                    : -1
-            );
+                    : -1;
+            });
             //Third step
             for (
                 let i: $TSFixMe = 0;
@@ -2258,9 +2262,9 @@ export default class Service {
             }
             //Remove events having start and end time equal.
             incidentsHappenedDuringTheDay =
-                incidentsHappenedDuringTheDay.filter(
-                    event => !moment(event.start).isSame(event.end)
-                );
+                incidentsHappenedDuringTheDay.filter(event => {
+                    return !moment(event.start).isSame(event.end);
+                });
             //Last step
             for (const incident of incidentsHappenedDuringTheDay) {
                 const { start, end, status }: $TSFixMe = incident;

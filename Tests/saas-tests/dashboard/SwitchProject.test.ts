@@ -44,9 +44,9 @@ describe('Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#create-project', (e: $TSFixMe) =>
-                e.click()
-            );
+            await init.page$Eval(page, '#create-project', (e: $TSFixMe) => {
+                return e.click();
+            });
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,
                 timeout: init.timeout,

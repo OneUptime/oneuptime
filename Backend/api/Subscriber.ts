@@ -406,9 +406,9 @@ router.get(
                 select,
             });
 
-            const monitorIds: $TSFixMe = subscriptions.map(
-                subscription => subscription.monitorId
-            );
+            const monitorIds: $TSFixMe = subscriptions.map(subscription => {
+                return subscription.monitorId;
+            });
 
             const subscriberMonitors: $TSFixMe = await MonitorService.findBy({
                 query: { _id: { $in: monitorIds }, deleted: false },

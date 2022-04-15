@@ -4,26 +4,35 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/incomingRequest';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-export const createIncomingRequestRequest: Function = (): void => ({
-    type: types.CREATE_INCOMING_REQUEST_REQUEST,
-});
+export const createIncomingRequestRequest: Function = (): void => {
+    return {
+        type: types.CREATE_INCOMING_REQUEST_REQUEST,
+    };
+};
 
 export const createIncomingRequestSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.CREATE_INCOMING_REQUEST_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.CREATE_INCOMING_REQUEST_SUCCESS,
+        payload,
+    };
+};
 
 export const createIncomingRequestFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.CREATE_INCOMING_REQUEST_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.CREATE_INCOMING_REQUEST_FAILURE,
+        payload: error,
+    };
+};
 
-export const createIncomingRequest: $TSFixMe =
-    (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
+export const createIncomingRequest: $TSFixMe = (
+    projectId: ObjectID,
+    data: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(createIncomingRequestRequest());
 
@@ -45,28 +54,38 @@ export const createIncomingRequest: $TSFixMe =
             dispatch(createIncomingRequestFailure(errorMsg));
         }
     };
+};
 
-export const editIncomingRequestRequest: Function = (): void => ({
-    type: types.EDIT_INCOMING_REQUEST_REQUEST,
-});
+export const editIncomingRequestRequest: Function = (): void => {
+    return {
+        type: types.EDIT_INCOMING_REQUEST_REQUEST,
+    };
+};
 
 export const editIncomingRequestSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.EDIT_INCOMING_REQUEST_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.EDIT_INCOMING_REQUEST_SUCCESS,
+        payload,
+    };
+};
 
 export const editIncomingRequestFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.EDIT_INCOMING_REQUEST_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.EDIT_INCOMING_REQUEST_FAILURE,
+        payload: error,
+    };
+};
 
-export const editIncomingRequest: $TSFixMe =
-    (projectId: ObjectID, requestId: $TSFixMe, data: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const editIncomingRequest: $TSFixMe = (
+    projectId: ObjectID,
+    requestId: $TSFixMe,
+    data: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());
 
@@ -88,28 +107,37 @@ export const editIncomingRequest: $TSFixMe =
             dispatch(editIncomingRequestFailure(errorMsg));
         }
     };
+};
 
-export const deleteIncomingRequestRequest: Function = (): void => ({
-    type: types.DELETE_INCOMING_REQUEST_REQUEST,
-});
+export const deleteIncomingRequestRequest: Function = (): void => {
+    return {
+        type: types.DELETE_INCOMING_REQUEST_REQUEST,
+    };
+};
 
 export const deleteIncomingRequestSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.DELETE_INCOMING_REQUEST_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.DELETE_INCOMING_REQUEST_SUCCESS,
+        payload,
+    };
+};
 
 export const deleteIncomingRequestFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.DELETE_INCOMING_REQUEST_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.DELETE_INCOMING_REQUEST_FAILURE,
+        payload: error,
+    };
+};
 
-export const deleteIncomingRequest: $TSFixMe =
-    (projectId: ObjectID, requestId: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const deleteIncomingRequest: $TSFixMe = (
+    projectId: ObjectID,
+    requestId: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(deleteIncomingRequestRequest());
 
@@ -129,28 +157,38 @@ export const deleteIncomingRequest: $TSFixMe =
             dispatch(deleteIncomingRequestFailure(errorMsg));
         }
     };
+};
 
-export const fetchAllIncomingRequestRequest: Function = (): void => ({
-    type: types.FETCH_ALL_INCOMING_REQUEST_REQUEST,
-});
+export const fetchAllIncomingRequestRequest: Function = (): void => {
+    return {
+        type: types.FETCH_ALL_INCOMING_REQUEST_REQUEST,
+    };
+};
 
 export const fetchAllIncomingRequestSuccess: Function = (
     payload: $TSFixMe
-): void => ({
-    type: types.FETCH_ALL_INCOMING_REQUEST_SUCCESS,
-    payload,
-});
+): void => {
+    return {
+        type: types.FETCH_ALL_INCOMING_REQUEST_SUCCESS,
+        payload,
+    };
+};
 
 export const fetchAllIncomingRequestFailure: Function = (
     error: ErrorPayload
-): void => ({
-    type: types.FETCH_ALL_INCOMING_REQUEST_FAILURE,
-    payload: error,
-});
+): void => {
+    return {
+        type: types.FETCH_ALL_INCOMING_REQUEST_FAILURE,
+        payload: error,
+    };
+};
 
-export const fetchAllIncomingRequest: $TSFixMe =
-    (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
-    async (dispatch: Dispatch) => {
+export const fetchAllIncomingRequest: $TSFixMe = (
+    projectId: ObjectID,
+    skip: PositiveNumber,
+    limit: PositiveNumber
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(fetchAllIncomingRequestRequest());
 
@@ -171,17 +209,23 @@ export const fetchAllIncomingRequest: $TSFixMe =
             dispatch(fetchAllIncomingRequestFailure(errorMsg));
         }
     };
+};
 
 export const setActiveIncomingRequest: Function = (
     requestId: $TSFixMe
-): void => ({
-    type: types.SET_ACTIVE_INCOMING_REQUEST,
-    payload: requestId,
-});
+): void => {
+    return {
+        type: types.SET_ACTIVE_INCOMING_REQUEST,
+        payload: requestId,
+    };
+};
 
-export const incomingRequestToggle: $TSFixMe =
-    (projectId: ObjectID, requestId: $TSFixMe, enabled: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const incomingRequestToggle: $TSFixMe = (
+    projectId: ObjectID,
+    requestId: $TSFixMe,
+    enabled: $TSFixMe
+) => {
+    return async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());
             const response: $TSFixMe = await BackendAPI.post(
@@ -202,3 +246,4 @@ export const incomingRequestToggle: $TSFixMe =
             dispatch(editIncomingRequestFailure(errorMsg));
         }
     };
+};

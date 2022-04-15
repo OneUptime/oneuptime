@@ -72,9 +72,11 @@ export default class Service {
 
         if (data.createIncident) {
             // reassign data.monitors with a restructured monitor data
-            data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-                monitorId: monitor,
-            }));
+            data.monitors = data.monitors.map((monitor: $TSFixMe) => {
+                return {
+                    monitorId: monitor,
+                };
+            });
         }
 
         if (data.incidentTitle) {
@@ -109,15 +111,17 @@ export default class Service {
 
         if (data.customFields && data.customFields.length > 0) {
             const customFields: $TSFixMe = [...data.customFields];
-            data.customFields = customFields.map((field: $TSFixMe) => ({
-                fieldName: field.fieldName,
-                fieldType: field.fieldType,
-                uniqueField: field.uniqueField,
-                fieldValue:
-                    typeof field.fieldValue === 'number'
-                        ? field.fieldValue
-                        : DOMPurify.sanitize(field.fieldValue),
-            }));
+            data.customFields = customFields.map((field: $TSFixMe) => {
+                return {
+                    fieldName: field.fieldName,
+                    fieldType: field.fieldType,
+                    uniqueField: field.uniqueField,
+                    fieldValue:
+                        typeof field.fieldValue === 'number'
+                            ? field.fieldValue
+                            : DOMPurify.sanitize(field.fieldValue),
+                };
+            });
         }
         data.enabled = true;
         const select: $TSFixMe =
@@ -197,9 +201,11 @@ export default class Service {
             }
 
             // reassign data.monitors with a restructured monitor data
-            data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
-                monitorId: monitor,
-            }));
+            data.monitors = data.monitors.map((monitor: $TSFixMe) => {
+                return {
+                    monitorId: monitor,
+                };
+            });
         }
 
         if (data.createIncident) {
@@ -304,15 +310,17 @@ export default class Service {
 
         if (data.customFields && data.customFields.length > 0) {
             const customFields: $TSFixMe = [...data.customFields];
-            data.customFields = customFields.map((field: $TSFixMe) => ({
-                fieldName: field.fieldName,
-                fieldType: field.fieldType,
-                uniqueField: field.uniqueField,
-                fieldValue:
-                    typeof field.fieldValue === 'number'
-                        ? field.fieldValue
-                        : DOMPurify.sanitize(field.fieldValue),
-            }));
+            data.customFields = customFields.map((field: $TSFixMe) => {
+                return {
+                    fieldName: field.fieldName,
+                    fieldType: field.fieldType,
+                    uniqueField: field.uniqueField,
+                    fieldValue:
+                        typeof field.fieldValue === 'number'
+                            ? field.fieldValue
+                            : DOMPurify.sanitize(field.fieldValue),
+                };
+            });
         }
 
         let updatedIncomingRequest: $TSFixMe =
@@ -495,9 +503,13 @@ export default class Service {
             allIncomingRequest.map(async (incomingRequest: $TSFixMe) => {
                 // remove the monitor from incomingRequest monitors list
                 incomingRequest.monitors = incomingRequest.monitors.filter(
-                    (monitor: $TSFixMe) =>
-                        String(monitor.monitorId._id || monitor.monitorId) !==
-                        String(monitorId)
+                    (monitor: $TSFixMe) => {
+                        return (
+                            String(
+                                monitor.monitorId._id || monitor.monitorId
+                            ) !== String(monitorId)
+                        );
+                    }
                 );
 
                 if (incomingRequest.monitors.length > 0) {
@@ -644,8 +656,12 @@ export default class Service {
                 });
             } else {
                 monitors = incomingRequest.monitors
-                    .map((monitor: $TSFixMe) => monitor.monitorId)
-                    .filter((monitor: $TSFixMe) => !monitor.deleted);
+                    .map((monitor: $TSFixMe) => {
+                        return monitor.monitorId;
+                    })
+                    .filter((monitor: $TSFixMe) => {
+                        return !monitor.deleted;
+                    });
             }
 
             if (filters && filters.length > 0) {
@@ -811,24 +827,25 @@ export default class Service {
                         dataConfig
                     ).toLowerCase();
                     const priorityObj: $TSFixMe = {};
-                    incidentPriorities.forEach(
-                        (priority: $TSFixMe) =>
-                            (priorityObj[priority.name.toLowerCase()] =
-                                priority._id)
-                    );
+                    incidentPriorities.forEach((priority: $TSFixMe) => {
+                        return (priorityObj[priority.name.toLowerCase()] =
+                            priority._id);
+                    });
                     data.incidentPriority =
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
                     data.customFields = data.customFields.map(
-                        (field: $TSFixMe) => ({
-                            ...field,
+                        (field: $TSFixMe) => {
+                            return {
+                                ...field,
 
-                            fieldValue: analyseVariable(
-                                String(field.fieldValue),
-                                dataConfig
-                            ),
-                        })
+                                fieldValue: analyseVariable(
+                                    String(field.fieldValue),
+                                    dataConfig
+                                ),
+                            };
+                        }
                     );
 
                     if (!monitorsWithIncident.includes(String(monitor._id))) {
@@ -849,7 +866,9 @@ export default class Service {
             } else {
                 if (monitors && monitors.length > 0) {
                     const monitorNames: $TSFixMe = monitors.map(
-                        (monitor: $TSFixMe) => monitor.name
+                        (monitor: $TSFixMe) => {
+                            return monitor.name;
+                        }
                     );
                     const componentNames: $TSFixMe = [];
                     monitors.forEach((monitor: $TSFixMe) => {
@@ -914,28 +933,29 @@ export default class Service {
                         dataConfig
                     ).toLowerCase();
                     const priorityObj: $TSFixMe = {};
-                    incidentPriorities.forEach(
-                        (priority: $TSFixMe) =>
-                            (priorityObj[priority.name.toLowerCase()] =
-                                priority._id)
-                    );
+                    incidentPriorities.forEach((priority: $TSFixMe) => {
+                        return (priorityObj[priority.name.toLowerCase()] =
+                            priority._id);
+                    });
                     data.incidentPriority =
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
                     data.customFields = data.customFields.map(
-                        (field: $TSFixMe) => ({
-                            ...field,
+                        (field: $TSFixMe) => {
+                            return {
+                                ...field,
 
-                            fieldValue: analyseVariable(
-                                String(field.fieldValue),
-                                dataConfig
-                            ),
-                        })
+                                fieldValue: analyseVariable(
+                                    String(field.fieldValue),
+                                    dataConfig
+                                ),
+                            };
+                        }
                     );
-                    data.monitors = monitors.map(
-                        (monitor: $TSFixMe) => monitor._id
-                    );
+                    data.monitors = monitors.map((monitor: $TSFixMe) => {
+                        return monitor._id;
+                    });
                     let incident: $TSFixMe;
                     if (_incident) {
                         incident = await IncidentService.updateOneBy(
@@ -950,7 +970,9 @@ export default class Service {
             }
 
             let created_incidents = new Set(
-                incidentResponse.map((response: $TSFixMe) => response.idNumber)
+                incidentResponse.map((response: $TSFixMe) => {
+                    return response.idNumber;
+                })
             );
 
             created_incidents = [...created_incidents];
@@ -977,9 +999,9 @@ export default class Service {
                 select: '_id',
             });
             if (subProjects && subProjects.length > 0) {
-                subProjectIds = subProjects.map(
-                    (project: $TSFixMe) => project._id
-                );
+                subProjectIds = subProjects.map((project: $TSFixMe) => {
+                    return project._id;
+                });
             }
             subProjectIds.push(incomingRequest.projectId);
 
@@ -1418,10 +1440,14 @@ export default class Service {
             if (incidents && incidents.length > 0) {
                 for (const incident of incidents) {
                     const monitors: $TSFixMe = incident.monitors.map(
-                        (monitorObj: $TSFixMe) => monitorObj.monitorId
+                        (monitorObj: $TSFixMe) => {
+                            return monitorObj.monitorId;
+                        }
                     );
                     const monitorNames: $TSFixMe = monitors.map(
-                        (monitor: $TSFixMe) => monitor.name
+                        (monitor: $TSFixMe) => {
+                            return monitor.name;
+                        }
                     );
                     const componentNames: $TSFixMe = [];
                     monitors.forEach((monitor: $TSFixMe) => {
@@ -1448,7 +1474,9 @@ export default class Service {
                     data.incidentId = incident._id;
                     if (!incidentsWithNote.includes(String(incident._id))) {
                         data.monitors = incident.monitors.map(
-                            (monitor: $TSFixMe) => monitor.monitorId
+                            (monitor: $TSFixMe) => {
+                                return monitor.monitorId;
+                            }
                         );
                         await IncidentMessageService.create(data);
                         if (data.post_statuspage) {
@@ -1468,7 +1496,9 @@ export default class Service {
                         incidentsWithNote.push(String(incident._id));
                     } else {
                         data.monitors = incident.monitors.map(
-                            (monitor: $TSFixMe) => monitor.monitorId
+                            (monitor: $TSFixMe) => {
+                                return monitor.monitorId;
+                            }
                         );
                         await IncidentMessageService.create(data);
                         if (data.post_statuspage) {
@@ -1491,9 +1521,9 @@ export default class Service {
 
             return {
                 status: 'success',
-                notes_addedTo: noteResponse.map(
-                    (res: $TSFixMe) => res.idNumber
-                ),
+                notes_addedTo: noteResponse.map((res: $TSFixMe) => {
+                    return res.idNumber;
+                }),
             };
         }
 
@@ -1514,9 +1544,9 @@ export default class Service {
                 select: '_id',
             });
             if (subProjects && subProjects.length > 0) {
-                subProjectIds = subProjects.map(
-                    (project: $TSFixMe) => project._id
-                );
+                subProjectIds = subProjects.map((project: $TSFixMe) => {
+                    return project._id;
+                });
             }
             subProjectIds.push(incomingRequest.projectId);
 
@@ -2030,9 +2060,9 @@ export default class Service {
             ) {
                 return {
                     status: 'success',
-                    resolved_incidents: resolveResponse.map(
-                        (res: $TSFixMe) => res.idNumber
-                    ),
+                    resolved_incidents: resolveResponse.map((res: $TSFixMe) => {
+                        return res.idNumber;
+                    }),
                 };
             } else if (
                 resolveResponse &&
@@ -2053,7 +2083,9 @@ export default class Service {
                 return {
                     status: 'success',
                     acknowledged_incidents: acknowledgeResponse.map(
-                        (res: $TSFixMe) => res.idNumber
+                        (res: $TSFixMe) => {
+                            return res.idNumber;
+                        }
                     ),
                 };
             } else if (
@@ -2101,9 +2133,9 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
         let ctx: $TSFixMe = Object.create(null); // fix against prototype vulnerability
         ctx = { ...data };
 
-        const processedValues: $TSFixMe = matched.map((item: $TSFixMe) =>
-            vm.runInNewContext(item, ctx)
-        );
+        const processedValues: $TSFixMe = matched.map((item: $TSFixMe) => {
+            return vm.runInNewContext(item, ctx);
+        });
 
         if (!processedValues || processedValues.length === 0) {
             // empty value means that the probable value(s) are not available in the data object

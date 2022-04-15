@@ -10,9 +10,9 @@ const resolveAllIncidents: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
         url: `${bundle.authData.serverUrl}/zapier/incident/resolveAllIncidents`,
         body: data,
     });
-    return responsePromise.then((response: $TSFixMe) =>
-        JSON.parse(response.content)
-    );
+    return responsePromise.then((response: $TSFixMe) => {
+        return JSON.parse(response.content);
+    });
 };
 
 export default {

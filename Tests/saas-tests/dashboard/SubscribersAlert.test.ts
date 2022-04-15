@@ -93,7 +93,9 @@ describe('Subscribers Alert logs API', () => {
             const subscriberPhoneNumber: $TSFixMe = await init.page$Eval(
                 page,
                 subscriberPhoneNumberSelector,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(subscriberPhoneNumber).toEqual(
                 `${countryCode}${phoneNumber}`
@@ -142,7 +144,9 @@ describe('Subscribers Alert logs API', () => {
             const renderedSubscriberEmail: $TSFixMe = await init.page$Eval(
                 page,
                 subscriberEmailSelector,
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             expect(renderedSubscriberEmail).toEqual(subscriberEmail);
             done();
@@ -205,22 +209,30 @@ describe('Subscribers Alert logs API', () => {
             const subscriber: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #subscriber',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             const via: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #alertVia',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             const type: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #eventType',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             const alertStatus: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #alertStatus',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
 
             expect([subscriberEmail, `${countryCode}${phoneNumber}`]).toContain(
@@ -253,22 +265,30 @@ describe('Subscribers Alert logs API', () => {
             const subscriber1: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #subscriber',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             const via1: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #alertVia',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             const type1: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #eventType',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
             const alertStatus1: $TSFixMe = await init.page$Eval(
                 page,
                 '#backboneModals #alertStatus',
-                (e: $TSFixMe) => e.textContent
+                (e: $TSFixMe) => {
+                    return e.textContent;
+                }
             );
 
             expect([subscriberEmail, `${countryCode}${phoneNumber}`]).toContain(

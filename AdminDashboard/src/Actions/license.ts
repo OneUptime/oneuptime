@@ -32,9 +32,8 @@ export const resetFetchLicense: Function = (): void => {
 };
 
 // Calls the API to fetch license
-export const fetchLicense: $TSFixMe =
-    () =>
-    async (dispatch: Dispatch): void => {
+export const fetchLicense: $TSFixMe = () => {
+    return async (dispatch: Dispatch): void => {
         dispatch(fetchLicenseRequest());
         dispatch(resetConfirmLicense());
 
@@ -64,6 +63,7 @@ export const fetchLicense: $TSFixMe =
             return 'error';
         }
     };
+};
 
 // confirm license
 
@@ -95,8 +95,8 @@ export const resetConfirmLicense: Function = (): void => {
 };
 
 // Calls the API to confirm license
-export const confirmLicense: $TSFixMe =
-    (values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const confirmLicense: $TSFixMe = (values: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(confirmLicenseRequest());
 
         try {
@@ -138,3 +138,4 @@ export const confirmLicense: $TSFixMe =
             return 'error';
         }
     };
+};

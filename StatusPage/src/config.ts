@@ -184,8 +184,11 @@ export const filterProbeData: Function = (
     return statuses;
 };
 
-export const getMonitorStatus: Function = (statuses: $TSFixMe): void =>
-    statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
+export const getMonitorStatus: Function = (statuses: $TSFixMe): void => {
+    return statuses && statuses.length > 0
+        ? statuses[0].status || 'online'
+        : 'online';
+};
 
 export const getServiceStatus: Function = (
     monitorsData: $TSFixMe,
@@ -263,10 +266,9 @@ export const capitalize: Function = (words: $TSFixMe): void => {
     }
 
     words = words.split(' ');
-    words = words.map(
-        (word: $TSFixMe) =>
-            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    );
+    words = words.map((word: $TSFixMe) => {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    });
 
     return words.join(' ').trim();
 };
@@ -307,7 +309,9 @@ export const handleResources: Function = (
     } else {
         const result: $TSFixMe = affectedMonitors
 
-            .map((monitor: $TSFixMe) => capitalize(monitor.name))
+            .map((monitor: $TSFixMe) => {
+                return capitalize(monitor.name);
+            })
             .join(', ')
             .replace(/, ([^,]*)$/, ' and $1');
         return result;
@@ -315,10 +319,10 @@ export const handleResources: Function = (
 };
 
 export const cacheProvider: $TSFixMe = {
-    get: (language: $TSFixMe, key: $TSFixMe) =>
-        ((JSON.parse(localStorage.getItem('translations')) || {})[key] || {})[
-            language
-        ],
+    get: (language: $TSFixMe, key: $TSFixMe) => {
+        return ((JSON.parse(localStorage.getItem('translations')) || {})[key] ||
+            {})[language];
+    },
     set: (language: $TSFixMe, key: $TSFixMe, value: $TSFixMe) => {
         const existing: $TSFixMe = JSON.parse(
             localStorage.getItem('translations')

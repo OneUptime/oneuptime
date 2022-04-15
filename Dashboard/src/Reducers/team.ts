@@ -161,13 +161,15 @@ export default (state = initialState, action: Action): void => {
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
                     subProject => {
                         subProject.teamMembers = action.payload.find(
-                            (team: $TSFixMe) =>
-                                team.projectId === subProject._id
+                            (team: $TSFixMe) => {
+                                return team.projectId === subProject._id;
+                            }
                         ).team;
 
                         subProject.count = action.payload.find(
-                            (team: $TSFixMe) =>
-                                team.projectId === subProject._id
+                            (team: $TSFixMe) => {
+                                return team.projectId === subProject._id;
+                            }
                         ).team.length;
                         return subProject;
                     }
@@ -214,8 +216,9 @@ export default (state = initialState, action: Action): void => {
                     subProject => {
                         if (action.payload) {
                             const projectObj: $TSFixMe = action.payload.find(
-                                (team: $TSFixMe) =>
-                                    team.projectId === subProject._id
+                                (team: $TSFixMe) => {
+                                    return team.projectId === subProject._id;
+                                }
                             );
 
                             if (projectObj) {
@@ -317,13 +320,15 @@ export default (state = initialState, action: Action): void => {
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
                     subProject => {
                         subProject.teamMembers = action.payload.find(
-                            (team: $TSFixMe) =>
-                                team.projectId === subProject._id
+                            (team: $TSFixMe) => {
+                                return team.projectId === subProject._id;
+                            }
                         ).team;
 
                         subProject.count = action.payload.find(
-                            (team: $TSFixMe) =>
-                                team.projectId === subProject._id
+                            (team: $TSFixMe) => {
+                                return team.projectId === subProject._id;
+                            }
                         ).team.length;
                         return subProject;
                     }

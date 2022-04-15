@@ -144,8 +144,11 @@ export const getProjects: Function = (switchToProjectId: ObjectID): void => {
                 if (projects.length > 0 && !switchToProjectId) {
                     if (User.getCurrentProjectId()) {
                         const project: $TSFixMe = projects.filter(
-                            (project: $TSFixMe) =>
-                                project._id === User.getCurrentProjectId()
+                            (project: $TSFixMe) => {
+                                return (
+                                    project._id === User.getCurrentProjectId()
+                                );
+                            }
                         );
                         if (project && project.length > 0) {
                             dispatch(switchProject(dispatch, project[0]));
@@ -166,8 +169,11 @@ export const getProjects: Function = (switchToProjectId: ObjectID): void => {
                     }
                     if (User.getCurrentProjectId() && !projectSwitched) {
                         const project: $TSFixMe = projects.filter(
-                            (project: $TSFixMe) =>
-                                project._id === User.getCurrentProjectId()
+                            (project: $TSFixMe) => {
+                                return (
+                                    project._id === User.getCurrentProjectId()
+                                );
+                            }
                         );
                         if (project.length > 0) {
                             dispatch(switchProject(dispatch, project[0]));
@@ -313,7 +319,9 @@ export function switchProject(
 
     const loggedInUser: $TSFixMe = User.getUserId();
     const switchToMainProject: $TSFixMe = project?.users.find(
-        (user: $TSFixMe) => (user.userId._id || user.userId) === loggedInUser
+        (user: $TSFixMe) => {
+            return (user.userId._id || user.userId) === loggedInUser;
+        }
     );
 
     // if the path is already pointing to project slug we do not need to switch projects
@@ -947,9 +955,11 @@ export const updateProjectBalanceFailure: Function = (
     };
 };
 
-export const updateProjectBalance: $TSFixMe =
-    ({ projectId, intentId }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+export const updateProjectBalance: $TSFixMe = ({
+    projectId,
+    intentId,
+}: $TSFixMe) => {
+    return async (dispatch: Dispatch) => {
         dispatch(updateProjectBalanceRequest());
 
         try {
@@ -970,6 +980,7 @@ export const updateProjectBalance: $TSFixMe =
             dispatch(updateProjectBalanceFailure(errorMsg));
         }
     };
+};
 
 export const checkCardRequest: Function = (promise: $TSFixMe): void => {
     return {
