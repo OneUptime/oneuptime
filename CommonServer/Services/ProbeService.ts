@@ -898,7 +898,7 @@ class Service extends DatabaseService<typeof Model> {
                 let response: $TSFixMe = false;
                 let respAnd: $TSFixMe = false,
                     respOr: $TSFixMe = false,
-                    countAnd : $TSFixMe= 0,
+                    countAnd: $TSFixMe = 0,
                     countOr: $TSFixMe = 0;
 
                 if (
@@ -943,7 +943,7 @@ class Service extends DatabaseService<typeof Model> {
         return { eventOccurred, matchedCriterion };
     }
 
-    toArray(params: $TSFixMe): void {
+    public toArray(params: $TSFixMe): void {
         const array: $TSFixMe = [];
         if (Object.keys(params).length > 0) {
             for (const [key, value] of Object.entries(params)) {
@@ -1032,9 +1032,11 @@ class Service extends DatabaseService<typeof Model> {
                 ...upFailedReasons,
             ];
             if (monitor.criteria.down) {
-                matchedCriterion = monitor.criteria.down.find((criterion: $TSFixMe) => {
-                    return criterion.default === true;
-                });
+                matchedCriterion = monitor.criteria.down.find(
+                    (criterion: $TSFixMe) => {
+                        return criterion.default === true;
+                    }
+                );
             }
         }
         const index: $TSFixMe = reason.indexOf('Request Timed out');
@@ -1147,9 +1149,11 @@ class Service extends DatabaseService<typeof Model> {
             status = 'offline';
             reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             if (monitor.criteria.down) {
-                matchedCriterion = monitor.criteria.down.find((criterion: $TSFixMe) => {
-                    return criterion.default === true;
-                });
+                matchedCriterion = monitor.criteria.down.find(
+                    (criterion: $TSFixMe) => {
+                        return criterion.default === true;
+                    }
+                );
             }
         }
         const logData: $TSFixMe = {};
@@ -3813,7 +3817,7 @@ const checkAnd: Function = (
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                statefulset => {
+                                (statefulset: $TSFixMe) => {
                                     if (
                                         statefulset.desiredStatefulsets !==
                                         statefulset.readyStatefulsets
@@ -3895,27 +3899,27 @@ const checkAnd: Function = (
 };
 
 const checkOr: Function = (
-    payload,
+    payload: $TSFixMe,
 
-    con,
+    con: $TSFixMe,
 
-    statusCode,
+    statusCode: $TSFixMe,
 
-    body,
+    body: $TSFixMe,
 
-    ssl,
+    ssl: $TSFixMe,
 
-    response,
+    response: $TSFixMe,
 
-    successReasons,
+    successReasons: $TSFixMe,
 
-    failedReasons,
+    failedReasons: $TSFixMe,
 
-    type,
+    type: $TSFixMe,
 
-    queryParams,
+    queryParams: $TSFixMe,
 
-    headers
+    headers: $TSFixMe
 ): void => {
     let validity: $TSFixMe = false;
     if (con && con.criteria && con.criteria.length > 0) {
@@ -6049,7 +6053,7 @@ const checkOr: Function = (
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                statefulset => {
+                                (statefulset: $TSFixMe) => {
                                     if (
                                         statefulset.desiredStatefulsets ===
                                         statefulset.readyStatefulsets

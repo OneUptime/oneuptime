@@ -416,14 +416,14 @@ const proxy: $TSFixMe = new Proxy(methods, {
         }
         return this.shared;
     },
-    get: function (target, prop): void {
+    get: (target: $TSFixMe, prop: $TSFixMe): void => {
         if (this[prop]) {
-            return (args = {}) => {
+            return (args: $TSFixMe = {}) => {
                 return this[prop](args);
             };
         }
 
-        return (args = {}) => {
+        return (args: $TSFixMe = {}) => {
             return target[prop]({ ...this.shared, ...args });
         };
     },
