@@ -3,18 +3,18 @@ import * as LRUMap from 'lru_map';
 
 const CONTENT_CACHE: $TSFixMe = new LRUMap.default.LRUMap(100);
 class Util {
-    options: $TSFixMe;
+    private options: $TSFixMe;
     public constructor(options: $TSFixMe) {
         this.options = options;
     }
-    getErrorType(): void {
+    public getErrorType(): void {
         return {
             INFO: 'info',
             WARNING: 'warning',
             ERROR: 'error',
         };
     }
-    async _getErrorStackTrace(errorEvent: $TSFixMe): void {
+    private async _getErrorStackTrace(errorEvent: $TSFixMe): void {
         const frames: $TSFixMe = [];
         // get error stack trace
         const stack: $TSFixMe = errorEvent.stack
@@ -89,7 +89,7 @@ class Util {
         }
         return obj;
     }
-private _getUserDeviceDetails(): void {
+    private _getUserDeviceDetails(): void {
         const deviceDetails: $TSFixMe = { device: null, browser: null };
         if (typeof window !== 'undefined') {
             const details: $TSFixMe = window.navigator.appVersion;
@@ -116,7 +116,7 @@ private _getUserDeviceDetails(): void {
         }
         return deviceDetails;
     }
-    async _getErrorCodeSnippet(errorObj: $TSFixMe): void {
+    private async _getErrorCodeSnippet(errorObj: $TSFixMe): void {
         const frames: $TSFixMe = errorObj.stacktrace
             ? errorObj.stacktrace.frames
             : [];
@@ -157,9 +157,9 @@ private _getUserDeviceDetails(): void {
         errorObj.stacktrace.frames = frames;
         return errorObj;
     }
-private _readFileFromSource(fileName: $TSFixMe): void {
-        return new Promise((resolve: $TSFixMe) =>  {
-            readFile(fileName: $TSFixMe, (err: $TSFixMe, data: $TSFixMe)=> {
+    private _readFileFromSource(fileName: $TSFixMe): void {
+        return new Promise((resolve: $TSFixMe) => {
+            readFile(fileName, (err: $TSFixMe, data: $TSFixMe) => {
                 const content: $TSFixMe = err ? null : data.toString();
 
                 CONTENT_CACHE.set(fileName, content);
@@ -167,7 +167,7 @@ private _readFileFromSource(fileName: $TSFixMe): void {
             });
         });
     }
-private _formatFileName(fileName: $TSFixMe): void {
+    private _formatFileName(fileName: $TSFixMe): void {
         const fileIndicator: string = 'file://';
         let localFileName: $TSFixMe = fileName;
         if (fileName.indexOf(fileIndicator) > -1) {
@@ -178,7 +178,7 @@ private _formatFileName(fileName: $TSFixMe): void {
         }
         return localFileName;
     }
-private _addCodeSnippetToFrame(
+    private _addCodeSnippetToFrame(
         lines: $TSFixMe,
         frame: $TSFixMe,
         linesOfContext = 5
