@@ -45,9 +45,9 @@ describe('Project API', function (): void {
                     VerificationTokenModel.findOne(
                         { userId },
                         (
-                            err,
+                            err: $TSFixMe ,
 
-                            verificationToken
+                            verificationToken: $TSFixMe
                         ) => {
                             request
                                 .get(
@@ -196,7 +196,7 @@ describe('Project API', function (): void {
                     .get(`/project/${res.body._id}/resetToken`)
                     .set('Authorization', authorization)
 
-                    .end((err, response): void => {
+                    .end((err: $TSFixMe, response: $TSFixMe): void => {
                         expect(response).to.have.status(200);
                         expect(res.body.apiKey).to.not.be.equal(
                             response.body.apiKey

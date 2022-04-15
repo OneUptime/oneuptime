@@ -1901,7 +1901,8 @@ export default class Service {
                         for (const field of incidentCustomFields) {
                             const filterCriteria: $TSFixMe =
                                     filter.filterCriteria,
-                                filterCondition: $TSFixMe = filter.filterCondition,
+                                filterCondition: $TSFixMe =
+                                    filter.filterCondition,
                                 filterText: $TSFixMe = filter.filterText;
 
                             if (

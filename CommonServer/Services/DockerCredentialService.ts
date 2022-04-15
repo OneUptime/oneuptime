@@ -89,3 +89,5 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 }
+
+export default Service;

@@ -86,3 +86,5 @@ class Service extends DatabaseService<typeof Model> {
         await this.updateOneBy({ query: { _id: applicationScannerId }, data });
     }
 }
+
+export default Service;

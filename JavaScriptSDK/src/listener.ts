@@ -3,15 +3,15 @@ import Util from './util';
 import Http from 'http';
 import Https from 'https';
 class OneUptimeListener {
-    BASE_url: URL;
-    currentEventId: $TSFixMe;
-    debounceDuration: $TSFixMe;
-    isWindow: $TSFixMe;
-    keypressTimeout: $TSFixMe;
-    lastEvent: $TSFixMe;
-    options: $TSFixMe;
-    timelineObj: $TSFixMe;
-    utilObj: $TSFixMe;
+    private BASE_url: URL;
+    private currentEventId: $TSFixMe;
+    private debounceDuration: $TSFixMe;
+    private isWindow: $TSFixMe;
+    private keypressTimeout: $TSFixMe;
+    private lastEvent: $TSFixMe;
+    private options: $TSFixMe;
+    private timelineObj: $TSFixMe;
+    private utilObj: $TSFixMe;
     public constructor(
         eventId: $TSFixMe,
         isWindow: $TSFixMe,

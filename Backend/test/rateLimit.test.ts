@@ -5,7 +5,7 @@ chai.use(chaihttp);
 import dotenv from 'dotenv';
 dotenv.config();
 const requests: $TSFixMe = [];
-let app, request: $TSFixMe, sandbox: $TSFixMe;
+let app: $TSFixMe, request: $TSFixMe, sandbox: $TSFixMe;
 
 describe('API limit rate', function (): void {
     this.timeout(10000);

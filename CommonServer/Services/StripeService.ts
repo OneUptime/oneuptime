@@ -312,7 +312,7 @@ export default class StripeService {
             );
             if (amountRechargedStripe) {
                 const projectId: $TSFixMe = paymentIntent.metadata.projectId,
-                    minimumBalance : $TSFixMe =
+                    minimumBalance: $TSFixMe =
                         paymentIntent.metadata.minimumBalance &&
                         Number(paymentIntent.metadata.minimumBalance),
                     rechargeToBalance: $TSFixMe =

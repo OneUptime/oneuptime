@@ -7,11 +7,11 @@ import ListActionBase from './list';
 import GetActionBase from './get';
 
 export default class Actions {
-    createaction: Action;
-    deleteaction: Action;
-    getaction: Action;
-    listaction: Action;
-    updateaction: Action;
+    private createaction: Action;
+    private deleteaction: Action;
+    private getaction: Action;
+    private listaction: Action;
+    private updateaction: Action;
     public constructor({
         createActionProps,
         updateActionProps,
@@ -74,43 +74,43 @@ export default class Actions {
         }
     }
 
-    getCreateActions(): void {
+    public getCreateActions(): void {
         return this.createAction.getActions();
     }
 
-    getListActions(): void {
+    public getListActions(): void {
         return this.listAction.getActions();
     }
 
-    getGetActions(): void {
+    public getGetActions(): void {
         return this.getAction.getActions();
     }
 
-    getUpdateActions(): void {
+    public getUpdateActions(): void {
         return this.updateAction.getActions();
     }
 
-    getDeleteActions(): void {
+    public getDeleteActions(): void {
         return this.deleteAction.getActions();
     }
 
-    getCreateConstants(): void {
+    public getCreateConstants(): void {
         return this.createAction.getConstants();
     }
 
-    getListConstants(): void {
+    public getListConstants(): void {
         return this.listAction.getConstants();
     }
 
-    getGetConstants(): void {
+    public getGetConstants(): void {
         return this.getAction.getConstants();
     }
 
-    getUpdateConstants(): void {
+    public getUpdateConstants(): void {
         return this.updateAction.getConstants();
     }
 
-    getDeleteConstants(): void {
+    public getDeleteConstants(): void {
         return this.deleteAction.getConstants();
     }
 }

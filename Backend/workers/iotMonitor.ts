@@ -1,7 +1,7 @@
 import moment from 'moment';
 const MonitorService: $TSFixMe = require('../Services/monitorService'),
-    IncidentService = require('../Services/incidentService'),
-    ZapierService = require('../Services/zapierService');
+    IncidentService: $TSFixMe = require('../Services/incidentService'),
+    ZapierService: $TSFixMe = require('../Services/zapierService');
 
 export default {
     checkAllDeviceMonitor: async () => {

@@ -86,7 +86,13 @@ export default class Service {
     //Params:
     //Param 1: data: Feedback data (message, name, email, project, page).
     //Returns: promise
-    public logFeedback({ message, name, email, project, page }: $TSFixMe): void {
+    public logFeedback({
+        message,
+        name,
+        email,
+        project,
+        page,
+    }: $TSFixMe): void {
         if (!base) {
             return;
         }

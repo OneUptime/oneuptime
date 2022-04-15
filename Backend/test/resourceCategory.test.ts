@@ -46,9 +46,9 @@ describe('Resource Category API', function (): void {
                     VerificationTokenModel.findOne(
                         { userId },
                         (
-                            err,
+                            err: $TSFixMe,
 
-                            verificationToken
+                            verificationToken: $TSFixMe
                         ) => {
                             request
                                 .get(

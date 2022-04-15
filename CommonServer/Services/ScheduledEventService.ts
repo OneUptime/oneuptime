@@ -751,8 +751,7 @@ export default class Service {
         });
     }
 
-    
-public async  createScheduledEventEndedNote(): void {
+    public async createScheduledEventEndedNote(): void {
         const currentTime: $TSFixMe = moment();
 
         //fetch events that have ended

@@ -695,3 +695,5 @@ class Service extends DatabaseService<typeof Model> {
         return logs;
     }
 }
+
+export default Service;
