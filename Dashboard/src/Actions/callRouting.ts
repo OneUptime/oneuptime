@@ -68,7 +68,7 @@ export const getTeamAndSchedules: Function = (projectId: ObjectID): void => {
         dispatch(getTeamAndSchedulesRequest());
 
         promise.then(
-            ([schedule, team]): void => {
+            ([schedule, team]: $TSFixMe): void => {
                 const data: $TSFixMe = {
                     teams: team.data,
 

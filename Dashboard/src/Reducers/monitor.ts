@@ -1089,7 +1089,7 @@ export default function monitor(
                                                       ) < 2;
 
                                                   let dateFormat: $TSFixMe,
-                                                      outputFormat;
+                                                      outputFormat: $TSFixMe;
                                                   if (
                                                       intervalInDays > 30 &&
                                                       !isNewMonitor

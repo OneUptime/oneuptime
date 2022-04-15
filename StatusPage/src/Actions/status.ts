@@ -1572,7 +1572,7 @@ export const fetchAnnouncementLogsFailure: Function = (
 export function fetchAnnouncementLogs(
     projectId: ObjectID,
     statusPageId: $TSFixMe,
-    skip: number = 0
+    skip: number = 0,
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {

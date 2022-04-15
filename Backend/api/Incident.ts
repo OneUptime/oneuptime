@@ -1583,7 +1583,7 @@ router.get(
             if (incidentId) {
                 incidentId = incidentId._id;
                 let skip: $TSFixMe = 0,
-                    limit = 0;
+                    limit: $TSFixMe = 0;
                 if (type === 'investigation') {
                     skip = req.query['skip'] || 0;
 

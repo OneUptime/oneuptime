@@ -128,8 +128,8 @@ export const fetchCustomFieldsFailure: Function = (
 
 export const fetchCustomFields: $TSFixMe = (
     projectId: ObjectID,
-    skip: number = 0
-    limit = 0
+    skip: number = 0,
+    limit: $TSFixMe = 0
 ) => {
     return async (dispatch: Dispatch) => {
         try {

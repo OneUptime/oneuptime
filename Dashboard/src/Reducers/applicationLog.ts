@@ -154,7 +154,7 @@ export default function applicationLog(
                     success: true,
                     applicationLogs:
                         state.applicationLogsList.applicationLogs.filter(
-                            ({ _id }) => {
+                            ({ _id }: $TSFixMe) => {
                                 return _id !== action.payload;
                             }
                         ),

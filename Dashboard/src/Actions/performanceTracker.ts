@@ -185,7 +185,7 @@ export const fetchPerformanceTrackersReset: Function = (): void => {
 export const fetchPerformanceTrackers: $TSFixMe = ({
     projectId,
     componentId,
-    skip: number = 0
+    skip = 0,
     limit = 0,
     fetchingPage = false,
 }: $TSFixMe) => {

@@ -34,7 +34,7 @@ export const resetSubProjects: Function = (): void => {
 
 export const getSubProjects: Function = (
     projectId: ObjectID,
-    skip: number = 0
+    skip: number = 0,
     limit: $TSFixMe = 10
 ): void => {
     return function (dispatch: Dispatch): void {

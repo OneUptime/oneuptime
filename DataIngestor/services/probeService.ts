@@ -3726,27 +3726,27 @@ const checkAnd: Function = (
 };
 
 const checkOr: Function = (
-    payload,
+    payload: $TSFixMe,
 
-    con,
+    con: $TSFixMe,
 
-    statusCode,
+    statusCode: $TSFixMe,
 
-    body,
+    body: $TSFixMe,
 
-    ssl,
+    ssl: $TSFixMe,
 
-    response,
+    response: $TSFixMe,
 
-    successReasons,
+    successReasons: $TSFixMe,
 
-    failedReasons,
+    failedReasons: $TSFixMe,
 
-    type,
+    type: $TSFixMe,
 
-    queryParams,
+    queryParams: $TSFixMe,
 
-    headers
+    headers: $TSFixMe
 ): void => {
     let validity: $TSFixMe = false;
     if (con && con.criteria && con.criteria.length > 0) {
@@ -5869,7 +5869,7 @@ const checkOr: Function = (
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                statefulset => {
+                                (statefulset: $TSFixMe) => {
                                     if (
                                         statefulset.desiredStatefulsets ===
                                         statefulset.readyStatefulsets

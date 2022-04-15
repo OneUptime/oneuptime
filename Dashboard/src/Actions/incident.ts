@@ -683,7 +683,7 @@ export const resetUnresolvedIncidents: Function = (): void => {
 // Calls the API to register a user.
 export const fetchUnresolvedIncidents: Function = (
     projectId: ObjectID,
-    isHome = false
+    isHome: boolean = false
 ): void => {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch: Dispatch): void {

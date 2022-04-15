@@ -536,7 +536,7 @@ export default function scheduledEvent(
 
             const scheduledEvents: $TSFixMe =
                 state.subProjectScheduledEventList.scheduledEvents.map(
-                    sub(event : $TSFixMe) =>{
+                    (subevent : $TSFixMe) =>{
                         if (
                             String(subEvent.project) ===
                             String(action.payload.projectId)
@@ -596,7 +596,7 @@ export default function scheduledEvent(
                     ...state.scheduledEventList,
                     scheduledEvents:
                         state.scheduledEventList.scheduledEvents.filter(
-                            scheduled(event : $TSFixMe) =>{
+                            (scheduledEvent : $TSFixMe) =>{
                                 if (
                                     String(scheduledEvent._id) ===
                                     String(action.payload._id)
@@ -669,7 +669,7 @@ export default function scheduledEvent(
                 );
             const subEvents: $TSFixMe =
                 state.subProjectScheduledEventList.scheduledEvents.map(
-                    sub(event : $TSFixMe) =>{
+                    (subEvent : $TSFixMe) =>{
                         if (
                             String(subEvent.project) ===
                             String(action.payload.projectId._id)
@@ -795,7 +795,7 @@ export default function scheduledEvent(
                 );
             const subEvents: $TSFixMe =
                 state.subProjectScheduledEventList.scheduledEvents.map(
-                    sub(event : $TSFixMe) =>{
+                    (subEvent : $TSFixMe) =>{
                         if (
                             String(subEvent.project) ===
                             String(action.payload.projectId._id)

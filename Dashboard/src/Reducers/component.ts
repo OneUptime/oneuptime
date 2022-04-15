@@ -432,7 +432,7 @@ export default function component(
                     error: null,
                     success: false,
                     components: state.componentList.components.map(
-                        subProject(component:  $TSFixMe) => {
+                        (subProjectComponent:  $TSFixMe) => {
                             subProjectComponent.components =
                                 subProjectComponent.components.filter(
                                     ({ _id }: $TSFixMe) => {

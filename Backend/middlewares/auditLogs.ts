@@ -66,7 +66,7 @@ export default {
 
                     // Avoiding logging any audit data, if its a blacklisted url/route.
                     const isBlackListedRoute: $TSFixMe = blackListedRoutes.some(
-                        (blackListedRouteName: $TSFixMe) => {{
+                        (blackListedRouteName: $TSFixMe) => {
                             const fullApiUrl: $TSFixMe = req.originalUrl || '';
                             const paramsRouteUrl: $TSFixMe =
                                 (req.route && req.route.path) || ''; // Ex. "/:projectId/statuspages"

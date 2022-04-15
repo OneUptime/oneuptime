@@ -86,7 +86,7 @@ export const fetchIncidentNoteTemplatesFailure: Function = (
 
 export const fetchIncidentNoteTemplates: $TSFixMe = ({
     projectId,
-    skip: number = 0
+    skip = 0,
     limit = 0,
 }: $TSFixMe) => {
     return (dispatch: Dispatch) => {

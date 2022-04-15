@@ -21,7 +21,7 @@ import NotificationService from '../backend/services/notificationService';
 import AirtableService from '../backend/services/airtableService';
 
 let token: $TSFixMe,
-    userId,
+    userId: $TSFixMe,
     projectId: ObjectID,
     componentId: $TSFixMe,
     applicationLog: $TSFixMe;

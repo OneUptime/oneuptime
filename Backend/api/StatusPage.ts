@@ -2938,7 +2938,7 @@ async function getAnnouncementLogs(
     limit = 5,
     skip = 0
 ): void {
-    const theme: $TSFixMe = statusPage.theme: $TSFixMe === 'Clean Theme';
+    const theme: $TSFixMe = statusPage.theme === 'Clean Theme';
     if (theme) {
         limit = statusPage.announcementLogsHistory || 14;
     }
