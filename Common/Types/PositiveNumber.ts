@@ -17,11 +17,11 @@ export default class PositiveNumber {
         this.positiveNumber = positiveNumber;
     }
 
-    toString(): string {
+    public toString(): string {
         return this.positiveNumber.toString();
     }
 
-    toNumber(): number {
+    public toNumber(): number {
         return this.positiveNumber;
     }
 }

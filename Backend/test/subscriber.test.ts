@@ -25,12 +25,13 @@ import ComponentModel from '../backend/models/component';
 import ComponentService from '../backend/services/componentService';
 
 let projectId: ObjectID,
-    userId,
+    userId: $TSFixMe,
     monitorId: $TSFixMe,
     token: $TSFixMe,
     subscriberId: $TSFixMe,
     statusPageId: $TSFixMe,
     componentId: $TSFixMe;
+    
 const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',

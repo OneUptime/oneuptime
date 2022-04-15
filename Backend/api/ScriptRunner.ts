@@ -48,9 +48,9 @@ router.post(
         try {
             const { monitor, resp }: $TSFixMe = req.body;
 
-            let status,
-                reason,
-                data = {};
+            let status: $TSFixMe,
+                reason: $TSFixMe,
+                data: $TSFixMe = {};
             let matchedCriterion: $TSFixMe;
 
             // determine if monitor is up and reasons therefore

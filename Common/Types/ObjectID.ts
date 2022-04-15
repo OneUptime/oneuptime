@@ -14,7 +14,7 @@ export default class ObjectID {
         this.id = id;
     }
 
-    toString(): string {
+    public toString(): string {
         return this.id;
     }
 

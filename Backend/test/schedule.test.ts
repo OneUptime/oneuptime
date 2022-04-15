@@ -19,7 +19,10 @@ import AirtableService from '../backend/services/airtableService';
 
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-let token: $TSFixMe, projectId: ObjectID, scheduleId: $TSFixMe, userId: $TSFixMe;
+let token: $TSFixMe,
+    projectId: ObjectID,
+    scheduleId: $TSFixMe,
+    userId: $TSFixMe;
 
 describe('Schedule API', function (): void {
     this.timeout(30000);

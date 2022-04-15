@@ -207,7 +207,7 @@ export default class Service {
     // this timelines will be used in status page
     public async getIncidentLastTimelines(incidents: $TSFixMe): void {
         const skip: $TSFixMe = 0,
-            limit = 1;
+            limit: PositiveNumber = 1;
 
         const populateIncTimeline: $TSFixMe = [
             { path: 'createdById', select: 'name' },
@@ -268,4 +268,5 @@ import flattenArray from '../Utils/flattenArray';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
-import Query from '../Types/DB/Query';
+import Query from '../Types/DB/Query';import PositiveNumber from 'Common/Types/PositiveNumber';
+
