@@ -1,7 +1,10 @@
 import JWT from 'CommonServer/utils/JsonWebToken';
 
 class WebToken {
-public static generateWebToken(licenseKey: string, expiryTime: Date): string {
+    public static generateWebToken(
+        licenseKey: string,
+        expiryTime: Date
+    ): string {
         return JWT.sign(licenseKey, expiryTime);
     }
 }

@@ -45,7 +45,7 @@ export default class URL {
         return `${this.protocol}${this.hostname}${this.route}`;
     }
 
-public static fromString(url: string): URL {
+    public static fromString(url: string): URL {
         let protocol: Protocol = Protocol.HTTPS;
 
         if (url.startsWith('https://')) {

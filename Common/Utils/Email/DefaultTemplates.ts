@@ -1,7 +1,7 @@
 import EmailTemplate from '../../Types/Email/EmailTemplate';
 
 export default class DefaultEmailTemplate {
-public static getDefaultTemplates(): Array<EmailTemplate> {
+    public static getDefaultTemplates(): Array<EmailTemplate> {
         return [
             {
                 allowedVariables: [
