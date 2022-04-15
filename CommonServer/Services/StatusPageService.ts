@@ -1547,10 +1547,8 @@ export default class Service {
             if (verifiedStatusPages.length > 0) {
                 statusPage = verifiedStatusPages[0];
             }
-        } else {
-            if (statusPages.length > 0) {
-                statusPage = statusPages[0];
-            }
+        } else if (statusPages.length > 0) {
+            statusPage = statusPages[0];
         }
 
         if (statusPage && (statusPage._id || statusPage.id)) {
@@ -1600,12 +1598,10 @@ export default class Service {
                 }
             );
             statusPage.monitorsData = _.flatten(filteredMonitorData);
+        } else if (statusPages.length > 0) {
+            throw new BadDataException('Domain not verified');
         } else {
-            if (statusPages.length > 0) {
-                throw new BadDataException('Domain not verified');
-            } else {
-                throw new BadDataException('Page Not Found');
-            }
+            throw new BadDataException('Page Not Found');
         }
         return statusPage;
     }

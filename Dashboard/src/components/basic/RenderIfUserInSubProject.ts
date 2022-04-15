@@ -26,17 +26,15 @@ export const RenderIfUserInSubProject: Function = (props: $TSFixMe): void => {
         }).length > 0
     ) {
         renderItems = children;
-    } else {
-        if (subProjects) {
-            subProjects.forEach((subProject: $TSFixMe) => {
-                if (
-                    subProject._id === subProjectId &&
-                    subProject.users.length > 0
-                ) {
-                    renderItems = children;
-                }
-            });
-        }
+    } else if (subProjects) {
+        subProjects.forEach((subProject: $TSFixMe) => {
+            if (
+                subProject._id === subProjectId &&
+                subProject.users.length > 0
+            ) {
+                renderItems = children;
+            }
+        });
     }
     return renderItems;
 };

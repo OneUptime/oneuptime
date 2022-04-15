@@ -474,12 +474,10 @@ class Service extends DatabaseService<typeof Model> {
                 error = null;
                 userId = null;
             }
+        } else if (showAdvance && callDropText && callDropText.length) {
+            response.say(callDropText);
         } else {
-            if (showAdvance && callDropText && callDropText.length) {
-                response.say(callDropText);
-            } else {
-                response.say('Sorry could not find anyone on duty');
-            }
+            response.say('Sorry could not find anyone on duty');
         }
         if (
             !forwardingNumber ||

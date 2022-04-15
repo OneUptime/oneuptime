@@ -808,43 +808,41 @@ export default class Service {
             incidentObj.incidentId =
                 incidentNote.incidentId && incidentNote.incidentId._id;
             incidentObj.id = incidentNote._id;
-        } else {
-            if (incident) {
-                if (incident.acknowledged) {
-                    incidentObj.acknowledgedAt = incident.acknowledgedAt;
-                    incidentObj.acknowledgedBy = incident.acknowledgedBy
-                        ? incident.acknowledgedBy.name
-                        : 'OneUptime';
-                }
-                if (incident.resolved) {
-                    incidentObj.resolvedAt = incident.resolvedAt;
-                    incidentObj.resolvedBy = incident.resolvedBy
-                        ? incident.resolvedBy.name
-                        : 'OneUptime';
-                }
-                incidentObj.id = incident._id;
-                incidentObj.incidentId = incident._id;
-                incidentObj.idNumber = incident.idNumber;
-                incidentObj.slug = incident.slug;
-                incidentObj.acknowledged = incident.acknowledged;
-                incidentObj.resolved = incident.resolved;
-                incidentObj.internalNote = incident.internalNote;
-                incidentObj.investigationNote = incident.investigationNote;
-                incidentObj.createdAt = incident.createdAt;
-                incidentObj.createdById = incident.createdById
-                    ? incident.createdById.name
+        } else if (incident) {
+            if (incident.acknowledged) {
+                incidentObj.acknowledgedAt = incident.acknowledgedAt;
+                incidentObj.acknowledgedBy = incident.acknowledgedBy
+                    ? incident.acknowledgedBy.name
                     : 'OneUptime';
-                /*
-                 * Const monitor: $TSFixMe = await MonitorService.findOneBy({
-                 *     _id: incident.monitorId,
-                 * });
-                 */
-                incidentObj.monitorName = monitor.name;
-                incidentObj.monitorType = monitor.type;
-                incidentObj.monitorData = monitor.data[monitor.type];
-            } else {
-                return;
             }
+            if (incident.resolved) {
+                incidentObj.resolvedAt = incident.resolvedAt;
+                incidentObj.resolvedBy = incident.resolvedBy
+                    ? incident.resolvedBy.name
+                    : 'OneUptime';
+            }
+            incidentObj.id = incident._id;
+            incidentObj.incidentId = incident._id;
+            incidentObj.idNumber = incident.idNumber;
+            incidentObj.slug = incident.slug;
+            incidentObj.acknowledged = incident.acknowledged;
+            incidentObj.resolved = incident.resolved;
+            incidentObj.internalNote = incident.internalNote;
+            incidentObj.investigationNote = incident.investigationNote;
+            incidentObj.createdAt = incident.createdAt;
+            incidentObj.createdById = incident.createdById
+                ? incident.createdById.name
+                : 'OneUptime';
+            /*
+             * Const monitor: $TSFixMe = await MonitorService.findOneBy({
+             *     _id: incident.monitorId,
+             * });
+             */
+            incidentObj.monitorName = monitor.name;
+            incidentObj.monitorType = monitor.type;
+            incidentObj.monitorData = monitor.data[monitor.type];
+        } else {
+            return;
         }
         return incidentObj;
     }

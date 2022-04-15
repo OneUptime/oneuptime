@@ -165,10 +165,8 @@ class Service extends DatabaseService<typeof Model> {
                 }
             );
             await user.identification.splice(findIndex, 1);
-        } else {
-            if (!checkExist) {
-                await user.identification.push(data);
-            }
+        } else if (!checkExist) {
+            await user.identification.push(data);
         }
         const userData: $TSFixMe = await this.updateOneBy(
             { _id: user._id },

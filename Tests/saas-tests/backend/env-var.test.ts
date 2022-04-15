@@ -38,14 +38,12 @@ describe('Check Server', () => {
                 expectedResponse =
                     '{"api":"http://localhost/api","home":"http://localhost","accounts":"http://localhost/accounts","dashboard":"http://localhost/dashboard"}';
             }
+        } else if (utils.BACKEND_URL.includes('staging.')) {
+            expectedResponse =
+                '{"api":"https://staging.oneuptime.com/api","home":"https://staging.oneuptime.com","accounts":"https://staging.oneuptime.com/accounts","dashboard":"https://staging.oneuptime.com/dashboard"}';
         } else {
-            if (utils.BACKEND_URL.includes('staging.')) {
-                expectedResponse =
-                    '{"api":"https://staging.oneuptime.com/api","home":"https://staging.oneuptime.com","accounts":"https://staging.oneuptime.com/accounts","dashboard":"https://staging.oneuptime.com/dashboard"}';
-            } else {
-                expectedResponse =
-                    '{"api":"https://oneuptime.com/api","home":"https://oneuptime.com","accounts":"https://oneuptime.com/accounts","dashboard":"https://oneuptime.com/dashboard"}';
-            }
+            expectedResponse =
+                '{"api":"https://oneuptime.com/api","home":"https://oneuptime.com","accounts":"https://oneuptime.com/accounts","dashboard":"https://oneuptime.com/dashboard"}';
         }
         expect(response).toBe(expectedResponse);
         done();

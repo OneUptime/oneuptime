@@ -236,27 +236,19 @@ export default function (
                     if (data && data !== null) {
                         if (id && typeof id === 'string') {
                             resolve(data._id);
-                        } else {
-                            if (data.data !== null && data.data.length > 0) {
-                                if (data.count === 1) {
-                                    logger.info(
-                                        'Using default Server Monitor...'
-                                    );
-                                    resolve(data.data[0]._id);
-                                } else {
-                                    if (id && typeof id === 'function') {
-                                        resolve(id(data.data));
-                                    } else {
-                                        logger.error(
-                                            'Server Monitor ID is required'
-                                        );
-                                        reject(1);
-                                    }
-                                }
+                        } else if (data.data !== null && data.data.length > 0) {
+                            if (data.count === 1) {
+                                logger.info('Using default Server Monitor...');
+                                resolve(data.data[0]._id);
+                            } else if (id && typeof id === 'function') {
+                                resolve(id(data.data));
                             } else {
-                                logger.error('No Server Monitor found');
-                                reject(0);
+                                logger.error('Server Monitor ID is required');
+                                reject(1);
                             }
+                        } else {
+                            logger.error('No Server Monitor found');
+                            reject(0);
                         }
                     } else {
                         logger.error('No Server Monitor found');

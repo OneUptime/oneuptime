@@ -780,10 +780,8 @@ export default class Service {
                         if (updatedFilters.length === matchedFields) {
                             newMonitorList.push(monitor);
                         }
-                    } else {
-                        if (matchedFields > 0) {
-                            newMonitorList.push(monitor);
-                        }
+                    } else if (matchedFields > 0) {
+                        newMonitorList.push(monitor);
                     }
                 });
 
@@ -885,110 +883,102 @@ export default class Service {
                         monitorsWithIncident.push(String(monitor._id));
                     }
                 }
-            } else {
-                if (monitors && monitors.length > 0) {
-                    const monitorNames: $TSFixMe = monitors.map(
-                        (monitor: $TSFixMe) => {
-                            return monitor.name;
-                        }
-                    );
-                    const componentNames: $TSFixMe = [];
-                    monitors.forEach((monitor: $TSFixMe) => {
+            } else if (monitors && monitors.length > 0) {
+                const monitorNames: $TSFixMe = monitors.map(
+                    (monitor: $TSFixMe) => {
+                        return monitor.name;
+                    }
+                );
+                const componentNames: $TSFixMe = [];
+                monitors.forEach((monitor: $TSFixMe) => {
+                    if (!componentNames.includes(monitor.componentId.name)) {
+                        componentNames.push(monitor.componentId.name);
+                    }
+                });
+                const dataConfig: $TSFixMe = {
+                    monitorName: joinNames(monitorNames),
+                    projectName: incomingRequest.projectId.name,
+                    componentName: joinNames(componentNames),
+                    request: data.request,
+                };
+                let _incident: $TSFixMe;
+                if (data.customFields && data.customFields.length > 0) {
+                    for (const field of data.customFields) {
                         if (
-                            !componentNames.includes(monitor.componentId.name)
+                            field.uniqueField &&
+                            field.fieldValue &&
+                            field.fieldValue.trim()
                         ) {
-                            componentNames.push(monitor.componentId.name);
-                        }
-                    });
-                    const dataConfig: $TSFixMe = {
-                        monitorName: joinNames(monitorNames),
-                        projectName: incomingRequest.projectId.name,
-                        componentName: joinNames(componentNames),
-                        request: data.request,
-                    };
-                    let _incident: $TSFixMe;
-                    if (data.customFields && data.customFields.length > 0) {
-                        for (const field of data.customFields) {
-                            if (
-                                field.uniqueField &&
-                                field.fieldValue &&
-                                field.fieldValue.trim()
-                            ) {
-                                _incident = await IncidentService.findOneBy({
-                                    query: {
-                                        customFields: {
-                                            $elemMatch: {
-                                                fieldName: field.fieldName,
-                                                fieldType: field.fieldType,
-                                                uniqueField: field.uniqueField,
-                                                fieldValue: analyseVariable(
-                                                    field.fieldValue,
-                                                    dataConfig
-                                                ),
-                                            },
+                            _incident = await IncidentService.findOneBy({
+                                query: {
+                                    customFields: {
+                                        $elemMatch: {
+                                            fieldName: field.fieldName,
+                                            fieldType: field.fieldType,
+                                            uniqueField: field.uniqueField,
+                                            fieldValue: analyseVariable(
+                                                field.fieldValue,
+                                                dataConfig
+                                            ),
                                         },
                                     },
-                                    select: '_id',
-                                });
-                            }
+                                },
+                                select: '_id',
+                            });
                         }
                     }
-                    data.title = analyseVariable(data.title, dataConfig);
-                    data.description = analyseVariable(
-                        data.description,
-                        dataConfig
-                    );
-                    const incidentType: $TSFixMe = analyseVariable(
-                        data.incidentType,
-                        dataConfig
-                    ).toLowerCase();
-                    data.incidentType = [
-                        'offline',
-                        'online',
-                        'degraded',
-                    ].includes(incidentType)
-                        ? incidentType
-                        : 'offline';
-
-                    const incidentPriority: $TSFixMe = analyseVariable(
-                        String(data.incidentPriority),
-                        dataConfig
-                    ).toLowerCase();
-                    const priorityObj: $TSFixMe = {};
-                    incidentPriorities.forEach((priority: $TSFixMe) => {
-                        return (priorityObj[priority.name.toLowerCase()] =
-                            priority._id);
-                    });
-                    data.incidentPriority =
-                        priorityObj[incidentPriority] ||
-                        incidentSettings.incidentPriority;
-
-                    data.customFields = data.customFields.map(
-                        (field: $TSFixMe) => {
-                            return {
-                                ...field,
-
-                                fieldValue: analyseVariable(
-                                    String(field.fieldValue),
-                                    dataConfig
-                                ),
-                            };
-                        }
-                    );
-                    data.monitors = monitors.map((monitor: $TSFixMe) => {
-                        return monitor._id;
-                    });
-                    let incident: $TSFixMe;
-                    if (_incident) {
-                        incident = await IncidentService.updateOneBy(
-                            { _id: _incident._id },
-                            data
-                        );
-                    } else {
-                        incident = await IncidentService.create(data);
-                    }
-                    incidentResponse.push(incident);
                 }
+                data.title = analyseVariable(data.title, dataConfig);
+                data.description = analyseVariable(
+                    data.description,
+                    dataConfig
+                );
+                const incidentType: $TSFixMe = analyseVariable(
+                    data.incidentType,
+                    dataConfig
+                ).toLowerCase();
+                data.incidentType = ['offline', 'online', 'degraded'].includes(
+                    incidentType
+                )
+                    ? incidentType
+                    : 'offline';
+
+                const incidentPriority: $TSFixMe = analyseVariable(
+                    String(data.incidentPriority),
+                    dataConfig
+                ).toLowerCase();
+                const priorityObj: $TSFixMe = {};
+                incidentPriorities.forEach((priority: $TSFixMe) => {
+                    return (priorityObj[priority.name.toLowerCase()] =
+                        priority._id);
+                });
+                data.incidentPriority =
+                    priorityObj[incidentPriority] ||
+                    incidentSettings.incidentPriority;
+
+                data.customFields = data.customFields.map((field: $TSFixMe) => {
+                    return {
+                        ...field,
+
+                        fieldValue: analyseVariable(
+                            String(field.fieldValue),
+                            dataConfig
+                        ),
+                    };
+                });
+                data.monitors = monitors.map((monitor: $TSFixMe) => {
+                    return monitor._id;
+                });
+                let incident: $TSFixMe;
+                if (_incident) {
+                    incident = await IncidentService.updateOneBy(
+                        { _id: _incident._id },
+                        data
+                    );
+                } else {
+                    incident = await IncidentService.create(data);
+                }
+                incidentResponse.push(incident);
             }
 
             let created_incidents: $TSFixMe = new Set(
@@ -1454,10 +1444,8 @@ export default class Service {
                         if (updatedFilters.length === matchedFields) {
                             newIncidentList.push(incident);
                         }
-                    } else {
-                        if (matchedFields > 0) {
-                            newIncidentList.push(incident);
-                        }
+                    } else if (matchedFields > 0) {
+                        newIncidentList.push(incident);
                     }
                 });
 
@@ -2014,10 +2002,8 @@ export default class Service {
                         if (updatedFilters.length === matchedFields) {
                             newIncidentList.push(incident);
                         }
-                    } else {
-                        if (matchedFields > 0) {
-                            newIncidentList.push(incident);
-                        }
+                    } else if (matchedFields > 0) {
+                        newIncidentList.push(incident);
                     }
                 });
 

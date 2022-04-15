@@ -336,15 +336,10 @@ export default function component(
 
                                     subProject.count += 1;
                                 }
-                            } else {
-                                if (isSubProjectComponent) {
-                                    subProjectComponents.splice(
-                                        componentIndex,
-                                        1
-                                    );
+                            } else if (isSubProjectComponent) {
+                                subProjectComponents.splice(componentIndex, 1);
 
-                                    subProject.count -= 1;
-                                }
+                                subProject.count -= 1;
                             }
 
                             subProject.components = subProjectComponents;

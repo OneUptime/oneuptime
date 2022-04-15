@@ -1330,24 +1330,20 @@ export default class Service {
                         query,
                         select: selectMonitorLogBy,
                     });
+                } else if (
+                    moment(endDate).diff(moment(monitor.createdAt), 'minutes') >
+                    60
+                ) {
+                    monitorLogs = await MonitorLogByHourService.findBy({
+                        query,
+                        select: selectMonitorLogBy,
+                    });
                 } else {
-                    if (
-                        moment(endDate).diff(
-                            moment(monitor.createdAt),
-                            'minutes'
-                        ) > 60
-                    ) {
-                        monitorLogs = await MonitorLogByHourService.findBy({
-                            query,
-                            select: selectMonitorLogBy,
-                        });
-                    } else {
-                        monitorLogs = await MonitorLogService.findBy({
-                            query,
-                            select: selectMonitorLog,
-                            populate: populateMonitorLog,
-                        });
-                    }
+                    monitorLogs = await MonitorLogService.findBy({
+                        query,
+                        select: selectMonitorLog,
+                        populate: populateMonitorLog,
+                    });
                 }
 
                 if (monitorLogs && monitorLogs.length > 0) {
@@ -1945,42 +1941,36 @@ export default class Service {
                                 nextIncident
                             );
                         }
+                    } else if (
+                        moment(firstIncident.end).isBefore(nextIncident.end)
+                    ) {
+                        firstIncident.end = nextIncident.start;
                     } else {
-                        if (
-                            moment(firstIncident.end).isBefore(nextIncident.end)
-                        ) {
-                            firstIncident.end = nextIncident.start;
-                        } else {
-                            /**
-                             * The firstIncident is less important than the next incident,
-                             * it also starts before and ends after the nextIncident.
-                             * In the case The first incident needs to be devided into to two parts.
-                             * The first part comes before the nextIncident,
-                             * the second one comes after the nextIncident.
-                             */
-                            const newIncident: $TSFixMe = {
-                                start: nextIncident.end,
-                                end: firstIncident.end,
-                                status: firstIncident.status,
-                            };
-                            firstIncident.end = nextIncident.start;
-                            let j: $TSFixMe = nextIncidentIndex + 1;
-                            while (j < incidentsHappenedDuringTheDay.length) {
-                                if (
-                                    moment(newIncident.start).isBefore(
-                                        incidentsHappenedDuringTheDay[j].start
-                                    )
-                                ) {
-                                    break;
-                                }
-                                j += 1;
+                        /**
+                         * The firstIncident is less important than the next incident,
+                         * it also starts before and ends after the nextIncident.
+                         * In the case The first incident needs to be devided into to two parts.
+                         * The first part comes before the nextIncident,
+                         * the second one comes after the nextIncident.
+                         */
+                        const newIncident: $TSFixMe = {
+                            start: nextIncident.end,
+                            end: firstIncident.end,
+                            status: firstIncident.status,
+                        };
+                        firstIncident.end = nextIncident.start;
+                        let j: $TSFixMe = nextIncidentIndex + 1;
+                        while (j < incidentsHappenedDuringTheDay.length) {
+                            if (
+                                moment(newIncident.start).isBefore(
+                                    incidentsHappenedDuringTheDay[j].start
+                                )
+                            ) {
+                                break;
                             }
-                            incidentsHappenedDuringTheDay.splice(
-                                j,
-                                0,
-                                newIncident
-                            );
+                            j += 1;
                         }
+                        incidentsHappenedDuringTheDay.splice(j, 0, newIncident);
                     }
                 }
                 i--;
@@ -2252,42 +2242,36 @@ export default class Service {
                                 nextIncident
                             );
                         }
+                    } else if (
+                        moment(firstIncident.end).isBefore(nextIncident.end)
+                    ) {
+                        firstIncident.end = nextIncident.start;
                     } else {
-                        if (
-                            moment(firstIncident.end).isBefore(nextIncident.end)
-                        ) {
-                            firstIncident.end = nextIncident.start;
-                        } else {
-                            /**
-                             * The firstIncident is less important than the next incident,
-                             * it also starts before and ends after the nextIncident.
-                             * In the case The first incident needs to be devided into to two parts.
-                             * The first part comes before the nextIncident,
-                             * the second one comes after the nextIncident.
-                             */
-                            const newIncident: $TSFixMe = {
-                                start: nextIncident.end,
-                                end: firstIncident.end,
-                                status: firstIncident.status,
-                            };
-                            firstIncident.end = nextIncident.start;
-                            let j: $TSFixMe = nextIncidentIndex + 1;
-                            while (j < incidentsHappenedDuringTheDay.length) {
-                                if (
-                                    moment(newIncident.start).isBefore(
-                                        incidentsHappenedDuringTheDay[j].start
-                                    )
-                                ) {
-                                    break;
-                                }
-                                j += 1;
+                        /**
+                         * The firstIncident is less important than the next incident,
+                         * it also starts before and ends after the nextIncident.
+                         * In the case The first incident needs to be devided into to two parts.
+                         * The first part comes before the nextIncident,
+                         * the second one comes after the nextIncident.
+                         */
+                        const newIncident: $TSFixMe = {
+                            start: nextIncident.end,
+                            end: firstIncident.end,
+                            status: firstIncident.status,
+                        };
+                        firstIncident.end = nextIncident.start;
+                        let j: $TSFixMe = nextIncidentIndex + 1;
+                        while (j < incidentsHappenedDuringTheDay.length) {
+                            if (
+                                moment(newIncident.start).isBefore(
+                                    incidentsHappenedDuringTheDay[j].start
+                                )
+                            ) {
+                                break;
                             }
-                            incidentsHappenedDuringTheDay.splice(
-                                j,
-                                0,
-                                newIncident
-                            );
+                            j += 1;
                         }
+                        incidentsHappenedDuringTheDay.splice(j, 0, newIncident);
                     }
                 }
                 i--;

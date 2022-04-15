@@ -9,10 +9,8 @@ export default {
 
             if (!map[curr.identification]) {
                 map[curr.identification] = curr;
-            } else {
-                if (curr.error && !map[curr.identification].error) {
-                    map[curr.identification].error = true;
-                }
+            } else if (curr.error && !map[curr.identification].error) {
+                map[curr.identification].error = true;
             }
         }
         return Object.values(map);

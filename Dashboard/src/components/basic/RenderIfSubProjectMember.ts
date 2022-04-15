@@ -29,28 +29,26 @@ function RenderIfSubProjectMember(props: $TSFixMe): void {
         }).length > 0
     ) {
         renderItems = children;
-    } else {
-        if (subProjects) {
-            subProjects.forEach((subProject: $TSFixMe) => {
-                if (
-                    userId &&
-                    userId === currentUserId &&
-                    subProject &&
-                    subProject.users &&
-                    subProject.users.length > 0 &&
-                    subProject.users.filter((user: $TSFixMe) => {
-                        return (
-                            user.userId === userId &&
-                            user.role !== 'Administrator' &&
-                            user.role !== 'Owner' &&
-                            user.role !== 'Viewer'
-                        );
-                    }).length > 0
-                ) {
-                    renderItems = children;
-                }
-            });
-        }
+    } else if (subProjects) {
+        subProjects.forEach((subProject: $TSFixMe) => {
+            if (
+                userId &&
+                userId === currentUserId &&
+                subProject &&
+                subProject.users &&
+                subProject.users.length > 0 &&
+                subProject.users.filter((user: $TSFixMe) => {
+                    return (
+                        user.userId === userId &&
+                        user.role !== 'Administrator' &&
+                        user.role !== 'Owner' &&
+                        user.role !== 'Viewer'
+                    );
+                }).length > 0
+            ) {
+                renderItems = children;
+            }
+        });
     }
     return renderItems;
 }

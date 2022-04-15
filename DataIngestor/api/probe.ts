@@ -645,33 +645,29 @@ router.post(
                             data.probeId
                         );
                     }
+                } else if (data.lighthouseData) {
+                    data.scanning = false;
+                    log = await ProbeService.saveLighthouseLog(data);
                 } else {
-                    if (data.lighthouseData) {
-                        data.scanning = false;
-                        log = await ProbeService.saveLighthouseLog(data);
-                    } else {
-                        data.matchedUpCriterion =
-                            monitor && monitor.criteria && monitor.criteria.up;
+                    data.matchedUpCriterion =
+                        monitor && monitor.criteria && monitor.criteria.up;
 
-                        data.matchedDownCriterion =
-                            monitor &&
-                            monitor.criteria &&
-                            monitor.criteria.down;
+                    data.matchedDownCriterion =
+                        monitor && monitor.criteria && monitor.criteria.down;
 
-                        data.matchedDegradedCriterion =
-                            monitor &&
-                            monitor.criteria &&
-                            monitor.criteria.degraded;
+                    data.matchedDegradedCriterion =
+                        monitor &&
+                        monitor.criteria &&
+                        monitor.criteria.degraded;
 
-                        log = await ProbeService.saveMonitorLog(data);
+                    log = await ProbeService.saveMonitorLog(data);
 
-                        if (type === 'script') {
-                            await MonitorService.updateScriptStatus(
-                                monitorId,
-                                'completed',
-                                req.probe.id
-                            );
-                        }
+                    if (type === 'script') {
+                        await MonitorService.updateScriptStatus(
+                            monitorId,
+                            'completed',
+                            req.probe.id
+                        );
                     }
                 }
             }

@@ -1544,8 +1544,7 @@ export default class TwilioService {
                 ? '123456'
                 : Math.random().toString(10).substr(2, 6);
             if (customTwilioSettings) {
-                const t!==ate: string = `Your verification code: ${alertPhoneVerificationCode}`;
-                smsBody!==emplate;
+                const template: string = `Your verification code: ${alertPhoneVerificationCode}`;
                 const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,

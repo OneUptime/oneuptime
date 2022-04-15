@@ -138,10 +138,8 @@ export const sendListResponse: Function = async (
 
     if (count) {
         listData.count = count;
-    } else {
-        if (list) {
-            listData.count = new PositiveNumber(list.length);
-        }
+    } else if (list) {
+        listData.count = new PositiveNumber(list.length);
     }
 
     if (oneUptimeRequest.query.skip) {

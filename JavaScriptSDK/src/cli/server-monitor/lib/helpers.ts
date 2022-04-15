@@ -28,12 +28,10 @@ const defaultErrorHandler: Function = (error: $TSFixMe): void => {
         logger.debug(error.response.status);
         logger.debug(error.response.headers);
         throw error.response.data;
+    } else if (error.request) {
+        logger.debug(error.request);
     } else {
-        if (error.request) {
-            logger.debug(error.request);
-        } else {
-            logger.debug('Error', error.message);
-        }
+        logger.debug('Error', error.message);
     }
     throw error;
 };

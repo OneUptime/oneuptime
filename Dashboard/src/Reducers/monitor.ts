@@ -441,12 +441,10 @@ export default function monitor(
 
                                     subProject.count += 1;
                                 }
-                            } else {
-                                if (isSubProjectMonitor) {
-                                    subProjectMonitors.splice(monitorIndex, 1);
+                            } else if (isSubProjectMonitor) {
+                                subProjectMonitors.splice(monitorIndex, 1);
 
-                                    subProject.count -= 1;
-                                }
+                                subProject.count -= 1;
                             }
 
                             subProject.monitors = subProjectMonitors;
@@ -1094,27 +1092,24 @@ export default function monitor(
                                                       dateFormat = 'days';
                                                       outputFormat =
                                                           'MMM Do YYYY';
-                                                  } else {
-                                                      if (
+                                                  } else if (
+                                                      moment(
+                                                          state.monitorsList
+                                                              .endDate
+                                                      ).diff(
                                                           moment(
-                                                              state.monitorsList
-                                                                  .endDate
-                                                          ).diff(
-                                                              moment(
-                                                                  monitor.createdAt
-                                                              ),
-                                                              'minutes'
-                                                          ) > 60
-                                                      ) {
-                                                          dateFormat = 'hours';
-                                                          outputFormat =
-                                                              'MMM Do YYYY, h A';
-                                                      } else {
-                                                          dateFormat =
-                                                              'minutes';
-                                                          outputFormat =
-                                                              'MMM Do YYYY, h:mm:ss A';
-                                                      }
+                                                              monitor.createdAt
+                                                          ),
+                                                          'minutes'
+                                                      ) > 60
+                                                  ) {
+                                                      dateFormat = 'hours';
+                                                      outputFormat =
+                                                          'MMM Do YYYY, h A';
+                                                  } else {
+                                                      dateFormat = 'minutes';
+                                                      outputFormat =
+                                                          'MMM Do YYYY, h:mm:ss A';
                                                   }
 
                                                   const logData: $TSFixMe = {
@@ -1433,34 +1428,30 @@ export default function monitor(
                                                               },
                                                           ];
                                                       }
+                                                  } else if (isValidProbe) {
+                                                      monitor.statuses =
+                                                          probes.map(
+                                                              (
+                                                                  probe: $TSFixMe
+                                                              ) => {
+                                                                  return {
+                                                                      _id: probe._id,
+                                                                      statuses:
+                                                                          [
+                                                                              data,
+                                                                          ],
+                                                                  };
+                                                              }
+                                                          );
                                                   } else {
-                                                      if (isValidProbe) {
-                                                          monitor.statuses =
-                                                              probes.map(
-                                                                  (
-                                                                      probe: $TSFixMe
-                                                                  ) => {
-                                                                      return {
-                                                                          _id: probe._id,
-                                                                          statuses:
-                                                                              [
-                                                                                  data,
-                                                                              ],
-                                                                      };
-                                                                  }
-                                                              );
-                                                      } else {
-                                                          monitor.statuses = [
-                                                              {
-                                                                  _id:
-                                                                      data.probeId ||
-                                                                      null,
-                                                                  statuses: [
-                                                                      data,
-                                                                  ],
-                                                              },
-                                                          ];
-                                                      }
+                                                      monitor.statuses = [
+                                                          {
+                                                              _id:
+                                                                  data.probeId ||
+                                                                  null,
+                                                              statuses: [data],
+                                                          },
+                                                      ];
                                                   }
                                               }
                                               return monitor;

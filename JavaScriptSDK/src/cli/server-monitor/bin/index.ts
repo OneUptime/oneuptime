@@ -118,22 +118,18 @@ const getParamValue: Function = (params: $TSFixMe, name: $TSFixMe): void => {
                 resolve(process.env[name] || null);
             } else if (name === 'daemon') {
                 resolve(options[name] === true);
+            } else if (process.env[name]) {
+                resolve(process.env[name]);
+            } else if (typeof options.daemon === 'string') {
+                resolve(null);
             } else {
-                if (process.env[name]) {
-                    resolve(process.env[name]);
-                } else {
-                    if (typeof options.daemon === 'string') {
-                        resolve(null);
-                    } else {
-                        prompt(
-                            params.filter((param: $TSFixMe) => {
-                                return param.name === name;
-                            })
-                        ).then((values: $TSFixMe) => {
-                            resolve(values[name]);
-                        });
-                    }
-                }
+                prompt(
+                    params.filter((param: $TSFixMe) => {
+                        return param.name === name;
+                    })
+                ).then((values: $TSFixMe) => {
+                    resolve(values[name]);
+                });
             }
         } else {
             resolve(options[name]);

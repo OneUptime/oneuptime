@@ -1096,108 +1096,106 @@ const incomingCheckAnd: Function = (
                         incomingVal++;
                     }
                 }
-            } else {
+            } else if (
+                condition.criteria[i] &&
+                condition.criteria[i].responseType &&
+                condition.criteria[i].responseType === 'incomingTime'
+            ) {
                 if (
                     condition.criteria[i] &&
-                    condition.criteria[i].responseType &&
-                    condition.criteria[i].responseType === 'incomingTime'
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'greaterThan'
                 ) {
                     if (
                         condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'greaterThan'
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload > condition.criteria[i].field1
                     ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload > condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'lessThan'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload < condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'inBetween'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            condition.criteria[i].field2 &&
-                            payload > condition.criteria[i].field1 &&
-                            payload < condition.criteria[i].field2
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'equalTo'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload===condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'notEqualTo'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload !== condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'gtEqualTo'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload >= condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'ltEqualTo'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload <= condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
+                        val++;
                     }
-                    incomingVal++;
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'lessThan'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload < condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'inBetween'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        condition.criteria[i].field2 &&
+                        payload > condition.criteria[i].field1 &&
+                        payload < condition.criteria[i].field2
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'equalTo'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload === condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'notEqualTo'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload !== condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'gtEqualTo'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload >= condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'ltEqualTo'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload <= condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
                 }
+                incomingVal++;
             }
         }
     }
@@ -1248,108 +1246,106 @@ const incomingCheckOr: Function = (
                         incomingVal++;
                     }
                 }
-            } else {
+            } else if (
+                condition.criteria[i] &&
+                condition.criteria[i].responseType &&
+                condition.criteria[i].responseType === 'incomingTime'
+            ) {
                 if (
                     condition.criteria[i] &&
-                    condition.criteria[i].responseType &&
-                    condition.criteria[i].responseType === 'incomingTime'
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'greaterThan'
                 ) {
                     if (
                         condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'greaterThan'
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload > condition.criteria[i].field1
                     ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload > condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'lessThan'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload < condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'inBetween'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            condition.criteria[i].field2 &&
-                            payload > condition.criteria[i].field1 &&
-                            payload < condition.criteria[i].field2
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'equalTo'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload===condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'notEqualTo'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload !== condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'gtEqualTo'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload >= condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
-                    } else if (
-                        condition.criteria[i] &&
-                        condition.criteria[i].filter &&
-                        condition.criteria[i].filter === 'ltEqualTo'
-                    ) {
-                        if (
-                            condition.criteria[i] &&
-                            condition.criteria[i].field1 &&
-                            payload &&
-                            payload <= condition.criteria[i].field1
-                        ) {
-                            val++;
-                        }
+                        val++;
                     }
-                    incomingVal++;
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'lessThan'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload < condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'inBetween'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        condition.criteria[i].field2 &&
+                        payload > condition.criteria[i].field1 &&
+                        payload < condition.criteria[i].field2
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'equalTo'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload === condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'notEqualTo'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload !== condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'gtEqualTo'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload >= condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
+                } else if (
+                    condition.criteria[i] &&
+                    condition.criteria[i].filter &&
+                    condition.criteria[i].filter === 'ltEqualTo'
+                ) {
+                    if (
+                        condition.criteria[i] &&
+                        condition.criteria[i].field1 &&
+                        payload &&
+                        payload <= condition.criteria[i].field1
+                    ) {
+                        val++;
+                    }
                 }
+                incomingVal++;
             }
         }
     }
@@ -1697,7 +1693,7 @@ const checkAnd: Function = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload===con.criteria[i].field1
+                                payload === con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -1957,14 +1953,12 @@ const checkAnd: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            successReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                successReasons.push('Request Timed out');
-                            } else {
-                                successReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            successReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -1987,14 +1981,12 @@ const checkAnd: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            successReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                successReasons.push('Request Timed out');
-                            } else {
-                                successReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            successReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2019,14 +2011,12 @@ const checkAnd: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            successReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                successReasons.push('Request Timed out');
-                            } else {
-                                successReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            successReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2038,7 +2028,7 @@ const checkAnd: Function = (
                                 con.criteria[i] &&
                                 criteriaStatusCode1 &&
                                 statusCode &&
-                                statusCode===criteriaStatusCode1
+                                statusCode === criteriaStatusCode1
                             )
                         ) {
                             validity = false;
@@ -2049,14 +2039,12 @@ const checkAnd: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            successReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                successReasons.push('Request Timed out');
-                            } else {
-                                successReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            successReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2079,14 +2067,12 @@ const checkAnd: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            successReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                successReasons.push('Request Timed out');
-                            } else {
-                                successReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            successReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2109,14 +2095,12 @@ const checkAnd: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            successReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                successReasons.push('Request Timed out');
-                            } else {
-                                successReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            successReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2139,14 +2123,12 @@ const checkAnd: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            successReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                successReasons.push('Request Timed out');
-                            } else {
-                                successReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            successReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     }
                 } else if (
@@ -2176,15 +2158,13 @@ const checkAnd: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2209,15 +2189,13 @@ const checkAnd: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2244,15 +2222,13 @@ const checkAnd: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2265,7 +2241,7 @@ const checkAnd: Function = (
                                 con.criteria[i].field1 &&
                                 payload &&
                                 payload.cpuLoad &&
-                                payload.cpuLoad===con.criteria[i].field1
+                                payload.cpuLoad === con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2277,15 +2253,13 @@ const checkAnd: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2310,15 +2284,13 @@ const checkAnd: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2343,15 +2315,13 @@ const checkAnd: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2376,15 +2346,13 @@ const checkAnd: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     }
                 } else if (
@@ -2418,14 +2386,12 @@ const checkAnd: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2449,14 +2415,12 @@ const checkAnd: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2482,14 +2446,12 @@ const checkAnd: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2502,7 +2464,7 @@ const checkAnd: Function = (
                                 con.criteria[i].field1 &&
                                 memoryUsedBytes &&
                                 memoryUsed &&
-                                memoryUsed===con.criteria[i].field1
+                                memoryUsed === con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -2513,14 +2475,12 @@ const checkAnd: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2544,14 +2504,12 @@ const checkAnd: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2575,14 +2533,12 @@ const checkAnd: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2606,14 +2562,12 @@ const checkAnd: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     }
                 } else if (
@@ -2653,18 +2607,16 @@ const checkAnd: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            successReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2691,18 +2643,16 @@ const checkAnd: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            successReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2731,18 +2681,16 @@ const checkAnd: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            successReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2769,18 +2717,16 @@ const checkAnd: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            successReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2807,18 +2753,16 @@ const checkAnd: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            successReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2845,18 +2789,16 @@ const checkAnd: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            successReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2883,18 +2825,16 @@ const checkAnd: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            successReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     }
                 } else if (
@@ -2921,12 +2861,10 @@ const checkAnd: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2948,12 +2886,10 @@ const checkAnd: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2977,12 +2913,10 @@ const checkAnd: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -2995,7 +2929,7 @@ const checkAnd: Function = (
                                 con.criteria[i].field1 &&
                                 payload &&
                                 payload.mainTemp &&
-                                payload.mainTemp===con.criteria[i].field1
+                                payload.mainTemp === con.criteria[i].field1
                             )
                         ) {
                             validity = false;
@@ -3004,12 +2938,10 @@ const checkAnd: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -3031,12 +2963,10 @@ const checkAnd: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -3058,12 +2988,10 @@ const checkAnd: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -3085,12 +3013,10 @@ const checkAnd: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                successReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            successReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     }
                 } else if (
@@ -3120,24 +3046,22 @@ const checkAnd: Function = (
                                     `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                 );
                             }
+                        } else if (
+                            !(
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
+                                body &&
+                                body[con.criteria[i].field1]
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
+                            );
                         } else {
-                            if (
-                                !(
-                                    con.criteria[i] &&
-                                    con.criteria[i].field1 &&
-                                    body &&
-                                    body[con.criteria[i].field1]
-                                )
-                            ) {
-                                validity = false;
-                                failedReasons.push(
-                                    `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
-                                );
-                            } else {
-                                successReasons.push(
-                                    `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
-                                );
-                            }
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -3162,24 +3086,22 @@ const checkAnd: Function = (
                                     `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                 );
                             }
+                        } else if (
+                            !(
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
+                                body &&
+                                !body[con.criteria[i].field1]
+                            )
+                        ) {
+                            validity = false;
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
+                            );
                         } else {
-                            if (
-                                !(
-                                    con.criteria[i] &&
-                                    con.criteria[i].field1 &&
-                                    body &&
-                                    !body[con.criteria[i].field1]
-                                )
-                            ) {
-                                validity = false;
-                                failedReasons.push(
-                                    `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
-                                );
-                            } else {
-                                successReasons.push(
-                                    `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
-                                );
-                            }
+                            successReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4040,7 +3962,7 @@ const checkOr: Function = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload===con.criteria[i].field1
+                            payload === con.criteria[i].field1
                         ) {
                             validity = true;
                             successReasons.push(
@@ -4237,12 +4159,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
                                 );
                             }
-                        } else {
-                            if (expiresIn) {
-                                failedReasons.push(
-                                    `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                                );
-                            }
+                        } else if (expiresIn) {
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4256,12 +4176,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
                                 );
                             }
-                        } else {
-                            if (expiresIn) {
-                                failedReasons.push(
-                                    `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
-                                );
-                            }
+                        } else if (expiresIn) {
+                            failedReasons.push(
+                                `${criteriaStrings.sslCertificate} expires in ${expiresIn} days`
+                            );
                         }
                     }
                 } else if (
@@ -4287,14 +4205,12 @@ const checkOr: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            failedReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                failedReasons.push('Request Timed out');
-                            } else {
-                                failedReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            failedReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4315,14 +4231,12 @@ const checkOr: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            failedReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                failedReasons.push('Request Timed out');
-                            } else {
-                                failedReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            failedReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4345,14 +4259,12 @@ const checkOr: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            failedReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                failedReasons.push('Request Timed out');
-                            } else {
-                                failedReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            failedReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4363,7 +4275,7 @@ const checkOr: Function = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             statusCode &&
-                            statusCode===con.criteria[i].field1
+                            statusCode === con.criteria[i].field1
                         ) {
                             validity = true;
                             if (statusCode === 408 || statusCode === '408') {
@@ -4373,14 +4285,12 @@ const checkOr: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            failedReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                failedReasons.push('Request Timed out');
-                            } else {
-                                failedReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            failedReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4401,14 +4311,12 @@ const checkOr: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            failedReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                failedReasons.push('Request Timed out');
-                            } else {
-                                failedReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            failedReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4429,14 +4337,12 @@ const checkOr: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            failedReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                failedReasons.push('Request Timed out');
-                            } else {
-                                failedReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            failedReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4457,14 +4363,12 @@ const checkOr: Function = (
                                     `${criteriaStrings.statusCode} ${statusCode}`
                                 );
                             }
+                        } else if (statusCode === 408 || statusCode === '408') {
+                            failedReasons.push('Request Timed out');
                         } else {
-                            if (statusCode === 408 || statusCode === '408') {
-                                failedReasons.push('Request Timed out');
-                            } else {
-                                failedReasons.push(
-                                    `${criteriaStrings.statusCode} ${statusCode}`
-                                );
-                            }
+                            failedReasons.push(
+                                `${criteriaStrings.statusCode} ${statusCode}`
+                            );
                         }
                     }
                 } else if (
@@ -4492,15 +4396,13 @@ const checkOr: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4523,15 +4425,13 @@ const checkOr: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4556,15 +4456,13 @@ const checkOr: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4576,7 +4474,7 @@ const checkOr: Function = (
                             con.criteria[i].field1 &&
                             payload &&
                             payload.cpuLoad &&
-                            payload.cpuLoad===con.criteria[i].field1
+                            payload.cpuLoad === con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
@@ -4587,15 +4485,13 @@ const checkOr: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4618,15 +4514,13 @@ const checkOr: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4649,15 +4543,13 @@ const checkOr: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4680,15 +4572,13 @@ const checkOr: Function = (
                                     )} %`
                                 );
                             }
-                        } else {
-                            if (payload && payload.cpuLoad !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.cpuLoad} ${formatDecimal(
-                                        payload.cpuLoad,
-                                        2
-                                    )} %`
-                                );
-                            }
+                        } else if (payload && payload.cpuLoad !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.cpuLoad} ${formatDecimal(
+                                    payload.cpuLoad,
+                                    2
+                                )} %`
+                            );
                         }
                     }
                 } else if (
@@ -4719,14 +4609,12 @@ const checkOr: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4747,14 +4635,12 @@ const checkOr: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4777,14 +4663,12 @@ const checkOr: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4795,7 +4679,7 @@ const checkOr: Function = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             memoryUsed &&
-                            memoryUsed===con.criteria[i].field1
+                            memoryUsed === con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
@@ -4805,14 +4689,12 @@ const checkOr: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4833,14 +4715,12 @@ const checkOr: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4861,14 +4741,12 @@ const checkOr: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4889,14 +4767,12 @@ const checkOr: Function = (
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
-                        } else {
-                            if (payload && payload.memoryUsed !== null) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.memoryUsed
-                                    } ${formatBytes(memoryUsedBytes)}`
-                                );
-                            }
+                        } else if (payload && payload.memoryUsed !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.memoryUsed} ${formatBytes(
+                                    memoryUsedBytes
+                                )}`
+                            );
                         }
                     }
                 } else if (
@@ -4933,18 +4809,16 @@ const checkOr: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            failedReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -4968,18 +4842,16 @@ const checkOr: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            failedReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5005,18 +4877,16 @@ const checkOr: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            failedReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5040,18 +4910,16 @@ const checkOr: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            failedReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5075,18 +4943,16 @@ const checkOr: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            failedReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5110,18 +4976,16 @@ const checkOr: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            failedReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5145,18 +5009,16 @@ const checkOr: Function = (
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
-                        } else {
-                            if (
-                                payload &&
-                                payload.totalStorage !== null &&
-                                payload.storageUsed !== null
-                            ) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.freeStorage
-                                    } ${formatBytes(freeBytes)}`
-                                );
-                            }
+                        } else if (
+                            payload &&
+                            payload.totalStorage !== null &&
+                            payload.storageUsed !== null
+                        ) {
+                            failedReasons.push(
+                                `${criteriaStrings.freeStorage} ${formatBytes(
+                                    freeBytes
+                                )}`
+                            );
                         }
                     }
                 } else if (
@@ -5181,12 +5043,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5206,12 +5066,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5233,12 +5091,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5250,7 +5106,7 @@ const checkOr: Function = (
                             con.criteria[i].field1 &&
                             payload &&
                             payload.mainTemp &&
-                            payload.mainTemp===con.criteria[i].field1
+                            payload.mainTemp === con.criteria[i].field1
                         ) {
                             validity = true;
                             if (payload && payload.mainTemp !== null) {
@@ -5258,12 +5114,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5283,12 +5137,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5308,12 +5160,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5333,12 +5183,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`
                                 );
                             }
-                        } else {
-                            if (payload && payload.mainTemp !== null) {
-                                failedReasons.push(
-                                    `${criteriaStrings.temperature} ${payload.mainTemp} °C`
-                                );
-                            }
+                        } else if (payload && payload.mainTemp !== null) {
+                            failedReasons.push(
+                                `${criteriaStrings.temperature} ${payload.mainTemp} °C`
+                            );
                         }
                     }
                 } else if (
@@ -5363,33 +5211,27 @@ const checkOr: Function = (
                                         `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
                                     );
                                 }
-                            } else {
-                                if (con.criteria[i].field1) {
-                                    failedReasons.push(
-                                        `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
-                                    );
-                                }
+                            } else if (con.criteria[i].field1) {
+                                failedReasons.push(
+                                    `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
+                                );
                             }
-                        } else {
-                            if (
-                                con.criteria[i] &&
-                                con.criteria[i].field1 &&
-                                body &&
-                                body[con.criteria[i].field1]
-                            ) {
-                                validity = true;
-                                if (con.criteria[i].field1) {
-                                    successReasons.push(
-                                        `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
-                                    );
-                                }
-                            } else {
-                                if (con.criteria[i].field1) {
-                                    failedReasons.push(
-                                        `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
-                                    );
-                                }
+                        } else if (
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            body &&
+                            body[con.criteria[i].field1]
+                        ) {
+                            validity = true;
+                            if (con.criteria[i].field1) {
+                                successReasons.push(
+                                    `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
+                                );
                             }
+                        } else if (con.criteria[i].field1) {
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5409,33 +5251,27 @@ const checkOr: Function = (
                                         `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
                                     );
                                 }
-                            } else {
-                                if (con.criteria[i].field1) {
-                                    failedReasons.push(
-                                        `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
-                                    );
-                                }
+                            } else if (con.criteria[i].field1) {
+                                failedReasons.push(
+                                    `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
+                                );
                             }
-                        } else {
-                            if (
-                                con.criteria[i] &&
-                                con.criteria[i].field1 &&
-                                body &&
-                                !body[con.criteria[i].field1]
-                            ) {
-                                validity = true;
-                                if (con.criteria[i].field1) {
-                                    successReasons.push(
-                                        `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
-                                    );
-                                }
-                            } else {
-                                if (con.criteria[i].field1) {
-                                    failedReasons.push(
-                                        `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
-                                    );
-                                }
+                        } else if (
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            body &&
+                            !body[con.criteria[i].field1]
+                        ) {
+                            validity = true;
+                            if (con.criteria[i].field1) {
+                                successReasons.push(
+                                    `${criteriaStrings.responseBody} did not contain ${con.criteria[i].field1}`
+                                );
                             }
+                        } else if (con.criteria[i].field1) {
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} contains ${con.criteria[i].field1}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5460,12 +5296,10 @@ const checkOr: Function = (
                                     `${criteriaStrings.responseBody} contains Javascript expression ${con.criteria[i].field1}`
                                 );
                             }
-                        } else {
-                            if (con.criteria[i].field1) {
-                                failedReasons.push(
-                                    `${criteriaStrings.responseBody} does not contain Javascript expression ${con.criteria[i].field1}`
-                                );
-                            }
+                        } else if (con.criteria[i].field1) {
+                            failedReasons.push(
+                                `${criteriaStrings.responseBody} does not contain Javascript expression ${con.criteria[i].field1}`
+                            );
                         }
                     } else if (
                         con.criteria[i] &&
@@ -5556,18 +5390,14 @@ const checkOr: Function = (
                                     )}\` evaluate \`${con.criteria[i].field1}\``
                                 );
                             }
-                        } else {
-                            if (con.criteria[i].field1) {
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.response
-                                    } \`${JSON.stringify(
-                                        responseDisplay
-                                    )}\` did not evaluate \`${
-                                        con.criteria[i].field1
-                                    }\``
-                                );
-                            }
+                        } else if (con.criteria[i].field1) {
+                            failedReasons.push(
+                                `${criteriaStrings.response} \`${JSON.stringify(
+                                    responseDisplay
+                                )}\` did not evaluate \`${
+                                    con.criteria[i].field1
+                                }\``
+                            );
                         }
                     }
                 } else if (
@@ -5661,16 +5491,14 @@ const checkOr: Function = (
                                     successReasons.push(
                                         `${pod.podName} pod status is ${pod.podStatus}`
                                     );
-                                } else {
-                                    if (
-                                        !healthyPods.includes(
-                                            pod.podStatus.toLowerCase()
-                                        )
-                                    ) {
-                                        failedReasons.push(
-                                            `${pod.podName} pod status is ${pod.podStatus}`
-                                        );
-                                    }
+                                } else if (
+                                    !healthyPods.includes(
+                                        pod.podStatus.toLowerCase()
+                                    )
+                                ) {
+                                    failedReasons.push(
+                                        `${pod.podName} pod status is ${pod.podStatus}`
+                                    );
                                 }
                             });
                         }
@@ -5698,16 +5526,14 @@ const checkOr: Function = (
                                     successReasons.push(
                                         `${pod.podName} pod status is ${pod.podStatus}`
                                     );
-                                } else {
-                                    if (
-                                        !healthyPods.includes(
-                                            pod.podStatus.toLowerCase()
-                                        )
-                                    ) {
-                                        failedReasons.push(
-                                            `${pod.podName} pod status is ${pod.podStatus}`
-                                        );
-                                    }
+                                } else if (
+                                    !healthyPods.includes(
+                                        pod.podStatus.toLowerCase()
+                                    )
+                                ) {
+                                    failedReasons.push(
+                                        `${pod.podName} pod status is ${pod.podStatus}`
+                                    );
                                 }
                             });
                         }
@@ -5741,16 +5567,14 @@ const checkOr: Function = (
                                     successReasons.push(
                                         `${job.jobName} job status is ${job.jobStatus}`
                                     );
-                                } else {
-                                    if (
-                                        !healthyJobs.includes(
-                                            job.jobStatus.toLowerCase()
-                                        )
-                                    ) {
-                                        failedReasons.push(
-                                            `${job.jobName} job status is ${job.jobStatus}`
-                                        );
-                                    }
+                                } else if (
+                                    !healthyJobs.includes(
+                                        job.jobStatus.toLowerCase()
+                                    )
+                                ) {
+                                    failedReasons.push(
+                                        `${job.jobName} job status is ${job.jobStatus}`
+                                    );
                                 }
                             });
                         }
@@ -5778,16 +5602,14 @@ const checkOr: Function = (
                                     successReasons.push(
                                         `${job.jobName} job status is ${job.jobStatus}`
                                     );
-                                } else {
-                                    if (
-                                        !healthyJobs.includes(
-                                            job.jobStatus.toLowerCase()
-                                        )
-                                    ) {
-                                        failedReasons.push(
-                                            `${job.jobName} job status is ${job.jobStatus}`
-                                        );
-                                    }
+                                } else if (
+                                    !healthyJobs.includes(
+                                        job.jobStatus.toLowerCase()
+                                    )
+                                ) {
+                                    failedReasons.push(
+                                        `${job.jobName} job status is ${job.jobStatus}`
+                                    );
                                 }
                             });
                         }

@@ -327,12 +327,12 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
          */
         let j: $TSFixMe;
         for (j = 0; j < M; j++) {
-            if (txt[i + j] != pat[j]) {
-                break;!==
+            if (txt[i + j] !== pat[j]) {
+                break;
             }
         }
 
-        if (j===M) {
+        if (j === M) {
             res++;
             j = 0;
         }

@@ -98,14 +98,12 @@ export default class Service {
                         })
                     );
                 }
-            } else {
-                if (data.monitors && data.monitors.length > 0) {
-                    await MonitorService.markMonitorsAsShouldMonitor(
-                        data.monitors.map((i: $TSFixMe) => {
-                            return i.monitorId._id || i.monitorId;
-                        })
-                    );
-                }
+            } else if (data.monitors && data.monitors.length > 0) {
+                await MonitorService.markMonitorsAsShouldMonitor(
+                    data.monitors.map((i: $TSFixMe) => {
+                        return i.monitorId._id || i.monitorId;
+                    })
+                );
             }
 
             await ScheduledEventNoteService.create({
@@ -726,17 +724,15 @@ export default class Service {
                         })
                     );
                 }
-            } else {
-                if (
-                    scheduledEvent.monitors &&
-                    scheduledEvent.monitors.length > 0
-                ) {
-                    await MonitorService.markMonitorsAsShouldMonitor(
-                        scheduledEvent.monitors.map((i: $TSFixMe) => {
-                            return i.monitorId._id || i.monitorId;
-                        })
-                    );
-                }
+            } else if (
+                scheduledEvent.monitors &&
+                scheduledEvent.monitors.length > 0
+            ) {
+                await MonitorService.markMonitorsAsShouldMonitor(
+                    scheduledEvent.monitors.map((i: $TSFixMe) => {
+                        return i.monitorId._id || i.monitorId;
+                    })
+                );
             }
 
             const scheduledEventNoteCount: $TSFixMe =

@@ -143,7 +143,7 @@ const _this: $TSFixMe = {
                         parsed_cidr_as_ip.toNormalizedString()
                     );
                 }
-                return parsed_addr.toString()===parsed_cidr_as_ip.toString();
+                return parsed_addr.toString() === parsed_cidr_as_ip.toString();
             }
             const parsed_range: $TSFixMe = ipaddr.parseCIDR(cidr);
             return parsed_addr.match(parsed_range);

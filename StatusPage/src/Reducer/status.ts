@@ -1271,24 +1271,22 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                                             },
                                         ];
                                     }
-                                } else {
-                                    if (isValidProbe) {
-                                        monitor.statuses = probes.map(
-                                            (probe: $TSFixMe) => {
-                                                return {
-                                                    _id: probe._id,
-                                                    statuses: [data],
-                                                };
-                                            }
-                                        );
-                                    } else {
-                                        monitor.statuses = [
-                                            {
-                                                _id: data.probeId || null,
+                                } else if (isValidProbe) {
+                                    monitor.statuses = probes.map(
+                                        (probe: $TSFixMe) => {
+                                            return {
+                                                _id: probe._id,
                                                 statuses: [data],
-                                            },
-                                        ];
-                                    }
+                                            };
+                                        }
+                                    );
+                                } else {
+                                    monitor.statuses = [
+                                        {
+                                            _id: data.probeId || null,
+                                            statuses: [data],
+                                        },
+                                    ];
                                 }
                             }
                             return monitor;

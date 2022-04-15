@@ -2078,19 +2078,10 @@ export default class Service {
                                 });
                             }
                         }
-                    } else {
-                        if (subscriber.alertVia === AlertType.Email) {
-                            if (!track[subscriber.contactEmail]) {
-                                track[subscriber.contactEmail] =
-                                    subscriber.contactEmail;
-                                sendSubscriberAlert({
-                                    subscriber,
-                                    monitor,
-                                    enabledStatusPage: null,
-                                    subscribers,
-                                });
-                            }
-                        } else {
+                    } else if (subscriber.alertVia === AlertType.Email) {
+                        if (!track[subscriber.contactEmail]) {
+                            track[subscriber.contactEmail] =
+                                subscriber.contactEmail;
                             sendSubscriberAlert({
                                 subscriber,
                                 monitor,
@@ -2098,6 +2089,13 @@ export default class Service {
                                 subscribers,
                             });
                         }
+                    } else {
+                        sendSubscriberAlert({
+                            subscriber,
+                            monitor,
+                            enabledStatusPage: null,
+                            subscribers,
+                        });
                     }
                 }
             }
@@ -2273,19 +2271,17 @@ export default class Service {
                                 eventType: 'acknowledged',
                             });
                         }
-                    } else {
-                        if (escalation.email) {
-                            await this.sendAcknowledgeEmailAlert({
-                                incident,
-                                user,
-                                project,
-                                monitor,
-                                schedule,
-                                escalation,
-                                onCallScheduleStatus,
-                                eventType: 'acknowledged',
-                            });
-                        }
+                    } else if (escalation.email) {
+                        await this.sendAcknowledgeEmailAlert({
+                            incident,
+                            user,
+                            project,
+                            monitor,
+                            schedule,
+                            escalation,
+                            onCallScheduleStatus,
+                            eventType: 'acknowledged',
+                        });
                     }
                 }
             }
@@ -2632,19 +2628,17 @@ export default class Service {
                                 eventType: 'resolved',
                             });
                         }
-                    } else {
-                        if (escalation.email) {
-                            await this.sendResolveEmailAlert({
-                                incident,
-                                user,
-                                project,
-                                monitor,
-                                schedule,
-                                escalation,
-                                onCallScheduleStatus,
-                                eventType: 'resolved',
-                            });
-                        }
+                    } else if (escalation.email) {
+                        await this.sendResolveEmailAlert({
+                            incident,
+                            user,
+                            project,
+                            monitor,
+                            schedule,
+                            escalation,
+                            onCallScheduleStatus,
+                            eventType: 'resolved',
+                        });
                     }
                 }
             }
@@ -2892,19 +2886,10 @@ export default class Service {
                                 });
                             }
                         }
-                    } else {
-                        if (subscriber.alertVia === AlertType.Email) {
-                            if (!track[subscriber.contactEmail]) {
-                                track[subscriber.contactEmail] =
-                                    subscriber.contactEmail;
-                                await sendSubscriberAlert({
-                                    subscriber,
-                                    monitor,
-                                    enabledStatusPage: null,
-                                    subscribers,
-                                });
-                            }
-                        } else {
+                    } else if (subscriber.alertVia === AlertType.Email) {
+                        if (!track[subscriber.contactEmail]) {
+                            track[subscriber.contactEmail] =
+                                subscriber.contactEmail;
                             await sendSubscriberAlert({
                                 subscriber,
                                 monitor,
@@ -2912,6 +2897,13 @@ export default class Service {
                                 subscribers,
                             });
                         }
+                    } else {
+                        await sendSubscriberAlert({
+                            subscriber,
+                            monitor,
+                            enabledStatusPage: null,
+                            subscribers,
+                        });
                     }
                 }
             }
@@ -2994,19 +2986,10 @@ export default class Service {
                                 });
                             }
                         }
-                    } else {
-                        if (subscriber.alertVia === AlertType.Email) {
-                            if (!track[subscriber.contactEmail]) {
-                                track[subscriber.contactEmail] =
-                                    subscriber.contactEmail;
-                                sendSubscriberAlert({
-                                    subscriber,
-                                    monitor,
-                                    enabledStatusPage: null,
-                                    subscribers,
-                                });
-                            }
-                        } else {
+                    } else if (subscriber.alertVia === AlertType.Email) {
+                        if (!track[subscriber.contactEmail]) {
+                            track[subscriber.contactEmail] =
+                                subscriber.contactEmail;
                             sendSubscriberAlert({
                                 subscriber,
                                 monitor,
@@ -3014,6 +2997,13 @@ export default class Service {
                                 subscribers,
                             });
                         }
+                    } else {
+                        sendSubscriberAlert({
+                            subscriber,
+                            monitor,
+                            enabledStatusPage: null,
+                            subscribers,
+                        });
                     }
                 }
             }
@@ -3442,48 +3432,46 @@ export default class Service {
                             unsubscribeUrl
                         );
                         alertStatus = 'Sent';
-                    } else {
-                        if (project.sendCreatedIncidentNotificationEmail) {
-                            if (statusPage) {
-                                await MailService.sendIncidentCreatedMailToSubscriber(
-                                    date,
-                                    subscriber.monitorName,
-                                    subscriber.contactEmail,
-                                    subscriber._id,
-                                    subscriber.contactEmail,
-                                    incident,
-                                    project.name,
-                                    emailTemplate,
-                                    trackEmailAsViewedUrl,
-                                    component.name,
-                                    statusPageUrl,
-                                    project.replyAddress,
-                                    customFields,
-                                    unsubscribeUrl
-                                );
-                                alertStatus = 'Sent';
-                            } else {
-                                await MailService.sendIncidentCreatedMailToSubscriber(
-                                    date,
-                                    subscriber.monitorName,
-                                    subscriber.contactEmail,
-                                    subscriber._id,
-                                    subscriber.contactEmail,
-                                    incident,
-                                    project.name,
-                                    emailTemplate,
-                                    trackEmailAsViewedUrl,
-                                    component.name,
-                                    statusPageUrl,
-                                    project.replyAddress,
-                                    customFields,
-                                    unsubscribeUrl
-                                );
-                                alertStatus = 'Sent';
-                            }
+                    } else if (project.sendCreatedIncidentNotificationEmail) {
+                        if (statusPage) {
+                            await MailService.sendIncidentCreatedMailToSubscriber(
+                                date,
+                                subscriber.monitorName,
+                                subscriber.contactEmail,
+                                subscriber._id,
+                                subscriber.contactEmail,
+                                incident,
+                                project.name,
+                                emailTemplate,
+                                trackEmailAsViewedUrl,
+                                component.name,
+                                statusPageUrl,
+                                project.replyAddress,
+                                customFields,
+                                unsubscribeUrl
+                            );
+                            alertStatus = 'Sent';
                         } else {
-                            alertStatus = 'Disabled';
+                            await MailService.sendIncidentCreatedMailToSubscriber(
+                                date,
+                                subscriber.monitorName,
+                                subscriber.contactEmail,
+                                subscriber._id,
+                                subscriber.contactEmail,
+                                incident,
+                                project.name,
+                                emailTemplate,
+                                trackEmailAsViewedUrl,
+                                component.name,
+                                statusPageUrl,
+                                project.replyAddress,
+                                customFields,
+                                unsubscribeUrl
+                            );
+                            alertStatus = 'Sent';
                         }
+                    } else {
+                        alertStatus = 'Disabled';
                     }
                     await SubscriberAlertService.updateOneBy(
                         { _id: alertId },
@@ -3496,7 +3484,7 @@ export default class Service {
                     );
                     throw error;
                 }
-            } else if (subscriber.alertVia===AlertType.SMS) {
+            } else if (subscriber.alertVia === AlertType.SMS) {
                 let owner: $TSFixMe;
                 const hasGlobalTwilioSettings: $TSFixMe =
                     await GlobalConfigService.findOneBy({
@@ -3778,7 +3766,7 @@ export default class Service {
                             alertStatus = 'Disabled';
                         }
                     } else if (
-                        templateType==='Investigation note is created'
+                        templateType === 'Investigation note is created'
                     ) {
                         sendResult =
                             await TwilioService.sendInvestigationNoteToSubscribers(
@@ -3795,42 +3783,40 @@ export default class Service {
                                 note
                             );
                         alertStatus = 'Success';
-                    } else {
-                        if (project.sendCreatedIncidentNotificationSms) {
-                            if (statusPage) {
-                                sendResult =
-                                    await TwilioService.sendIncidentCreatedMessageToSubscriber(
-                                        date,
-                                        subscriber.monitorName,
-                                        contactPhone,
-                                        smsTemplate,
-                                        incident,
-                                        project.name,
-                                        projectId,
-                                        component.name,
-                                        statusPageUrl,
-                                        customFields
-                                    );
-                                alertStatus = 'Success';
-                            } else {
-                                sendResult =
-                                    await TwilioService.sendIncidentCreatedMessageToSubscriber(
-                                        date,
-                                        subscriber.monitorName,
-                                        contactPhone,
-                                        smsTemplate,
-                                        incident,
-                                        project.name,
-                                        projectId,
-                                        component.name,
-                                        statusPageUrl,
-                                        customFields
-                                    );
-                                alertStatus = 'Success';
-                            }
+                    } else if (project.sendCreatedIncidentNotificationSms) {
+                        if (statusPage) {
+                            sendResult =
+                                await TwilioService.sendIncidentCreatedMessageToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    contactPhone,
+                                    smsTemplate,
+                                    incident,
+                                    project.name,
+                                    projectId,
+                                    component.name,
+                                    statusPageUrl,
+                                    customFields
+                                );
+                            alertStatus = 'Success';
                         } else {
-                            alertStatus = 'Disabled';
+                            sendResult =
+                                await TwilioService.sendIncidentCreatedMessageToSubscriber(
+                                    date,
+                                    subscriber.monitorName,
+                                    contactPhone,
+                                    smsTemplate,
+                                    incident,
+                                    project.name,
+                                    projectId,
+                                    component.name,
+                                    statusPageUrl,
+                                    customFields
+                                );
+                            alertStatus = 'Success';
                         }
+                    } else {
+                        alertStatus = 'Disabled';
                     }
 
                     if (
@@ -3909,10 +3895,8 @@ export default class Service {
 
         if (!statusPageId) {
             sendAlerts();
-        } else {
-            if (incidentAlert) {
-                sendAlerts();
-            }
+        } else if (incidentAlert) {
+            sendAlerts();
         }
     }
 
@@ -5113,10 +5097,8 @@ export default class Service {
 
         if (!statusPageId) {
             sendAlerts();
-        } else {
-            if (scheduledEventAlert) {
-                sendAlerts();
-            }
+        } else if (scheduledEventAlert) {
+            sendAlerts();
         }
     }
 
@@ -5525,23 +5507,11 @@ export default class Service {
                             unsubscribeUrl,
                             monitorName,
                         });
-                    } else {
-                        if (announcementAlert) {
-                            if (subscriber.alertVia === AlertType.Email) {
-                                if (!track[subscriber.contactEmail]) {
-                                    track[subscriber.contactEmail] =
-                                        subscriber.contactEmail;
-                                    await sendAlerts({
-                                        project,
-                                        subscriber,
-                                        projectId,
-                                        totalSubscribers,
-                                        subscribers,
-                                        unsubscribeUrl,
-                                        monitorName,
-                                    });
-                                }
-                            } else {
+                    } else if (announcementAlert) {
+                        if (subscriber.alertVia === AlertType.Email) {
+                            if (!track[subscriber.contactEmail]) {
+                                track[subscriber.contactEmail] =
+                                    subscriber.contactEmail;
                                 await sendAlerts({
                                     project,
                                     subscriber,
@@ -5552,6 +5522,16 @@ export default class Service {
                                     monitorName,
                                 });
                             }
+                        } else {
+                            await sendAlerts({
+                                project,
+                                subscriber,
+                                projectId,
+                                totalSubscribers,
+                                subscribers,
+                                unsubscribeUrl,
+                                monitorName,
+                            });
                         }
                     }
                 }
