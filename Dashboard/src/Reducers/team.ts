@@ -159,7 +159,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                 },
                 // teamMembers: action.payload
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
-                    (subProject: $TSFixMe) =>  {
+                    (subProject: $TSFixMe) => {
                         subProject.teamMembers = action.payload.find(
                             (team: $TSFixMe) => {
                                 return team.projectId === subProject._id;
@@ -213,7 +213,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                 },
                 // teamMembers: action.payload.data,
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
-                    (subProject: $TSFixMe) =>  {
+                    (subProject: $TSFixMe) => {
                         if (action.payload) {
                             const projectObj: $TSFixMe = action.payload.find(
                                 (team: $TSFixMe) => {
@@ -318,7 +318,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                 },
                 // teamMembers: teamMembers,
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
-                    (subProject: $TSFixMe) =>  {
+                    (subProject: $TSFixMe) => {
                         subProject.teamMembers = action.payload.find(
                             (team: $TSFixMe) => {
                                 return team.projectId === subProject._id;

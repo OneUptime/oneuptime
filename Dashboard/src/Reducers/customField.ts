@@ -72,9 +72,11 @@ export default function customField(
             };
 
         case types.DELETE_CUSTOM_FIELD_SUCCESS: {
-            const fields: $TSFixMe = state.customFields.fields.filter((field: $TSFixMe) => {
-                return String(field._id) !== String(action.payload._id);
-            });
+            const fields: $TSFixMe = state.customFields.fields.filter(
+                (field: $TSFixMe) => {
+                    return String(field._id) !== String(action.payload._id);
+                }
+            );
             return {
                 ...state,
                 customFields: {

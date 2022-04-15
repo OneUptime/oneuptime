@@ -11,7 +11,7 @@ class PerfTimer {
         this.appId = appId;
         this.appKey = appKey;
         this.dataStore = new DataStore(this.apiUrl, this.appId, this.appKey);
-        this.obs = new PerformanceObserver((list: $TSFixMe) =>{
+        this.obs = new PerformanceObserver((list: $TSFixMe) => {
             const entry: $TSFixMe = list.getEntries()[0];
             const id: $TSFixMe = entry.name.slice(entry.name.indexOf('-') + 1);
             const originalValue: $TSFixMe = this.dataStore.getValue(id);
@@ -26,18 +26,18 @@ class PerfTimer {
         this.obs.observe({ entryTypes: ['measure'] });
     }
 
-    public start (id: $TSFixMe, log: $TSFixMe): void {
+    public start(id: $TSFixMe, log: $TSFixMe): void {
         this.dataStore.setValue(id, log);
         return performance.mark(`start-${id}`);
-    };
+    }
 
-    public end (id: $TSFixMe, result: $TSFixMe, type: $TSFixMe): void {
+    public end(id: $TSFixMe, result: $TSFixMe, type: $TSFixMe): void {
         performance.mark(`end-${id}`);
         return performance.measure(`${type}-${id}`, `start-${id}`, `end-${id}`);
-    };
+    }
 
-    public store (): void {
+    public store(): void {
         return this.dataStore;
-    };
+    }
 }
 export default PerfTimer;

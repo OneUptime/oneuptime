@@ -28,7 +28,7 @@ export default {
         return promise;
     },
 
-    decrypt: (encText: $TSFixMe, iv : $TSFixMe = EncryptionKeys.iv) => {
+    decrypt: (encText: $TSFixMe, iv: $TSFixMe = EncryptionKeys.iv) => {
         const promise: Promise = new Promise(
             (resolve: Function, reject: Function): $TSFixMe => {
                 try {

@@ -293,6 +293,5 @@ export default class MailService {
         mail.subject = this.compileSubject(mail.subject, mail.vars);
 
         await this.transportMail(mail, mailServer);
-
     }
 }

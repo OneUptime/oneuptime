@@ -145,9 +145,14 @@ const ping: Function = (
                                               .map((partition: $TSFixMe) => {
                                                   return partition.use;
                                               })
-                                              .reduce((use: $TSFixMe, partitionUse: $TSFixMe) => {
-                                                  return use + partitionUse;
-                                              })
+                                              .reduce(
+                                                  (
+                                                      use: $TSFixMe,
+                                                      partitionUse: $TSFixMe
+                                                  ) => {
+                                                      return use + partitionUse;
+                                                  }
+                                              )
                                         : storage.use,
                                 mainTemp: data[3].main,
                                 maxTemp: data[3].max,

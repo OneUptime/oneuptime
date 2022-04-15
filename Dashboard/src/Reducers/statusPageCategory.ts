@@ -113,7 +113,7 @@ export default function resourceCategory(
                 fetchStatusPageCategories: {
                     ...state.fetchStatusPageCategories,
                     categories: state.fetchStatusPageCategories.categories.map(
-                        (category: $TSFixMe) =>  {
+                        (category: $TSFixMe) => {
                             if (
                                 String(category._id) ===
                                 String(action.payload._id)
@@ -224,7 +224,7 @@ export default function resourceCategory(
                     ...state.fetchStatusPageCategories,
                     categories:
                         state.fetchStatusPageCategories.categories.filter(
-                            (category: $TSFixMe) =>  {
+                            (category: $TSFixMe) => {
                                 return (
                                     String(category._id) !==
                                     String(action.payload._id)

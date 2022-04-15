@@ -119,7 +119,7 @@ export default class Service {
             // records is an array of arrays
             // flatten the array to a single array
             const txtRecords: $TSFixMe = flatten(records);
-            const result: $TSFixMe = txtRecords.some((txtRecord: $TSFixMe) =>  {
+            const result: $TSFixMe = txtRecords.some((txtRecord: $TSFixMe) => {
                 return verificationToken === txtRecord;
             });
 
@@ -132,9 +132,11 @@ export default class Service {
                 // records is an array of arrays
                 // flatten the array to a single array
                 const txtRecords: $TSFixMe = flatten(records);
-                const result: $TSFixMe = txtRecords.some((txtRecord: $TSFixMe) =>  {
-                    return verificationToken === txtRecord;
-                });
+                const result: $TSFixMe = txtRecords.some(
+                    (txtRecord: $TSFixMe) => {
+                        return verificationToken === txtRecord;
+                    }
+                );
 
                 return { result, txtRecords };
             }
