@@ -172,7 +172,9 @@ describe('Scheduled Event Note', function (): void {
 
                                                                         const createdScheduledEventNotes: $TSFixMe =
                                                                             scheduledEventNotes.map(
-                                                                                async (scheduledEventNote: $TSFixMe) => {
+                                                                                async (
+                                                                                    scheduledEventNote: $TSFixMe
+                                                                                ) => {
                                                                                     const sentRequests: $TSFixMe =
                                                                                         await request
                                                                                             .post(
