@@ -37,8 +37,10 @@ import joinNames from '../Utils/joinNames';
 import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthorization';
 import ErrorService from 'CommonServer/Utils/error';
 
-// data-ingestor will consume this api
-// create an incident and return the created incident
+/*
+ * Data-ingestor will consume this api
+ * Create an incident and return the created incident
+ */
 router.post(
     '/data-ingestor/create-incident',
     ClusterKeyAuthorization.isAuthorizedService,
@@ -55,8 +57,10 @@ router.post(
     }
 );
 
-// data-ingestor will consume this api
-// acknowledge an incident
+/*
+ * Data-ingestor will consume this api
+ * Acknowledge an incident
+ */
 router.post(
     '/data-ingestor/acknowledge-incident',
     ClusterKeyAuthorization.isAuthorizedService,
@@ -77,8 +81,10 @@ router.post(
     }
 );
 
-// data-ingestor will consume this api
-// resolve an incident
+/*
+ * Data-ingestor will consume this api
+ * Resolve an incident
+ */
 router.post(
     '/data-ingestor/resolve-incident',
     ClusterKeyAuthorization.isAuthorizedService,
@@ -99,8 +105,10 @@ router.post(
     }
 );
 
-// data-ingestor will consume this api
-// update an incident
+/*
+ * Data-ingestor will consume this api
+ * Update an incident
+ */
 router.post(
     '/data-ingestor/update-incident',
     ClusterKeyAuthorization.isAuthorizedService,
@@ -119,11 +127,13 @@ router.post(
     }
 );
 
-// Route
-// Description: Creating incident.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {monitorId, projectId}
-// Returns: 200: Incident, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Creating incident.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {monitorId, projectId}
+ * Returns: 200: Incident, 400: Error; 500: Server Error.
+ */
 
 router.post(
     '/:projectId/create-incident',
@@ -151,7 +161,7 @@ router.post(
             }
             let oldIncidentsCount: $TSFixMe = null;
 
-            // monitors should be an array containing id of monitor(s)
+            // Monitors should be an array containing id of monitor(s)
             if (monitors && !Array.isArray(monitors)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -240,18 +250,20 @@ router.post(
     }
 );
 
-// Route
-// Description: Getting all the incidents by monitor Id.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {monitorId}
-// Returns: 200: incidents, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Getting all the incidents by monitor Id.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {monitorId}
+ * Returns: 200: incidents, 400: Error; 500: Server Error.
+ */
 router.post(
     '/:projectId/monitor/:monitorId',
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { monitorId }: $TSFixMe = req.params;
-        // include date range
+        // Include date range
         try {
             const { startDate, endDate }: $TSFixMe = req.body;
             let query: $TSFixMe = {
@@ -318,13 +330,15 @@ router.get(
     getSubProjects,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            // const subProjectIds: $TSFixMe = req.user.subProjects
-            //     ? req.user.subProjects.map((project: $TSFixMe) =>  project._id)
-            //     : null;
+            /*
+             * Const subProjectIds: $TSFixMe = req.user.subProjects
+             *     ? req.user.subProjects.map((project: $TSFixMe) =>  project._id)
+             *     : null;
+             */
             const { projectId }: $TSFixMe = req.params;
             const incidents: $TSFixMe =
                 await IncidentService.getSubProjectIncidents(projectId);
-            return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
+            return sendItemResponse(req, res, incidents); // Frontend expects sendItemResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -345,18 +359,20 @@ router.get(
                     projectId,
                     componentId
                 );
-            return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
+            return sendItemResponse(req, res, incidents); // Frontend expects sendItemResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
 
-// Route
-// Description: Getting incidents that belong to a component and particular project.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {incidentId}
-// Returns: 200: incidents, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Getting incidents that belong to a component and particular project.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {incidentId}
+ * Returns: 200: incidents, 400: Error; 500: Server Error.
+ */
 router.get(
     '/:projectId/incidents/:componentId',
     getUser,
@@ -369,10 +385,10 @@ router.get(
                 await IncidentService.getProjectComponentIncidents(
                     projectId,
                     componentId,
-                    req.query['limit'] || 10,
-                    req.query['skip'] || 0
+                    req.query.limit || 10,
+                    req.query.skip || 0
                 );
-            return sendListResponse(req, res, incident); // frontend expects sendListResponse
+            return sendListResponse(req, res, incident); // Frontend expects sendListResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -426,25 +442,27 @@ router.get(
             const [incident, count]: $TSFixMe = await Promise.all([
                 IncidentService.findBy({
                     query,
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     select,
                     populate,
                 }),
                 IncidentService.countBy(query),
             ]);
-            return sendListResponse(req, res, incident, count); // frontend expects sendListResponse
+            return sendListResponse(req, res, incident, count); // Frontend expects sendListResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
 
-// Route
-// Description: Getting incident.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {incidentSlug}
-// Returns: 200: incidents, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Getting incident.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {incidentSlug}
+ * Returns: 200: incidents, 400: Error; 500: Server Error.
+ */
 router.get(
     '/:projectId/incident/:incidentSlug',
     getUser,
@@ -511,14 +529,14 @@ router.get(
             const [timeline, count]: $TSFixMe = await Promise.all([
                 IncidentTimelineService.findBy({
                     query: { incidentId },
-                    skip: req.query['skip'] || 0,
-                    limit: req.query['limit'] || 10,
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
                     populate: populateIncTimeline,
                     select: selectIncTimeline,
                 }),
                 IncidentTimelineService.countBy({ incidentId }),
             ]);
-            return sendListResponse(req, res, timeline, count); // frontend expects sendListResponse
+            return sendListResponse(req, res, timeline, count); // Frontend expects sendListResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -720,11 +738,13 @@ router.post(
     }
 );
 
-// Route
-// Description: Updating user who resolved incident.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {incidentId, projectId}
-// Returns: 200: incident, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Updating user who resolved incident.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {incidentId, projectId}
+ * Returns: 200: incident, 400: Error; 500: Server Error.
+ */
 router.post(
     '/:projectId/resolve/:incidentId',
     getUser,
@@ -911,8 +931,10 @@ router.post(
     }
 );
 
-// update incident details
-// title, description, priority and type
+/*
+ * Update incident details
+ * Title, description, priority and type
+ */
 router.put(
     '/:projectId/incident/:incidentId/details',
     getUser,
@@ -1029,7 +1051,7 @@ router.post(
             }
 
             if (!data.id) {
-                // this is a message creation Rquest
+                // This is a message creation Rquest
                 if (!data.type) {
                     return sendErrorResponse(req, res, {
                         code: 400,
@@ -1061,7 +1083,7 @@ router.post(
 
             // If the message ID is available, treat this as an update
             if (data.id) {
-                // validate if Message ID exist or not
+                // Validate if Message ID exist or not
                 const incidentMsgCount: $TSFixMe =
                     await IncidentMessageService.countBy({
                         _id: data.id,
@@ -1100,7 +1122,7 @@ router.post(
                 data.incident_state = incidentStateTemplate(templateInput);
                 data.content = contentTemplate(templateInput);
 
-                // handle creation or updating
+                // Handle creation or updating
                 if (!data.id) {
                     data.createdById = req.user.id;
                     data.monitors = incident.monitors.map(
@@ -1156,7 +1178,7 @@ router.post(
                         });
                     }
                 }
-                // send project webhook notification
+                // Send project webhook notification
                 AlertService.sendStausPageNoteNotificationToProjectWebhooks(
                     projectId,
                     incident,
@@ -1339,8 +1361,10 @@ router.post(
     }
 );
 
-// fetches status pages for an incident
-// returns a list of status pages pointing to the incident
+/*
+ * Fetches status pages for an incident
+ * Returns a list of status pages pointing to the incident
+ */
 router.get(
     '/:projectId/:incidentSlug/statuspages',
     getUser,
@@ -1358,9 +1382,9 @@ router.get(
                     await StatusPageService.getStatusPagesForIncident(
                         incident._id,
 
-                        parseInt(req.query['skip']) || 0,
+                        parseInt(req.query.skip) || 0,
 
-                        parseInt(req.query['limit']) || 10
+                        parseInt(req.query.limit) || 10
                     );
                 return sendListResponse(req, res, statusPages, count);
             } else {
@@ -1585,9 +1609,9 @@ router.get(
                 let skip: $TSFixMe = 0,
                     limit: $TSFixMe = 0;
                 if (type === 'investigation') {
-                    skip = req.query['skip'] || 0;
+                    skip = req.query.skip || 0;
 
-                    limit = req.query['limit'] || 10;
+                    limit = req.query.limit || 10;
                 }
 
                 const populateIncidentMessage: $TSFixMe = [
@@ -1788,12 +1812,14 @@ router.put(
     }
 );
 
-// Route
-// IMPORTANT: THIS API IS USED IN AN EMAIL.
-// Description: Updating user who resolved incident.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {incidentId, projectId}
-// Returns: 200: incident, 400: Error; 500: Server Error.
+/*
+ * Route
+ * IMPORTANT: THIS API IS USED IN AN EMAIL.
+ * Description: Updating user who resolved incident.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {incidentId, projectId}
+ * Returns: 200: incident, 400: Error; 500: Server Error.
+ */
 router.get(
     '/:projectId/resolve/:incidentId',
     getUser,
@@ -1802,7 +1828,7 @@ router.get(
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
 
-            // get incident properties to build url
+            // Get incident properties to build url
             const { incidentId, projectId }: $TSFixMe = req.params;
 
             const [incident]: $TSFixMe = await Promise.all([
@@ -1833,12 +1859,14 @@ router.get(
     }
 );
 
-// Route
-// IMPORTANT: THIS API IS USED IN AN ALERT EMAIL.
-// Description: Updating user who resolved incident.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {incidentId, projectId}
-// Returns: 200: incident, 400: Error; 500: Server Error.
+/*
+ * Route
+ * IMPORTANT: THIS API IS USED IN AN ALERT EMAIL.
+ * Description: Updating user who resolved incident.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {incidentId, projectId}
+ * Returns: 200: incident, 400: Error; 500: Server Error.
+ */
 router.get(
     '/:projectId/acknowledge/:incidentId',
     getUser,
@@ -1847,7 +1875,7 @@ router.get(
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
 
-            // get incident properties to build url
+            // Get incident properties to build url
             const { incidentId, projectId }: $TSFixMe = req.params;
 
             const [incident]: $TSFixMe = await Promise.all([

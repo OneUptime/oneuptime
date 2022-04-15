@@ -51,7 +51,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
         }
 
         const limit: $TSFixMe = new PositiveNumber(
-            parseInt((req.query['limit'] as string) || '100')
+            parseInt((req.query.limit as string) || '100')
         );
 
         const item: $TSFixMe = await LicenseService.confirm(

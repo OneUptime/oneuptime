@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -199,11 +199,11 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not activate google authenticator if the verification code is wrong',
         async (done: $TSFixMe) => {
-            // visit the dashboard
+            // Visit the dashboard
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            // click on the profile page
+            // Click on the profile page
 
             await init.pageWaitForSelector(page, '#profile-menu');
 
@@ -220,7 +220,7 @@ describe('Profile -> Delete Account Component test', () => {
 
             await init.pageClick(page, '#profileSettings');
 
-            // toggle the google authenticator
+            // Toggle the google authenticator
             await init.pageWaitForSelector(
                 page,
                 'input[name=twoFactorAuthEnabled]',
@@ -238,31 +238,31 @@ describe('Profile -> Delete Account Component test', () => {
                 }
             );
 
-            //wait for the QR code to show
+            //Wait for the QR code to show
             await init.pageWaitForSelector(page, '#qr-code', {
                 visible: true,
                 timeout: init.timeout,
             });
 
-            // click on the next button
+            // Click on the next button
 
             await init.pageWaitForSelector(page, '#nextFormButton');
 
             await init.pageClick(page, '#nextFormButton');
 
-            // enter a random verification code
+            // Enter a random verification code
 
             await init.pageWaitForSelector(page, '#token');
 
             await init.pageType(page, '#token', '021196');
 
-            // click the verification button
+            // Click the verification button
 
             await init.pageWaitForSelector(page, '#enableTwoFactorAuthButton');
 
             await init.pageClick(page, '#enableTwoFactorAuthButton');
 
-            // verify there is an error message
+            // Verify there is an error message
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#modal-message',

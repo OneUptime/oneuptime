@@ -4,7 +4,7 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
@@ -57,8 +57,10 @@ describe('Incident Settings API', () => {
 
             await init.pageClick(page, '#incidentSettings');
 
-            // when a project is created a default incident template is created automatically for it
-            // the incident template name is set as Default
+            /*
+             * When a project is created a default incident template is created automatically for it
+             * The incident template name is set as Default
+             */
 
             const defaultTemplate: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -217,10 +219,12 @@ describe('Incident Settings API', () => {
                 hidden: true,
             });
 
-            // Since the incident was created in the previous test and it is only one, navigating to component details still gives access to the created incident.
-            //And this will avoid using fragile selector to navigate to the incident page since the incident name is out of this test scope
-            // await init.navigateToComponentDetails(componentName, page);
-            // selectors refactoring
+            /*
+             *  Since the incident was created in the previous test and it is only one, navigating to component details still gives access to the created incident.
+             * And this will avoid using fragile selector to navigate to the incident page since the incident name is out of this test scope
+             *  Await init.navigateToComponentDetails(componentName, page);
+             *  Selectors refactoring
+             */
             const incidentTitleSelector: string = '#incident_title_0 > p';
             //Incident Description is no longer on UI
             const incidentPrioritySelector: string = '#name_Low';

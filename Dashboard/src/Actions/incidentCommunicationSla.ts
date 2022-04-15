@@ -217,7 +217,7 @@ export const deleteCommunicationSla: $TSFixMe = (
     };
 };
 
-// set active sla
+// Set active sla
 export const setActiveSla: Function = (incidentSlaId: $TSFixMe): void => {
     return {
         type: types.SET_ACTIVE_SLA,

@@ -36,10 +36,12 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import FindBy from '../Types/DB/FindBy';
 
 export default class Service {
-    //Description: Upsert function for monitor.
-    //Params:
-    //Param 1: data: MonitorModal.
-    //Returns: promise with monitor model or error.
+    /*
+     * Description: Upsert function for monitor.
+     * Params:
+     * Param 1: data: MonitorModal.
+     * Returns: promise with monitor model or error.
+     */
     public async create(data: $TSFixMe): void {
         let subProject: $TSFixMe = null;
 
@@ -110,7 +112,7 @@ export default class Service {
         }
         subProjectIds.push(project._id);
         let plan: $TSFixMe = Plans.getPlanById(project.stripePlanId);
-        // null plan => enterprise plan
+        // Null plan => enterprise plan
 
         plan = plan && plan.category ? plan : { category: 'Enterprise' };
 
@@ -435,8 +437,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         await this.updateMonitorSlaStat(query);
@@ -500,7 +502,7 @@ export default class Service {
                 }
             );
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const select: $TSFixMe =
             '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
@@ -519,7 +521,7 @@ export default class Service {
             select,
             populate,
         });
-        // run in the background
+        // Run in the background
         RealTimeService.monitorEdit(monitor);
 
         return monitor;
@@ -530,8 +532,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await MonitorModel.updateMany(query, {
             $set: data,
@@ -550,15 +552,17 @@ export default class Service {
         return updatedData;
     }
 
-    // To be used to know the current status of a monitor
-    // online, offline or degraded
+    /*
+     * To be used to know the current status of a monitor
+     * Online, offline or degraded
+     */
     public async updateAllMonitorStatus(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const updatedData: $TSFixMe = await MonitorModel.updateMany(query, {
             $set: data,
@@ -566,10 +570,12 @@ export default class Service {
         return updatedData;
     }
 
-    //Description: Gets all monitors by project.
-    //Params:
-    //Param 1: data: MonitorModal.
-    //Returns: promise with monitor model or error.
+    /*
+     * Description: Gets all monitors by project.
+     * Params:
+     * Param 1: data: MonitorModal.
+     * Returns: promise with monitor model or error.
+     */
     public async findBy({
         query,
         limit,
@@ -598,8 +604,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const monitorQuery: $TSFixMe = MonitorModel.find(query)
@@ -620,8 +626,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const monitorQuery: $TSFixMe = MonitorModel.findOne(query)
@@ -640,8 +646,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await MonitorModel.countDocuments(query);
         return count;
@@ -652,7 +658,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const monitor: $TSFixMe = await MonitorModel.findOneAndUpdate(
             query,
             {
@@ -711,7 +717,7 @@ export default class Service {
                 const seats: $TSFixMe = await TeamService.getSeats(
                     projectUsers
                 );
-                // check if project seats are more based on users in project or by count of monitors
+                // Check if project seats are more based on users in project or by count of monitors
                 if (
                     !IS_SAAS_SERVICE ||
                     (projectSeats &&
@@ -751,8 +757,10 @@ export default class Service {
                 'monitoraddremove'
             );
 
-            // run in the background
-            // no need to delay request
+            /*
+             * Run in the background
+             * No need to delay request
+             */
             StatusPageService.removeMonitor(monitor._id);
             ScheduleService.removeMonitor(monitor._id);
             ScheduledEventService.removeMonitor(monitor._id, userId);
@@ -1069,7 +1077,7 @@ export default class Service {
                                             },
                                         },
                                         {
-                                            //pollTime doesn't include the probeId yet.
+                                            //PollTime doesn't include the probeId yet.
                                             pollTime: {
                                                 $not: {
                                                     $elemMatch: {
@@ -1150,13 +1158,15 @@ export default class Service {
                 {
                     $or: [
                         {
-                            // ignore scripts that are running / inProgress
+                            // Ignore scripts that are running / inProgress
                             scriptRunStatus: {
                                 $nin: ['inProgress'],
                             },
                         },
-                        // runaway script monitors that have been running for too long (10mins)**
-                        // or weren't completed due to a crash
+                        /*
+                         * Runaway script monitors that have been running for too long (10mins)**
+                         * Or weren't completed due to a crash
+                         */
                         {
                             lastPingTime: {
                                 $lte: moment().subtract(10, 'minutes').toDate(),
@@ -1169,7 +1179,7 @@ export default class Service {
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        // update state of selected script monitors to inProgress
+        // Update state of selected script monitors to inProgress
         if (monitors && monitors.length) {
             await monitors.map(async (m: $TSFixMe) => {
                 if (m.type === 'script') {
@@ -1450,7 +1460,7 @@ export default class Service {
                 ],
             };
             if (typeof probe !== 'undefined') {
-                // return manually created statuses in every probe
+                // Return manually created statuses in every probe
 
                 query.probeId = { $in: [probe._id, null] };
             }
@@ -1543,7 +1553,7 @@ export default class Service {
         return monitor;
     }
 
-    // yet to be edited
+    // Yet to be edited
     public async getManualMonitorTime(monitorId: $TSFixMe): void {
         const [monitorTime, monitorIncidents]: $TSFixMe = await Promise.all([
             this.findOneBy({
@@ -1706,11 +1716,13 @@ export default class Service {
         }
     }
 
-    // checks if the monitor uptime stat is within the defined uptime on monitor sla
-    // then update the (monitor: $TSFixMe) =>  breachedMonitorSla
+    /*
+     * Checks if the monitor uptime stat is within the defined uptime on monitor sla
+     * Then update the (monitor: $TSFixMe) =>  breachedMonitorSla
+     */
     public async updateMonitorSlaStat(query: Query): void {
         const currentDate: $TSFixMe = moment().format();
-        let startDate: $TSFixMe = moment(currentDate).subtract(30, 'days'); // default frequency
+        let startDate: $TSFixMe = moment(currentDate).subtract(30, 'days'); // Default frequency
         const populate: $TSFixMe = [
             { path: 'monitorSla', select: 'frequency monitorUptime' },
         ];
@@ -1760,7 +1772,7 @@ export default class Service {
                     ).toFixed(3);
 
                     if (Number(monitorUptime) < Number(slaUptime)) {
-                        // monitor sla is breached for this monitor
+                        // Monitor sla is breached for this monitor
                         await MonitorModel.updateOne(
                             { _id: monitor._id },
                             { $set: { breachedMonitorSla: true } }
@@ -1791,7 +1803,7 @@ export default class Service {
                     select,
                     populate,
                 });
-                // run in the background
+                // Run in the background
                 RealTimeService.monitorEdit(monitorData);
             }
         }
@@ -1901,7 +1913,7 @@ export default class Service {
                     firstIncident.end = end;
                     incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
                 } else {
-                    //if the firstIncident has a higher priority
+                    //If the firstIncident has a higher priority
                     if (
                         firstIncident.status === 'offline' ||
                         (firstIncident.status === 'degraded' &&
@@ -1916,7 +1928,7 @@ export default class Service {
                             );
                         } else {
                             nextIncident.start = firstIncident.end;
-                            //we will need to shift the next incident to keep the array sorted.
+                            //We will need to shift the next incident to keep the array sorted.
                             incidentsHappenedDuringTheDay.splice(
                                 nextIncidentIndex,
                                 1
@@ -2053,7 +2065,7 @@ export default class Service {
             }),
         ]);
 
-        // ensure monitor and component belong to same project
+        // Ensure monitor and component belong to same project
         if (
             String(monitor.projectId) !== String(projectId) ||
             String(component.projectId) !== String(projectId)
@@ -2123,7 +2135,7 @@ export default class Service {
                         monitorStatus.endTime === null &&
                         index === array.length - 1
                     ) {
-                        // only set this for the last item in the array (current monitor status)
+                        // Only set this for the last item in the array (current monitor status)
                         monitorStatus.endTime = new Date().toISOString();
                     }
 
@@ -2206,7 +2218,7 @@ export default class Service {
                     firstIncident.end = end;
                     incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
                 } else {
-                    //if the firstIncident has a higher priority
+                    //If the firstIncident has a higher priority
                     if (
                         firstIncident.status === 'disabled' ||
                         (firstIncident.status === 'offline' &&
@@ -2223,7 +2235,7 @@ export default class Service {
                             );
                         } else {
                             nextIncident.start = firstIncident.end;
-                            //we will need to shift the next incident to keep the array sorted.
+                            //We will need to shift the next incident to keep the array sorted.
                             incidentsHappenedDuringTheDay.splice(
                                 nextIncidentIndex,
                                 1

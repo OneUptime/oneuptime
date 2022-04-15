@@ -8,8 +8,10 @@ import { resendToken } from './resendToken';
 import Cookies from 'universal-cookie';
 import store from '../store';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-// There are three possible states for our login
-// process and we need actions for each of them
+/*
+ * There are three possible states for our login
+ * Process and we need actions for each of them
+ */
 
 export const loginRequest: Function = (promise: $TSFixMe): void => {
     return {
@@ -26,7 +28,7 @@ export const loginError: Function = (error: ErrorPayload): void => {
 };
 
 export const loginSuccess: Function = (user: $TSFixMe): void => {
-    //save user session details.
+    //Save user session details.
     if (!user.id) {
         return {
             type: types.LOGIN_SUCCESS,
@@ -42,7 +44,7 @@ export const loginSuccess: Function = (user: $TSFixMe): void => {
         return (window.location.href = newURL);
     }
 
-    //share localStorage with dashboard app
+    //Share localStorage with dashboard app
     const cookies: $TSFixMe = new Cookies();
     cookies.set('data', user, {
         path: '/',
@@ -52,7 +54,7 @@ export const loginSuccess: Function = (user: $TSFixMe): void => {
     });
 
     if (user.role === 'master-admin') {
-        //share localStorage with admin dashboard app
+        //Share localStorage with admin dashboard app
         const cookies: $TSFixMe = new Cookies();
         cookies.set('admin-data', user, {
             path: '/',

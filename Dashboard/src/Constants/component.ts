@@ -115,10 +115,10 @@ export const FETCH_COMPONENT_SUMMARY_RESET: string =
 export const SHOW_DELETE_MODAL: string = 'SHOW_DELETE_MODAL';
 export const HIDE_DELETE_MODAL: string = 'HIDE_DELETE_MODAL';
 
-//currentComponent
+//CurrentComponent
 export const ADD_CURRENT_COMPONENT: string = 'ADD_CURRENT_COMPONENT';
 
-// fetch component by slug
+// Fetch component by slug
 export const FETCH_COMPONENT_REQUEST: string = 'FETCH_COMPONENT_REQUEST';
 export const FETCH_COMPONENT_SUCCESS: string = 'FETCH_COMPONENT_SUCCESS';
 export const FETCH_COMPONENT_FAILURE: string = 'FETCH_COMPONENT_FAILURE';

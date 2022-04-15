@@ -15,13 +15,13 @@ import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthoriza
 
 const router: $TSFixMe = express.getRouter();
 
-// get all script monitors for ScriptRunner
+// Get all script monitors for ScriptRunner
 router.get(
     '/monitors',
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            //get top 10 monitors.
+            //Get top 10 monitors.
             const allScriptMonitors: $TSFixMe =
                 await MonitorService.getScriptMonitors({
                     limit: 10,
@@ -40,7 +40,7 @@ router.get(
     }
 );
 
-// ping script monitor
+// Ping script monitor
 router.post(
     '/ping/:monitorId',
     ClusterKeyAuthorization.isAuthorizedService,
@@ -53,7 +53,7 @@ router.post(
                 data: $TSFixMe = {};
             let matchedCriterion: $TSFixMe;
 
-            // determine if monitor is up and reasons therefore
+            // Determine if monitor is up and reasons therefore
             const {
                 stat: validUp,
                 successReasons: upSuccessReasons,
@@ -63,7 +63,7 @@ router.post(
                 ? await ProbeService.scriptConditions(resp, monitor.criteria.up)
                 : { stat: false, successReasons: [], failedReasons: [] };
 
-            // determine if monitor is down and reasons therefore
+            // Determine if monitor is down and reasons therefore
             const {
                 stat: validDown,
                 successReasons: downSuccessReasons,
@@ -77,7 +77,7 @@ router.post(
                   ])
                 : { stat: false, successReasons: [], failedReasons: [] };
 
-            // determine if monitor is degraded and reasons therefore
+            // Determine if monitor is degraded and reasons therefore
             const {
                 stat: validDegraded,
                 successReasons: degradedSuccessReasons,
@@ -92,7 +92,7 @@ router.post(
                   )
                 : { stat: false, successReasons: [], failedReasons: [] };
 
-            // normalize response
+            // Normalize response
             if (validUp) {
                 status = 'online';
                 reason = upSuccessReasons;
@@ -110,7 +110,7 @@ router.post(
                 ];
                 matchedCriterion = matchedDegradedCriterion;
             } else {
-                // if no match use default criteria
+                // If no match use default criteria
                 status = 'offline';
                 reason = [
                     ...downFailedReasons,
@@ -126,10 +126,10 @@ router.post(
                 }
             }
 
-            // update monitor to save the last matched criterion
+            // Update monitor to save the last matched criterion
             await MonitorService.updateCriterion(monitor._id, matchedCriterion);
 
-            // aggregate data for logging
+            // Aggregate data for logging
             data = req.body;
 
             data.status = status;
@@ -167,8 +167,10 @@ router.post(
             data.matchedDegradedCriterion =
                 monitor && monitor.criteria && monitor.criteria.degraded;
 
-            // save monitor log
-            // update script run status
+            /*
+             * Save monitor log
+             * Update script run status
+             */
             const [log]: $TSFixMe = await Promise.all([
                 ProbeService.saveMonitorLog(data),
                 MonitorService.updateBy(

@@ -4,7 +4,7 @@ import ProjectModel from '../../backend/models/project';
 
 export default {
     /**
-     * adds team members to a project
+     * Adds team members to a project
      * @param { {userId, role}[]} teamMembers
      * @param {Object} projectId
      * @returns {Object | {error : string}} the updated project or an error
@@ -43,7 +43,7 @@ export default {
     },
 
     /**
-     * removes team members to a project
+     * Removes team members to a project
      * @param { {userId, role}[]} teamMembers
      * @param {Object} projectId
      * @returns {Object | {error : string}} the updated project or an error

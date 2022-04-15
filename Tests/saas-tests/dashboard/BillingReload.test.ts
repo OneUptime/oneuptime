@@ -8,7 +8,8 @@ const user: $TSFixMe = {
     password: '1234567890',
 };
 
-/** This is a test to check:
+/**
+ * This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
  */

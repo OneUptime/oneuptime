@@ -141,7 +141,7 @@ export default function user(
     action: Action
 ): void {
     switch (action.type) {
-        // fetch users list
+        // Fetch users list
         case FETCH_USERS_REQUEST:
             return Object.assign({}, state, {
                 users: {
@@ -178,7 +178,7 @@ export default function user(
                 ...INITIAL_STATE,
             });
 
-        // fetch a user
+        // Fetch a user
         case FETCH_USER_REQUEST:
             return Object.assign({}, state, {
                 user: {
@@ -262,7 +262,7 @@ export default function user(
                 },
             });
 
-        //update user setting
+        //Update user setting
         case UPDATE_USER_SETTING_REQUEST:
             return Object.assign({}, state, {
                 userSetting: {
@@ -560,7 +560,7 @@ export default function user(
                     error: null,
                 },
             });
-        // add user admin notes
+        // Add user admin notes
         case ADD_USER_NOTE_REQUEST:
             return Object.assign({}, state, {
                 newUserNote: {
@@ -613,7 +613,7 @@ export default function user(
                 ...INITIAL_STATE,
             });
 
-        // search users list
+        // Search users list
         case SEARCH_USERS_REQUEST:
             return Object.assign({}, state, {
                 searchUsers: {
@@ -655,7 +655,7 @@ export default function user(
                 ...INITIAL_STATE,
             });
 
-        //update user's two factor auth settings
+        //Update user's two factor auth settings
         case UPDATE_TWO_FACTOR_AUTH_REQUEST:
             return Object.assign({}, state, {
                 twoFactorAuthSetting: {

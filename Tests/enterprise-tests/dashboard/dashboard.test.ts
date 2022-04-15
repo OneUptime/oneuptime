@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -29,7 +29,7 @@ describe('Enterprise Dashboard API', () => {
     });
 
     afterAll(async (done: $TSFixMe) => {
-        // delete monitor
+        // Delete monitor
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });
@@ -57,7 +57,7 @@ describe('Enterprise Dashboard API', () => {
             hidden: true,
         });
 
-        // delete component
+        // Delete component
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
         });

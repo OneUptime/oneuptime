@@ -6,7 +6,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 
 import 'should';
 
-// user credentials
+// User credentials
 const userEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
@@ -24,10 +24,10 @@ describe('Enterprise License API', () => {
             email: userEmail,
             password: password,
         };
-        // user
+        // User
 
         await init.registerEnterpriseUser(user, page, false);
-        //await browser.close();
+        //Await browser.close();
         done();
     });
 

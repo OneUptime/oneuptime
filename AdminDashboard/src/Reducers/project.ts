@@ -213,7 +213,7 @@ export default function project(
     action: Action
 ): void {
     switch (action.type) {
-        // fetch projects list
+        // Fetch projects list
         case FETCH_PROJECTS_REQUEST:
             return Object.assign({}, state, {
                 projects: {
@@ -250,7 +250,7 @@ export default function project(
                 ...INITIAL_STATE,
             });
 
-        // fetch a project
+        // Fetch a project
         case FETCH_PROJECT_REQUEST:
             return Object.assign({}, state, {
                 project: {
@@ -285,7 +285,7 @@ export default function project(
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
             });
-        //fetch project members
+        //Fetch project members
         case FETCH_PROJECT_TEAM_REQUEST:
             return Object.assign({}, state, {
                 projectTeam: {
@@ -313,7 +313,7 @@ export default function project(
                     success: false,
                 },
             });
-        //create user
+        //Create user
         case USER_CREATE_REQUEST:
             return Object.assign({}, state, {
                 createUser: {
@@ -346,7 +346,7 @@ export default function project(
                     success: false,
                 },
             });
-        //update project users role
+        //Update project users role
         case USER_UPDATE_ROLE_REQUEST:
             return Object.assign({}, state, {
                 updateUser: {
@@ -376,7 +376,7 @@ export default function project(
                     },
                 },
             });
-        //updating project balance
+        //Updating project balance
         case PROJECT_BALANCE_UPDATE_REQUEST:
             return {
                 ...state,
@@ -422,7 +422,7 @@ export default function project(
                     deleting: [],
                 },
             };
-        //project domain
+        //Project domain
         case PROJECT_DOMAIN_SUCCESS:
             return {
                 ...state,
@@ -457,7 +457,7 @@ export default function project(
                     error: action.payload,
                 },
             };
-        //delete project domain
+        //Delete project domain
         case DELETE_PROJECT_DOMAIN_REQUEST:
             return {
                 ...state,
@@ -496,7 +496,7 @@ export default function project(
                     error: null,
                 },
             };
-        //verify project domain
+        //Verify project domain
         case VERIFY_PROJECT_DOMAIN_REQUEST:
             return {
                 ...state,
@@ -535,7 +535,7 @@ export default function project(
                     error: action.payload,
                 },
             };
-        //unverify project domain
+        //Unverify project domain
         case UNVERIFY_PROJECT_DOMAIN_REQUEST:
             return {
                 ...state,
@@ -574,7 +574,7 @@ export default function project(
                     error: action.payload,
                 },
             };
-        //reset project domain
+        //Reset project domain
         case RESET_PROJECT_DOMAIN_REQUEST:
             return {
                 ...state,
@@ -611,7 +611,7 @@ export default function project(
                     error: null,
                 },
             };
-        //users pagination
+        //Users pagination
         case PAGINATE_USERS_NEXT:
             return Object.assign({}, state, {
                 projectTeam: {
@@ -630,7 +630,7 @@ export default function project(
                             : 1,
                 },
             });
-        //delete users
+        //Delete users
         case TEAM_DELETE_REQUEST:
             return {
                 ...state,
@@ -686,7 +686,7 @@ export default function project(
                     deleting: [],
                 },
             };
-        // fetch userProjects
+        // Fetch userProjects
         case FETCH_USER_PROJECTS_REQUEST:
             return Object.assign({}, state, {
                 userProjects: {
@@ -933,7 +933,7 @@ export default function project(
                 },
             });
 
-        // add project admin notes
+        // Add project admin notes
         case ADD_PROJECT_NOTE_REQUEST:
             return Object.assign({}, state, {
                 newProjectNote: {
@@ -985,7 +985,7 @@ export default function project(
                 ...INITIAL_STATE,
             });
 
-        // search projects list
+        // Search projects list
         case SEARCH_PROJECTS_REQUEST:
             return Object.assign({}, state, {
                 searchProjects: {

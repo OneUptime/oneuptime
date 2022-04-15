@@ -36,11 +36,13 @@ const httpsAgent: $TSFixMe = new https.Agent({
     rejectUnauthorized: false,
 });
 
-// Route
-// Description: Adding / Updating a new monitor to the project.
-// Params:
-// Param 1: req.params-> {projectId}; req.body -> {[_id], name, type, data, visibleOnStatusPage} <- Check MonitorMoal for description.
-// Returns: response status, error message
+/*
+ * Route
+ * Description: Adding / Updating a new monitor to the project.
+ * Params:
+ * Param 1: req.params-> {projectId}; req.body -> {[_id], name, type, data, visibleOnStatusPage} <- Check MonitorMoal for description.
+ * Returns: response status, error message
+ */
 router.post(
     '/:projectId',
     getUser,
@@ -60,9 +62,11 @@ router.post(
 
             data.createdById = req.user ? req.user.id : null;
 
-            /* if (!data.componentId) {
-            return sendErrorResponse(req, res, new BadDataException('Component ID is required.'));
-        } */
+            /*
+             * If (!data.componentId) {
+             * return sendErrorResponse(req, res, new BadDataException('Component ID is required.'));
+             * }
+             */
 
             if (
                 data.resourceCategory &&
@@ -395,7 +399,7 @@ router.put(
                         });
                     }
                 } catch (err) {
-                    // skip errors with a response, reject those without
+                    // Skip errors with a response, reject those without
                     if (!err.response) {
                         return sendErrorResponse(req, res, {
                             code: 400,
@@ -440,8 +444,10 @@ router.put(
     }
 );
 
-// Route
-// Description: Get all Monitors by projectId.
+/*
+ * Route
+ * Description: Get all Monitors by projectId.
+ */
 router.get(
     '/:projectId',
     getUser,
@@ -476,7 +482,7 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            // const { projectId }: $TSFixMe = req.params;
+            // Const { projectId }: $TSFixMe = req.params;
             const { skip, limit, componentSlug }: $TSFixMe = req.query;
             let componentId: $TSFixMe = req.query.componentId;
 
@@ -547,8 +553,8 @@ router.get(
             const [monitors, count]: $TSFixMe = await Promise.all([
                 MonitorService.findBy({
                     query,
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     select,
                     populate,
                 }),
@@ -604,8 +610,10 @@ router.get(
     }
 );
 
-// Route
-// Description: Get all Monitor logs by monitorId.
+/*
+ * Route
+ * Description: Get all Monitor logs by monitorId.
+ */
 router.post(
     '/:projectId/monitorLogs/:monitorId',
     getUser,
@@ -695,11 +703,13 @@ router.delete(
     }
 );
 
-// Route
-// Description: Adding / Updating a new monitor log
-// Params:
-// Param 1: req.params-> {projectId, monitorId}; req.body -> {[_id], data} <- Check MonitorLogModel for description.
-// Returns: response status, error message
+/*
+ * Route
+ * Description: Adding / Updating a new monitor log
+ * Params:
+ * Param 1: req.params-> {projectId, monitorId}; req.body -> {[_id], data} <- Check MonitorLogModel for description.
+ * Returns: response status, error message
+ */
 router.post(
     '/:projectId/log/:monitorId',
     getUser,
@@ -792,8 +802,10 @@ router.post(
     }
 );
 
-// Route
-// Description: Get all Monitor Logs by monitorId
+/*
+ * Route
+ * Description: Get all Monitor Logs by monitorId
+ */
 router.post(
     '/:projectId/monitorLog/:monitorId',
     getUser,
@@ -814,8 +826,10 @@ router.post(
     }
 );
 
-// Route
-// Description: Get all Monitor Statuses by monitorId
+/*
+ * Route
+ * Description: Get all Monitor Statuses by monitorId
+ */
 router.post(
     '/:projectId/monitorStatuses/:monitorId',
     getUser,
@@ -837,8 +851,10 @@ router.post(
     }
 );
 
-// Route
-// Description: Get all Lighthouse Logs by monitorId
+/*
+ * Route
+ * Description: Get all Lighthouse Logs by monitorId
+ */
 router.get(
     '/:projectId/lighthouseLog/:monitorId',
     getUser,
@@ -1106,7 +1122,7 @@ router.post(
     }
 );
 
-// api to calculate time for monitorInfo (status page)
+// Api to calculate time for monitorInfo (status page)
 router.post(
     '/:monitorId/calculate-time',
     async (req: ExpressRequest, res: ExpressResponse) => {

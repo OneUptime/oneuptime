@@ -65,13 +65,13 @@ export default class Service {
 
         Log.kubernetesLog = data.kubernetesData || {};
 
-        // script log details
+        // Script log details
 
         Log.scriptMetadata = data.scriptMetadata;
 
         const savedLog: $TSFixMe = await Log.save();
 
-        // run these in background.
+        // Run these in background.
         this.updateAggregateLogs(data);
         this.sendMonitorLog(savedLog);
 
@@ -326,7 +326,7 @@ export default class Service {
             }),
         ]);
         if (monitor && monitor.projectId && monitor.projectId._id) {
-            // run in the background
+            // Run in the background
             RealTimeService.updateMonitorLog(
                 data,
                 logData,

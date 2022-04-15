@@ -16,8 +16,10 @@ const _this: $TSFixMe = {
         const headers: $TSFixMe = this.getHeaders();
 
         return new Promise((resolve: Function, reject: Function) => {
-            // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
-            // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
+            /*
+             * Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
+             * https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
+             */
             axios({
                 method: 'POST',
                 url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
@@ -67,8 +69,10 @@ const _this: $TSFixMe = {
     put: (url: URL, data: $TSFixMe, withBaseUrl: URL) => {
         const headers: $TSFixMe = this.getHeaders();
         return new Promise((resolve: Function, reject: Function) => {
-            // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
-            // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
+            /*
+             * Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
+             * https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
+             */
             axios({
                 method: 'PUT',
                 url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,

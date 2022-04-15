@@ -29,10 +29,10 @@ export default {
             probeKey = req.query.probeKey;
         } else if (
             req.headers &&
-            (req.headers['probeKey'] || req.headers['probekey'])
+            (req.headers.probeKey || req.headers.probekey)
         ) {
-            // header keys are automatically transformed to lowercase
-            probeKey = req.headers['probeKey'] || req.headers['probekey'];
+            // Header keys are automatically transformed to lowercase
+            probeKey = req.headers.probeKey || req.headers.probekey;
         } else if (req.body && req.body.probeKey) {
             probeKey = req.body.probeKey;
         } else {
@@ -49,10 +49,10 @@ export default {
             probeName = req.query.probeName;
         } else if (
             req.headers &&
-            (req.headers['probeName'] || req.headers['probename'])
+            (req.headers.probeName || req.headers.probename)
         ) {
-            // header keys are automatically transformed to lowercase
-            probeName = req.headers['probeName'] || req.headers['probename'];
+            // Header keys are automatically transformed to lowercase
+            probeName = req.headers.probeName || req.headers.probename;
         } else if (req.body && req.body.probeName) {
             probeName = req.body.probeName;
         } else {
@@ -63,16 +63,16 @@ export default {
             );
         }
 
-        if (req.params && req.params['clusterKey']) {
-            clusterKey = req.params['clusterKey'];
-        } else if (req.query && req.query['clusterKey']) {
-            clusterKey = req.query['clusterKey'];
+        if (req.params && req.params.clusterKey) {
+            clusterKey = req.params.clusterKey;
+        } else if (req.query && req.query.clusterKey) {
+            clusterKey = req.query.clusterKey;
         } else if (
             req.headers &&
-            (req.headers['clusterKey'] || req.headers['clusterkey'])
+            (req.headers.clusterKey || req.headers.clusterkey)
         ) {
-            // header keys are automatically transformed to lowercase
-            clusterKey = req.headers['clusterKey'] || req.headers['clusterkey'];
+            // Header keys are automatically transformed to lowercase
+            clusterKey = req.headers.clusterKey || req.headers.clusterkey;
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
         }
@@ -83,11 +83,10 @@ export default {
             probeVersion = req.query.probeVersion;
         } else if (
             req.headers &&
-            (req.headers['probeversion'] || req.headers['probeVersion'])
+            (req.headers.probeversion || req.headers.probeVersion)
         ) {
-            // header keys are automatically transformed to lowercase
-            probeVersion =
-                req.headers['probeversion'] || req.headers['probeVersion'];
+            // Header keys are automatically transformed to lowercase
+            probeVersion = req.headers.probeversion || req.headers.probeVersion;
         } else if (req.body && req.body.probeVersion) {
             probeVersion = req.body.probeVersion;
         }
@@ -95,9 +94,11 @@ export default {
         let probeId: $TSFixMe = null;
 
         if (clusterKey && clusterKey === CLUSTER_KEY) {
-            // if cluster key matches then just query by probe name,
-            // because if the probe key does not match, we can update probe key later
-            // without updating mognodb database manually.
+            /*
+             * If cluster key matches then just query by probe name,
+             * Because if the probe key does not match, we can update probe key later
+             * Without updating mognodb database manually.
+             */
 
             if (global.probes[probeName]) {
                 probeId = global.probes[probeName]._id;
@@ -146,7 +147,7 @@ export default {
         }
 
         if (!probeId) {
-            //create a new probe.
+            //Create a new probe.
             const probe: $TSFixMe = await ProbeService.create({
                 probeKey,
                 probeName,
@@ -163,7 +164,7 @@ export default {
         }
 
         if (global.probes[probeName].probeKey !== probeKey) {
-            //update probe key becasue it does not match.
+            //Update probe key becasue it does not match.
             await ProbeService.updateOneBy(
                 {
                     probeName,
@@ -188,7 +189,7 @@ export default {
         req.probe = {};
         req.probe.id = probeId.toString();
 
-        // run in background.
+        // Run in background.
         ProbeService.updateProbeStatus(probeId);
 
         if (

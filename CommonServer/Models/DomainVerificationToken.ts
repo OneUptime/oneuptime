@@ -6,7 +6,7 @@ import mongoose, {
 
 const Schema: $TSFixMe = mongoose.Schema;
 const schema: $TSFixMe = new Schema({
-    domain: String, // the main or base domain eg oneuptime.com
+    domain: String, // The main or base domain eg oneuptime.com
     createdAt: { type: Date, default: Date.now },
     verificationToken: String,
     verified: {

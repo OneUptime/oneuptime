@@ -7,8 +7,10 @@ let options: $TSFixMe = {};
 
 if (IsMongoReplicaSet) {
     options = {
-        // commented because this was having issues reading "latest" data that was saved on primary.
-        // readPreference: 'secondaryPreferred',
+        /*
+         * Commented because this was having issues reading "latest" data that was saved on primary.
+         * ReadPreference: 'secondaryPreferred',
+         */
         keepAlive: 1,
     };
 }
@@ -19,7 +21,7 @@ mongoose
         return logger.info('Mongo connected');
     })
     .catch((err: $TSFixMe) => {
-        // mongoose connection error will be handled here
+        // Mongoose connection error will be handled here
         logger.error(err);
         process.exit(1);
     });

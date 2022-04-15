@@ -72,13 +72,15 @@ export default {
 
         securityDir = await createDir(securityDir);
         const exactFilePath: $TSFixMe = Path.resolve(securityDir, outputFile);
-        // update container security to scanning true
-        // so the cron job does not pull it multiple times due to network delays
-        // since the cron job runs every minute
+        /*
+         * Update container security to scanning true
+         * So the cron job does not pull it multiple times due to network delays
+         * Since the cron job runs every minute
+         */
         await updateContainerSecurityToScanning(security);
 
         return new Promise((resolve: Function, reject: Function) => {
-            // use trivy open source package to audit a container
+            // Use trivy open source package to audit a container
             const scanCommand: string = `trivy image -f json -o ${outputFile} ${testPath}`;
             const clearCommand: string = `trivy image --clear-cache ${testPath}`;
 
@@ -111,8 +113,10 @@ export default {
 
             output.on('close', async () => {
                 let auditLogs: $TSFixMe = await readFileContent(exactFilePath);
-                // if auditLogs is empty, then scanning was unsuccessful
-                // the provided credentials or image path must have been wrong
+                /*
+                 * If auditLogs is empty, then scanning was unsuccessful
+                 * The provided credentials or image path must have been wrong
+                 */
                 if (
                     !auditLogs ||
                     (typeof auditLogs === 'string' &&
@@ -138,7 +142,7 @@ export default {
                 }
 
                 if (typeof auditLogs === 'string') {
-                    auditLogs = JSON.parse(auditLogs); // parse the stringified logs
+                    auditLogs = JSON.parse(auditLogs); // Parse the stringified logs
                 }
 
                 const clearCache: $TSFixMe = spawn('trivy', [clearCommand], {

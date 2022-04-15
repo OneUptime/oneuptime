@@ -11,19 +11,19 @@ const schema: $TSFixMe = new Schema({
         ref: 'Issue',
         alias: 'issue',
         index: true,
-    }, // which issue does this belongs to.
+    }, // Which issue does this belongs to.
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         alias: 'user',
         index: true,
-    }, // which team member is this.
+    }, // Which team member is this.
     createdAt: {
         type: Date,
         default: Date.now,
     },
     createdById: { type: String, ref: 'User', index: true },
-    removed: { type: Boolean, default: false }, // this removed is the flag to be used to know if the member has been unassigned from the issue
+    removed: { type: Boolean, default: false }, // This removed is the flag to be used to know if the member has been unassigned from the issue
 
     removedAt: {
         type: Date,

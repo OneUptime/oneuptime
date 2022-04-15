@@ -19,8 +19,8 @@ router.post(
         try {
             const body: $TSFixMe = req.body;
             RealtimeService.send(
-                new ObjectID(req.params['projectId'] as string),
-                req.params['eventType'] as string,
+                new ObjectID(req.params.projectId as string),
+                req.params.eventType as string,
                 body
             );
             return sendEmptyResponse(req, res);

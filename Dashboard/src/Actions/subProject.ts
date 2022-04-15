@@ -422,7 +422,7 @@ export function setActiveSubProject(
     updateStorage = false
 ): void {
     if (updateStorage) {
-        // store to localstorage
+        // Store to localstorage
         User.setActivesubProjectId(subproject);
     }
 

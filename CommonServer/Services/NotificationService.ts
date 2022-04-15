@@ -48,7 +48,7 @@ export default class Service {
             populate: populateNotification,
         });
 
-        // run this in the background
+        // Run this in the background
         RealTimeService.sendNotification(populatedNotification || notification);
 
         return populatedNotification || notification;
@@ -59,8 +59,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let notification: $TSFixMe = await this.findOneBy({
             query,

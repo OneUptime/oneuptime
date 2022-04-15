@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -112,7 +112,7 @@ describe('Incident Created test', () => {
     it(
         'it should show close all incident button on the homepage when any there are resolved incidents',
         async () => {
-            // await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+            // Await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#btnResolve_0');
             await init.page$Eval(page, '#btnResolve_0', (e: $TSFixMe) => {
@@ -135,7 +135,7 @@ describe('Incident Created test', () => {
     it(
         'should close all resolved incident on the homepage',
         async () => {
-            // await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+            // Await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#incidents-close-all-btn');
             await init.page$Eval(
@@ -194,7 +194,7 @@ describe('Incident Created test', () => {
             await init.page$Eval(page, '#btnAcknowledge_0', (e: $TSFixMe) => {
                 return e.click();
             });
-            // await init.pageWaitForSelector(page, '#ResolveText_0', { visible: true, timeout: init.timeout });
+            // Await init.pageWaitForSelector(page, '#ResolveText_0', { visible: true, timeout: init.timeout });
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             // Invite member on the project
@@ -755,23 +755,25 @@ describe('Incident Created test', () => {
         operationTimeOut
     );
 
-    // test(
-    //     'Should open modal for unresolved incident when close button is clicked',
-    //     async () => {
-    //
-    //             await page.goto(utils.DASHBOARD_URL);
-    //             await init.pageWaitForSelector(page, '#closeIncident_0', {
-    //                 visible: true,
-    //             });
-    //             await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click());
-    //             await init.pageWaitForSelector(page, '#closeIncidentButton_0');
-    //             await init.page$Eval(page, '#closeIncidentButton_0',e=>e.click());
-    //             const elementHandle: $TSFixMe = await init.page$(page, '#modal-ok');
-    //             expect(elementHandle).not.toBe(null);
-    //         });
-    //     },
-    //     operationTimeOut
-    // );
+    /*
+     * Test(
+     *     'Should open modal for unresolved incident when close button is clicked',
+     *     Async () => {
+     *
+     *             Await page.goto(utils.DASHBOARD_URL);
+     *             Await init.pageWaitForSelector(page, '#closeIncident_0', {
+     *                 Visible: true,
+     *             });
+     *             Await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click());
+     *             Await init.pageWaitForSelector(page, '#closeIncidentButton_0');
+     *             Await init.page$Eval(page, '#closeIncidentButton_0',e=>e.click());
+     *             Const elementHandle: $TSFixMe = await init.page$(page, '#modal-ok');
+     *             Expect(elementHandle).not.toBe(null);
+     *         });
+     *     },
+     *     OperationTimeOut
+     * );
+     */
 
     test(
         'Should close incident notification when an incident is viewed',
@@ -779,7 +781,7 @@ describe('Incident Created test', () => {
             const projectName: string = 'Project1';
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            // remove existing notification
+            // Remove existing notification
 
             await init.pageWaitForSelector(page, '#incidents');
             await init.page$Eval(page, '#incidents', (e: $TSFixMe) => {

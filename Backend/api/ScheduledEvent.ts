@@ -54,7 +54,7 @@ router.post(
                 });
             }
 
-            // data.monitors should be an array containing id of monitor(s)
+            // Data.monitors should be an array containing id of monitor(s)
             if (data.monitors && !Array.isArray(data.monitors)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -224,7 +224,7 @@ router.put(
     }
 );
 
-// resolve scheduled event
+// Resolve scheduled event
 router.put(
     '/:projectId/resolve/:eventId',
     getUser,
@@ -296,7 +296,7 @@ router.delete(
     }
 );
 
-// cancel a scheduled event
+// Cancel a scheduled event
 router.put(
     '/:projectId/:eventId/cancel',
     getUser,
@@ -346,7 +346,7 @@ router.put(
 
             if (scheduledEvent) {
                 if (scheduledEvent.alertSubscriber) {
-                    // handle this asynchronous operation in the background
+                    // Handle this asynchronous operation in the background
                     AlertService.sendCancelledScheduledEventToSubscribers(
                         scheduledEvent
                     ).catch((error: Error) => {
@@ -373,7 +373,7 @@ router.put(
     }
 );
 
-// get ongoing scheduled events
+// Get ongoing scheduled events
 router.get(
     '/:projectId/ongoingEvent',
     getUser,
@@ -431,7 +431,7 @@ router.get(
     }
 );
 
-// this will handle getting for both projects and subProjects
+// This will handle getting for both projects and subProjects
 router.get(
     '/:projectId/ongoingEvent/all',
     getUser,
@@ -440,7 +440,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const currentDate: $TSFixMe = moment();
-            // this contains both projectIds and subProjectIds
+            // This contains both projectIds and subProjectIds
 
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => {
@@ -593,7 +593,7 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // this contains both projectIds and subProjectIds
+            // This contains both projectIds and subProjectIds
 
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => {

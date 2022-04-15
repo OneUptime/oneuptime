@@ -16,7 +16,8 @@ const headers: $TSFixMe = {
     'Content-Type': 'application/json',
 };
 
-/** Handle request error.
+/**
+ * Handle request error.
  * @param {Object} - The error object of the request.
  * @default
  */
@@ -53,7 +54,7 @@ const get: Function = (
     success: $TSFixMe,
     error: $TSFixMe = defaultErrorHandler
 ): void => {
-    headers['apiKey'] = key;
+    headers.apiKey = key;
 
     return axios({
         method: 'get',
@@ -80,7 +81,7 @@ const post: Function = (
     success: $TSFixMe,
     error: $TSFixMe = defaultErrorHandler
 ): void => {
-    headers['apiKey'] = key;
+    headers.apiKey = key;
 
     return axios({
         method: 'post',

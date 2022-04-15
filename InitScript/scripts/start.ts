@@ -7,15 +7,15 @@ import bcrypt from 'bcrypt';
 async function run(): void {
     await updateVersion();
 
-    if (process.env['NODE_ENV'] === 'ci') {
+    if (process.env.NODE_ENV === 'ci') {
         await deleteDatabase();
         await setupTestProbes();
 
         if (
-            process.env['IS_SAAS_SERVICE'] === 'true' ||
-            process.env['IS_SAAS_SERVICE'] === true
+            process.env.IS_SAAS_SERVICE === 'true' ||
+            process.env.IS_SAAS_SERVICE === true
         ) {
-            // if SaaS Service create master admin user automatically.
+            // If SaaS Service create master admin user automatically.
             await addMasterAdminUser();
         }
     }
@@ -45,7 +45,7 @@ async function addMasterAdminUser(): void {
         email: 'masteradmin@hackerbay.io',
         password: await bcrypt.hash(
             '1234567890',
-            10 //salt rounds
+            10 //Salt rounds
         ),
         isVerified: true,
         role: 'master-admin',

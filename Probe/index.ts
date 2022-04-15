@@ -10,7 +10,7 @@ import logger from 'CommonServer/Utils/Logger';
 const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
 setTimeout(async () => {
-    // keep monitoring in an infinate loop.
+    // Keep monitoring in an infinate loop.
 
     //eslint-disable-next-line no-constant-condition
     while (true) {

@@ -12,7 +12,7 @@ import DefaultManagerService from '../services/defaultManagerService';
 
 const router: $TSFixMe = express.getRouter();
 
-// store default details to the db
+// Store default details to the db
 router.put('/default', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const {
@@ -64,9 +64,11 @@ router.put('/default', async (req: ExpressRequest, res: ExpressResponse) => {
             data.agreeToTerms = agreeToTerms;
         }
 
-        // if there's no default value
-        // create a default value
-        // we should only have one default and update as the need arises
+        /*
+         * If there's no default value
+         * Create a default value
+         * We should only have one default and update as the need arises
+         */
         const defaultManager: $TSFixMe =
             await DefaultManagerService.updateOneBy({}, data);
         return sendItemResponse(req, res, defaultManager);

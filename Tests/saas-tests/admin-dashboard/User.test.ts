@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: string = 'masteradmin@hackerbay.io';
 const password: string = '1234567890';
 const createUserMail: Email = utils.generateRandomBusinessEmail();
@@ -27,7 +27,7 @@ describe('SMTP Settings API', () => {
             password: password,
         };
 
-        // user
+        // User
         await init.loginAdminUser(user, page);
         done();
     });

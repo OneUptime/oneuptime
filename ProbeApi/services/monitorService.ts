@@ -8,7 +8,7 @@ const monitorCollection: $TSFixMe =
 
 export default {
     async getProbeMonitors(probeId: String, limit: PositiveNumber): void {
-        //get monitors that have not been pinged for the last minute.
+        //Get monitors that have not been pinged for the last minute.
         const date: $TSFixMe = OneUptimeDate.getOneMinAgo();
 
         const key: string = `${probeId}_pingtime`;

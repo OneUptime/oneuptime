@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
@@ -23,7 +23,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerUser(user, page);
 
         done();
@@ -580,7 +580,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
-            await page.keyboard.press('k'); // k is the new addition
+            await page.keyboard.press('k'); // K is the new addition
             const dockerCredential: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#dockerCredentialPage',
@@ -628,7 +628,7 @@ describe('Keyboard Shortcut: Dashboard', () => {
                 timeout: init.timeout,
             });
             await page.keyboard.press('s');
-            await page.keyboard.press('k'); // k is the new addition
+            await page.keyboard.press('k'); // K is the new addition
             const dockerCredentialsSettings: $TSFixMe =
                 await init.pageWaitForSelector(page, '#dockerCredentialPage', {
                     visible: true,

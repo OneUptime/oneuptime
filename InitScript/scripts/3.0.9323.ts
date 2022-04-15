@@ -8,15 +8,17 @@ const statusPageCategoryCollection: string = 'statuspagecategories';
 const statusPageCollection: string = 'statuspages';
 
 async function run(): void {
-    // fetch status pages
+    // Fetch status pages
     const statusPages: $TSFixMe = await find(statusPageCollection, {
         isGroupedByMonitorCategory: true,
         deleted: false,
     });
 
     for (const statusPage of statusPages) {
-        // check if status page category is now being used for a particular status page
-        // the assumption is that if no status page category is being used, then it's possible that resource category is still being used
+        /*
+         * Check if status page category is now being used for a particular status page
+         * The assumption is that if no status page category is being used, then it's possible that resource category is still being used
+         */
         const statCategories: $TSFixMe = await find(
             statusPageCategoryCollection,
             {
@@ -41,7 +43,7 @@ async function run(): void {
                 }
             );
             for (const resourceCategory of resourceCategories) {
-                // fetch monitors with this category
+                // Fetch monitors with this category
                 const monitors: $TSFixMe = await find(monitorCollection, {
                     _id: { $in: monitorIds },
                     resourceCategory: String(resourceCategory._id),
@@ -58,7 +60,7 @@ async function run(): void {
                         },
                     ]);
 
-                    // update the status page with the category
+                    // Update the status page with the category
                     const statusPageCategory: $TSFixMe = await findOne(
                         statusPageCategoryCollection,
                         {
@@ -79,7 +81,7 @@ async function run(): void {
                         { statusPageCategory: ObjectId(statusPageCategory._id) }
                     );
 
-                    // stringify the ids
+                    // Stringify the ids
                     monitorIds = monitorIds.map((id: $TSFixMe) => {
                         return String(id);
                     });
@@ -97,7 +99,7 @@ async function run(): void {
                         }
                     );
 
-                    // update the status page category
+                    // Update the status page category
                     await update(
                         statusPageCollection,
                         { _id: statusPage._id },
@@ -106,7 +108,7 @@ async function run(): void {
                 }
             }
         } else {
-            // we need to fix the initial migration script
+            // We need to fix the initial migration script
             const resourceCategories: $TSFixMe = await find(
                 resourceCategoryCollection,
                 {
@@ -123,14 +125,14 @@ async function run(): void {
                 }
             );
             for (const resourceCategory of resourceCategories) {
-                // fetch monitors with this category
+                // Fetch monitors with this category
                 const monitors: $TSFixMe = await find(monitorCollection, {
                     _id: { $in: monitorIds },
                     resourceCategory: String(resourceCategory._id),
                     deleted: false,
                 });
                 if (monitors && monitors.length > 0) {
-                    // update the status page with the category
+                    // Update the status page with the category
                     const statusPageCategory: $TSFixMe = await findOne(
                         statusPageCategoryCollection,
                         {
@@ -151,7 +153,7 @@ async function run(): void {
                         { statusPageCategory: ObjectId(statusPageCategory._id) }
                     );
 
-                    // stringify the ids
+                    // Stringify the ids
                     monitorIds = monitorIds.map((id: $TSFixMe) => {
                         return String(id);
                     });
@@ -169,7 +171,7 @@ async function run(): void {
                         }
                     );
 
-                    // update the status page category
+                    // Update the status page category
                     await update(
                         statusPageCollection,
                         { _id: statusPage._id },

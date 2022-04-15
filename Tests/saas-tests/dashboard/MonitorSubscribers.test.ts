@@ -8,7 +8,7 @@ const existingSubscribers: string = `${__dirname}/MOCKS/existing.csv`;
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const monitorName: string = utils.generateRandomString();
@@ -29,7 +29,7 @@ describe('Monitor Detail API', () => {
             email,
             password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
         await init.addMonitorToComponent(componentName, monitorName, page);
     });
@@ -49,7 +49,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageWaitForSelector(page, '#react-tabs-2');
 
@@ -103,7 +103,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageWaitForSelector(page, '#react-tabs-2');
 
@@ -151,7 +151,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageWaitForSelector(page, '#react-tabs-2');
 
@@ -203,7 +203,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageWaitForSelector(page, '#react-tabs-2');
 
@@ -255,7 +255,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageWaitForSelector(page, '#react-tabs-2');
 
@@ -307,7 +307,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageWaitForSelector(page, '#react-tabs-2');
 

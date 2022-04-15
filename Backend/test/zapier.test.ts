@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -218,17 +218,18 @@ describe('Zapier API', function (): void {
             });
     });
 
-    /* :TODO
-    it('should get zapier test', function (done):void {
-        let authorization:string = `Basic ${token}`;
-        request.get(`/zapier/test?apiKey=${apiKey}&&projectId=${projectId}`)
-            .set('Authorization', authorization)
-            .send().end(function (err: $TSFixMe, res: $TSFixMe):void {
-                expect(res).to.have.status(200);
-                done();
-            });
-    });
-    */
+    /*
+     * :TODO
+     * it('should get zapier test', function (done):void {
+     *  let authorization:string = `Basic ${token}`;
+     *  request.get(`/zapier/test?apiKey=${apiKey}&&projectId=${projectId}`)
+     *      .set('Authorization', authorization)
+     *      .send().end(function (err: $TSFixMe, res: $TSFixMe):void {
+     *          expect(res).to.have.status(200);
+     *          done();
+     *      });
+     * });
+     */
 
     it('should fail getting incidents and apiKey is missing in query', (done: $TSFixMe): void => {
         request

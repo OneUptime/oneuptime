@@ -25,7 +25,7 @@ export const UPDATE_USER_SETTING_FAILURE: string =
     'UPDATE_USER_SETTING_FAILURE';
 export const UPDATE_USER_SETTING_RESET: string = 'UPDATE_USER_SETTING_RESET';
 
-// file operations
+// File operations
 export const LOG_FILE: string = 'LOG_FILE';
 export const RESET_FILE: string = 'RESET_FILE';
 
@@ -77,7 +77,7 @@ export const SEARCH_USERS_RESET: string = 'SEARCH_USERS_RESET';
 export const SEARCH_USERS_SUCCESS: string = 'SEARCH_USERS_SUCCESS';
 export const SEARCH_USERS_FAILURE: string = 'SEARCH_USERS_FAILURE';
 
-//update user's two factor auth settings
+//Update user's two factor auth settings
 export const UPDATE_TWO_FACTOR_AUTH_REQUEST: string =
     'UPDATE_TWO_FACTOR_AUTH_REQUEST';
 export const UPDATE_TWO_FACTOR_AUTH_SUCCESS: string =
@@ -86,7 +86,7 @@ export const UPDATE_TWO_FACTOR_AUTH_FAILURE: string =
     'UPDATE_TWO_FACTOR_AUTH_FAILURE';
 export const SET_TWO_FACTOR_AUTH: string = 'SET_TWO_FACTOR_AUTH';
 
-//fetching a user login history
+//Fetching a user login history
 export const FETCH_USER_LOGIN_HISTORY_REQUEST: $TSFixMe =
     'FETCH_USER_LOGIN_HISTORY_REQUEST';
 export const FETCH_USER_LOGIN_HISTORY_SUCCESS: $TSFixMe =

@@ -94,9 +94,11 @@ router.get(
     }
 );
 
-// Route Description: Creates a new script
-// req.body -> {name, scriptType, script, successEvent, failureEvent}
-// Returns: response new script created
+/*
+ * Route Description: Creates a new script
+ * Req.body -> {name, scriptType, script, successEvent, failureEvent}
+ * Returns: response new script created
+ */
 router.post(
     '/:projectId',
     getUser,
@@ -132,7 +134,7 @@ router.post(
                 });
             }
 
-            // check if name already exists
+            // Check if name already exists
             const uniqueName: $TSFixMe = await AutomatedScriptService.countBy({
                 projectId: data.projectId,
                 name: data.name,
@@ -160,9 +162,11 @@ router.post(
     }
 );
 
-// Route Description: Update a script
-// req.body -> {name, scriptType, script, successEvent, failureEvent}
-// Returns: response script updated
+/*
+ * Route Description: Update a script
+ * Req.body -> {name, scriptType, script, successEvent, failureEvent}
+ * Returns: response script updated
+ */
 router.put(
     '/:projectId/:automatedScriptId',
     getUser,
@@ -199,7 +203,7 @@ router.put(
                 });
             }
 
-            // check if name already exist
+            // Check if name already exist
             const scriptCount: $TSFixMe = await AutomatedScriptService.countBy({
                 projectId: data.projectId,
                 name: data.name,

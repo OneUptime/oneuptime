@@ -23,8 +23,8 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const query: $TSFixMe = {};
-            const skip: $TSFixMe = req.query['skip'];
-            const limit: $TSFixMe = req.query['limit'];
+            const skip: $TSFixMe = req.query.skip;
+            const limit: $TSFixMe = req.query.limit;
             const populate: $TSFixMe = [{ path: 'projectId', select: 'name' }];
             const select: string = 'from to projectId content status error';
             const [callLogs, count]: $TSFixMe = await Promise.all([
@@ -107,8 +107,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const filter: $TSFixMe = req.body.filter;
-            const skip: $TSFixMe = req.query['skip'];
-            const limit: $TSFixMe = req.query['limit'];
+            const skip: $TSFixMe = req.query.skip;
+            const limit: $TSFixMe = req.query.limit;
 
             const { searchedCallLogs, totalSearchCount }: $TSFixMe =
                 await CallLogsService.search({ filter, skip, limit });

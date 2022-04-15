@@ -29,7 +29,7 @@ export default class Service {
 
         const incidentSettings: $TSFixMe = new incidentSettingsModel();
         if (isDefault) {
-            // there can only be one default incident settings per project
+            // There can only be one default incident settings per project
             await incidentSettingsModel.findOneAndUpdate(
                 {
                     projectId,
@@ -83,8 +83,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const responseQuery: $TSFixMe = incidentSettingsModel
@@ -105,8 +105,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         return await incidentSettingsModel.countDocuments(query);
     }
@@ -114,8 +114,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const responseQuery: $TSFixMe = incidentSettingsModel
@@ -133,8 +133,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         if (data.name && query.projectId && query._id) {
@@ -158,8 +158,10 @@ export default class Service {
         }
 
         if (data.isDefault && query.projectId && query._id) {
-            // there can only be one default incident settings per project
-            // set any previous isDefault to false
+            /*
+             * There can only be one default incident settings per project
+             * Set any previous isDefault to false
+             */
             await incidentSettingsModel.findOneAndUpdate(
                 {
                     projectId: query.projectId,
@@ -190,8 +192,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await incidentSettingsModel.updateMany(
             query,

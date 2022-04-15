@@ -2,15 +2,15 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
     public async create(data: $TSFixMe): void {
-        // check if component exist
+        // Check if component exist
         const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: data.componentId,
         });
-        // send an error if the component doesnt exist
+        // Send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             throw new BadDataException('Component does not exist.');
         }
-        // try to find in the application log if the name already exist for that component
+        // Try to find in the application log if the name already exist for that component
         const select: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
         const existingErrorTracker: $TSFixMe = await this.findBy({
@@ -37,12 +37,12 @@ export default class Service {
             await ResourceCategoryService.countBy({
                 _id: data.resourceCategory,
             });
-        // prepare error tracker model
+        // Prepare error tracker model
         let errorTracker: $TSFixMe = new ErrorTrackerModel();
 
         errorTracker.name = data.name;
 
-        errorTracker.key = uuid.v4(); // generate random string here
+        errorTracker.key = uuid.v4(); // Generate random string here
 
         errorTracker.componentId = data.componentId;
 
@@ -70,14 +70,14 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await ErrorTrackerModel.countDocuments(query);
         return count;
     }
 
-    // find a list of error trackers
+    // Find a list of error trackers
     public async findBy({
         query,
         limit,
@@ -106,8 +106,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const errorTrackersQuery: $TSFixMe = ErrorTrackerModel.find(query)
             .lean()
@@ -120,14 +120,14 @@ export default class Service {
         const result: $TSFixMe = await errorTrackersQuery;
         return result;
     }
-    // find a particular error tracker
+    // Find a particular error tracker
     public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const errorTrackersQuery: $TSFixMe = ErrorTrackerModel.findOne(query)
             .sort(sort)
@@ -137,7 +137,7 @@ export default class Service {
         const result: $TSFixMe = await errorTrackersQuery;
         return result;
     }
-    // get all error trackers by component ID
+    // Get all error trackers by component ID
     public async getErrorTrackersByComponentId(
         componentId: $TSFixMe,
         limit: PositiveNumber,
@@ -147,7 +147,7 @@ export default class Service {
         const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: componentId,
         });
-        // send an error if the component doesnt exist
+        // Send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             throw new BadDataException('Component does not exist.');
         }
@@ -184,7 +184,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const errorTracker: $TSFixMe = await ErrorTrackerModel.findOneAndUpdate(
             query,
             {
@@ -224,8 +224,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         if (data && data.name) {
             data.slug = getSlug(data.name);
@@ -256,7 +256,7 @@ export default class Service {
 
         errorTracker = await this.findOneBy({ query, select, populate });
 
-        // run in the background
+        // Run in the background
         RealTimeService.errorTrackerKeyReset(errorTracker);
 
         return errorTracker;

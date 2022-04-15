@@ -5,7 +5,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const { twilioCredentials }: $TSFixMe = { ...utils };
@@ -31,7 +31,7 @@ describe('Custom Twilio Settings', () => {
             email: email,
             password: password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
 
         await init.addProject(page, projectName);
@@ -233,7 +233,7 @@ describe('Custom Twilio Settings', () => {
                 page,
                 '#subscriberAlertTable > tbody > tr'
             );
-            // grab the last log
+            // Grab the last log
             await init.page$Eval(
                 page,
                 '#subscriberAlertTable > tbody > tr',
@@ -295,7 +295,7 @@ describe('Custom Twilio Settings', () => {
                 page,
                 '#subscriberAlertTable > tbody > tr'
             );
-            // grab the last log
+            // Grab the last log
             await init.page$Eval(
                 page,
                 '#subscriberAlertTable > tbody > tr',

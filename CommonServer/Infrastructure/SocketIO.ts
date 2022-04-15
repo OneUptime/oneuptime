@@ -9,15 +9,15 @@ export type Socket = SocketIO.Socket;
 
 const io: $TSFixMe = new SocketIO.Server(server, {
     path: '/realtime/socket.io',
-    transports: ['websocket', 'polling'], // using websocket does not require sticky session
+    transports: ['websocket', 'polling'], // Using websocket does not require sticky session
     perMessageDeflate: {
-        threshold: 1024, // defaults to 1024
+        threshold: 1024, // Defaults to 1024
         zlibDeflateOptions: {
-            chunkSize: 16 * 1024, // defaults to 16 * 1024
+            chunkSize: 16 * 1024, // Defaults to 16 * 1024
         },
         zlibInflateOptions: {
-            windowBits: 15, // defaults to 15
-            memLevel: 8, // defaults to 8
+            windowBits: 15, // Defaults to 15
+            memLevel: 8, // Defaults to 8
         },
     },
 });

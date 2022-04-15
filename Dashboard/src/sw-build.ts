@@ -5,8 +5,8 @@ const buildSW: Function = (): void => {
     // This will return a Promise
     return workboxBuild
         .injectManifest({
-            swSrc: 'src/sw-template.js', // this is your sw template file
-            swDest: 'build/service-worker.js', // this will be created in the build step
+            swSrc: 'src/sw-template.js', // This is your sw template file
+            swDest: 'build/service-worker.js', // This will be created in the build step
             globDirectory: 'build',
             globPatterns: ['**/*.{js,css,html,png}'],
         })

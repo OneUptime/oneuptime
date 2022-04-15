@@ -5,24 +5,24 @@ const resourceCategoryCollection: string = 'resourcecategories';
 const monitorCollection: string = 'monitors';
 
 async function run(): void {
-    // rename collection
+    // Rename collection
     await rename(monitorCategoryCollection, resourceCategoryCollection);
 
-    // get all monitors that have a monitorCategoryId
+    // Get all monitors that have a monitorCategoryId
     const monitors: $TSFixMe = await find(monitorCollection, {
         monitorCategoryId: { $exists: true },
     });
     monitors.forEach(async (monitor: $TSFixMe) => {
         const resourceCategory: $TSFixMe = monitor.monitorCategoryId;
 
-        // set their resourceCategory as the monitorCategoryId
+        // Set their resourceCategory as the monitorCategoryId
         await update(
             monitorCollection,
             { _id: monitor._id },
             { resourceCategory }
         );
 
-        // remove the monitorCategoryId field
+        // Remove the monitorCategoryId field
         await removeField(
             monitorCollection,
             { _id: monitor._id },

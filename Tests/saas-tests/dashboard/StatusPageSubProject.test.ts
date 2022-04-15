@@ -3,12 +3,12 @@ import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
-// parent user credentials
+// Parent user credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const projectName: string = utils.generateRandomString();
 const subProjectMonitorName: string = utils.generateRandomString();
-// sub-project user credentials
+// Sub-project user credentials
 const newEmail: Email = utils.generateRandomBusinessEmail();
 const newPassword: string = '1234567890';
 const subProjectName: string = utils.generateRandomString();
@@ -30,13 +30,13 @@ describe('StatusPage API With SubProjects', () => {
             password,
         };
 
-        // user
+        // User
         await init.registerUser(user, page);
 
         await init.renameProject(projectName, page);
         await init.growthPlanUpgrade(page);
 
-        // add sub-project
+        // Add sub-project
         await init.addSubProject(subProjectName, page);
 
         await init.pageClick(page, '#projectFilterToggle');
@@ -48,7 +48,7 @@ describe('StatusPage API With SubProjects', () => {
             waitUntil: ['networkidle2'],
         });
 
-        // add new user to sub-project
+        // Add new user to sub-project
         await init.addUserToProject(
             {
                 email: newEmail,

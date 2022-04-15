@@ -19,7 +19,7 @@ const schema: $TSFixMe = new Schema({
         required: true,
     },
     incident_state: String,
-    createdById: { type: String, ref: 'User', index: true }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //UserId.
     createdAt: {
         type: Date,
         default: Date.now,

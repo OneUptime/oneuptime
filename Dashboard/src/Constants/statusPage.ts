@@ -54,7 +54,7 @@ export const UPDATE_STATUSPAGE_BRANDING_FAILURE: $TSFixMe =
 export const UPDATE_STATUSPAGE_BRANDING_RESET: $TSFixMe =
     'UPDATE_STATUSPAGE_BRANDING_RESET';
 
-// update status page theme
+// Update status page theme
 export const UPDATE_STATUSPAGE_THEME_REQUEST: $TSFixMe =
     'UPDATE_STATUSPAGE_THEME_REQUEST';
 export const UPDATE_STATUSPAGE_THEME_SUCCESS: $TSFixMe =
@@ -90,13 +90,13 @@ export const UPDATE_STATUSPAGE_CUSTOM_HTML_SUCCESS: $TSFixMe =
 export const UPDATE_STATUSPAGE_CUSTOM_HTML_FAILURE: $TSFixMe =
     'UPDATE_STATUSPAGE_CUSTOM_HTML_FAILURE';
 
-//fetch status page
+//Fetch status page
 export const FETCH_STATUSPAGE_REQUEST: string = 'FETCH_STATUSPAGE_REQUEST';
 export const FETCH_STATUSPAGE_SUCCESS: string = 'FETCH_STATUSPAGE_SUCCESS';
 export const FETCH_STATUSPAGE_FAILURE: string = 'FETCH_STATUSPAGE_FAILURE';
 export const FETCH_STATUSPAGE_RESET: string = 'FETCH_STATUSPAGE_RESET';
 
-//fetch subproject status page
+//Fetch subproject status page
 export const FETCH_SUBPROJECT_STATUSPAGE_REQUEST: $TSFixMe =
     'FETCH_SUBPROJECT_STATUSPAGE_REQUEST';
 export const FETCH_SUBPROJECT_STATUSPAGE_SUCCESS: $TSFixMe =
@@ -106,7 +106,7 @@ export const FETCH_SUBPROJECT_STATUSPAGE_FAILURE: $TSFixMe =
 export const FETCH_SUBPROJECT_STATUSPAGE_RESET: $TSFixMe =
     'FETCH_SUBPROJECT_STATUSPAGE_RESET';
 
-//fetch list of statuspages in a project
+//Fetch list of statuspages in a project
 export const FETCH_PROJECT_STATUSPAGE_REQUEST: $TSFixMe =
     'FETCH_PROJECT_STATUSPAGE_REQUEST';
 export const FETCH_PROJECT_STATUSPAGE_SUCCESS: $TSFixMe =
@@ -134,7 +134,7 @@ export const DUPLICATE_STATUSPAGE_FAILURE: string =
     'DUPLICATE_STATUSPAGE_FAILURE';
 export const DUPLICATE_STATUSPAGE_RESET: string = 'DUPLICATE_STATUSPAGE_RESET';
 
-//fetch incident's status page
+//Fetch incident's status page
 export const FETCH_INCIDENT_STATUSPAGE_REQUEST: $TSFixMe =
     'FETCH_INCIDENT_STATUSPAGE_REQUEST';
 export const FETCH_INCIDENT_STATUSPAGE_SUCCESS: $TSFixMe =
@@ -163,7 +163,7 @@ export const PAGINATE_NEXT: string = 'PAGINATE_NEXT';
 export const PAGINATE_PREV: string = 'PAGINATE_PREV';
 export const PAGINATE_RESET: string = 'PAGINATE_RESET';
 
-// whether to show input field to add more domain
+// Whether to show input field to add more domain
 export const ADD_MORE_DOMAIN: string = 'ADD_MORE_DOMAIN';
 export const CANCEL_ADD_MORE_DOMAIN: string = 'CANCEL_ADD_MORE_DOMAIN';
 
@@ -195,7 +195,7 @@ export const RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE: $TSFixMe =
 
 export const SHOW_DUPLICATE_STATUSPAGE: string = 'SHOW_DUPLICATE_STATUSPAGE';
 
-//reseting brand colors
+//Reseting brand colors
 export const RESET_BRANDING_COLORS_REQUEST: string =
     'RESET_BRANDING_COLORS_REQUEST';
 export const RESET_BRANDING_COLORS_FAILURE: string =
@@ -203,7 +203,7 @@ export const RESET_BRANDING_COLORS_FAILURE: string =
 export const RESET_BRANDING_COLORS_SUCCESS: string =
     'RESET_BRANDING_COLORS_SUCCESS';
 
-//subscribers tab
+//Subscribers tab
 export const FETCH_SUBSCRIBER_SUCCESS: string = 'FETCH_SUBSCRIBER_SUCCESS';
 export const FETCH_SUBSCRIBER_REQUEST: string = 'FETCH_SUBSCRIBER_REQUEST';
 export const FETCH_SUBSCRIBER_FAILURE: string = 'FETCH_SUBSCRIBER_FAILURE';
@@ -275,7 +275,7 @@ export const FETCH_ANNOUNCEMEMTLOGS_SUCCESS: string =
 export const FETCH_ANNOUNCEMEMTLOGS_FAILURE: string =
     'FETCH_ANNOUNCEMEMTLOGS_FAILURE';
 
-//update status page layout
+//Update status page layout
 export const UPDATE_STATUS_PAGE_LAYOUT_REQUEST: $TSFixMe =
     'UPDATE_STATUS_PAGE_LAYOUT_REQUEST';
 export const UPDATE_STATUS_PAGE_LAYOUT_SUCCESS: $TSFixMe =
@@ -285,7 +285,7 @@ export const UPDATE_STATUS_PAGE_LAYOUT_FAILURE: $TSFixMe =
 
 export const UPDATE_STATUSPAGE_SUCCESS: string = 'UPDATE_STATUSPAGE_SUCCESS';
 
-//update status page language
+//Update status page language
 export const UPDATE_MULTIPLE_LANGUAGE_REQUEST: $TSFixMe =
     'UPDATE_MULTIPLE_LANGUAGE_REQUEST';
 export const UPDATE_MULTIPLE_LANGUAGE_SUCCESS: $TSFixMe =

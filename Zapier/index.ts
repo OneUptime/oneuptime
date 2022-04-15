@@ -1,12 +1,12 @@
 import authentication from './authentication';
-// import triggers
+// Import triggers
 import resolvedTrigger from './triggers/resolved';
 import incidentTrigger from './triggers/incident';
 import monitorTrigger from './triggers/monitors';
 import acknowledgeTrigger from './triggers/acknowledge';
 import incidentsTrigger from './triggers/incidents';
 import incidentNoteTrigger from './triggers/incidentNote';
-// import actions
+// Import actions
 import createIncidentAction from './actions/createIncident';
 import acknowledgeLastIncidentAction from './actions/acknowledgeLastIncident';
 import resolveLastIncidentAction from './actions/resolveLastIncident';
@@ -16,8 +16,10 @@ import acknowledgeIncidentAction from './actions/acknowledgeIncident';
 import resolveIncidentAction from './actions/resolveIncident';
 import createIncidentNoteAction from './actions/createIncidentNote';
 
-// To include the API key on all outbound requests, simply define a function here.
-// It runs runs before each request is sent out, allowing you to make tweaks to the request in a centralized spot.
+/*
+ * To include the API key on all outbound requests, simply define a function here.
+ * It runs runs before each request is sent out, allowing you to make tweaks to the request in a centralized spot.
+ */
 const includeApiKey: Function = (
     request: $TSFixMe,
     z: $TSFixMe,
@@ -32,8 +34,10 @@ const includeApiKey: Function = (
 };
 
 const App: $TSFixMe = {
-    // This is just shorthand to reference the installed dependencies you have. Zapier will
-    // need to know these before we can upload
+    /*
+     * This is just shorthand to reference the installed dependencies you have. Zapier will
+     * Need to know these before we can upload
+     */
     version: require('./package.json').version,
     platformVersion: require('zapier-platform-core').version,
 

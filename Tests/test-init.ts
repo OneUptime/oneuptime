@@ -86,21 +86,21 @@ const _this: $TSFixMe = {
 
             await this.pageType(page, 'input[name=cardName]', 'Test name');
 
-            elementHandle = stripeIframeElements[0]; // card element
+            elementHandle = stripeIframeElements[0]; // Card element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
                 delay: 200,
             });
 
-            elementHandle = stripeIframeElements[1]; // cvc element
+            elementHandle = stripeIframeElements[1]; // Cvc element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cvc]');
             await frame.type('input[name=cvc]', '123', {
                 delay: 50,
             });
 
-            elementHandle = stripeIframeElements[2]; // exp element
+            elementHandle = stripeIframeElements[2]; // Exp element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23', {
@@ -237,21 +237,21 @@ const _this: $TSFixMe = {
 
             await this.pageType(page, 'input[name=cardName]', 'Test name');
 
-            elementHandle = stripeIframeElements[0]; // card element
+            elementHandle = stripeIframeElements[0]; // Card element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
                 delay: 200,
             });
 
-            elementHandle = stripeIframeElements[1]; // cvc element
+            elementHandle = stripeIframeElements[1]; // Cvc element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cvc]');
             await frame.type('input[name=cvc]', '123', {
                 delay: 50,
             });
 
-            elementHandle = stripeIframeElements[2]; // exp element
+            elementHandle = stripeIframeElements[2]; // Exp element
             frame = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=exp-date]');
             await frame.type('input[name=exp-date]', '11/23', {
@@ -569,8 +569,10 @@ const _this: $TSFixMe = {
         } else {
             await this.loginAdminUser(masterAdmin, page);
         }
-        // create the user from admin dashboard
-        //await this.loginAdminUser(masterAdmin, page);
+        /*
+         *  Create the user from admin dashboard
+         * Await this.loginAdminUser(masterAdmin, page);
+         */
         const { email } = user;
 
         await this.pageWaitForSelector(page, '#add_user');
@@ -625,7 +627,7 @@ const _this: $TSFixMe = {
                 }
             }
         } catch (error) {
-            //catch
+            //Catch
         }
     },
     logout: async function (page: $TSFixMe): void {
@@ -1071,8 +1073,10 @@ const _this: $TSFixMe = {
         // Navigate to Components page
         await this.navigateToComponentDetails(component, page);
 
-        // Navigate to details page of monitor assumed created
-        // await this.pageClickNavigate(page, `#more-details-${monitor}`);
+        /*
+         * Navigate to details page of monitor assumed created
+         * Await this.pageClickNavigate(page, `#more-details-${monitor}`);
+         */
         await this.pageWaitForSelector(page, `#more-details-${monitor}`, {
             visible: true,
             timeout: this.timeout,
@@ -1092,7 +1096,7 @@ const _this: $TSFixMe = {
         // Navigate to Components page
         await this.navigateToComponentDetails(component, page);
 
-        // then goto list of log containers
+        // Then goto list of log containers
 
         await this.pageWaitForSelector(page, '#logs');
 
@@ -1117,7 +1121,7 @@ const _this: $TSFixMe = {
         // Navigate to Components page
         await this.navigateToComponentDetails(component, page);
 
-        // then goto list of error trackers
+        // Then goto list of error trackers
 
         await this.pageWaitForSelector(page, '#errorTracking');
 
@@ -1139,7 +1143,7 @@ const _this: $TSFixMe = {
         user: $TSFixMe,
         page: $TSFixMe
     ): void {
-        // create the user from admin dashboard
+        // Create the user from admin dashboard
         const { email } = user;
 
         await this.pageWaitForSelector(page, '#add_user');
@@ -1442,7 +1446,7 @@ const _this: $TSFixMe = {
         });
     },
     /**
-     *  adds an api monitor with js expressions for up and degraded events
+     *  Adds an api monitor with js expressions for up and degraded events
      * @param {*} page a page instance of puppeteer
      * @param {string} monitorName the name of the new monitor
      * @param {{createAlertForOnline : boolean, createAlertForDegraded : boolean, createAlertForDown : boolean}} options
@@ -1474,7 +1478,7 @@ const _this: $TSFixMe = {
 
         await this.pageClick(page, '#advanceOptions');
 
-        // online criteria
+        // Online criteria
 
         await this.pageWaitForSelector(page, '[data-testId=add_criterion_up]');
         await this.page$$Eval(
@@ -1546,7 +1550,7 @@ const _this: $TSFixMe = {
             );
         }
 
-        // degraded criteria
+        // Degraded criteria
         await this.page$$Eval(
             page,
             '[data-testId=add_criterion_degraded]',
@@ -1609,7 +1613,7 @@ const _this: $TSFixMe = {
         await this.pageWaitForSelector(page, '#monitors');
 
         await this.pageClick(page, '#monitors'); // Fix this
-        // await this.navigateToComponentDetails(componentName, page);
+        // Await this.navigateToComponentDetails(componentName, page);
 
         await this.pageWaitForSelector(page, '#form-new-monitor');
 
@@ -2075,8 +2079,10 @@ const _this: $TSFixMe = {
         });
 
         await this.pageClick(page, `#${eventBtn}`);
-        // navigate to the note tab section
-        // await this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+        /*
+         * Navigate to the note tab section
+         * Await this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+         */
 
         await this.pageClick(page, '.timeline-tab');
         await this.pageWaitForSelector(page, `#add-${type}-message`, {

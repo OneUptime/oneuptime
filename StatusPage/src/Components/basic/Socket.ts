@@ -29,8 +29,10 @@ import {
     updatestweetsbysocket,
 } from '../../actions/socket';
 
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
+/*
+ * Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
+ * '/realtime' is set as socket io namespace, so remove
+ */
 
 const socket: $TSFixMe = io.connect(REALTIME_URL.replace('/realtime', ''), {
     path: '/realtime/socket.io',

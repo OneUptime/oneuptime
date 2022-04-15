@@ -140,7 +140,7 @@ export default function credential(
             };
 
         case types.DELETE_GIT_CREDENTIAL_SUCCESS: {
-            // update the list of git credential
+            // Update the list of git credential
             const gitCredentials: $TSFixMe = state.gitCredentials.filter(
                 (gitCredential: $TSFixMe) => {
                     return (
@@ -323,7 +323,7 @@ export default function credential(
             };
 
         case types.DELETE_DOCKER_CREDENTIAL_SUCCESS: {
-            // update the list of git credential
+            // Update the list of git credential
             const dockerCredentials: $TSFixMe = state.dockerCredentials.filter(
                 (dockerCredential: $TSFixMe) => {
                     return (

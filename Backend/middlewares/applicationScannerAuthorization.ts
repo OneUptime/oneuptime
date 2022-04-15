@@ -6,7 +6,7 @@ import {
     ExpressRequest,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-const CLUSTER_KEY: $TSFixMe = process.env['CLUSTER_KEY'];
+const CLUSTER_KEY: $TSFixMe = process.env.CLUSTER_KEY;
 export default {
     isAuthorizedApplicationScanner: async function (
         req: ExpressRequest,
@@ -22,8 +22,8 @@ export default {
             applicationScannerKey = req.params.applicationscannerkey;
         } else if (req.query && req.query.applicationScannerKey) {
             applicationScannerKey = req.query.applicationscannerkey;
-        } else if (req.headers && req.headers['applicationscannerkey']) {
-            applicationScannerKey = req.headers['applicationscannerkey'];
+        } else if (req.headers && req.headers.applicationscannerkey) {
+            applicationScannerKey = req.headers.applicationscannerkey;
         } else if (req.body && req.body.applicationScannerKey) {
             applicationScannerKey = req.body.applicationScannerKey;
         } else {
@@ -38,8 +38,8 @@ export default {
             applicationScannerName = req.params.applicationscannername;
         } else if (req.query && req.query.applicationscannername) {
             applicationScannerName = req.query.applicationscannername;
-        } else if (req.headers && req.headers['applicationscannername']) {
-            applicationScannerName = req.headers['applicationscannername'];
+        } else if (req.headers && req.headers.applicationscannername) {
+            applicationScannerName = req.headers.applicationscannername;
         } else if (req.body && req.body.applicationscannerName) {
             applicationScannerName = req.body.applicationscannername;
         } else {
@@ -50,16 +50,16 @@ export default {
             );
         }
 
-        if (req.params && req.params['clusterKey']) {
-            clusterKey = req.params['clusterKey'];
-        } else if (req.query && req.query['clusterKey']) {
-            clusterKey = req.query['clusterKey'];
+        if (req.params && req.params.clusterKey) {
+            clusterKey = req.params.clusterKey;
+        } else if (req.query && req.query.clusterKey) {
+            clusterKey = req.query.clusterKey;
         } else if (
             req.headers &&
-            (req.headers['clusterKey'] || req.headers['clusterkey'])
+            (req.headers.clusterKey || req.headers.clusterkey)
         ) {
-            // header keys are automatically transformed to lowercase
-            clusterKey = req.headers['clusterKey'] || req.headers['clusterkey'];
+            // Header keys are automatically transformed to lowercase
+            clusterKey = req.headers.clusterKey || req.headers.clusterkey;
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
         }
@@ -68,9 +68,8 @@ export default {
             applicationScannerVersion = req.params.applicationscannerversion;
         } else if (req.query && req.query.applicationscannerversion) {
             applicationScannerVersion = req.query.applicationscannerversion;
-        } else if (req.headers && req.headers['applicationscannerversion']) {
-            applicationScannerVersion =
-                req.headers['applicationscannerversion'];
+        } else if (req.headers && req.headers.applicationscannerversion) {
+            applicationScannerVersion = req.headers.applicationscannerversion;
         } else if (req.body && req.body.applicationscannerversion) {
             applicationScannerVersion = req.body.applicationscannerversion;
         }
@@ -78,9 +77,11 @@ export default {
         let applicationScanner: $TSFixMe = null;
 
         if (clusterKey && clusterKey === CLUSTER_KEY) {
-            // if cluster key matches then just query by applicationScanner name,
-            // because if the applicationScanner key does not match, we can update applicationScanner key later
-            // without updating mongodb database manually.
+            /*
+             * If cluster key matches then just query by applicationScanner name,
+             * Because if the applicationScanner key does not match, we can update applicationScanner key later
+             * Without updating mongodb database manually.
+             */
 
             applicationScanner = await ApplicationScannerService.findOneBy({
                 query: { applicationScannerName },
@@ -105,7 +106,7 @@ export default {
         }
 
         if (!applicationScanner) {
-            //create a new applicationScanner.
+            //Create a new applicationScanner.
             applicationScanner = await ApplicationScannerService.create({
                 applicationScannerKey,
                 applicationScannerName,
@@ -116,7 +117,7 @@ export default {
         if (
             applicationScanner.applicationScannerKey !== applicationScannerKey
         ) {
-            //update applicationScanner key becasue it does not match.
+            //Update applicationScanner key becasue it does not match.
             await ApplicationScannerService.updateOneBy(
                 {
                     applicationScannerName,

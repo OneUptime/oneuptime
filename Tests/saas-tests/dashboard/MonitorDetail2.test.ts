@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const monitorName: string = utils.generateRandomString();
@@ -32,9 +32,9 @@ describe('Monitor Detail API', () => {
             password,
         };
 
-        // user
+        // User
         await init.registerUser(user, page);
-        // add new monitor to component on parent project
+        // Add new monitor to component on parent project
         await init.addMonitorToComponent(componentName, monitorName, page);
         await init.addIncidentPriority(priorityName, page);
     });
@@ -54,7 +54,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageClick(page, '.subscribers-tab');
 
@@ -105,7 +105,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageClick(page, '.subscribers-tab');
             const addButtonSelector: string = '#addSubscriberButton';
@@ -207,7 +207,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // click on integrations tab
+            // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
 
@@ -242,8 +242,10 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: 50000,
             });
-            // When an MSTeams is created, only 'Name' and 'Action' are rendered
-            //MSTeams Endpoint is no longer rendered
+            /*
+             *  When an MSTeams is created, only 'Name' and 'Action' are rendered
+             * MSTeams Endpoint is no longer rendered
+             */
             const createdWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 createdWebhookSelector,
@@ -266,7 +268,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on integrations tab
+            // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
 
@@ -330,7 +332,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on integrations tab
+            // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
 
@@ -387,7 +389,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // click on integrations tab
+            // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
 
@@ -429,7 +431,7 @@ describe('Monitor Detail API', () => {
 
             await page.reload({ waitUntil: 'networkidle0' });
 
-            // click on integrations tab
+            // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
 

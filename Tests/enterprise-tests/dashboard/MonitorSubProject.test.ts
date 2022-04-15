@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
@@ -22,7 +22,7 @@ describe('Enterprise Monitor SubProject API', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerEnterpriseUser(user, page);
 
         done();
@@ -49,14 +49,16 @@ describe('Enterprise Monitor SubProject API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            // add sub-project
+            // Add sub-project
             await init.addSubProject(subProjectName, page);
 
-            // Create Component first
-            // Redirects automatically component to details page
+            /*
+             * Create Component first
+             * Redirects automatically component to details page
+             */
             await init.addComponent(componentName, page);
 
-            // switch to invited project for new user
+            // Switch to invited project for new user
             await init.pageWaitForSelector(page, '#monitors', {
                 visible: true,
                 timeout: init.timeout,

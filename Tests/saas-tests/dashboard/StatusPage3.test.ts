@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const componentName: string = 'hackerbay';
@@ -45,15 +45,15 @@ describe('Status Page', () => {
             password,
         };
 
-        // user
+        // User
         await init.registerUser(user, page);
-        // await init.loginUser(user, page);
+        // Await init.loginUser(user, page);
 
-        //project + status page
+        //Project + status page
         await init.addProject(page);
         await init.addStatusPageToProject('test', 'test', page);
 
-        //component + monitor
+        //Component + monitor
         await init.addComponent(componentName, page);
         await init.addNewMonitorToComponent(page, componentName, monitorName);
         // Creates the second monitor
@@ -274,8 +274,10 @@ describe('Status Page', () => {
             );
             expect(elem).toBeNull();
 
-            // if domain was not added sucessfully, list will be undefined
-            // it will timeout
+            /*
+             * If domain was not added sucessfully, list will be undefined
+             * It will timeout
+             */
             const list: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 'fieldset[name="added-domain"]',

@@ -198,8 +198,10 @@ export default class Service {
     ): void {
         let createdDomain: $TSFixMe = {};
 
-        // check if domain already exist
-        // only one domain in the db is allowed
+        /*
+         * Check if domain already exist
+         * Only one domain in the db is allowed
+         */
         const existingBaseDomain: $TSFixMe =
             await DomainVerificationService.findOneBy({
                 query: {
@@ -213,7 +215,7 @@ export default class Service {
                 domain: subDomain,
                 projectId,
             };
-            // create the domain
+            // Create the domain
             createdDomain = await DomainVerificationService.create(
                 creationData
             );
@@ -233,7 +235,7 @@ export default class Service {
         });
 
         if (statusPage) {
-            // attach the domain id to statuspage collection and update it
+            // Attach the domain id to statuspage collection and update it
 
             const domain: $TSFixMe = statusPage.domains.find(
                 (domain: $TSFixMe) => {
@@ -244,14 +246,18 @@ export default class Service {
                 throw new BadDataException('Domain already exists');
             }
             if (enableHttps && autoProvisioning) {
-                // trigger addition of this particular domain
-                // which should pass the acme challenge
-                // acme challenge is to be processed from status page project
+                /*
+                 * Trigger addition of this particular domain
+                 * Which should pass the acme challenge
+                 * Acme challenge is to be processed from status page project
+                 */
                 const altnames: $TSFixMe = [subDomain];
 
-                // before adding any domain
-                // check if there's a certificate already created in the store
-                // if there's none, add the domain to the flow
+                /*
+                 * Before adding any domain
+                 * Check if there's a certificate already created in the store
+                 * If there's none, add the domain to the flow
+                 */
                 const certificate: $TSFixMe =
                     await CertificateStoreService.findOneBy({
                         query: { subject: subDomain },
@@ -260,7 +266,7 @@ export default class Service {
 
                 const greenlock: $TSFixMe = global.greenlock;
                 if (!certificate && greenlock) {
-                    // handle this in the background
+                    // Handle this in the background
                     greenlock.add({
                         subject: altnames[0],
                         altnames: altnames,
@@ -293,8 +299,10 @@ export default class Service {
         }
     }
 
-    // update all the occurence of the old domain to the new domain
-    // use regex to replace the value
+    /*
+     * Update all the occurence of the old domain to the new domain
+     * Use regex to replace the value
+     */
     public async updateCustomDomain(
         domainId: $TSFixMe,
         newDomain: $TSFixMe,
@@ -362,7 +370,7 @@ export default class Service {
                 domain: newDomain,
                 projectId,
             };
-            // create the domain
+            // Create the domain
             createdDomain = await DomainVerificationService.create(
                 creationData
             );
@@ -396,8 +404,10 @@ export default class Service {
                 if (eachDomain.domain !== newDomain) {
                     doesDomainExist = await this.doesDomainExist(newDomain);
                 }
-                // if domain exist
-                // break the loop
+                /*
+                 * If domain exist
+                 * Break the loop
+                 */
                 if (doesDomainExist) {
                     break;
                 }
@@ -408,14 +418,18 @@ export default class Service {
                 eachDomain.enableHttps = enableHttps;
                 eachDomain.autoProvisioning = autoProvisioning;
                 if (autoProvisioning && enableHttps) {
-                    // trigger addition of this particular domain
-                    // which should pass the acme challenge
-                    // acme challenge is to be processed from status page project
+                    /*
+                     * Trigger addition of this particular domain
+                     * Which should pass the acme challenge
+                     * Acme challenge is to be processed from status page project
+                     */
                     const altnames: $TSFixMe = [eachDomain.domain];
 
-                    // before adding any domain
-                    // check if there's a certificate already created in the store
-                    // if there's none, add the domain to the flow
+                    /*
+                     * Before adding any domain
+                     * Check if there's a certificate already created in the store
+                     * If there's none, add the domain to the flow
+                     */
                     const certificate: $TSFixMe =
                         await CertificateStoreService.findOneBy({
                             query: { subject: eachDomain.domain },
@@ -424,7 +438,7 @@ export default class Service {
 
                     const greenlock: $TSFixMe = global.greenlock;
                     if (!certificate && greenlock) {
-                        // handle this in the background
+                        // Handle this in the background
                         greenlock.add({
                             subject: altnames[0],
                             altnames: altnames,
@@ -491,8 +505,10 @@ export default class Service {
         );
 
         const greenlock: $TSFixMe = global.greenlock;
-        // delete any associated certificate (only for auto provisioned ssl)
-        // handle this in the background
+        /*
+         * Delete any associated certificate (only for auto provisioned ssl)
+         * Handle this in the background
+         */
         if (
             deletedDomain.enableHttps &&
             deletedDomain.autoProvisioning &&
@@ -544,7 +560,7 @@ export default class Service {
         if (filterMonitors && data.monitors) {
             data.monitors = data.monitors
                 .filter((monitorObj: $TSFixMe) => {
-                    // values.statuspageId is sub project id selected on the dropdown
+                    // Values.statuspageId is sub project id selected on the dropdown
                     if (
                         String(monitorObj.monitor.projectId._id) ===
                         String(statusPageProjectId)
@@ -560,7 +576,7 @@ export default class Service {
         }
 
         if (!filterMonitors && data.monitors) {
-            // just filter and use only ids
+            // Just filter and use only ids
 
             data.monitors = data.monitors.map((monitorObj: $TSFixMe) => {
                 monitorObj.monitor =
@@ -577,7 +593,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const statusPage: $TSFixMe = await StatusPageModel.findOneAndUpdate(
             query,
             {
@@ -613,8 +629,10 @@ export default class Service {
             );
 
             const greenlock: $TSFixMe = global.greenlock;
-            // delete all certificate pipeline for the custom domains
-            // handle this for autoprovisioned custom domains
+            /*
+             * Delete all certificate pipeline for the custom domains
+             * Handle this for autoprovisioned custom domains
+             */
             const customDomains: $TSFixMe = [...statusPage.domains];
             for (const eachDomain of customDomains) {
                 if (
@@ -694,11 +712,11 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
-        // run this in the background
+        // Run this in the background
 
         if (data && data.groupedMonitors) {
             for (const [key, value] of Object.entries(data.groupedMonitors)) {
@@ -754,8 +772,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await StatusPageModel.updateMany(query, {
             $set: data,
@@ -949,7 +967,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const populateIncidentMessage: $TSFixMe = [
             {
@@ -1016,7 +1034,7 @@ export default class Service {
 
         const investigationNotes: $TSFixMe = incidents.map(
             (incident: $TSFixMe) => {
-                // return all the incident object
+                // Return all the incident object
                 return incident;
             }
         );
@@ -1047,7 +1065,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const statuspages: $TSFixMe = await this.findBy({
             query,
@@ -1122,7 +1140,7 @@ export default class Service {
             );
 
             events = flattenArray(events);
-            // do not repeat the same event two times
+            // Do not repeat the same event two times
 
             events = eventIds.map((id: $TSFixMe) => {
                 return events.find((event: $TSFixMe) => {
@@ -1161,7 +1179,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const statuspages: $TSFixMe = await this.findBy({
             query,
@@ -1234,7 +1252,7 @@ export default class Service {
             );
 
             events = flattenArray(events);
-            // do not repeat the same event two times
+            // Do not repeat the same event two times
 
             events = eventIds.map((id: $TSFixMe) => {
                 return events.find((event: $TSFixMe) => {
@@ -1279,7 +1297,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const statuspages: $TSFixMe = await this.findBy({
             query,
@@ -1349,7 +1367,7 @@ export default class Service {
             );
 
             events = flattenArray(events);
-            // do not repeat the same event two times
+            // Do not repeat the same event two times
 
             events = eventIds.map((id: $TSFixMe) => {
                 return events.find((event: $TSFixMe) => {
@@ -1357,7 +1375,7 @@ export default class Service {
                 });
             });
 
-            // sort in ascending start date
+            // Sort in ascending start date
 
             events = events.sort((a: $TSFixMe, b: $TSFixMe) => {
                 return a.startDate - b.startDate;
@@ -1421,7 +1439,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
@@ -1497,7 +1515,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
 
         const statusPagesQuery: $TSFixMe = StatusPageModel.find(query).lean();
 
@@ -1770,13 +1788,13 @@ export default class Service {
             return statusPages;
         }
     }
-    // get status pages for this incident
+    // Get status pages for this incident
     public async getStatusPagesForIncident(
         incidentId: $TSFixMe,
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        // first get the monitor, then scan status page collection containing the monitor
+        // First get the monitor, then scan status page collection containing the monitor
         let { monitors }: $TSFixMe = await IncidentModel.findById(
             incidentId
         ).select('monitors.monitorId');
@@ -1901,7 +1919,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const externalStatusPages: $TSFixMe =
             await ExternalStatusPageModel.find(query);
         return externalStatusPages;
@@ -1952,13 +1970,13 @@ export default class Service {
     }
 
     public async createAnnouncement(data: $TSFixMe): void {
-        // reassign data.monitors with a restructured monitor data
+        // Reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map((monitor: $TSFixMe) => {
             return {
                 monitorId: monitor,
             };
         });
-        // slugify announcement name
+        // Slugify announcement name
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
@@ -2008,7 +2026,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const allAnnouncements: $TSFixMe = await AnnouncementModel.find(query)
             .lean()
             .limit(limit.toNumber())
@@ -2022,7 +2040,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await AnnouncementModel.countDocuments(query);
         return count;
     }
@@ -2031,7 +2049,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const response: $TSFixMe = await AnnouncementModel.findOne(query);
         return response;
     }
@@ -2040,7 +2058,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         if (!data.hideAnnouncement) {
             await this.updateManyAnnouncement({
                 statusPageId: query.statusPageId,
@@ -2081,7 +2099,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const response: $TSFixMe = await AnnouncementModel.updateMany(
             query,
             {
@@ -2098,7 +2116,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const response: $TSFixMe = await AnnouncementModel.findOneAndUpdate(
             query,
             {
@@ -2137,7 +2155,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const response: $TSFixMe = await AnnouncementLogModel.findOneAndUpdate(
             query,
             {
@@ -2175,7 +2193,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const announcementLogs: $TSFixMe = await AnnouncementLogModel.find(
             query
         )
@@ -2194,7 +2212,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const response: $TSFixMe = await AnnouncementLogModel.findOneAndUpdate(
             query,
             {
@@ -2215,7 +2233,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await AnnouncementLogModel.countDocuments(
             query
         );
@@ -2252,7 +2270,7 @@ export default class Service {
     }
 }
 
-// handle the unique pagination for scheduled events on status page
+// Handle the unique pagination for scheduled events on status page
 function limitEvents(
     events: $TSFixMe,
     limit: PositiveNumber,

@@ -1,6 +1,6 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
+process.env.IS_SAAS_SERVICE = true;
 const HTTP_TEST_SERVER_URL: string = 'http://localhost:3010';
 import { expect } from 'chai';
 import userData from './data/user';
@@ -137,7 +137,7 @@ describe('Incident API', function (): void {
             }
         );
 
-        // create an external webhook subscriber
+        // Create an external webhook subscriber
         await SubscriberService.create({
             projectId,
             monitorId,
@@ -171,7 +171,7 @@ describe('Incident API', function (): void {
             .get('/api/webhooks/slack');
         expect(test2).to.have.status(404);
 
-        // no external subscriber's webhook notification shall be sent when there's no incident
+        // No external subscriber's webhook notification shall be sent when there's no incident
         const webhookTest: $TSFixMe = await chai
 
             .request('http://127.0.0.1:3010')
@@ -199,7 +199,7 @@ describe('Incident API', function (): void {
             .get('/api/webhooks/slack');
         expect(slackEndpoint).to.have.status(200);
 
-        // a webhook notification shall be received after an incident
+        // A webhook notification shall be received after an incident
         const webhookTestAfterIncident: $TSFixMe = await chai
 
             .request('http://127.0.0.1:3010')
@@ -375,7 +375,7 @@ describe('Incident API', function (): void {
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
-        // check if sorted by ascending order of createdAt
+        // Check if sorted by ascending order of createdAt
         expect(
             res.body.data.sort(
                 (
@@ -505,7 +505,7 @@ describe('Incident API', function (): void {
         expect(res).to.have.status(200);
         expect(res.body).to.have.property('data');
         expect(res.body).to.have.property('count');
-        expect(res.body.count).to.be.equal(3); // messages created when incident is acknowledged and resolved
+        expect(res.body.count).to.be.equal(3); // Messages created when incident is acknowledged and resolved
         expect(res.body.data[0].type).to.be.equal(type);
     });
 
@@ -712,14 +712,14 @@ describe('Incident API with Sub-Projects', function (): void {
         incidentData.projectId = projectId;
 
         const authorization: string = `Basic ${token}`;
-        // create a subproject for parent project
+        // Create a subproject for parent project
         await GlobalConfig.initTestConfig();
         const res: $TSFixMe = await request
             .post(`/project/${projectId}/subProject`)
             .set('Authorization', authorization)
             .send({ subProjectName: 'New SubProject' });
         subProjectId = res.body[0]._id;
-        // sign up second user (subproject user)
+        // Sign up second user (subproject user)
         const res1: $TSFixMe = await createUser(request, userData.newUser);
         userId = res1.body.id;
         const verificationToken: $TSFixMe =
@@ -734,7 +734,7 @@ describe('Incident API with Sub-Projects', function (): void {
             password: userData.newUser.password,
         });
         newUserToken = res2.body.tokens.jwtAccessToken;
-        // add second user to subproject
+        // Add second user to subproject
         await request
             .post(`/team/${subProjectId}`)
             .set('Authorization', authorization)

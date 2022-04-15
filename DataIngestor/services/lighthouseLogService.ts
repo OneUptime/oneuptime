@@ -72,7 +72,7 @@ export default {
                     : project._id
                 : monitor.projectId._id || monitor.projectId;
 
-            // realtime update
+            // Realtime update
             post(
                 `${realtimeBaseUrl}/update-lighthouse-log`,
                 {
@@ -99,7 +99,7 @@ export default {
         await lighthouseLogCollection.updateMany(query, {
             $set: data,
         });
-        // fetch updated items
+        // Fetch updated items
         const lighthouseLog: $TSFixMe = await lighthouseLogCollection
             .find(query)
             .toArray();

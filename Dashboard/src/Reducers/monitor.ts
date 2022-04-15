@@ -1402,7 +1402,7 @@ export default function monitor(
                                                                   }
                                                               )
                                                           ) {
-                                                              // add manual status to all new probes
+                                                              // Add manual status to all new probes
                                                               const newProbeStatuses: $TSFixMe =
                                                                   [];
 

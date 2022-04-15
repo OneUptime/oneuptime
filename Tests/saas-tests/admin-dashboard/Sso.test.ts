@@ -5,7 +5,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 
 import 'should';
 
-// user credentials
+// User credentials
 const email: string = 'masteradmin@hackerbay.io';
 const password: string = '1234567890';
 
@@ -87,11 +87,13 @@ describe('SSO API', () => {
             /** Upon login, AdminDashboard is loaded */
             await moveToSsoPage(page);
 
-            /**  With respect to AdminDashboard code refactoring,
+            /**
+             *  With respect to AdminDashboard code refactoring,
              *  removal of UNDEFINED
-             *  sso-count is only visible after an sso has been created*/
+             *  sso-count is only visible after an sso has been created
+             */
 
-            // delete all previous SSO
+            // Delete all previous SSO
             while (await init.isElementOnPage(page, '#delete-button')) {
                 await init.pageWaitForSelector(page, '#delete-button');
 
@@ -144,8 +146,10 @@ describe('SSO API', () => {
     test(
         'should update existing SSO',
         async (done: $TSFixMe) => {
-            /** No need for additional logout and login as it slows down testing
-             * Testing is done in the same admin UI */
+            /**
+             * No need for additional logout and login as it slows down testing
+             * Testing is done in the same admin UI
+             */
 
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await moveToSsoPage(page);

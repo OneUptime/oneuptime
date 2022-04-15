@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const pageName: string = utils.generateRandomString();
@@ -23,7 +23,7 @@ describe('Status Page', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerEnterpriseUser(user, page);
         await init.adminLogout(page);
     });
@@ -66,7 +66,7 @@ describe('Status Page', () => {
             await init.pageType(page, '#name', pageName);
 
             await init.pageClick(page, '#btnCreateStatusPage');
-            // select the first item from the table row
+            // Select the first item from the table row
             const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',

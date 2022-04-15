@@ -495,9 +495,11 @@ export default function incident(
             });
 
         case 'UPDATE_INCIDENT_TIMELINE': {
-            // let idNumber: $TSFixMe =
-            //     action.payload.incidentId && action.payload.incidentId.idNumber;
-            // idNumber = idNumber - 1;
+            /*
+             * Let idNumber: $TSFixMe =
+             *     Action.payload.incidentId && action.payload.incidentId.idNumber;
+             * IdNumber = idNumber - 1;
+             */
             const incidentSlug: $TSFixMe = action.payload.incidentId.slug;
             if (!action || !action.payload) {
                 return state;

@@ -25,7 +25,7 @@ export const loginError: Function = (error: ErrorPayload): void => {
 };
 
 export const loginSuccess: Function = (user: $TSFixMe): void => {
-    //save user session details.
+    //Save user session details.
     User.setUserId(user.id);
     User.setAccessToken(user.tokens.jwtAccessToken);
 

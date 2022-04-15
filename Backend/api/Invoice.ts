@@ -9,10 +9,12 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import { sendListResponse } from 'CommonServer/Utils/response';
 
-// Description: Getting invoices paid.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {userId}
-// Returns: 200: "Invoice received"; 400: "Error"
+/*
+ * Description: Getting invoices paid.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {userId}
+ * Returns: 200: "Invoice received"; 400: "Error"
+ */
 router.post('/:userId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const userId: $TSFixMe = req.params.userId;

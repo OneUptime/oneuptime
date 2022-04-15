@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -56,7 +56,7 @@ describe('Components', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('Invite your Team');
 
-            // click on the call to action button
+            // Click on the call to action button
 
             await init.pageWaitForSelector(page, '#gotoPage-teamMember');
             await init.page$Eval(
@@ -97,7 +97,7 @@ describe('Components', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('Create your first Component');
 
-            // click on the call to action button
+            // Click on the call to action button
 
             await init.pageWaitForSelector(page, '#gotoPage-component');
             await init.page$Eval(page, '#gotoPage-component', (e: $TSFixMe) => {
@@ -179,7 +179,7 @@ describe('Components', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('Create a Monitor');
 
-            // click on the call to action button
+            // Click on the call to action button
 
             await init.pageWaitForSelector(page, '#gotoPage-monitor');
             await init.page$Eval(page, '#gotoPage-monitor', (e: $TSFixMe) => {
@@ -304,7 +304,7 @@ describe('Components', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             const customTutorialType: string = 'monitor';
-            // confirm that monitor box exist on component details page
+            // Confirm that monitor box exist on component details page
 
             const componentBoxElement: $TSFixMe =
                 await init.pageWaitForSelector(

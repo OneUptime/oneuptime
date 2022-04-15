@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const name: string = utils.generateRandomString();
 const password: string = '1234567890';
@@ -13,7 +13,7 @@ const user: $TSFixMe = {
     email,
     password,
 };
-// smtp credential
+// Smtp credential
 const smtpData: $TSFixMe = { ...utils.smtpCredential };
 
 describe('Custom SMTP Settings', () => {
@@ -25,7 +25,7 @@ describe('Custom SMTP Settings', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerUser(user, page);
 
         done();
@@ -212,7 +212,7 @@ describe('Custom SMTP Settings', () => {
 
             const port: $TSFixMe = await init.page$(page, '#port');
             await port.click({ clickCount: 3 });
-            await port.press('Backspace'); // clear out the input field
+            await port.press('Backspace'); // Clear out the input field
 
             await init.pageClick(page, '#saveSmtp');
 

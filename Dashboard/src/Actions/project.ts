@@ -92,8 +92,10 @@ export const hideUpgradeForm: Function = (): void => {
     };
 };
 
-// Sets the whether the user can upgrade(canUpgrade) their plan
-// if their returned plan list is empty or not.
+/*
+ * Sets the whether the user can upgrade(canUpgrade) their plan
+ * If their returned plan list is empty or not.
+ */
 export const upgradePlanEmpty: Function = (): void => {
     return {
         type: types.UPGRADE_PLAN_EMPTY,
@@ -304,7 +306,7 @@ export function switchProject(
     const historyProjectId: $TSFixMe =
         history.location.pathname.split('project')[1];
 
-    //get project slug from pathname
+    //Get project slug from pathname
     const pathname: $TSFixMe = history.location.pathname;
     const regex: $TSFixMe = new RegExp(
         '/dashboard/project/([A-z-0-9]+)/?.+',
@@ -324,13 +326,15 @@ export function switchProject(
         }
     );
 
-    // if the path is already pointing to project slug we do not need to switch projects
-    // esp. if this is from a redirectTo
+    /*
+     * If the path is already pointing to project slug we do not need to switch projects
+     * Esp. if this is from a redirectTo
+     */
     if (project.slug === projectSlug) {
-        // ensure we update current project in localStorage
+        // Ensure we update current project in localStorage
         User.setCurrentProjectId(project._id);
 
-        // remove accessToken from url from redirects
+        // Remove accessToken from url from redirects
         const search: $TSFixMe = history.location.search;
         if (search) {
             const searchParams: $TSFixMe = new URLSearchParams(search);
@@ -369,7 +373,7 @@ export function switchProject(
         'active_subproject_id'
     );
 
-    // emit project id to connect to room in backend
+    // Emit project id to connect to room in backend
     socket?.emit('project_switch', activesubProjectId);
 
     dispatch(resetSubProjects());
@@ -401,7 +405,7 @@ export function switchProject(
     fetchAlert(activesubProjectId)(dispatch);
 
     fetchSubProjectStatusPages(activesubProjectId)(dispatch);
-    fetchComponents({ projectId: activesubProjectId })(dispatch); // default skip: number = 0 limit = 3
+    fetchComponents({ projectId: activesubProjectId })(dispatch); // Default skip: number = 0 limit = 3
     fetchMonitors(activesubProjectId)(dispatch);
 
     fetchResourceCategories(project._id)(dispatch);
@@ -1128,7 +1132,7 @@ export const setSmsNotification: Function = ({
     };
 };
 
-/* for webhook notification settings */
+/* For webhook notification settings */
 export const setWebhookNotificationSettingsRequest: Function = (): void => {
     return {
         type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_REQUEST,
@@ -1181,7 +1185,7 @@ export const setWebhookNotificationSettings: Function = ({
     };
 };
 
-/* for project wide domains */
+/* For project wide domains */
 export const createProjectDomainRequest: Function = (): void => {
     return {
         type: types.CREATE_PROJECT_DOMAIN_REQUEST,

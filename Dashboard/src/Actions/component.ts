@@ -16,8 +16,10 @@ export const hideDeleteModal: Function = (): void => {
     };
 };
 
-// Component list
-// props -> {name: '', type, data -> { data.url}}
+/*
+ * Component list
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export const fetchComponents: Function = ({
     projectId,
     skip = 0,
@@ -70,8 +72,10 @@ export const resetFetchComponents: Function = (): void => {
     };
 };
 
-// Component list
-// props -> {name: '', type, data -> { data.url}}
+/*
+ * Component list
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export function fetchPaginatedComponents({
     projectId,
     skip = 0,
@@ -260,8 +264,10 @@ export const resetEditComponent: Function = (): void => {
     };
 };
 
-// Delete a component
-// props -> {name: '', type, data -> { data.url}}
+/*
+ * Delete a component
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export const deleteComponent: Function = (
     componentId: $TSFixMe,
     projectId: ObjectID
@@ -386,8 +392,10 @@ export const addSeatReset: Function = (): void => {
     };
 };
 
-// Component Resources list
-// props -> {name: '', type, data -> { data.url}}
+/*
+ * Component Resources list
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export function fetchComponentResources(
     projectId: ObjectID,
     componentId: $TSFixMe,

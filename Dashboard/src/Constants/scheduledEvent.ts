@@ -113,7 +113,7 @@ export const RESOLVE_SCHEDULED_EVENT_FAILURE: $TSFixMe =
 export const NEXT_PAGE: string = 'NEXT_PAGE';
 export const PREV_PAGE: string = 'PREV_PAGE';
 
-// fetch scheduled event by slug
+// Fetch scheduled event by slug
 export const FETCH_SCHEDULED_EVENT_REQUEST_SLUG: $TSFixMe =
     'FETCH_SCHEDULED_EVENT_REQUEST_SLUG';
 export const FETCH_SCHEDULED_EVENT_SUCCESS_SLUG: $TSFixMe =
@@ -121,5 +121,5 @@ export const FETCH_SCHEDULED_EVENT_SUCCESS_SLUG: $TSFixMe =
 export const FETCH_SCHEDULED_EVENT_FAILURE_SLUG: $TSFixMe =
     'FETCH_SCHEDULED_EVENT_FAILURE_SLUG';
 
-//add schedule event
+//Add schedule event
 export const ADD_SCHEDULE_EVENT: string = 'ADD_SCHEDULE_EVENT';

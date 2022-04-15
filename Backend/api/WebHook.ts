@@ -147,7 +147,7 @@ router.post(
     }
 );
 
-// update webhook
+// Update webhook
 router.put(
     '/:projectId/:integrationId',
     getUser,
@@ -230,7 +230,7 @@ router.put(
                 }
             }
 
-            // restructure the monitors into [{monitorId: 'xyz'}]
+            // Restructure the monitors into [{monitorId: 'xyz'}]
             data.monitors =
                 data.monitors &&
                 data.monitors.map((monitor: $TSFixMe) => {
@@ -269,7 +269,7 @@ router.put(
     }
 );
 
-// req => params => {teamId, projectId}
+// Req => params => {teamId, projectId}
 router.delete(
     '/:projectId/delete/:integrationId',
     getUser,
@@ -291,7 +291,7 @@ router.delete(
     }
 );
 
-// req => params => {projectId}
+// Req => params => {projectId}
 router.get(
     '/:projectId/hooks',
     getUser,
@@ -315,8 +315,8 @@ router.get(
                     projectId: projectId,
                     integrationType: integrationType,
                 },
-                skip: req.query['skip'] || 0,
-                limit: req.query['limit'] || 10,
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 10,
                 select,
                 populate,
             });
@@ -331,13 +331,13 @@ router.get(
     }
 );
 
-// req => params => {projectId, monitorId}
+// Req => params => {projectId, monitorId}
 router.get(
     '/:projectId/hooks/:monitorId',
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // const projectId: $TSFixMe = req.params.projectId;
+            // Const projectId: $TSFixMe = req.params.projectId;
             const integrationType: $TSFixMe = req.query.type || 'webhook';
             const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
@@ -357,8 +357,8 @@ router.get(
                     'monitors.monitorId': { $in: [monitorId] },
                     integrationType: integrationType,
                 },
-                skip: req.query['skip'] || 0,
-                limit: req.query['limit'] || 10,
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 10,
                 select,
                 populate,
             });

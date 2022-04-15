@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
@@ -28,7 +28,7 @@ describe('Credential Page', () => {
             email: email,
             password: password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
         done();
     });

@@ -12,7 +12,7 @@ import SslService from '../services/sslService';
 
 const router: $TSFixMe = express.getRouter();
 
-// store acme challenge to the db
+// Store acme challenge to the db
 router.post('/challenge', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data: $TSFixMe = req.body;
@@ -24,7 +24,7 @@ router.post('/challenge', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// fetch an acme challenge
+// Fetch an acme challenge
 router.get(
     '/challenge/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -42,8 +42,10 @@ router.get(
     }
 );
 
-// fetch keyAuthorization for a token
-// api to be consumed from the statuspage
+/*
+ * Fetch keyAuthorization for a token
+ * Api to be consumed from the statuspage
+ */
 router.get(
     '/challenge/authorization/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -63,7 +65,7 @@ router.get(
     }
 );
 
-// delete an acme challenge
+// Delete an acme challenge
 router.delete(
     '/challenge/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {

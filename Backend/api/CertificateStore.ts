@@ -14,7 +14,7 @@ import SiteManagerService from '../services/siteManagerService';
 
 const router: $TSFixMe = express.getRouter();
 
-// store certificate details to the db
+// Store certificate details to the db
 router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data: $TSFixMe = req.body;
@@ -28,7 +28,7 @@ router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// update certificate details in the db
+// Update certificate details in the db
 router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id }: $TSFixMe = req.params;
@@ -43,7 +43,7 @@ router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// fetch a certificate detail
+// Fetch a certificate detail
 router.get('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id }: $TSFixMe = req.params;
@@ -58,8 +58,10 @@ router.get('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// fetch a certificate by the subject
-// called from the status page project
+/*
+ * Fetch a certificate by the subject
+ * Called from the status page project
+ */
 router.get(
     '/store/cert/:subject',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -78,7 +80,7 @@ router.get(
     }
 );
 
-// delete an certificate detail
+// Delete an certificate detail
 router.delete(
     '/store/:id',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -99,7 +101,7 @@ router.post('/certOrder', async (req: ExpressRequest, res: ExpressResponse) => {
         const domains: $TSFixMe = [];
 
         const greenlock: $TSFixMe = global.greenlock;
-        // to refresh the managers set clearManager to true
+        // To refresh the managers set clearManager to true
         const { domain, clearManagers }: $TSFixMe = req.body;
 
         if (greenlock) {
@@ -108,7 +110,7 @@ router.post('/certOrder', async (req: ExpressRequest, res: ExpressResponse) => {
             }
 
             if (domain) {
-                // delete any previous manager for this domain
+                // Delete any previous manager for this domain
                 if (!clearManagers) {
                     await SiteManagerService.hardDelete({
                         subject: { $in: [domain] },
@@ -158,7 +160,7 @@ router.post('/certOrder', async (req: ExpressRequest, res: ExpressResponse) => {
                     });
                 }
                 for (const domain of domains) {
-                    // run in the background
+                    // Run in the background
                     greenlock.add({
                         subject: domain,
                         altnames: [domain],
@@ -177,9 +179,11 @@ router.post('/certOrder', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// delete ssl certificate for a particular domain
-// and remove it from certificate order queue
-// id => domain/subdomain
+/*
+ * Delete ssl certificate for a particular domain
+ * And remove it from certificate order queue
+ * Id => domain/subdomain
+ */
 router.delete(
     '/certDelete/:id',
     async (req: ExpressRequest, res: ExpressResponse) => {

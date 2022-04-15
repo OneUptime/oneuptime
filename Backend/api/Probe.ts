@@ -43,8 +43,8 @@ router.get(
     isAuthorizedAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 0;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 0;
             const selectProbe: $TSFixMe =
                 'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
             const [probe, count]: $TSFixMe = await Promise.all([
@@ -97,11 +97,13 @@ router.delete(
     }
 );
 
-// Route
-// Description: Updating profile setting.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
-// Returns: 200: Success, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Updating profile setting.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
+ * Returns: 200: Success, 400: Error; 500: Server Error.
+ */
 
 router.put(
     '/update/image',
@@ -743,7 +745,7 @@ router.post(
                 }
 
                 data.matchedCriterion = matchedCriterion;
-                // update monitor to save the last matched criterion
+                // Update monitor to save the last matched criterion
 
                 await MonitorService.updateCriterion(
                     monitor._id,
@@ -791,7 +793,7 @@ router.post(
                             ),
                         ]);
                     } else {
-                        // when this is scanned success or failed.
+                        // When this is scanned success or failed.
                         await MonitorService.updateLighthouseScanStatus(
                             data.monitorId,
 
@@ -878,8 +880,8 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const limit: $TSFixMe = req.query['limit'] || null;
-            const skip: $TSFixMe = req.query['skip'] || null;
+            const limit: $TSFixMe = req.query.limit || null;
+            const skip: $TSFixMe = req.query.skip || null;
             const selectProbe: $TSFixMe =
                 'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
             const [probe, count]: $TSFixMe = await Promise.all([

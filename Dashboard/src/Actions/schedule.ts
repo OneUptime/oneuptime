@@ -511,7 +511,7 @@ export function addUsers(
     };
 }
 
-// onCallAlertBox
+// OnCallAlertBox
 
 export const escalationReset: Function = (): void => {
     return {

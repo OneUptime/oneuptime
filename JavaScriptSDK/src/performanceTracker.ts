@@ -22,7 +22,7 @@ class PerformanceTracker {
         trackIncomingRequest = true,
         trackOutgoingRequest = true,
 
-        // express app instance
+        // Express app instance
         app,
     }: $TSFixMe) {
         this.apiUrl = apiUrl;
@@ -43,7 +43,7 @@ class PerformanceTracker {
             const { start, end, store } = perf;
             this.start = start;
             this.end = end;
-            this.store = store(); // returns the store instance
+            this.store = store(); // Returns the store instance
         } else {
             const hrt: $TSFixMe = new HrTimer(
                 this.apiUrl,
@@ -53,7 +53,7 @@ class PerformanceTracker {
             const { start, end, store } = hrt;
             this.start = start;
             this.end = end;
-            this.store = store(); // returns the store instance
+            this.store = store(); // Returns the store instance
         }
 
         if (trackIncomingRequest) {
@@ -63,9 +63,11 @@ class PerformanceTracker {
             this._setUpOutgoingListener();
         }
 
-        // setup process handler here
-        // listen for when the server is killed, terminated, unhandledRejection, or uncaughtException
-        // send response back to our backend
+        /*
+         * Setup process handler here
+         * Listen for when the server is killed, terminated, unhandledRejection, or uncaughtException
+         * Send response back to our backend
+         */
         process.on('SIGINT', this._sendDataOnExit.bind(this));
         process.on('SIGTERM', this._sendDataOnExit.bind(this));
         process.on('SIGHUP', this._sendDataOnExit.bind(this));

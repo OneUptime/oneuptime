@@ -17,7 +17,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const zapierQuery: $TSFixMe = ZapierModel.find(query).sort(sort).lean();
 
         zapierQuery.select(select);
@@ -209,7 +209,7 @@ export default class Service {
                     select: selectIncidentMessage,
                     populate: populateIncidentMessage,
                 });
-                // run in the background
+                // Run in the background
                 RealTimeService.addIncidentNote(incidentMessage);
 
                 incidentNoteArr.push(incidentMessage);
@@ -374,7 +374,7 @@ export default class Service {
                     'warning'
                 );
 
-                // run in the background
+                // Run in the background
                 RealTimeService.sendCreatedIncident(incident);
 
                 let project: $TSFixMe = await ProjectService.findOneBy({
@@ -839,9 +839,11 @@ export default class Service {
                 incidentObj.createdById = incident.createdById
                     ? incident.createdById.name
                     : 'OneUptime';
-                // const monitor: $TSFixMe = await MonitorService.findOneBy({
-                //     _id: incident.monitorId,
-                // });
+                /*
+                 * Const monitor: $TSFixMe = await MonitorService.findOneBy({
+                 *     _id: incident.monitorId,
+                 * });
+                 */
                 incidentObj.monitorName = monitor.name;
                 incidentObj.monitorType = monitor.type;
                 incidentObj.monitorData = monitor.data[monitor.type];

@@ -6,7 +6,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const componentName: string = utils.generateRandomString();
@@ -123,7 +123,7 @@ describe('Monitor API', () => {
 
             await init.pageType(page, '#url', 'https://google.com');
 
-            // change up criterion's name
+            // Change up criterion's name
 
             await init.pageClick(page, '#advanceOptions');
 
@@ -209,7 +209,7 @@ describe('Monitor API', () => {
 
         await init.pageClick(page, '#advanceOptions');
 
-        // add up criterion
+        // Add up criterion
         expect(
             (await init.page$$(page, '[data-testId^=single_criterion_up'))
                 .length
@@ -227,7 +227,7 @@ describe('Monitor API', () => {
                 .length
         ).toEqual(2);
 
-        // add degraded criterion
+        // Add degraded criterion
         expect(
             (
                 await init.page$$(
@@ -253,7 +253,7 @@ describe('Monitor API', () => {
             ).length
         ).toEqual(2);
 
-        // add down criterion
+        // Add down criterion
 
         criterionAdvancedOption = await init.page$(
             page,
@@ -272,7 +272,7 @@ describe('Monitor API', () => {
                 .length
         ).toEqual(2);
 
-        // add the monitor and check if the criteria are persisted
+        // Add the monitor and check if the criteria are persisted
 
         await init.pageClick(page, 'button[type=submit]');
 
@@ -287,7 +287,7 @@ describe('Monitor API', () => {
         await init.pageClick(page, `#edit_${monitorName}`);
 
         await init.pageClick(page, '#advanceOptions');
-        // for up criteria
+        // For up criteria
 
         await init.pageWaitForSelector(
             page,
@@ -298,7 +298,7 @@ describe('Monitor API', () => {
                 .length
         ).toEqual(2);
 
-        // for degraded criteria
+        // For degraded criteria
 
         await init.pageWaitForSelector(
             page,
@@ -312,7 +312,7 @@ describe('Monitor API', () => {
                 )
             ).length
         ).toEqual(2);
-        // for down criteria
+        // For down criteria
 
         await init.pageWaitForSelector(
             page,

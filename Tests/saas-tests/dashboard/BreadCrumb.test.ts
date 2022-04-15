@@ -6,7 +6,7 @@ import init from '../../test-init';
 import 'should';
 
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
@@ -24,7 +24,7 @@ describe('BreadCrumb Component test', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerUser(user, page);
         done();
     });

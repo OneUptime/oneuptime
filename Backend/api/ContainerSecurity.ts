@@ -19,11 +19,13 @@ import ErrorService from 'CommonServer/Utils/error';
 
 const router: $TSFixMe = express.getRouter();
 
-//Route: POST
-//Description: creates a new container security
-//Param: req.params -> {projectId, componentId}
-//Param: req.body -> {name, dockerCredential, imagePath, imageTags}
-//returns: response -> {containerSecurity, error}
+/*
+ * Route: POST
+ * Description: creates a new container security
+ * Param: req.params -> {projectId, componentId}
+ * Param: req.body -> {name, dockerCredential, imagePath, imageTags}
+ * Returns: response -> {containerSecurity, error}
+ */
 router.post(
     '/:projectId/:componentId/container',
     getUser,
@@ -88,11 +90,13 @@ router.post(
     }
 );
 
-//Route: PUT
-//Description: updates a container security
-//Param: req.params -> {projectId, componentId, containerSecurityId}
-//Param: req.body -> {name?, dockerCredential?, imagePath?, imageTags?}
-//returns: response -> {containerSecurity, error}
+/*
+ * Route: PUT
+ * Description: updates a container security
+ * Param: req.params -> {projectId, componentId, containerSecurityId}
+ * Param: req.body -> {name?, dockerCredential?, imagePath?, imageTags?}
+ * Returns: response -> {containerSecurity, error}
+ */
 router.put(
     '/:projectId/:componentId/container/:containerSecurityId',
     getUser,
@@ -153,10 +157,12 @@ router.put(
     }
 );
 
-//Route: GET
-//Description: gets all the container security in a particular component
-//Param: req.params -> {projectId, componentId}
-//returns: response -> {containerSecurities, error}
+/*
+ * Route: GET
+ * Description: gets all the container security in a particular component
+ * Param: req.params -> {projectId, componentId}
+ * Returns: response -> {containerSecurities, error}
+ */
 router.get(
     '/:projectId/:componentId/container',
     getUser,
@@ -194,10 +200,12 @@ router.get(
     }
 );
 
-//Route: GET
-//Description: get a particular container security in a component
-//Param: req.params -> {projectId, componentId, containerSecurityId}
-//returns: response -> {containerSecurity, error}
+/*
+ * Route: GET
+ * Description: get a particular container security in a component
+ * Param: req.params -> {projectId, componentId, containerSecurityId}
+ * Returns: response -> {containerSecurity, error}
+ */
 router.get(
     '/:projectId/:componentId/container/:containerSecurityId',
     getUser,
@@ -236,10 +244,12 @@ router.get(
     }
 );
 
-//Route: GET
-//Description: get a particular container security in a component using containerSecuritySlug
-//Param: req.params -> {projectId, componentId, containerSecuritySlug}
-//returns: response -> {containerSecurity, error}
+/*
+ * Route: GET
+ * Description: get a particular container security in a component using containerSecuritySlug
+ * Param: req.params -> {projectId, componentId, containerSecuritySlug}
+ * Returns: response -> {containerSecurity, error}
+ */
 router.get(
     '/:projectId/:componentId/containerSecuritySlug/:containerSecuritySlug',
     getUser,
@@ -278,10 +288,12 @@ router.get(
     }
 );
 
-//Route: DELETE
-//Description: delete a particular container security in a component
-//Param: req.params -> {projectId, componentId, containerSecurityId}
-//returns: response -> {deletedContainerSecurity, error}
+/*
+ * Route: DELETE
+ * Description: delete a particular container security in a component
+ * Param: req.params -> {projectId, componentId, containerSecurityId}
+ * Returns: response -> {deletedContainerSecurity, error}
+ */
 router.delete(
     '/:projectId/:componentId/container/:containerSecurityId',
     getUser,
@@ -301,10 +313,12 @@ router.delete(
     }
 );
 
-//Route: DELETE
-//Description: delete all container security in a component
-//Param: req.params -> {projectId, componentId, containerSecurityId}
-//returns: response -> {response, error}
+/*
+ * Route: DELETE
+ * Description: delete all container security in a component
+ * Param: req.params -> {projectId, componentId, containerSecurityId}
+ * Returns: response -> {response, error}
+ */
 router.delete(
     '/:projectId/:componentId/container',
     getUser,
@@ -324,10 +338,12 @@ router.delete(
     }
 );
 
-//Route: GET
-//Description: get a particular security with a particular credential
-//Param: req.params -> {projectId, credentialId} credentialId -> docker credential Id
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: GET
+ * Description: get a particular security with a particular credential
+ * Param: req.params -> {projectId, credentialId} credentialId -> docker credential Id
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.get(
     '/:projectId/container/:credentialId',
     getUser,
@@ -358,10 +374,12 @@ router.get(
     }
 );
 
-//Route: POST
-//Description: scan a particular container
-//Params: req.params -> {projectId, containerSecurityId}
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: POST
+ * Description: scan a particular container
+ * Params: req.params -> {projectId, containerSecurityId}
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.post(
     '/:projectId/container/scan/:containerSecurityId',
     getUser,

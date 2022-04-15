@@ -16,9 +16,11 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-// Route Description: Adding / Updating subscriber to the project.
-// req.params->{projectId}; req.body -> {monitorIds, alertVia, contactEmail, contactPhone, }
-// Returns: response status page, error message
+/*
+ * Route Description: Adding / Updating subscriber to the project.
+ * Req.params->{projectId}; req.body -> {monitorIds, alertVia, contactEmail, contactPhone, }
+ * Returns: response status page, error message
+ */
 
 router.post(
     '/:projectId/:statusPageId',
@@ -326,14 +328,16 @@ router.post(
     }
 );
 
-// get subscribers by projectId
-// req.params-> {projectId};
-// Returns: response subscriber, error message
+/*
+ * Get subscribers by projectId
+ * Req.params-> {projectId};
+ * Returns: response subscriber, error message
+ */
 router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const projectId: $TSFixMe = req.params.projectId;
-        const skip: $TSFixMe = req.query['skip'] || 0;
-        const limit: $TSFixMe = req.query['limit'] || 10;
+        const skip: $TSFixMe = req.query.skip || 0;
+        const limit: $TSFixMe = req.query.limit || 10;
         const select: $TSFixMe =
             'monitorId projectId statusPageId alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod notificationType createdAt subscribed';
 
@@ -347,16 +351,18 @@ router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-//get subscribers by monitorId
-// req.params-> {projectId, monitorId};
-// Returns: response subscriber, error message
+/*
+ * Get subscribers by monitorId
+ *  Req.params-> {projectId, monitorId};
+ *  Returns: response subscriber, error message
+ */
 router.get(
     '/:projectId/monitor/:monitorId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const monitorId: $TSFixMe = req.params.monitorId;
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const populate: $TSFixMe = [
                 { path: 'projectId', select: 'name _id' },
                 { path: 'monitorId', select: 'name _id' },
@@ -381,9 +387,11 @@ router.get(
     }
 );
 
-//get monitors by subscriberId
-// req.params-> {subscriberId};
-// Returns: response subscriber, error message
+/*
+ * Get monitors by subscriberId
+ *  Req.params-> {subscriberId};
+ *  Returns: response subscriber, error message
+ */
 router.get(
     '/monitorList/:subscriberId',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -439,9 +447,11 @@ router.get(
     }
 );
 
-//Get a subscriber.
-//req.params-> {projectId, subscriberId}
-// Returns: response subscriber, error message
+/*
+ * Get a subscriber.
+ * Req.params-> {projectId, subscriberId}
+ *  Returns: response subscriber, error message
+ */
 router.get(
     '/:projectId/:subscriberId',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -466,9 +476,11 @@ router.get(
     }
 );
 
-//unsubscribe subscriber.
-//req.params-> {monitorId, subscriberId}
-// Returns: response subscriber, error message
+/*
+ * Unsubscribe subscriber.
+ * Req.params-> {monitorId, subscriberId}
+ *  Returns: response subscriber, error message
+ */
 router.put(
     '/unsubscribe/:monitorId/:email',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -484,9 +496,11 @@ router.put(
         }
     }
 );
-//  delete a subscriber.
-//  req.params-> {projectId, subscriberId}
-//  Returns: response subscriber, error message
+/*
+ *  Delete a subscriber.
+ *  Req.params-> {projectId, subscriberId}
+ *  Returns: response subscriber, error message
+ */
 router.delete(
     '/:projectId/:subscriberId',
     getUser,

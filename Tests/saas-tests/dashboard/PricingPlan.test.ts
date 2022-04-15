@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
@@ -22,7 +22,7 @@ describe('Status Page -> Pricing Plan Component', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerUser(user, page);
     });
 
@@ -50,7 +50,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.pageType(page, '#name', 'test');
 
             await init.pageClick(page, '#btnCreateStatusPage');
-            // select the first item from the table row
+            // Select the first item from the table row
             const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',
@@ -116,7 +116,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             );
 
             if (rowLength === 1) {
-                // check the box
+                // Check the box
                 await page.evaluate(() => {
                     document.querySelector('#alertEnable').click();
                 });
@@ -147,7 +147,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => {
                 return elem.click();
             });
-            // select the first item from the table row
+            // Select the first item from the table row
             const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',
@@ -212,7 +212,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) => {
                 return elem.click();
             });
-            // select the first item from the table row
+            // Select the first item from the table row
             const rowItem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',

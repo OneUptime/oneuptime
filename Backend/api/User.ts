@@ -4,7 +4,7 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
-const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
+const jwtSecretKey: $TSFixMe = process.env.JWT_SECRET;
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 import jwt from 'jsonwebtoken';
@@ -44,10 +44,10 @@ import Ip from '../middlewares/ipHandler';
 router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         if (
-            typeof process.env['DISABLE_SIGNUP'] === 'string' &&
-            process.env['DISABLE_SIGNUP'] === 'true'
+            typeof process.env.DISABLE_SIGNUP === 'string' &&
+            process.env.DISABLE_SIGNUP === 'true'
         ) {
-            // res,and next is skipped in isUserMasterAdmin because we don't want to reject the request.
+            // Res,and next is skipped in isUserMasterAdmin because we don't want to reject the request.
             if (!(await isUserMasterAdmin(req))) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -189,7 +189,7 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                     data.password,
                     constants.saltRounds
                 );
-                // creating jwt refresh token
+                // Creating jwt refresh token
                 const jwtRefreshToken: $TSFixMe = randToken.uid(256);
                 user = await UserService.updateOneBy(
                     { _id: user._id },
@@ -208,7 +208,7 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                 if (!verified) {
                     UserService.sendToken(user, user.email);
                 }
-                // create access token and refresh token.
+                // Create access token and refresh token.
                 const authUserObj: $TSFixMe = {
                     id: user._id,
                     name: user.name,
@@ -269,7 +269,7 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
             // Call the MailService.
             MailService.sendSignupMail(user.email, user.name);
 
-            // create access token and refresh token.
+            // Create access token and refresh token.
             const authUserObj: $TSFixMe = {
                 id: user._id,
                 name: user.name,
@@ -332,11 +332,13 @@ router.get(
     }
 );
 
-// Route
-// Description: SSO login function for  user
-// Params:
-// Param 1: req.query-> {email }
-// Returns: 400: Error; 500: Server Error; 200: redirect to login page
+/*
+ * Route
+ * Description: SSO login function for  user
+ * Params:
+ * Param 1: req.query-> {email }
+ * Returns: 400: Error; 500: Server Error; 200: redirect to login page
+ */
 router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
     const { email }: $TSFixMe = req.query;
     if (!email) {
@@ -405,9 +407,11 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// Route
-// Description: Callback function after SSO authentication page
-// param: query->{domain}
+/*
+ * Route
+ * Description: Callback function after SSO authentication page
+ * Param: query->{domain}
+ */
 router.post(
     '/sso/callback',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -417,7 +421,7 @@ router.post(
             ignore_signature: true,
         };
 
-        // grab the email from the xml response
+        // Grab the email from the xml response
         const email: $TSFixMe = SsoService.getEmail(
             decode(req.body.SAMLResponse)
         );
@@ -573,11 +577,13 @@ router.post(
     }
 );
 
-// Route
-// Description: login function for  user
-// Params:
-// Param 1: req.body-> {email, password }
-// Returns: 400: Error; 500: Server Error; 200: user
+/*
+ * Route
+ * Description: login function for  user
+ * Params:
+ * Param 1: req.body-> {email, password }
+ * Returns: 400: Error; 500: Server Error; 200: user
+ */
 router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data: $TSFixMe = req.body;
@@ -628,7 +634,7 @@ router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
         if (!user._id) {
             authUserObj = { ...user };
         } else {
-            // create access token and refresh token.
+            // Create access token and refresh token.
             authUserObj = {
                 id: user._id,
                 name: user.name,
@@ -654,11 +660,13 @@ router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// Route
-// Description: verify function for  user
-// Params:
-// Param 1: req.body-> {token}
-// Returns: 400: Error; 500: Server Error; 200: user
+/*
+ * Route
+ * Description: verify function for  user
+ * Params:
+ * Param 1: req.body-> {token}
+ * Returns: 400: Error; 500: Server Error; 200: user
+ */
 router.post(
     '/totp/verifyToken',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -684,7 +692,7 @@ router.post(
                 });
             }
 
-            // create access token and refresh token.
+            // Create access token and refresh token.
             const userObj: $TSFixMe = {
                 id: user._id,
                 name: user.name ? user.name : '',
@@ -726,11 +734,13 @@ router.post(
     }
 );
 
-// Route
-// Description: verify function for user backup code.
-// Params:
-// Param 1: req.body-> {code}
-// Returns: 400: Error; 500: Server Error; 200: user
+/*
+ * Route
+ * Description: verify function for user backup code.
+ * Params:
+ * Param 1: req.body-> {code}
+ * Returns: 400: Error; 500: Server Error; 200: user
+ */
 router.post(
     '/verify/backupCode',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -774,7 +784,7 @@ router.post(
                 });
             }
 
-            // create access token and refresh token.
+            // Create access token and refresh token.
             const userObj: $TSFixMe = {
                 id: user._id,
                 name: user.name ? user.name : '',
@@ -816,11 +826,13 @@ router.post(
     }
 );
 
-// Route
-// Description: generate a new set of backup code.
-// Params:
-// None
-// Return: return the new list of backup codes.
+/*
+ * Route
+ * Description: generate a new set of backup code.
+ * Params:
+ * None
+ * Return: return the new list of backup codes.
+ */
 router.post(
     '/generate/backupCode',
     getUser,
@@ -879,11 +891,13 @@ router.post(
     }
 );
 
-// Route
-// Description: generate user secret token for creating QRcode
-// Params:
-// Param 1: req.params-> {userId}
-// Returns: 400: Error; 500: Server Error; 200: user
+/*
+ * Route
+ * Description: generate user secret token for creating QRcode
+ * Params:
+ * Param 1: req.params-> {userId}
+ * Returns: 400: Error; 500: Server Error; 200: user
+ */
 router.post(
     '/totp/token/:userId',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -914,11 +928,13 @@ router.post(
     }
 );
 
-// Route
-// Description: forgot password function for  user
-// Params:
-// Param 1: req.body-> {email}; req.headers-> {host}
-// Returns: 400: Error; 500: Server Error: 200: User password has been reset successfully.
+/*
+ * Route
+ * Description: forgot password function for  user
+ * Params:
+ * Param 1: req.body-> {email}; req.headers-> {host}
+ * Returns: 400: Error; 500: Server Error: 200: User password has been reset successfully.
+ */
 
 router.post(
     '/forgot-password',
@@ -956,11 +972,13 @@ router.post(
     }
 );
 
-// Route
-// Description: reset password function for user
-// Params:
-// Param 1: req.body-> {password}; req.params-> {token}
-// Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
+/*
+ * Route
+ * Description: reset password function for user
+ * Params:
+ * Param 1: req.body-> {password}; req.params-> {token}
+ * Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
+ */
 router.post(
     '/reset-password',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -1018,11 +1036,13 @@ router.post(
     }
 );
 
-// Route
-// Description: login function for  user
-// Params:
-// Param 1: req.body-> {email, password }
-// Returns: 400: Error; 500: Server Error; 200: user
+/*
+ * Route
+ * Description: login function for  user
+ * Params:
+ * Param 1: req.body-> {email, password }
+ * Returns: 400: Error; 500: Server Error; 200: user
+ */
 router.post('/isInvited', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data: $TSFixMe = req.body;
@@ -1054,7 +1074,7 @@ router.post(
     '/isAuthenticated',
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        // request will get here if user is authenticated.
+        // Request will get here if user is authenticated.
 
         return sendItemResponse(req, res, {
             authenticated: true,
@@ -1063,11 +1083,13 @@ router.post(
     }
 );
 
-// Route
-// Description: Updating profile setting.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
-// Returns: 200: Success, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Updating profile setting.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
+ * Returns: 200: Success, 400: Error; 500: Server Error.
+ */
 router.put(
     '/profile',
     getUser,
@@ -1123,11 +1145,13 @@ router.put(
     }
 );
 
-// Route
-// Description: Turns on or off Push Notification
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id};
-// Returns: 200: Success, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Turns on or off Push Notification
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id};
+ * Returns: 200: Success, 400: Error; 500: Server Error.
+ */
 router.put(
     '/push-notification',
     getUser,
@@ -1146,11 +1170,13 @@ router.put(
     }
 );
 
-// Route
-// Description: Turns on or off 2FA.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id};
-// Returns: 200: Success, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Turns on or off 2FA.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id};
+ * Returns: 200: Success, 400: Error; 500: Server Error.
+ */
 router.put(
     '/:userId/2fa',
     isUserMasterAdmin,
@@ -1224,11 +1250,13 @@ router.put(
     }
 );
 
-// Route
-// Description: Updating change password setting.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic}; req.data- {currentPassword, newPassword, confirmPassword}
-// Returns: 200: Success, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Updating change password setting.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic}; req.data- {currentPassword, newPassword, confirmPassword}
+ * Returns: 200: Success, 400: Error; 500: Server Error.
+ */
 router.put(
     '/changePassword',
     getUser,
@@ -1320,11 +1348,13 @@ router.put(
     }
 );
 
-// Route
-// Description: Get Previous User Settings.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id};
-// Returns: 200: Success, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Get Previous User Settings.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id};
+ * Returns: 200: Success, 400: Error; 500: Server Error.
+ */
 router.get(
     '/profile',
     getUser,
@@ -1500,8 +1530,8 @@ router.get(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const [users, count]: $TSFixMe = await Promise.all([
                 UserService.getAllUsers(skip, limit),
                 UserService.countBy({
@@ -1651,11 +1681,13 @@ router.put(
     }
 );
 
-// Route
-// Description: Switch user account to admin mode.
-// Params:
-// Param 1: req.body-> {temporaryPassword}; req.headers-> {authorization}; req.user-> {id};
-// Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+/*
+ * Route
+ * Description: Switch user account to admin mode.
+ * Params:
+ * Param 1: req.body-> {temporaryPassword}; req.headers-> {authorization}; req.user-> {id};
+ * Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+ */
 router.post(
     '/:userId/switchToAdminMode',
     getUser,
@@ -1685,11 +1717,13 @@ router.post(
     }
 );
 
-// Route
-// Description: Switch off admin mode for user account
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id};
-// Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+/*
+ * Route
+ * Description: Switch off admin mode for user account
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id};
+ * Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+ */
 router.post(
     '/:userId/exitAdminMode',
     getUser,
@@ -1777,8 +1811,8 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const filter: $TSFixMe = req.body.filter;
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const [users, count]: $TSFixMe = await Promise.all([
                 UserService.searchUsers(
                     {
@@ -1822,11 +1856,13 @@ router.post(
     }
 );
 
-// Route
-// Description: Delete user account.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id};
-// Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+/*
+ * Route
+ * Description: Delete user account.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id};
+ * Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+ */
 router.delete(
     '/:userId/delete',
     getUser,

@@ -26,7 +26,7 @@ export const FETCH_EMAILLOG_STATUS_REQUEST: string =
 export const FETCH_EMAILLOG_STATUS_RESET: string =
     'FETCH_EMAILLOG_STATUS_RESET';
 
-// change Email log status
+// Change Email log status
 export const CHANGE_EMAILLOG_STATUS_SUCCESS: string =
     'CHANGE_EMAILLOG_STATUS_SUCCESS';
 export const CHANGE_EMAILLOG_STATUS_FAILED: string =

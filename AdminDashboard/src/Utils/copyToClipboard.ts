@@ -8,13 +8,15 @@ export default function (text: $TSFixMe): void {
     const el: $TSFixMe = document.createElement('textarea');
     el.value = text;
 
-    /* make it readonly and hidden from the display */
+    /* Make it readonly and hidden from the display */
     el.setAttribute('readonly', '');
     el.style.display = 'hidden';
     document.body.appendChild(el);
 
-    // Check if there is any content selected previously
-    // Store selection if found
+    /*
+     * Check if there is any content selected previously
+     * Store selection if found
+     */
     const selected: $TSFixMe =
         document.getSelection().rangeCount > 0
             ? document.getSelection().getRangeAt(0)
@@ -26,9 +28,11 @@ export default function (text: $TSFixMe): void {
     document.execCommand('copy');
     document.body.removeChild(el);
 
-    /* If a selection existed before copying;
-    Unselect everything on the HTML document;
-    Restore the original selection */
+    /*
+     * If a selection existed before copying;
+     * Unselect everything on the HTML document;
+     * Restore the original selection
+     */
     if (selected) {
         document.getSelection().removeAllRanges();
 

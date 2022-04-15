@@ -61,7 +61,7 @@ router.get(
                         return { id: resp._id, name: resp.name };
                     });
                 }
-                return sendItemResponse(req, res, monitors); //zapier expects this as an item response and not a list response.
+                return sendItemResponse(req, res, monitors); //Zapier expects this as an item response and not a list response.
             } else {
                 return sendItemResponse(req, res, []);
             }
@@ -97,7 +97,7 @@ router.get(
             const incidents: $TSFixMe = await ZapierService.getIncidents(
                 projectId
             );
-            // zapier expects this as an item response and not a list response.
+            // Zapier expects this as an item response and not a list response.
             return sendItemResponse(req, res, incidents);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -115,7 +115,7 @@ router.get(
             const incidents: $TSFixMe = await ZapierService.getIncidentsNotes(
                 projectId
             );
-            // zapier expects this as an item response and not a list response.
+            // Zapier expects this as an item response and not a list response.
             return sendItemResponse(req, res, incidents);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -147,7 +147,7 @@ router.get(
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
             const incidents: $TSFixMe =
                 await ZapierService.getResolvedIncidents(projectId);
-            // zapier expects this as an item response and not a list response.
+            // Zapier expects this as an item response and not a list response.
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
             } else {
@@ -188,7 +188,7 @@ router.post(
             const incidents: $TSFixMe = await ZapierService.resolveAllIncidents(
                 monitors
             );
-            // zapier expects this as an item response and not a list response.;
+            // Zapier expects this as an item response and not a list response.;
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
             } else {
@@ -208,7 +208,7 @@ router.post(
             const incidents: $TSFixMe = req.body.incidents || [];
             const resolvedIncidents: $TSFixMe =
                 await ZapierService.resolveIncident(incidents);
-            // zapier expects this as an item response and not a list response.
+            // Zapier expects this as an item response and not a list response.
             if (resolvedIncidents) {
                 return sendItemResponse(req, res, resolvedIncidents);
             } else {
@@ -234,7 +234,7 @@ router.get(
                     true,
                     false
                 );
-            // zapier expects this as an item response and not a list response.
+            // Zapier expects this as an item response and not a list response.
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
             } else {
@@ -273,7 +273,7 @@ router.post(
             const monitors: $TSFixMe = req.body.monitors || [];
             const incidents: $TSFixMe =
                 await ZapierService.acknowledgeAllIncidents(monitors);
-            // zapier expects this as an item response and not a list response.;
+            // Zapier expects this as an item response and not a list response.;
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
             } else {
@@ -293,7 +293,7 @@ router.post(
             const incidents: $TSFixMe = req.body.incidents || [];
             const acknowledgedIncidents: $TSFixMe =
                 await ZapierService.acknowledgeIncident(incidents);
-            // zapier expects this as an item response and not a list response.
+            // Zapier expects this as an item response and not a list response.
             if (acknowledgedIncidents) {
                 return sendItemResponse(req, res, acknowledgedIncidents);
             } else {

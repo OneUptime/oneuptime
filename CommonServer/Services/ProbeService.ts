@@ -91,7 +91,7 @@ class Service extends DatabaseService<typeof Model> {
         });
         if (probe) {
             delete probe.deleted;
-            // run in the background
+            // Run in the background
             RealTimeService.updateProbe(probe, monitorId);
         }
     }
@@ -133,7 +133,7 @@ class Service extends DatabaseService<typeof Model> {
             await MonitorService.updateMonitorPingTime(data.monitorId);
         }
 
-        // grab all the criteria in a monitor
+        // Grab all the criteria in a monitor
 
         const allCriteria: $TSFixMe = [];
         if (data.matchedUpCriterion) {
@@ -153,11 +153,13 @@ class Service extends DatabaseService<typeof Model> {
         }
 
         if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
-            // check if monitor has a previous status
-            // check if previous status is different from the current status
-            // if different, resolve last incident, create a new incident and monitor status
+            /*
+             * Check if monitor has a previous status
+             * Check if previous status is different from the current status
+             * If different, resolve last incident, create a new incident and monitor status
+             */
             if (lastStatus) {
-                // check 3 times just to make sure
+                // Check 3 times just to make sure
                 if (
                     typeof data.retry === 'boolean' &&
                     data.retryCount >= 0 &&
@@ -192,7 +194,7 @@ class Service extends DatabaseService<typeof Model> {
                 );
             }
         } else {
-            // should make sure all unresolved incidents for the monitor is resolved
+            // Should make sure all unresolved incidents for the monitor is resolved
             if (data.status === 'online') {
                 await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
@@ -542,7 +544,7 @@ class Service extends DatabaseService<typeof Model> {
                 }
             }
         }
-        // incidentIds = await Promise.all(incidentIds);
+        // IncidentIds = await Promise.all(incidentIds);
         incidentIds = incidentIds.map((i: $TSFixMe) => {
             return i._id;
         });
@@ -575,9 +577,11 @@ class Service extends DatabaseService<typeof Model> {
             select: 'type',
         });
 
-        // should grab all the criterion for the monitor and put them into one array
-        // check the id of each criteria against the id of criteria attached to an incident
-        // ack / resolve according to the criteria
+        /*
+         * Should grab all the criterion for the monitor and put them into one array
+         * Check the id of each criteria against the id of criteria attached to an incident
+         * Ack / resolve according to the criteria
+         */
 
         let autoAcknowledge: $TSFixMe, autoResolve: $TSFixMe;
         if (incidents && incidents.length > 0) {
@@ -608,8 +612,10 @@ class Service extends DatabaseService<typeof Model> {
         const incidentsV2: $TSFixMe = [];
 
         if (incidents && incidents.length) {
-            // is this check needed at all??
-            // if (lastStatus && lastStatus !== data.status) {
+            /*
+             * Is this check needed at all??
+             * If (lastStatus && lastStatus !== data.status) {
+             */
 
             incidents.forEach((incident: $TSFixMe) => {
                 if (
@@ -1079,7 +1085,7 @@ class Service extends DatabaseService<typeof Model> {
             monitor && monitor.criteria && monitor.criteria.down;
         logData.matchedDegradedCriterion =
             monitor && monitor.criteria && monitor.criteria.degraded;
-        // update monitor to save the last matched criterion
+        // Update monitor to save the last matched criterion
 
         const [, log]: $TSFixMe = await Promise.all([
             MonitorService.updateCriterion(monitor._id, matchedCriterion),
@@ -1199,7 +1205,7 @@ class Service extends DatabaseService<typeof Model> {
 
         logData.matchedCriterion = matchedCriterion;
 
-        // update monitor to save the last matched criterion
+        // Update monitor to save the last matched criterion
         const [, log]: $TSFixMe = await Promise.all([
             MonitorService.updateCriterion(monitor._id, matchedCriterion),
 
@@ -1231,7 +1237,7 @@ const incomingCheckAnd: Function = (
                     condition.criteria[i].condition &&
                     condition.criteria[i].condition === 'and'
                 ) {
-                    // incoming check and
+                    // Incoming check and
                     const tempAnd: $TSFixMe = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
@@ -1244,7 +1250,7 @@ const incomingCheckAnd: Function = (
                     condition.criteria[i].condition &&
                     condition.criteria[i].condition === 'or'
                 ) {
-                    // incoming check or
+                    // Incoming check or
                     const tempOr: $TSFixMe = incomingCheckOr(
                         payload,
                         condition.criteria[i]
@@ -1384,7 +1390,7 @@ const incomingCheckOr: Function = (
                     condition.criteria[i].condition &&
                     condition.criteria[i].condition === 'or'
                 ) {
-                    // incoming check or
+                    // Incoming check or
                     const tempor: $TSFixMe = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
@@ -1553,7 +1559,7 @@ const checkAnd: Function = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'and'
                 ) {
-                    // check and again
+                    // Check and again
 
                     const temp: $TSFixMe = checkAnd(
                         payload,
@@ -1576,7 +1582,7 @@ const checkAnd: Function = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'or'
                 ) {
-                    // check or again
+                    // Check or again
 
                     const temp1: $TSFixMe = checkOr(
                         payload,
@@ -3337,7 +3343,7 @@ const checkAnd: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'jsExpression'
                     ) {
-                        const ctx: $TSFixMe = Object.create(null); // fix against prototype vulnerability
+                        const ctx: $TSFixMe = Object.create(null); // Fix against prototype vulnerability
                         ctx.request = { body };
                         const output: $TSFixMe = vm.runInNewContext(
                             con.criteria[i].field1,
@@ -3932,7 +3938,7 @@ const checkOr: Function = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'or'
                 ) {
-                    // check or again
+                    // Check or again
 
                     const temp1: $TSFixMe = checkOr(
                         payload,
@@ -5610,7 +5616,7 @@ const checkOr: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'jsExpression'
                     ) {
-                        const ctx: $TSFixMe = Object.create(null); // fix against prototype vulnerability
+                        const ctx: $TSFixMe = Object.create(null); // Fix against prototype vulnerability
                         ctx.request = { body };
                         const output: $TSFixMe = vm.runInNewContext(
                             con.criteria[i].field1,
@@ -6161,7 +6167,7 @@ const checkOr: Function = (
 };
 
 /**
- * verifies if a specific script condition satisfies
+ * Verifies if a specific script condition satisfies
  * @param {'and' | 'or'} conditionLogic
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
@@ -6183,8 +6189,10 @@ const checkScriptCondition: Function = (
     }
 
     if (condition.responseType === 'scriptExecution') {
-        // we need a catch-all for server-defined
-        // script timeout errors or terminated scripts
+        /*
+         * We need a catch-all for server-defined
+         * Script timeout errors or terminated scripts
+         */
         if (body.statusText === 'timeout') {
             validity.valid = false;
 
@@ -6260,7 +6268,7 @@ const checkScriptCondition: Function = (
             }
         }
     } else {
-        // if for some strange reason
+        // If for some strange reason
         return;
     }
 
@@ -6284,7 +6292,7 @@ const checkScriptAnd: Function = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'and'
                 ) {
-                    // check script and
+                    // Check script and
                     const subConditionValid: $TSFixMe = checkScriptAnd(
                         con.criteria[i],
                         body,
@@ -6298,7 +6306,7 @@ const checkScriptAnd: Function = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'or'
                 ) {
-                    // check script or
+                    // Check script or
                     const subConditionValid: $TSFixMe = checkScriptOr(
                         con.criteria[i],
                         body,
@@ -6347,7 +6355,7 @@ const checkScriptOr: Function = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'or'
                 ) {
-                    // check script or
+                    // Check script or
                     const subConditionValid: $TSFixMe = checkScriptOr(
                         con.criteria[i],
                         body,
@@ -6361,7 +6369,7 @@ const checkScriptOr: Function = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'and'
                 ) {
-                    // check script and
+                    // Check script and
                     const subConditionValid: $TSFixMe = checkScriptAnd(
                         con.criteria[i],
                         body,

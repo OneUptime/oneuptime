@@ -173,7 +173,7 @@ export const deleteEmailLogs: $TSFixMe = () => {
     };
 };
 
-// fetch emailLogStatus
+// Fetch emailLogStatus
 
 export const fetchEmailLogStatusRequest: Function = (
     promise: $TSFixMe
@@ -237,7 +237,7 @@ export const fetchEmailLogStatus: $TSFixMe = () => {
     };
 };
 
-// change emailLogStatus
+// Change emailLogStatus
 
 export const changeEmailLogStatusRequest: Function = (
     promise: $TSFixMe

@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
@@ -42,8 +42,10 @@ describe('Enterprise Monitor API', () => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
 
-            // Create Component first
-            // Redirects automatically component to details page
+            /*
+             * Create Component first
+             * Redirects automatically component to details page
+             */
             await init.addComponent(componentName, page);
 
             await init.pageWaitForSelector(page, '#form-new-monitor', {

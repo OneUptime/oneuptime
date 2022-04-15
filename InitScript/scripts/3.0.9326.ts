@@ -3,7 +3,7 @@ import { find, update } from '../util/db';
 const projectCollection: string = 'projects';
 
 async function run(): void {
-    // all main projects
+    // All main projects
     const adminUser: $TSFixMe = await find('users', {
         role: 'master-admin',
         deleted: false,
@@ -65,7 +65,7 @@ async function run(): void {
             return user.userId;
         });
 
-        // all subProjects
+        // All subProjects
         const subProjects: $TSFixMe = await find(projectCollection, {
             parentProjectId: String(project._id.toString()),
         });

@@ -114,7 +114,7 @@ export default {
     },
     getCountryType: function (phoneNumber: $TSFixMe): void {
         if (phoneNumber.startsWith('+1') || phoneNumber.startsWith('+44')) {
-            //return us for canadian,us and uk numbers
+            //Return us for canadian,us and uk numbers
             return 'us';
         } else if (
             phoneNumber.startsWith('+53') ||

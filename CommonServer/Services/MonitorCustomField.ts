@@ -10,7 +10,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const customFieldQuery: $TSFixMe = MonitorCustomFieldModel.findOne(
             query
         )
@@ -49,8 +49,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         let customField: $TSFixMe =
@@ -111,7 +111,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const customFieldsQuery: $TSFixMe = MonitorCustomFieldModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -130,7 +130,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await MonitorCustomFieldModel.countDocuments(
             query
         );
@@ -164,8 +164,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedCustomField: $TSFixMe =
             await MonitorCustomFieldModel.updateMany(query, {

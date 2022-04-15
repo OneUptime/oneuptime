@@ -2,17 +2,17 @@ import Express, { ExpressRequest, ExpressResponse } from '../Utils/Express';
 
 const router: $TSFixMe = Express.getRouter();
 
-// general status
+// General status
 router.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
     res.send({ status: 'ok' });
 });
 
-//healthy probe
+//Healthy probe
 router.get('/status/healthy', (_req: ExpressRequest, res: ExpressResponse) => {
     res.send({ status: 'healthy' });
 });
 
-//liveness probe
+//Liveness probe
 router.get('/status/live', (_req: ExpressRequest, res: ExpressResponse) => {
     res.send({ status: 'live' });
 });

@@ -36,7 +36,7 @@ export default class Service {
             throw error;
         }
 
-        // reassign data.monitors with a restructured monitor data
+        // Reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map((monitor: $TSFixMe) => {
             return {
                 monitorId: monitor,
@@ -73,7 +73,7 @@ export default class Service {
             select,
             populate,
         });
-        // add note when a scheduled event is created
+        // Add note when a scheduled event is created
 
         await ScheduledEventNoteService.create({
             content: scheduledEvent.description,
@@ -89,7 +89,7 @@ export default class Service {
 
         const startTime: $TSFixMe = moment(scheduledEvent.startDate);
         if (startTime <= currentTime) {
-            //set monitoring state of the monitor
+            //Set monitoring state of the monitor
             if (!data.monitorDuringEvent) {
                 if (data.monitors && data.monitors.length > 0) {
                     await MonitorService.markMonitorsAsShouldNotMonitor(
@@ -120,7 +120,7 @@ export default class Service {
 
         const endTime: $TSFixMe = moment(scheduledEvent.endDate);
         if (endTime <= currentTime) {
-            // revert monitor to monitoring state
+            // Revert monitor to monitoring state
             if (!data.monitorDuringEvent) {
                 await MonitorService.markMonitorsAsShouldMonitor(
                     data.monitors.map((i: $TSFixMe) => {
@@ -138,7 +138,7 @@ export default class Service {
         }
 
         if (scheduledEvent.alertSubscriber) {
-            // handle this asynchronous operation in the background
+            // Handle this asynchronous operation in the background
             AlertService.sendCreatedScheduledEventToSubscribers(
                 scheduledEvent
             ).catch((error: Error) => {
@@ -150,7 +150,7 @@ export default class Service {
         }
 
         if (!recurring) {
-            // run in the background
+            // Run in the background
             RealTimeService.addScheduledEvent(scheduledEvent);
         }
         return scheduledEvent;
@@ -161,8 +161,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         if (!data.monitors || data.monitors.length === 0) {
@@ -183,7 +183,7 @@ export default class Service {
             throw error;
         }
 
-        // reassign data.monitors with a restructured monitor data
+        // Reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map((monitor: $TSFixMe) => {
             return {
                 monitorId: monitor,
@@ -247,7 +247,7 @@ export default class Service {
             throw error;
         }
 
-        // run in the background
+        // Run in the background
         RealTimeService.updateScheduledEvent(updatedScheduledEvent);
 
         return updatedScheduledEvent;
@@ -258,8 +258,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await ScheduledEventModel.updateMany(
             query,
@@ -320,7 +320,7 @@ export default class Service {
             throw error;
         }
 
-        // run in the background
+        // Run in the background
         RealTimeService.deleteScheduledEvent(scheduledEvent);
 
         return scheduledEvent;
@@ -354,7 +354,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const scheduledEventQuery: $TSFixMe = ScheduledEventModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -374,7 +374,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const scheduledEventQuery: $TSFixMe = ScheduledEventModel.findOne(query)
             .sort(sort)
             .lean();
@@ -511,7 +511,7 @@ export default class Service {
 
         await Promise.all(
             scheduledEvents.map(async (event: $TSFixMe) => {
-                // remove the monitor from scheduled event monitors list
+                // Remove the monitor from scheduled event monitors list
                 event.monitors = event.monitors.filter((monitor: $TSFixMe) => {
                     return String(monitor.monitorId._id) !== String(monitorId);
                 });
@@ -532,7 +532,7 @@ export default class Service {
 
                     RealTimeService.updateScheduledEvent(updatedEvent);
                 } else {
-                    // delete the scheduled event when no monitor is remaining
+                    // Delete the scheduled event when no monitor is remaining
                     let deletedEvent: $TSFixMe =
                         await ScheduledEventModel.findOneAndUpdate(
                             { _id: event._id },
@@ -636,7 +636,7 @@ export default class Service {
             postObj.monitors = monitors;
             this.create({ projectId }, postObj, true);
         }
-        // populate the necessary data
+        // Populate the necessary data
         const populate: $TSFixMe = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -659,8 +659,10 @@ export default class Service {
             populate,
         });
 
-        // add note automatically
-        // when a scheduled event is resolved
+        /*
+         * Add note automatically
+         * When a scheduled event is resolved
+         */
 
         await ScheduledEventNoteService.create({
             content: 'This scheduled event has been resolved',
@@ -671,7 +673,7 @@ export default class Service {
         });
 
         if (resolvedScheduledEvent.alertSubscriber) {
-            // handle this asynchronous operation in the background
+            // Handle this asynchronous operation in the background
             AlertService.sendResolvedScheduledEventToSubscribers(
                 resolvedScheduledEvent
             ).catch((error: Error) => {
@@ -682,8 +684,10 @@ export default class Service {
             });
         }
 
-        // realtime update
-        // run in the background
+        /*
+         * Realtime update
+         * Run in the background
+         */
         RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
 
         return resolvedScheduledEvent;
@@ -694,7 +698,7 @@ export default class Service {
     public async createScheduledEventStartedNote(): void {
         const currentTime: $TSFixMe = moment();
 
-        //fetch events that have started
+        //Fetch events that have started
         const scheduledEventList: $TSFixMe = await this.findBy({
             query: {
                 startDate: { $lte: currentTime },
@@ -710,7 +714,7 @@ export default class Service {
         scheduledEventList.map(async (scheduledEvent: $TSFixMe) => {
             const scheduledEventId: $TSFixMe = scheduledEvent._id;
 
-            // set monitoring status of the monitor
+            // Set monitoring status of the monitor
             if (!scheduledEvent.monitorDuringEvent) {
                 if (
                     scheduledEvent.monitors &&
@@ -754,7 +758,7 @@ export default class Service {
     public async createScheduledEventEndedNote(): void {
         const currentTime: $TSFixMe = moment();
 
-        //fetch events that have ended
+        //Fetch events that have ended
         const scheduledEventList: $TSFixMe = await this.findBy({
             query: {
                 endDate: { $lte: currentTime },
@@ -768,7 +772,7 @@ export default class Service {
         scheduledEventList.map(async (scheduledEvent: $TSFixMe) => {
             const scheduledEventId: $TSFixMe = scheduledEvent._id;
 
-            // revert monitor back to monitoring state
+            // Revert monitor back to monitoring state
             if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
                 if (
                     scheduledEvent.monitors &&

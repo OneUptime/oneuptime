@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -65,7 +65,7 @@ describe('Log Containers', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(applicationLogName);
 
-            // find the log api key button which appears only on the details page
+            // Find the log api key button which appears only on the details page
 
             const logKeyElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -114,13 +114,13 @@ describe('Log Containers', () => {
                 applicationLogName,
                 page
             );
-            // open modal
+            // Open modal
 
             await init.pageWaitForSelector(page, `#key_${applicationLogName}`);
 
             await init.pageClick(page, `#key_${applicationLogName}`);
 
-            // click show applicaion log key
+            // Click show applicaion log key
 
             await init.pageWaitForSelector(
                 page,
@@ -132,7 +132,7 @@ describe('Log Containers', () => {
                 `#show_application_log_key_${applicationLogName}`
             );
 
-            // get log container key
+            // Get log container key
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -142,7 +142,7 @@ describe('Log Containers', () => {
             applicationLogKey = await spanElement.jsonValue();
             expect(spanElement).toBeDefined();
 
-            // click cancel
+            // Click cancel
 
             await init.pageWaitForSelector(
                 page,
@@ -172,7 +172,7 @@ describe('Log Containers', () => {
 
             await init.pageClick(page, `#key_${applicationLogName}`);
 
-            // click show applicaion log key
+            // Click show applicaion log key
 
             await init.pageWaitForSelector(
                 page,
@@ -190,7 +190,7 @@ describe('Log Containers', () => {
             );
             expect(spanElement).toBeDefined();
 
-            // find the eye icon to hide log container key
+            // Find the eye icon to hide log container key
 
             await init.pageWaitForSelector(
                 page,
@@ -224,13 +224,13 @@ describe('Log Containers', () => {
                 applicationLogName,
                 page
             );
-            // open modal
+            // Open modal
 
             await init.pageWaitForSelector(page, `#key_${applicationLogName}`);
 
             await init.pageClick(page, `#key_${applicationLogName}`);
 
-            // click show applicaion log key
+            // Click show applicaion log key
 
             await init.pageWaitForSelector(
                 page,
@@ -242,7 +242,7 @@ describe('Log Containers', () => {
                 `#show_application_log_key_${applicationLogName}`
             );
 
-            // get log container key
+            // Get log container key
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -251,7 +251,7 @@ describe('Log Containers', () => {
             spanElement = await spanElement.getProperty('innerText');
             applicationLogKey = await spanElement.jsonValue();
 
-            // click reset key
+            // Click reset key
 
             await init.pageWaitForSelector(
                 page,
@@ -263,7 +263,7 @@ describe('Log Containers', () => {
                 `#reset_application_log_key_${applicationLogName}`
             );
 
-            // click confirm reset key
+            // Click confirm reset key
 
             await init.pageWaitForSelector(
                 page,
@@ -280,13 +280,13 @@ describe('Log Containers', () => {
                 { hidden: true }
             );
 
-            // open modal
+            // Open modal
 
             await init.pageWaitForSelector(page, `#key_${applicationLogName}`);
 
             await init.pageClick(page, `#key_${applicationLogName}`);
 
-            // click show applicaion log key
+            // Click show applicaion log key
 
             await init.pageWaitForSelector(
                 page,
@@ -298,7 +298,7 @@ describe('Log Containers', () => {
                 `#show_application_log_key_${applicationLogName}`
             );
 
-            // get log container key
+            // Get log container key
 
             spanElement = await init.pageWaitForSelector(
                 page,
@@ -360,7 +360,7 @@ describe('Log Containers', () => {
         'Should update category for created log container',
         async (done: $TSFixMe) => {
             const categoryName: string = 'Another-Category';
-            // create a new resource category
+            // Create a new resource category
             await init.addResourceCategory(categoryName, page);
 
             await init.navigateToApplicationLogDetails(
@@ -378,7 +378,7 @@ describe('Log Containers', () => {
             // Fill and submit edit Application  log form
 
             await init.pageWaitForSelector(page, '#form-new-application-log');
-            // change category here
+            // Change category here
             await init.selectDropdownValue(
                 '#resourceCategory',
                 categoryName,
@@ -397,7 +397,7 @@ describe('Log Containers', () => {
                     timeout: init.timeout,
                 }
             );
-            // confirm the new category shows in the details page.
+            // Confirm the new category shows in the details page.
             let spanElement: $TSFixMe = await page.$(
                 `#${applicationLogName}NewBadge`
             );
@@ -415,7 +415,7 @@ describe('Log Containers', () => {
         async (done: $TSFixMe) => {
             const categoryName: string = 'Another-Category';
 
-            // confirm the application log has a category
+            // Confirm the application log has a category
             await init.navigateToApplicationLogDetails(
                 componentName,
                 `${applicationLogName}New`,
@@ -429,7 +429,7 @@ describe('Log Containers', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
 
-            // delete the category
+            // Delete the category
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -454,7 +454,7 @@ describe('Log Containers', () => {
 
             await init.pageClick(page, '#deleteResourceCategory');
 
-            // go back to log details and confirm it is not there anymore
+            // Go back to log details and confirm it is not there anymore
             const spanElementBadge: $TSFixMe = await page.$(
                 `#${applicationLogName}NewBadge`,
                 { hidden: true }

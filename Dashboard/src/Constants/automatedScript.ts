@@ -15,7 +15,7 @@ export const CREATE_AUTOMATED_SCRIPT_REQUEST: $TSFixMe =
     'CREATE_AUTOMATED_SCRIPT_REQUEST';
 export const RESET_AUTOMATED_SCRIPT: string = 'RESET_AUTOMATED_SCRIPT';
 
-//fetch Individual script
+//Fetch Individual script
 export const FETCH_SINGLE_SCRIPT_SUCCESS: string =
     'FETCH_SINGLE_SCRIPT_SUCCESS';
 export const FETCH_SINGLE_SCRIPT_REQUEST: string =

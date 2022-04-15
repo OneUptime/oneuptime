@@ -1,9 +1,11 @@
 import { User } from '../../config';
 
-// Description: Will render the component is the current user in the subproject is admin.
-// Params
-// params 1: props
-// returns JSX.Element or NULL
+/*
+ * Description: Will render the component is the current user in the subproject is admin.
+ * Params
+ * Params 1: props
+ * Returns JSX.Element or NULL
+ */
 export default function IsMemberSubProject(subProject: $TSFixMe): void {
     const userId: $TSFixMe = User.getUserId();
     if (

@@ -23,8 +23,8 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const query: $TSFixMe = {};
-            const skip: $TSFixMe = req.query['skip'];
-            const limit: $TSFixMe = req.query['limit'];
+            const skip: $TSFixMe = req.query.skip;
+            const limit: $TSFixMe = req.query.limit;
 
             const populateAuditLog: $TSFixMe = [
                 { path: 'userId', select: 'name' },
@@ -58,8 +58,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const filter: $TSFixMe = req.body.filter;
-            const skip: $TSFixMe = req.query['skip'];
-            const limit: $TSFixMe = req.query['limit'];
+            const skip: $TSFixMe = req.query.skip;
+            const limit: $TSFixMe = req.query.limit;
 
             const { searchedAuditLogs, totalSearchCount }: $TSFixMe =
                 await AuditLogsService.search({ filter, skip, limit });

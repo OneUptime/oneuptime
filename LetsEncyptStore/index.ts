@@ -1,8 +1,10 @@
 import axios from 'axios';
-const BASE_URL: string = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}`;
+const BASE_URL: string = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
-// make api call to designated endpoints
-// to make the necessary updates to the db
+/*
+ * Make api call to designated endpoints
+ * To make the necessary updates to the db
+ */
 module.exports.create = function (config: $TSFixMe): void {
     const store: $TSFixMe = {};
 

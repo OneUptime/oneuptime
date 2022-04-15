@@ -287,7 +287,7 @@ export const userUpdateRole: Function = (
     };
 };
 
-//userlist pagination
+//Userlist pagination
 export const paginateNext: Function = (): void => {
     return {
         type: types.PAGINATE_USERS_NEXT,

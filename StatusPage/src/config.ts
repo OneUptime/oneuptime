@@ -34,7 +34,7 @@ if (
     const ONEUPTIME_HOST: $TSFixMe = env('ONEUPTIME_HOST').replace(
         /(http:\/\/|https:\/\/)/,
         ''
-    ); // remove any protocol that might have been added
+    ); // Remove any protocol that might have been added
     apiUrl = protocol + `//${ONEUPTIME_HOST}/api`;
     dashboardUrl = protocol + `//${ONEUPTIME_HOST}/dashboard`;
     accountsUrl = protocol + `//${ONEUPTIME_HOST}/accounts`;
@@ -285,7 +285,7 @@ export const handleResources: Function = (
     }
 
     const announcementMonitors: $TSFixMe = [];
-    // populate the ids of the announcement monitors in an array
+    // Populate the ids of the announcement monitors in an array
     announcement &&
         announcement.monitors &&
         announcement.monitors.map((monitor: $TSFixMe) => {
@@ -302,8 +302,10 @@ export const handleResources: Function = (
         }
         return monitor;
     });
-    // check if the length of monitors on status page equals the monitor count
-    // if they are equal then all the monitors in status page is in a particular scheduled event
+    /*
+     * Check if the length of monitors on status page equals the monitor count
+     * If they are equal then all the monitors in status page is in a particular scheduled event
+     */
     if (monitorCount === monitorState.length) {
         return 'All resources are affected';
     } else {

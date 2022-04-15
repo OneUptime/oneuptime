@@ -64,7 +64,7 @@ class BaseAction {
         };
 
         if (this.actionType === 'list') {
-            //add pagination actions.
+            //Add pagination actions.
 
             constants.paginateNext =
                 this.actionType.toUpperCase() +

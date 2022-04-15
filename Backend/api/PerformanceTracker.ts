@@ -23,11 +23,13 @@ const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 
 import uuid from 'uuid';
 
-// Route
-// Description: Adding a new performance tracker to a component.
-// Params:
-// Param 1: req.params-> {componentId}; req.body -> {[_id], name}
-// Returns: response status, error message
+/*
+ * Route
+ * Description: Adding a new performance tracker to a component.
+ * Params:
+ * Param 1: req.params-> {componentId}; req.body -> {[_id], name}
+ * Returns: response status, error message
+ */
 router.post(
     '/:projectId/:componentId/create',
     getUser,
@@ -214,7 +216,7 @@ router.put(
         }
 
         const data: $TSFixMe = {
-            key: uuid.v4(), // set new app log key
+            key: uuid.v4(), // Set new app log key
         };
 
         try {
@@ -304,7 +306,7 @@ router.put(
             });
         }
 
-        // try to find in the performance tracker if the name already exist for that component
+        // Try to find in the performance tracker if the name already exist for that component
         const existingPerformanceTracker: $TSFixMe =
             await PerformanceTrackerService.findBy({
                 query: { name: data.name, componentId: { $ne: componentId } },
@@ -346,8 +348,10 @@ router.put(
     }
 );
 
-// fetch last metric result for web transaction, throughput and error rate
-// to be displayed on the performance tracker list
+/*
+ * Fetch last metric result for web transaction, throughput and error rate
+ * To be displayed on the performance tracker list
+ */
 router.get(
     '/:projectId/last-metrics/:performanceTrackerId',
     getUser,
@@ -361,8 +365,10 @@ router.get(
 
             endDate = decode(endDate);
 
-            // get each of the individual metrics
-            // for web transaction, throughput and error rate
+            /*
+             * Get each of the individual metrics
+             * For web transaction, throughput and error rate
+             */
             const [time, throughput, errorRate]: $TSFixMe = await Promise.all([
                 PerformanceTrackerMetricService.structureMetricsTime(
                     performanceTrackerId,

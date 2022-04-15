@@ -102,7 +102,7 @@ router.post(
 
             data.projectId = projectId;
             incomingRequest = await IncomingRequestService.create(data);
-            // requestUrl contains the whole incoming request object with the updated url
+            // RequestUrl contains the whole incoming request object with the updated url
             const requestUrl: $TSFixMe =
                 await IncomingRequestService.getRequestUrl(
                     projectId,
@@ -194,12 +194,12 @@ router.delete(
     }
 );
 
-// process incoming http request from post request
+// Process incoming http request from post request
 router.post(
     '/:projectId/request/:requestId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // request object for use in variables
+            // Request object for use in variables
             const request: $TSFixMe = {
                 body: { ...req.body },
                 query: { ...req.query },
@@ -218,13 +218,15 @@ router.post(
     }
 );
 
-// process incoming http request from get request
+// Process incoming http request from get request
 router.get(
     '/:projectId/request/:requestId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // request object for use in variables
-            // request body won't be available for a get request
+            /*
+             * Request object for use in variables
+             * Request body won't be available for a get request
+             */
             const request: $TSFixMe = {
                 query: { ...req.query },
                 headers: { ...req.headers },

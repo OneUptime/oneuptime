@@ -6,7 +6,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const componentName: string = utils.generateRandomString();
@@ -36,8 +36,10 @@ describe('Monitor API', () => {
     });
 
     test('should display lighthouse scores', async (done: $TSFixMe) => {
-        // Navigate to Component details
-        // This navigates to the monitor created alongside the created component
+        /*
+         * Navigate to Component details
+         * This navigates to the monitor created alongside the created component
+         */
         await init.navigateToMonitorDetails(componentName, monitorName, page);
 
         await init.pageWaitForSelector(page, '#website_scanning', {
@@ -119,8 +121,10 @@ describe('Monitor API', () => {
     test(
         'should display multiple probes and monitor chart on refresh',
         async (done: $TSFixMe) => {
-            // Navigate to Component details
-            // This navigates to the monitor created alongside the created component
+            /*
+             * Navigate to Component details
+             * This navigates to the monitor created alongside the created component
+             */
             await init.navigateToMonitorDetails(
                 componentName,
                 monitorName,

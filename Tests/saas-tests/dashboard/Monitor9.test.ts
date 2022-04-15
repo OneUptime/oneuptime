@@ -5,7 +5,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
-// user credentials
+// User credentials
 const password: string = '1234567890';
 
 describe('API Monitor API', () => {
@@ -93,7 +93,7 @@ describe('API Monitor API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            //const newMonitorName: string = utils.generateRandomString();
+            //Const newMonitorName: string = utils.generateRandomString();
             await init.addAPIMonitorWithJSExpression(page, testMonitorName);
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
@@ -154,7 +154,7 @@ describe('API Monitor API', () => {
 
             await init.pageClick(page, '#advanceOptions');
 
-            // for online criteria
+            // For online criteria
 
             const upFields: $TSFixMe = await init.page$$(
                 page,
@@ -167,7 +167,7 @@ describe('API Monitor API', () => {
 
             expect(upExpression).toEqual("response.body.status === 'ok'");
 
-            // for degraded criteria
+            // For degraded criteria
 
             const degradedFields: $TSFixMe = await init.page$$(
                 page,
@@ -438,7 +438,7 @@ describe('API Monitor API', () => {
                 createAlertForOnline: true,
             });
 
-            // wait for a new incident is created
+            // Wait for a new incident is created
 
             await init.pageWaitForSelector(page, '#notificationscroll');
 

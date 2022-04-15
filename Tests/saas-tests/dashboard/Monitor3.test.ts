@@ -6,7 +6,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const projectName: string = utils.generateRandomString();
@@ -42,8 +42,10 @@ describe('Monitor API', () => {
     test(
         'Should create new monitor with call schedules',
         async (done: $TSFixMe) => {
-            // Create Component first
-            // Redirects automatically component to details page
+            /*
+             * Create Component first
+             * Redirects automatically component to details page
+             */
             await init.navigateToComponentDetails(componentName, page);
             const monitorName: string = utils.generateRandomString();
 
@@ -75,7 +77,7 @@ describe('Monitor API', () => {
             await init.pageClick(page, '#url');
 
             await init.pageType(page, '#url', 'https://google.com');
-            // select multiple schedules
+            // Select multiple schedules
             await init.page$$Eval(
                 page,
                 '[data-testId^=callSchedules_]',
@@ -158,7 +160,7 @@ describe('Monitor API', () => {
     test('should display SSL enabled status', async (done: $TSFixMe) => {
         // Navigate to Component details
         await init.navigateToMonitorDetails(componentName, monitorName, page);
-        //await init.pageWaitForSelector(page, '#website_postscan');
+        //Await init.pageWaitForSelector(page, '#website_postscan');
         let sslStatusElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#ssl-status-${monitorName}`,

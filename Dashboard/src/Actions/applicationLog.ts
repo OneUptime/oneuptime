@@ -4,8 +4,10 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/applicationLog';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-//Create new log container
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Create new log container
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export function createApplicationLog(
     projectId: ObjectID,
     componentId: $TSFixMe,
@@ -131,8 +133,10 @@ export const resetFetchApplicationLogs: Function = (): void => {
     };
 };
 
-//Delete a applicationLog
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Delete a applicationLog
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export function deleteApplicationLog(
     projectId: ObjectID,
     componentId: $TSFixMe,

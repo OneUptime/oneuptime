@@ -35,7 +35,7 @@ export default class Service {
         });
 
         if (incidentMessage && incidentMessage.postOnStatusPage) {
-            // run in the background
+            // Run in the background
             RealTimeService.addIncidentNote(incidentMessage);
         }
 
@@ -47,8 +47,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         data.updated = true;
         let incidentMessage: $TSFixMe =
@@ -70,8 +70,10 @@ export default class Service {
 
         incidentMessage = await this.findOneBy({ query, populate, select });
 
-        // run in the background
-        //RealTimeService.applicationLogKeyReset(applicationLog);
+        /*
+         *  Run in the background
+         * RealTimeService.applicationLogKeyReset(applicationLog);
+         */
         RealTimeService.updateIncidentNote(incidentMessage);
         return incidentMessage;
     }
@@ -81,8 +83,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const incidentMessageQuery: $TSFixMe = IncidentMessageModel.findOne(
             query
@@ -122,12 +124,12 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const incidentMessagesQuery: $TSFixMe = IncidentMessageModel.find(query)
             .lean()
-            .sort(sort) // fetch from latest to oldest
+            .sort(sort) // Fetch from latest to oldest
             .limit(limit.toNumber())
             .skip(skip.toNumber());
         incidentMessagesQuery.select(select);
@@ -140,8 +142,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const count: $TSFixMe = await IncidentMessageModel.countDocuments(
@@ -156,7 +158,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const incidentMessage: $TSFixMe =
             await IncidentMessageModel.findOneAndUpdate(
                 query,

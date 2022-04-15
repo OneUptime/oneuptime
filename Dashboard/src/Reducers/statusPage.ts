@@ -249,7 +249,7 @@ const INITIAL_STATE: $TSFixMe = {
         success: false,
         error: null,
     },
-    //this is for main status page object.
+    //This is for main status page object.
     error: null,
     requesting: false,
     success: false,
@@ -350,7 +350,7 @@ export default function statusPage(
 ): void {
     let status: $TSFixMe, statusPage: $TSFixMe, isExistingStatusPage: $TSFixMe;
     switch (action.type) {
-        //create statuspage
+        //Create statuspage
         case CREATE_STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
                 newStatusPage: {
@@ -831,7 +831,7 @@ export default function statusPage(
                 },
             });
 
-        //handle domain
+        //Handle domain
         case CREATE_DOMAIN_REQUEST:
             return {
                 ...state,
@@ -964,7 +964,7 @@ export default function statusPage(
         case VERIFY_DOMAIN_SUCCESS: {
             const updateDomains: $TSFixMe = JSON.parse(
                 JSON.stringify(state.status.domains)
-            ); // deep clone to avoid mutation of state
+            ); // Deep clone to avoid mutation of state
             updateDomains.forEach(({ domainVerificationToken }: $TSFixMe) => {
                 if (domainVerificationToken._id === action.payload._id) {
                     domainVerificationToken.verified = action.payload.verified;
@@ -998,7 +998,7 @@ export default function statusPage(
                 },
             };
 
-        //update setting
+        //Update setting
         case UPDATE_STATUSPAGE_SETTING_REQUEST:
             return Object.assign({}, state, {
                 setting: {
@@ -1034,7 +1034,7 @@ export default function statusPage(
                 ...INITIAL_STATE,
             });
 
-        // update monitor
+        // Update monitor
         case UPDATE_STATUSPAGE_MONITORS_REQUEST:
             return Object.assign({}, state, {
                 monitors: {
@@ -1094,7 +1094,7 @@ export default function statusPage(
                 ...INITIAL_STATE,
             });
 
-        // update private statuspages
+        // Update private statuspages
         case UPDATE_PRIVATE_STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
                 privateStatusPage: {
@@ -1128,7 +1128,7 @@ export default function statusPage(
                 ...INITIAL_STATE,
             });
 
-        // update subscriber options
+        // Update subscriber options
         case UPDATE_SUBSCRIBER_OPTION_REQUEST:
             return Object.assign({}, state, {
                 subscriberOption: {
@@ -1162,7 +1162,7 @@ export default function statusPage(
             return Object.assign({}, state, {
                 ...INITIAL_STATE,
             });
-        // update branding
+        // Update branding
         case UPDATE_STATUSPAGE_BRANDING_REQUEST:
             return Object.assign({}, state, {
                 branding: {
@@ -1197,7 +1197,7 @@ export default function statusPage(
                 ...INITIAL_STATE,
             });
 
-        // update theme
+        // Update theme
         case UPDATE_STATUSPAGE_THEME_REQUEST:
             return Object.assign({}, state, {
                 theme: {
@@ -1253,7 +1253,7 @@ export default function statusPage(
                 },
             });
 
-        // update status page name
+        // Update status page name
         case UPDATE_STATUSPAGE_NAME_REQUEST:
             return Object.assign({}, state, {
                 pageName: {
@@ -1288,7 +1288,7 @@ export default function statusPage(
                 ...INITIAL_STATE,
             });
 
-        // update links
+        // Update links
         case UPDATE_STATUSPAGE_LINKS_REQUEST:
             return Object.assign({}, state, {
                 links: {
@@ -1352,7 +1352,7 @@ export default function statusPage(
                 },
             });
 
-        // fetch status page
+        // Fetch status page
         case FETCH_STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
                 ...state,
@@ -1383,7 +1383,7 @@ export default function statusPage(
                 success: false,
             });
 
-        // fetch subproject status pages
+        // Fetch subproject status pages
         case FETCH_SUBPROJECT_STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
                 ...state,
@@ -1443,7 +1443,7 @@ export default function statusPage(
             });
         }
 
-        // for statuspages pointing to incidents
+        // For statuspages pointing to incidents
 
         case FETCH_INCIDENT_STATUSPAGE_REQUEST:
             return {
@@ -1505,7 +1505,7 @@ export default function statusPage(
             };
         }
 
-        // fetch list of statuspages in a project
+        // Fetch list of statuspages in a project
         case FETCH_PROJECT_STATUSPAGE_REQUEST:
             return Object.assign({}, state, {
                 ...state,

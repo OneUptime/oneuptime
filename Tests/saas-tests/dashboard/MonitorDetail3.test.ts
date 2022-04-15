@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const monitorName: string = utils.generateRandomString();
@@ -31,9 +31,9 @@ describe('Monitor Detail API', () => {
             password,
         };
 
-        // user
+        // User
         await init.registerUser(user, page);
-        // add new monitor to component on parent project
+        // Add new monitor to component on parent project
         await init.addMonitorToComponent(componentName, monitorName, page);
         await init.addIncidentPriority(priorityName, page);
     });
@@ -52,7 +52,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on integrations tab
+            // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
 
@@ -107,7 +107,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on integrations tab
+            // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
 
@@ -174,7 +174,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on integrations tab
+            // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
             const createdWebhookSelector: string = '.slack-list';
@@ -229,7 +229,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // click on integrations tab
+            // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
             const addButtonSelector: string = '#addSlackButton';

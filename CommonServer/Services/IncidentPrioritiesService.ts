@@ -16,8 +16,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const incidentPrioritiesQuery: $TSFixMe = incidentPriorityModel
@@ -40,7 +40,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const incidentPrioritiesQuery: $TSFixMe = incidentPriorityModel
             .findOne(query)
             .sort(sort)
@@ -59,8 +59,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const count: $TSFixMe = await incidentPriorityModel.countDocuments(
@@ -87,8 +87,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const updatedIncidentPriority: $TSFixMe =
             await incidentPriorityModel.findOneAndUpdate(
@@ -105,7 +105,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const incidentPriority: $TSFixMe =
             await incidentPriorityModel.findOneAndUpdate(query, {
                 $set: {
@@ -116,7 +116,7 @@ export default class Service {
         if (incidentPriority === null) {
             return incidentPriority;
         }
-        //update existing incidents along with default incident settings
+        //Update existing incidents along with default incident settings
         await Promise.all([
             IncidentService.updateBy(
                 {

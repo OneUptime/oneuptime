@@ -2,7 +2,7 @@ import BackendAPI from './api';
 const SLACK_URL: $TSFixMe = process.env.SLACK_BILLING_WEBHOOK;
 
 export default {
-    // webhook notification to slack channel
+    // Webhook notification to slack channel
     sendSlackAlert: async (
         title: $TSFixMe,
         identifier: $TSFixMe,

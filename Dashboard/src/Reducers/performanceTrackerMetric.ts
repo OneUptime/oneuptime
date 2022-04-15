@@ -134,7 +134,7 @@ export default function (
                     requesting: false,
                     success: true,
                     error: null,
-                    metrics: action.payload, // update the data
+                    metrics: action.payload, // Update the data
                 },
             };
 
@@ -178,7 +178,7 @@ export default function (
                     requesting: false,
                     success: true,
                     error: null,
-                    metrics: action.payload, // update the data
+                    metrics: action.payload, // Update the data
                 },
             };
 
@@ -222,7 +222,7 @@ export default function (
                     requesting: false,
                     success: true,
                     error: null,
-                    metrics: action.payload, // update the data
+                    metrics: action.payload, // Update the data
                 },
             };
 

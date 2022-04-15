@@ -81,10 +81,10 @@ class Service extends DatabaseService<typeof Model> {
                 ),
                 { username, password }
             );
-            // response.data should contain a token
+            // Response.data should contain a token
             return response.data;
         } catch (err) {
-            // username or password was incorrect
+            // Username or password was incorrect
             throw new BadDataException('Invalid docker credential');
         }
     }

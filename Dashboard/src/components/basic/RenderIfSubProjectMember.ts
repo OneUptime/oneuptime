@@ -1,10 +1,12 @@
 import { connect } from 'react-redux';
 import { User } from '../../config';
 import { RootState } from '../../store';
-// Description: Will render the component is the current user in the project is member.
-// Params
-// params 1: props
-// returns JSX.Element or NULL
+/*
+ * Description: Will render the component is the current user in the project is member.
+ * Params
+ * Params 1: props
+ * Returns JSX.Element or NULL
+ */
 function RenderIfSubProjectMember(props: $TSFixMe): void {
     const { currentProject, subProjects, children, currentUserId }: $TSFixMe =
         props;

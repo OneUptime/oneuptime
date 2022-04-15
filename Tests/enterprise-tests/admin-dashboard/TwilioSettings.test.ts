@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const phoneNumber: string = '+19173976235';
@@ -24,7 +24,7 @@ describe('Twilio Settings API', () => {
             email: email,
             password: password,
         };
-        // user
+        // User
 
         await init.registerEnterpriseUser(user, page, false);
     });

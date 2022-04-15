@@ -4,8 +4,10 @@ import * as types from '../constants/resetPassword';
 import Route from 'Common/Types/api/route';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 
-// There are three possible states for our resetPassword
-// process and we need actions for each of them
+/*
+ * There are three possible states for our resetPassword
+ * Process and we need actions for each of them
+ */
 
 export const resetPasswordRequest: Function = (promise: $TSFixMe): void => {
     return {

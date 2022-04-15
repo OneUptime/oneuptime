@@ -11,8 +11,10 @@ async function run(): void {
         return monitor._id;
     });
 
-    // add regions field to monitors
-    // regions = []
+    /*
+     * Add regions field to monitors
+     * Regions = []
+     */
     await updateMany(
         monitorCollection,
         { _id: { $in: monitorIds } },

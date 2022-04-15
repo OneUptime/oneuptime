@@ -27,7 +27,7 @@ export default {
 
             req.user.subProjects = null;
 
-            //sanitize
+            //Sanitize
             if (!projectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,

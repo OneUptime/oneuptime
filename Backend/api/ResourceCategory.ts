@@ -19,11 +19,13 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-// Route
-// Description: Creating Resource Category.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {name} req.params -> {projectId}
-// Returns: 200: ResourceCategory, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Creating Resource Category.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {name} req.params -> {projectId}
+ * Returns: 200: ResourceCategory, 400: Error; 500: Server Error.
+ */
 router.post(
     '/:projectId',
     getUser,

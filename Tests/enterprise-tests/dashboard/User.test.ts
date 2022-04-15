@@ -11,7 +11,7 @@ const admin: $TSFixMe = {
     email: 'masteradmin@hackerbay.io',
     password: '1234567890',
 };
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: `test${utils.generateRandomBusinessEmail()}`,
     password: '1234567890',
@@ -40,8 +40,10 @@ describe('Users', () => {
         await browser2.close();
         done();
     });
-    /**  This test works by running user dashboard and admin dashboard in two seperate browsers.
-     as two dashboards cannot be run in the same browser */
+    /**
+     *  This test works by running user dashboard and admin dashboard in two seperate browsers.
+     *as two dashboards cannot be run in the same browser
+     */
 
     it(
         'should logout the user if the admin deletes the account from the dashboard.',

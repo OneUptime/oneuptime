@@ -1,6 +1,6 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
+process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import { expect } from 'chai';
@@ -209,7 +209,7 @@ describe('Docker Credential API', function (): void {
 
     it('should not remove a non-existing docker credential', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const newCredentialId: string = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
+        const newCredentialId: string = '5e8db97b2cc46e3a229ebc62'; // Non-existing credential id
         const res: $TSFixMe = await request
             .delete(
                 `/credential/${projectId}/dockerCredential/${newCredentialId}`

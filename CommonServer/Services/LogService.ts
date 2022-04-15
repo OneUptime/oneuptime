@@ -8,7 +8,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class Service {
     public async create(data: $TSFixMe): void {
-        // prepare  log model
+        // Prepare  log model
         let log: $TSFixMe = new LogModel();
         let content: $TSFixMe;
 
@@ -56,8 +56,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const logQuery: $TSFixMe = LogModel.findOne(query).sort(sort).lean();
 
@@ -96,8 +96,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const logsQuery: $TSFixMe = LogModel.find(query)
             .lean()
@@ -117,13 +117,13 @@ export default class Service {
         limit: PositiveNumber,
         skip: PositiveNumber
     ): void {
-        // try to get the application log by the ID
+        // Try to get the application log by the ID
 
         const applicationLogCount: $TSFixMe =
             await ApplicationLogService.countBy({
                 _id: applicationLogId,
             });
-        // send an error if the component doesnt exist
+        // Send an error if the component doesnt exist
         if (applicationLogCount === 0) {
             throw new BadDataException('Application Log does not exist.');
         }
@@ -196,8 +196,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const { startTime, endTime }: $TSFixMe = query;
         query = {
@@ -232,27 +232,27 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let dateRange: $TSFixMe = { startDate: '', endDate: '' };
-        // if date range is given, it returns it
+        // If date range is given, it returns it
         if (query.createdAt) {
             dateRange = {
                 startDate: query.createdAt.$gte,
                 endDate: query.createdAt.$lte,
             };
         } else {
-            // first and last log based on the query is fetched
+            // First and last log based on the query is fetched
             const [start_date, end_date]: $TSFixMe = await Promise.all([
                 LogModel.find(query).limit(1),
                 LogModel.find(query).limit(1),
             ]);
-            // if query returns anything, extrate date from both.
+            // If query returns anything, extrate date from both.
             start_date[0] && end_date[0]
                 ? (dateRange = {
-                      startDate: start_date[0]['createdAt'],
-                      endDate: end_date[0]['createdAt'],
+                      startDate: start_date[0].createdAt,
+                      endDate: end_date[0].createdAt,
                   })
                 : null;
         }

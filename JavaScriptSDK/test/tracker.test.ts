@@ -29,7 +29,7 @@ describe('Tracker Timeline', function (): void {
     };
     this.timeout(timeout + 1000);
     let projectId: ObjectID, token: $TSFixMe, componentId: $TSFixMe;
-    // create a new user
+    // Create a new user
     const component: $TSFixMe = { name: 'Our Component' };
 
     before(function (done: $TSFixMe): void {
@@ -117,8 +117,8 @@ describe('Tracker Timeline', function (): void {
             'error'
         );
         const timeline: $TSFixMe = tracker.getTimeline();
-        expect(timeline.length).to.equal(2); // two timeline events
-        expect(timeline[0].eventId).to.equal(timeline[1].eventId); // their eveentId is the same till there is an error sent to the server
+        expect(timeline.length).to.equal(2); // Two timeline events
+        expect(timeline[0].eventId).to.equal(timeline[1].eventId); // Their eveentId is the same till there is an error sent to the server
     });
 
     it('should ensure max timline cant be set as a negative number', (): void => {
@@ -140,7 +140,7 @@ describe('Tracker Timeline', function (): void {
             'error'
         );
         const timeline: $TSFixMe = tracker.getTimeline();
-        expect(timeline.length).to.equal(2); // two timeline events
+        expect(timeline.length).to.equal(2); // Two timeline events
     });
 
     it('should ensure new timeline event after max timeline are discarded', (): void => {
@@ -158,7 +158,7 @@ describe('Tracker Timeline', function (): void {
             },
             type: 'success',
         };
-        // add 3 timelinee events
+        // Add 3 timelinee events
         tracker.addToTimeline(
             customTimeline.category,
             customTimeline.content,
@@ -230,9 +230,9 @@ describe('Tags', (): void => {
         tracker.setTags(tags);
         const availableTags: $TSFixMe = tracker._getTags();
         expect(availableTags).to.be.an('array');
-        expect(availableTags.length).to.equal(3); // since location repeated itself multiple times
+        expect(availableTags.length).to.equal(3); // Since location repeated itself multiple times
         expect(availableTags[0].key).to.be.equal('location');
-        expect(availableTags[0].value).to.be.equal('London'); // latest value for that tag
+        expect(availableTags[0].value).to.be.equal('London'); // Latest value for that tag
     });
 });
 
@@ -377,19 +377,19 @@ describe('Capture Exception', (): void => {
                 newEvent = evt.data;
             });
 
-        // ensure that the first event have a type message, same error message
+        // Ensure that the first event have a type message, same error message
 
         expect(event.type).to.equal('message');
 
         expect(event.content.message).to.equal(errorMessage);
 
-        // ensure that the second event have a type exception, same error message
+        // Ensure that the second event have a type exception, same error message
 
         expect(newEvent.type).to.equal('exception');
 
         expect(newEvent.content.message).to.equal(errorMessageObj);
 
-        // confim their eventId is different
+        // Confim their eventId is different
 
         expect(event._id).to.not.equal(newEvent._id);
     });
@@ -403,14 +403,14 @@ describe('Capture Exception', (): void => {
         let event: $TSFixMe, newEvent: $TSFixMe;
         const errorMessage: string = 'Error Found';
         const errorMessageObj: string = 'Object Error Found';
-        // add a timelie action to the first event
+        // Add a timelie action to the first event
 
         tracker.addToTimeline(customTimeline);
         await tracker.captureMessage(errorMessage).then((evt: $TSFixMe) => {
             event = evt.data;
         });
 
-        // add a tag to the second event
+        // Add a tag to the second event
         tracker.setTag('test', 'content');
         await tracker
             .captureException(new Error(errorMessageObj))
@@ -418,7 +418,7 @@ describe('Capture Exception', (): void => {
                 newEvent = evt.data;
             });
 
-        // ensure that the first event have a type message, same error message and two timeline (the custom and the generic one)
+        // Ensure that the first event have a type message, same error message and two timeline (the custom and the generic one)
 
         expect(event.type).to.equal('message');
 
@@ -426,9 +426,9 @@ describe('Capture Exception', (): void => {
 
         expect(event.timeline).to.have.lengthOf(2);
 
-        expect(event.tags).to.have.lengthOf(1); // the default event tag added
+        expect(event.tags).to.have.lengthOf(1); // The default event tag added
 
-        // ensure that the second event have a type exception, same error message and one timeline (the generic one)
+        // Ensure that the second event have a type exception, same error message and one timeline (the generic one)
 
         expect(newEvent.type).to.equal('exception');
 
@@ -436,7 +436,7 @@ describe('Capture Exception', (): void => {
 
         expect(newEvent.timeline).to.have.lengthOf(1);
 
-        expect(newEvent.tags).to.have.lengthOf(2); // the default and custom tag
+        expect(newEvent.tags).to.have.lengthOf(2); // The default and custom tag
     });
 });
 
@@ -451,7 +451,7 @@ describe('SDK Version', (): void => {
         tracker.captureMessage(errorMessage);
         const event: $TSFixMe = tracker.getCurrentEvent();
         expect(event.sdk.name).to.be.a('string');
-        expect(event.sdk.version).to.match(/(([0-9])+\.([0-9])+\.([0-9])+)/); // confirm that the versiion follows the patter XX.XX.XX where X is a non negative integer
+        expect(event.sdk.version).to.match(/(([0-9])+\.([0-9])+\.([0-9])+)/); // Confirm that the versiion follows the patter XX.XX.XX where X is a non negative integer
     });
 });
 
@@ -523,7 +523,7 @@ describe('Code Capture Snippet', (): void => {
     });
 
     it('should add code capture to stack trace by default when unwanted flag is passed in options', async (): void => {
-        const options: $TSFixMe = { captureCodeSnippet: 'heyy' }; // expects a true or false but it defaults to true
+        const options: $TSFixMe = { captureCodeSnippet: 'heyy' }; // Expects a true or false but it defaults to true
         const tracker: $TSFixMe = new OneUptimeTracker(
             API_URL,
             errorTracker._id,

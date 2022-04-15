@@ -22,7 +22,7 @@ const schema: $TSFixMe = new Schema({
     ],
 
     stripePlanId: String,
-    stripeSubscriptionId: String, // this is for plans.
+    stripeSubscriptionId: String, // This is for plans.
     parentProjectId: { type: String, ref: 'Project', index: true },
     seats: { type: String, default: '1' },
     createdAt: {

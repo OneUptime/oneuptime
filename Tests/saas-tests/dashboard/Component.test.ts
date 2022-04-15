@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -117,7 +117,7 @@ describe('Components', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             const customTutorialType: string = 'monitor';
-            // find monitor quick tip and confirm it shows
+            // Find monitor quick tip and confirm it shows
 
             const monitorQuickTip: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -167,7 +167,7 @@ describe('Components', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(newMonitorName);
 
-            // check if the tabs on the details page are defined
+            // Check if the tabs on the details page are defined
 
             const monitorTabsComponent: $TSFixMe =
                 await init.pageWaitForSelector(page, `#customTabList`);
@@ -443,7 +443,7 @@ describe('Components', () => {
                     return elem.textContent;
                 }
             );
-            expect(firstResourceCount).toEqual('3 Resources'); // one log container and two monitor
+            expect(firstResourceCount).toEqual('3 Resources'); // One log container and two monitor
 
             await init.page$Eval(
                 page,

@@ -5,7 +5,7 @@ import * as types from '../constants/statusPage';
 import FormData from 'form-data';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-// handle whether to show domain input field
+// Handle whether to show domain input field
 export const addMoreDomain: Function = (): void => {
     return {
         type: types.ADD_MORE_DOMAIN,
@@ -18,7 +18,7 @@ export const cancelAddMoreDomain: Function = (): void => {
     };
 };
 
-// upload cert file
+// Upload cert file
 export const uploadCertFileRequest: Function = (): void => {
     return {
         type: 'CERT_FILE_REQUEST',
@@ -86,7 +86,7 @@ export const uploadCertFile: Function = (
     };
 };
 
-// upload private key file
+// Upload private key file
 export const uploadPrivateKeyRequest: Function = (): void => {
     return {
         type: 'PRIVATE_KEY_REQUEST',
@@ -336,7 +336,7 @@ export const updateSubscriberOptionError: Function = (
     };
 };
 
-// update status page multi language
+// Update status page multi language
 export function updateStatusPageLanguage(
     projectId: ObjectID,
     values: $TSFixMe
@@ -697,7 +697,7 @@ export function updateStatusPageCustomHTML(
     };
 }
 
-//fetch project statuspage
+//Fetch project statuspage
 
 export const fetchProjectStatusPageRequest: Function = (): void => {
     return {
@@ -758,7 +758,7 @@ export function fetchProjectStatusPage(
     };
 }
 
-//fetch subProject statuspages
+//Fetch subProject statuspages
 
 export const fetchSubProjectStatusPagesRequest: Function = (): void => {
     return {
@@ -816,7 +816,7 @@ export function fetchSubProjectStatusPages(
     };
 }
 
-//for incident statuspages
+//For incident statuspages
 export const fetchIncidentStatusPagesRequest: Function = (): void => {
     return {
         type: types.FETCH_INCIDENT_STATUSPAGE_REQUEST,
@@ -1126,7 +1126,7 @@ export function updateStatusPageEmbeddedCss(
     };
 }
 
-//reset branding colors
+//Reset branding colors
 export const resetBrandingColorsRequest: Function = (): void => {
     return {
         type: types.RESET_BRANDING_COLORS_REQUEST,
@@ -1227,7 +1227,7 @@ export function resetStatusPageEmbeddedCss(
         return promise;
     };
 }
-//status page layout
+//Status page layout
 export const updateStatusPageLayoutRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUS_PAGE_LAYOUT_REQUEST,
@@ -1278,7 +1278,7 @@ export const updateStatusPageLayout: Function = (
         return promise;
     };
 };
-// fetch subscribers by monitors in statuspage
+// Fetch subscribers by monitors in statuspage
 export const fetchSubscriberRequest: Function = (): void => {
     return {
         type: types.FETCH_SUBSCRIBER_REQUEST,

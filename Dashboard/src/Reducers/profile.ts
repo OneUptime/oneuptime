@@ -85,7 +85,7 @@ export default function profileSettings(
     action: Action
 ): void {
     switch (action.type) {
-        //update profile setting
+        //Update profile setting
         case types.UPDATE_PROFILE_SETTING_REQUEST:
             return Object.assign({}, state, {
                 profileSetting: {
@@ -121,7 +121,7 @@ export default function profileSettings(
                 ...INITIAL_STATE,
             });
 
-        // update push notification setting
+        // Update push notification setting
         case types.UPDATE_PUSH_NOTIFICATION_REQUEST:
             return Object.assign({}, state, {
                 pushNotification: {
@@ -185,7 +185,7 @@ export default function profileSettings(
                     success: false,
                 },
             });
-        // update change password setting.
+        // Update change password setting.
         case types.UPDATE_CHANGE_PASSWORD_SETTING_REQUEST:
             return Object.assign({}, state, {
                 changePasswordSetting: {
@@ -412,7 +412,7 @@ export default function profileSettings(
                 },
             });
 
-        //update user's two factor auth settings
+        //Update user's two factor auth settings
         case types.UPDATE_TWO_FACTOR_AUTH_REQUEST:
             return Object.assign({}, state, {
                 twoFactorAuthSetting: {
@@ -452,7 +452,7 @@ export default function profileSettings(
                 ...INITIAL_STATE,
             });
 
-        //generate user's QR code
+        //Generate user's QR code
         case types.GENERATE_TWO_FACTOR_QR_REQUEST:
             return Object.assign({}, state, {
                 qrCode: {

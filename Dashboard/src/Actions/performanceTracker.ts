@@ -21,7 +21,7 @@ export const setEndDate: Function = (date: $TSFixMe): void => {
     };
 };
 
-// create performance tracker
+// Create performance tracker
 export const createPerformanceTrackerRequest: Function = (): void => {
     return {
         type: types.CREATE_PERFORMANCE_TRACKER_REQUEST,
@@ -85,7 +85,7 @@ export const createPerformanceTracker: $TSFixMe = ({
     };
 };
 
-// fetch a single performance tracker
+// Fetch a single performance tracker
 export const fetchPerformanceTrackerRequest: Function = (): void => {
     return {
         type: types.FETCH_PERFORMANCE_TRACKER_REQUEST,
@@ -148,7 +148,7 @@ export const fetchPerformanceTracker: $TSFixMe = ({
     };
 };
 
-// fetch performance tracker list
+// Fetch performance tracker list
 export const fetchPerformanceTrackersRequest: Function = (
     fetchingPage: $TSFixMe
 ): void => {
@@ -216,7 +216,7 @@ export const fetchPerformanceTrackers: $TSFixMe = ({
     };
 };
 
-// update performance tracker
+// Update performance tracker
 export const updatePerformanceTrackerRequest: Function = (): void => {
     return {
         type: types.UPDATE_PERFORMANCE_TRACKER_REQUEST,
@@ -281,7 +281,7 @@ export const updatePerformanceTracker: $TSFixMe = ({
     };
 };
 
-// delete performance tracker
+// Delete performance tracker
 export const deletePerformanceTrackerRequest: Function = (): void => {
     return {
         type: types.DELETE_PERFORMANCE_TRACKER_REQUEST,
@@ -343,7 +343,7 @@ export const deletePerformanceTracker: $TSFixMe = ({
     };
 };
 
-// reset performance tracker api key
+// Reset performance tracker api key
 export const resetPerformanceTrackerKeyRequest: Function = (): void => {
     return {
         type: types.RESET_PERFORMANCE_TRACKER_KEY_REQUEST,
@@ -406,7 +406,7 @@ export const resetPerformanceTrackerKey: $TSFixMe = ({
     };
 };
 
-// remove quickstart guide
+// Remove quickstart guide
 export const removeQuickStartRequest: Function = (): void => {
     return {
         type: types.REMOVE_QUICK_START_REQUEST,
@@ -461,7 +461,7 @@ export const removeQuickStart: $TSFixMe = ({
     };
 };
 
-// fetch last metrics
+// Fetch last metrics
 export const fetchLastMetricsRequest: Function = (): void => {
     return {
         type: types.FETCH_LAST_METRICS_REQUEST,

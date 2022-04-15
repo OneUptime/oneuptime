@@ -15,7 +15,7 @@ import {
 } from '../constants/incidentEvents';
 
 export default class Service {
-    // process external subscriber webhook
+    // Process external subscriber webhook
     public async sendSubscriberNotification(
         subscriber: $TSFixMe,
         projectId: ObjectID,
@@ -51,7 +51,7 @@ export default class Service {
             { note, incidentState, statusNoteStatus }
         );
     }
-    // process messages to be sent to slack workspace channels
+    // Process messages to be sent to slack workspace channels
     public async sendIntegrationNotification(
         projectId: ObjectID,
         incident: $TSFixMe,
@@ -115,7 +115,7 @@ export default class Service {
                 select: 'status',
             }),
         ]);
-        // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
+        // If (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
         for (const integration of integrations) {
             response = await self.notify(
                 project,
@@ -136,7 +136,7 @@ export default class Service {
         return response;
     }
 
-    // send notification to slack workspace channels
+    // Send notification to slack workspace channels
     public async notify(
         project: $TSFixMe,
         monitor: $TSFixMe,
@@ -162,7 +162,7 @@ export default class Service {
             ? incident.criterionCause.name
             : 'Unnamed Criterion';
 
-        // set title and text for status note notifications
+        // Set title and text for status note notifications
         if (isStatusPageNoteNotification) {
             notificationText = note;
             if (statusNoteStatus === 'created') {

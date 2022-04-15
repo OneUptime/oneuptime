@@ -6,7 +6,7 @@ const incidentSettingsCollection: string = 'incidentsettings';
 const projectCollection: string = 'projects';
 const incidentPriorityCollection: string = 'incidentpriorities';
 
-// run this script once
+// Run this script once
 async function run(): void {
     const projects: $TSFixMe = await find(projectCollection, {
         deleted: false,

@@ -33,7 +33,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const containerScanner: $TSFixMe =
             await ContainerScannerModel.findOneAndUpdate(
                 query,
@@ -50,7 +50,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const containerScanner: $TSFixMe = await ContainerScannerModel.findOne(
             query
         ).lean();
@@ -71,7 +71,7 @@ export default class Service {
 }
 
 /**
- * verifies if a specific script condition satisfies
+ * Verifies if a specific script condition satisfies
  * @param {'and' | 'or'} conditionLogic
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */

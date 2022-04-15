@@ -47,7 +47,7 @@ export const UPDATE_DOCKER_CREDENTIAL_SUCCESS: $TSFixMe =
 export const UPDATE_DOCKER_CREDENTIAL_FAILURE: $TSFixMe =
     'UPDATE_DOCKER_CREDENTIAL_FAILURE';
 
-//get security based on credential
+//Get security based on credential
 export const GET_GIT_SECURITIES_REQUEST: string = 'GET_GIT_SECURITIES_REQUEST';
 export const GET_GIT_SECURITIES_SUCCESS: string = 'GET_GIT_SECURITIES_SUCCESS';
 export const GET_GIT_SECURITIES_FAILURE: string = 'GET_GIT_SECURITIES_FAILURE';

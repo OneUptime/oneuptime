@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -11,7 +11,7 @@ import GlobalConfig from './utils/globalConfig';
 const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
-// let log: $TSFixMe = require('./data/log');
+// Let log: $TSFixMe = require('./data/log');
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 import ScheduleService from '../backend/services/scheduleService';
@@ -177,7 +177,7 @@ describe('Schedule API with Sub-Projects', function (): void {
     before(function (done: $TSFixMe): void {
         this.timeout(30000);
         const authorization: string = `Basic ${token}`;
-        // create a subproject for parent project
+        // Create a subproject for parent project
         GlobalConfig.initTestConfig().then((): void => {
             request
                 .post(`/project/${projectId}/subProject`)
@@ -185,7 +185,7 @@ describe('Schedule API with Sub-Projects', function (): void {
                 .send({ subProjectName: 'New SubProject' })
                 .end((err: $TSFixMe, res: $TSFixMe): void => {
                     subProjectId = res.body[0]._id;
-                    // sign up second user (subproject user)
+                    // Sign up second user (subproject user)
                     createUser(
                         request,
                         userData.newUser,
@@ -220,7 +220,7 @@ describe('Schedule API with Sub-Projects', function (): void {
                                                             res.body.tokens
                                                                 .jwtAccessToken;
                                                         const authorization: string = `Basic ${token}`;
-                                                        // add second user to subproject
+                                                        // Add second user to subproject
                                                         request
                                                             .post(
                                                                 `/team/${subProjectId}`

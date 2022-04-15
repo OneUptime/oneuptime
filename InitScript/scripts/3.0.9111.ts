@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const incidentSettingsCollection: string = 'incidentsettings';
 
-// run this script once
+// Run this script once
 async function run(): void {
     const templates: $TSFixMe = await find(incidentSettingsCollection, {
         deleted: false,
@@ -10,8 +10,10 @@ async function run(): void {
     });
 
     for (const template of templates) {
-        // default values used when templates is created automatically
-        // when projects are created
+        /*
+         * Default values used when templates is created automatically
+         * When projects are created
+         */
         const data: $TSFixMe = {
             isDefault: true,
             name: 'Default',

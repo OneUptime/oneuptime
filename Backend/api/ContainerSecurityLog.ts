@@ -15,10 +15,12 @@ import ContainerSecurityLogService from '../services/containerSecurityLogService
 
 const router: $TSFixMe = express.getRouter();
 
-//Route: GET
-//Description: get a particular container security log
-//Params: req.params -> {projectId, componentId, containerSecurityId}
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: GET
+ * Description: get a particular container security log
+ * Params: req.params -> {projectId, componentId, containerSecurityId}
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.get(
     '/:projectId/:componentId/container/logs/:containerSecurityId',
     getUser,
@@ -47,10 +49,12 @@ router.get(
     }
 );
 
-//Route: GET
-//Description: get a particular container security log by slug
-//Params: req.params -> {projectId, componentId, containerSecuritySlug}
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: GET
+ * Description: get a particular container security log by slug
+ * Params: req.params -> {projectId, componentId, containerSecuritySlug}
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.get(
     '/:projectId/:componentId/containerSecuritySlug/logs/:containerSecuritySlug',
     getUser,
@@ -79,10 +83,12 @@ router.get(
     }
 );
 
-//Route: GET
-//Description: get container security logs in a component
-//Params: req.params -> {projectId, componentId}
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: GET
+ * Description: get container security logs in a component
+ * Params: req.params -> {projectId, componentId}
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.get(
     '/:projectId/:componentId/container/logs',
     getUser,

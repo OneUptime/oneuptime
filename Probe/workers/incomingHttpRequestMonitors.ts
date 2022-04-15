@@ -1,8 +1,10 @@
 import ApiService from '../Utils/apiService';
 
-// it collects all monitors then ping them one by one to store their response
-// checks if the website of the url in the monitors is up or down
-// creates incident if a website is down and resolves it when they come back up
+/*
+ * It collects all monitors then ping them one by one to store their response
+ * Checks if the website of the url in the monitors is up or down
+ * Creates incident if a website is down and resolves it when they come back up
+ */
 export default {
     run: async ({ monitor }: $TSFixMe) => {
         if (monitor && monitor.type) {

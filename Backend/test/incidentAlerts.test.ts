@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import userData from './data/user';
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
@@ -306,7 +306,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const eventTypesSent: $TSFixMe = [];
 
-            // because the project balance recharges, the alerts should be sent
+            // Because the project balance recharges, the alerts should be sent
             for (const event of subscribersAlerts.body.data) {
                 const {
                     alertStatus,
@@ -901,11 +901,11 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
         it('should notify the team set for a schedule, which is associated with a monitor criteriad', async function (): void {
             /*
-             * run the probe server for this test
+             * Run the probe server for this test
              */
 
             this.timeout(180 * 1000);
-            // first add a team member
+            // First add a team member
             const userData: $TSFixMe = {
                 email: `${generateRandomString()}@oneuptime.com`,
             };
@@ -927,10 +927,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             let updatedProject: $TSFixMe =
                 await TeamMembers.addTeamMembersToProject(projectId, members);
 
-            // a user was added when creating the project, so we expect a total of 2 members
+            // A user was added when creating the project, so we expect a total of 2 members
             expect(updatedProject.users).to.have.lengthOf(2);
 
-            // create a new schedule
+            // Create a new schedule
             const newSchedule: $TSFixMe = await createSchedule({
                 request,
                 authorization,
@@ -941,7 +941,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const newScheduleId: $TSFixMe = newSchedule.body._id;
 
-            // add escalation for the new schedule, for the new member
+            // Add escalation for the new schedule, for the new member
             const escalations: $TSFixMe = await addEscalation({
                 request,
                 authorization,
@@ -973,7 +973,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(escalations).to.have.status(200);
 
-            // create criteria, add a schedule to a new down criterion (non-default)
+            // Create criteria, add a schedule to a new down criterion (non-default)
             const criteria: $TSFixMe = MonitorCriteriaService.create('url');
 
             criteria.down.push({
@@ -983,7 +983,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 scheduleIds: [newScheduleId],
             });
 
-            // create a new URL monitor, with a resource that will fail
+            // Create a new URL monitor, with a resource that will fail
             const url: string = 'https://httpbin.org/status/500';
             const newMonitor: $TSFixMe = await createMonitor({
                 request,
@@ -1002,7 +1002,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(newMonitor).to.have.status(200);
             const newMonitorId: $TSFixMe = newMonitor.body._id;
 
-            // let the probe server generate incident
+            // Let the probe server generate incident
             await sleep(120 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
@@ -1019,7 +1019,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(onCallAlerts).to.have.status(200);
 
-            // two call alerts are expected for the user, one call and one sms
+            // Two call alerts are expected for the user, one call and one sms
             expect(onCallAlerts.body).to.an('object');
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
@@ -1029,7 +1029,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 expect(alert.monitorId._id).to.equal(newMonitorId);
             });
 
-            // remove the added team members
+            // Remove the added team members
             updatedProject = await TeamMembers.removeTeamMembersFromProject(
                 projectId,
                 updatedProject.users.filter((user: $TSFixMe) => {
@@ -1037,7 +1037,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 })
             );
             expect(updatedProject.users).to.have.lengthOf(1);
-            // remove the monitor
+            // Remove the monitor
             const removedMonitor: $TSFixMe = await MonitorService.deleteBy(
                 {
                     _id: newMonitorId,
@@ -1050,11 +1050,11 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
         it('should notify the team set for a schedule, which is associated with a monitor criteria (incomingHttp monitor)', async function (): void {
             /*
-             * run the probe server for this test
+             * Run the probe server for this test
              */
 
             this.timeout(180 * 1000);
-            // first add a team member
+            // First add a team member
             const userData: $TSFixMe = {
                 email: `${generateRandomString()}@oneuptime.com`,
             };
@@ -1076,10 +1076,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             let updatedProject: $TSFixMe =
                 await TeamMembers.addTeamMembersToProject(projectId, members);
 
-            // a user was added when creating the project, so we expect a total of 2 members
+            // A user was added when creating the project, so we expect a total of 2 members
             expect(updatedProject.users).to.have.lengthOf(2);
 
-            // create a new schedule
+            // Create a new schedule
             const newSchedule: $TSFixMe = await createSchedule({
                 request,
                 authorization,
@@ -1090,7 +1090,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const newScheduleId: $TSFixMe = newSchedule.body._id;
 
-            // add escalation for the new schedule, for the new member
+            // Add escalation for the new schedule, for the new member
             const escalations: $TSFixMe = await addEscalation({
                 request,
                 authorization,
@@ -1122,7 +1122,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(escalations).to.have.status(200);
 
-            // create criteria, add a schedule to a down criterion
+            // Create criteria, add a schedule to a down criterion
             const criteria: $TSFixMe = MonitorCriteriaService.create(
                 'incomingHttpRequest'
             );
@@ -1134,10 +1134,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             const randomId: $TSFixMe = uuid.v4();
 
             const link: string = `http://localhost:${
-                process.env['PORT'] || 3002
+                process.env.PORT || 3002
             }/api/incomingHttpRequest/${randomId}`;
 
-            // create a new incomingHttp monitor, with a resource that will fail
+            // Create a new incomingHttp monitor, with a resource that will fail
             const newMonitor: $TSFixMe = await createMonitor({
                 request,
                 authorization,
@@ -1157,14 +1157,14 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const newMonitorId: $TSFixMe = newMonitor.body._id;
 
-            // create a degraded incident by sending an http request with no body
+            // Create a degraded incident by sending an http request with no body
             const incomingHttpResponse: $TSFixMe = await axios.get(link);
             expect(incomingHttpResponse)
                 .to.have.property('data')
                 .that.has.property('status')
                 .that.equals('degraded');
 
-            // wait for incident alerts
+            // Wait for incident alerts
             await sleep(30 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
@@ -1181,7 +1181,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(onCallAlerts).to.have.status(200);
 
-            // two call alerts are expected for the user, one call and one sms
+            // Two call alerts are expected for the user, one call and one sms
             expect(onCallAlerts.body).to.an('object');
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
@@ -1191,7 +1191,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 expect(alert.monitorId._id).to.equal(newMonitorId);
             });
 
-            // remove the added team members
+            // Remove the added team members
             updatedProject = await TeamMembers.removeTeamMembersFromProject(
                 projectId,
                 updatedProject.users.filter((user: $TSFixMe) => {
@@ -1199,7 +1199,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 })
             );
             expect(updatedProject.users).to.have.lengthOf(1);
-            // remove the monitor
+            // Remove the monitor
             const removedMonitor: $TSFixMe = await MonitorService.deleteBy(
                 {
                     _id: newMonitorId,
@@ -1220,10 +1220,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
         it('should use default criterion if no criterion is matched for an incident', async function (): void {
             /*
-             * run the probe server for this test
+             * Run the probe server for this test
              */
             this.timeout(180 * 1000);
-            // first add a team member
+            // First add a team member
             const userData: $TSFixMe = {
                 email: `${generateRandomString}@oneuptime.com`,
             };
@@ -1245,10 +1245,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             let updatedProject: $TSFixMe =
                 await TeamMembers.addTeamMembersToProject(projectId, members);
 
-            // a user was added when creating the project, so we expect a total of 2 members
+            // A user was added when creating the project, so we expect a total of 2 members
             expect(updatedProject.users).to.have.lengthOf(2);
 
-            // create a new schedule
+            // Create a new schedule
             const newSchedule: $TSFixMe = await createSchedule({
                 request,
                 authorization,
@@ -1259,7 +1259,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const newScheduleId: $TSFixMe = newSchedule.body._id;
 
-            // add escalation for the new schedule, for the new member
+            // Add escalation for the new schedule, for the new member
             const escalations: $TSFixMe = await addEscalation({
                 request,
                 authorization,
@@ -1291,12 +1291,12 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(escalations).to.have.status(200);
 
-            // create criteria, but remove the all other down criteria so we only have default criteria
+            // Create criteria, but remove the all other down criteria so we only have default criteria
             const criteria: $TSFixMe = MonitorCriteriaService.create('url');
-            // add a schedule to the default criterion
+            // Add a schedule to the default criterion
 
             criteria.down[0].scheduleIds = [newScheduleId];
-            // create a new URL monitor, with a resource that will fail
+            // Create a new URL monitor, with a resource that will fail
             const url: string = 'https://httpbin.org/status/500';
             const newMonitor: $TSFixMe = await createMonitor({
                 request,
@@ -1315,7 +1315,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(newMonitor).to.have.status(200);
             const newMonitorId: $TSFixMe = newMonitor.body._id;
 
-            // let the probe server generate incident
+            // Let the probe server generate incident
             await sleep(120 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
@@ -1332,7 +1332,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(onCallAlerts).to.have.status(200);
 
-            // two call alerts are expected for the user, one call and one sms
+            // Two call alerts are expected for the user, one call and one sms
             expect(onCallAlerts.body).to.an('object');
             expect(onCallAlerts.body.count).to.equal(2);
             expect(onCallAlerts.body.data).to.an('array');
@@ -1342,7 +1342,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 expect(alert.monitorId._id).to.equal(newMonitorId);
             });
 
-            // remove the added team members
+            // Remove the added team members
             updatedProject = await TeamMembers.removeTeamMembersFromProject(
                 projectId,
                 updatedProject.users.filter((user: $TSFixMe) => {
@@ -1351,7 +1351,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             );
             expect(updatedProject.users).to.have.lengthOf(1);
 
-            // remove the monitor
+            // Remove the monitor
             const removedMonitor: $TSFixMe = await MonitorService.deleteBy(
                 {
                     _id: newMonitorId,
@@ -1395,7 +1395,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            // remove prior charge alerts (if created)
+            // Remove prior charge alerts (if created)
             await AlertChargeService.hardDeleteBy({});
 
             const newIncident: $TSFixMe = await createIncident({
@@ -1421,9 +1421,11 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(chargeResponse).to.have.status(200);
             expect(chargeResponse.body).to.an('object');
-            // on the before hook, a subscriber is added, and the user
-            // is also added to duty for sms and call. So we expect
-            // a total of 3 alert charges
+            /*
+             * On the before hook, a subscriber is added, and the user
+             * Is also added to duty for sms and call. So we expect
+             * A total of 3 alert charges
+             */
             expect(chargeResponse.body.count).to.equal(3);
             expect(chargeResponse.body.data).to.an('array');
             expect(chargeResponse.body.data.length).to.equal(3);
@@ -1446,8 +1448,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(chargeResponseAfterResolvedIncident).to.have.status(200);
             expect(chargeResponseAfterResolvedIncident.body).to.an('object');
-            // on the before hook, the call-duty limit is 1 SMS and 1 Call,
-            // so now, no SMS and Call alerts are sent to the duty memeber
+            /*
+             * On the before hook, the call-duty limit is 1 SMS and 1 Call,
+             * So now, no SMS and Call alerts are sent to the duty memeber
+             */
             expect(chargeResponseAfterResolvedIncident.body.count).to.equal(4);
             expect(chargeResponseAfterResolvedIncident.body.data).to.an(
                 'array'
@@ -1828,7 +1832,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should not send statusPageNote(investigation note) SMS notification when disabled', async (): void => {
-            // update global setting to enable SMS
+            // Update global setting to enable SMS
             const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1841,7 +1845,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 { value }
             );
 
-            // enable billing for the project
+            // Enable billing for the project
             const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
@@ -1856,7 +1860,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            // disable status page note (investigation note) on the project
+            // Disable status page note (investigation note) on the project
             const { enableInvestigationNoteNotificationSMS }: $TSFixMe =
                 await ProjectService.updateOneBy(
                     { _id: projectId },
@@ -1867,7 +1871,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(enableInvestigationNoteNotificationSMS).to.be.false;
 
-            // create an incident
+            // Create an incident
             const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
@@ -1884,7 +1888,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const incidentId: $TSFixMe = newIncident.body._id;
 
-            // create a status page note (investiagation note)
+            // Create a status page note (investiagation note)
             const statusPageNotePayload: $TSFixMe = {
                 content: 'this is a test page note',
                 incident_state: 'update',
@@ -1898,7 +1902,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(newStatusPageNote).to.have.status(200);
 
-            // resolve the incident
+            // Resolve the incident
             const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
@@ -1939,14 +1943,14 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should not cut project balance for invalid twilio settings', async (): void => {
-            // update global setting to enable call and sms
+            // Update global setting to enable call and sms
             const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
             const { value }: $TSFixMe = globalSettings;
             value['sms-enabled'] = true;
             value['call-enabled'] = true;
-            // add a wrong config to twilio
+            // Add a wrong config to twilio
             const originalPhone: $TSFixMe = value.phone;
             value.phone = '+111111111';
 
@@ -1955,7 +1959,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 { value }
             );
 
-            // enable billing for the project
+            // Enable billing for the project
             const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
@@ -1970,7 +1974,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            // get the project balance before an alert is sent
+            // Get the project balance before an alert is sent
             const { balance: originalProjectBalance } =
                 await ProjectService.findOneBy({
                     query: { _id: projectId },
@@ -1991,7 +1995,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
             expect(newIncident).to.have.status(200);
 
-            // resolve the incident
+            // Resolve the incident
             const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
@@ -2011,7 +2015,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(newProjectBalance).to.equal(originalProjectBalance);
 
-            // revert twilio settings
+            // Revert twilio settings
             value.phone = originalPhone;
             const revertedTwilioSettings: $TSFixMe =
                 await GlobalConfigModel.findOneAndUpdate(
@@ -2033,7 +2037,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          */
 
         it('should recharge project balance when low', async (): void => {
-            // update global setting to enable call and sms
+            // Update global setting to enable call and sms
             const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -2046,7 +2050,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 { value }
             );
 
-            // enable billing for the project
+            // Enable billing for the project
             const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
@@ -2061,13 +2065,13 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 });
             expect(billingEndpointResponse).to.have.status(200);
 
-            // set project balance to 0
+            // Set project balance to 0
             await ProjectService.updateOneBy(
                 { _id: projectId },
                 { balance: 0 }
             );
 
-            // send notification
+            // Send notification
             const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
@@ -2084,7 +2088,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            // check the balance again
+            // Check the balance again
 
             const { balance, alertOptions }: $TSFixMe =
                 await ProjectService.findOneBy({
@@ -2097,7 +2101,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(balance).to.be.lessThan(rechargeToBalance);
             expect(balance).to.be.greaterThan(minimumBalance);
-            // resolve the incident
+            // Resolve the incident
             const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
@@ -2119,7 +2123,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
         it('should correctly register closing balance for alert charges', async function (): void {
             this.timeout(60 * 1000);
 
-            // update global setting to enable call and sms
+            // Update global setting to enable call and sms
             const globalSettings: $TSFixMe = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -2132,7 +2136,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 { value }
             );
 
-            // enable billing for the project
+            // Enable billing for the project
             const billingEndpointResponse: $TSFixMe = await request
                 .put(`/project/${projectId}/alertOptions`)
                 .set('Authorization', authorization)
@@ -2148,7 +2152,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(billingEndpointResponse).to.have.status(200);
 
-            // create multiple subscribers
+            // Create multiple subscribers
             for (let i: $TSFixMe = 0; i < 10; i++) {
                 const newSubscriber: $TSFixMe = await addSubscriberToMonitor({
                     request,
@@ -2166,16 +2170,16 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            // clean up alert charges
+            // Clean up alert charges
             await AlertChargeService.hardDeleteBy({});
-            // get original project balance
+            // Get original project balance
             const { balance: originalProjectBalance } =
                 await ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'balance',
                 });
 
-            // send notification
+            // Send notification
             const newIncident: $TSFixMe = await createIncident({
                 request,
                 authorization,
@@ -2193,7 +2197,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             await sleep(25 * 1000);
 
-            // get all alert charges sorted by date in descending order
+            // Get all alert charges sorted by date in descending order
             const alertCharges: $TSFixMe = await AlertChargeService.findBy(
                 {
                     incidentId: newIncident.body._id,
@@ -2207,8 +2211,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(alertCharges).to.be.an('array');
 
             let calculatedBalance: $TSFixMe = originalProjectBalance;
-            // calculate balance for each alert charge amount and compare it with
-            // alert charge's closing balance
+            /*
+             * Calculate balance for each alert charge amount and compare it with
+             * Alert charge's closing balance
+             */
             const allAlertChargesCorrect: $TSFixMe = alertCharges.every(
                 (alertCharge: $TSFixMe) => {
                     calculatedBalance = formatBalance(
@@ -2223,7 +2229,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(allAlertChargesCorrect).to.be.true;
 
-            // resolve the incident
+            // Resolve the incident
             const incidentResolved: $TSFixMe = await markIncidentAsResolved({
                 request,
                 authorization,
@@ -2233,7 +2239,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(incidentResolved).to.have.status(200);
 
-            // clean up subscribers
+            // Clean up subscribers
             await SubscriberService.hardDeleteBy({
                 contactPhone: /92161522/,
                 countryCode: 'et',
@@ -3061,7 +3067,7 @@ describe('Email Incident Alerts', (): void => {
 
     it('should not send statusPageNote(investigation note) Email notification when disabled', async function (): void {
         this.timeout(30 * 1000);
-        // update global smtp settings
+        // Update global smtp settings
         await GlobalConfigService.create({
             name: 'smtp',
             value: {
@@ -3076,7 +3082,7 @@ describe('Email Incident Alerts', (): void => {
             },
         });
 
-        // disable status page note (investigation note) Email notification on the project
+        // Disable status page note (investigation note) Email notification on the project
         const { enableInvestigationNoteNotificationEmail }: $TSFixMe =
             await ProjectService.updateOneBy(
                 { _id: projectId },
@@ -3087,7 +3093,7 @@ describe('Email Incident Alerts', (): void => {
 
         expect(enableInvestigationNoteNotificationEmail).to.be.false;
 
-        // create an incident
+        // Create an incident
         const newIncident: $TSFixMe = await createIncident({
             request,
             authorization,
@@ -3104,7 +3110,7 @@ describe('Email Incident Alerts', (): void => {
 
         const incidentId: $TSFixMe = newIncident.body._id;
 
-        // create a status page note (investigation note)
+        // Create a status page note (investigation note)
         const statusPageNotePayload: $TSFixMe = {
             content: 'this is a test investigation note',
             incident_state: 'update',
@@ -3118,7 +3124,7 @@ describe('Email Incident Alerts', (): void => {
 
         expect(newStatusPageNote).to.have.status(200);
 
-        // resolve the incident
+        // Resolve the incident
         const incidentResolved: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,
@@ -3491,7 +3497,7 @@ describe('Webhook Incident Alerts', function (): void {
     });
 
     it('should not send statusPageNote(investigation note) Webhook notification when disabled', async () => {
-        // disable status page note (investigation note) notification for webhooks
+        // Disable status page note (investigation note) notification for webhooks
         const { enableInvestigationNoteNotificationWebhook }: $TSFixMe =
             await ProjectService.updateOneBy(
                 { _id: projectId },
@@ -3502,7 +3508,7 @@ describe('Webhook Incident Alerts', function (): void {
 
         expect(enableInvestigationNoteNotificationWebhook).to.be.false;
 
-        // create an incident
+        // Create an incident
         const newIncident: $TSFixMe = await createIncident({
             request,
             authorization,
@@ -3519,7 +3525,7 @@ describe('Webhook Incident Alerts', function (): void {
 
         const incidentId: $TSFixMe = newIncident.body._id;
 
-        // create a status page note (investigation note)
+        // Create a status page note (investigation note)
         const statusPageNotePayload: $TSFixMe = {
             content: 'this is a test investigation note',
             incident_state: 'update',
@@ -3533,7 +3539,7 @@ describe('Webhook Incident Alerts', function (): void {
 
         expect(newStatusPageNote).to.have.status(200);
 
-        // resolve the incident
+        // Resolve the incident
         const incidentResolved: $TSFixMe = await markIncidentAsResolved({
             request,
             authorization,

@@ -7,7 +7,7 @@ import axios from 'axios';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const queryString: string =
@@ -32,11 +32,11 @@ describe('Home redirect', () => {
             email,
             password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
 
         const params: $TSFixMe = new URLSearchParams(queryString);
-        // formating query string to an object
+        // Formating query string to an object
         for (const param of params) {
             queryObj = { ...queryObj, [`${param[0]}`]: param[1] };
         }

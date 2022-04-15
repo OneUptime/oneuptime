@@ -10,7 +10,7 @@ const _this: $TSFixMe = {
             date = new Date(date);
         }
 
-        // eg. moment.tz("2013-11-18 11:55", "Asia/Taipei");
+        // Eg. moment.tz("2013-11-18 11:55", "Asia/Taipei");
         return moment
             .tz(
                 `${date.getFullYear()}-${

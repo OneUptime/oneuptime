@@ -64,13 +64,13 @@ const _this: $TSFixMe = {
             );
         }
 
-        // try to get the application log count by the ID and key
+        // Try to get the application log count by the ID and key
         const applicationLogCount: $TSFixMe =
             await ApplicationLogService.countBy({
                 _id: applicationLogId,
                 key: data.applicationLogKey,
             });
-        // send an error if the application log doesnt exist
+        // Send an error if the application log doesnt exist
         if (applicationLogCount === 0) {
             return sendErrorResponse(
                 req,
@@ -79,7 +79,7 @@ const _this: $TSFixMe = {
             );
         }
 
-        // everything is fine at this point
+        // Everything is fine at this point
         return next();
     },
 };

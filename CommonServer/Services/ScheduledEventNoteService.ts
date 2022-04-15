@@ -74,8 +74,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         /** This deletes the scheduled notes*/
         let eventMessage: $TSFixMe =
@@ -84,7 +84,8 @@ export default class Service {
                 { $set: data },
                 { new: true }
             );
-        /** Since the scheduled notes has been deleted
+        /**
+         * Since the scheduled notes has been deleted
          * The query.deleted value has changed from FALSE to TRUE
          */
         if (eventMessage) {
@@ -130,8 +131,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const eventMessageQuery: $TSFixMe = ScheduledEventNoteModel.findOne(

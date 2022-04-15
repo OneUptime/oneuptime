@@ -42,8 +42,10 @@ import {
     deleteScheduledEventSuccess,
 } from '../../actions/scheduledEvent';
 
-// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
-// '/realtime' is set as socket io namespace, so remove
+/*
+ * Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
+ * '/realtime' is set as socket io namespace, so remove
+ */
 
 export const socket: $TSFixMe = io.connect(
     REALTIME_URL.replace('/realtime', ''),

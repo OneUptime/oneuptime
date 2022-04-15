@@ -23,7 +23,7 @@ import Exception from 'Common/Types/Exception/Exception';
 const router: $TSFixMe = express.getRouter();
 
 router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
-    // get oneuptime project id from slack auth state query params
+    // Get oneuptime project id from slack auth state query params
     let state: $TSFixMe = req.query.state;
     const slackCode: $TSFixMe = req.query.code;
 
@@ -40,7 +40,7 @@ router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
             message: 'Slack state missing in query, must be present',
         });
     }
-    // hack that gets the user authToken and project ID, not very secure, but sufficient for now
+    // Hack that gets the user authToken and project ID, not very secure, but sufficient for now
 
     state = state.split(',', 2);
 
@@ -114,7 +114,7 @@ router.post(
                 if (!JSONresponse.ok) {
                     return sendErrorResponse(req, res, JSONresponse.error);
                 } else {
-                    // get slack response object
+                    // Get slack response object
                     const data: $TSFixMe = {
                         userId: JSONresponse.user_id,
                         teamName: JSONresponse.team_name,
@@ -145,7 +145,7 @@ router.post(
     }
 );
 
-// req => params => {teamId, projectId}
+// Req => params => {teamId, projectId}
 router.delete(
     '/:projectId/unLink/:teamId',
     getUser,
@@ -174,7 +174,7 @@ router.delete(
     }
 );
 
-// req => params => {projectId}
+// Req => params => {projectId}
 router.get(
     '/:projectId/teams',
     getUser,
@@ -200,8 +200,8 @@ router.get(
                         projectId: projectId,
                         integrationType: integrationType,
                     },
-                    skip: req.query['skip'] || 0,
-                    limit: req.query['limit'] || 10,
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
                     select,
                     populate,
                 }),

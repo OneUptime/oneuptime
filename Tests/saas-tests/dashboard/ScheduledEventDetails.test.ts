@@ -4,7 +4,7 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const anotherEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
@@ -30,7 +30,7 @@ describe('Scheduled Event Note', () => {
         await page.setUserAgent(utils.agent);
         // Register user
 
-        // user
+        // User
         await init.registerUser(user, page);
         // Create component
         await init.addComponent(componentName, page);
@@ -77,7 +77,7 @@ describe('Scheduled Event Note', () => {
             });
 
             await init.pageClick(page, '#viewScheduledEvent_0');
-            // navigate to the note tab section
+            // Navigate to the note tab section
 
             await init.pageClick(page, '.timeline-tab');
             await init.pageWaitForSelector(page, '#add-internal-message', {
@@ -140,7 +140,7 @@ describe('Scheduled Event Note', () => {
             });
 
             await init.pageClick(page, '#viewScheduledEvent_0');
-            // navigate to the note tab section
+            // Navigate to the note tab section
 
             await init.pageClick(page, '.timeline-tab');
 
@@ -203,7 +203,7 @@ describe('Scheduled Event Note', () => {
             });
 
             await init.pageClick(page, '#viewScheduledEvent_0');
-            // navigate to the note tab section
+            // Navigate to the note tab section
 
             await init.pageClick(page, '.timeline-tab');
             await init.pageWaitForSelector(
@@ -255,7 +255,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             password,
         };
 
-        // user
+        // User
         await init.registerUser(user, page);
         // Create component and monitor
         await init.addMonitorToComponent(componentName, monitorName, page);
@@ -266,7 +266,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             componentName,
             page
         );
-        // create multiple notes
+        // Create multiple notes
         for (let i: $TSFixMe = 0; i < 15; i++) {
             const noteDescription: string = utils.generateRandomString();
             await init.addScheduledMaintenanceNote(
@@ -304,7 +304,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             });
 
             await init.pageClick(page, '#viewScheduledEvent_0');
-            // navigate to the note tab section
+            // Navigate to the note tab section
 
             await init.pageClick(page, '.timeline-tab');
             const tenthItem: $TSFixMe = await init.pageWaitForSelector(
@@ -337,7 +337,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             });
 
             await init.pageClick(page, '#viewScheduledEvent_0');
-            // navigate to the note tab section
+            // Navigate to the note tab section
 
             await init.pageClick(page, '.timeline-tab');
             await init.pageWaitForSelector(page, '#nextBtn', {
@@ -384,11 +384,11 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             });
 
             await init.pageClick(page, '#viewScheduledEvent_0');
-            // navigate to the advance tab section
+            // Navigate to the advance tab section
 
             await init.pageClick(page, '.advanced-options-tab');
 
-            // look for the delete button and click on it
+            // Look for the delete button and click on it
             await init.pageWaitForSelector(page, '#deleteScheduleEvent', {
                 visible: true,
                 timeout: init.timeout,
@@ -396,14 +396,14 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
 
             await init.pageClick(page, '#deleteScheduleEvent');
 
-            // find the confirm delete button in the pop up and click on it
+            // Find the confirm delete button in the pop up and click on it
             await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await init.pageClick(page, '#deleteScheduleModalBtn');
-            // confirm that the element is deleted and redirected to the list of all schedule event page
+            // Confirm that the element is deleted and redirected to the list of all schedule event page
             await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
                 hidden: true,
             });

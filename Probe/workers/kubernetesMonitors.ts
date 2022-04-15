@@ -32,7 +32,7 @@ export default {
                     const dest: $TSFixMe = fs.createWriteStream(configPath);
 
                     res.body.pipe(dest);
-                    // at this point, writing to the specified file is complete
+                    // At this point, writing to the specified file is complete
                     dest.on('finish', async () => {
                         if (fs.existsSync(configPath)) {
                             const [
@@ -55,7 +55,7 @@ export default {
                                 deploymentOutput &&
                                 statefulsetOutput
                             ) {
-                                // handle pod output
+                                // Handle pod output
 
                                 const healthyPods: $TSFixMe = [],
                                     healthyPodData: $TSFixMe = [],
@@ -230,7 +230,7 @@ export default {
                                     allPodData,
                                 };
 
-                                // handle job output
+                                // Handle job output
 
                                 const runningJobs: $TSFixMe = [],
                                     succeededJobs: $TSFixMe = [],
@@ -392,12 +392,12 @@ export default {
                                     unhealthyJobData: [...failedJobData],
                                 };
 
-                                // handle services output
+                                // Handle services output
                                 const serviceData: $TSFixMe = {
                                     runningServices: serviceOutput.items.length,
                                 };
 
-                                // handle deployment output
+                                // Handle deployment output
                                 let desiredDeployment: $TSFixMe = 0,
                                     readyDeployment: $TSFixMe = 0;
 
@@ -548,7 +548,7 @@ export default {
                                     allDeploymentData,
                                 };
 
-                                // handle statefulset output
+                                // Handle statefulset output
                                 let desiredStatefulsets: $TSFixMe = 0,
                                     readyStatefulsets: $TSFixMe = 0;
 
@@ -707,12 +707,12 @@ export default {
                                     type: monitor.type,
                                 });
 
-                                // remove the config file
+                                // Remove the config file
                                 await deleteFile(configPath);
                             }
                         }
 
-                        // remove the config file
+                        // Remove the config file
                         await deleteFile(configPath);
                     });
 

@@ -1,4 +1,4 @@
-process.env['PORT'] = 3021;
+process.env.PORT = 3021;
 import { expect } from 'chai';
 import { validLicense, invalidLicense, expiredLicense } from './data/license';
 import chai from 'chai';

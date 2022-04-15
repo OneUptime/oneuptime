@@ -21,8 +21,8 @@ router.get(
     getUser,
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const skip: $TSFixMe = req.query['skip'] || 0;
-        const limit: $TSFixMe = req.query['limit'] || 10;
+        const skip: $TSFixMe = req.query.skip || 0;
+        const limit: $TSFixMe = req.query.limit || 10;
 
         const selectSso: $TSFixMe =
             '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
@@ -118,8 +118,8 @@ router.get(
     isScaleOrMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const { projectId }: $TSFixMe = req.params;
 
             const selectSso: $TSFixMe =

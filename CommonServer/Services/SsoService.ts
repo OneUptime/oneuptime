@@ -5,7 +5,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const sso: $TSFixMe = await SsoModel.findOneAndUpdate(
             query,
             { $set: { deleted: true, deletedAt: Date.now() } },
@@ -80,7 +80,7 @@ export default class Service {
         }
 
         if (!query.deleted) {
-            query['deleted'] = false;
+            query.deleted = false;
         }
         const ssoQuery: $TSFixMe = SsoModel.findOne(query).sort(sort).lean();
 
@@ -99,7 +99,7 @@ export default class Service {
         if (query.createdAt !== undefined) {
             delete query.createdAt;
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         let domainExists: $TSFixMe = null;
         if (data.domain) {
@@ -130,17 +130,19 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const count: $TSFixMe = await SsoModel.countDocuments(query);
         return count;
     }
 
-    // grab the email from xml response
-    // assuming there's only one email in the xml response
-    // or the same email x times in the response
+    /*
+     * Grab the email from xml response
+     * Assuming there's only one email in the xml response
+     * Or the same email x times in the response
+     */
     public getEmail(xml: $TSFixMe): void {
         const stringifiedXml: $TSFixMe = String(xml);
 

@@ -26,7 +26,7 @@ export const FETCH_AUDITLOG_STATUS_REQUEST: string =
 export const FETCH_AUDITLOG_STATUS_RESET: string =
     'FETCH_AUDITLOG_STATUS_RESET';
 
-// change audit log status
+// Change audit log status
 export const CHANGE_AUDITLOG_STATUS_SUCCESS: string =
     'CHANGE_AUDITLOG_STATUS_SUCCESS';
 export const CHANGE_AUDITLOG_STATUS_FAILED: string =

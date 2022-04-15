@@ -6,7 +6,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
@@ -245,7 +245,7 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#auditLogs');
 
-            // count currently available logs
+            // Count currently available logs
 
             let logCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -254,13 +254,13 @@ describe('Audit Logs', () => {
             logCount = await logCount.getProperty('innerText');
             logCount = await logCount.jsonValue();
             logCount = Number(logCount);
-            // goto other pages
+            // Goto other pages
 
             await init.pageWaitForSelector(page, '#probes');
 
             await init.pageClick(page, '#probes');
 
-            // come back to logs page
+            // Come back to logs page
 
             await init.pageWaitForSelector(page, '#logs');
 
@@ -270,7 +270,7 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#auditLogs');
 
-            // get the new log count
+            // Get the new log count
 
             let newLogCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -280,7 +280,7 @@ describe('Audit Logs', () => {
             newLogCount = await newLogCount.getProperty('innerText');
             newLogCount = await newLogCount.jsonValue();
             newLogCount = Number(newLogCount);
-            // validate that the number has change
+            // Validate that the number has change
             expect(newLogCount).toBeGreaterThan(logCount);
         },
         operationTimeOut
@@ -299,19 +299,19 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#auditLogs');
 
-            // visit the audit log settings page by clicking on settings first to show drop down
+            // Visit the audit log settings page by clicking on settings first to show drop down
 
             await init.pageWaitForSelector(page, '#settings');
 
             await init.pageClick(page, '#settings');
 
-            // click on th audit log
+            // Click on th audit log
 
             await init.pageWaitForSelector(page, '#auditLog');
 
             await init.pageClick(page, '#auditLog');
 
-            // turn audit log off
+            // Turn audit log off
             await init.page$Eval(
                 page,
                 'input[name=auditStatusToggler]',
@@ -320,13 +320,13 @@ describe('Audit Logs', () => {
                 }
             );
 
-            // click the submit button
+            // Click the submit button
 
             await init.pageWaitForSelector(page, '#auditLogSubmit');
 
             await init.pageClick(page, '#auditLogSubmit');
 
-            // go back to audit logs page
+            // Go back to audit logs page
 
             await init.pageWaitForSelector(page, '#logs');
 
@@ -336,7 +336,7 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#auditLogs');
 
-            // look for the alert panel
+            // Look for the alert panel
 
             const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -360,7 +360,7 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#auditLogs');
 
-            // look for the alert panel
+            // Look for the alert panel
 
             const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -368,7 +368,7 @@ describe('Audit Logs', () => {
             );
             expect(alertPanelElement).toBeDefined();
 
-            // count currently available logs
+            // Count currently available logs
 
             let logCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -378,13 +378,13 @@ describe('Audit Logs', () => {
             logCount = await logCount.jsonValue();
             logCount = Number(logCount);
 
-            // goto other pages
+            // Goto other pages
 
             await init.pageWaitForSelector(page, '#probes');
 
             await init.pageClick(page, '#probes');
 
-            // come back to logs page
+            // Come back to logs page
 
             await init.pageWaitForSelector(page, '#logs');
 
@@ -394,7 +394,7 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#auditLogs');
 
-            // validate that the number doesnt change
+            // Validate that the number doesnt change
 
             let newLogCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -422,7 +422,7 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#auditLogs');
 
-            // count number of logs
+            // Count number of logs
 
             let logCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -432,7 +432,7 @@ describe('Audit Logs', () => {
             logCount = await logCount.jsonValue();
             logCount = Number(logCount);
 
-            // look for the alert panel
+            // Look for the alert panel
 
             const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -440,13 +440,13 @@ describe('Audit Logs', () => {
             );
             expect(alertPanelElement).toBeDefined();
 
-            // find the a tag to enable logs and click on it
+            // Find the a tag to enable logs and click on it
 
             await init.pageWaitForSelector(page, '#auditLogSetting');
 
             await init.pageClick(page, '#auditLogSetting');
 
-            // enable logs
+            // Enable logs
             await init.page$Eval(
                 page,
                 'input[name=auditStatusToggler]',
@@ -455,13 +455,13 @@ describe('Audit Logs', () => {
                 }
             );
 
-            // click the submit button
+            // Click the submit button
 
             await init.pageWaitForSelector(page, '#auditLogSubmit');
 
             await init.pageClick(page, '#auditLogSubmit');
 
-            // go back to audit logs
+            // Go back to audit logs
 
             await init.pageWaitForSelector(page, '#logs');
 
@@ -471,7 +471,7 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#auditLogs');
 
-            // count new number of logs
+            // Count new number of logs
 
             let newLogCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -481,7 +481,7 @@ describe('Audit Logs', () => {
             newLogCount = await newLogCount.jsonValue();
             newLogCount = Number(newLogCount);
 
-            // expect it to be greater now
+            // Expect it to be greater now
             expect(newLogCount).toBeGreaterThan(logCount);
         },
         operationTimeOut

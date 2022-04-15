@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const secondEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
@@ -28,7 +28,7 @@ describe('Project Setting: Change Plan', () => {
             email: email,
             password: password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
 
         done();
@@ -75,7 +75,7 @@ describe('Project Setting: Change Plan', () => {
 
             await init.pageClick(page, '#billing');
 
-            // get current balance as $0
+            // Get current balance as $0
 
             let spanBalanceElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -87,7 +87,7 @@ describe('Project Setting: Change Plan', () => {
             spanBalanceElement = await spanBalanceElement.jsonValue();
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
-            // add $20 to the account then click cancel
+            // Add $20 to the account then click cancel
 
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
 
@@ -102,7 +102,7 @@ describe('Project Setting: Change Plan', () => {
 
             await init.pageClick(page, '#rechargeAccount');
 
-            // confirm the current balance is still $0
+            // Confirm the current balance is still $0
 
             spanBalanceElement = await init.pageWaitForSelector(
                 page,
@@ -138,7 +138,7 @@ describe('Project Setting: Change Plan', () => {
 
             await init.pageClick(page, '#billing');
 
-            // get current balance as $0
+            // Get current balance as $0
 
             let spanBalanceElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -150,7 +150,7 @@ describe('Project Setting: Change Plan', () => {
             spanBalanceElement = await spanBalanceElement.jsonValue();
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
-            // add $20 to the account
+            // Add $20 to the account
 
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
 
@@ -173,7 +173,7 @@ describe('Project Setting: Change Plan', () => {
                 hidden: true,
             });
 
-            // confirm a pop up comes up and the message is a successful
+            // Confirm a pop up comes up and the message is a successful
 
             let spanModalElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -185,14 +185,14 @@ describe('Project Setting: Change Plan', () => {
                 `Transaction successful, your balance is now ${balance}.00$`
             );
 
-            // click ok
+            // Click ok
 
             await init.pageWaitForSelector(page, '#modal-ok');
 
             await init.pageClick(page, '#modal-ok');
             await init.pageWaitForSelector(page, '#modal-ok', { hidden: true });
 
-            // confirm the current balance is $20
+            // Confirm the current balance is $20
 
             spanBalanceElement = await init.pageWaitForSelector(
                 page,
@@ -226,7 +226,7 @@ describe('Project Setting: Change Plan', () => {
 
             await init.pageClick(page, '#billing');
 
-            // get current balance as $0
+            // Get current balance as $0
 
             let spanBalanceElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -238,7 +238,7 @@ describe('Project Setting: Change Plan', () => {
             spanBalanceElement = await spanBalanceElement.jsonValue();
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
-            // add $20 to the account then click cancel
+            // Add $20 to the account then click cancel
 
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
 
@@ -260,7 +260,7 @@ describe('Project Setting: Change Plan', () => {
                 hidden: true,
             });
 
-            // confirm the current balance is still $0
+            // Confirm the current balance is still $0
 
             spanBalanceElement = await init.pageWaitForSelector(
                 page,
@@ -293,7 +293,7 @@ describe('Member Restriction', () => {
             password: password,
         };
 
-        // user
+        // User
         await init.registerUser(user, page);
         await init.renameProject(newProjectName, page);
         await page.goto(utils.DASHBOARD_URL, {
@@ -311,7 +311,7 @@ describe('Member Restriction', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle0',
         });
-        // adding a subProject is only allowed on growth plan and above
+        // Adding a subProject is only allowed on growth plan and above
         await init.addSubProject(subProjectName, page);
         await init.saasLogout(page);
 

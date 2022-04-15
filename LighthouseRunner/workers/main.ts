@@ -8,7 +8,7 @@ export default {
         let monitors: $TSFixMe = await BackendAPI.get(
             new Route('lighthouse/monitors')
         );
-        monitors = JSON.parse(monitors.data); // parse the stringified data
+        monitors = JSON.parse(monitors.data); // Parse the stringified data
         await Promise.all(
             monitors.map((monitor: $TSFixMe) => {
                 if (monitor.type === 'url') {

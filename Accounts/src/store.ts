@@ -22,9 +22,9 @@ export const removeQuery: Function = (removeField: string): void => {
         delete query[removeField];
     }
 
-    // remove "token" field - keeping this to prevent regression
-    if (query['token']) {
-        delete query['token'];
+    // Remove "token" field - keeping this to prevent regression
+    if (query.token) {
+        delete query.token;
     }
 
     location.search = queryString.stringify(query);
@@ -36,7 +36,7 @@ const enhancers: $TSFixMe = [];
 const logger: $TSFixMe = createLogger();
 const middleware: $TSFixMe = [thunk, routerMiddleware(history)];
 
-if (process.env['NODE_ENV'] === 'development') {
+if (process.env.NODE_ENV === 'development') {
     let devToolsExtension: $TSFixMe;
     if (!isApiServer) {
         devToolsExtension = window.devToolsExtension;

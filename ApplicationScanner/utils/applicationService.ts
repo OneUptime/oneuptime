@@ -82,7 +82,7 @@ export default {
         let securityDir: $TSFixMe = 'application_security_dir';
 
         securityDir = await createDir(securityDir);
-        const cloneDirectory: string = `${uuidv1()}security`; // always create unique paths
+        const cloneDirectory: string = `${uuidv1()}security`; // Always create unique paths
         const repoPath: $TSFixMe = Path.resolve(securityDir, cloneDirectory);
         const conn: $TSFixMe = new Client();
 
@@ -127,7 +127,7 @@ export default {
 
                             audit.on('close', async () => {
                                 let advisories: $TSFixMe = [];
-                                auditOutput = JSON.parse(auditOutput); // parse the stringified json
+                                auditOutput = JSON.parse(auditOutput); // Parse the stringified json
 
                                 for (const key in auditOutput.vulnerabilities) {
                                     advisories.push(
@@ -155,7 +155,7 @@ export default {
                                     return advisory;
                                 });
 
-                                // restructure advisories from the most critical case to the least critical(low)
+                                // Restructure advisories from the most critical case to the least critical(low)
                                 advisories = [
                                     ...criticalArr,
 
@@ -223,15 +223,17 @@ export default {
 
         const USER: $TSFixMe = security.gitCredential.gitUsername;
         const PASS: $TSFixMe = security.gitCredential.gitPassword;
-        // format the url
+        // Format the url
         const REPO: $TSFixMe = formatUrl(security.gitRepositoryUrl);
         const remote: string = `https://${USER}:${PASS}@${REPO}`;
-        const cloneDirectory: string = `${uuidv1()}security`; // always create unique paths
+        const cloneDirectory: string = `${uuidv1()}security`; // Always create unique paths
         const repoPath: $TSFixMe = Path.resolve(securityDir, cloneDirectory);
 
-        // update application security to scanning true
-        // to prevent pulling an applicaiton security multiple times by running cron job
-        // due to network delay
+        /*
+         * Update application security to scanning true
+         * To prevent pulling an applicaiton security multiple times by running cron job
+         * Due to network delay
+         */
         await updateApplicationSecurityToScanning(security);
 
         return new Promise((resolve: Function, reject: Function) => {
@@ -269,7 +271,7 @@ export default {
 
                         audit.on('close', async () => {
                             let advisories: $TSFixMe = [];
-                            auditOutput = JSON.parse(auditOutput); // parse the stringified json
+                            auditOutput = JSON.parse(auditOutput); // Parse the stringified json
 
                             for (const key in auditOutput.vulnerabilities) {
                                 advisories.push(
@@ -297,7 +299,7 @@ export default {
                                 return advisory;
                             });
 
-                            // restructure advisories from the most critical case to the least critical(low)
+                            // Restructure advisories from the most critical case to the least critical(low)
                             advisories = [
                                 ...criticalArr,
 
@@ -362,28 +364,28 @@ async function deleteFolderRecursive(dir: $TSFixMe): void {
                     : unlink(fullPath);
             })
         );
-        await rmdir(dir); // finally remove now empty directory
+        await rmdir(dir); // Finally remove now empty directory
     }
 }
 
 function formatUrl(url: $TSFixMe): void {
-    // remove https://www. from url
+    // Remove https://www. from url
     if (url.indexOf('https://www.') === 0) {
         return url.slice(12);
     }
-    // remove http://www. from url
+    // Remove http://www. from url
     if (url.indexOf('http://www.') === 0) {
         return url.slice(11);
     }
-    // remove https:// from url
+    // Remove https:// from url
     if (url.indexOf('https://') === 0) {
         return url.slice(8);
     }
-    // remove http:// from url
+    // Remove http:// from url
     if (url.indexOf('http://') === 0) {
         return url.slice(7);
     }
-    // remove www. from url
+    // Remove www. from url
     if (url.indexOf('www.') === 0) {
         return url.slice(4);
     }

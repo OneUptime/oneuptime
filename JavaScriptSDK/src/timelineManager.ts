@@ -6,25 +6,25 @@ class OneUptimeTimelineManager {
         this.timeLineStack = [];
     }
     private _addItemToTimeline(item: $TSFixMe): void {
-        // get the size of the stack
+        // Get the size of the stack
         if (this.timeLineStack.length === this.options.maxTimeline) {
-            // this.timeLineStack.shift(); // remove the oldest item
+            // This.timeLineStack.shift(); // remove the oldest item
             return; // It discards new timline update once maximum is reached
         }
-        // add time to it
+        // Add time to it
         item.timestamp = Date.now();
-        // add a new item to the stack
+        // Add a new item to the stack
         this.timeLineStack.push(item);
         return true;
     }
     public addToTimeline(item: $TSFixMe): void {
         this._addItemToTimeline(item);
     }
-    // return the timeline
+    // Return the timeline
     public getTimeline(): void {
         return this.timeLineStack;
     }
-    // clear the timeline
+    // Clear the timeline
     public clearTimeline(): void {
         this.timeLineStack = [];
     }

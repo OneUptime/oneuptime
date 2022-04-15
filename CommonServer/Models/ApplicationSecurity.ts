@@ -35,7 +35,7 @@ const schema: $TSFixMe = new Schema(
         scanned: { type: Boolean, default: false },
         scanning: { type: Boolean, default: false },
     },
-    { timestamps: true } //automatically adds createdAt and updatedAt to the schema
+    { timestamps: true } //Automatically adds createdAt and updatedAt to the schema
 );
 export const requiredFields: RequiredFields = schema.requiredPaths();
 

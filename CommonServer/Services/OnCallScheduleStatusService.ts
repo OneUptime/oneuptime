@@ -35,8 +35,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const itemsQuery: $TSFixMe = OnCallScheduleStatusModel.find(query)
             .lean()
@@ -82,8 +82,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await OnCallScheduleStatusModel.countDocuments(
             query
@@ -96,8 +96,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const item: $TSFixMe = await OnCallScheduleStatusModel.findOneAndUpdate(
             query,
@@ -116,8 +116,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         await OnCallScheduleStatusModel.updateMany(query, {
             $set: data,
@@ -149,7 +149,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const items: $TSFixMe =
             await OnCallScheduleStatusModel.findOneAndUpdate(
                 query,

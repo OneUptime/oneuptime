@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
@@ -22,7 +22,7 @@ describe('New Monitor API', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerUser(user, page);
         done();
     });
@@ -36,8 +36,10 @@ describe('New Monitor API', () => {
         "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Startup plan => 5 Monitors/User)",
         async (done: $TSFixMe) => {
             const componentName: string = utils.generateRandomString();
-            // create a component
-            // Redirects automatically component to details page
+            /*
+             * Create a component
+             * Redirects automatically component to details page
+             */
             await init.addComponent(componentName, page);
             // This the first monitor
             const firstMonitorName: string = utils.generateRandomString();
@@ -48,8 +50,10 @@ describe('New Monitor API', () => {
             );
 
             for (let i: $TSFixMe = 0; i < 4; i++) {
-                // This adds 4 more monitors
-                // The Interface for adding additional monitor has been updated
+                /*
+                 * This adds 4 more monitors
+                 * The Interface for adding additional monitor has been updated
+                 */
                 const monitorName: string = utils.generateRandomString();
 
                 await init.addAdditionalMonitorToComponent(
@@ -61,7 +65,7 @@ describe('New Monitor API', () => {
                     hidden: true,
                 });
             }
-            // try to add more monitor
+            // Try to add more monitor
             const monitorName: string = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],

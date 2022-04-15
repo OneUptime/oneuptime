@@ -10,7 +10,8 @@ const user: $TSFixMe = {
 const componentName: string = utils.generateRandomString();
 const performanceTrackerName: string = utils.generateRandomString();
 
-/** This is a test to check:
+/**
+ * This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
  */

@@ -6,8 +6,8 @@ import mongoose, {
 
 const Schema: $TSFixMe = mongoose.Schema;
 const schema: $TSFixMe = new Schema({
-    monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this belong to.
-    probeId: { type: String, ref: 'Probe', index: true }, // which probe does this belong to.
+    monitorId: { type: String, ref: 'Monitor', index: true }, // Which monitor does this belong to.
+    probeId: { type: String, ref: 'Probe', index: true }, // Which probe does this belong to.
     data: Object,
     url: URL,
     performance: Number,

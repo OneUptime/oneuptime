@@ -43,7 +43,7 @@ router.post(
                 });
             }
 
-            // sanitize template markup
+            // Sanitize template markup
             const [subject, body]: $TSFixMe = await Promise.all([
                 DOMPurify.sanitize(data.subject),
                 DOMPurify.sanitize(data.body, {
@@ -160,7 +160,7 @@ router.put(
                         message: 'Email body is required.',
                     });
                 }
-                // sanitize template markup
+                // Sanitize template markup
                 value.projectId = projectId;
                 const [subject, body]: $TSFixMe = await Promise.all([
                     DOMPurify.sanitize(value.subject),

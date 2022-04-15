@@ -21,11 +21,13 @@ import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
 import ErrorService from 'CommonServer/Utils/error';
 
-// Route
-// Description: Updating profile setting.
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
-// Returns: 200: Success, 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Updating profile setting.
+ * Params:
+ * Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
+ * Returns: 200: Success, 400: Error; 500: Server Error.
+ */
 
 router.get(
     '/monitors',

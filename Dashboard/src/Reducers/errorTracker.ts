@@ -240,9 +240,11 @@ export default function errorTracker(
                 errorTrackerIssues: temporaryIssues,
             });
         case FETCH_ERROR_EVENT_REQUEST:
-            // check if the error event exist
-            // if it doesnt, create the error event details
-            // if it does, update the requesting
+            /*
+             * Check if the error event exist
+             * If it doesnt, create the error event details
+             * If it does, update the requesting
+             */
             temporaryErrorEvents = {
                 ...state.errorEvents,
 
@@ -761,7 +763,7 @@ export default function errorTracker(
             temporaryIssue = temporaryIssues.filter((issue: $TSFixMe) => {
                 return issue._id === action.payload.errorEvent.issueId;
             });
-            // if issue exist
+            // If issue exist
             if (
                 temporaryIssue.length > 0 &&
                 temporaryIssue[0].latestId !== action.payload.errorEvent._id

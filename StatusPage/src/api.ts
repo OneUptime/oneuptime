@@ -9,7 +9,7 @@ const headers: $TSFixMe = {
 
 export const post: Function = (url: URL, data: $TSFixMe): void => {
     if (User.isLoggedIn()) {
-        headers['Authorization'] = 'Basic ' + User.getAccessToken();
+        headers.Authorization = 'Basic ' + User.getAccessToken();
     }
 
     const promise: Promise = new Promise(
@@ -33,7 +33,7 @@ export const post: Function = (url: URL, data: $TSFixMe): void => {
 
 export const get: Function = (url: URL): void => {
     if (User.isLoggedIn()) {
-        headers['Authorization'] = 'Basic ' + User.getAccessToken();
+        headers.Authorization = 'Basic ' + User.getAccessToken();
     }
 
     const promise: Promise = new Promise(
@@ -56,7 +56,7 @@ export const get: Function = (url: URL): void => {
 
 export const put: Function = (url: URL, data: $TSFixMe): void => {
     if (User.isLoggedIn()) {
-        headers['Authorization'] = 'Basic ' + User.getAccessToken();
+        headers.Authorization = 'Basic ' + User.getAccessToken();
     }
 
     const promise: Promise = new Promise(

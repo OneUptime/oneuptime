@@ -1,11 +1,13 @@
 import { find, update } from '../util/db';
 
-// TODO:
-//  -   fetch all monitors and monitor statuses (deleted: false)
-//  -   for all the monitor statuses of a particular monitor
-//      -   check if the current status does not have endTime or endTime set to null
-//      -   if true, then check if there is next status
-//      -   if true, then set the endTime of current status to the next status startTime and save
+/*
+ * TODO:
+ *  -   fetch all monitors and monitor statuses (deleted: false)
+ *  -   for all the monitor statuses of a particular monitor
+ *      -   check if the current status does not have endTime or endTime set to null
+ *      -   if true, then check if there is next status
+ *      -   if true, then set the endTime of current status to the next status startTime and save
+ */
 
 const monitorCollection: string = 'monitors';
 const monitorStatusCollection: string = 'monitorstatuses';

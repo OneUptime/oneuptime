@@ -11,12 +11,12 @@ import Express, {
     ExpressUrlEncoded,
 } from './Express';
 
-// connect common api's.
+// Connect common api's.
 import '../API/Index';
 
 const app: $TSFixMe = Express.getExpressApp();
 
-app.set('port', process.env['PORT']);
+app.set('port', process.env.PORT);
 
 const logRequest: Function = (
     req: ExpressRequest,
@@ -68,8 +68,10 @@ const setDefaultHeaders: Function = (
 app.use(cors());
 app.use(setDefaultHeaders);
 
-// Add limit of 10 MB to avoid "Request Entity too large error"
-// https://stackoverflow.com/questions/19917401/error-request-entity-too-large
+/*
+ * Add limit of 10 MB to avoid "Request Entity too large error"
+ * https://stackoverflow.com/questions/19917401/error-request-entity-too-large
+ */
 app.use(ExpressJson({ limit: '10mb' }));
 app.use(ExpressUrlEncoded({ limit: '10mb' }));
 

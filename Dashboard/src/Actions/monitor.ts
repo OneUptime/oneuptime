@@ -7,12 +7,16 @@ import { change, autofill } from 'redux-form';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
-//import { PricingPlan } from '../config';
-//import { User } from '../config';
-//import { upgradePlanEmpty, upgradeToEnterpriseMail } from '../actions/project';
+/*
+ * Import { PricingPlan } from '../config';
+ * Import { User } from '../config';
+ * Import { upgradePlanEmpty, upgradeToEnterpriseMail } from '../actions/project';
+ */
 
-//Monitor list
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Monitor list
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export const fetchMonitors: Function = (
     projectId: ObjectID,
     skip: number = 0,
@@ -63,8 +67,10 @@ export const resetFetchMonitors: Function = (): void => {
     };
 };
 
-//Monitor list
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Monitor list
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export function fetchPaginatedMonitors({
     projectId,
     skip = 0,
@@ -121,8 +127,10 @@ export const fetchPaginatedMonitorsFailure: Function = (
     };
 };
 
-//Create new monitor
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Create new monitor
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export const createMonitor: Function = (
     projectId: ObjectID,
     values: $TSFixMe
@@ -331,8 +339,10 @@ export const resetCreateMonitor: Function = (): void => {
     };
 };
 
-//Edit new monitor
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Edit new monitor
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export const editMonitor: Function = (
     projectId: ObjectID,
     values: $TSFixMe
@@ -410,8 +420,10 @@ export const resetEditMonitor: Function = (): void => {
     };
 };
 
-//Add new site url
-//props -> siteUrl
+/*
+ * Add new site url
+ * Props -> siteUrl
+ */
 export function addSiteUrl(
     monitorId: $TSFixMe,
     projectId: ObjectID,
@@ -487,8 +499,10 @@ export function deleteSiteUrl(
     };
 }
 
-//Delete a monitor
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Delete a monitor
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export const deleteMonitor: Function = (
     monitorId: $TSFixMe,
     projectId: ObjectID
@@ -636,7 +650,7 @@ export const changeMonitorComponent: Function = (
             }
             dispatch(changeMonitorComponentFailure(error));
 
-            // rethrow the error?
+            // Rethrow the error?
         }
     };
 };
@@ -672,8 +686,10 @@ export const changeMonitorComponentFailure: Function = (
     };
 };
 
-//Fetch Incidents of monitors
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Fetch Incidents of monitors
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export function fetchMonitorsIncidents(
     projectId: ObjectID,
     monitorId: $TSFixMe,

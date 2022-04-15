@@ -166,7 +166,7 @@ export default class API {
             const error: $TSFixMe = e as Error | AxiosError;
             let errorResponse: HTTPErrorResponse | APIException;
             if (axios.isAxiosError(error)) {
-                // do whatever you want with native error
+                // Do whatever you want with native error
                 errorResponse = this.getErrorResponse(error);
             } else {
                 errorResponse = new APIException(error.message);

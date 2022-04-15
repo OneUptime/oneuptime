@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const monitorName: string = utils.generateRandomString();
@@ -30,9 +30,9 @@ describe('Monitor Detail API', () => {
             password,
         };
 
-        // user
+        // User
         await init.registerUser(user, page);
-        // add new monitor to component on parent project
+        // Add new monitor to component on parent project
         await init.addMonitorToComponent(componentName, monitorName, page);
         await init.addIncidentPriority(priorityName, page);
     });
@@ -94,7 +94,7 @@ describe('Monitor Detail API', () => {
                 page
             );
             await init.pageClick(page, '#title', { clickCount: 3 });
-            // await page.keyboard.press('Backspace');
+            // Await page.keyboard.press('Backspace');
 
             await init.pageType(page, '#title', incidentTitle);
             await init.page$Eval(page, '#createIncident', (e: $TSFixMe) => {
@@ -199,7 +199,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // tab the create incident button over thee monitor view header
+            // Tab the create incident button over thee monitor view header
 
             await init.pageWaitForSelector(
                 page,
@@ -289,7 +289,7 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(page, selector, (e: $TSFixMe) => {
                 return e.click();
             });
-            // click on advance option tab
+            // Click on advance option tab
 
             await init.pageClick(page, '.advanced-tab');
             await init.pageWaitForSelector(page, '#deleteIncidentButton', {
@@ -319,7 +319,7 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
 
-            //click on basic tab
+            //Click on basic tab
 
             await init.pageClick(page, '.basic-tab');
 

@@ -16,7 +16,7 @@ const schema: $TSFixMe = new Schema(
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
     },
-    { timestamps: true } //automatically adds createdAt and updatedAt to the collection
+    { timestamps: true } //Automatically adds createdAt and updatedAt to the collection
 );
 
 export const requiredFields: RequiredFields = schema.requiredPaths();

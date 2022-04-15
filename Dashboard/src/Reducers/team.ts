@@ -157,7 +157,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                     requesting: false,
                     success: true,
                 },
-                // teamMembers: action.payload
+                // TeamMembers: action.payload
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
                     (subProject: $TSFixMe) => {
                         subProject.teamMembers = action.payload.find(
@@ -211,7 +211,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                     success: true,
                     deleting: [],
                 },
-                // teamMembers: action.payload.data,
+                // TeamMembers: action.payload.data,
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
                     (subProject: $TSFixMe) => {
                         if (action.payload) {
@@ -316,7 +316,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                     success: true,
                     updating: [],
                 },
-                // teamMembers: teamMembers,
+                // TeamMembers: teamMembers,
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
                     (subProject: $TSFixMe) => {
                         subProject.teamMembers = action.payload.find(

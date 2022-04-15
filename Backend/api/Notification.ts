@@ -50,8 +50,8 @@ router.get(
             const [notifications, count]: $TSFixMe = await Promise.all([
                 NotificationService.findBy({
                     query: { projectId: { $in: subProjectIds } },
-                    skip: req.query['skip'] || 0,
-                    limit: req.query['limit'] || 20,
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 20,
                     populate: populateNotification,
                     select: selectNotification,
                 }),
@@ -72,7 +72,7 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // const notificationId: $TSFixMe = req.params.notificationId;
+            // Const notificationId: $TSFixMe = req.params.notificationId;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
 

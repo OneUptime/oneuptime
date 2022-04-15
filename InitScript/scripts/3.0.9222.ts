@@ -3,7 +3,7 @@ import { find, update, findOne } from '../util/db';
 const scheduledEventNoteCollection: string = 'scheduledeventnotes';
 const scheduledEventCollection: string = 'scheduledevents';
 
-// run this script once
+// Run this script once
 async function run(): void {
     const scheduledEventNotes: $TSFixMe = await find(
         scheduledEventNoteCollection,

@@ -21,7 +21,7 @@ export default {
     rearrangeDuty: async (main: $TSFixMe = []) => {
         let closeStringId: $TSFixMe;
         for (let i: $TSFixMe = 0; i < main.length; i++) {
-            if (typeof main[i].schedule == 'object') {
+            if (typeof main[i].schedule === 'object') {
                 closeStringId = i - 1;
             }
         }

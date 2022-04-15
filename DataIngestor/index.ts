@@ -7,14 +7,14 @@ http.createServer(app);
 import { mongoUrl, databaseName } from './utils/config';
 const MongoClient: $TSFixMe = require('mongodb').MongoClient;
 
-// mongodb
+// Mongodb
 function getMongoClient(): void {
     return new MongoClient(mongoUrl, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
     });
 }
-// setup mongodb connection
+// Setup mongodb connection
 const client: $TSFixMe = getMongoClient();
 (async function (): void {
     try {
@@ -26,7 +26,7 @@ const client: $TSFixMe = getMongoClient();
     }
 })();
 
-// attach the database to global object
+// Attach the database to global object
 
 global.db = client.db(databaseName);
 

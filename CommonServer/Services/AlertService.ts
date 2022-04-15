@@ -46,7 +46,7 @@ import {
     calculateHumanReadableDownTime,
     getIncidentLength,
 } from '../Utils/incident';
-//  import IncidentService from './incidentService' Declared but unused
+//  Import IncidentService from './incidentService' Declared but unused
 import IncidentMessageService from './IncidentMessageService';
 import IncidentTimelineService from './IncidentTimelineService';
 import Services from '../Utils/services';
@@ -57,7 +57,7 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     /**
-     * gets the schedules to use for alerts
+     * Gets the schedules to use for alerts
      * @param {Object} incident the current incident
      * @returns {Object[]} list of schedules
      */
@@ -96,7 +96,7 @@ export default class Service {
         const select: $TSFixMe =
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
-        // first, try to find schedules associated with the matched criterion of the monitor
+        // First, try to find schedules associated with the matched criterion of the monitor
         if (
             !incident.manuallyCreated &&
             matchedCriterion.scheduleIds &&
@@ -108,13 +108,13 @@ export default class Service {
                 populate,
             });
         } else {
-            // then, try to find schedules in the monitor
+            // Then, try to find schedules in the monitor
             schedules = await ScheduleService.findBy({
                 query: { monitorIds: monitorId },
                 select,
                 populate,
             });
-            // lastly, find default schedules for the project
+            // Lastly, find default schedules for the project
             if (schedules.length === 0) {
                 schedules = await ScheduleService.findBy({
                     query: { isDefault: true, projectId },
@@ -181,8 +181,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const alertsQuery: $TSFixMe = AlertModel.find(query)
             .lean()
@@ -379,7 +379,7 @@ export default class Service {
             incidentId,
             projectId,
         };
-        // run in the background
+        // Run in the background
         RealTimeService.sendIncidentTimeline(result);
     }
 
@@ -388,8 +388,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await AlertModel.countDocuments(query);
         return count;
@@ -400,8 +400,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const updatedAlert: $TSFixMe = await AlertModel.findOneAndUpdate(
             query,
@@ -420,8 +420,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await AlertModel.updateMany(query, {
             $set: data,
@@ -448,7 +448,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const alerts: $TSFixMe = await AlertModel.findOneAndUpdate(
             query,
             {
@@ -510,7 +510,7 @@ export default class Service {
             return;
         }
 
-        //scheudle has no escalations. Skip.
+        //Scheudle has no escalations. Skip.
         if (!schedule.escalationIds || schedule.escalationIds.length === 0) {
             return;
         }
@@ -549,7 +549,7 @@ export default class Service {
         let escalationId: $TSFixMe = null;
         let currentEscalationStatus: $TSFixMe = null;
         if (callScheduleStatuses.length === 0) {
-            //start with first ecalation policy, and then escalationPolicy will take care of others in escalation policy.
+            //Start with first ecalation policy, and then escalationPolicy will take care of others in escalation policy.
             escalationId = schedule.escalationIds[0];
 
             if (escalationId && escalationId._id) {
@@ -564,7 +564,7 @@ export default class Service {
                 pushRemindersSent: 0,
             };
 
-            //create new onCallScheduleStatus
+            //Create new onCallScheduleStatus
             onCallScheduleStatus = await OnCallScheduleStatusService.create({
                 project: projectId,
                 incident: incident._id,
@@ -727,7 +727,7 @@ export default class Service {
 
         let nextEscalationPolicy: $TSFixMe = null;
 
-        //find next escalationPolicy.
+        //Find next escalationPolicy.
         let found: $TSFixMe = false;
         for (let escalationId of schedule.escalationIds) {
             if (found) {
@@ -752,7 +752,7 @@ export default class Service {
             const query: $TSFixMe = { _id: callScheduleStatus._id };
             const data: $TSFixMe = { alertedEveryone: true };
             await OnCallScheduleStatusService.updateOneBy({ query, data });
-            return; //can't escalate anymore.
+            return; //Can't escalate anymore.
         }
 
         callScheduleStatus.escalations.push({
@@ -1002,7 +1002,7 @@ export default class Service {
                 continue;
             } else {
                 /**
-                 *  sendSMSAlert & sendCallAlert should not run in parallel
+                 *  SendSMSAlert & sendCallAlert should not run in parallel
                  *  otherwise we will have a wrong project balance in the end.
                  *
                  */
@@ -1369,12 +1369,14 @@ export default class Service {
             const incidentSla: $TSFixMe = incidentCommunicationSla.name;
             const projectName: $TSFixMe = incident.projectId.name;
             const projectSlug: $TSFixMe = incident.projectId.slug;
-            // const monitorName: $TSFixMe = monitor.name;
+            // Const monitorName: $TSFixMe = monitor.name;
             const incidentId: string = `#${incident.idNumber}`;
             const reason: $TSFixMe = incident.reason;
-            // const componentSlug: $TSFixMe = monitor.componentId.slug;
-            // const componentName: $TSFixMe = monitor.componentId.name;
-            // const incidentUrl:string: $TSFixMe = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.slug}`;
+            /*
+             * Const componentSlug: $TSFixMe = monitor.componentId.slug;
+             * Const componentName: $TSFixMe = monitor.componentId.name;
+             * Const incidentUrl:string: $TSFixMe = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.slug}`;
+             */
 
             const incidentUrl: string = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.slug}`;
             let incidentSlaTimeline: $TSFixMe =
@@ -1390,10 +1392,10 @@ export default class Service {
                         name: member.name,
                         projectId,
                         incidentSla,
-                        // monitorName,
+                        // MonitorName,
                         incidentUrl,
                         projectName,
-                        // componentName,
+                        // ComponentName,
                         incidentId,
                         reason,
                         incidentSlaTimeline,
@@ -1407,10 +1409,10 @@ export default class Service {
                         name: member.name,
                         projectId,
                         incidentSla,
-                        // monitorName,
+                        // MonitorName,
                         incidentUrl,
                         projectName,
-                        // componentName,
+                        // ComponentName,
                         incidentId,
                         reason,
                         incidentSlaTimeline,
@@ -1829,7 +1831,7 @@ export default class Service {
                 alertProgress: smsProgress,
             });
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                // calculate charge per 160 chars
+                // Calculate charge per 160 chars
                 const segments: $TSFixMe = calcSmsSegments(sendResult.body);
                 const balanceStatus: $TSFixMe =
                     await PaymentService.chargeAlertAndGetProjectBalance(
@@ -2152,7 +2154,7 @@ export default class Service {
                     continue;
                 }
 
-                //scheudle has no escalations. Skip.
+                //Scheudle has no escalations. Skip.
                 if (
                     !schedule.escalationIds ||
                     schedule.escalationIds.length === 0
@@ -2186,7 +2188,7 @@ export default class Service {
                         smsRemindersSent: 0,
                     };
 
-                    //create new onCallScheduleStatus
+                    //Create new onCallScheduleStatus
                     onCallScheduleStatus =
                         await OnCallScheduleStatusService.create({
                             project: projectId,
@@ -2508,7 +2510,7 @@ export default class Service {
                     continue;
                 }
 
-                //scheudle has no escalations. Skip.
+                //Scheudle has no escalations. Skip.
                 if (
                     !schedule.escalationIds ||
                     schedule.escalationIds.length === 0
@@ -2542,7 +2544,7 @@ export default class Service {
                         smsRemindersSent: 0,
                     };
 
-                    //create new onCallScheduleStatus
+                    //Create new onCallScheduleStatus
                     onCallScheduleStatus =
                         await OnCallScheduleStatusService.create({
                             project: projectId,
@@ -3060,7 +3062,7 @@ export default class Service {
             }),
         ]);
         monitor = mon;
-        // get the component
+        // Get the component
         const populateComponent: $TSFixMe = [
             { path: 'projectId', select: 'name' },
             { path: 'componentCategoryId', select: 'name' },
@@ -3858,7 +3860,7 @@ export default class Service {
                             IS_SAAS_SERVICE &&
                             !hasCustomTwilioSettings
                         ) {
-                            // charge sms per 160 chars
+                            // Charge sms per 160 chars
                             const segments: $TSFixMe = calcSmsSegments(
                                 sendResult.body
                             );
@@ -3902,7 +3904,7 @@ export default class Service {
         let incidentAlert: $TSFixMe = subscriber.notificationType?.incident;
         const statusPageId: $TSFixMe = subscriber?.statusPageId;
 
-        // if there is no notification type, then set incidentAlert to true.
+        // If there is no notification type, then set incidentAlert to true.
         if (!subscriber.notificationType) {
             incidentAlert = true;
         }
@@ -4614,7 +4616,7 @@ export default class Service {
                                     IS_SAAS_SERVICE &&
                                     !hasCustomTwilioSettings
                                 ) {
-                                    // charge sms per 160 chars
+                                    // Charge sms per 160 chars
                                     const segments: $TSFixMe = calcSmsSegments(
                                         sendResult.body
                                     );
@@ -5064,7 +5066,7 @@ export default class Service {
                             IS_SAAS_SERVICE &&
                             !hasCustomTwilioSettings
                         ) {
-                            // charge sms per 160 chars
+                            // Charge sms per 160 chars
                             const segments: $TSFixMe = calcSmsSegments(
                                 sendResult.body
                             );
@@ -5446,7 +5448,7 @@ export default class Service {
                                 IS_SAAS_SERVICE &&
                                 !hasCustomTwilioSettings
                             ) {
-                                // charge sms per 160 chars
+                                // Charge sms per 160 chars
                                 const segments: $TSFixMe = calcSmsSegments(
                                     sendResult.body
                                 );
@@ -5511,7 +5513,7 @@ export default class Service {
 
                     const statusPageId: $TSFixMe = subscriber?.statusPageId;
 
-                    // if there is no notification type, then set incidentAlert to true.
+                    // If there is no notification type, then set incidentAlert to true.
 
                     if (!subscriber.notificationType) {
                         announcementAlert = true;

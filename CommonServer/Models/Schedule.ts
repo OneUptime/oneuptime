@@ -13,7 +13,7 @@ const schema: $TSFixMe = new Schema({
         ref: 'Project',
         alias: 'project',
         index: true,
-    }, //which project this schedule belongs to.
+    }, //Which project this schedule belongs to.
     createdById: { type: String, ref: 'User', index: true },
     monitorIds: [
         {

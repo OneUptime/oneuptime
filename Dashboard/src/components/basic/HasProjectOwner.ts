@@ -1,7 +1,9 @@
-// Description: Will not render the component if the current project has a project owner.
-// Params
-// params 1: project
-// returns JSX.Element or NULL
+/*
+ * Description: Will not render the component if the current project has a project owner.
+ * Params
+ * Params 1: project
+ * Returns JSX.Element or NULL
+ */
 
 import ObjectID from 'Common/Types/ObjectID';
 const HasProjectOwner: Function = (

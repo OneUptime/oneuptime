@@ -6,7 +6,7 @@ import mongoose, {
 
 const Schema: $TSFixMe = mongoose.Schema;
 
-// a schema definition for a criterion event, i.e up, down, or degraded
+// A schema definition for a criterion event, i.e up, down, or degraded
 const criterionEventSchema: $TSFixMe = {
     scheduleIds: [String],
     createAlert: { type: Boolean, default: false },
@@ -79,7 +79,7 @@ const schema: $TSFixMe = new Schema({
         ref: 'Project',
         alias: 'project',
         index: true,
-    }, //which project this monitor belongs to.
+    }, //Which project this monitor belongs to.
     componentId: {
         type: Schema.Types.ObjectId,
         ref: 'Component',
@@ -87,8 +87,8 @@ const schema: $TSFixMe = new Schema({
     },
     name: String,
     slug: { type: String, index: true },
-    data: Object, //can be URL, IP address, or anything that depends on the type.
-    createdById: { type: String, ref: 'User', index: true }, //userId.
+    data: Object, //Can be URL, IP address, or anything that depends on the type.
+    createdById: { type: String, ref: 'User', index: true }, //UserId.
     type: {
         type: String,
         enum: [
@@ -102,7 +102,7 @@ const schema: $TSFixMe = new Schema({
             'ip',
         ],
         index: true,
-    }, //type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
+    }, //Type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
     agentlessConfig: Object,
     kubernetesConfig: Schema.Types.Mixed,
     kubernetesNamespace: { type: String, default: 'default' },

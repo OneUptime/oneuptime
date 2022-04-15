@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
@@ -98,8 +98,10 @@ describe('Alert Warning', () => {
             );
 
             if (rowLength === 1) {
-                // enable sms and call alerts
-                // check the box
+                /*
+                 * Enable sms and call alerts
+                 * Check the box
+                 */
                 await page.evaluate(() => {
                     document.querySelector('#alertEnable').click();
 

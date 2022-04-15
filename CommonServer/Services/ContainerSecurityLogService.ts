@@ -44,8 +44,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const securityLogQuery: $TSFixMe = ContainerSecurityLogModel.findOne(
@@ -89,8 +89,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const securityLogsQuery: $TSFixMe = ContainerSecurityLogModel.find(
@@ -113,8 +113,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const containerSecurityLog: $TSFixMe =

@@ -2,7 +2,7 @@ import { updateMany } from '../util/db';
 
 const userCollection: string = 'users';
 
-// add admin mode fields
+// Add admin mode fields
 async function run(): void {
     await updateMany(
         userCollection,

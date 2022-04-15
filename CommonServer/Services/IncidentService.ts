@@ -42,8 +42,8 @@ export default class Service {
         select,
         sort,
     }: FindBy): void {
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const incidentQuery: $TSFixMe = IncidentModel.find(query)
@@ -220,7 +220,7 @@ export default class Service {
                 deletedParentCount +
                 1;
 
-            incident.slug = getSlug(incident.idNumber); // create incident slug from the idNumber
+            incident.slug = getSlug(incident.idNumber); // Create incident slug from the idNumber
 
             incident.customFields = data.customFields;
 
@@ -296,15 +296,17 @@ export default class Service {
 
             incident = await incident.save();
 
-            // update all monitor status in the background to match incident type
+            // Update all monitor status in the background to match incident type
             MonitorService.updateAllMonitorStatus(
                 { _id: { $in: data.monitors } },
                 { monitorStatus: data.incidentType.toLowerCase() }
             );
 
-            // ********* TODO ************
-            // notification is an array of notifications
-            // ***************************
+            /*
+             * ********* TODO ************
+             * Notification is an array of notifications
+             * ***************************
+             */
 
             let populate: $TSFixMe = [
                 {
@@ -393,10 +395,12 @@ export default class Service {
                 createdByApi: data.createdByApi,
             });
 
-            // ********* TODO ************
-            // handle multiple monitors for this
-            // it should now accept array of monitors id
-            // ***************************
+            /*
+             * ********* TODO ************
+             * Handle multiple monitors for this
+             * It should now accept array of monitors id
+             * ***************************
+             */
             this.startInterval(data.projectId, monitors, incident);
 
             return incident;
@@ -408,8 +412,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await IncidentModel.countDocuments(query);
         return count;
@@ -420,7 +424,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const incident: $TSFixMe = await IncidentModel.findOneAndUpdate(query, {
             $set: {
                 deleted: true,
@@ -430,7 +434,7 @@ export default class Service {
         });
 
         if (incident) {
-            this.clearInterval(incident._id); // clear any existing sla interval
+            this.clearInterval(incident._id); // Clear any existing sla interval
 
             const monitorStatuses: $TSFixMe = await MonitorStatusService.findBy(
                 {
@@ -449,7 +453,7 @@ export default class Service {
                 }
             );
 
-            // update all monitor status in the background to match incident type
+            // Update all monitor status in the background to match incident type
             MonitorService.updateAllMonitorStatus(
                 { _id: { $in: monitors } },
                 { monitorStatus: 'online' }
@@ -480,16 +484,18 @@ export default class Service {
         return incident;
     }
 
-    // Description: Get Incident by incident Id.
-    // Params:
-    // Param 1: monitorId: monitor Id
-    // Returns: promise with incident or error.
+    /*
+     * Description: Get Incident by incident Id.
+     * Params:
+     * Param 1: monitorId: monitor Id
+     * Returns: promise with incident or error.
+     */
     public async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
 
         const incidentQuery: $TSFixMe = IncidentModel.findOne(query)
             .sort(sort)
@@ -507,8 +513,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const oldIncident: $TSFixMe = await this.findOneBy({
@@ -582,8 +588,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await IncidentModel.updateMany(query, {
             $set: data,
@@ -620,7 +626,7 @@ export default class Service {
 
     public async _sendIncidentCreatedAlert(incident: $TSFixMe): void {
         ZapierService.pushToZapier('incident_created', incident);
-        // await RealTimeService.sendCreatedIncident(incident);
+        // Await RealTimeService.sendCreatedIncident(incident);
 
         const notifications: $TSFixMe = [];
 
@@ -630,14 +636,14 @@ export default class Service {
             }
         );
 
-        // handle this asynchronous operation in the background
+        // Handle this asynchronous operation in the background
         AlertService.sendCreatedIncidentToSubscribers(incident, monitors);
 
         for (const monitor of monitors) {
             AlertService.sendCreatedIncident(incident, monitor);
 
             let notification: $TSFixMe = {};
-            // send slack notification
+            // Send slack notification
 
             SlackService.sendNotification(
                 incident.projectId._id || incident.projectId,
@@ -646,7 +652,7 @@ export default class Service {
                 INCIDENT_CREATED,
                 monitor.componentId
             );
-            // send webhook notification
+            // Send webhook notification
 
             WebHookService.sendIntegrationNotification(
                 incident.projectId._id || incident.projectId,
@@ -655,7 +661,7 @@ export default class Service {
                 INCIDENT_CREATED,
                 monitor.componentId
             );
-            // send Ms Teams notification
+            // Send Ms Teams notification
 
             MsTeamsService.sendNotification(
                 incident.projectId._id || incident.projectId,
@@ -771,8 +777,10 @@ export default class Service {
                 }
             );
 
-            // assuming all the monitors in the incident is from the same component
-            // which makes sense, since having multiple component will make things more complicated
+            /*
+             * Assuming all the monitors in the incident is from the same component
+             * Which makes sense, since having multiple component will make things more complicated
+             */
 
             const populateComponent: $TSFixMe = [
                 { path: 'projectId', select: 'name' },
@@ -794,7 +802,7 @@ export default class Service {
                 populate: populateComponent,
             });
 
-            // automatically create acknowledgement incident note
+            // Automatically create acknowledgement incident note
             IncidentMessageService.create({
                 content: 'This incident has been acknowledged',
                 incidentId,
@@ -895,10 +903,12 @@ export default class Service {
         return incident;
     }
 
-    // Description: Update user who resolved incident.
-    // Params:
-    // Param 1: data: {incidentId}
-    // Returns: promise with incident or error.
+    /*
+     * Description: Update user who resolved incident.
+     * Params:
+     * Param 1: data: {incidentId}
+     * Returns: promise with incident or error.
+     */
     public async resolve(
         incidentId: $TSFixMe,
         userId: ObjectID,
@@ -961,13 +971,13 @@ export default class Service {
             }
         );
 
-        // update all monitor status in the background to match incident type
+        // Update all monitor status in the background to match incident type
         MonitorService.updateAllMonitorStatus(
             { _id: { $in: monitors } },
             { monitorStatus: 'online' }
         );
 
-        // automatically create resolved incident note
+        // Automatically create resolved incident note
         await IncidentMessageService.create({
             content: 'This incident has been resolved',
             incidentId,
@@ -991,7 +1001,7 @@ export default class Service {
         this.clearInterval(incidentId);
 
         const statusData: $TSFixMe = [];
-        // send notificaton to subscribers
+        // Send notificaton to subscribers
         AlertService.sendResolvedIncidentToSubscribers(incident, monitors);
         for (const monitor of monitors) {
             if (incident.probes && incident.probes.length > 0) {
@@ -1012,7 +1022,7 @@ export default class Service {
                 });
             }
 
-            // run this in the background
+            // Run this in the background
             this.sendIncidentResolvedNotification(incident, name, monitor);
         }
         await MonitorStatusService.createMany(statusData);
@@ -1287,7 +1297,7 @@ export default class Service {
                 resolvedincident.createdAt
             );
 
-        // send slack notification
+        // Send slack notification
         SlackService.sendNotification(
             incident.projectId._id || incident.projectId,
             incident,
@@ -1418,7 +1428,7 @@ export default class Service {
 
         await Promise.all(
             incidents.map(async (incident: $TSFixMe) => {
-                // only delete the incident, since the monitor can be restored
+                // Only delete the incident, since the monitor can be restored
                 const monitors: $TSFixMe = incident.monitors
                     .map((monitor: $TSFixMe) => {
                         return {
@@ -1432,8 +1442,10 @@ export default class Service {
 
                 let updatedIncident: $TSFixMe = null;
                 if (monitors.length === 0) {
-                    // no more monitor in monitors array
-                    // delete incident
+                    /*
+                     * No more monitor in monitors array
+                     * Delete incident
+                     */
                     updatedIncident = await IncidentModel.findOneAndUpdate(
                         {
                             _id: incident._id,
@@ -1502,7 +1514,7 @@ export default class Service {
                     populate,
                 });
 
-                // run in the background
+                // Run in the background
                 if (updatedIncident) {
                     RealTimeService.deleteIncident(updatedIncident);
                 }
@@ -1529,7 +1541,7 @@ export default class Service {
                     },
                 ],
             }),
-            // refetch the incident
+            // Refetch the incident
             this.findOneBy({
                 query: { _id: incident._id },
                 select: 'breachedCommunicationSla _id projectId',
@@ -1542,7 +1554,7 @@ export default class Service {
 
             for (const monitor of monitorList) {
                 let sla: $TSFixMe = monitor.incidentCommunicationSla;
-                // don't fetch default communication sla twice
+                // Don't fetch default communication sla twice
                 if (!sla && !fetchedDefault) {
                     sla = await IncidentCommunicationSlaService.findOneBy({
                         query: { projectId: projectId, isDefault: true },
@@ -1556,7 +1568,7 @@ export default class Service {
                 }
             }
 
-            // grab the lowest sla and apply to the incident
+            // Grab the lowest sla and apply to the incident
             let lowestSla: $TSFixMe = {};
             for (const [, value] of Object.entries(slaList)) {
                 if (!lowestSla.duration) {
@@ -1589,18 +1601,22 @@ export default class Service {
                         alertTime,
                     };
 
-                    // count down every second
+                    // Count down every second
                     const intervalId: $TSFixMe = setInterval(
                         async (): $TSFixMe => {
                             countDown -= 1;
 
-                            // const minutes: $TSFixMe = Math.floor(countDown / 60);
-                            // let seconds: $TSFixMe = countDown % 60;
-                            // seconds =
-                            //     seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
+                            /*
+                             * Const minutes: $TSFixMe = Math.floor(countDown / 60);
+                             * Let seconds: $TSFixMe = countDown % 60;
+                             * Seconds =
+                             *     Seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
+                             */
 
-                            // await was left out here because we care about the slaCountDown
-                            // and also to ensure that it was delivered successfully
+                            /*
+                             * Await was left out here because we care about the slaCountDown
+                             * And also to ensure that it was delivered successfully
+                             */
 
                             RealTimeService.sendSlaCountDown(
                                 currentIncident,
@@ -1608,7 +1624,7 @@ export default class Service {
                             );
 
                             if (countDown === alertTime) {
-                                // send mail to team
+                                // Send mail to team
                                 AlertService.sendSlaEmailToTeamMembers(data);
                             }
 
@@ -1620,7 +1636,7 @@ export default class Service {
                                     { breachedCommunicationSla: true }
                                 );
 
-                                // send mail to team
+                                // Send mail to team
                                 AlertService.sendSlaEmailToTeamMembers(
                                     data,
                                     true

@@ -15,10 +15,12 @@ import ApplicationSecurityLogService from '../services/applicationSecurityLogSer
 
 const router: $TSFixMe = express.getRouter();
 
-//Route: GET
-//Description: get an application security log
-//Params: req.params -> {projectId, componentId, applicationSecurityId}
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: GET
+ * Description: get an application security log
+ * Params: req.params -> {projectId, componentId, applicationSecurityId}
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.get(
     '/:projectId/:componentId/application/logs/:applicationSecurityId',
     getUser,
@@ -51,10 +53,12 @@ router.get(
     }
 );
 
-//Route: GET
-//Description: get an application security log by slug
-//Params: req.params -> {projectId, componentId, applicationSecuritySlug}
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: GET
+ * Description: get an application security log by slug
+ * Params: req.params -> {projectId, componentId, applicationSecuritySlug}
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.get(
     '/:projectId/:componentId/applicationSecuritySlug/logs/:applicationSecuritySlug',
     getUser,
@@ -88,10 +92,12 @@ router.get(
     }
 );
 
-//Route: GET
-//Description: get application security logs in a component
-//Params: req.params -> {projectId, componentId}
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: GET
+ * Description: get application security logs in a component
+ * Params: req.params -> {projectId, componentId}
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.get(
     '/:projectId/:componentId/application/logs',
     getUser,

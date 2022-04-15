@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const priorityName: string = utils.generateRandomString();
 const newPriorityName: string = utils.generateRandomString();
@@ -90,8 +90,10 @@ describe('Incident Priority API', () => {
                     return elems[0].click();
                 }
             );
-            // two incident priority is automatically added to a project
-            // High incident priority is marked as default
+            /*
+             * Two incident priority is automatically added to a project
+             * High incident priority is marked as default
+             */
             const lastRowFirstColumnIndentifier: string = `#priority_${priorityName}_2`;
 
             await init.pageWaitForSelector(page, lastRowFirstColumnIndentifier);
@@ -300,7 +302,7 @@ describe('Incident Priority API', () => {
                     return elems[0].click();
                 }
             );
-            // default priority
+            // Default priority
             await init.pageWaitForSelector(page, '#priorities', {
                 visible: true,
                 timeout: init.timeout,
@@ -362,7 +364,7 @@ describe('Incident Priority API', () => {
                 }
             );
 
-            // default priority
+            // Default priority
             await init.pageWaitForSelector(page, '#priorities', {
                 visible: true,
                 timeout: init.timeout,

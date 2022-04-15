@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -666,7 +666,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
                 .get(`/user/confirmation/${verificationToken.token}`)
                 .redirects(0);
         } catch (error) {
-            //catch
+            //Catch
         }
         const login: $TSFixMe = await request.post('/user/login').send({
             email: userData.user.email,

@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const monitorName: string = utils.generateRandomString();
@@ -26,7 +26,7 @@ describe('Monitor Detail API', () => {
             email,
             password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
         await init.addMonitorToComponent(componentName, monitorName, page);
     });
@@ -46,7 +46,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageWaitForSelector(page, '.subscribers-tab');
 
@@ -83,7 +83,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageWaitForSelector(page, '.subscribers-tab');
 
@@ -112,7 +112,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // click on subscribers tab
+            // Click on subscribers tab
 
             await init.pageWaitForSelector(page, '.subscribers-tab');
 
@@ -135,7 +135,7 @@ describe('Monitor Detail API', () => {
                 }
             );
 
-            // click on create subscribers
+            // Click on create subscribers
 
             await init.pageWaitForSelector(page, '#createSubscriber');
 

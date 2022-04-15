@@ -8,7 +8,7 @@ export const CREATE_SUBSCRIBER_REQUEST: string =
 export const CREATE_SUBSCRIBER_RESET: string =
     'subscriber/CREATE_SUBSCRIBER_RESET';
 
-// delete a subscriber
+// Delete a subscriber
 export const DELETE_SUBSCRIBER_SUCCESS: string =
     'subscriber/DELETE_SUBSCRIBER_SUCCESS';
 export const DELETE_SUBSCRIBER_FAILED: string =

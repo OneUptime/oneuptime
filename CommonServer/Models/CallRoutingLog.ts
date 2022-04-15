@@ -27,10 +27,10 @@ const schema: $TSFixMe = new Schema({
     dialTo: [
         {
             callSid: String,
-            userId: { type: String, ref: 'User', index: true }, // user that call was forwarded to
-            scheduleId: { type: String, ref: 'Schedule', index: true }, // scheduleId || ''
-            phoneNumber: String, // phone number that call was forwarded to
-            status: String, // completed/in progress/...
+            userId: { type: String, ref: 'User', index: true }, // User that call was forwarded to
+            scheduleId: { type: String, ref: 'Schedule', index: true }, // ScheduleId || ''
+            phoneNumber: String, // Phone number that call was forwarded to
+            status: String, // Completed/in progress/...
         },
     ],
 });

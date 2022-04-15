@@ -38,7 +38,7 @@ export const FETCH_ERROR_EVENT_RESET: string = 'FETCH_ERROR_EVENT_RESET';
 
 export const SET_CURRENT_ERROR_EVENT: string = 'SET_CURRENT_ERROR_EVENT';
 
-// edit an error tracker
+// Edit an error tracker
 export const EDIT_ERROR_TRACKER_SUCCESS: string = 'EDIT_ERROR_TRACKER_SUCCESS';
 export const EDIT_ERROR_TRACKER_FAILURE: string = 'EDIT_ERROR_TRACKER_FAILURE';
 export const EDIT_ERROR_TRACKER_RESET: string = 'EDIT_ERROR_TRACKER_RESET';
@@ -55,13 +55,13 @@ export const RESET_ERROR_TRACKER_KEY_FAILURE: $TSFixMe =
 export const RESET_ERROR_TRACKER_KEY_RESET: string =
     'RESET_ERROR_TRACKER_KEY_RESET';
 
-// ignore an issue
+// Ignore an issue
 export const IGNORE_ERROR_EVENT_REQUEST: string = 'IGNORE_ERROR_EVENT_REQUEST';
 export const IGNORE_ERROR_EVENT_SUCCESS: string = 'IGNORE_ERROR_EVENT_SUCCESS';
 export const IGNORE_ERROR_EVENT_FAILURE: string = 'IGNORE_ERROR_EVENT_FAILURE';
 export const IGNORE_ERROR_EVENT_RESET: string = 'IGNORE_ERROR_EVENT_RESET';
 
-// unresolve an issue
+// Unresolve an issue
 export const UNRESOLVE_ERROR_EVENT_REQUEST: string =
     'UNRESOLVE_ERROR_EVENT_REQUEST';
 export const UNRESOLVE_ERROR_EVENT_SUCCESS: string =
@@ -71,7 +71,7 @@ export const UNRESOLVE_ERROR_EVENT_FAILURE: string =
 export const UNRESOLVE_ERROR_EVENT_RESET: string =
     'UNRESOLVE_ERROR_EVENT_RESET';
 
-// resolve an issue
+// Resolve an issue
 export const RESOLVE_ERROR_EVENT_REQUEST: string =
     'RESOLVE_ERROR_EVENT_REQUEST';
 export const RESOLVE_ERROR_EVENT_SUCCESS: string =
@@ -80,7 +80,7 @@ export const RESOLVE_ERROR_EVENT_FAILURE: string =
     'RESOLVE_ERROR_EVENT_FAILURE';
 export const RESOLVE_ERROR_EVENT_RESET: string = 'RESOLVE_ERROR_EVENT_RESET';
 
-// update the members related to an issue
+// Update the members related to an issue
 export const UPDATE_ERROR_EVENT_MEMBER_REQUEST: $TSFixMe =
     'UPDATE_ERROR_EVENT_MEMBER_REQUEST';
 export const UPDATE_ERROR_EVENT_MEMBER_SUCCESS: $TSFixMe =
@@ -90,7 +90,7 @@ export const UPDATE_ERROR_EVENT_MEMBER_FAILURE: $TSFixMe =
 export const UPDATE_ERROR_EVENT_MEMBER_RESET: $TSFixMe =
     'UPDATE_ERROR_EVENT_MEMBER_RESET';
 
-// real time listener for new error event
+// Real time listener for new error event
 export const NEW_ERROR_EVENT_SUCCESS: string = 'NEW_ERROR_EVENT_SUCCESS';
 
 //Delete an Error Tracker Issue

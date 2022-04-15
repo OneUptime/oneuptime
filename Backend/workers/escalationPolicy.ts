@@ -7,17 +7,17 @@ import ScheduleService from '../Services/scheduleService';
 
 export default {
     checkActiveEscalationPolicyAndSendAlerts: async () => {
-        /* 
-
-            #1 - Get all the OnCallScheduleStatus where incidentAcknowledged is false. 
-            #2 - Check if incident attached to those schedule is actually NOT ack. If ack, mark this OnCallScheduleStatus.incidentAcknowledged = true and skip; 
-            #3 - If incident is not ack, then continue steps below. 
-            #4 - Query Alert collection, and get all the alerts attached to that OnCallScheduleStatus
-            #5 - Get EscalationPolicy related to OnCallScheduleStatus. 
-            #6 - Check if proper alerts are sent. 
-            #7 - if proper alert reminders are exhaused, then escalate this incident and alert next set of team members. 
-            
-            */
+        /*
+         *
+         *#1 - Get all the OnCallScheduleStatus where incidentAcknowledged is false.
+         *#2 - Check if incident attached to those schedule is actually NOT ack. If ack, mark this OnCallScheduleStatus.incidentAcknowledged = true and skip;
+         *#3 - If incident is not ack, then continue steps below.
+         *#4 - Query Alert collection, and get all the alerts attached to that OnCallScheduleStatus
+         *#5 - Get EscalationPolicy related to OnCallScheduleStatus.
+         *#6 - Check if proper alerts are sent.
+         *#7 - if proper alert reminders are exhaused, then escalate this incident and alert next set of team members.
+         *
+         */
 
         //#1
 
@@ -111,8 +111,10 @@ export default {
                 continue;
             }
 
-            // #3 and #4
-            // get active escalation policy.
+            /*
+             * #3 and #4
+             * Get active escalation policy.
+             */
 
             const alerts: $TSFixMe = await AlertService.findBy({
                 query: {
@@ -122,10 +124,10 @@ export default {
                 skip: 0,
                 sort: { createdAt: -1 },
                 select: 'createdAt',
-            }); //sort by createdAt descending.
+            }); //Sort by createdAt descending.
             if (alerts && alerts.length > 0 && alerts[0]) {
-                //check when the last alert was sent.
-                const lastAlertSentAt: $TSFixMe = alerts[0].createdAt; //we take '0' index because list is reverse sorted.
+                //Check when the last alert was sent.
+                const lastAlertSentAt: $TSFixMe = alerts[0].createdAt; //We take '0' index because list is reverse sorted.
                 if (!DateTime.isOlderThanLastMinute(lastAlertSentAt)) {
                     continue;
                 }
@@ -167,7 +169,7 @@ export default {
                     select: selectSchedule,
                 });
             }
-            //and the rest happens here.
+            //And the rest happens here.
 
             const monitors: $TSFixMe = incident.monitors.map(
                 (monitor: $TSFixMe) => {

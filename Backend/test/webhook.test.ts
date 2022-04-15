@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -57,7 +57,7 @@ describe('Webhook API', function (): void {
                     projectId = res.body.project._id;
                     userId = res.body.id;
 
-                    // make created user master admin
+                    // Make created user master admin
                     await UserService.updateBy(
                         { email: userData.user.email },
                         { role: 'master-admin' }

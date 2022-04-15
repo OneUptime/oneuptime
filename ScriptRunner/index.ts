@@ -10,7 +10,7 @@ app.use('/script', ScriptAPI);
 
 const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
-// script monitor cron job
+// Script monitor cron job
 cron.schedule('* * * * *', () => {
     setTimeout(() => {
         return main.runScriptMonitorsJob();

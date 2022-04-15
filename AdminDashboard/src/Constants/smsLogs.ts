@@ -21,7 +21,7 @@ export const FETCH_SMSLOG_STATUS_REQUEST: string =
     'FETCH_SMSLOG_STATUS_REQUEST';
 export const FETCH_SMSLOG_STATUS_RESET: string = 'FETCH_SMSLOG_STATUS_RESET';
 
-// change sms log status
+// Change sms log status
 export const CHANGE_SMSLOG_STATUS_SUCCESS: string =
     'CHANGE_SMSLOG_STATUS_SUCCESS';
 export const CHANGE_SMSLOG_STATUS_FAILED: string =

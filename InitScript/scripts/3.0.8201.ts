@@ -3,7 +3,7 @@ import { find, update } from '../util/db';
 const statusPagesCollection: string = 'statuspages';
 
 async function run(): void {
-    // get all statusPages that don't have the hideProbeBar field
+    // Get all statusPages that don't have the hideProbeBar field
     const statusPages: $TSFixMe = await find(statusPagesCollection, {
         hideProbeBar: { $exists: false },
     });

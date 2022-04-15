@@ -29,11 +29,13 @@ import ResourceCategoryService from '../services/resourceCategoryService';
 
 import uuid from 'uuid';
 
-// Route
-// Description: Adding a new application log to a component.
-// Params:
-// Param 1: req.params-> {componentId}; req.body -> {[_id], name}
-// Returns: response status, error message
+/*
+ * Route
+ * Description: Adding a new application log to a component.
+ * Params:
+ * Param 1: req.params-> {componentId}; req.body -> {[_id], name}
+ * Returns: response status, error message
+ */
 router.post(
     '/:projectId/:componentId/create',
     getUser,
@@ -96,7 +98,7 @@ router.post(
                     user._id,
                     'applicationlogaddremove'
                 );
-                // run in the background
+                // Run in the background
                 RealTimeService.sendApplicationLogCreated(applicationLog);
             } catch (error) {
                 ErrorService.log(
@@ -342,9 +344,9 @@ router.post(
             });
         }
 
-        // application Log is valid
+        // Application Log is valid
         const data: $TSFixMe = {
-            key: uuid.v4(), // set new app log key
+            key: uuid.v4(), // Set new app log key
         };
 
         try {
@@ -399,7 +401,7 @@ router.put(
             });
         }
 
-        // try to find in the application log if the name already exist for that component
+        // Try to find in the application log if the name already exist for that component
         const existingQuery: $TSFixMe = {
             name: data.name,
             componentId: componentId,
@@ -425,7 +427,7 @@ router.put(
             );
         }
 
-        // application Log is valid
+        // Application Log is valid
         const applicationLogUpdate: $TSFixMe = {};
         if (data.name) {
             applicationLogUpdate.name = data.name;

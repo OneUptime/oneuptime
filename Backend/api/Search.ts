@@ -264,7 +264,7 @@ const getUsers: Function = async (
     projectIds: $TSFixMe,
     val: $TSFixMe
 ): void => {
-    //get project users id so as to search for only users in a project and its subproject
+    //Get project users id so as to search for only users in a project and its subproject
     const projectUsers: $TSFixMe = [];
 
     const projects: $TSFixMe = await ProjectService.findBy({

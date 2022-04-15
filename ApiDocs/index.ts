@@ -8,11 +8,11 @@ import app from 'CommonServer/Utils/StartServer';
 
 import path from 'path';
 
-// set the view engine to ejs
+// Set the view engine to ejs
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// public static files
+// Public static files
 app.use(ExpressStatic(path.join(__dirname, 'public'), { maxAge: 2592000 }));
 
 app.use(
@@ -20,7 +20,7 @@ app.use(
     ExpressStatic(path.join(__dirname, 'public'), { maxAge: 2592000 })
 );
 
-// index page
+// Index page
 app.get(['/', '/docs'], (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('pages/index');
 });

@@ -55,14 +55,14 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         if (query.domain) {
             const parsed: $TSFixMe = psl.parse(query.domain);
             query.domain = parsed.domain;
         }
 
-        // fetch subproject
+        // Fetch subproject
         if (query.projectId) {
             let subProjects: $TSFixMe = await ProjectService.findBy({
                 query: { parentProjectId: query.projectId },
@@ -70,7 +70,7 @@ export default class Service {
             });
             subProjects = subProjects.map((project: $TSFixMe) => {
                 return project._id;
-            }); // grab just the project ids
+            }); // Grab just the project ids
             const totalProjects: $TSFixMe = [query.projectId, ...subProjects];
 
             query = { ...query, projectId: { $in: totalProjects } };
@@ -116,8 +116,10 @@ export default class Service {
             const records: $TSFixMe = await dnsPromises.resolveTxt(
                 domainToLookup
             );
-            // records is an array of arrays
-            // flatten the array to a single array
+            /*
+             * Records is an array of arrays
+             * Flatten the array to a single array
+             */
             const txtRecords: $TSFixMe = flatten(records);
             const result: $TSFixMe = txtRecords.some((txtRecord: $TSFixMe) => {
                 return verificationToken === txtRecord;
@@ -129,8 +131,10 @@ export default class Service {
                 const records: $TSFixMe = await dnsPromises.resolveTxt(
                     prevDomainToLookup
                 );
-                // records is an array of arrays
-                // flatten the array to a single array
+                /*
+                 * Records is an array of arrays
+                 * Flatten the array to a single array
+                 */
                 const txtRecords: $TSFixMe = flatten(records);
                 const result: $TSFixMe = txtRecords.some(
                     (txtRecord: $TSFixMe) => {
@@ -164,9 +168,11 @@ export default class Service {
         projectId: ObjectID,
         subDomain: $TSFixMe
     ): void {
-        // ensure that a particular domain is available to all project and subProject
-        // domain added to a project should be available for both project and subProjects
-        // domain added to a subProject should be available to other subProjects and project
+        /*
+         * Ensure that a particular domain is available to all project and subProject
+         * Domain added to a project should be available for both project and subProjects
+         * Domain added to a subProject should be available to other subProjects and project
+         */
 
         const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
@@ -179,7 +185,7 @@ export default class Service {
                 project.parentProjectId._id || project.parentProjectId
             );
 
-            // find all the subProjects attached to this parent project
+            // Find all the subProjects attached to this parent project
 
             subProjects = await ProjectService.findBy({
                 query: {
@@ -196,7 +202,7 @@ export default class Service {
         }
         subProjects = subProjects.map((project: $TSFixMe) => {
             return project._id;
-        }); // grab just the project ids
+        }); // Grab just the project ids
         projectList.push(...subProjects);
 
         projectList = projectList.filter(
@@ -216,7 +222,7 @@ export default class Service {
              * and if they verify the domain, that means we now have the same verified domains in two different project
              * defeating the initial purpose of this
              */
-            // verified: true,
+            // Verified: true,
             projectId: { $nin: projectList },
             deleted: false,
         });
@@ -249,9 +255,11 @@ export default class Service {
             select: '_id domains',
         });
 
-        // making this synchronous is intentional
-        // so we don't have a delay in deleting domains from project settings
-        // while all custom domains is deleted gradually in the background
+        /*
+         * Making this synchronous is intentional
+         * So we don't have a delay in deleting domains from project settings
+         * While all custom domains is deleted gradually in the background
+         */
 
         for (const statusPage of statusPages) {
             const statusPageId: $TSFixMe = statusPage._id;
@@ -260,7 +268,7 @@ export default class Service {
                     String(eachDomain.domainVerificationToken._id) ===
                     String(domain._id)
                 ) {
-                    // delete all custom domains attached to this domain
+                    // Delete all custom domains attached to this domain
                     StatusPageService.deleteDomain(
                         statusPageId,
                         eachDomain._id

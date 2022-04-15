@@ -1,6 +1,6 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
+process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 const expect: $TSFixMe = chai.expect;
@@ -160,7 +160,7 @@ describe('Incident Custom Field API', function (): void {
     });
 
     it('should list all the incident custom fields in a project', (done: $TSFixMe): void => {
-        // add one more monitor custom field
+        // Add one more monitor custom field
         request
             .post(`/customField/${projectId}`)
             .send(incidentFieldNumber)

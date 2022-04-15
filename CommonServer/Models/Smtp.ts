@@ -6,7 +6,7 @@ import mongoose, {
 
 const Schema: $TSFixMe = mongoose.Schema;
 const schema: $TSFixMe = new Schema({
-    projectId: { type: String, ref: 'Project', index: true }, //which project does this belong to.
+    projectId: { type: String, ref: 'Project', index: true }, //Which project does this belong to.
     user: String,
     pass: String,
     host: String,

@@ -1,11 +1,13 @@
 import Query from '../Types/DB/Query';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
-    //Description: Get all team members of Project or Subproject.
-    //Params:
-    //Param 1: projectId: Project id.
-    //Param 2: subProjectId: SubProject id
-    //Returns: list of team members
+    /*
+     * Description: Get all team members of Project or Subproject.
+     * Params:
+     * Param 1: projectId: Project id.
+     * Param 2: subProjectId: SubProject id
+     * Returns: list of team members
+     */
     public async getTeamMembersBy(query: Query): void {
         let projectMembers: $TSFixMe = [];
 
@@ -14,7 +16,7 @@ export default class Service {
             select: 'users parentProjectId',
         });
         if (projects && projects.length > 0) {
-            // check for parentProject and add parent project users
+            // Check for parentProject and add parent project users
             if (query.parentProjectId && projects[0]) {
                 const parentProject: $TSFixMe = await ProjectService.findOneBy({
                     query: {
@@ -144,12 +146,14 @@ export default class Service {
         return seats;
     }
 
-    //Description: Invite new team members by Admin.
-    //Params:
-    //Param 1: projectId: Project id.
-    //Param 2: emails: Emails of new user added by Admin.
-    //Param 3: role: Role set by Admin.
-    //Returns: promise
+    /*
+     * Description: Invite new team members by Admin.
+     * Params:
+     * Param 1: projectId: Project id.
+     * Param 2: emails: Emails of new user added by Admin.
+     * Param 3: role: Role set by Admin.
+     * Returns: promise
+     */
     public async inviteTeamMembers(
         addedByUserId: ObjectID,
         projectId: ObjectID,
@@ -209,7 +213,7 @@ export default class Service {
                 error.code = 400;
                 throw error;
             } else {
-                // remove hidden admin if on list
+                // Remove hidden admin if on list
                 const adminUser: $TSFixMe = await UserService.findOneBy({
                     query: { role: 'master-admin' },
                     select: '_id projects email',
@@ -257,10 +261,12 @@ export default class Service {
         }
     }
 
-    //Description: Retrieve Members, Administrator and Owners of a Project or subProject
-    //Params:
-    //Param 1: projectId: Project id.
-    //Returns: promise
+    /*
+     * Description: Retrieve Members, Administrator and Owners of a Project or subProject
+     * Params:
+     * Param 1: projectId: Project id.
+     * Returns: promise
+     */
     public async getTeamMembers(projectId: ObjectID): void {
         const subProject: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
@@ -319,14 +325,16 @@ export default class Service {
         return false;
     }
 
-    //Description: Invite new team members method.
-    //Params:
-    //Param 1: projectId: Project id.
-    //Param 2: emails: Emails of new user added by Admin.
-    //Param 3: role: Role set by Admin.
-    //Param 4: addedBy: Admin who added the user.
-    //Param 5: project: Project.
-    //Returns: promise
+    /*
+     * Description: Invite new team members method.
+     * Params:
+     * Param 1: projectId: Project id.
+     * Param 2: emails: Emails of new user added by Admin.
+     * Param 3: role: Role set by Admin.
+     * Param 4: addedBy: Admin who added the user.
+     * Param 5: project: Project.
+     * Returns: promise
+     */
     public async inviteTeamMembersMethod(
         projectId: ObjectID,
         emails: $TSFixMe,
@@ -505,7 +513,7 @@ export default class Service {
                     select: 'users _id',
                 }),
             ]);
-            // add user to all subProjects
+            // Add user to all subProjects
             for (const subProject of subProjects) {
                 const subProjectMembers: $TSFixMe = members
                     .map((user: $TSFixMe) => {
@@ -583,12 +591,14 @@ export default class Service {
         return response;
     }
 
-    //Description: Remove Team Member  by Admin.
-    //Params:
-    //Param 1: projectId: Admin project id.
-    //Param 2: userId: User id of admin.
-    //Param 3: teamMemberUserId: Team Member Id of user to delete by Owner.
-    //Returns: promise
+    /*
+     * Description: Remove Team Member  by Admin.
+     * Params:
+     * Param 1: projectId: Admin project id.
+     * Param 2: userId: User id of admin.
+     * Param 3: teamMemberUserId: Team Member Id of user to delete by Owner.
+     * Returns: promise
+     */
     public async removeTeamMember(
         projectId: ObjectID,
         userId: ObjectID,
@@ -641,7 +651,7 @@ export default class Service {
                 throw error;
             } else {
                 if (subProject) {
-                    // removes team member from subProject
+                    // Removes team member from subProject
 
                     await ProjectService.exitProject(
                         subProject._id,
@@ -649,14 +659,14 @@ export default class Service {
                         userId
                     );
                 } else {
-                    // removes team member from project
+                    // Removes team member from project
 
                     await ProjectService.exitProject(
                         project._id,
                         teamMemberUserId,
                         userId
                     );
-                    // remove user from all subProjects.
+                    // Remove user from all subProjects.
 
                     const subProjects: $TSFixMe = await ProjectService.findBy({
                         query: { parentProjectId: project._id },
@@ -722,7 +732,7 @@ export default class Service {
                     _id: project._id,
                 });
 
-                // send response
+                // Send response
                 let response: $TSFixMe = [];
                 let teamusers: $TSFixMe = {
                     projectId: project._id,
@@ -751,24 +761,28 @@ export default class Service {
                     response = response.concat(subProjectTeamsUsers);
                 }
                 team = await this.getTeamMembersBy({ _id: projectId });
-                // run in the background
-                // RealTimeService.deleteTeamMember(project._id, {
-                //     response,
-                //     teamMembers: team,
-                //     projectId,
-                // });
+                /*
+                 * Run in the background
+                 * RealTimeService.deleteTeamMember(project._id, {
+                 *     Response,
+                 *     TeamMembers: team,
+                 *     ProjectId,
+                 * });
+                 */
                 return response;
             }
         }
     }
 
-    //Description: Change Team Member role by Admin.
-    //Params:
-    //Param 1: projectId: Project id.
-    //Param 2: userId: User id.
-    //Param 3: teamMemberUserId: id of Team Member.
-    //Param 4: nextRole: Role of user to updated by Admin.
-    //Returns: promise
+    /*
+     * Description: Change Team Member role by Admin.
+     * Params:
+     * Param 1: projectId: Project id.
+     * Param 2: userId: User id.
+     * Param 3: teamMemberUserId: id of Team Member.
+     * Param 4: nextRole: Role of user to updated by Admin.
+     * Returns: promise
+     */
     public async updateTeamMemberRole(
         projectId: ObjectID,
         userId: ObjectID,
@@ -858,7 +872,7 @@ export default class Service {
                         { _id: project._id },
                         { users: project.users }
                     );
-                    // update user role for all subProjects.
+                    // Update user role for all subProjects.
 
                     await Promise.all(
                         subProjects.map(async (subProject: $TSFixMe) => {
@@ -904,7 +918,7 @@ export default class Service {
                     );
                 }
 
-                // send response
+                // Send response
                 let response: $TSFixMe = [];
                 let team: $TSFixMe = await this.getTeamMembersBy({
                     _id: project._id,
@@ -937,7 +951,7 @@ export default class Service {
                 }
                 team = await this.getTeamMembersBy({ _id: projectId });
 
-                // run in the background
+                // Run in the background
                 RealTimeService.updateTeamMemberRole(project._id, {
                     response,
                     teamMembers: team,

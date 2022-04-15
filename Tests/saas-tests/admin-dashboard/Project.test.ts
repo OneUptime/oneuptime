@@ -6,7 +6,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
-// user credentials
+// User credentials
 const email: string = 'masteradmin@hackerbay.io';
 const password: string = '1234567890';
 const user: $TSFixMe = {
@@ -33,7 +33,7 @@ describe('Project', () => {
             password: password,
         };
 
-        // login admin user
+        // Login admin user
         await init.loginAdminUser(adminUser, page);
     });
 

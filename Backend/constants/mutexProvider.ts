@@ -3,16 +3,20 @@ import mongoose from 'mongoose';
 
 import MUTEX_RESOURCES from './MUTEX_RESOURCES';
 
-// this is a single mutex storage
-// it contains one mutex per project
+/*
+ * This is a single mutex storage
+ * It contains one mutex per project
+ */
 const projectMutexStorage: $TSFixMe = new Map();
 
-// thi is a single mutex storage
-// it contains one mutex per monitor
+/*
+ * Thi is a single mutex storage
+ * It contains one mutex per monitor
+ */
 const monitorMutexStorage: $TSFixMe = new Map();
 
 /**
- * gets an existing mutex for a project or creates a new one
+ * Gets an existing mutex for a project or creates a new one
  * @param {string} mutexResource the resource category to lock
  * @param {*} id unique id of the resource to lock
  * @return {*} a mutex for the project

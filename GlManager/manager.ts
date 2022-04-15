@@ -1,5 +1,5 @@
 import axios from 'axios';
-const BASE_URL: string = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}`;
+const BASE_URL: string = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
 const Manager: $TSFixMe = module.exports;
 
@@ -7,9 +7,11 @@ const Manager: $TSFixMe = module.exports;
 Manager.create = function (_opts: $TSFixMe): void {
     const manager: $TSFixMe = {};
 
-    //
-    // REQUIRED (basic issuance)
-    //
+    /*
+     *
+     * REQUIRED (basic issuance)
+     *
+     */
 
     manager.get = async function ({ servername }: $TSFixMe): void {
         const url: string = `${BASE_URL}/api/manager/site?servername=${servername}`;
@@ -21,9 +23,11 @@ Manager.create = function (_opts: $TSFixMe): void {
         return response.data;
     };
 
-    //
-    // REQUIRED (basic issuance)
-    //
+    /*
+     *
+     * REQUIRED (basic issuance)
+     *
+     */
 
     manager.set = async function (opts: $TSFixMe): void {
         const url: string = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
@@ -36,9 +40,11 @@ Manager.create = function (_opts: $TSFixMe): void {
         return response.data;
     };
 
-    //
-    // Optional (Fully Automatic Renewal)
-    //
+    /*
+     *
+     * Optional (Fully Automatic Renewal)
+     *
+     */
 
     manager.find = async function (opts: $TSFixMe): void {
         // { subject, servernames, altnames, renewBefore }
@@ -66,13 +72,13 @@ Manager.create = function (_opts: $TSFixMe): void {
             return response.data;
         }
 
-        // i.e. find certs more than 30 days old as default
+        // I.e. find certs more than 30 days old as default
         opts.issuedBefore =
             opts.issuedBefore || Date.now() - 30 * 24 * 60 * 60 * 1000;
-        // i.e. find certs that will expire in less than 45 days as default
+        // I.e. find certs that will expire in less than 45 days as default
         opts.expiresBefore =
             opts.expiresBefore || Date.now() + 45 * 24 * 60 * 60 * 1000;
-        // i.e. find certs that should be renewed within 21 days as default
+        // I.e. find certs that should be renewed within 21 days as default
         opts.renewBefore =
             opts.renewBefore || Date.now() + 21 * 24 * 60 * 60 * 1000;
 
@@ -86,10 +92,12 @@ Manager.create = function (_opts: $TSFixMe): void {
         return response.data;
     };
 
-    //
-    // Optional (Special Remove Functionality)
-    // The default behavior is to set `deletedAt`
-    //
+    /*
+     *
+     * Optional (Special Remove Functionality)
+     * The default behavior is to set `deletedAt`
+     *
+     */
 
     manager.remove = async function (opts: $TSFixMe): void {
         const url: string = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
@@ -101,11 +109,13 @@ Manager.create = function (_opts: $TSFixMe): void {
         return response.data;
     };
 
-    //
-    // Optional (special settings save)
-    // Implemented here because this module IS the fallback
-    // This is a setter/getter function
-    //
+    /*
+     *
+     * Optional (special settings save)
+     * Implemented here because this module IS the fallback
+     * This is a setter/getter function
+     *
+     */
 
     manager.defaults = async function (opts: $TSFixMe): void {
         if (!opts) {

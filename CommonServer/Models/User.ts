@@ -95,12 +95,12 @@ const schema: $TSFixMe = new Schema(
         ],
         source: Object,
         cachedPassword: {
-            // store original password here in "admin mode"
+            // Store original password here in "admin mode"
             type: String,
             default: null,
         },
         isAdminMode: {
-            type: Boolean, // currently in admin mode
+            type: Boolean, // Currently in admin mode
             default: false,
         },
     },

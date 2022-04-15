@@ -47,8 +47,10 @@ async function run(): void {
         deleted: false,
     });
 
-    //Add default incident priorities for existing
-    //projects not having any priority
+    /*
+     * Add default incident priorities for existing
+     * Projects not having any priority
+     */
     for (const project of allProjects) {
         const query: $TSFixMe = {
             projectId: project._id,

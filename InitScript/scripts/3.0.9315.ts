@@ -10,8 +10,10 @@ async function run(): void {
 
     for (const incomingRequest of incomingRequests) {
         const data: $TSFixMe = {
-            // set updateInternalNote to true
-            // since both internal and incident notes are the same
+            /*
+             * Set updateInternalNote to true
+             * Since both internal and incident notes are the same
+             */
             updateInternalNote: true,
         };
 

@@ -115,10 +115,10 @@ export const ADD_SEAT_RESET: string = 'ADD_SEAT_RESET';
 
 export const SELECT_PROBE: string = 'monitor/SELECT_PROBE';
 
-// toggle
+// Toggle
 export const TOGGLE_EDIT: string = 'TOGGLE_EDIT';
 
-// close breached monitor sla
+// Close breached monitor sla
 export const CLOSE_BREACHED_MONITOR_SLA_REQUEST: $TSFixMe =
     'CLOSE_BREACHED_MONITOR_SLA_REQUEST';
 export const CLOSE_BREACHED_MONITOR_SLA_SUCCESS: $TSFixMe =
@@ -126,7 +126,7 @@ export const CLOSE_BREACHED_MONITOR_SLA_SUCCESS: $TSFixMe =
 export const CLOSE_BREACHED_MONITOR_SLA_FAILURE: $TSFixMe =
     'CLOSE_BREACHED_MONITOR_SLA_FAILURE';
 
-// get breached monitor sla
+// Get breached monitor sla
 export const FETCH_BREACHED_MONITOR_SLA_REQUEST: $TSFixMe =
     'FETCH_BREACHED_MONITOR_SLA_REQUEST';
 export const FETCH_BREACHED_MONITOR_SLA_SUCCESS: $TSFixMe =
@@ -134,14 +134,14 @@ export const FETCH_BREACHED_MONITOR_SLA_SUCCESS: $TSFixMe =
 export const FETCH_BREACHED_MONITOR_SLA_FAILURE: $TSFixMe =
     'FETCH_BREACHED_MONITOR_SLA_FAILURE';
 
-// identity file
+// Identity file
 export const UPLOAD_IDENTITY_FILE_REQUEST: string =
     'UPLOAD_IDENTITY_FILE_REQUEST';
 export const UPLOAD_IDENTITY_FILE_SUCCESS: string =
     'UPLOAD_IDENTITY_FILE_SUCCESS';
 export const RESET_UPLOAD_IDENTITY_FILE: string = 'RESET_UPLOAD_IDENTITY_FILE';
 
-// configuration file
+// Configuration file
 export const UPLOAD_CONFIGURATION_FILE_REQUEST: $TSFixMe =
     'UPLOAD_CONFIGURATION_FILE_REQUEST';
 export const UPLOAD_CONFIGURATION_FILE_SUCCESS: $TSFixMe =

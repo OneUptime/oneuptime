@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -127,17 +127,19 @@ describe('Error Trackers', () => {
         async (done: $TSFixMe) => {
             const categoryName: string = 'Random-Category';
             const newErrorTrackerName: string = `${errorTrackerName}-sample`;
-            // create a new resource category
+            // Create a new resource category
             await init.addResourceCategory(categoryName, page);
-            //navigate to component details
+            //Navigate to component details
             await init.navigateToComponentDetails(componentName, page);
-            // go to logs
+            // Go to logs
 
             await init.pageWaitForSelector(page, '#errorTracking');
 
             await init.pageClick(page, '#errorTracking');
-            // create a new error tracker and select the category
-            // Fill and submit New Error Tracker form
+            /*
+             * Create a new error tracker and select the category
+             * Fill and submit New Error Tracker form
+             */
 
             await init.pageWaitForSelector(page, '#cbErrorTracking');
 
@@ -162,7 +164,7 @@ describe('Error Trackers', () => {
             await init.pageClick(page, 'button[type=submit]');
             // As soon as an error tracker with a resource category is created, it automatically navigates to the details page
 
-            // confirm the category shows in the details page.
+            // Confirm the category shows in the details page.
             await init.pageWaitForSelector(
                 page,
                 `#${newErrorTrackerName}-badge`,
@@ -292,13 +294,13 @@ describe('Error Trackers', () => {
                 errorTrackerName,
                 page
             );
-            // open modal
+            // Open modal
 
             await init.pageWaitForSelector(page, `#key_${errorTrackerName}`);
 
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
-            // click show applicaion log key
+            // Click show applicaion log key
 
             await init.pageWaitForSelector(
                 page,
@@ -310,7 +312,7 @@ describe('Error Trackers', () => {
                 `#show_error_tracker_key_${errorTrackerName}`
             );
 
-            // get error tracker key
+            // Get error tracker key
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -320,7 +322,7 @@ describe('Error Trackers', () => {
             errorTrackerKey = await spanElement.jsonValue();
             expect(spanElement).toBeDefined();
 
-            // click cancel
+            // Click cancel
 
             await init.pageWaitForSelector(
                 page,
@@ -349,7 +351,7 @@ describe('Error Trackers', () => {
 
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
-            // click show error tracker  key
+            // Click show error tracker  key
 
             await init.pageWaitForSelector(
                 page,
@@ -367,7 +369,7 @@ describe('Error Trackers', () => {
             );
             expect(spanElement).toBeDefined();
 
-            // find the eye icon to hide error tracker key
+            // Find the eye icon to hide error tracker key
 
             await init.pageWaitForSelector(
                 page,
@@ -400,13 +402,13 @@ describe('Error Trackers', () => {
                 errorTrackerName,
                 page
             );
-            // open modal
+            // Open modal
 
             await init.pageWaitForSelector(page, `#key_${errorTrackerName}`);
 
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
-            // click show error tracker key
+            // Click show error tracker key
 
             await init.pageWaitForSelector(
                 page,
@@ -418,7 +420,7 @@ describe('Error Trackers', () => {
                 `#show_error_tracker_key_${errorTrackerName}`
             );
 
-            // get error tracker key
+            // Get error tracker key
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -427,7 +429,7 @@ describe('Error Trackers', () => {
             spanElement = await spanElement.getProperty('innerText');
             errorTrackerKey = await spanElement.jsonValue();
 
-            // click reset key
+            // Click reset key
 
             await init.pageWaitForSelector(
                 page,
@@ -439,7 +441,7 @@ describe('Error Trackers', () => {
                 `#reset_error_tracker_key_${errorTrackerName}`
             );
 
-            // click confirm reset key
+            // Click confirm reset key
 
             await init.pageWaitForSelector(
                 page,
@@ -456,13 +458,13 @@ describe('Error Trackers', () => {
                 { hidden: true }
             );
 
-            // open modal
+            // Open modal
 
             await init.pageWaitForSelector(page, `#key_${errorTrackerName}`);
 
             await init.pageClick(page, `#key_${errorTrackerName}`);
 
-            // click show error tracker key
+            // Click show error tracker key
 
             await init.pageWaitForSelector(
                 page,
@@ -474,7 +476,7 @@ describe('Error Trackers', () => {
                 `#show_error_tracker_key_${errorTrackerName}`
             );
 
-            // get tracker container key
+            // Get tracker container key
 
             spanElement = await init.pageWaitForSelector(
                 page,
@@ -535,7 +537,7 @@ describe('Error Trackers', () => {
         'Should update category for created error tracker',
         async (done: $TSFixMe) => {
             const categoryName: string = 'Another-Category';
-            // create a new resource category
+            // Create a new resource category
             await init.addResourceCategory(categoryName, page);
 
             await init.navigateToErrorTrackerDetails(
@@ -553,7 +555,7 @@ describe('Error Trackers', () => {
             // Fill and submit edit Error tracker form
 
             await init.pageWaitForSelector(page, '#form-new-error-tracker');
-            // change category here
+            // Change category here
             await init.selectDropdownValue(
                 '#resourceCategory',
                 categoryName,
@@ -573,7 +575,7 @@ describe('Error Trackers', () => {
                     timeout: init.timeout,
                 }
             );
-            // confirm the new category shows in the details page.
+            // Confirm the new category shows in the details page.
 
             let spanElement: $TSFixMe = await init.page$(
                 page,
@@ -592,7 +594,7 @@ describe('Error Trackers', () => {
         async (done: $TSFixMe) => {
             const categoryName: string = 'Another-Category';
 
-            // confirm the error tracker has a category
+            // Confirm the error tracker has a category
             await init.navigateToErrorTrackerDetails(
                 componentName,
                 `${errorTrackerName}-new`,
@@ -607,7 +609,7 @@ describe('Error Trackers', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
 
-            // delete the category
+            // Delete the category
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -636,7 +638,7 @@ describe('Error Trackers', () => {
                 hidden: true,
             });
 
-            // go back to log details and confirm it is not there anymore
+            // Go back to log details and confirm it is not there anymore
             await init.navigateToErrorTrackerDetails(
                 componentName,
                 `${errorTrackerName}-new`,

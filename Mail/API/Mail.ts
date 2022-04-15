@@ -22,16 +22,16 @@ router.post(
 
             const mail: Mail = {
                 templateType: req.params['template-name'] as EmailTemplateType,
-                toEmail: body['toEmail'],
-                subject: body['subject'],
-                vars: body['vars'],
+                toEmail: body.toEmail,
+                subject: body.subject,
+                vars: body.vars,
                 body: '',
             };
 
             await MailService.send(
                 mail,
-                body['projectId'],
-                body['forceSendFromGlobalMailServer']
+                body.projectId,
+                body.forceSendFromGlobalMailServer
             );
 
             return sendEmptyResponse(req, res);

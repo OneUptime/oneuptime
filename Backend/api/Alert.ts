@@ -65,7 +65,7 @@ router.get(
             const alerts: $TSFixMe = await alertService.getSubProjectAlerts(
                 subProjectIds
             );
-            return sendItemResponse(req, res, alerts); // frontend expects sendItemResponse
+            return sendItemResponse(req, res, alerts); // Frontend expects sendItemResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -91,14 +91,14 @@ router.get(
             const [alerts, count]: $TSFixMe = await Promise.all([
                 alertService.findBy({
                     query: { projectId },
-                    skip: req.query['skip'] || 0,
-                    limit: req.query['limit'] || 10,
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
                     populate: populateAlert,
                     select: selectColumns,
                 }),
                 alertService.countBy({ projectId }),
             ]);
-            return sendListResponse(req, res, alerts, count); // frontend expects sendListResponse
+            return sendListResponse(req, res, alerts, count); // Frontend expects sendListResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -112,14 +112,14 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const incidentSlug: $TSFixMe = req.params.incidentSlug;
-            // const projectId: $TSFixMe = req.params.projectId;
+            // Const projectId: $TSFixMe = req.params.projectId;
             let incidentId: $TSFixMe = await IncidentService.findOneBy({
-                // query: { projectId, slug: incidentSlug },
+                // Query: { projectId, slug: incidentSlug },
                 query: { slug: incidentSlug },
                 select: '_id',
             });
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
 
             let alerts: $TSFixMe = [],
                 count: $TSFixMe = 0;
@@ -235,8 +235,8 @@ router.get(
             const [alertCharges, count]: $TSFixMe = await Promise.all([
                 alertChargeService.findBy({
                     query: { projectId },
-                    skip: req.query['skip'],
-                    limit: req.query['limit'],
+                    skip: req.query.skip,
+                    limit: req.query.limit,
                     sort: false,
                     populate,
                     select,

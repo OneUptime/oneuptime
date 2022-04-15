@@ -113,7 +113,7 @@ export default {
         }
         const events: $TSFixMe = Array.isArray(resources)
             ? resources
-            : [resources]; // object property => {callSchedule?, automatedScript?}
+            : [resources]; // Object property => {callSchedule?, automatedScript?}
         const eventPromises: $TSFixMe = events.map((event: $TSFixMe) => {
             let resourceType: $TSFixMe;
             if (event.automatedScript) {

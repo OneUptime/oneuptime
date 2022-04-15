@@ -14,7 +14,7 @@ const fallbackHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
 };
 
 const subscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
-    // bundle.targetUrl has the Hook URL this app should call when an incident is created.
+    // Bundle.targetUrl has the Hook URL this app should call when an incident is created.
     const data: $TSFixMe = {
         url: bundle.targetUrl,
         type: 'incident_created',
@@ -34,12 +34,16 @@ const subscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
 };
 
 const unSubscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
-    // bundle.subscribeData contains the parsed response JSON from the subscribe
-    // request made initially.
+    /*
+     * Bundle.subscribeData contains the parsed response JSON from the subscribe
+     * Request made initially.
+     */
     const hookId: $TSFixMe = bundle.subscribeData.id;
 
-    // You can build requests and our client will helpfully inject all the variables
-    // you need to complete. You can also register middleware to control this.
+    /*
+     * You can build requests and our client will helpfully inject all the variables
+     * You need to complete. You can also register middleware to control this.
+     */
     const options: $TSFixMe = {
         url: `${bundle.authData.serverUrl}/zapier/unSubscribe/${hookId}`,
         method: 'DELETE',

@@ -21,8 +21,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         if (data.emailType && !data.allowedVariables) {
@@ -46,8 +46,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await EmailTemplateModel.updateMany(query, {
             $set: data,
@@ -88,7 +88,7 @@ export default class Service {
         select,
         sort,
     }: FindBy): void {
-        query['deleted'] = false;
+        query.deleted = false;
         const emailTemplates: $TSFixMe = EmailTemplateModel.find(query)
             .lean()
             .sort(sort)
@@ -106,7 +106,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const emailTemplate: $TSFixMe = EmailTemplateModel.findOne(query)
             .sort(sort)
             .lean()
@@ -123,7 +123,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await EmailTemplateModel.countDocuments(query);
         return count;
     }

@@ -1239,7 +1239,7 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                                                 );
                                             })
                                         ) {
-                                            // add manual status to all new probes
+                                            // Add manual status to all new probes
                                             const newProbeStatuses: $TSFixMe =
                                                 [];
 
@@ -1383,7 +1383,7 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                     skip: action.payload.skip || 0,
                 },
                 individualEvents: {
-                    // reset individualEvents state
+                    // Reset individualEvents state
                     ...INITIAL_STATE.individualEvents,
                 },
                 monitorInfo: {
@@ -1732,8 +1732,10 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                       return monitor.monitorId;
                   })
                 : [];
-            // once we find at least one monitor in the statusPageMonitorIds array
-            // we break out of the loop and add the incident to the list
+            /*
+             * Once we find at least one monitor in the statusPageMonitorIds array
+             * We break out of the loop and add the incident to the list
+             */
             for (const monitor of monitors) {
                 if (
                     !incidentFound &&
@@ -1820,7 +1822,7 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                     skip: action.payload.skip || 0,
                 },
                 individualEvents: {
-                    // reset individualEvents state
+                    // Reset individualEvents state
                     ...INITIAL_STATE.individualEvents,
                 },
             };
@@ -1863,7 +1865,7 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                     skip: action.payload.skip || 0,
                 },
                 individualEvents: {
-                    // reset individualEvents state
+                    // Reset individualEvents state
                     ...INITIAL_STATE.individualEvents,
                 },
             };

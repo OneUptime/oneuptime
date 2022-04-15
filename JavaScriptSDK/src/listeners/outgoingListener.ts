@@ -36,7 +36,7 @@ class OutgoingListener {
                 req.apm = {};
                 req.apm.uuid = uuidv4();
                 const result: $TSFixMe = this.start(req.apm.uuid, {
-                    path: `${protocol}//${host}${path}`, // store full path for outgoing requests
+                    path: `${protocol}//${host}${path}`, // Store full path for outgoing requests
                     type: 'outgoing',
                     method,
                 });
@@ -66,7 +66,7 @@ class OutgoingListener {
                     }
                     return emit.apply(this, arguments);
                 };
-                // return the original call
+                // Return the original call
                 return req;
             }
             module.request = wrapper;

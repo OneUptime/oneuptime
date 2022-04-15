@@ -51,6 +51,12 @@
         "no-func-assign": "error",
         "curly": "error",
         "no-extra-semi": "error",
+        "no-else-return": "error",
+        "no-div-regex": "error",
+        "no-extra-bind": "error",
+        "multiline-comment-style": "error",
+        "eqeqeq": "error",
+        "dot-notation": "error",
         "progress/activate": 1,
         "linebreak-style": [
             "error",
@@ -122,6 +128,9 @@
         "react/jsx-pascal-case": "error",
         "array-callback-return": "error",
         "no-loop-func": "error",
+        // "no-duplicate-imports": "error", /// Enable this and fix errors.
+        "no-promise-executor-return": "error",
+        "capitalized-comments": "error",
         "for-direction": "error",
         "getter-return": "error",
         "jsx-a11y/anchor-is-valid": "error",

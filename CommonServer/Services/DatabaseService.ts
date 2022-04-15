@@ -126,7 +126,7 @@ class DatabaseService<ModelType> {
     }
 
     protected checkRequiredFields(data: Document): Promise<void> {
-        // check required fields.
+        // Check required fields.
         for (const requiredField of this.requiredFields) {
             if (!data.get(requiredField)) {
                 throw new BadDataException(`${requiredField} is required`);
@@ -135,7 +135,7 @@ class DatabaseService<ModelType> {
     }
 
     protected async onBeforeCreate({ data }: CreateBy): Promise<CreateBy> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve({ data } as CreateBy);
     }
 
@@ -144,7 +144,7 @@ class DatabaseService<ModelType> {
         data.set('iv', iv);
 
         for (const key of this.encryptedFields) {
-            // if data is an object.
+            // If data is an object.
             if (typeof data.get(key) === 'object') {
                 const dataObj: $TSFixMe = data.get(key);
 
@@ -154,7 +154,7 @@ class DatabaseService<ModelType> {
 
                 data.set(key, dataObj);
             } else {
-                //if its string or other type.
+                //If its string or other type.
                 data.set(key, Encryption.encrypt(data.get(key), iv));
             }
         }
@@ -166,7 +166,7 @@ class DatabaseService<ModelType> {
         const iv: Buffer = data.get('iv');
 
         for (const key of this.encryptedFields) {
-            // if data is an object.
+            // If data is an object.
             if (typeof data.get(key) === 'object') {
                 const dataObj: $TSFixMe = data.get(key);
 
@@ -176,7 +176,7 @@ class DatabaseService<ModelType> {
 
                 data.set(key, dataObj);
             } else {
-                //if its string or other type.
+                //If its string or other type.
                 data.set(key, Encryption.decrypt(data.get(key), iv));
             }
         }
@@ -185,71 +185,71 @@ class DatabaseService<ModelType> {
     }
 
     protected async onBeforeDelete(deleteBy: DeleteBy): Promise<DeleteBy> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(deleteBy);
     }
 
     protected async onBeforeUpdate(updateBy: UpdateBy): Promise<UpdateBy> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(updateBy);
     }
 
     protected async onBeforeFind(findBy: FindBy): Promise<FindBy> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(findBy);
     }
 
     protected async onCreateSuccess(createdItem: Document): Promise<Document> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(createdItem);
     }
 
     protected async onCreateError(error: Exception): Promise<Exception> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(error);
     }
 
     protected async onUpdateSuccess(): Promise<void> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve();
     }
 
     protected async onUpdateError(error: Exception): Promise<Exception> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(error);
     }
 
     protected async onDeleteSuccess(): Promise<void> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve();
     }
 
     protected async onDeleteError(error: Exception): Promise<Exception> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(error);
     }
 
     protected async onFindSuccess(
         items: Array<Document>
     ): Promise<Array<Document>> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(items);
     }
 
     protected async onFindError(error: Exception): Promise<Exception> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(error);
     }
 
     protected async onCountSuccess(
         count: PositiveNumber
     ): Promise<PositiveNumber> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(count);
     }
 
     protected async onCountError(error: Exception): Promise<Exception> {
-        // a place holder method used for overriding.
+        // A place holder method used for overriding.
         return Promise.resolve(error);
     }
 
@@ -280,7 +280,7 @@ class DatabaseService<ModelType> {
                 const countQuery: Query = {};
 
                 if (this.isResourceByProject) {
-                    countQuery['projectId'] = data.get('projectId');
+                    countQuery.projectId = data.get('projectId');
                 }
 
                 for (const duplicateValueIn of this.uniqueFields) {
@@ -321,7 +321,7 @@ class DatabaseService<ModelType> {
 
     public async countBy({ query = {} }: CountBy): Promise<PositiveNumber> {
         try {
-            query['deleted'] = false;
+            query.deleted = false;
             const count: $TSFixMe = await this.model.countDocuments(query);
             let countPositive: $TSFixMe = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
@@ -369,7 +369,7 @@ class DatabaseService<ModelType> {
                 deletedByUserId,
             });
 
-            query['deleted'] = false;
+            query.deleted = false;
 
             const item: $TSFixMe = new this.model();
             item.set('deleted', true);
@@ -573,7 +573,7 @@ class DatabaseService<ModelType> {
                 sort,
             });
 
-            query['deleted'] = false;
+            query.deleted = false;
 
             let dbQuery: $TSFixMe = null;
 
@@ -638,8 +638,8 @@ class DatabaseService<ModelType> {
         multiple = true,
     }: InternalUpdateBy): Promise<void> {
         try {
-            if (!query['deleted']) {
-                query['deleted'] = false;
+            if (!query.deleted) {
+                query.deleted = false;
             }
 
             const beforeUpdateBy: $TSFixMe = await this.onBeforeUpdate({
@@ -647,7 +647,7 @@ class DatabaseService<ModelType> {
                 data,
             });
 
-            // check required fields.
+            // Check required fields.
             for (const requiredField of this.requiredFields) {
                 if (beforeUpdateBy.data.get(requiredField) === null) {
                     throw new BadDataException(`${requiredField} is required.`);

@@ -25,8 +25,8 @@ router.get(
             const selectSmsCount: $TSFixMe =
                 'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
             const query: $TSFixMe = {};
-            const skip: $TSFixMe = req.query['skip'];
-            const limit: $TSFixMe = req.query['limit'];
+            const skip: $TSFixMe = req.query.skip;
+            const limit: $TSFixMe = req.query.limit;
             const [smsLogs, count]: $TSFixMe = await Promise.all([
                 SmsLogsService.findBy({
                     query,
@@ -106,8 +106,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const filter: $TSFixMe = req.body.filter;
-            const skip: $TSFixMe = req.query['skip'];
-            const limit: $TSFixMe = req.query['limit'];
+            const skip: $TSFixMe = req.query.skip;
+            const limit: $TSFixMe = req.query.limit;
 
             const { searchedSmsLogs, totalSearchCount }: $TSFixMe =
                 await SmsLogsService.search({ filter, skip, limit });

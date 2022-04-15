@@ -139,7 +139,7 @@ router.put(
                         message: 'SMS body is required.',
                     });
                 }
-                // sanitize template markup
+                // Sanitize template markup
                 value.projectId = projectId;
                 value.body = await DOMPurify.sanitize(value.body);
                 data.push(value);

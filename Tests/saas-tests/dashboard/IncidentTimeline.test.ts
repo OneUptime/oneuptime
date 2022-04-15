@@ -3,7 +3,7 @@ import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
-// parent user credentials
+// Parent user credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
@@ -27,16 +27,16 @@ describe('Incident Timeline API', () => {
             email,
             password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
 
-        // rename default project
+        // Rename default project
         await init.renameProject(projectName, page);
 
         // Create component
         await init.addComponent(componentName, page);
 
-        // add new monitor to project
+        // Add new monitor to project
         await init.pageWaitForSelector(page, '#form-new-monitor', {
             visible: true,
             timeout: init.timeout,
@@ -104,7 +104,7 @@ describe('Incident Timeline API', () => {
                 hidden: true,
             });
 
-            // navigate to monitor details
+            // Navigate to monitor details
 
             await init.pageWaitForSelector(
                 page,
@@ -122,7 +122,7 @@ describe('Incident Timeline API', () => {
             });
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
 
-            // fill investigation message thread form
+            // Fill investigation message thread form
             await init.pageWaitForSelector(page, `#add-${type}-message`, {
                 visible: true,
                 timeout: init.timeout,
@@ -178,7 +178,7 @@ describe('Incident Timeline API', () => {
             const type: string = 'internal';
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            // navigate to monitor details
+            // Navigate to monitor details
             await init.pageWaitForSelector(
                 page,
                 `#more-details-${projectMonitorName}`,
@@ -204,7 +204,7 @@ describe('Incident Timeline API', () => {
 
             await init.pageClick(page, `#edit_${type}_incident_message_0`);
 
-            // edit investigation message thread form
+            // Edit investigation message thread form
 
             await init.pageClick(page, '#incident_description');
 
@@ -247,7 +247,7 @@ describe('Incident Timeline API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            // navigate to monitor details
+            // Navigate to monitor details
             await init.pageWaitForSelector(
                 page,
                 `#more-details-${projectMonitorName}`,
@@ -263,7 +263,7 @@ describe('Incident Timeline API', () => {
             await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => {
                 return e.click();
             });
-            // fill internal message thread form
+            // Fill internal message thread form
 
             await init.pageWaitForSelector(page, `#add-${type}-message`);
             await init.page$Eval(
@@ -329,7 +329,7 @@ describe('Incident Timeline API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            // navigate to monitor details
+            // Navigate to monitor details
             await init.pageWaitForSelector(
                 page,
                 `#more-details-${projectMonitorName}`,
@@ -353,7 +353,7 @@ describe('Incident Timeline API', () => {
 
             await init.pageClick(page, `#edit_${type}_incident_message_0`);
 
-            // edit investigation message thread form
+            // Edit investigation message thread form
 
             await init.pageWaitForSelector(page, `#${type}-editButton`);
 
@@ -403,7 +403,7 @@ describe('Incident Timeline API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            // navigate to monitor details
+            // Navigate to monitor details
 
             await init.pageWaitForSelector(
                 page,
@@ -424,7 +424,7 @@ describe('Incident Timeline API', () => {
 
             await init.pageClick(page, `#delete_${type}_incident_message_0`);
 
-            // click confirmation delete button
+            // Click confirmation delete button
 
             await init.pageWaitForSelector(page, '#deleteIncidentMessage');
 
@@ -454,7 +454,7 @@ describe('Incident Timeline API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            // navigate to monitor details
+            // Navigate to monitor details
 
             await init.pageWaitForSelector(
                 page,
@@ -468,7 +468,7 @@ describe('Incident Timeline API', () => {
                 return e.click();
             });
             for (let i: $TSFixMe = 0; i < 10; i++) {
-                // add internal note
+                // Add internal note
                 await init.pageWaitForSelector(page, `#add-${type}-message`, {
                     visible: true,
                 });
@@ -520,7 +520,7 @@ describe('Incident Timeline API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            // navigate to monitor details
+            // Navigate to monitor details
 
             await init.pageWaitForSelector(
                 page,
@@ -565,7 +565,7 @@ describe('Incident Timeline API', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            // navigate to monitor details
+            // Navigate to monitor details
 
             await init.pageWaitForSelector(
                 page,

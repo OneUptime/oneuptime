@@ -25,8 +25,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const response: $TSFixMe = {};
         const [groups, count]: $TSFixMe = await Promise.all([
@@ -58,8 +58,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const group: $TSFixMe = await GroupModel.findOne(query)
             .populate('projectId', 'name')
@@ -97,7 +97,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await GroupModel.countDocuments(query);
         return count;
     }
@@ -128,8 +128,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const groupExist: $TSFixMe = await this.findOneBy({

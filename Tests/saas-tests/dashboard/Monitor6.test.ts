@@ -6,7 +6,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const componentName: string = utils.generateRandomString();
@@ -69,7 +69,7 @@ describe('Monitor API', () => {
             await init.pageWaitForSelector(page, '#header');
 
             await init.pageClick(page, 'textarea[name=header]');
-            //paste a large text.
+            //Paste a large text.
             await page.evaluate(() => {
                 return (document.querySelector(
                     'textarea[name=header]'

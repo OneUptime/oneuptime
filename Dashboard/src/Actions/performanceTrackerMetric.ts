@@ -4,7 +4,7 @@ import * as types from '../constants/performanceTrackerMetric';
 import moment from 'moment';
 import { encode } from 'js-base64';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-// fetch performance tracker metrics - TIME
+// Fetch performance tracker metrics - TIME
 export const fetchTimeMetricsRequest: Function = (): void => {
     return {
         type: types.FETCH_TIME_METRICS_REQUEST,
@@ -64,7 +64,7 @@ export const fetchTimeMetrics: $TSFixMe = ({
     };
 };
 
-// fetch performance tracker metrics - THROUGHPUT
+// Fetch performance tracker metrics - THROUGHPUT
 export const fetchThroughputMetricsRequest: Function = (): void => {
     return {
         type: types.FETCH_THROUGHPUT_METRICS_REQUEST,
@@ -126,7 +126,7 @@ export const fetchThroughputMetrics: $TSFixMe = ({
     };
 };
 
-// fetch performance tracker metrics - ERROR
+// Fetch performance tracker metrics - ERROR
 export const fetchErrorMetricsRequest: Function = (): void => {
     return {
         type: types.FETCH_ERROR_METRICS_REQUEST,
@@ -186,7 +186,7 @@ export const fetchErrorMetrics: $TSFixMe = ({
     };
 };
 
-// handle setting startDate/endDate - (TIME || THROUGHPUT || ERROR)
+// Handle setting startDate/endDate - (TIME || THROUGHPUT || ERROR)
 export const setTimeStartDate: Function = (date: $TSFixMe): void => {
     return {
         type: types.SET_TIME_STARTDATE,
@@ -279,7 +279,7 @@ export const resetOutgoingDate: Function = (
     };
 };
 
-// update metrics from realtime update
+// Update metrics from realtime update
 export const updateTimeMetrics: Function = (payload: $TSFixMe): void => {
     return {
         type: types.UPDATE_TIME_METRICS,
@@ -301,7 +301,7 @@ export const updateErrorMetrics: Function = (payload: $TSFixMe): void => {
     };
 };
 
-// fetch all performance metrics (incoming/outgoing)
+// Fetch all performance metrics (incoming/outgoing)
 export const fetchIncomingMetricsRequest: Function = (): void => {
     return {
         type: types.FETCH_INCOMING_METRICS_REQUEST,
@@ -456,7 +456,7 @@ export const setOutgoingEndDate: Function = (payload: $TSFixMe): void => {
     };
 };
 
-// delete a particular performance metrics (incoming/outgoing)
+// Delete a particular performance metrics (incoming/outgoing)
 export const deleteIncomingMetricsRequest: Function = (): void => {
     return {
         type: types.DELETE_INCOMING_METRICS_REQUEST,

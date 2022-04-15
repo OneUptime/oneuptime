@@ -16,10 +16,12 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    //Description: Upsert function for component.
-    //Params:
-    //Param 1: data: ComponentModal.
-    //Returns: promise with component model or error.
+    /*
+     * Description: Upsert function for component.
+     * Params:
+     * Param 1: data: ComponentModal.
+     * Returns: promise with component model or error.
+     */
     public async create(data: $TSFixMe): void {
         const existingComponentCount: $TSFixMe = await this.countBy({
             name: data.name,
@@ -71,7 +73,7 @@ export default class Service {
             projectId: { $in: subProjectIds },
         });
         let plan: $TSFixMe = Plans.getPlanById(project.stripePlanId);
-        // null plan => enterprise plan
+        // Null plan => enterprise plan
 
         plan = plan && plan.category ? plan : { category: 'Enterprise' };
 
@@ -144,8 +146,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         if (data && data.name) {
             data.slug = getSlug(data.name);
@@ -166,7 +168,7 @@ export default class Service {
                 }
             );
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const populateComponent: $TSFixMe = [
             { path: 'projectId', select: 'name' },
@@ -181,7 +183,7 @@ export default class Service {
             populate: populateComponent,
         });
 
-        // run in the background
+        // Run in the background
         RealTimeService.componentEdit(component);
 
         return component;
@@ -192,8 +194,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await ComponentModel.updateMany(query, {
             $set: data,
@@ -213,10 +215,12 @@ export default class Service {
         return updatedData;
     }
 
-    //Description: Gets all components by project.
-    //Params:
-    //Param 1: data: ComponentModal.
-    //Returns: promise with component model or error.
+    /*
+     * Description: Gets all components by project.
+     * Params:
+     * Param 1: data: ComponentModal.
+     * Returns: promise with component model or error.
+     */
     public async findBy({
         query,
         limit,
@@ -245,8 +249,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const componentsQuery: $TSFixMe = ComponentModel.find(query)
             .lean()
@@ -266,8 +270,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const componentQuery: $TSFixMe = ComponentModel.findOne(query)
             .sort(sort)
@@ -285,8 +289,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await ComponentModel.countDocuments(query);
         return count;
@@ -297,7 +301,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const component: $TSFixMe = await ComponentModel.findOneAndUpdate(
             query,
             {
@@ -349,7 +353,7 @@ export default class Service {
                 parentProjectId: project._id,
             });
             const seats: $TSFixMe = await TeamService.getSeats(projectUsers);
-            // check if project seats are more based on users in project or by count of components
+            // Check if project seats are more based on users in project or by count of components
             if (
                 !IS_SAAS_SERVICE ||
                 (projectSeats &&
@@ -384,7 +388,7 @@ export default class Service {
                 component.deletedById._id,
                 'componentaddremove'
             );
-            // run in the background
+            // Run in the background
             RealTimeService.sendComponentDelete(component);
 
             return component;

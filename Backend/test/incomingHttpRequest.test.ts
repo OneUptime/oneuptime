@@ -1,6 +1,6 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
+process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 const expect: $TSFixMe = chai.expect;
@@ -180,7 +180,7 @@ describe('Incoming HTTP Request API', function (): void {
             query: { projectId },
             select: '_id',
         }).then((priority: $TSFixMe): void => {
-            // fetch one of the priorities
+            // Fetch one of the priorities
             incidentPriorityId = priority._id;
             incidentRequest.incidentPriority = incidentPriorityId;
 
@@ -281,7 +281,7 @@ describe('Incoming HTTP Request API', function (): void {
         incidentRequest.name = 'anotherOne';
         incidentRequest.selectAllMonitors = false;
         incidentRequest.monitors = [monitorId];
-        // add one more incoming http request
+        // Add one more incoming http request
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
             .set('Authorization', authorization)
@@ -337,7 +337,7 @@ describe('Incoming HTTP Request API', function (): void {
     });
 
     it('should add incident note with an incoming http request url', (done: $TSFixMe): void => {
-        // it should also work for a get request
+        // It should also work for a get request
         axios({
             method: 'get',
             url: incidentNoteUrl,

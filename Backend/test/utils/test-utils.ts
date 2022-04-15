@@ -19,14 +19,14 @@ const methods: $TSFixMe = {
         return await request.get(`/api/user/sso/login?email=${email}`);
     },
     /**
-   * Example of payload:
-      const payload: $TSFixMe = {
-        projectId,
-        name: "test",
-        criteria: {},
-        data: {},
-      }
-   */
+     * Example of payload:
+     *const payload: $TSFixMe = {
+     *  projectId,
+     *  name: "test",
+     *  criteria: {},
+     *  data: {},
+     *}
+     */
     createComponent: async ({
         request,
         authorization,
@@ -39,17 +39,17 @@ const methods: $TSFixMe = {
             .send(payload);
     },
     /**
-   * Example of payload:
-      const payload: $TSFixMe = {
-        componentId,
-        projectId,
-        type: "device",
-        name: "test monitor ",
-        data: { deviceId: "abcdef" },
-        deviceId: "abcdef",
-        criteria: {},
-      }
-   */
+     * Example of payload:
+     *const payload: $TSFixMe = {
+     *  componentId,
+     *  projectId,
+     *  type: "device",
+     *  name: "test monitor ",
+     *  data: { deviceId: "abcdef" },
+     *  deviceId: "abcdef",
+     *  criteria: {},
+     *}
+     */
     createMonitor: async ({
         request,
         authorization,
@@ -62,17 +62,17 @@ const methods: $TSFixMe = {
             .send(payload);
     },
     /**
-   * Example of payloads:
-      const payload: $TSFixMe = {
-        alertVia: "sms",
-        contactPhone: "9173976235",
-        countryCode: "us",
-      };
-      const payload1: $TSFixMe = {
-        alertVia: "email",
-        contactEmail: "test@hackerbay.io"
-      }
-   */
+     * Example of payloads:
+     *const payload: $TSFixMe = {
+     *  alertVia: "sms",
+     *  contactPhone: "9173976235",
+     *  countryCode: "us",
+     *};
+     *const payload1: $TSFixMe = {
+     *  alertVia: "email",
+     *  contactEmail: "test@hackerbay.io"
+     *}
+     */
     addSubscriberToMonitor: async ({
         request,
         authorization,
@@ -108,9 +108,9 @@ const methods: $TSFixMe = {
             .send({ name });
     },
     /**
-   * Example of a payload
-      const payload: $TSFixMe = { monitorIds: [monitorId] };
-   */
+     * Example of a payload
+     *const payload: $TSFixMe = { monitorIds: [monitorId] };
+     */
     updateSchedule: async ({
         request,
         authorization,
@@ -124,30 +124,30 @@ const methods: $TSFixMe = {
             .send(payload);
     },
     /**
-   * Example of a payload:
-      const payload= [{
-        callReminders: "1",
-        smsReminders: "1",
-        emailReminders: "1",
-        email: false,
-        sms: true,
-        call: true,
-        teams: [
-          {
-            teamMembers:
-              [
-                {
-                  member: "",
-                  timezone: "",
-                  startTime: "",
-                  endTime: "",
-                  userId
-                }
-              ]
-          }
-        ]
-      }]
-   */
+     * Example of a payload:
+     *const payload= [{
+     *  callReminders: "1",
+     *  smsReminders: "1",
+     *  emailReminders: "1",
+     *  email: false,
+     *  sms: true,
+     *  call: true,
+     *  teams: [
+     *    {
+     *      teamMembers:
+     *        [
+     *          {
+     *            member: "",
+     *            timezone: "",
+     *            startTime: "",
+     *            endTime: "",
+     *            userId
+     *          }
+     *        ]
+     *    }
+     *  ]
+     *}]
+     */
     addEscalation: async ({
         request,
         authorization,
@@ -205,15 +205,15 @@ const methods: $TSFixMe = {
         return await request.get(`/user/confirmation/${token}`).redirects(0);
     },
     /**
-   * Example of payload
-      const payload: $TSFixMe = {
-        monitors: [monitorId],
-        projectId,
-        title: "test monitor  is offline.",
-        incidentType: "offline",
-        description: 'Incident description',
-      };
-   */
+     * Example of payload
+     *const payload: $TSFixMe = {
+     *  monitors: [monitorId],
+     *  projectId,
+     *  title: "test monitor  is offline.",
+     *  incidentType: "offline",
+     *  description: 'Incident description',
+     *};
+     */
     createIncident: async ({
         request,
         authorization,
@@ -266,7 +266,7 @@ const methods: $TSFixMe = {
             .set('Authorization', authorization);
     },
     /**
-     * payload = {
+     * Payload = {
      *  planId: 'ID' // for example "plan_GoWKiTdQ6NiQFw",
      *  projectName: 'PROJECT_NAME'
      * }
@@ -288,7 +288,7 @@ const methods: $TSFixMe = {
             .set('Authorization', authorization);
     },
     /**
-     *  examplePayload = {
+     *  ExamplePayload = {
      *      'saml-enabled':
      *          true,
      *      domain:
@@ -311,7 +311,7 @@ const methods: $TSFixMe = {
             .set('Authorization', authorization);
     },
     /**
-     *  examplePayload = {
+     *  ExamplePayload = {
      *      domain: "6017d3105299cd0725598155",
      *      project: "600fcb791450c01eab741764",
      *      role: "Viewer",

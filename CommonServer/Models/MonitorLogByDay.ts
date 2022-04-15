@@ -6,28 +6,28 @@ import mongoose, {
 
 const Schema: $TSFixMe = mongoose.Schema;
 const schema: $TSFixMe = new Schema({
-    projectId: { type: String, ref: 'Project', index: true }, // which monitor does this belong to.
-    monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this belong to.
-    probeId: { type: String, ref: 'Probe', index: true }, // which probe does this belong to.
-    status: String, // current status based on criteria.
-    responseTime: Number, // current time taken for ping.
-    responseStatus: Number, // current status code of ping.
-    cpuLoad: Number, // current cpu load.
-    avgCpuLoad: Number, // current average cpu load from server.
-    cpuCores: Number, // current number of cpu cores.
-    memoryUsed: Number, // current memory used.
-    totalMemory: Number, // current memory size.
-    swapUsed: Number, // current swap memory used.
-    storageUsed: Number, // current disk used.
-    totalStorage: Number, // current disk size.
-    storageUsage: Number, // current disk usage.
-    mainTemp: Number, // current cpu temperature.
-    maxTemp: Number, // current maximum cpu temperature from server.
+    projectId: { type: String, ref: 'Project', index: true }, // Which monitor does this belong to.
+    monitorId: { type: String, ref: 'Monitor', index: true }, // Which monitor does this belong to.
+    probeId: { type: String, ref: 'Probe', index: true }, // Which probe does this belong to.
+    status: String, // Current status based on criteria.
+    responseTime: Number, // Current time taken for ping.
+    responseStatus: Number, // Current status code of ping.
+    cpuLoad: Number, // Current cpu load.
+    avgCpuLoad: Number, // Current average cpu load from server.
+    cpuCores: Number, // Current number of cpu cores.
+    memoryUsed: Number, // Current memory used.
+    totalMemory: Number, // Current memory size.
+    swapUsed: Number, // Current swap memory used.
+    storageUsed: Number, // Current disk used.
+    totalStorage: Number, // Current disk size.
+    storageUsage: Number, // Current disk usage.
+    mainTemp: Number, // Current cpu temperature.
+    maxTemp: Number, // Current maximum cpu temperature from server.
     createdAt: {
         type: Date,
         default: Date.now,
     },
-    intervalDate: { type: String, index: true }, // date of aggregate data (day)
+    intervalDate: { type: String, index: true }, // Date of aggregate data (day)
     maxResponseTime: Number,
     maxCpuLoad: Number,
     maxMemoryUsed: Number,

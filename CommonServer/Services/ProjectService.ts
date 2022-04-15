@@ -7,7 +7,7 @@ import UserService from './UserService';
 import IncidentPrioritiesService from './IncidentPrioritiesService';
 import integrationService from './IntegrationService';
 import ScheduleService from './ScheduleService';
-import domains from '../config/domains'; // removal of 'moment' due to declaration but not used.
+import domains from '../config/domains'; // Removal of 'moment' due to declaration but not used.
 import EscalationService from './EscalationService';
 import StripeService from './StripeService';
 import TeamService from './TeamService';
@@ -111,7 +111,7 @@ export default class Service {
             IncidentPrioritiesService.create(prioritiesData.high),
             IncidentPrioritiesService.create(prioritiesData.low),
         ]);
-        // create initial default incident template
+        // Create initial default incident template
         await IncidentSettingsService.create({
             name: 'Default',
             projectId: project._id,
@@ -128,7 +128,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         let project: $TSFixMe = await ProjectModel.findOne(query);
         if (project) {
             if (project.stripeSubscriptionId && cancelSub) {
@@ -310,7 +310,7 @@ export default class Service {
         }
 
         if (currentBalance >= minimumBalance) {
-            // update settings, the current balance satisfies incoming project's alert settings
+            // Update settings, the current balance satisfies incoming project's alert settings
             updatedProject = await ProjectModel.findByIdAndUpdate(
                 projectId,
                 {
@@ -410,8 +410,10 @@ export default class Service {
         );
 
         if (!project.stripeSubscriptionId) {
-            //on enterprise plan stripeSubscriptionId is null
-            //downgrading from enterprise plan
+            /*
+             * On enterprise plan stripeSubscriptionId is null
+             * Downgrading from enterprise plan
+             */
             const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -609,12 +611,12 @@ export default class Service {
                             projectId: { $in: subProjectIds },
                         }
                     );
-                    // check if project seat after reduction still caters for monitors.
+                    // Check if project seat after reduction still caters for monitors.
                     if (
                         !IS_SAAS_SERVICE ||
                         (count < 1 && countMonitor <= (projectSeats - 1) * 5)
                     ) {
-                        // check if project seat after reduction still caters for monitors.
+                        // Check if project seat after reduction still caters for monitors.
                     }
                 }
                 const confirmParentProject: $TSFixMe =
@@ -669,7 +671,7 @@ export default class Service {
 
         projects = await Promise.all(
             projects.map(async (project: $TSFixMe) => {
-                // get both sub-project users and project users
+                // Get both sub-project users and project users
                 let users: $TSFixMe = await TeamService.getTeamMembersBy({
                     parentProjectId: project._id,
                 });
@@ -692,7 +694,7 @@ export default class Service {
     }
 
     public async getUserProjects(userId, skip, limit): void {
-        // find user subprojects and parent projects
+        // Find user subprojects and parent projects
 
         const userProjects: $TSFixMe = await this.findBy({
             query: { 'users.userId': userId, deleted: { $ne: null } },
@@ -730,7 +732,7 @@ export default class Service {
             });
         }
 
-        // query data
+        // Query data
         const query: $TSFixMe = {
             $or: [
                 { _id: { $in: parentProjectIds } },
@@ -755,10 +757,10 @@ export default class Service {
             this.countBy(query),
         ]);
 
-        // add project monitors
+        // Add project monitors
         const projects: $TSFixMe = await Promise.all(
             allProjects.map(async (project: $TSFixMe) => {
-                // get both sub-project users and project users
+                // Get both sub-project users and project users
                 let users: $TSFixMe = [];
                 if (project.parentProjectId) {
                     users = await TeamService.getTeamMembersBy({
@@ -781,7 +783,7 @@ export default class Service {
                                     select,
                                 });
 
-                            // append user's project role different from system role
+                            // Append user's project role different from system role
                             return { ...foundUser, projectRole: user.role };
                         })
                     );
@@ -895,7 +897,7 @@ export default class Service {
 
         projects = await Promise.all(
             projects.map(async (project: $TSFixMe) => {
-                // get both sub-project users and project users
+                // Get both sub-project users and project users
                 let users: $TSFixMe = await TeamService.getTeamMembersBy({
                     parentProjectId: project._id,
                 });

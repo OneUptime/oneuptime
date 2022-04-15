@@ -1,4 +1,4 @@
-// create status page category
+// Create status page category
 export const CREATE_STATUS_PAGE_CATEGORY_REQUEST: $TSFixMe =
     'CREATE_STATUS_PAGE_CATEGORY_REQUEST';
 export const CREATE_STATUS_PAGE_CATEGORY_SUCCESS: $TSFixMe =
@@ -6,7 +6,7 @@ export const CREATE_STATUS_PAGE_CATEGORY_SUCCESS: $TSFixMe =
 export const CREATE_STATUS_PAGE_CATEGORY_FAILURE: $TSFixMe =
     'CREATE_STATUS_PAGE_CATEGORY_FAILURE';
 
-// update status page category
+// Update status page category
 export const UPDATE_STATUS_PAGE_CATEGORY_REQUEST: $TSFixMe =
     'UPDATE_STATUS_PAGE_CATEGORY_REQUEST';
 export const UPDATE_STATUS_PAGE_CATEGORY_SUCCESS: $TSFixMe =
@@ -14,7 +14,7 @@ export const UPDATE_STATUS_PAGE_CATEGORY_SUCCESS: $TSFixMe =
 export const UPDATE_STATUS_PAGE_CATEGORY_FAILURE: $TSFixMe =
     'UPDATE_STATUS_PAGE_CATEGORY_FAILURE';
 
-// fetch status page categories
+// Fetch status page categories
 export const FETCH_STATUS_PAGE_CATEGORIES_REQUEST: $TSFixMe =
     'FETCH_STATUS_PAGE_CATEGORIES_REQUEST';
 export const FETCH_STATUS_PAGE_CATEGORIES_SUCCESS: $TSFixMe =
@@ -22,7 +22,7 @@ export const FETCH_STATUS_PAGE_CATEGORIES_SUCCESS: $TSFixMe =
 export const FETCH_STATUS_PAGE_CATEGORIES_FAILURE: $TSFixMe =
     'FETCH_STATUS_PAGE_CATEGORIES_FAILURE';
 
-// fetch all status page categories without limit
+// Fetch all status page categories without limit
 export const FETCH_ALL_STATUS_PAGE_CATEGORIES_REQUEST: $TSFixMe =
     'FETCH_ALL_STATUS_PAGE_CATEGORIES_REQUEST';
 export const FETCH_ALL_STATUS_PAGE_CATEGORIES_SUCCESS: $TSFixMe =
@@ -30,7 +30,7 @@ export const FETCH_ALL_STATUS_PAGE_CATEGORIES_SUCCESS: $TSFixMe =
 export const FETCH_ALL_STATUS_PAGE_CATEGORIES_FAILURE: $TSFixMe =
     'FETCH_ALL_STATUS_PAGE_CATEGORIES_FAILURE';
 
-// delete status page category
+// Delete status page category
 export const DELETE_STATUS_PAGE_CATEGORY_REQUEST: $TSFixMe =
     'DELETE_STATUS_PAGE_CATEGORY_REQUEST';
 export const DELETE_STATUS_PAGE_CATEGORY_SUCCESS: $TSFixMe =

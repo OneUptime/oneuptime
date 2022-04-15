@@ -7,13 +7,13 @@ import mongoose, {
 const Schema: $TSFixMe = mongoose.Schema;
 const schema: $TSFixMe = new Schema({
     incidentId: { type: String, ref: 'Incident', index: true },
-    createdById: { type: String, ref: 'User', index: true }, // userId
-    probeId: { type: String, ref: 'Probe', index: true }, // probeId
+    createdById: { type: String, ref: 'User', index: true }, // UserId
+    probeId: { type: String, ref: 'Probe', index: true }, // ProbeId
 
     createdByZapier: {
         type: Boolean,
         default: false,
-    }, // is true when zapier creates incident
+    }, // Is true when zapier creates incident
 
     createdByApi: {
         type: Boolean,

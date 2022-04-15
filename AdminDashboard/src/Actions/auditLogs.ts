@@ -172,7 +172,7 @@ export const deleteAuditLogs: $TSFixMe = () => {
     };
 };
 
-// fetch auditLogStatus
+// Fetch auditLogStatus
 
 export const fetchAuditLogStatusRequest: Function = (
     promise: $TSFixMe
@@ -236,7 +236,7 @@ export const fetchAuditLogStatus: $TSFixMe = () => {
     };
 };
 
-// change auditLogStatus
+// Change auditLogStatus
 
 export const changeAuditLogStatusRequest: Function = (
     promise: $TSFixMe

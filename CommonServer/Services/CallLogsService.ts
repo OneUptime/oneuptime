@@ -7,8 +7,8 @@ export default class Service {
         select,
         populate,
     }: FindBy): void {
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const itemQuery: $TSFixMe = CallLogsModel.find(query)
@@ -54,8 +54,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await CallLogsModel.countDocuments(query);
         return count;
@@ -66,7 +66,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const items: $TSFixMe = await CallLogsModel.findOneAndUpdate(query, {
             $set: {
                 deleted: true,

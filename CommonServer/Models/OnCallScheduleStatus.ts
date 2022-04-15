@@ -37,7 +37,7 @@ const schema: $TSFixMe = new Schema({
     deletedById: { type: String, ref: 'User', index: true },
     isOnDuty: { type: Boolean, default: false },
 
-    alertedEveryone: { type: Boolean, default: false }, //this happens when everyone in the scheudle has been alerted and they still ignore the incident.
+    alertedEveryone: { type: Boolean, default: false }, //This happens when everyone in the scheudle has been alerted and they still ignore the incident.
 });
 export const requiredFields: RequiredFields = schema.requiredPaths();
 

@@ -5,6 +5,6 @@ enum Role {
     Viewer = 'Viewer',
 }
 
-export const RoleArray: Array<string> = [...new Set(Object.keys(Role))]; // returns ["Owner", "Administrator"...]
+export const RoleArray: Array<string> = [...new Set(Object.keys(Role))]; // Returns ["Owner", "Administrator"...]
 
 export default Role;

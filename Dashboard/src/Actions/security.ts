@@ -234,7 +234,7 @@ export const deleteContainerSecurity: $TSFixMe = ({
 
             dispatch(deleteContainerSecuritySuccess(response.data));
 
-            // update the list of container securities
+            // Update the list of container securities
             dispatch(getContainerSecurities({ projectId, componentId }));
         } catch (error) {
             const errorMsg: $TSFixMe =
@@ -725,7 +725,7 @@ export const deleteApplicationSecurity: $TSFixMe = ({
 
             dispatch(deleteApplicationSecuritySuccess(response.data));
 
-            // update the list of application securities
+            // Update the list of application securities
             dispatch(getApplicationSecurities({ projectId, componentId }));
         } catch (error) {
             const errorMsg: $TSFixMe =

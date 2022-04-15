@@ -14,14 +14,14 @@ import {
     getCountryType,
     Call,
 } from '../config/alertType';
-// import getMutex from '../constants/mutexProvider'
+// Import getMutex from '../constants/mutexProvider'
 
 import { formatBalance } from '../Utils/number';
-// import MUTEX_RESOURCES from '../constants/MUTEX_RESOURCES'
+// Import MUTEX_RESOURCES from '../constants/MUTEX_RESOURCES'
 
 export default class Service {
     /**
-     * charges a project for an alert
+     * Charges a project for an alert
      * @param {(object | string)} userId owner of the project
      * @param {object} project project to cut balance from
      * @param {string} alertType the type of alert to use
@@ -38,13 +38,15 @@ export default class Service {
         alertPhoneNumber,
         segments = 1
     ): string {
-        // let release: $TSFixMe;
+        // Let release: $TSFixMe;
         try {
-            // const mutex: $TSFixMe = getMutex(
-            //     MUTEX_RESOURCES.PROJECT,
-            //     project._id.toString()
-            // );
-            // release = await mutex.acquire();
+            /*
+             * Const mutex: $TSFixMe = getMutex(
+             *     MUTEX_RESOURCES.PROJECT,
+             *     Project._id.toString()
+             * );
+             * Release = await mutex.acquire();
+             */
 
             const countryType: $TSFixMe = getCountryType(alertPhoneNumber);
             const alertChargeAmount: $TSFixMe = getAlertChargeAmount(
@@ -69,13 +71,15 @@ export default class Service {
         } catch (error) {
             return { error: 'Could not charge alert' };
         } finally {
-            // if (release) {
-            //     release();
-            // }
+            /*
+             * If (release) {
+             *     Release();
+             * }
+             */
         }
     }
     /**
-     *checks whether a project's balance is enough
+     *Checks whether a project's balance is enough
      *
      * @param {*} projectId ID of project
      * @param {*} alertPhoneNumber alertNumber
@@ -125,7 +129,7 @@ export default class Service {
     }
 
     /**
-     * rechargest the project with the amount set in the project's alert options
+     * Rechargest the project with the amount set in the project's alert options
      * @param {*} userId current user id
      * @param {*} project project to add blance to
      * @returns {boolean} whether the balance is recharged to the project
@@ -154,7 +158,7 @@ export default class Service {
         }
     }
     /**
-     * synchronously recharges a project balance if low
+     * Synchronously recharges a project balance if low
      * @param {*} projectId ID of the project to check and recharge balance
      * @param {*} userId ID of user
      * @param {*} alertPhoneNumber alertNumber
@@ -170,14 +174,16 @@ export default class Service {
 
         alertType
     ): void {
-        // let release: $TSFixMe;
+        // Let release: $TSFixMe;
         const status: $TSFixMe = {};
-        // const mutex: $TSFixMe = getMutex(
-        //     MUTEX_RESOURCES.PROJECT,
-        //     project._id.toString()
-        // );
-        // release = await mutex.acquire();
-        // check balance
+        /*
+         * Const mutex: $TSFixMe = getMutex(
+         *     MUTEX_RESOURCES.PROJECT,
+         *     Project._id.toString()
+         * );
+         * Release = await mutex.acquire();
+         * Check balance
+         */
         const isBalanceEnough: $TSFixMe = await this.hasEnoughBalance(
             project._id,
             alertPhoneNumber,
@@ -208,10 +214,12 @@ export default class Service {
         return status;
     }
 
-    //Description: Retrieve payment intent.
-    //Params:
-    //Param 1: paymentIntent: Payment Intent
-    //Returns: promise
+    /*
+     * Description: Retrieve payment intent.
+     * Params:
+     * Param 1: paymentIntent: Payment Intent
+     * Returns: promise
+     */
 
     public async checkPaymentIntent(paymentIntent: $TSFixMe): void {
         const processedPaymentIntent: $TSFixMe =
@@ -219,11 +227,13 @@ export default class Service {
         return processedPaymentIntent;
     }
 
-    //Description: Create customer in stripe for  user.
-    //Params:
-    //Param 1: stripeToken: Token generated from frontend
-    //Param 2: user: User details
-    //Returns: promise
+    /*
+     * Description: Create customer in stripe for  user.
+     * Params:
+     * Param 1: stripeToken: Token generated from frontend
+     * Param 2: user: User details
+     * Returns: promise
+     */
 
     public async createCustomer(email: Email, companyName: string): void {
         const customer: $TSFixMe = await stripe.customers.create({
@@ -238,11 +248,13 @@ export default class Service {
         return card;
     }
 
-    //Description: Subscribe plan to user.
-    //Params:
-    //Param 1: stripePlanId: Id generated from frontend.
-    //Param 2: stripeCustomerId: Stripe customer id.
-    //Returns : promise
+    /*
+     * Description: Subscribe plan to user.
+     * Params:
+     * Param 1: stripePlanId: Id generated from frontend.
+     * Param 2: stripeCustomerId: Stripe customer id.
+     * Returns : promise
+     */
 
     public async subscribePlan(
         stripePlanId: ObjectID,
@@ -280,11 +292,13 @@ export default class Service {
         };
     }
 
-    //Description: Call this fuction when you add and remove a team member from OneUptime. This would add and remove seats based on how many users are in the project.
-    //Params:
-    //Param 1: stripePlanId: Id generated from frontend.
-    //Param 2: stripeCustomerId: Stripe customer id.
-    //Returns : promise
+    /*
+     * Description: Call this fuction when you add and remove a team member from OneUptime. This would add and remove seats based on how many users are in the project.
+     * Params:
+     * Param 1: stripePlanId: Id generated from frontend.
+     * Param 2: stripeCustomerId: Stripe customer id.
+     * Returns : promise
+     */
 
     public async changeSeats(subscriptionId, seats): void {
         if (subscriptionId === null) {
@@ -310,7 +324,7 @@ export default class Service {
             let trial_end_date: $TSFixMe;
             if (
                 subscription.trial_end !== null &&
-                subscription.trial_end * 1000 > Date.now() //ensure the trial end date is in the future
+                subscription.trial_end * 1000 > Date.now() //Ensure the trial end date is in the future
             ) {
                 trial_end_date = subscription.trial_end;
             }
@@ -391,7 +405,7 @@ export default class Service {
             quantity: seats,
         });
 
-        // ensure trial end date is in the future
+        // Ensure trial end date is in the future
         if (trial_end !== null && trial_end * 1000 > Date.now()) {
             subscriptionObj = {
                 customer: subscription.customer,
@@ -428,7 +442,7 @@ export default class Service {
                     project.id
                 );
             if (!paymentIntent.paid) {
-                //create notification
+                //Create notification
                 const message: $TSFixMe =
                     'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
                 const meta: $TSFixMe = {
@@ -445,9 +459,11 @@ export default class Service {
                 );
             }
 
-            // confirm payment intent
-            // and update the project balance
-            // if further process is required the user will need to manually top up the account
+            /*
+             * Confirm payment intent
+             * And update the project balance
+             * If further process is required the user will need to manually top up the account
+             */
             await StripeService.confirmPayment(paymentIntent);
         }
 
@@ -471,10 +487,12 @@ export default class Service {
         return updatedProject;
     }
 
-    //Description: Call this fuction to bill for extra users added to an account.
-    //Params:
-    //Param 1: stripeCustomerId: Received during signup process.
-    //Returns : promise
+    /*
+     * Description: Call this fuction to bill for extra users added to an account.
+     * Params:
+     * Param 1: stripeCustomerId: Received during signup process.
+     * Returns : promise
+     */
     public async chargeExtraUser(
         stripeCustomerId,
 

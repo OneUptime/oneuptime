@@ -25,7 +25,7 @@ export const FETCH_CALLLOG_STATUS_REQUEST: string =
     'FETCH_CALLLOG_STATUS_REQUEST';
 export const FETCH_CALLLOG_STATUS_RESET: string = 'FETCH_CALLLOG_STATUS_RESET';
 
-// change call log status
+// Change call log status
 export const CHANGE_CALLLOG_STATUS_SUCCESS: string =
     'CHANGE_CALLLOG_STATUS_SUCCESS';
 export const CHANGE_CALLLOG_STATUS_FAILED: string =

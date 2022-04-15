@@ -21,7 +21,7 @@ const _this: $TSFixMe = {
             );
         }
 
-        // check if there's a performance tracker with the key
+        // Check if there's a performance tracker with the key
         const performanceTrackerCount: $TSFixMe =
             await PerformanceTrackerService.countBy({
                 key,
@@ -34,7 +34,7 @@ const _this: $TSFixMe = {
             );
         }
 
-        // everything is fine at this point
+        // Everything is fine at this point
         return next();
     },
 };

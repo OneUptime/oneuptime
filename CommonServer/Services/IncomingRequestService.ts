@@ -21,7 +21,7 @@ import vm from 'vm';
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
-// import RealTimeService from './realTimeService'
+// Import RealTimeService from './realTimeService'
 
 export default class Service {
     public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
@@ -29,7 +29,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const incomingRequestQuery: $TSFixMe = IncomingRequestModel.findOne(
             query
         )
@@ -71,7 +71,7 @@ export default class Service {
         }
 
         if (data.createIncident) {
-            // reassign data.monitors with a restructured monitor data
+            // Reassign data.monitors with a restructured monitor data
             data.monitors = data.monitors.map((monitor: $TSFixMe) => {
                 return {
                     monitorId: monitor,
@@ -89,9 +89,11 @@ export default class Service {
             );
         }
 
-        // if (data.filterText) {
-        //     data.filterText = DOMPurify.sanitize(data.filterText);
-        // }
+        /*
+         * If (data.filterText) {
+         *     Data.filterText = DOMPurify.sanitize(data.filterText);
+         * }
+         */
         if (data.filters && data.filters.length > 0) {
             data.filters = data.filters.map((filter: $TSFixMe) => {
                 filter.filterText = DOMPurify.sanitize(filter.filterText);
@@ -146,14 +148,16 @@ export default class Service {
             populate,
         });
 
-        // await RealTimeService.addScheduledEvent(incomingRequest);
+        // Await RealTimeService.addScheduledEvent(incomingRequest);
 
         return incomingRequest;
     }
 
     public async getRequestUrl(projectId: ObjectID, requestId: $TSFixMe): void {
-        // create a unique request url
-        // update incomingRequest collection with the new url
+        /*
+         * Create a unique request url
+         * Update incomingRequest collection with the new url
+         */
 
         const requestUrl: string = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
         const updatedIncomingRequest: $TSFixMe = await this.updateOneBy(
@@ -174,8 +178,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         if (!excludeMonitors && data.createIncident) {
@@ -200,7 +204,7 @@ export default class Service {
                 throw error;
             }
 
-            // reassign data.monitors with a restructured monitor data
+            // Reassign data.monitors with a restructured monitor data
             data.monitors = data.monitors.map((monitor: $TSFixMe) => {
                 return {
                     monitorId: monitor,
@@ -288,9 +292,11 @@ export default class Service {
             );
         }
 
-        // if (data.filterText) {
-        //     data.filterText = DOMPurify.sanitize(data.filterText);
-        // }
+        /*
+         * If (data.filterText) {
+         *     Data.filterText = DOMPurify.sanitize(data.filterText);
+         * }
+         */
         if (data.filters && data.filters.length > 0) {
             data.filters = data.filters.map((filter: $TSFixMe) => {
                 filter.filterText = DOMPurify.sanitize(filter.filterText);
@@ -367,7 +373,7 @@ export default class Service {
             populate,
         });
 
-        // await RealTimeService.updateScheduledEvent(updatedIncomingRequest);
+        // Await RealTimeService.updateScheduledEvent(updatedIncomingRequest);
 
         return updatedIncomingRequest;
     }
@@ -410,7 +416,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const allIncomingRequest: $TSFixMe = IncomingRequestModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -428,7 +434,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await IncomingRequestModel.countDocuments(
             query
         );
@@ -457,7 +463,7 @@ export default class Service {
             throw error;
         }
 
-        // await RealTimeService.deleteScheduledEvent(incomingRequest);
+        // Await RealTimeService.deleteScheduledEvent(incomingRequest);
 
         return incomingRequest;
     }
@@ -467,8 +473,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updateIncomingRequest: $TSFixMe =
             await IncomingRequestModel.updateMany(query, {
@@ -508,7 +514,7 @@ export default class Service {
 
         await Promise.all(
             allIncomingRequest.map(async (incomingRequest: $TSFixMe) => {
-                // remove the monitor from incomingRequest monitors list
+                // Remove the monitor from incomingRequest monitors list
                 incomingRequest.monitors = incomingRequest.monitors.filter(
                     (monitor: $TSFixMe) => {
                         return (
@@ -531,14 +537,18 @@ export default class Service {
                         .populate('projectId', 'name')
                         .execPopulate();
 
-                    // await RealTimeService.updateScheduledEvent(
-                    //     updatedIncomingRequest
-                    // );
+                    /*
+                     * Await RealTimeService.updateScheduledEvent(
+                     *     UpdatedIncomingRequest
+                     * );
+                     */
                     return updatedIncomingRequest;
                 } else {
-                    // delete the incomingRequest when:
-                    // 1. No monitor is remaining in the monitors array
-                    // 2. It does not select all monitors
+                    /*
+                     * Delete the incomingRequest when:
+                     * 1. No monitor is remaining in the monitors array
+                     * 2. It does not select all monitors
+                     */
                     if (!incomingRequest.selectAllMonitors) {
                         let deletedIncomingRequest: $TSFixMe =
                             await IncomingRequestModel.findOneAndUpdate(
@@ -557,9 +567,11 @@ export default class Service {
                             .populate('projectId', 'name')
                             .execPopulate();
 
-                        // await RealTimeService.deleteScheduledEvent(
-                        //     deletedIncomingRequest
-                        // );
+                        /*
+                         * Await RealTimeService.deleteScheduledEvent(
+                         *     DeletedIncomingRequest
+                         * );
+                         */
                         return deletedIncomingRequest;
                     }
                 }
@@ -606,7 +618,7 @@ export default class Service {
             }),
         ]);
 
-        // grab value for posting to status page
+        // Grab value for posting to status page
         data.post_statuspage = incomingRequest.post_statuspage ? true : false;
         const filterMatch: $TSFixMe = incomingRequest.filterMatch;
         const filters: $TSFixMe = incomingRequest.filters;
@@ -672,8 +684,10 @@ export default class Service {
             }
 
             if (filters && filters.length > 0) {
-                // if template variables are used
-                // update the values for filterText
+                /*
+                 * If template variables are used
+                 * Update the values for filterText
+                 */
                 const updatedFilters: $TSFixMe = filters.map(
                     (filter: $TSFixMe) => {
                         if (filter.filterText) {
@@ -715,8 +729,10 @@ export default class Service {
                                     break;
                                 }
                             } else if (!isNaN(parseFloat(filter.filterText))) {
-                                // handle the case when filterText is a number
-                                // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                /*
+                                 * Handle the case when filterText is a number
+                                 * (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                 */
                                 if (filterCondition === 'lessThan') {
                                     if (
                                         field.fieldName ===
@@ -1051,7 +1067,7 @@ export default class Service {
             if (!filters || filters.length === 0) {
                 incidents = await IncidentService.findBy({
                     query: {
-                        projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                        projectId: { $in: subProjectIds }, // Handle for both project and subProjects
                     },
                     select,
                     populate,
@@ -1107,7 +1123,7 @@ export default class Service {
                             ) {
                                 incidents = await IncidentService.findBy({
                                     query: {
-                                        projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                                        projectId: { $in: subProjectIds }, // Handle for both project and subProjects
                                         idNumber: data.incidentId,
                                     },
                                     select,
@@ -1118,7 +1134,7 @@ export default class Service {
                             if (data.fieldName && data.fieldValue) {
                                 incidents = await IncidentService.findBy({
                                     query: {
-                                        projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                                        projectId: { $in: subProjectIds }, // Handle for both project and subProjects
                                         'customFields.fieldName':
                                             data.fieldName,
                                         'customFields.fieldValue':
@@ -1137,7 +1153,7 @@ export default class Service {
                             ) {
                                 incidents = await IncidentService.findBy({
                                     query: {
-                                        projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                                        projectId: { $in: subProjectIds }, // Handle for both project and subProjects
                                         idNumber: { $ne: data.incidentId },
                                     },
                                     select,
@@ -1148,7 +1164,7 @@ export default class Service {
                             if (data.fieldName && data.fieldValue) {
                                 incidents = await IncidentService.findBy({
                                     query: {
-                                        projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                                        projectId: { $in: subProjectIds }, // Handle for both project and subProjects
                                         'customFields.fieldName':
                                             data.fieldName,
                                         'customFields.fieldValue': {
@@ -1162,8 +1178,10 @@ export default class Service {
                         }
 
                         if (!isNaN(parseFloat(filterText))) {
-                            // handle the case when filterText is a number
-                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                            /*
+                             * Handle the case when filterText is a number
+                             * (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                             */
                             data.fieldValue = Number(filterText);
                             if (filterCondition === 'lessThan') {
                                 if (
@@ -1174,7 +1192,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             idNumber: {
                                                 $lt: data.incidentId,
                                             },
@@ -1189,7 +1207,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1209,7 +1227,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             idNumber: {
                                                 $gt: data.incidentId,
                                             },
@@ -1224,7 +1242,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1246,7 +1264,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             idNumber: {
                                                 $lte: data.incidentId,
                                             },
@@ -1261,7 +1279,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1283,7 +1301,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             idNumber: {
                                                 $gte: data.incidentId,
                                             },
@@ -1298,7 +1316,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1319,7 +1337,7 @@ export default class Service {
                 incidents = incidentArray;
             }
 
-            // only have unique incidents
+            // Only have unique incidents
             const filtered: $TSFixMe = [];
             incidents = incidents.filter((incident: $TSFixMe) => {
                 if (filtered.indexOf(String(incident._id)) < 0) {
@@ -1335,7 +1353,7 @@ export default class Service {
                     let matchedFields: $TSFixMe = 0;
                     const incidentCustomFields: $TSFixMe =
                         incident.customFields || [];
-                    // automatically create incident id custom field
+                    // Automatically create incident id custom field
                     incidentCustomFields.push({
                         fieldName: 'incidentId',
                         fieldValue: String(incident.idNumber),
@@ -1379,8 +1397,10 @@ export default class Service {
                                 }
 
                                 if (!isNaN(parseFloat(filterText))) {
-                                    // handle the case when filterText is a number
-                                    // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                    /*
+                                     * Handle the case when filterText is a number
+                                     * (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                     */
                                     data.fieldValue = Number(filterText);
                                     if (filterCondition === 'lessThan') {
                                         if (
@@ -1472,7 +1492,7 @@ export default class Service {
                         request: data.request,
                     };
 
-                    // update the data with actual values (only for templates)
+                    // Update the data with actual values (only for templates)
                     data.content = analyseVariable(data.content, dataConfig);
                     data.incident_state = analyseVariable(
                         data.incident_state,
@@ -1657,7 +1677,7 @@ export default class Service {
                             if (data.incidentId) {
                                 incidents = await IncidentService.findBy({
                                     query: {
-                                        projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                                        projectId: { $in: subProjectIds }, // Handle for both project and subProjects
                                         idNumber: data.incidentId,
                                         ...incidentQuery,
                                     },
@@ -1669,7 +1689,7 @@ export default class Service {
                             if (data.fieldName && data.fieldValue) {
                                 incidents = await IncidentService.findBy({
                                     query: {
-                                        projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                                        projectId: { $in: subProjectIds }, // Handle for both project and subProjects
                                         'customFields.fieldName':
                                             data.fieldName,
                                         'customFields.fieldValue':
@@ -1686,7 +1706,7 @@ export default class Service {
                             if (data.incidentId) {
                                 incidents = await IncidentService.findBy({
                                     query: {
-                                        projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                                        projectId: { $in: subProjectIds }, // Handle for both project and subProjects
                                         idNumber: { $ne: data.incidentId },
                                         ...incidentQuery,
                                     },
@@ -1698,7 +1718,7 @@ export default class Service {
                             if (data.fieldName && data.fieldValue) {
                                 incidents = await IncidentService.findBy({
                                     query: {
-                                        projectId: { $in: subProjectIds }, // handle for both project and subProjects
+                                        projectId: { $in: subProjectIds }, // Handle for both project and subProjects
                                         'customFields.fieldName':
                                             data.fieldName,
                                         'customFields.fieldValue': {
@@ -1713,8 +1733,10 @@ export default class Service {
                         }
 
                         if (!isNaN(parseFloat(filterText))) {
-                            // handle the case when filterText is a number
-                            // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                            /*
+                             * Handle the case when filterText is a number
+                             * (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                             */
                             data.fieldValue = Number(filterText);
                             if (filterCondition === 'lessThan') {
                                 if (
@@ -1725,7 +1747,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             idNumber: {
                                                 $lt: data.incidentId,
                                             },
@@ -1741,7 +1763,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1762,7 +1784,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             idNumber: {
                                                 $gt: data.incidentId,
                                             },
@@ -1778,7 +1800,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1801,7 +1823,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             idNumber: {
                                                 $lte: data.incidentId,
                                             },
@@ -1817,7 +1839,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1837,7 +1859,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             idNumber: {
                                                 $gte: data.incidentId,
                                             },
@@ -1853,7 +1875,7 @@ export default class Service {
                                         query: {
                                             projectId: {
                                                 $in: subProjectIds,
-                                            }, // handle for both project and subProjects
+                                            }, // Handle for both project and subProjects
                                             'customFields.fieldName':
                                                 data.fieldName,
                                             'customFields.fieldValue': {
@@ -1875,7 +1897,7 @@ export default class Service {
                 incidents = incidentArray;
             }
 
-            // only have unique incidents
+            // Only have unique incidents
             const filtered: $TSFixMe = [];
             incidents = incidents.filter((incident: $TSFixMe) => {
                 if (filtered.indexOf(String(incident._id)) < 0) {
@@ -1891,7 +1913,7 @@ export default class Service {
                     let matchedFields: $TSFixMe = 0;
                     const incidentCustomFields: $TSFixMe =
                         incident.customFields || [];
-                    // automatically create incident id custom field
+                    // Automatically create incident id custom field
                     incidentCustomFields.push({
                         fieldName: 'incidentId',
                         fieldValue: String(incident.idNumber),
@@ -1935,8 +1957,10 @@ export default class Service {
                                 }
 
                                 if (!isNaN(parseFloat(filterText))) {
-                                    // handle the case when filterText is a number
-                                    // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                    /*
+                                     * Handle the case when filterText is a number
+                                     * (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                     */
                                     data.fieldValue = Number(filterText);
                                     if (filterCondition === 'lessThan') {
                                         if (
@@ -2126,8 +2150,10 @@ function isArrayUnique(myArray: $TSFixMe): void {
  * @param {object} data an object containing the key-value pairs to work with
  */
 
-// if for example request.body.name is passed without the double curly braces,
-// it should work as expected and return the value
+/*
+ * If for example request.body.name is passed without the double curly braces,
+ * It should work as expected and return the value
+ */
 function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
     try {
         const matchRegex: $TSFixMe = /[^{{]+(?=}\})/g;
@@ -2135,11 +2161,11 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
 
         const matched: $TSFixMe = variable.match(matchRegex);
         if (!matched || matched.length === 0) {
-            // handles the part where variable is passed without double curly braces
+            // Handles the part where variable is passed without double curly braces
             return variable;
         }
 
-        let ctx: $TSFixMe = Object.create(null); // fix against prototype vulnerability
+        let ctx: $TSFixMe = Object.create(null); // Fix against prototype vulnerability
         ctx = { ...data };
 
         const processedValues: $TSFixMe = matched.map((item: $TSFixMe) => {
@@ -2147,18 +2173,20 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
         });
 
         if (!processedValues || processedValues.length === 0) {
-            // empty value means that the probable value(s) are not available in the data object
-            // therefore return the original variable back
+            /*
+             * Empty value means that the probable value(s) are not available in the data object
+             * Therefore return the original variable back
+             */
             return variable;
         }
 
-        // remove any double currly braces from variable
+        // Remove any double currly braces from variable
         variable = variable.replace(replaceRegex, (match: $TSFixMe): void => {
             match = match.slice(2, -2);
             return match;
         });
 
-        // replace variable with processedValues
+        // Replace variable with processedValues
         let currentValue: $TSFixMe = variable;
         matched.forEach((item: $TSFixMe, index: $TSFixMe) => {
             currentValue = currentValue.replace(item, processedValues[index]);
@@ -2166,8 +2194,10 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
 
         return currentValue;
     } catch (error) {
-        // at this point it was unable to resolve this
-        // return the variable back
+        /*
+         * At this point it was unable to resolve this
+         * Return the variable back
+         */
         return variable;
     }
 }

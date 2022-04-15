@@ -1,5 +1,5 @@
-process.env['PORT'] = 3020;
-process.env['NODE_ENV'] = 'development';
+process.env.PORT = 3020;
+process.env.NODE_ENV = 'development';
 import { expect } from 'chai';
 import userData from './data/user';
 import incidentData from './data/incident';
@@ -227,7 +227,7 @@ describe('Alert API', (): void => {
         before(function (done: $TSFixMe): void {
             this.timeout(30000);
             const authorization: string = `Basic ${token}`;
-            // create a subproject for parent project
+            // Create a subproject for parent project
             GlobalConfig.initTestConfig().then((): void => {
                 request
                     .post(`/project/${projectId}/subProject`)
@@ -235,7 +235,7 @@ describe('Alert API', (): void => {
                     .send({ subProjectName: 'New SubProject' })
                     .end((err: $TSFixMe, res: $TSFixMe): void => {
                         subProjectId = res.body[0]._id;
-                        // sign up second user (subproject user)
+                        // Sign up second user (subproject user)
                         createUser(
                             request,
                             userData.newUser,
@@ -261,7 +261,7 @@ describe('Alert API', (): void => {
                                                         res.body.tokens
                                                             .jwtAccessToken;
                                                     const authorization: string = `Basic ${token}`;
-                                                    // add second user to subproject
+                                                    // Add second user to subproject
                                                     request
                                                         .post(
                                                             `/team/${subProjectId}`

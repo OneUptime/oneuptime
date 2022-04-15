@@ -214,7 +214,7 @@ export default ({
 
             const data: $TSFixMe = req.data.data;
 
-            // update
+            // Update
 
             await service.updateOneBy({
                 query: {

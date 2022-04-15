@@ -12,7 +12,7 @@ import AccountStoreService from 'CommonServer/services/accountStoreService';
 
 const router: $TSFixMe = express.getRouter();
 
-// store account details to the db
+// Store account details to the db
 router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data: $TSFixMe = req.body;
@@ -24,7 +24,7 @@ router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// update account details in the db
+// Update account details in the db
 router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id }: $TSFixMe = req.params;
@@ -39,7 +39,7 @@ router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// fetch an account detail
+// Fetch an account detail
 router.get('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id }: $TSFixMe = req.params;
@@ -54,7 +54,7 @@ router.get('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// delete an account detail
+// Delete an account detail
 router.delete(
     '/store/:id',
     async (req: ExpressRequest, res: ExpressResponse) => {

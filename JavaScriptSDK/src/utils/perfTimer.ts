@@ -21,7 +21,7 @@ class PerfTimer {
                 this.dataStore.destroy(id);
             }
             performance.clearMarks();
-            // observer.disconnect();
+            // Observer.disconnect();
         });
         this.obs.observe({ entryTypes: ['measure'] });
     }

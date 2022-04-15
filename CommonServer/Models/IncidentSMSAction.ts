@@ -7,8 +7,8 @@ import mongoose, {
 const Schema: $TSFixMe = mongoose.Schema;
 
 const schema: $TSFixMe = new Schema({
-    incidentId: { type: String, ref: 'Incident', index: true }, //which project this incident belongs to.
-    userId: { type: String, ref: 'User', index: true }, // which User will perfom this action.
+    incidentId: { type: String, ref: 'Incident', index: true }, //Which project this incident belongs to.
+    userId: { type: String, ref: 'User', index: true }, // Which User will perfom this action.
     number: { type: String },
     name: { type: String },
 

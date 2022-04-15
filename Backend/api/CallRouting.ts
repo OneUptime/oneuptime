@@ -26,7 +26,7 @@ const callForward: Function = async (
 ): void => {
     try {
         const body: $TSFixMe = req.body;
-        const to: $TSFixMe = body['To'];
+        const to: $TSFixMe = body.To;
         const select: $TSFixMe =
             'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const data: $TSFixMe = await CallRoutingService.findOneBy({
@@ -52,7 +52,7 @@ const backupCallForward: Function = async (
 ): void => {
     try {
         const body: $TSFixMe = req.body;
-        const to: $TSFixMe = body['To'];
+        const to: $TSFixMe = body.To;
         const select: $TSFixMe =
             'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const data: $TSFixMe = await CallRoutingService.findOneBy({
@@ -78,7 +78,7 @@ const callStatus: Function = async (
 ): void => {
     try {
         const body: $TSFixMe = req.body;
-        const to: $TSFixMe = body['To'];
+        const to: $TSFixMe = body.To;
         const select: $TSFixMe =
             'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const data: $TSFixMe = await CallRoutingService.findOneBy({

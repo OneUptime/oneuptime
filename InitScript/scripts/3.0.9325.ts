@@ -11,7 +11,7 @@ async function run(): void {
             slug: { $exists: false },
         },
         null,
-        8000 // limit to 8k items
+        8000 // Limit to 8k items
     );
 
     for (const incident of incidents) {

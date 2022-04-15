@@ -29,7 +29,7 @@ function logResponse(
     const duration_info: string = `OUTGOING RESPONSE ID: ${
         oneUptimeRequest.id
     } -- POD NAME: ${
-        process.env['POD_NAME'] || 'NONE'
+        process.env.POD_NAME || 'NONE'
     } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${(
         requestEndedAt.getTime() - oneUptimeRequest.requestStartedAt.getTime()
     ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
@@ -57,7 +57,7 @@ export const sendEmptyResponse: Function = (
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
 
     oneUptimeResponse.status(200).send();
 
@@ -69,7 +69,7 @@ export const sendFileResponse: Function = async (
     res: ExpressResponse,
     file: File
 ): Promise<void> => {
-    /** create read stream */
+    /** Create read stream */
 
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
@@ -79,10 +79,10 @@ export const sendFileResponse: Function = async (
 
     const readstream: $TSFixMe = gfs.openDownloadStreamByName(file.name);
 
-    /** set the proper content type */
+    /** Set the proper content type */
     oneUptimeResponse.set('Content-Type', file.contentType);
     oneUptimeResponse.status(200);
-    /** return response */
+    /** Return response */
     readstream.pipe(res);
 
     logResponse(req, res);
@@ -103,7 +103,7 @@ export const sendErrorResponse: Function = (
     logger.error(error);
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
 
     oneUptimeResponse.status(status).send({ message });
     return logResponse(req, res, { message });
@@ -119,7 +119,7 @@ export const sendListResponse: Function = async (
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
 
     const listData: ListData = new ListData({
         data: [],
@@ -144,15 +144,15 @@ export const sendListResponse: Function = async (
         }
     }
 
-    if (oneUptimeRequest.query['skip']) {
+    if (oneUptimeRequest.query.skip) {
         listData.skip = new PositiveNumber(
-            parseInt(oneUptimeRequest.query['skip'].toString())
+            parseInt(oneUptimeRequest.query.skip.toString())
         );
     }
 
-    if (oneUptimeRequest.query['limit']) {
+    if (oneUptimeRequest.query.limit) {
         listData.limit = new PositiveNumber(
-            parseInt(oneUptimeRequest.query['limit'].toString())
+            parseInt(oneUptimeRequest.query.limit.toString())
         );
     }
 
@@ -176,7 +176,7 @@ export const sendItemResponse: Function = async (
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {
         const csv: $TSFixMe = JsonToCsv.ToCsv([item]);

@@ -8,7 +8,8 @@ const user: $TSFixMe = {
     password: '1234567890',
 };
 const groupName: string = utils.generateRandomString();
-/** This is a test to check:
+/**
+ * This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
  */

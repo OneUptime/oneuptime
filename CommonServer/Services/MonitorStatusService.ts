@@ -23,9 +23,11 @@ export default class Service {
             (previousMonitorStatus &&
                 previousMonitorStatus.status !== data.status)
         ) {
-            // check if monitor has a previous status
-            // check if previous status is different from the current status
-            // if different, end the previous status and create a new monitor status
+            /*
+             * Check if monitor has a previous status
+             * Check if previous status is different from the current status
+             * If different, end the previous status and create a new monitor status
+             */
             if (previousMonitorStatus) {
                 if (
                     data.status === 'enable' &&
@@ -67,8 +69,10 @@ export default class Service {
         }
     }
 
-    // allData is an array of object
-    // to be bulk written to the db
+    /*
+     * AllData is an array of object
+     * To be bulk written to the db
+     */
     public async createMany(allData: $TSFixMe): void {
         const dataList: $TSFixMe = [];
         for (const data of allData) {
@@ -95,9 +99,11 @@ export default class Service {
                 (previousMonitorStatus &&
                     previousMonitorStatus.status !== data.status)
             ) {
-                // check if monitor has a previous status
-                // check if previous status is different from the current status
-                // if different, end the previous status and create a new monitor status
+                /*
+                 * Check if monitor has a previous status
+                 * Check if previous status is different from the current status
+                 * If different, end the previous status and create a new monitor status
+                 */
                 if (previousMonitorStatus) {
                     if (
                         data.status === 'enable' &&
@@ -124,7 +130,7 @@ export default class Service {
             const docs: $TSFixMe = await MonitorStatusModel.insertMany(
                 dataList
             );
-            // we don't want to await this ):
+            // We don't want to await this ):
 
             docs.forEach((doc: $TSFixMe) => {
                 return this.sendMonitorStatus(doc);
@@ -139,7 +145,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const updatedMonitorStatus: $TSFixMe =
             await MonitorStatusModel.findOneAndUpdate(
@@ -157,7 +163,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         let updatedData: $TSFixMe = await MonitorStatusModel.updateMany(query, {
             $set: data,
@@ -237,7 +243,7 @@ export default class Service {
             populate: [{ path: 'projectId', select: '_id' }],
         });
         if (monitor) {
-            // run in the background
+            // Run in the background
             RealTimeService.updateMonitorStatus(data, monitor.projectId._id);
         }
     }
@@ -246,7 +252,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const monitorStatus: $TSFixMe =
             await MonitorStatusModel.findOneAndUpdate(
                 query,

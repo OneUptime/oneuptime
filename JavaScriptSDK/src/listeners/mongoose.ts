@@ -14,7 +14,7 @@ class MongooseListener {
             const uuid: $TSFixMe = uuidv4();
 
             const operation: $TSFixMe = this.op;
-            name = name || `mongoose.${operation}`; // mongose Query.exec specific
+            name = name || `mongoose.${operation}`; // Mongose Query.exec specific
             const result: $TSFixMe = this.start(uuid, {
                 path: operation,
                 type: 'mongoose',

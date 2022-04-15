@@ -1,6 +1,6 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
+process.env.IS_SAAS_SERVICE = true;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -464,7 +464,7 @@ describe('Monitor API', function (): void {
     });
 });
 
-const BACKEND_URL: string = `http://localhost:${process.env['PORT']}/api`;
+const BACKEND_URL: string = `http://localhost:${process.env.PORT}/api`;
 const HTTP_TEST_SERVER_URL: string = 'http://localhost:3010';
 
 const testServer: $TSFixMe = chai.request(HTTP_TEST_SERVER_URL);
@@ -990,14 +990,14 @@ describe('Monitor API with Sub-Projects', function (): void {
     before((done: $TSFixMe): void => {
         GlobalConfig.initTestConfig().then((): void => {
             const authorization: string = `Basic ${token}`;
-            // create a subproject for parent project
+            // Create a subproject for parent project
             request
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
                 .end((err: $TSFixMe, res: $TSFixMe): void => {
                     subProjectId = res.body[0]._id;
-                    // sign up second user (subproject user)
+                    // Sign up second user (subproject user)
                     createUser(
                         request,
                         userData.newUser,
@@ -1033,7 +1033,7 @@ describe('Monitor API with Sub-Projects', function (): void {
                                                             res.body.tokens
                                                                 .jwtAccessToken;
                                                         const authorization: string = `Basic ${token}`;
-                                                        // add second user to subproject
+                                                        // Add second user to subproject
                                                         request
                                                             .post(
                                                                 `/team/${subProjectId}`
@@ -1393,25 +1393,27 @@ describe('Monitor API - Tests Project Seats With SubProjects', function (): void
         }
     });
 
-    /* it('should not create monitor if componentId is not provided', function(done) {
-        let authorization:string = `Basic ${token}`;
-
-        request
-            .post(`/monitor/${projectId}`)
-            .set('Authorization', authorization)
-            .send({
-                name: 'Random Monitor',
-                type: 'url',
-                data: { url: 'http://www.tests.org' },
-            })
-            .end(function(err, res) {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal(
-                    'Component ID is required.'
-                );
-                done();
-            });
-    });*/
+    /*
+     * It('should not create monitor if componentId is not provided', function(done) {
+     *  let authorization:string = `Basic ${token}`;
+     *
+     *  request
+     *      .post(`/monitor/${projectId}`)
+     *      .set('Authorization', authorization)
+     *      .send({
+     *          name: 'Random Monitor',
+     *          type: 'url',
+     *          data: { url: 'http://www.tests.org' },
+     *      })
+     *      .end(function(err, res) {
+     *          expect(res).to.have.status(400);
+     *          expect(res.body.message).to.be.equal(
+     *              'Component ID is required.'
+     *          );
+     *          done();
+     *      });
+     * });
+     */
 
     it('should delete a monitor', async () => {
         const authorization: string = `Basic ${token}`;

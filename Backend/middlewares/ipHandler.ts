@@ -54,8 +54,10 @@ const _this: $TSFixMe = {
         const ipWhitelist: $TSFixMe = statusPage.ipWhitelist
             ? [...statusPage.ipWhitelist]
             : [];
-        // if ip whitelist is enabled and no ip is saved
-        // block the access
+        /*
+         * If ip whitelist is enabled and no ip is saved
+         * Block the access
+         */
         if (!ipWhitelist || ipWhitelist.length === 0) {
             return sendErrorResponse(
                 req,
@@ -64,9 +66,9 @@ const _this: $TSFixMe = {
             );
         }
 
-        let clientIp: $TSFixMe = this.getClientIp(req); // returns client ip or null
+        let clientIp: $TSFixMe = this.getClientIp(req); // Returns client ip or null
         if (Array.isArray(clientIp)) {
-            clientIp = clientIp[0]; // get the first item on the list
+            clientIp = clientIp[0]; // Get the first item on the list
         }
 
         if (!clientIp) {
@@ -104,8 +106,10 @@ const _this: $TSFixMe = {
      * @param {Object} req Object made available by express
      */
     getClientIp: function (req: $TSFixMe): void {
-        // Cloudflare Connecting Ip.
-        // https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses
+        /*
+         * Cloudflare Connecting Ip.
+         * https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses
+         */
         let ip: $TSFixMe =
             req.headers['cf-connecting-ip'] ||
             req.headers['x-original-forwarded-for'] ||
@@ -119,7 +123,7 @@ const _this: $TSFixMe = {
         }
 
         ip = ip.split(',')[0];
-        ip = ip.split(':').slice(-1); //in case the ip returned in a format: "::ffff:146.xxx.xxx.xxx"
+        ip = ip.split(':').slice(-1); //In case the ip returned in a format: "::ffff:146.xxx.xxx.xxx"
         return ip;
     },
 
@@ -128,7 +132,7 @@ const _this: $TSFixMe = {
         try {
             const parsed_addr: $TSFixMe = ipaddr.process(addr);
             if (cidr.indexOf('/') === -1) {
-                // handle case when ip is not CIDR
+                // Handle case when ip is not CIDR
                 const parsed_cidr_as_ip: $TSFixMe = ipaddr.process(cidr);
                 if (
                     parsed_addr.kind() === 'ipv6' &&

@@ -54,7 +54,7 @@ router.get(
                 case 'failed':
                 case 'busy':
                 case 'no-answer':
-                    // redial call in 45 seconds. upon 5 times.
+                    // Redial call in 45 seconds. upon 5 times.
                     if (newRedialCount > 5) {
                         return sendItemResponse(req, res, {
                             status: 'call redial reached maximum',
@@ -75,7 +75,7 @@ router.get(
                         status: 'call redial success',
                     });
                 default:
-                    // call is okay. check if incident was not ack, if not redial upto 5 times else  Exit with no redial
+                    // Call is okay. check if incident was not ack, if not redial upto 5 times else  Exit with no redial
                     if (
                         incident &&
                         !incident.acknowledged &&

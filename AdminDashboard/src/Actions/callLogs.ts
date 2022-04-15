@@ -172,7 +172,7 @@ export const deleteCallLogs: $TSFixMe = () => {
     };
 };
 
-// fetch callLogStatus
+// Fetch callLogStatus
 
 export const fetchCallLogStatusRequest: Function = (
     promise: $TSFixMe
@@ -236,7 +236,7 @@ export const fetchCallLogStatus: $TSFixMe = () => {
     };
 };
 
-// change callLogStatus
+// Change callLogStatus
 
 export const changeCallLogStatusRequest: Function = (
     promise: $TSFixMe

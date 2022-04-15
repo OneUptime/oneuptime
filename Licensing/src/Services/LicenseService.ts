@@ -26,8 +26,8 @@ export default {
         for (const record of records) {
             const fetchedLicense: $TSFixMe = record.get('License Key');
             if (license === fetchedLicense) {
-                userRecord['id'] = new ObjectID(record.id.toString());
-                userRecord['expiryDate'] = new Date(
+                userRecord.id = new ObjectID(record.id.toString());
+                userRecord.expiryDate = new Date(
                     record.get('Expires') as string
                 );
                 licenseFound = true;

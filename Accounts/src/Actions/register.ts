@@ -7,8 +7,10 @@ import { IS_SAAS_SERVICE } from '../config';
 import Cookies from 'universal-cookie';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 
-// There are three possible states for our login
-// process and we need actions for each of them
+/*
+ * There are three possible states for our login
+ * Process and we need actions for each of them
+ */
 
 const cookies: $TSFixMe = new Cookies();
 
@@ -110,14 +112,14 @@ export const signupUser: Function = (values: $TSFixMe): void => {
     };
 };
 
-//np payload for inc and dec action creators.
+//Np payload for inc and dec action creators.
 export const incrementStep: Function = (): void => {
     return {
         type: types.SIGNUP_STEP_INC,
     };
 };
 
-//np payload for inc and dec action creators.
+//Np payload for inc and dec action creators.
 export const skipCardStep: Function = (): void => {
     return {
         type: types.SKIP_CARD_STEP,
@@ -130,8 +132,10 @@ export const decrementStep: Function = (): void => {
     };
 };
 
-// There are three possible states for our login
-// process and we need actions for each of them
+/*
+ * There are three possible states for our login
+ * Process and we need actions for each of them
+ */
 
 export const isUserInvitedRequest: Function = (promise: $TSFixMe): void => {
     return {

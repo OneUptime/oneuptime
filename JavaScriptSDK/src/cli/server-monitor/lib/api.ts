@@ -309,7 +309,8 @@ export default function (
                     return error;
                 });
         },
-        /** Stop server monitor.
+        /**
+         * Stop server monitor.
          * @return {Object} The ping server cron job.
          */
         stop: () => {

@@ -12,12 +12,12 @@ export default new Schema({
         ref: 'Project',
         alias: 'project',
         index: true,
-    }, //which project this statuspage belongs to.
+    }, //Which project this statuspage belongs to.
     domains: [
         {
-            domain: String, // complete domain eg status.oneuptime.com
-            cert: String, // filename gridfs
-            privateKey: String, // filename gridfs
+            domain: String, // Complete domain eg status.oneuptime.com
+            cert: String, // Filename gridfs
+            privateKey: String, // Filename gridfs
             enableHttps: { type: Boolean, default: false },
             autoProvisioning: { type: Boolean, default: false },
             domainVerificationToken: {
@@ -69,17 +69,17 @@ export default new Schema({
         type: Boolean,
         default: true,
     },
-    // show incident to the top of status page
+    // Show incident to the top of status page
     moveIncidentToTheTop: {
         type: Boolean,
         default: false,
     },
-    // show or hide the probe bar
+    // Show or hide the probe bar
     hideProbeBar: {
         type: Boolean,
         default: true,
     },
-    // show or hide uptime (%) on the status page
+    // Show or hide uptime (%) on the status page
     hideUptime: {
         type: Boolean,
         default: false,
@@ -88,7 +88,7 @@ export default new Schema({
         type: Boolean,
         default: false,
     },
-    // show or hide resolved incident on the status page
+    // Show or hide resolved incident on the status page
     hideResolvedIncident: {
         type: Boolean,
         default: false,

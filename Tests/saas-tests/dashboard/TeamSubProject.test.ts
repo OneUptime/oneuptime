@@ -6,13 +6,13 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 
-// parent user credentials
+// Parent user credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const projectName: string = utils.generateRandomString();
-// sub-project user credentials
+// Sub-project user credentials
 const newEmail: Email = utils.generateRandomBusinessEmail();
-// another user credentials
+// Another user credentials
 const anotherEmail: Email = utils.generateRandomBusinessEmail();
 
 const subProjectName: string = utils.generateRandomString();
@@ -33,13 +33,13 @@ describe('Team API With SubProjects', () => {
             password,
         };
 
-        // user
+        // User
         await init.registerUser(user, page);
         // Growth Plan is needed for subproject
         await init.renameProject(projectName, page);
         await init.growthPlanUpgrade(page);
 
-        // add sub-project
+        // Add sub-project
         await init.addSubProject(subProjectName, page);
 
         done();

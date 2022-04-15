@@ -89,7 +89,7 @@ export default {
             _id: ObjectId(probeId),
         });
 
-        // realtime update for probe
+        // Realtime update for probe
         post(`${realtimeBaseUrl}/update-probe`, { data: probe }, true);
         return probe;
     },

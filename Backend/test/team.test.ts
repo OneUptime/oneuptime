@@ -1,6 +1,6 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
+process.env.IS_SAAS_SERVICE = true;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -207,8 +207,8 @@ let subProjectId: $TSFixMe,
     subProjectTeamMemberId: $TSFixMe,
     projectTeamMemberId: $TSFixMe,
     subProjectUserId: $TSFixMe;
-userData.newUser.email = 'newUser@company.com'; // overide test emails to test project seats.
-userData.anotherUser.email = 'anotherUser@company.com'; // overide test emails to test project seats.
+userData.newUser.email = 'newUser@company.com'; // Overide test emails to test project seats.
+userData.anotherUser.email = 'anotherUser@company.com'; // Overide test emails to test project seats.
 
 describe('Team API with Sub-Projects', async function (): void {
     this.timeout(60000);
@@ -218,14 +218,14 @@ describe('Team API with Sub-Projects', async function (): void {
         await GlobalConfig.initTestConfig();
 
         const authorization: string = `Basic ${token}`;
-        // create a subproject for parent project
+        // Create a subproject for parent project
         const res1: $TSFixMe = await request
 
             .post(`/project/${projectId}/subProject`)
             .set('Authorization', authorization)
             .send({ subProjectName: 'New SubProject' });
         subProjectId = res1.body[0]._id;
-        // sign up second user (subproject user)
+        // Sign up second user (subproject user)
         const checkCardData: $TSFixMe = await request
             .post('/stripe/checkCard')
             .send({

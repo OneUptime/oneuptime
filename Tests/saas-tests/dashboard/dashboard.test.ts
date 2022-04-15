@@ -28,7 +28,7 @@ describe('Monitor API', () => {
     });
 
     afterAll(async (done: $TSFixMe) => {
-        // delete monitor
+        // Delete monitor
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'domcontentloaded',
         });
@@ -59,7 +59,7 @@ describe('Monitor API', () => {
         });
         await init.pageWaitForSelector(page, '.ball-beat', { hidden: true });
 
-        // delete component
+        // Delete component
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'domcontentloaded',
         });

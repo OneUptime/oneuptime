@@ -13,7 +13,7 @@ const schema: $TSFixMe = new Schema({
         ref: 'ErrorTracker',
         alias: 'errorTracker',
         index: true,
-    }, //which error tracker this issue belongs to.
+    }, //Which error tracker this issue belongs to.
     type: {
         type: String,
         enum: ['exception', 'message', 'error'],

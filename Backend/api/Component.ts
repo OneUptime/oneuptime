@@ -35,11 +35,13 @@ import Exception from 'Common/Types/Exception/Exception';
 import { sendListResponse } from 'CommonServer/Utils/response';
 import moment from 'moment';
 
-// Route
-// Description: Adding / Updating a new component to the project.
-// Params:
-// Param 1: req.params-> {projectId}; req.body -> {[_id], name, type, data, visibleOnStatusPage} <- Check ComponentMoal for description.
-// Returns: response status, error message
+/*
+ * Route
+ * Description: Adding / Updating a new component to the project.
+ * Params:
+ * Param 1: req.params-> {projectId}; req.body -> {[_id], name, type, data, visibleOnStatusPage} <- Check ComponentMoal for description.
+ * Returns: response status, error message
+ */
 router.post(
     '/:projectId',
     getUser,
@@ -89,7 +91,7 @@ router.post(
                         user._id,
                         'componentaddremove'
                     );
-                    // run in the background
+                    // Run in the background
                     RealTimeService.sendComponentCreated(component);
                 } catch (error) {
                     ErrorService.log(
@@ -137,8 +139,10 @@ router.put(
     }
 );
 
-// Route
-// Description: Get all Components by projectId.
+/*
+ * Route
+ * Description: Get all Components by projectId.
+ */
 router.get(
     '/:projectId',
     getUser,
@@ -162,8 +166,10 @@ router.get(
     }
 );
 
-// Route
-// Description: Get all Components by pagination.
+/*
+ * Route
+ * Description: Get all Components by pagination.
+ */
 router.get(
     '/:projectId/paginated',
     getUser,
@@ -243,8 +249,8 @@ router.get(
             const [components, count]: $TSFixMe = await Promise.all([
                 ComponentService.findBy({
                     query,
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     populate: populateComponent,
                     select: selectComponent,
                 }),
@@ -297,7 +303,7 @@ router.get(
     }
 );
 
-// fetch component summary in date range
+// Fetch component summary in date range
 router.post(
     '/:projectId/summary/:componentId',
     getUser,
@@ -326,7 +332,7 @@ router.post(
                 });
             }
 
-            // fetch monitors
+            // Fetch monitors
             const select: string = '_id name';
             let monitors: $TSFixMe = await MonitorService.findBy({
                 query: { componentId: componentId },
@@ -388,7 +394,7 @@ router.post(
                     })
                 );
 
-                // return response
+                // Return response
                 return sendListResponse(req, res, monitors);
             } else {
                 return sendErrorResponse(req, res, {
@@ -402,7 +408,7 @@ router.post(
     }
 );
 
-// fetch latest stats related to a particular component
+// Fetch latest stats related to a particular component
 router.get(
     '/:projectId/resources/:componentId',
     getUser,
@@ -444,7 +450,7 @@ router.get(
             }
             const totalResources: $TSFixMe = [];
             const limit: $TSFixMe = 1000;
-            const skip: $TSFixMe = req.query['skip'] || 0;
+            const skip: $TSFixMe = req.query.skip || 0;
 
             const populateApplicationSecurity: $TSFixMe = [
                 {
@@ -531,7 +537,7 @@ router.get(
                     slug: elem.slug,
                     component,
                 };
-                // add it to the total resources
+                // Add it to the total resources
                 totalResources.push(newElement);
                 return newElement;
             });
@@ -556,7 +562,7 @@ router.get(
                         securityLog,
                         slug: elem.slug,
                     };
-                    // add it to the total resources
+                    // Add it to the total resources
                     totalResources.push(newElement);
                     return newElement;
                 })
@@ -564,7 +570,7 @@ router.get(
 
             await Promise.all(
                 applicationSecurity.map(async (elem: $TSFixMe) => {
-                    // get the security log
+                    // Get the security log
 
                     const populateApplicationSecurityLog: $TSFixMe = [
                         {
@@ -597,7 +603,7 @@ router.get(
                         securityLog,
                         slug: elem.slug,
                     };
-                    // add it to the total resources
+                    // Add it to the total resources
                     totalResources.push(newElement);
                     return newElement;
                 })
@@ -607,7 +613,7 @@ router.get(
                 applicationLogObj.applicationLogs.map(
                     async (elem: $TSFixMe) => {
                         let logStatus: $TSFixMe = 'No logs yet';
-                        // confirm if the application log has started collecting logs or not
+                        // Confirm if the application log has started collecting logs or not
                         const logs: $TSFixMe =
                             await LogService.getLogsByApplicationLogId(
                                 elem._id,
@@ -627,7 +633,7 @@ router.get(
                             slug: elem.slug,
                             component,
                         };
-                        // add it to the total resources
+                        // Add it to the total resources
                         totalResources.push(newElement);
                         return newElement;
                     }
@@ -667,7 +673,7 @@ router.get(
                             status: errorStatus,
                             slug: errorTracker.slug,
                         };
-                        // add it to the total resources
+                        // Add it to the total resources
                         totalResources.push(newElement);
                         return newElement;
                     }
@@ -701,14 +707,14 @@ router.get(
                             status: trackerStatus,
                             slug: performanceTracker.slug,
                         };
-                        // add it to the total resources
+                        // Add it to the total resources
                         totalResources.push(newElement);
                         return newElement;
                     }
                 )
             );
 
-            // return response
+            // Return response
             return sendItemResponse(req, res, {
                 totalResources,
                 skip,
@@ -719,7 +725,7 @@ router.get(
         }
     }
 );
-// get all error trackers issues related to a project
+// Get all error trackers issues related to a project
 router.get(
     '/:projectId/issues',
     getUser,
@@ -737,8 +743,8 @@ router.get(
             const components: $TSFixMe =
                 await ComponentService.getComponentsBySubprojects(
                     subProjectIds,
-                    req.query['limit'] || 0,
-                    req.query['skip'] || 0
+                    req.query.limit || 0,
+                    req.query.skip || 0
                 );
             let allComponents: $TSFixMe = [];
 
@@ -776,7 +782,7 @@ router.get(
                 })
             );
 
-            // return response
+            // Return response
             return sendItemResponse(req, res, {
                 errorTrackers,
             });

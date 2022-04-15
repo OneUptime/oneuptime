@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const PROJECT_COLLECTION: string = 'projects';
 async function run(): void {
-    // get projects without disableNotification fields for sms, email or webhook
+    // Get projects without disableNotification fields for sms, email or webhook
     const projectsWithoutInvestigationNoteNotificationOptionFields: $TSFixMe =
         await find(PROJECT_COLLECTION, {
             $or: [
@@ -19,10 +19,10 @@ async function run(): void {
                 },
             ],
         });
-    // update project by setting the investigationNotification options to default value of true
+    // Update project by setting the investigationNotification options to default value of true
     projectsWithoutInvestigationNoteNotificationOptionFields.forEach(
         (project: $TSFixMe) => {
-            // add a default value only if the field is missing
+            // Add a default value only if the field is missing
             const updateValues: $TSFixMe = {};
             if (
                 !Object.prototype.hasOwnProperty.call(

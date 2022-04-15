@@ -68,7 +68,7 @@ export function getProjectIncidents(
     };
 }
 
-//get all icident for a project belonging to a component
+//Get all icident for a project belonging to a component
 export function getProjectComponentIncidents(
     projectId: ObjectID,
     componentId: $TSFixMe,
@@ -153,7 +153,7 @@ export const getIncidents: Function = (projectId: ObjectID): void => {
         );
     };
 };
-//get component incidents
+//Get component incidents
 export function getComponentIncidents(
     projectId: ObjectID,
     componentId: $TSFixMe
@@ -260,7 +260,7 @@ export function createNewIncident(
     };
 }
 
-// incident portion
+// Incident portion
 
 export const incidentRequest: Function = (promise: $TSFixMe): void => {
     return {
@@ -405,7 +405,7 @@ export const setActiveIncident: Function = (incidentId: $TSFixMe): void => {
     };
 };
 
-// calls the api to post acknowledgement data to the database
+// Calls the api to post acknowledgement data to the database
 export function acknowledgeIncident(
     projectId: ObjectID,
     incidentId: $TSFixMe,
@@ -503,7 +503,7 @@ export function acknowledgeIncident(
     };
 }
 
-// calls the api to store the resolve status to the database
+// Calls the api to store the resolve status to the database
 export function resolveIncident(
     projectId: ObjectID,
     incidentId: $TSFixMe,
@@ -909,7 +909,7 @@ function hideIncidentFailure(error: ErrorPayload): void {
     };
 }
 
-// hide an incident
+// Hide an incident
 export const hideIncident: Function = (data: $TSFixMe): void => {
     const { hideIncident, incidentId, projectId }: $TSFixMe = data;
     return function (dispatch: Dispatch): void {

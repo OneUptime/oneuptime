@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const slaName: string = 'fxPro';
@@ -29,7 +29,7 @@ describe('Incident Communication SLA', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerUser(user, page);
 
         done();
@@ -63,7 +63,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#incidentSettings');
 
-            // tab id for incident communication sla tab
+            // Tab id for incident communication sla tab
 
             await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
@@ -138,7 +138,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#incidentSettings');
 
-            // tab id for incident communication sla tab
+            // Tab id for incident communication sla tab
 
             await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
@@ -213,7 +213,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#incidentSettings');
 
-            // tab id for incident communication sla tab
+            // Tab id for incident communication sla tab
 
             await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
@@ -288,7 +288,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#incidentSettings');
 
-            // tab id for incident communication sla tab
+            // Tab id for incident communication sla tab
 
             await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
@@ -366,7 +366,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#incidentSettings');
 
-            // tab id for incident communication sla tab
+            // Tab id for incident communication sla tab
 
             await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
@@ -439,7 +439,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#incidentSettings');
 
-            // tab id for incident communication sla tab
+            // Tab id for incident communication sla tab
 
             await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,
@@ -603,7 +603,7 @@ describe('Incident Communication SLA', () => {
 
             await init.pageClick(page, '#incidentSettings');
 
-            // tab id for incident communication sla tab
+            // Tab id for incident communication sla tab
 
             await init.pageWaitForSelector(page, '.communication-sla-tab', {
                 visible: true,

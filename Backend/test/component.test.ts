@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -186,8 +186,8 @@ describe('Component API', function (): void {
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.totalResources).to.be.an('array');
-                expect(res.body.totalResources[0].type).to.be.a('string'); // type of the monitor
-                expect(res.body.totalResources).to.have.lengthOf(resourceCount); // one monitor
+                expect(res.body.totalResources[0].type).to.be.a('string'); // Type of the monitor
+                expect(res.body.totalResources).to.have.lengthOf(resourceCount); // One monitor
                 done();
             });
     });
@@ -212,13 +212,13 @@ describe('Component API', function (): void {
                         expect(res.body.totalResources).to.be.an('array');
                         expect(res.body.totalResources[1].status).to.be.a(
                             'string'
-                        ); // type of the monitor
+                        ); // Type of the monitor
                         expect(res.body.totalResources[1].status).to.be.equal(
                             'No logs yet'
                         );
                         expect(res.body.totalResources).to.have.lengthOf(
                             resourceCount
-                        ); // one application log and one monitor
+                        ); // One application log and one monitor
                         done();
                     });
             });
@@ -260,13 +260,13 @@ describe('Component API', function (): void {
                                 );
                                 expect(
                                     res.body.totalResources[2].status
-                                ).to.be.a('string'); // type of the monitor
+                                ).to.be.a('string'); // Type of the monitor
                                 expect(
                                     res.body.totalResources[2].status
                                 ).to.be.equal('Collecting Logs');
                                 expect(
                                     res.body.totalResources
-                                ).to.have.lengthOf(resourceCount); // two application logs and one monitor
+                                ).to.have.lengthOf(resourceCount); // Two application logs and one monitor
                                 done();
                             });
                     });
@@ -311,7 +311,7 @@ describe('Component API', function (): void {
                             expect(res.body.totalResources).to.be.an('array');
                             expect(res.body.totalResources).to.have.lengthOf(
                                 resourceCount
-                            ); // two application logs, one monitor and one application log security
+                            ); // Two application logs, one monitor and one application log security
                             done();
                         });
                 });
@@ -353,7 +353,7 @@ describe('Component API', function (): void {
                             expect(res.body.totalResources).to.be.an('array');
                             expect(res.body.totalResources).to.have.lengthOf(
                                 resourceCount
-                            ); // tws application logs, one monitor, one application log security and one container security
+                            ); // Tws application logs, one monitor, one application log security and one container security
                             done();
                         });
                 });
@@ -394,7 +394,7 @@ describe('Component API with Sub-Projects', function (): void {
     before(function (done: $TSFixMe): void {
         this.timeout(30000);
         const authorization: string = `Basic ${token}`;
-        // create a subproject for parent project
+        // Create a subproject for parent project
         GlobalConfig.initTestConfig().then((): void => {
             request
                 .post(`/project/${projectId}/subProject`)
@@ -402,7 +402,7 @@ describe('Component API with Sub-Projects', function (): void {
                 .send({ subProjectName: 'New SubProject' })
                 .end((err: $TSFixMe, res: $TSFixMe): void => {
                     subProjectId = res.body[0]._id;
-                    // sign up second user (subproject user)
+                    // Sign up second user (subproject user)
                     createUser(
                         request,
                         userData.newUser,
@@ -441,7 +441,7 @@ describe('Component API with Sub-Projects', function (): void {
                                                             res.body.tokens
                                                                 .jwtAccessToken;
                                                         const authorization: string = `Basic ${token}`;
-                                                        // add second user to subproject
+                                                        // Add second user to subproject
                                                         request
                                                             .post(
                                                                 `/team/${subProjectId}`

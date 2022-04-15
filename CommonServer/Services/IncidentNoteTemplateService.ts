@@ -19,8 +19,8 @@ export default class Service {
             limit = Number(limit);
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         return await IncidentNoteTemplateModel.find(query)
@@ -31,16 +31,16 @@ export default class Service {
     }
 
     public async countBy(query = {}): void {
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         return await IncidentNoteTemplateModel.countDocuments(query);
     }
 
     public async findOneBy(query = {}): void {
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const incidentNoteTemplate: $TSFixMe =
@@ -68,8 +68,8 @@ export default class Service {
     }
 
     public async updateOneBy({ query = {}, data }: $TSFixMe): void {
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const { projectId, _id }: $TSFixMe = query;

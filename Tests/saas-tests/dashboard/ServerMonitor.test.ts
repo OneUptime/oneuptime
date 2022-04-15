@@ -8,7 +8,7 @@ import axios from 'axios';
 axios.defaults.adapter = require('axios/lib/adapters/http');
 let serverMonitor: $TSFixMe;
 try {
-    // try to use local package (with recent changes)
+    // Try to use local package (with recent changes)
     serverMonitor = require('../../../../JavaScriptSDK/src/cli/server-monitor/lib/api');
 } catch (error) {
     import oneuptime from 'oneuptime';
@@ -17,7 +17,7 @@ try {
 
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
@@ -50,8 +50,10 @@ describe('Server Monitor API', () => {
     test(
         'should create offline incident if no data is uploaded in 3 minutes after creating server monitor',
         async () => {
-            // Create Component first
-            // Redirects automatically component to details page
+            /*
+             * Create Component first
+             * Redirects automatically component to details page
+             */
             await init.addComponent(componentName, page);
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
@@ -235,7 +237,7 @@ describe('Server Monitor API', () => {
 
             monitor.start();
 
-            // check status
+            // Check status
 
             const element: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -313,7 +315,7 @@ describe('Server Monitor API', () => {
 
             monitor.start();
 
-            // check status
+            // Check status
 
             const element: $TSFixMe = await init.pageWaitForSelector(
                 page,

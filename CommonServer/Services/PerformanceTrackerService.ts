@@ -5,7 +5,7 @@ import ComponentService from './ComponentService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import generate from 'nanoid/generate';
 import slugify from 'slugify';
-// import RealTimeService from './realTimeService'
+// Import RealTimeService from './realTimeService'
 import NotificationService from './NotificationService';
 
 import uuid from 'uuid';
@@ -16,11 +16,11 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     public async create(data: $TSFixMe): void {
-        // check if component exists
+        // Check if component exists
         const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: data.componentId,
         });
-        // send an error if the component doesnt exist
+        // Send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error: $TSFixMe = new Error('Component does not exist.');
 
@@ -28,7 +28,7 @@ export default class Service {
 
             throw error;
         }
-        // check if a performance tracker already exist with the same name for a particular component
+        // Check if a performance tracker already exist with the same name for a particular component
         const existingPerformanceTracker: $TSFixMe = await this.findBy({
             query: { name: data.name, componentId: data.componentId },
             select: '_id',
@@ -47,7 +47,7 @@ export default class Service {
         }
 
         data.key = uuid.v4();
-        // handle the slug
+        // Handle the slug
         let name: $TSFixMe = data.name;
         name = slugify(name);
         name = `${name}-${generate('1234567890', 8)}`;
@@ -102,8 +102,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const performanceTrackerQuery: $TSFixMe = PerformanceTrackerModel.find(
@@ -124,19 +124,21 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
-        // .populate({
-        //     path: 'componentId',
-        //     select: 'name slug',
-        //     populate: {
-        //         path: 'projectId',
-        //         select: 'name slug',
-        //     },
-        // })
-        // .populate('createdById', 'name email');
+        /*
+         * .populate({
+         *     Path: 'componentId',
+         *     Select: 'name slug',
+         *     Populate: {
+         *         Path: 'projectId',
+         *         Select: 'name slug',
+         *     },
+         * })
+         * .populate('createdById', 'name email');
+         */
 
         const performanceTrackerQuery: $TSFixMe =
             PerformanceTrackerModel.findOne(query).sort(sort).lean();
@@ -157,7 +159,7 @@ export default class Service {
         const componentCount: $TSFixMe = await ComponentService.countBy({
             _id: componentId,
         });
-        // send an error if the component doesnt exist
+        // Send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             throw new BadDataException('Component does not exist.');
         }
@@ -193,7 +195,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const performanceTracker: $TSFixMe =
             await PerformanceTrackerModel.findOneAndUpdate(
@@ -225,9 +227,11 @@ export default class Service {
                 'performanceTrackeraddremove'
             );
 
-            // await RealTimeService.sendPerformanceTrackerDelete(
-            //     performanceTracker
-            // );
+            /*
+             * Await RealTimeService.sendPerformanceTrackerDelete(
+             *     PerformanceTracker
+             * );
+             */
             return performanceTracker;
         } else {
             return null;
@@ -242,8 +246,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         if (data && data.name) {
@@ -287,9 +291,11 @@ export default class Service {
             populate,
         });
 
-        // await RealTimeService.performanceTrackerKeyReset(
-        //     performanceTracker
-        // );
+        /*
+         * Await RealTimeService.performanceTrackerKeyReset(
+         *     PerformanceTracker
+         * );
+         */
 
         return performanceTracker;
     }
@@ -298,8 +304,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const count: $TSFixMe = await PerformanceTrackerModel.countDocuments(

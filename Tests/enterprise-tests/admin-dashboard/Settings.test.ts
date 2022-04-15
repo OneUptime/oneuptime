@@ -41,7 +41,7 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
                 waitUntil: 'networkidle0',
             });
 
-            // if element does not exist it will timeout and throw
+            // If element does not exist it will timeout and throw
             const elem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#settings',
@@ -70,7 +70,7 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
                 return elem.click();
             });
 
-            // if element does not exist it will timeout and throw
+            // If element does not exist it will timeout and throw
             const licenseOption: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#license',

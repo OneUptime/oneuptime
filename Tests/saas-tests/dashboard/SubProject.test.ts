@@ -4,7 +4,7 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const teamEmail: Email = utils.generateRandomBusinessEmail();
 const projectOwnerMail: Email = utils.generateRandomBusinessEmail();
@@ -26,7 +26,7 @@ describe('Sub-Project API', () => {
             password,
         };
 
-        // user
+        // User
         await init.registerUser(user, page);
 
         done();
@@ -74,7 +74,7 @@ describe('Member Restriction', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerUser({ email: projectOwnerMail, password }, page);
         await init.renameProject(newProjectName, page);
         await page.goto(utils.DASHBOARD_URL, {
@@ -144,7 +144,7 @@ describe('Member Restriction', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            // adding a subProject is only allowed on growth plan and above
+            // Adding a subProject is only allowed on growth plan and above
             await init.addSubProject(subProjectName, page);
             await init.saasLogout(page);
 

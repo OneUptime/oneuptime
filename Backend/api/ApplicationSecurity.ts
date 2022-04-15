@@ -19,11 +19,13 @@ import ErrorService from 'CommonServer/Utils/error';
 
 const router: $TSFixMe = express.getRouter();
 
-//Route: POST
-//Description: creates a new application security
-//Param: req.params -> {projectId, componentId}
-//Param: req.body -> {name, gitRepositoryUrl, gitCredential}
-//returns: response -> {applicationSecurity, error}
+/*
+ * Route: POST
+ * Description: creates a new application security
+ * Param: req.params -> {projectId, componentId}
+ * Param: req.body -> {name, gitRepositoryUrl, gitCredential}
+ * Returns: response -> {applicationSecurity, error}
+ */
 router.post(
     '/:projectId/:componentId/application',
     getUser,
@@ -89,11 +91,13 @@ router.post(
     }
 );
 
-//Route: PUT
-//Description: updates a particular application security
-//Param: req.params -> {projectId, componentId, applicationSecurityId}
-//Param: req.body -> {name?, gitRepositoryUrl?, gitCredential?}
-//returns: response -> {applicationSecurity, error}
+/*
+ * Route: PUT
+ * Description: updates a particular application security
+ * Param: req.params -> {projectId, componentId, applicationSecurityId}
+ * Param: req.body -> {name?, gitRepositoryUrl?, gitCredential?}
+ * Returns: response -> {applicationSecurity, error}
+ */
 router.put(
     '/:projectId/:componentId/application/:applicationSecurityId',
     getUser,
@@ -149,10 +153,12 @@ router.put(
     }
 );
 
-//Route: GET
-//Description: get a particular application security in a component
-//Param: req.params -> {projectId, componentId, applicationSecurityId}
-//returns: response -> {applicationSecurity, error}
+/*
+ * Route: GET
+ * Description: get a particular application security in a component
+ * Param: req.params -> {projectId, componentId, applicationSecurityId}
+ * Returns: response -> {applicationSecurity, error}
+ */
 router.get(
     '/:projectId/:componentId/application/:applicationSecurityId',
     getUser,
@@ -197,10 +203,12 @@ router.get(
     }
 );
 
-//Route: GET
-//Description: get a particular application security in a component by ApplicationSecuritySlug
-//Param: req.params -> {projectId, componentId, applicationSecuritySlug}
-//returns: response -> {applicationSecurity, error}
+/*
+ * Route: GET
+ * Description: get a particular application security in a component by ApplicationSecuritySlug
+ * Param: req.params -> {projectId, componentId, applicationSecuritySlug}
+ * Returns: response -> {applicationSecurity, error}
+ */
 router.get(
     '/:projectId/:componentId/applicationSecuritySlug/:applicationSecuritySlug',
     getUser,
@@ -245,10 +253,12 @@ router.get(
     }
 );
 
-//Route: GET
-//Description: get all application security in a component
-//Param: req.params -> {projectId, componentId}
-//returns: response -> {applicationSecurities, error}
+/*
+ * Route: GET
+ * Description: get all application security in a component
+ * Param: req.params -> {projectId, componentId}
+ * Returns: response -> {applicationSecurities, error}
+ */
 router.get(
     '/:projectId/:componentId/application',
     getUser,
@@ -290,10 +300,12 @@ router.get(
     }
 );
 
-//Route: DELETE
-//Description: delete a particular application security in a component
-//Param: req.params -> {projectId, componentId, applicationSecurityId}
-//returns: response -> {deletedApplicationSecurity, error}
+/*
+ * Route: DELETE
+ * Description: delete a particular application security in a component
+ * Param: req.params -> {projectId, componentId, applicationSecurityId}
+ * Returns: response -> {deletedApplicationSecurity, error}
+ */
 router.delete(
     '/:projectId/:componentId/application/:applicationSecurityId',
     getUser,
@@ -313,10 +325,12 @@ router.delete(
     }
 );
 
-//Route: DELETE
-//Description: delete all application security in a component
-//Param: req.params -> {projectId, componentId}
-//returns: response -> {response, error}
+/*
+ * Route: DELETE
+ * Description: delete all application security in a component
+ * Param: req.params -> {projectId, componentId}
+ * Returns: response -> {response, error}
+ */
 router.delete(
     '/:projectId/:componentId/application',
     getUser,
@@ -336,10 +350,12 @@ router.delete(
     }
 );
 
-//Route: GET
-//Description: get a particular security with a particular credential
-//Param: req.params -> {projectId, credentialId} credentialId -> git credential Id
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: GET
+ * Description: get a particular security with a particular credential
+ * Param: req.params -> {projectId, credentialId} credentialId -> git credential Id
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.get(
     '/:projectId/application/:credentialId',
     getUser,
@@ -376,10 +392,12 @@ router.get(
     }
 );
 
-//Route: POST
-//Description: scan a particular application
-//Params: req.params -> {projectId, applicationSecurityId}
-//returns: response -> {sendItemResponse, sendErrorResponse}
+/*
+ * Route: POST
+ * Description: scan a particular application
+ * Params: req.params -> {projectId, applicationSecurityId}
+ * Returns: response -> {sendItemResponse, sendErrorResponse}
+ */
 router.post(
     '/:projectId/application/scan/:applicationSecurityId',
     getUser,

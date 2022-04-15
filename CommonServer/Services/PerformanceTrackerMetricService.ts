@@ -46,8 +46,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const performanceTrackerMetricQuery: $TSFixMe =
@@ -67,8 +67,10 @@ export default class Service {
     public async mergeMetrics({
         query,
 
-        // limit,
-        // skip,
+        /*
+         * Limit,
+         * Skip,
+         */
         sortCriteria = 'createdAt',
 
         sort = -1,
@@ -78,8 +80,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const performanceTrackerMetricQuery: $TSFixMe =
@@ -92,8 +94,10 @@ export default class Service {
         const performanceTrackerMetrics: $TSFixMe =
             await performanceTrackerMetricQuery;
 
-        // restructure performance metrics
-        // same path and method should be merged together
+        /*
+         * Restructure performance metrics
+         * Same path and method should be merged together
+         */
         const ptm: $TSFixMe = {};
         for (const metric of performanceTrackerMetrics) {
             const key: string = `${metric.callIdentifier}__${metric.method}`;
@@ -158,8 +162,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const performanceTrackerMetricQuery: $TSFixMe =
@@ -176,7 +180,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const performanceTrackerMetric: $TSFixMe =
             await PerformanceTrackerMetricModel.findOneAndUpdate(
@@ -197,8 +201,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const performanceTrackerMetric: $TSFixMe =
@@ -220,7 +224,7 @@ export default class Service {
         receivedAt: $TSFixMe
     ): string {
         receivedAt = moment(receivedAt).format();
-        // handle incoming/outgoing request
+        // Handle incoming/outgoing request
         const allData: $TSFixMe = [];
         for (const [key, value] of Object.entries(data)) {
             allData.push({
@@ -243,16 +247,20 @@ export default class Service {
         }
         await this.createMany(allData);
 
-        // fetch the stored data in that time frame
-        // get the total avg time, and probably the total avg max time
-        // send realtime update to frontend and store
+        /*
+         * Fetch the stored data in that time frame
+         * Get the total avg time, and probably the total avg max time
+         * Send realtime update to frontend and store
+         */
         const [time, count, error]: $TSFixMe = await Promise.all([
             this.structureMetricsTime(appId, receivedAt, receivedAt),
             this.structureMetricsCount(appId, receivedAt, receivedAt),
             this.structureMetricsError(appId, receivedAt, receivedAt),
         ]);
-        // send realtime update to frontend
-        // handle this in the background, so we don't delay api calls
+        /*
+         * Send realtime update to frontend
+         * Handle this in the background, so we don't delay api calls
+         */
         RealTimeService.sendTimeMetrics(appId, time);
         RealTimeService.sendThroughputMetrics(appId, count);
         RealTimeService.sendErrorMetrics(appId, error);
@@ -267,8 +275,10 @@ export default class Service {
         endDate = moment(endDate).format();
 
         const select: string = 'metrics createdAt';
-        // store the metrics according to createdAt
-        // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
+        /*
+         * Store the metrics according to createdAt
+         * Eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
+         */
         const dataBank: $TSFixMe = {};
         const timeMetrics: $TSFixMe = await this.findBy({
             query: {
@@ -290,9 +300,11 @@ export default class Service {
             }
         });
 
-        // finally calculate the avg per data per time
-        // finalOutput should have the structure:
-        // [{createdAt: '2021-04-21T17:15:00+01:00', avgTime: 2134.34, avgMaxTime: 5674.11}]
+        /*
+         * Finally calculate the avg per data per time
+         * FinalOutput should have the structure:
+         * [{createdAt: '2021-04-21T17:15:00+01:00', avgTime: 2134.34, avgMaxTime: 5674.11}]
+         */
         const finalOutput: $TSFixMe = [];
         for (const [key, value] of Object.entries(dataBank)) {
             const result: $TSFixMe = { createdAt: key };
@@ -306,11 +318,11 @@ export default class Service {
             finalOutput.push(result);
         }
 
-        // send result back to api
+        // Send result back to api
         return finalOutput;
     }
 
-    // setup the throughput data for frontend
+    // Setup the throughput data for frontend
     public async structureMetricsCount(
         appId: $TSFixMe,
         startDate: $TSFixMe,
@@ -318,8 +330,10 @@ export default class Service {
     ): void {
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
-        // store the metrics according to createdAt
-        // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
+        /*
+         * Store the metrics according to createdAt
+         * Eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
+         */
         const dataBank: $TSFixMe = {};
         const select: string = 'createdAt metrics';
         const timeMetrics: $TSFixMe = await this.findBy({
@@ -343,9 +357,11 @@ export default class Service {
             }
         });
 
-        // finally calculate the avg per data per time
-        // finalOutput should have the structure:
-        // [{createdAt: '2021-04-21T17:15:00+01:00', avgThroughput: 20}]
+        /*
+         * Finally calculate the avg per data per time
+         * FinalOutput should have the structure:
+         * [{createdAt: '2021-04-21T17:15:00+01:00', avgThroughput: 20}]
+         */
         const finalOutput: $TSFixMe = [];
         for (const [key, value] of Object.entries(dataBank)) {
             const result: $TSFixMe = { createdAt: key };
@@ -357,7 +373,7 @@ export default class Service {
             finalOutput.push(result);
         }
 
-        // send result back to api
+        // Send result back to api
         return finalOutput;
     }
 
@@ -368,8 +384,10 @@ export default class Service {
     ): void {
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
-        // store the metrics according to createdAt
-        // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
+        /*
+         * Store the metrics according to createdAt
+         * Eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
+         */
         const dataBank: $TSFixMe = {};
         const select: string = 'createdAt metrics';
         const timeMetrics: $TSFixMe = await this.findBy({
@@ -393,9 +411,11 @@ export default class Service {
             }
         });
 
-        // finally calculate the avg per data per time
-        // finalOutput should have the structure:
-        // [{createdAt: '2021-04-21T17:15:00+01:00', errorCount: 20, value: errorCount}]
+        /*
+         * Finally calculate the avg per data per time
+         * FinalOutput should have the structure:
+         * [{createdAt: '2021-04-21T17:15:00+01:00', errorCount: 20, value: errorCount}]
+         */
         const finalOutput: $TSFixMe = [];
         for (const [key, value] of Object.entries(dataBank)) {
             const result: $TSFixMe = { createdAt: key };
@@ -407,7 +427,7 @@ export default class Service {
             finalOutput.push(result);
         }
 
-        // send result back to api
+        // Send result back to api
         return finalOutput;
     }
 }
@@ -437,7 +457,7 @@ function calcAvgThroughput(metric: $TSFixMe): void {
     });
 
     return {
-        avgThroughput: numDecimal(sum / length, 0), // we rounded off value here
+        avgThroughput: numDecimal(sum / length, 0), // We rounded off value here
     };
 }
 
@@ -450,7 +470,7 @@ function calcAvgError(metric: $TSFixMe): void {
     });
 
     return {
-        avgErrorCount: numDecimal(cumulative / length, 0), // round-off the value
+        avgErrorCount: numDecimal(cumulative / length, 0), // Round-off the value
     };
 }
 

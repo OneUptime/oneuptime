@@ -83,8 +83,8 @@ router.get(
             const [schedules, count]: $TSFixMe = await Promise.all([
                 ScheduleService.findBy({
                     query: { projectId: projectId },
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     populate,
                     select,
                 }),
@@ -111,7 +111,7 @@ router.get(
                 : null;
             const schedules: $TSFixMe =
                 await ScheduleService.getSubProjectSchedules(subProjectIds);
-            return sendItemResponse(req, res, schedules); // frontend expects sendItemResponse
+            return sendItemResponse(req, res, schedules); // Frontend expects sendItemResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -148,14 +148,14 @@ router.get(
             const [schedule, count]: $TSFixMe = await Promise.all([
                 ScheduleService.findBy({
                     query: { projectId },
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     populate,
                     select,
                 }),
                 ScheduleService.countBy({ projectId }),
             ]);
-            return sendListResponse(req, res, schedule, count); // frontend expects sendListResponse
+            return sendListResponse(req, res, schedule, count); // Frontend expects sendListResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

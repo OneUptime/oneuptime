@@ -49,8 +49,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const updatedSubscriber: $TSFixMe =
             await SubscriberModel.findOneAndUpdate(
@@ -70,8 +70,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await SubscriberModel.updateMany(query, {
             $set: data,
@@ -131,7 +131,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
 
         const subscriberQuery: $TSFixMe = SubscriberModel.find(query)
             .lean()
@@ -188,7 +188,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const subscribers: $TSFixMe = await SubscriberModel.find(query)
             .lean()
             .populate('projectId')
@@ -345,7 +345,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const subscriberQuery: $TSFixMe = SubscriberModel.findOne(query)
             .sort(sort)
@@ -364,7 +364,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await SubscriberModel.countDocuments(query);
         return count;
     }

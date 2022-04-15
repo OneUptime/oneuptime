@@ -9,7 +9,7 @@ import {
 } from '../constants/incidentEvents';
 
 export default class Service {
-    // process messages to be sent to slack workspace channels
+    // Process messages to be sent to slack workspace channels
     public async sendNotification(
         projectId: ObjectID,
         incident: $TSFixMe,
@@ -84,7 +84,7 @@ export default class Service {
         return response;
     }
 
-    // send notification to slack workspace channels
+    // Send notification to slack workspace channels
     public async notify(
         project: $TSFixMe,
         monitor: $TSFixMe,
@@ -273,7 +273,7 @@ export default class Service {
         return response;
     }
 
-    // send notification to slack workspace channels
+    // Send notification to slack workspace channels
     public async noteNotify(
         project: $TSFixMe,
         incident: $TSFixMe,

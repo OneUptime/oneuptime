@@ -4,7 +4,7 @@ import { isMainThread, Worker, parentPort, workerData } from 'worker_threads';
 
 // TODO - make this configurable from AdminDashboard
 const runConfig: $TSFixMe = {
-    availableImports: ['axios', 'request'], // init allowed modules
+    availableImports: ['axios', 'request'], // Init allowed modules
     maxSyncStatementDuration: 3000,
     maxScriptRunTime: 5000,
 };
@@ -30,11 +30,11 @@ const {
 
 const run: Function = async (
     functionCode: $TSFixMe,
-    isCalled: $TSFixMe, // skip IIFE calls
+    isCalled: $TSFixMe, // Skip IIFE calls
     options: $TSFixMe = { maxScriptRunTime, maxSyncStatementDuration }
 ): void => {
     if (isMainThread) {
-        // modifiable option in development mode only
+        // Modifiable option in development mode only
         const { maxScriptRunTime, maxSyncStatementDuration }: $TSFixMe =
             options;
         if (!isCalled) {
@@ -47,7 +47,7 @@ const run: Function = async (
                 execArgv: [
                     ...process.execArgv,
                     '--unhandled-rejections=strict',
-                ], // handle promise rejection warnings
+                ], // Handle promise rejection warnings
             });
 
             const consoleLogs: $TSFixMe = [];
@@ -81,7 +81,7 @@ const run: Function = async (
                 lastMessage = Date.now();
             });
             worker.on('exit', (exitCode: $TSFixMe) => {
-                // logger.info('exitCode:::', exitCode);
+                // Logger.info('exitCode:::', exitCode);
                 switch (exitCode) {
                     case 0:
                         resolve({
@@ -120,11 +120,11 @@ const run: Function = async (
                 clearInterval(checker);
             });
             worker.on('error', (err: $TSFixMe) => {
-                // append errors to console log
+                // Append errors to console log
                 consoleLogs.push(`[error]: ${err.message}`);
 
                 if (err.errors) {
-                    // if callback passed value append to console log
+                    // If callback passed value append to console log
                     consoleLogs.push(`[callback-errors]: ${err.errors}`);
 
                     resolve({
@@ -176,7 +176,7 @@ const run: Function = async (
             );
         });
     } else {
-        // worker_threads code
+        // Worker_threads code
 
         import { NodeVM } from 'vm2';
         const vm: $TSFixMe = new NodeVM({
@@ -242,4 +242,4 @@ const run: Function = async (
 };
 
 export default run(); // DO NOT call default export directly (used by worker thread)
-module.exports.run = run; // call named export only
+module.exports.run = run; // Call named export only

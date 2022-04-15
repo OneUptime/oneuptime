@@ -16,8 +16,10 @@ export default {
                 customSmtp: true,
             },
         });
-        //
-        //https://www.twilio.com/docs/iam/test-credentials
+        /*
+         *
+         * https://www.twilio.com/docs/iam/test-credentials
+         */
         await GlobalConfigService.create({
             name: 'twilio',
             value: {

@@ -6,24 +6,24 @@ import mongoose, {
 
 const Schema: $TSFixMe = mongoose.Schema;
 const schema: $TSFixMe = new Schema({
-    monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this belong to.
-    probeId: { type: String, ref: 'Probe', index: true }, // which probe does this belong to.
-    status: String, // status based on criteria.
-    responseTime: Number, // time taken for ping.
-    responseStatus: Number, // status code of ping.
-    responseBody: String, //response body of ping
-    responseHeader: Object, //response header(s) of ping
-    cpuLoad: Number, // cpu load.
-    avgCpuLoad: Number, // average cpu load from server.
-    cpuCores: Number, // number of cpu cores.
-    memoryUsed: Number, // memory used.
-    totalMemory: Number, // memory size.
-    swapUsed: Number, // swap memory used.
-    storageUsed: Number, // disk used.
-    totalStorage: Number, // disk size.
-    storageUsage: Number, // disk usage.
-    mainTemp: Number, // cpu temperature.
-    maxTemp: Number, // maximum cpu temperature from server.
+    monitorId: { type: String, ref: 'Monitor', index: true }, // Which monitor does this belong to.
+    probeId: { type: String, ref: 'Probe', index: true }, // Which probe does this belong to.
+    status: String, // Status based on criteria.
+    responseTime: Number, // Time taken for ping.
+    responseStatus: Number, // Status code of ping.
+    responseBody: String, //Response body of ping
+    responseHeader: Object, //Response header(s) of ping
+    cpuLoad: Number, // Cpu load.
+    avgCpuLoad: Number, // Average cpu load from server.
+    cpuCores: Number, // Number of cpu cores.
+    memoryUsed: Number, // Memory used.
+    totalMemory: Number, // Memory size.
+    swapUsed: Number, // Swap memory used.
+    storageUsed: Number, // Disk used.
+    totalStorage: Number, // Disk size.
+    storageUsage: Number, // Disk usage.
+    mainTemp: Number, // Cpu temperature.
+    maxTemp: Number, // Maximum cpu temperature from server.
     incidentIds: [{ type: String, ref: 'Incident', index: true }],
     createdAt: {
         type: Date,

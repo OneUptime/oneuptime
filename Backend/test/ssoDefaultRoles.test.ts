@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -33,7 +33,7 @@ let adminId: $TSFixMe,
     ssoDefaultRole3: $TSFixMe;
 
 /**
- *  ssoId1 <-> ssoDefaultRole1  <-> projectId1
+ *  SsoId1 <-> ssoDefaultRole1  <-> projectId1
  *  ssoId1 <-> ssoDefaultRole3  <-> projectId2
  *  ssoId2 <-> ssoDefaultRole2  <-> projectId1
  */

@@ -80,11 +80,11 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
-        // won't be using lean() here because of iv cypher for password
+        // Won't be using lean() here because of iv cypher for password
         const applicationSecurityQuery: $TSFixMe =
             ApplicationSecurityModel.findOne(query).sort(sort);
 
@@ -104,11 +104,11 @@ export default class Service {
         select,
         sort,
     }: FindBy): void {
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
-        // won't be using lean() here because of iv cypher for password
+        // Won't be using lean() here because of iv cypher for password
         const applicationSecuritiesQuery: $TSFixMe =
             ApplicationSecurityModel.find(query)
                 .sort(sort)
@@ -132,8 +132,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         if (data && data.name) {
             data.slug = getSlug(data.name);
@@ -205,7 +205,7 @@ export default class Service {
                 select: '_id',
             });
 
-        // delete log associated with this application security
+        // Delete log associated with this application security
         if (securityLog) {
             await ApplicationSecurityLogService.deleteBy({
                 _id: securityLog._id,
@@ -304,8 +304,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await ApplicationSecurityModel.countDocuments(
             query

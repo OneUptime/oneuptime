@@ -15,8 +15,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const defaultManagerQuery: $TSFixMe =
@@ -57,8 +57,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const defaultManagerQuery: $TSFixMe = DefaultManagerModel.find(query)
@@ -79,8 +79,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let defaultManager: $TSFixMe =
             await DefaultManagerModel.findOneAndUpdate(

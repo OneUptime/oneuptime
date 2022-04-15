@@ -7,8 +7,8 @@ export default class Service {
         select,
         sort,
     }: FindBy): void {
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const integrationQuery: $TSFixMe = IntegrationModel.find(query)
             .lean()
@@ -22,7 +22,7 @@ export default class Service {
         return result;
     }
 
-    // create a new integration
+    // Create a new integration
     public async create(
         projectId: ObjectID,
         userId: ObjectID,
@@ -79,7 +79,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await IntegrationModel.countDocuments(query);
         return count;
     }
@@ -88,8 +88,8 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const integration: $TSFixMe = await IntegrationModel.findOneAndUpdate(
             query,
@@ -110,7 +110,7 @@ export default class Service {
         }
 
         if (query.deleted) {
-            query['deleted'] = false;
+            query.deleted = false;
         }
         const integrationQuery: $TSFixMe = IntegrationModel.findOne(query)
             .lean()
@@ -136,7 +136,7 @@ export default class Service {
             );
             return integration;
         } else {
-            query['deleted'] = false;
+            query.deleted = false;
 
             let updatedIntegration: $TSFixMe =
                 await IntegrationModel.findOneAndUpdate(
@@ -185,8 +185,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await IntegrationModel.updateMany(query, {
             $set: data,
@@ -212,7 +212,7 @@ export default class Service {
             query = { monitorId: monitorId };
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const integrations: $TSFixMe = await IntegrationModel.updateMany(
             query,
             {

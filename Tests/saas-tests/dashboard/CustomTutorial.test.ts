@@ -3,7 +3,7 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -45,13 +45,13 @@ describe('Custom Tutorial With SubProjects', () => {
                 );
             expect(componentBoxElement).toBeDefined();
 
-            // click on component section
+            // Click on component section
 
             await init.pageWaitForSelector(page, '#components');
 
             await init.pageClick(page, '#components');
 
-            // find that same tutorial box on component page
+            // Find that same tutorial box on component page
 
             const newComponentBoxElement: $TSFixMe =
                 await init.pageWaitForSelector(
@@ -81,13 +81,13 @@ describe('Custom Tutorial With SubProjects', () => {
                 );
             expect(componentBoxElement).toBeDefined();
 
-            // click on component section
+            // Click on component section
 
             await init.pageWaitForSelector(page, '#components');
 
             await init.pageClick(page, '#components');
 
-            // find that same tutorial box on component page
+            // Find that same tutorial box on component page
 
             const newComponentBoxElement: $TSFixMe =
                 await init.pageWaitForSelector(
@@ -95,7 +95,7 @@ describe('Custom Tutorial With SubProjects', () => {
                     `#info-${customTutorialType}`
                 );
             expect(newComponentBoxElement).toBeDefined();
-            // click on the call to action button
+            // Click on the call to action button
 
             await init.pageWaitForSelector(
                 page,
@@ -103,7 +103,7 @@ describe('Custom Tutorial With SubProjects', () => {
             );
 
             await init.pageClick(page, `#close-${customTutorialType}`);
-            // find component quick tip and confirm it shows
+            // Find component quick tip and confirm it shows
 
             const componentQuickTip: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -131,7 +131,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 );
             expect(componentBoxElement).toBeDefined();
 
-            // click on the call to action button
+            // Click on the call to action button
 
             await init.pageWaitForSelector(
                 page,
@@ -161,7 +161,7 @@ describe('Custom Tutorial With SubProjects', () => {
                 );
             expect(componentBoxElement).toBeDefined();
 
-            // click on the call to action button
+            // Click on the call to action button
 
             await init.pageWaitForSelector(
                 page,

@@ -74,7 +74,7 @@ router.post(
                         stat: validDegraded,
                         successReasons: degradedSuccessReasons,
 
-                        // failedReasons: degradedFailedReasons,
+                        // FailedReasons: degradedFailedReasons,
                         matchedCriterion: matchedDegradedCriterion,
                     }: $TSFixMe = monitor &&
                     monitor.criteria &&
@@ -95,7 +95,7 @@ router.post(
                         stat: validDown,
                         successReasons: downSuccessReasons,
 
-                        // failedReasons: downFailedReasons,
+                        // FailedReasons: downFailedReasons,
                         matchedCriterion: matchedDownCriterion,
                     }: $TSFixMe = monitor &&
                     monitor.criteria &&
@@ -590,7 +590,7 @@ router.post(
                 }
 
                 data.matchedCriterion = matchedCriterion;
-                // update monitor to save the last matched criterion
+                // Update monitor to save the last matched criterion
                 await MonitorService.updateCriterion(
                     monitor._id,
                     matchedCriterion
@@ -636,7 +636,7 @@ router.post(
                             ),
                         ]);
                     } else {
-                        // when this is scanned success or failed.
+                        // When this is scanned success or failed.
                         await MonitorService.updateLighthouseScanStatus(
                             data.monitorId,
 

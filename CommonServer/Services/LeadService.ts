@@ -3,12 +3,14 @@ import MailService from '../../MailService/Services/MailService';
 import AirtableService from './AirtableService';
 
 export default class Service {
-    //Description: Create new project for user.
-    //Params:
-    //Param 1: projectName: Project name.
-    //Param 2: projectId: Project Id present in req.params.
-    //Param 3: userId: User Id.
-    //Returns: promise
+    /*
+     * Description: Create new project for user.
+     * Params:
+     * Param 1: projectName: Project name.
+     * Param 2: projectId: Project Id present in req.params.
+     * Param 3: userId: User Id.
+     * Returns: promise
+     */
     public async create(data: $TSFixMe): void {
         let lead: $TSFixMe = new LeadsModel();
 
@@ -49,7 +51,7 @@ export default class Service {
                 MailService.sendWhitepaperEmail(
                     data.email,
                     data.whitepaperName
-                ); //whitepaper name should be stored in moreInfo.
+                ); //Whitepaper name should be stored in moreInfo.
             }
         }
 

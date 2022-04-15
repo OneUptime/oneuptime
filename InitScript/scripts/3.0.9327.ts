@@ -17,16 +17,18 @@ async function run(): void {
     for (const project of projects) {
         const stripeSubscriptionId: $TSFixMe = project.stripeSubscriptionId;
 
-        // fetch the subscription
+        // Fetch the subscription
         if (stripeSubscriptionId) {
             const subscription: $TSFixMe = await stripe.subscriptions.retrieve(
                 stripeSubscriptionId
             );
-            // if subscription is already cancelled, then delete the project
+            // If subscription is already cancelled, then delete the project
             if (subscription && subscription.status === 'canceled') {
-                // integrate an axios call here to delete project for the init script
-                // we won't do that here, because alot of things should happen under the hood
-                // ensure to add cluster key to the request for validation
+                /*
+                 * Integrate an axios call here to delete project for the init script
+                 * We won't do that here, because alot of things should happen under the hood
+                 * Ensure to add cluster key to the request for validation
+                 */
                 try {
                     await BackendAPI.delete(
                         `project/${project._id}/initScript/deleteProject`

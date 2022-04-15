@@ -90,9 +90,9 @@ export default class Service {
             arr.push(result);
         }
 
-        wrapper['members'] = arr;
+        wrapper.members = arr;
 
-        wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
+        wrapper.count = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
     }
     /**
@@ -183,9 +183,9 @@ export default class Service {
             arr.push(monitorObj);
         }
 
-        wrapper['monitors'] = arr;
+        wrapper.monitors = arr;
 
-        wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
+        wrapper.count = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
     }
     /**

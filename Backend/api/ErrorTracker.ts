@@ -32,11 +32,13 @@ import TeamService from '../services/teamService';
 import IssueMemberService from '../services/issueMemberService';
 import IssueTimelineService from '../services/issueTimelineService';
 import ErrorService from 'CommonServer/Utils/error';
-// Route
-// Description: Adding a new error tracker to a component.
-// Params:
-// Param 1: req.params-> {componentId}; req.body -> {[_id], name}
-// Returns: response status, error message
+/*
+ * Route
+ * Description: Adding a new error tracker to a component.
+ * Params:
+ * Param 1: req.params-> {componentId}; req.body -> {[_id], name}
+ * Returns: response status, error message
+ */
 router.post(
     '/:projectId/:componentId/create',
     getUser,
@@ -99,7 +101,7 @@ router.post(
                     user._id,
                     'errortrackeraddremove'
                 );
-                // run in the background
+                // Run in the background
                 RealTimeService.sendErrorTrackerCreated(errorTracker);
             } catch (error) {
                 ErrorService.log(
@@ -202,9 +204,9 @@ router.post(
             });
         }
 
-        // error tracker is valid
+        // Error tracker is valid
         const data: $TSFixMe = {
-            key: uuid.v4(), // set new error tracker key
+            key: uuid.v4(), // Set new error tracker key
         };
 
         try {
@@ -264,7 +266,7 @@ router.put(
             });
         }
 
-        // try to find in the application log if the name already exist for that component
+        // Try to find in the application log if the name already exist for that component
         const existingQuery: $TSFixMe = {
             name: data.name,
             componentId: componentId,
@@ -350,18 +352,18 @@ router.post(
             const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
             data.errorTrackerId = errorTrackerId;
 
-            // try to fetch the particular issue with the fingerprint of the error event and the error tracker id
+            // Try to fetch the particular issue with the fingerprint of the error event and the error tracker id
             let issue: $TSFixMe =
                 await IssueService.findOneByHashAndErrorTracker(
                     data.fingerprint,
                     errorTrackerId
                 );
 
-            // if it doesnt exist, create the issue and use its details
+            // If it doesnt exist, create the issue and use its details
             if (!issue) {
                 issue = await IssueService.create(data);
             } else {
-                // issue exist but checked if it is resolved so to uresolve it
+                // Issue exist but checked if it is resolved so to uresolve it
                 if (issue.resolved) {
                     const updateData: $TSFixMe = {
                         resolved: false,
@@ -375,14 +377,14 @@ router.post(
                     await IssueService.updateOneBy(query, updateData);
                 }
             }
-            // since it now exist, use the issue details
+            // Since it now exist, use the issue details
             data.issueId = issue._id;
             data.fingerprintHash = issue.fingerprintHash;
 
-            // create the error event
+            // Create the error event
             const errorEvent: $TSFixMe = await ErrorEventService.create(data);
 
-            // get the issue in the format that the fronnted will want for the real time update
+            // Get the issue in the format that the fronnted will want for the real time update
             const errorTrackerIssue: $TSFixMe =
                 await ErrorEventService.findDistinct(
                     { _id: data.issueId, errorTrackerId: data.errorTrackerId },
@@ -393,7 +395,7 @@ router.post(
             issue = errorTrackerIssue.totalErrorEvents[0];
 
             try {
-                // run in the background
+                // Run in the background
                 RealTimeService.sendErrorEventCreated({ errorEvent, issue });
             } catch (error) {
                 ErrorService.log(
@@ -510,7 +512,7 @@ router.post(
                 });
             }
 
-            // find that current error event with the previous and next values
+            // Find that current error event with the previous and next values
             const errorEvent: $TSFixMe =
                 await ErrorEventService.findOneWithPrevAndNext(
                     errorEventId,
@@ -706,7 +708,7 @@ router.post(
                 );
 
                 if (currentIssue && currentIssue > 0) {
-                    // add action to timeline for this particular issue
+                    // Add action to timeline for this particular issue
                     const timelineData: $TSFixMe = {
                         issueId: currentIssueId,
 
@@ -720,7 +722,7 @@ router.post(
                     ]);
                     issue = JSON.parse(JSON.stringify(issue));
 
-                    // get the timeline attahced to this issue annd add it to the issue
+                    // Get the timeline attahced to this issue annd add it to the issue
 
                     const populateIssueTimeline: $TSFixMe = [
                         { path: 'issueId', select: 'name' },
@@ -738,7 +740,7 @@ router.post(
                     issues.push(issue);
 
                     try {
-                        // update a timeline object
+                        // Update a timeline object
                         RealTimeService.sendIssueStatusChange(issue, action);
                     } catch (error) {
                         ErrorService.log(
@@ -981,10 +983,10 @@ router.post(
                 });
             }
 
-            // get the list of team members
+            // Get the list of team members
             await Promise.all(
                 teamMemberId.map(async (teamMemberUserId: $TSFixMe) => {
-                    // check if in organization
+                    // Check if in organization
                     let member: $TSFixMe;
                     try {
                         member = await TeamService.getTeamMemberBy(
@@ -996,30 +998,30 @@ router.post(
                     }
 
                     if (member) {
-                        // set up the data
+                        // Set up the data
                         const data: $TSFixMe = {
                             issueId,
                             userId: teamMemberUserId,
 
                             createdById: req.user ? req.user.id : null,
                         };
-                        // find if the issue member exist in the project
+                        // Find if the issue member exist in the project
                         let issueMember: $TSFixMe =
                             await IssueMemberService.findOneBy({
                                 issueId,
                                 userId: teamMemberUserId,
                             });
                         if (!issueMember) {
-                            // if it doesnt, create it
+                            // If it doesnt, create it
                             issueMember = await IssueMemberService.create(data);
                         } else {
-                            // set up the data
+                            // Set up the data
                             const data: $TSFixMe = {
                                 removed: false,
                                 removedAt: '',
                                 removedById: '',
                             };
-                            // find the issueMember by the 3 parameters, and update it
+                            // Find the issueMember by the 3 parameters, and update it
                             issueMember = await IssueMemberService.updateOneBy(
                                 {
                                     issueId,
@@ -1131,10 +1133,10 @@ router.post(
                 });
             }
 
-            // get the list of team members
+            // Get the list of team members
             await Promise.all(
                 teamMemberId.map(async (teamMemberUserId: $TSFixMe) => {
-                    // check if in organization
+                    // Check if in organization
                     let member: $TSFixMe;
                     try {
                         member = await TeamService.getTeamMemberBy(
@@ -1146,14 +1148,14 @@ router.post(
                     }
 
                     if (member) {
-                        // set up the data
+                        // Set up the data
                         const data: $TSFixMe = {
                             removed: true,
                             removedAt: new Date(),
 
                             removedById: req.user ? req.user.id : null,
                         };
-                        // find the issueMember by the 3 parameters, and update it
+                        // Find the issueMember by the 3 parameters, and update it
                         await IssueMemberService.updateOneBy(
                             {
                                 issueId,

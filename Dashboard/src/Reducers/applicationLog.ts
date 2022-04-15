@@ -449,13 +449,13 @@ export default function applicationLog(
                 stats: INITIAL_STATE.stats,
             });
         case GET_LOG_SUCCESS:
-            requestLogs = state.logs[action.payload.applicationLogId._id].logs; // current logs
+            requestLogs = state.logs[action.payload.applicationLogId._id].logs; // Current logs
             logCount =
-                state.stats[action.payload.applicationLogId._id].stats.all || 0; // current count of all logs
+                state.stats[action.payload.applicationLogId._id].stats.all || 0; // Current count of all logs
             typeCount =
                 state.stats[action.payload.applicationLogId._id].stats[
                     action.payload.type
-                ] || 0; // current count of all logs of that type
+                ] || 0; // Current count of all logs of that type
             if (
                 requestLogs.filter((log: $TSFixMe) => {
                     return log._id === action.payload._id;
@@ -472,12 +472,12 @@ export default function applicationLog(
                     return log;
                 });
             } else {
-                // new log add to beginning of logs
+                // New log add to beginning of logs
 
                 requestLogs = state.logs[
                     action.payload.applicationLogId._id
                 ].logs.concat([action.payload]);
-                // update counts
+                // Update counts
                 logCount += 1;
                 typeCount += 1;
             }

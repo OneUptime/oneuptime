@@ -15,9 +15,11 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import { isValidAPIKey } from '../middlewares/performanceTracker';
 
-// Route
-// Description: Receiving Performance metric data from sdk.
-// Returns: response status, error message
+/*
+ * Route
+ * Description: Receiving Performance metric data from sdk.
+ * Returns: response status, error message
+ */
 router.post(
     '/:appId/key/:key',
     isValidAPIKey,
@@ -48,7 +50,7 @@ router.post(
     }
 );
 
-// fetch transaction time for performance metrics
+// Fetch transaction time for performance metrics
 router.get(
     '/:appId/key/:key/time',
     isValidAPIKey,
@@ -116,7 +118,7 @@ router.get(
     }
 );
 
-// fetch throughput for performance metrics
+// Fetch throughput for performance metrics
 router.get(
     '/:appId/key/:key/throughput',
     isValidAPIKey,
@@ -251,8 +253,10 @@ router.get(
     }
 );
 
-// Route
-// Description: Fetch all the Performance metrics for a particular identifier
+/*
+ * Route
+ * Description: Fetch all the Performance metrics for a particular identifier
+ */
 router.get(
     '/:appId/key/:key',
     isValidAPIKey,

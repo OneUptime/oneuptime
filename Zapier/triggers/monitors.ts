@@ -1,4 +1,4 @@
-// fetches a list of records from the endpoint
+// Fetches a list of records from the endpoint
 const fetchList: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     const options: $TSFixMe = {
         url: `${bundle.authData.serverUrl}/zapier/monitors`,
@@ -18,10 +18,12 @@ export default {
     },
 
     operation: {
-        // since this is a "hidden" trigger, there aren't any inputFields needed
+        // Since this is a "hidden" trigger, there aren't any inputFields needed
         perform: fetchList,
-        // the folowing is a "hint" to the Zap Editor that this trigger returns data "in pages", and
-        //   that the UI should display an option to "load next page" to the human.
+        /*
+         * The folowing is a "hint" to the Zap Editor that this trigger returns data "in pages", and
+         *   That the UI should display an option to "load next page" to the human.
+         */
         canPaginate: false,
     },
 };

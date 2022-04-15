@@ -1,6 +1,6 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
+process.env.IS_SAAS_SERVICE = true;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -175,8 +175,10 @@ describe('Status API', function (): void {
                     );
                 }
             );
-            // remove any domain to make sure we don't encounter
-            // domain used in another project error
+            /*
+             * Remove any domain to make sure we don't encounter
+             * Domain used in another project error
+             */
             await DomainVerificationService.hardDeleteBy({});
         });
     });
@@ -531,14 +533,16 @@ describe('Status API', function (): void {
             });
     });
 
-    // The placement of this test case is very important
-    // a domain needs to be created before verifying it
+    /*
+     * The placement of this test case is very important
+     * A domain needs to be created before verifying it
+     */
 
     it('should verify a domain', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         const domain: string = 'oneuptimeapp.com';
         const verificationToken: string = 'm2ab5osUmz9Y7Ko';
-        // update the verification token to a live version
+        // Update the verification token to a live version
         DomainVerificationService.updateOneBy(
             { domain },
             { verificationToken }
@@ -571,7 +575,7 @@ describe('Status API', function (): void {
                 }
                 expect(res).to.have.status(200);
                 const domain: string = 'status.x.com';
-                // update the verification token to a live version
+                // Update the verification token to a live version
                 DomainVerificationService.updateOneBy(
                     { domain },
                     { verified: true }
@@ -624,7 +628,7 @@ describe('Status API', function (): void {
         const authorization: string = `Basic ${token}`;
         const domain: string = 'oneuptimeapp.com';
         const verificationToken: string = 'thistokenwillnotwork';
-        // update the verification token to a live version
+        // Update the verification token to a live version
         DomainVerificationService.updateOneBy(
             { domain },
             { verificationToken, verified: false, verifiedAt: null }
@@ -699,8 +703,10 @@ describe('Status API', function (): void {
             });
     });
 
-    // this is no longer the case
-    // array of domain are no longer used in the application
+    /*
+     * This is no longer the case
+     * Array of domain are no longer used in the application
+     */
 
     it.skip('should save an array of valid domains', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
@@ -723,8 +729,10 @@ describe('Status API', function (): void {
             });
     });
 
-    // this is no longer the case
-    // array of domain are no longer used in the application
+    /*
+     * This is no longer the case
+     * Array of domain are no longer used in the application
+     */
 
     it.skip('should not save domains if one domain in the array is invalid', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
@@ -779,8 +787,10 @@ describe('Status API', function (): void {
             });
     });
 
-    // This test will work base on the fact that a domain was previously created in another project
-    // This test will try to create another domain with the same domain on another project
+    /*
+     * This test will work base on the fact that a domain was previously created in another project
+     * This test will try to create another domain with the same domain on another project
+     */
 
     it('should add domain if it exist in another project and if the domain in other project is NOT verified.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
@@ -883,9 +893,11 @@ describe('Status API', function (): void {
             });
     });
 
-    //TODO: write test for updating domain
-    // check for when the domain in statuspage is updated
-    // check for when domainverificationtoken is updated
+    /*
+     * TODO: write test for updating domain
+     *  Check for when the domain in statuspage is updated
+     *  Check for when domainverificationtoken is updated
+     */
 
     it('should update a domain on a status page successfully', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
@@ -893,7 +905,7 @@ describe('Status API', function (): void {
 
         StatusService.findOneBy({ _id: statusPageId }).then(
             (statusPage: $TSFixMe) => {
-                // select the first domain
+                // Select the first domain
 
                 const { _id: domainId } = statusPage.domains[0];
                 request
@@ -917,7 +929,7 @@ describe('Status API', function (): void {
 
         StatusService.findOneBy({ _id: statusPageId }).then(
             (statusPage: $TSFixMe) => {
-                // select the first domain
+                // Select the first domain
 
                 const { _id: domainId } = statusPage.domains[0];
                 request
@@ -941,7 +953,7 @@ describe('Status API', function (): void {
 
         StatusService.findOneBy({ _id: statusPageId }).then(
             (statusPage: $TSFixMe) => {
-                // select the first domain
+                // Select the first domain
 
                 const { _id: domainId } = statusPage.domains[0];
                 request
@@ -965,10 +977,10 @@ describe('Status API', function (): void {
 
         StatusService.findOneBy({ _id: statusPageId }).then(
             (statusPage: $TSFixMe) => {
-                // select the first domain
+                // Select the first domain
 
                 const { _id: domainId } = statusPage.domains[0];
-                // provide a random object id
+                // Provide a random object id
                 const statusPageId: string = '5ea70eb4be9f4b177a1719ad';
                 request
                     .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
@@ -989,7 +1001,7 @@ describe('Status API', function (): void {
         const authorization: string = `Basic ${token}`;
         StatusService.findOneBy({ _id: statusPageId }).then(
             (statusPage: $TSFixMe) => {
-                // select the first domain
+                // Select the first domain
 
                 const { _id: domainId } = statusPage.domains[0];
                 request
@@ -1012,10 +1024,10 @@ describe('Status API', function (): void {
         const authorization: string = `Basic ${token}`;
         StatusService.findOneBy({ _id: statusPageId }).then(
             (statusPage: $TSFixMe) => {
-                // select the first domain
+                // Select the first domain
 
                 const { _id: domainId } = statusPage.domains[0];
-                // create random status page id
+                // Create random status page id
                 const statusPageId: string = '5ea70eb4be9f4b177a1719ad';
                 request
                     .delete(
@@ -1046,7 +1058,7 @@ describe('StatusPage API with Sub-Projects', function (): void {
         this.timeout(30000);
         const authorization: string = `Basic ${token}`;
         GlobalConfig.initTestConfig().then((): void => {
-            // create a subproject for parent project
+            // Create a subproject for parent project
             request
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
@@ -1056,7 +1068,7 @@ describe('StatusPage API with Sub-Projects', function (): void {
                         throw err;
                     }
                     subProjectId = res.body[0]._id;
-                    // sign up second user (subproject user)
+                    // Sign up second user (subproject user)
                     createUser(request, userData.newUser, (): void => {
                         request
                             .post('/user/login')
@@ -1070,7 +1082,7 @@ describe('StatusPage API with Sub-Projects', function (): void {
                                 }
                                 newUserToken = res.body.tokens.jwtAccessToken;
                                 const authorization: string = `Basic ${token}`;
-                                // add second user to subproject
+                                // Add second user to subproject
                                 request
                                     .post(`/team/${subProjectId}`)
                                     .set('Authorization', authorization)

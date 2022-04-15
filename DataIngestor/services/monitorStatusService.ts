@@ -34,9 +34,11 @@ export default {
             (previousMonitorStatus &&
                 previousMonitorStatus.status !== data.status)
         ) {
-            // check if monitor has a previous status
-            // check if previous status is different from the current status
-            // if different, end the previous status and create a new monitor status
+            /*
+             * Check if monitor has a previous status
+             * Check if previous status is different from the current status
+             * If different, end the previous status and create a new monitor status
+             */
             const now: $TSFixMe = new Date(moment().format());
             if (previousMonitorStatus) {
                 if (
@@ -131,8 +133,10 @@ export default {
     async sendMonitorStatus(data: $TSFixMe): void {
         const monitor: $TSFixMe = await MonitorService.findOneBy({
             query: { _id: ObjectId(data.monitorId) },
-            // select: 'projectId',
-            // populate: [{ path: 'projectId', select: '_id' }],
+            /*
+             * Select: 'projectId',
+             * Populate: [{ path: 'projectId', select: '_id' }],
+             */
         });
         if (monitor && monitor.projectId) {
             const project: $TSFixMe = await ProjectService.findOneBy({
@@ -146,7 +150,7 @@ export default {
                     : project._id
                 : monitor.projectId._id || monitor.projectId;
 
-            // realtime update
+            // Realtime update
             post(
                 `${realtimeBaseUrl}/update-monitor-status`,
                 {

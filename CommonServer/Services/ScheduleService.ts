@@ -7,8 +7,8 @@ export default class Service {
         select,
         sort,
     }: FindBy): void {
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const schedulesQuery: $TSFixMe = ScheduleModel.find(query)
             .lean()
@@ -28,8 +28,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const scheduleQuery: $TSFixMe = ScheduleModel.findOne(query)
             .sort(sort)
@@ -53,7 +53,7 @@ export default class Service {
 
         scheduleModel.createdById = data.createdById || null;
 
-        // if userIds is array
+        // If userIds is array
         if (data.userIds) {
             scheduleModel.userIds = [];
             for (const userId of data.userIds) {
@@ -61,7 +61,7 @@ export default class Service {
             }
         }
 
-        // if monitorIds is array
+        // If monitorIds is array
         if (data.monitorIds) {
             scheduleModel.monitorIds = [];
             for (const monitorId of data.monitorIds) {
@@ -107,8 +107,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await ScheduleModel.countDocuments(query);
         return count;
@@ -173,8 +173,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         let schedule: $TSFixMe = await this.findOneBy({
@@ -201,8 +201,10 @@ export default class Service {
         data.monitorIds = monitorIds;
 
         if (data.isDefault) {
-            // set isDefault to false for a particular schedule in a project
-            // this should only affect any schedule not equal to the currently edited schedule
+            /*
+             * Set isDefault to false for a particular schedule in a project
+             * This should only affect any schedule not equal to the currently edited schedule
+             */
             await ScheduleModel.findOneAndUpdate(
                 {
                     _id: { $ne: schedule._id },
@@ -264,8 +266,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await ScheduleModel.updateMany(query, {
             $set: data,

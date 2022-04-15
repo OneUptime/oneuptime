@@ -2,7 +2,7 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/license';
 import Route from 'Common/Types/api/route';
-// fetch license
+// Fetch license
 
 export const fetchLicenseRequest: Function = (promise: $TSFixMe): void => {
     return {
@@ -65,7 +65,7 @@ export const fetchLicense: $TSFixMe = () => {
     };
 };
 
-// confirm license
+// Confirm license
 
 export const confirmLicenseRequest: Function = (promise: $TSFixMe): void => {
     return {

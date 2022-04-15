@@ -12,7 +12,7 @@ import ApiStatusService from '../services/apiStatusService';
 
 const router: $TSFixMe = express.getRouter();
 
-// store account details to the db
+// Store account details to the db
 router.get('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data: $TSFixMe = {
@@ -36,7 +36,7 @@ router.get('/', async (req: ExpressRequest, res: ExpressResponse) => {
             },
         };
 
-        // handle db related operation to test the health
+        // Handle db related operation to test the health
         try {
             let status: $TSFixMe = await ApiStatusService.findOneBy({
                 query: {
@@ -61,7 +61,7 @@ router.get('/', async (req: ExpressRequest, res: ExpressResponse) => {
             response.database.message = error.message;
         }
 
-        // handle redis related operation to test the health
+        // Handle redis related operation to test the health
         try {
             if (global.redisClient) {
                 await global.redisClient.set(

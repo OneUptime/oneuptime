@@ -4,7 +4,7 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 import 'should';
-// user credentials
+// User credentials
 const userEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
@@ -27,7 +27,7 @@ describe('Enterprise User API', () => {
             email: userEmail,
             password: password,
         };
-        // user
+        // User
 
         await init.registerEnterpriseUser(user, page, false);
         await browser.close();
@@ -116,7 +116,7 @@ describe('Enterprise User API', () => {
             await init.loginAdminUser(masterAdmin, page);
 
             for (let i: $TSFixMe = 0; i < 10; i++) {
-                // add new user
+                // Add new user
                 await page.goto(utils.ADMIN_DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
@@ -213,7 +213,7 @@ describe('Enterprise User API', () => {
 
             await init.pageClick(page, '#add_user');
 
-            // user with non-business email
+            // User with non-business email
 
             await init.pageWaitForSelector(page, '#email');
 

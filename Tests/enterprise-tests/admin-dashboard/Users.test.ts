@@ -37,13 +37,15 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
     test(
         'should show a button to add more users to oneuptime from admin dashboard',
         async (done: $TSFixMe) => {
-            // navigating to dashboard url
-            // automatically redirects to users route
+            /*
+             * Navigating to dashboard url
+             * Automatically redirects to users route
+             */
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
 
-            // if element does not exist it will timeout and throw
+            // If element does not exist it will timeout and throw
             const elem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#add_user',

@@ -10,7 +10,8 @@ const user: $TSFixMe = {
 
 const customDomain: string = `${utils.generateRandomString()}.com`;
 
-/** This is a test to check:
+/**
+ * This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
  */

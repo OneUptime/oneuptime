@@ -38,7 +38,7 @@ router.put('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
             query: { _id: userId },
             select: 'tutorial _id',
         });
-        // validate that project ID is passed
+        // Validate that project ID is passed
         const projectId: $TSFixMe = req.body.projectId;
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -50,7 +50,7 @@ router.put('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
             { _id: userId },
             req.body.type,
             user.tutorial,
-            projectId // project ID is always needed
+            projectId // Project ID is always needed
         );
 
         const tutorialObj: $TSFixMe = {

@@ -10,16 +10,18 @@ import {
 import MonitorService from '../Services/monitorService';
 
 export default {
-    // Description: Checking if user is authorized to access the page and decode jwt to get user data.
-    // Params:
-    // Param 1: req.headers-> {token}
-    // Returns: 400: User is unauthorized since unauthorized token was present.
+    /*
+     * Description: Checking if user is authorized to access the page and decode jwt to get user data.
+     * Params:
+     * Param 1: req.headers-> {token}
+     * Returns: 400: User is unauthorized since unauthorized token was present.
+     */
     isValidProjectIdAndApiKey: async function (
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        //get project id
+        //Get project id
         let projectId: $TSFixMe, apiKey: $TSFixMe;
 
         if (req.params && req.params.projectId) {
@@ -28,10 +30,10 @@ export default {
             projectId = req.query.projectId;
         } else if (
             req.headers &&
-            (req.headers['projectId'] || req.headers['projectid'])
+            (req.headers.projectId || req.headers.projectid)
         ) {
-            // header keys are automatically transformed to lowercase
-            projectId = req.headers['projectId'];
+            // Header keys are automatically transformed to lowercase
+            projectId = req.headers.projectId;
         } else if (req.body && req.body.projectId) {
             projectId = req.body.projectId;
         } else {
@@ -70,7 +72,7 @@ export default {
         if (projectCount > 0) {
             req.authorizationType = 'API';
 
-            //set user Id to API.
+            //Set user Id to API.
 
             req.user = {};
             req.user.id = 'API';
@@ -121,10 +123,10 @@ export default {
             projectId = req.query.projectId;
         } else if (
             req.headers &&
-            (req.headers['projectId'] || req.headers['projectid'])
+            (req.headers.projectId || req.headers.projectid)
         ) {
-            // header keys are automatically transformed to lowercase
-            projectId = req.headers['projectId'] || req.headers['projectid'];
+            // Header keys are automatically transformed to lowercase
+            projectId = req.headers.projectId || req.headers.projectid;
         } else if (req.body && req.body.projectId) {
             projectId = req.body.projectId;
         } else {

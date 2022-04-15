@@ -1,6 +1,6 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
+process.env.IS_SAAS_SERVICE = true;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -21,7 +21,7 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-// let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe;
+// Let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe;
 
 let token: $TSFixMe,
     projectId: $TSFixMe,

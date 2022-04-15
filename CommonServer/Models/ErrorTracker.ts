@@ -11,7 +11,7 @@ const schema: $TSFixMe = new Schema({
         ref: 'Component',
         alias: 'component',
         index: true,
-    }, //which component this error tracker belongs to.
+    }, //Which component this error tracker belongs to.
     name: { type: String, index: true },
     slug: { type: String, index: true },
     key: String,
@@ -24,7 +24,7 @@ const schema: $TSFixMe = new Schema({
         ref: 'ResourceCategory',
         index: true,
     },
-    createdById: { type: String, ref: 'User', index: true }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //UserId.
     createdAt: {
         type: Date,
         default: Date.now,

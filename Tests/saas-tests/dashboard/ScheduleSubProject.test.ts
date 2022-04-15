@@ -4,12 +4,12 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
-// parent user credentials
+// Parent user credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const projectName: string = utils.generateRandomString();
 const subProjectMonitorName: string = utils.generateRandomString();
-// sub-project user credentials
+// Sub-project user credentials
 const newEmail: Email = utils.generateRandomBusinessEmail();
 const newPassword: string = '1234567890';
 const subProjectName: string = utils.generateRandomString();
@@ -35,7 +35,7 @@ describe('Schedule API With SubProjects', () => {
         await init.renameProject(projectName, page);
         await init.growthPlanUpgrade(page);
 
-        // add sub-project
+        // Add sub-project
         await init.addSubProject(subProjectName, page);
 
         await init.pageClick(page, '#projectFilterToggle');
@@ -47,7 +47,7 @@ describe('Schedule API With SubProjects', () => {
             waitUntil: ['networkidle2'],
         });
 
-        // add new user to sub-project
+        // Add new user to sub-project
         await init.addUserToProject(
             {
                 email: newEmail,
@@ -148,7 +148,7 @@ describe('Schedule API With SubProjects', () => {
             await init.pageClick(page, '#projectFilterToggle');
 
             await init.pageClick(page, `#project-${subProjectName}`);
-            // add 10 more schedules to sub-project to test for pagination
+            // Add 10 more schedules to sub-project to test for pagination
             for (let i: $TSFixMe = 0; i < 10; i++) {
                 const scheduleName: string = utils.generateRandomString();
                 await init.addScheduleToProject(
@@ -172,13 +172,13 @@ describe('Schedule API With SubProjects', () => {
 
             expect(countSchedules).toEqual(10);
 
-            //const nextSelector: $TSFixMe =
+            //Const nextSelector: $TSFixMe =
             await init.pageWaitForSelector(page, `#btnNext-${subProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
 
-            // await nextSelector.click();
+            // Await nextSelector.click();
 
             await init.pageClick(page, `#btnNext-${subProjectName}`);
 
@@ -186,14 +186,14 @@ describe('Schedule API With SubProjects', () => {
             countSchedules = scheduleRows.length;
             expect(countSchedules).toEqual(1);
 
-            // const prevSelector: $TSFixMe =
+            // Const prevSelector: $TSFixMe =
             await init.pageWaitForSelector(page, `#btnPrev-${subProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await init.pageClick(page, `#btnPrev-${subProjectName}`);
-            //await prevSelector.click();
+            //Await prevSelector.click();
 
             scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
             countSchedules = scheduleRows.length;

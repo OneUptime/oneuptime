@@ -4,7 +4,7 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const componentName: string = utils.generateRandomString();
@@ -274,7 +274,7 @@ describe('Member Restriction', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerUser({ email: secondEmail, password }, page);
         await init.renameProject(newProjectName, page);
         await page.goto(utils.DASHBOARD_URL, {

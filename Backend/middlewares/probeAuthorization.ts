@@ -6,10 +6,12 @@ import {
     NextFunction,
 } from 'CommonServer/Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-const CLUSTER_KEY: $TSFixMe = process.env['CLUSTER_KEY'];
+const CLUSTER_KEY: $TSFixMe = process.env.CLUSTER_KEY;
 
-// TODO: Make sure this is stored in redis.
-// Structure:
+/*
+ * TODO: Make sure this is stored in redis.
+ * Structure:
+ */
 /**
  *
  *  {
@@ -38,9 +40,9 @@ export default {
             probeKey = req.query.probeKey;
         } else if (
             req.headers &&
-            (req.headers['probeKey'] || req.headers['probekey'])
+            (req.headers.probeKey || req.headers.probekey)
         ) {
-            probeKey = req.headers['probeKey'] || req.headers['probekey'];
+            probeKey = req.headers.probeKey || req.headers.probekey;
         } else if (req.body && req.body.probeKey) {
             probeKey = req.body.probeKey;
         } else {
@@ -57,9 +59,9 @@ export default {
             probeName = req.query.probeName;
         } else if (
             req.headers &&
-            (req.headers['probeName'] || req.headers['probename'])
+            (req.headers.probeName || req.headers.probename)
         ) {
-            probeName = req.headers['probeName'] || req.headers['probename'];
+            probeName = req.headers.probeName || req.headers.probename;
         } else if (req.body && req.body.probeName) {
             probeName = req.body.probeName;
         } else {
@@ -70,15 +72,15 @@ export default {
             );
         }
 
-        if (req.params && req.params['clusterKey']) {
-            clusterKey = req.params['clusterKey'];
-        } else if (req.query && req.query['clusterKey']) {
-            clusterKey = req.query['clusterKey'];
+        if (req.params && req.params.clusterKey) {
+            clusterKey = req.params.clusterKey;
+        } else if (req.query && req.query.clusterKey) {
+            clusterKey = req.query.clusterKey;
         } else if (
             req.headers &&
-            (req.headers['clusterKey'] || req.headers['clusterkey'])
+            (req.headers.clusterKey || req.headers.clusterkey)
         ) {
-            clusterKey = req.headers['clusterKey'] || req.headers['clusterkey'];
+            clusterKey = req.headers.clusterKey || req.headers.clusterkey;
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
         }
@@ -87,8 +89,8 @@ export default {
             probeVersion = req.params.probeVersion;
         } else if (req.query && req.query.probeVersion) {
             probeVersion = req.query.probeVersion;
-        } else if (req.headers && req.headers['probeversion']) {
-            probeVersion = req.headers['probeversion'];
+        } else if (req.headers && req.headers.probeversion) {
+            probeVersion = req.headers.probeversion;
         } else if (req.body && req.body.probeVersion) {
             probeVersion = req.body.probeVersion;
         }
@@ -97,9 +99,11 @@ export default {
 
         const selectProbe: string = '_id probeKey version probeName';
         if (clusterKey && clusterKey === CLUSTER_KEY) {
-            // if cluster key matches then just query by probe name,
-            // because if the probe key does not match, we can update probe key later
-            // without updating mognodb database manually.
+            /*
+             * If cluster key matches then just query by probe name,
+             * Because if the probe key does not match, we can update probe key later
+             * Without updating mognodb database manually.
+             */
 
             if (global.probes[probeName]) {
                 // If probeName could not be found, the else statement is called.
@@ -157,7 +161,7 @@ export default {
         }
         //This executes if clusterKey && CLUSTER_KEY is false and Probes could not be found in DB. Hence, probe is created.
         if (!probeId) {
-            //create a new probe.
+            //Create a new probe.
             const probe: $TSFixMe = await ProbeService.create({
                 probeKey,
                 probeName,
@@ -174,7 +178,7 @@ export default {
         }
 
         if (global.probes[probeName].probeKey !== probeKey) {
-            //update probe key becasue it does not match.
+            //Update probe key becasue it does not match.
             await ProbeService.updateOneBy(
                 {
                     probeName,
@@ -198,7 +202,7 @@ export default {
         req.probe = {};
         req.probe.id = probeId;
 
-        // run in background.
+        // Run in background.
         ProbeService.updateProbeStatus(probeId);
 
         if (

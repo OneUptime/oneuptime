@@ -266,7 +266,7 @@ export const statusPageNoteReset: Function = (): void => {
 
 export const showIncidentCard: Function = (payload: $TSFixMe): void => {
     return {
-        // payload => true or false
+        // Payload => true or false
         type: types.SHOW_INCIDENT_CARD,
 
         payload,
@@ -1180,7 +1180,7 @@ export function moreEventNote(
     };
 }
 
-// handle incident
+// Handle incident
 export const fetchIncidentRequest: Function = (): void => {
     return {
         type: types.FETCH_INCIDENT_REQUEST,
@@ -1433,7 +1433,7 @@ export function fetchLastIncidentTimelines(
 }
 
 export const showEventCard: Function = (payload: $TSFixMe): void => {
-    // payload => true or false
+    // Payload => true or false
     return {
         type: types.SHOW_EVENT_CARD,
         payload,

@@ -12,7 +12,7 @@ import SiteManagerService from '../services/siteManagerService';
 
 const router: $TSFixMe = express.getRouter();
 
-// store site details to the db
+// Store site details to the db
 router.post('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data: $TSFixMe = req.body;
@@ -24,7 +24,7 @@ router.post('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// update site details in the db
+// Update site details in the db
 router.put('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { subject }: $TSFixMe = req.query;
@@ -39,7 +39,7 @@ router.put('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// fetch a site detail
+// Fetch a site detail
 router.get('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { servername }: $TSFixMe = req.query;
@@ -54,7 +54,7 @@ router.get('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// fetch all sites
+// Fetch all sites
 router.get('/sites', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const sites: $TSFixMe = await SiteManagerService.findBy({
@@ -67,7 +67,7 @@ router.get('/sites', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// fetch all sites by servernames
+// Fetch all sites by servernames
 router.post(
     '/site/servernames',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -84,7 +84,7 @@ router.post(
     }
 );
 
-// fetch sites base on the options
+// Fetch sites base on the options
 router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { issuedBefore, expiresBefore, renewBefore }: $TSFixMe = req.body;
@@ -112,7 +112,7 @@ router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
             });
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const sites: $TSFixMe = await SiteManagerService.findBy({
             query,
             select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
@@ -123,10 +123,10 @@ router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// delete an site detail
+// Delete an site detail
 router.delete('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const { subject }: $TSFixMe = req.query; // still handle this for legacy code
+        const { subject }: $TSFixMe = req.query; // Still handle this for legacy code
         const { domains }: $TSFixMe = req.body;
 
         let site: $TSFixMe = null;

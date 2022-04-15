@@ -32,7 +32,7 @@ class IncomingListener {
                     const method: $TSFixMe = req.method;
                     let finalPattern: $TSFixMe = path;
 
-                    // this will only work with express application
+                    // This will only work with express application
                     if (this.app && this.app._router) {
                         const routes: $TSFixMe = getRoutes(this.app);
                         for (const [key, value] of Object.entries(routes)) {
@@ -43,7 +43,7 @@ class IncomingListener {
                                     );
 
                                     if (pattern.match(path)) {
-                                        // path pattern found
+                                        // Path pattern found
                                         finalPattern = val;
                                         break;
                                     }
@@ -66,7 +66,7 @@ class IncomingListener {
                             res.statusCode >= 400 &&
                             res.statusCode < 600
                         ) {
-                            // error must have occurred
+                            // Error must have occurred
                             const originalValue: $TSFixMe = this.store.getValue(
                                 req.apm.uuid
                             );

@@ -795,8 +795,10 @@ export const setTwoFactorAuth: Function = (enabled: $TSFixMe): void => {
     };
 };
 
-//fetching user login history
-// Update user twoFactorAuthToken
+/*
+ * Fetching user login history
+ *  Update user twoFactorAuthToken
+ */
 export const fetchUserHistoryRequest: Function = (): void => {
     return {
         type: types.FETCH_USER_LOGIN_HISTORY_REQUEST,

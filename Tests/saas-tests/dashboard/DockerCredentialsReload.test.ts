@@ -12,7 +12,8 @@ const dockerRegistryUrl: $TSFixMe = utils.dockerCredential.dockerRegistryUrl;
 const dockerUsername: $TSFixMe = utils.dockerCredential.dockerUsername;
 const dockerPassword: $TSFixMe = utils.dockerCredential.dockerPassword;
 
-/** This is a test to check:
+/**
+ * This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
  */

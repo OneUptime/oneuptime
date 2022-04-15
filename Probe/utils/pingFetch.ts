@@ -39,21 +39,23 @@ const pingfetch: Function = async (
             payload.body = body;
         }
         try {
-            /* Try with a normal http / https agent. 
-               If this fails we'll try with an agent which has 
-                {
-                    rejectUnauthorized: false,
-                }
-
-                to check for self-signed SSL certs. 
-            */
+            /*
+             * Try with a normal http / https agent.
+             * If this fails we'll try with an agent which has
+             *  {
+             *      rejectUnauthorized: false,
+             *  }
+             *
+             *  to check for self-signed SSL certs.
+             */
             response = await fetch(url, { ...payload });
             logger.info(`Response Recieved: ${method} ${url}`);
             res = new Date().getTime() - now;
             try {
-                /* Try getting response json body
-                    If this fails, body is either empty or not valid json
-                    and data should return null
+                /*
+                 * Try getting response json body
+                 *  If this fails, body is either empty or not valid json
+                 *  and data should return null
                  */
                 data = await response.json();
             } catch (e) {
@@ -73,14 +75,15 @@ const pingfetch: Function = async (
                 }
             }
         } catch (e) {
-            /* Retry with an agent which has 
-
-                {
-                    rejectUnauthorized: false,
-                }
-
-                to check for self-signed SSL certs. 
-            */
+            /*
+             * Retry with an agent which has
+             *
+             *  {
+             *      rejectUnauthorized: false,
+             *  }
+             *
+             *  to check for self-signed SSL certs.
+             */
 
             logger.info(`Retrying: ${method} ${url}`);
             response = await fetch(url, {
@@ -92,9 +95,10 @@ const pingfetch: Function = async (
             res = new Date().getTime() - now;
             logger.info(`Response Recieved: ${method} ${url}`);
             try {
-                /* Try getting response json body
-                    If this fails, body is either empty or not valid json
-                    and data should return null
+                /*
+                 * Try getting response json body
+                 *  If this fails, body is either empty or not valid json
+                 *  and data should return null
                  */
                 data = await response.json();
             } catch (e) {

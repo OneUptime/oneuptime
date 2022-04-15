@@ -1,4 +1,4 @@
-// create performance monitor
+// Create performance monitor
 export const CREATE_PERFORMANCE_TRACKER_REQUEST: $TSFixMe =
     'CREATE_PERFORMANCE_TRACKER_REQUEST';
 export const CREATE_PERFORMANCE_TRACKER_SUCCESS: $TSFixMe =
@@ -8,7 +8,7 @@ export const CREATE_PERFORMANCE_TRACKER_FAILURE: $TSFixMe =
 export const CREATE_PERFORMANCE_TRACKER_RESET: $TSFixMe =
     'CREATE_PERFORMANCE_TRACKER_RESET';
 
-// fetch a single performance monitor
+// Fetch a single performance monitor
 export const FETCH_PERFORMANCE_TRACKER_REQUEST: $TSFixMe =
     'FETCH_PERFORMANCE_TRACKER_REQUEST';
 export const FETCH_PERFORMANCE_TRACKER_SUCCESS: $TSFixMe =
@@ -18,7 +18,7 @@ export const FETCH_PERFORMANCE_TRACKER_FAILURE: $TSFixMe =
 export const FETCH_PERFORMANCE_TRACKER_RESET: $TSFixMe =
     'FETCH_PERFORMANCE_TRACKER_RESET';
 
-// performance monitor list
+// Performance monitor list
 export const FETCH_PERFORMANCE_TRACKERS_REQUEST: $TSFixMe =
     'FETCH_PERFORMANCE_TRACKERS_REQUEST';
 export const FETCH_PERFORMANCE_TRACKERS_SUCCESS: $TSFixMe =
@@ -28,7 +28,7 @@ export const FETCH_PERFORMANCE_TRACKERS_FAILURE: $TSFixMe =
 export const FETCH_PERFORMANCE_TRACKERS_RESET: $TSFixMe =
     'FETCH_PERFORMANCE_TRACKERS_RESET';
 
-// update performance monitor
+// Update performance monitor
 export const UPDATE_PERFORMANCE_TRACKER_REQUEST: $TSFixMe =
     'UPDATE_PERFORMANCE_TRACKER_REQUEST';
 export const UPDATE_PERFORMANCE_TRACKER_SUCCESS: $TSFixMe =
@@ -38,7 +38,7 @@ export const UPDATE_PERFORMANCE_TRACKER_FAILURE: $TSFixMe =
 export const UPDATE_PERFORMANCE_TRACKER_RESET: $TSFixMe =
     'UPDATE_PERFORMANCE_TRACKER_RESET';
 
-// delete performance monitor
+// Delete performance monitor
 export const DELETE_PERFORMANCE_TRACKER_REQUEST: $TSFixMe =
     'DELETE_PERFORMANCE_TRACKER_REQUEST';
 export const DELETE_PERFORMANCE_TRACKER_SUCCESS: $TSFixMe =
@@ -48,7 +48,7 @@ export const DELETE_PERFORMANCE_TRACKER_FAILURE: $TSFixMe =
 export const DELETE_PERFORMANCE_TRACKER_RESET: $TSFixMe =
     'DELETE_PERFORMANCE_TRACKER_RESET';
 
-// reset performance monitor api key
+// Reset performance monitor api key
 export const RESET_PERFORMANCE_TRACKER_KEY_REQUEST: $TSFixMe =
     'RESET_PERFORMANCE_TRACKER_KEY_REQUEST';
 export const RESET_PERFORMANCE_TRACKER_KEY_SUCCESS: $TSFixMe =
@@ -62,10 +62,10 @@ export const REMOVE_QUICK_START_REQUEST: string = 'REMOVE_QUICK_START_REQUEST';
 export const REMOVE_QUICK_START_SUCCESS: string = 'REMOVE_QUICK_START_SUCCESS';
 export const REMOVE_QUICK_START_FAILURE: string = 'REMOVE_QUICK_START_FAILURE';
 
-// fetch last metrics
+// Fetch last metrics
 export const FETCH_LAST_METRICS_REQUEST: string = 'FETCH_LAST_METRICS_REQUEST';
 export const FETCH_LAST_METRICS_SUCCESS: string = 'FETCH_LAST_METRICS_SUCCESS';
 export const FETCH_LAST_METRICS_FAILURE: string = 'FETCH_LAST_METRICS_FAILURE';
 
-//add peformance tracker
+//Add peformance tracker
 export const ADD_PERFORMANCE_TRACKER: string = 'ADD_PERFORMANCE_TRACKER';

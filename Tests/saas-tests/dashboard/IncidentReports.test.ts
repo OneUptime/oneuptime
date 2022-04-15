@@ -4,7 +4,7 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 
-// parent user credentials
+// Parent user credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
@@ -25,13 +25,13 @@ describe('Incident Reports API', () => {
             email,
             password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
 
         // Create component
         await init.addComponent(componentName, page);
 
-        // add new monitor to project
+        // Add new monitor to project
         await init.pageWaitForSelector(page, '#form-new-monitor', {
             visible: true,
             timeout: init.timeout,

@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -151,11 +151,11 @@ describe('Subcriber Alert API', function (): void {
     });
 
     it('should create subscriber alert with valid incidentId, alertVia', (done: $TSFixMe) => {
-        // update user to a master admin
+        // Update user to a master admin
         UserService.updateOneBy({ _id: userId }, { role: 'master-admin' }).then(
             () => {
                 const authorization: string = `Basic ${token}`;
-                // setup smtp settings
+                // Setup smtp settings
                 request
                     .post(`/emailSmtp/${projectId}`)
                     .set('Authorization', authorization)

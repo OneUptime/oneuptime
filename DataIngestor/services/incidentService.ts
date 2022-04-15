@@ -24,10 +24,12 @@ export default {
         return incidents;
     },
 
-    // Description: Get Incident by incident Id.
-    // Params:
-    // Param 1: monitorId: monitor Id
-    // Returns: promise with incident or error.
+    /*
+     * Description: Get Incident by incident Id.
+     * Params:
+     * Param 1: monitorId: monitor Id
+     * Returns: promise with incident or error.
+     */
     findOneBy: async function ({ query }: $TSFixMe): void {
         if (!query) {
             query = {};
@@ -81,8 +83,10 @@ export default {
         updatedIncident = await this.findOneBy({
             query,
         });
-        // TODO
-        // fetch and populate all the fields
+        /*
+         * TODO
+         * Fetch and populate all the fields
+         */
         updatedIncident = await incidentCollection
             .aggregate([
                 { $match: query },
@@ -286,7 +290,7 @@ export default {
         ) {
             const monitor: $TSFixMe = updatedIncident.monitorId[0];
 
-            // if there's monitor, then projectId and componentId should be available
+            // If there's monitor, then projectId and componentId should be available
             if (monitor) {
                 const projectId: $TSFixMe = updatedIncident.monitorProjectId[0];
                 const componentId: $TSFixMe = updatedIncident.componentId[0];
@@ -316,7 +320,7 @@ export default {
                 : project._id
             : updatedIncident.projectId._id || updatedIncident.projectId;
 
-        // realtime update
+        // Realtime update
         post(
             `${realtimeBaseUrl}/update-incident`,
             {

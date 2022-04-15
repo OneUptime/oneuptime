@@ -81,11 +81,11 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
-        // won't be using lean() here because of iv cypher for password
+        // Won't be using lean() here because of iv cypher for password
         const containerSecurityQuery: $TSFixMe =
             ContainerSecurityModel.findOne(query).sort(sort);
         containerSecurityQuery.select(select);
@@ -123,11 +123,11 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
-        // won't be using lean() here because of iv cypher for password
+        // Won't be using lean() here because of iv cypher for password
         const containerSecurityQuery: $TSFixMe = ContainerSecurityModel.find(
             query
         )
@@ -150,8 +150,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         // The received value from probe service is '{ scanning: true }'
@@ -302,8 +302,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await ContainerSecurityModel.countDocuments(
             query

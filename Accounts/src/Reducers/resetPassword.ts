@@ -5,9 +5,11 @@ import {
     RESET_PASSWORDRESET,
 } from '../constants/resetPassword';
 
-// The auth reducer. The starting state sets authentication
-// based on a token being in local storage. In a real app,
-// we would also want a util to check if the token is expired.
+/*
+ * The auth reducer. The starting state sets authentication
+ * Based on a token being in local storage. In a real app,
+ * We would also want a util to check if the token is expired.
+ */
 
 import Action from 'CommonUI/src/types/action';
 

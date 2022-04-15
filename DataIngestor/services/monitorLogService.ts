@@ -72,7 +72,7 @@ export default {
 
         Log.createdAt = new Date(moment().format());
 
-        // script log details
+        // Script log details
 
         Log.scriptMetadata = data.scriptMetadata;
 
@@ -81,7 +81,7 @@ export default {
             _id: ObjectId(result.insertedId),
         });
 
-        // run these in background.
+        // Run these in background.
         this.updateAggregateLogs(data);
         this.sendMonitorLog(savedLog);
 
@@ -254,7 +254,7 @@ export default {
                 },
             ])
             .toArray();
-        monitorLog = monitorLog[0]; // we are only concerned with the first item
+        monitorLog = monitorLog[0]; // We are only concerned with the first item
         if (monitorLog.probeId && Array.isArray(monitorLog.probeId)) {
             monitorLog.probeId = monitorLog.probeId[0];
         }
@@ -266,8 +266,10 @@ export default {
         const [monitor, logData]: $TSFixMe = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: ObjectId(data.monitorId) },
-                // select: 'projectId',
-                // populate: [{ path: 'projectId', select: '_id' }],
+                /*
+                 * Select: 'projectId',
+                 * Populate: [{ path: 'projectId', select: '_id' }],
+                 */
             }),
 
             this.findOneBy({ _id: ObjectId(data._id) }),
@@ -285,7 +287,7 @@ export default {
                     : project._id
                 : monitor.projectId._id || monitor.projectId;
 
-            // realtime update
+            // Realtime update
             post(
                 `${realtimeBaseUrl}/update-monitor-log`,
                 {

@@ -1,5 +1,5 @@
 import axios from 'axios';
-const CLUSTER_KEY: $TSFixMe = process.env['CLUSTER_KEY'];
+const CLUSTER_KEY: $TSFixMe = process.env.CLUSTER_KEY;
 
 export default {
     headers: async (val: $TSFixMe, type: $TSFixMe) => {
@@ -29,8 +29,10 @@ export default {
     },
 
     post: async (url: URL, data: $TSFixMe) => {
-        // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
-        // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
+        /*
+         * Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
+         * https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
+         */
         const response: $TSFixMe = await axios({
             method: 'POST',
             url,

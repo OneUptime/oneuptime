@@ -16,7 +16,8 @@ const dockerPassword: $TSFixMe = utils.dockerCredential.dockerPassword;
 const dockerImagePath: $TSFixMe = utils.dockerCredential.imagePath;
 const dockerImageTag: $TSFixMe = utils.dockerCredential.imageTags;
 
-/** This is a test to check:
+/**
+ * This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
  */
@@ -44,10 +45,12 @@ describe('OneUptime Page Reload', () => {
     test(
         'Should reload the container security page and confirm there are no errors',
         async (done: $TSFixMe) => {
-            //const  categoryName: string = 'Random-Category';
-            // create a new resource category
-            //await init.addResourceCategory(categoryName, page);
-            //navigate to component details
+            /*
+             * Const  categoryName: string = 'Random-Category';
+             *  Create a new resource category
+             * Await init.addResourceCategory(categoryName, page);
+             * Navigate to component details
+             */
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#security', { visible: true });
@@ -79,18 +82,20 @@ describe('OneUptime Page Reload', () => {
             await init.pageClick(page, '#name');
 
             await init.pageType(page, '#name', containerSecurityName);
-            // await init.selectDropdownValue(
-            //     '#resourceCategory',
-            //     categoryName,
-            //     page
-            // ); // add category
+            /*
+             * Await init.selectDropdownValue(
+             *     '#resourceCategory',
+             *     CategoryName,
+             *     Page
+             * ); // add category
+             */
             await init.selectDropdownValue(
                 '#dockerCredential',
                 dockerUsername,
                 page
             );
 
-            await init.pageType(page, '#imagePath', dockerImagePath); // select the created credential
+            await init.pageType(page, '#imagePath', dockerImagePath); // Select the created credential
 
             await init.pageType(page, '#imageTags', dockerImageTag);
 

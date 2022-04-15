@@ -19,11 +19,13 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-// Route
-// Description: Getting details of team members of the project.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId}; req.user-> {id}
-// Returns: 200: An array of users belonging to the project.
+/*
+ * Route
+ * Description: Getting details of team members of the project.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId}; req.user-> {id}
+ * Returns: 200: An array of users belonging to the project.
+ */
 router.get(
     '/:projectId',
     getUser,
@@ -35,7 +37,7 @@ router.get(
             // Call the TeamService
             const users: $TSFixMe = await TeamService.getTeamMembersBy({
                 _id: projectId,
-            }); // frontend expects sendItemResponse
+            }); // Frontend expects sendItemResponse
             return sendItemResponse(req, res, users);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -65,17 +67,19 @@ router.get(
                     return { teamMembers, count, _id: id };
                 })
             );
-            return sendItemResponse(req, res, subProjectTeamMembers); // frontend expects sendItemResponse
+            return sendItemResponse(req, res, subProjectTeamMembers); // Frontend expects sendItemResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
 
-// Route
-// Description: Get individual team member details
-// Params
-// Returns: 200: Individual team member object; 400: Error.
+/*
+ * Route
+ * Description: Get individual team member details
+ * Params
+ * Returns: 200: Individual team member object; 400: Error.
+ */
 router.get(
     '/:projectId/:teamMemberId',
     getUser,
@@ -116,11 +120,13 @@ router.get(
     }
 );
 
-// Route
-// Description: Adding team members by Project Admin.
-// Params:
-// Param 1: req.body-> {emails, role}; req.headers-> {token}; req.params-> {projectId}
-// Returns: 200: An array of users belonging to the project; 400: Error.
+/*
+ * Route
+ * Description: Adding team members by Project Admin.
+ * Params:
+ * Param 1: req.body-> {emails, role}; req.headers-> {token}; req.params-> {projectId}
+ * Returns: 200: An array of users belonging to the project; 400: Error.
+ */
 router.post(
     '/:projectId',
     getUser,
@@ -218,7 +224,7 @@ router.post(
                     message: 'Something went wrong. Please try again.',
                 });
             } else {
-                // run in the background
+                // Run in the background
                 RealTimeService.createTeamMember(projectId, {
                     users,
                     userId: userId.id,
@@ -232,11 +238,13 @@ router.post(
     }
 );
 
-// Route
-// Description: Removing team member by Project Admin.
-// Params:
-// Param 1: req.body-> {team_member_id}; req.headers-> {token}; req.params-> {projectId}
-// Returns: 200: "User successfully removed"; 400: Error.
+/*
+ * Route
+ * Description: Removing team member by Project Admin.
+ * Params:
+ * Param 1: req.body-> {team_member_id}; req.headers-> {token}; req.params-> {projectId}
+ * Returns: 200: "User successfully removed"; 400: Error.
+ */
 router.delete(
     '/:projectId/:teamMemberId',
     getUser,
@@ -277,11 +285,13 @@ router.delete(
     }
 );
 
-// Route
-// Description: Updating role of team member by Project Admin.
-// Params:
-// Param 1: req.body-> {teamMemberId, role }; req.headers-> {token}; req.params-> {projectId}
-// Returns: 200: "Role changed successfully"; 400: Error; 500: Server Error.
+/*
+ * Route
+ * Description: Updating role of team member by Project Admin.
+ * Params:
+ * Param 1: req.body-> {teamMemberId, role }; req.headers-> {token}; req.params-> {projectId}
+ * Returns: 200: "Role changed successfully"; 400: Error; 500: Server Error.
+ */
 router.put(
     '/:projectId/:teamMemberId/changerole',
     getUser,
@@ -328,8 +338,10 @@ router.put(
 
         try {
             if (data.role === 'Owner') {
-                // Call the TeamService
-                // This code is reverted because the promises need to run sequentially. Debugging it shows that it was running simultaneously
+                /*
+                 * Call the TeamService
+                 * This code is reverted because the promises need to run sequentially. Debugging it shows that it was running simultaneously
+                 */
                 await TeamService.updateTeamMemberRole(
                     projectId,
                     userId,

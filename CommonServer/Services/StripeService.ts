@@ -10,7 +10,7 @@ import { sendSlackAlert } from '../Utils/stripeHandlers';
 const stripe: $TSFixMe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
 });
-// removal of 'moment' due to declaration but not used.
+// Removal of 'moment' due to declaration but not used.
 
 export default class StripeService {
     public async successEvent(
@@ -87,7 +87,7 @@ export default class StripeService {
             if (chargeAttemptCount === 3) {
                 await ProjectService.updateOneBy(
                     { _id: project._id },
-                    { paymentFailedDate: Date.now() } // date to keep track of last failed payment
+                    { paymentFailedDate: Date.now() } // Date to keep track of last failed payment
                 );
             }
         }
@@ -367,7 +367,7 @@ export default class StripeService {
                     .populate('parentProjectId', 'name')
                     .execPopulate();
                 if (updatedProject.balance === newbalance) {
-                    // return true;
+                    // Return true;
                     return updatedProject;
                 }
             }

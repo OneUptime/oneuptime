@@ -28,7 +28,7 @@ const schema: $TSFixMe = new Schema({
     },
     routingSchema: {
         type: Object,
-    } /*routingSchema: {
+    } /*RoutingSchema: {
         type: ‘team-member’ || ‘schedule’
         id: 'scheduleId' || 'teamMemberId'
         introtext: 'string',

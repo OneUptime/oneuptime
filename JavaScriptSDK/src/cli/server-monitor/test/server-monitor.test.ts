@@ -1,4 +1,4 @@
-process.env['NODE_ENV'] = 'development';
+process.env.NODE_ENV = 'development';
 process.env.LOG_LEVEL = 'error';
 process.env.API_URL = 'http://localhost:3002';
 

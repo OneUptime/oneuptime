@@ -15,7 +15,7 @@ const schema: $TSFixMe = new Schema({
         ref: 'Project',
         alias: 'project',
         index: true,
-    }, //which project this incident belongs to.
+    }, //Which project this incident belongs to.
     title: {
         type: Schema.Types.String,
     },
@@ -53,14 +53,14 @@ const schema: $TSFixMe = new Schema({
         type: Boolean,
         default: false,
     },
-    acknowledgedBy: { type: String, ref: 'User', index: true }, // userId
+    acknowledgedBy: { type: String, ref: 'User', index: true }, // UserId
     acknowledgedAt: {
         type: Date,
     },
     acknowledgedByZapier: {
         type: Boolean,
         default: false,
-    }, // is true when zapier acknowledges incident
+    }, // Is true when zapier acknowledges incident
 
     resolved: {
         type: Boolean,
@@ -83,17 +83,17 @@ const schema: $TSFixMe = new Schema({
             },
         },
     ],
-    resolvedBy: { type: String, ref: 'User', index: true }, // userId
+    resolvedBy: { type: String, ref: 'User', index: true }, // UserId
     resolvedAt: { type: Date },
     resolvedByZapier: {
         type: Boolean,
         default: false,
-    }, // is true when zapier resolves incident
+    }, // Is true when zapier resolves incident
 
     internalNote: { type: String, default: '' },
     investigationNote: { type: String, default: '' },
 
-    createdById: { type: String, ref: 'User', index: true }, // userId
+    createdById: { type: String, ref: 'User', index: true }, // UserId
     createdByApi: { type: Boolean, default: false },
     createdAt: {
         type: Date,
@@ -103,7 +103,7 @@ const schema: $TSFixMe = new Schema({
     createdByZapier: {
         type: Boolean,
         default: false,
-    }, // is true when zapier creates incident
+    }, // Is true when zapier creates incident
 
     acknowledgedByApi: { type: Boolean, default: false },
     resolvedByApi: { type: Boolean, default: false },
@@ -119,7 +119,7 @@ const schema: $TSFixMe = new Schema({
     },
 
     deletedById: { type: String, ref: 'User', index: true },
-    // has this incident breached communication sla
+    // Has this incident breached communication sla
     breachedCommunicationSla: { type: Boolean, default: false },
     customFields: [
         {

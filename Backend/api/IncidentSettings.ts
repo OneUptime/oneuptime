@@ -26,7 +26,7 @@ router.get('/variables', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// fetch default incident template in a project
+// Fetch default incident template in a project
 router.get(
     '/:projectId/default',
     getUser,
@@ -53,7 +53,7 @@ router.get(
     }
 );
 
-// fetch all incident template in a project
+// Fetch all incident template in a project
 router.get(
     '/:projectId',
     getUser,
@@ -249,7 +249,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId }: $TSFixMe = req.params;
-            // description is optional
+            // Description is optional
             const {
                 title,
                 description,

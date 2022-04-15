@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const component: string = 'TestComponent';
@@ -27,7 +27,7 @@ describe('Container Security Page', () => {
             email: email,
             password: password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
         done();
     });
@@ -51,10 +51,12 @@ describe('Container Security Page', () => {
 
             await init.addComponent(component, page);
 
-            //const  categoryName: string = 'Random-Category';
-            // create a new resource category
-            // await init.addResourceCategory(categoryName, page);
-            //navigate to component details
+            /*
+             * Const  categoryName: string = 'Random-Category';
+             *  Create a new resource category
+             *  Await init.addResourceCategory(categoryName, page);
+             * Navigate to component details
+             */
             await init.navigateToComponentDetails(component, page);
 
             await init.pageWaitForSelector(page, '#security', {
@@ -101,11 +103,13 @@ describe('Container Security Page', () => {
             await init.pageClick(page, '#name');
 
             await init.pageType(page, '#name', containerSecurityName);
-            // await init.selectDropdownValue(
-            //     '#resourceCategory',
-            //     categoryName,
-            //     page
-            // ); // add category
+            /*
+             * Await init.selectDropdownValue(
+             *     '#resourceCategory',
+             *     CategoryName,
+             *     Page
+             * ); // add category
+             */
 
             await init.pageClick(page, '#dockerCredential');
 
@@ -132,7 +136,7 @@ describe('Container Security Page', () => {
             );
             expect(containerSecurity).toBeDefined();
 
-            // find the edit button which appears only on the details page
+            // Find the edit button which appears only on the details page
 
             const editContainerElement: $TSFixMe =
                 await init.pageWaitForSelector(
@@ -141,14 +145,16 @@ describe('Container Security Page', () => {
                 );
             expect(editContainerElement).toBeDefined();
 
-            // confirm the category shows in the details page.
-            // let spanElement: $TSFixMe = await init.page$(
-            //     page,
-            //     `#${containerSecurityName}-badge`
-            // );
-            // spanElement = await spanElement.getProperty('innerText');
-            // spanElement = await spanElement.jsonValue();
-            // spanElement.should.be.exactly(categoryName.toUpperCase());
+            /*
+             * Confirm the category shows in the details page.
+             * Let spanElement: $TSFixMe = await init.page$(
+             *     Page,
+             *     `#${containerSecurityName}-badge`
+             * );
+             * SpanElement = await spanElement.getProperty('innerText');
+             * SpanElement = await spanElement.jsonValue();
+             * SpanElement.should.be.exactly(categoryName.toUpperCase());
+             */
 
             done();
         },
@@ -353,8 +359,10 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // make sure the added container security
-            // have atlest one security vulnerability
+            /*
+             * Make sure the added container security
+             * Have atlest one security vulnerability
+             */
 
             const logs: $TSFixMe = await init.page$$(
                 page,

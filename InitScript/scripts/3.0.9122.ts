@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const incomingRequestCollection: string = 'incomingrequests';
 
-// run this script once
+// Run this script once
 async function run(): void {
     const incomingRequests: $TSFixMe = await find(incomingRequestCollection, {
         deleted: false,

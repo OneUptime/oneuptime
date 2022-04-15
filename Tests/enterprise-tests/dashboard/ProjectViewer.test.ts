@@ -3,7 +3,7 @@ import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const subProjectName: string = utils.generateRandomString();
@@ -30,7 +30,7 @@ describe('Sub-Project API', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerEnterpriseUser(user, page);
         await init.createUserFromAdminDashboard(projectViewer, page);
         done();

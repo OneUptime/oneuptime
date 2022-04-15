@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import data from './data/user';
 const profile: $TSFixMe = require('./data/user').profile;
@@ -6,7 +6,7 @@ import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-// import decode from 'urldecode' unused
+// Import decode from 'urldecode' unused
 import queryString from 'query-string';
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
@@ -155,7 +155,7 @@ describe('User API', function (): void {
         );
     });
 
-    // post '/user/login'
+    // Post '/user/login'
 
     it('should not login when email is null', (done: $TSFixMe): void => {
         request
@@ -170,7 +170,7 @@ describe('User API', function (): void {
             });
     });
 
-    // post '/user/login'
+    // Post '/user/login'
 
     it('should not login when password is null', (done: $TSFixMe): void => {
         request
@@ -293,7 +293,7 @@ describe('User API', function (): void {
             });
     });
 
-    // post '/user/reset-password'
+    // Post '/user/reset-password'
 
     it('should not accept `/user/reset-password` request when token is null', (done: $TSFixMe): void => {
         request
@@ -308,7 +308,7 @@ describe('User API', function (): void {
             });
     });
 
-    // post '/user/reset-password'
+    // Post '/user/reset-password'
 
     it('should not accept `/user/reset-password` request when password is null', (done: $TSFixMe): void => {
         request

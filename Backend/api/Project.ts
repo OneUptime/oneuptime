@@ -27,11 +27,13 @@ import Exception from 'Common/Types/Exception/Exception';
 import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthorization';
 import ErrorService from 'CommonServer/Utils/error';
 
-// Route
-// Description: Creating new Porject by Admin.
-// Params:
-// Param 1: req.body-> {project_name}; req.headers-> {token}
-// Returns: 200: Project Details; 400: Error.
+/*
+ * Route
+ * Description: Creating new Porject by Admin.
+ * Params:
+ * Param 1: req.body-> {project_name}; req.headers-> {token}
+ * Returns: 200: Project Details; 400: Error.
+ */
 router.post(
     '/create',
     getUser,
@@ -84,7 +86,7 @@ router.post(
             const userId: $TSFixMe = req.user ? req.user.id : null;
             data.userId = userId;
 
-            // check if user has a project with provided name already
+            // Check if user has a project with provided name already
             const countProject: $TSFixMe = await ProjectService.countBy({
                 name: projectName,
                 'users.userId': userId,
@@ -227,17 +229,19 @@ router.post(
     }
 );
 
-// Description: Fetching project records.
-// Params:
-// Param 1: req.headers-> {token};
-// Returns: 200: [{project}]; 400: Error.
+/*
+ * Description: Fetching project records.
+ * Params:
+ * Param 1: req.headers-> {token};
+ * Returns: 200: [{project}]; 400: Error.
+ */
 router.get(
     '/projects',
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            // find user subprojects and parent projects
+            // Find user subprojects and parent projects
 
             const userProjects: $TSFixMe = await ProjectService.findBy({
                 query: { 'users.userId': userId },
@@ -271,7 +275,7 @@ router.get(
                 });
             }
 
-            // query data
+            // Query data
             const query: $TSFixMe = {
                 $or: [
                     { _id: { $in: parentProjectIds } },
@@ -295,8 +299,8 @@ router.get(
             const [response, count]: $TSFixMe = await Promise.all([
                 ProjectService.findBy({
                     query,
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     populate,
                     select,
                 }),
@@ -310,9 +314,11 @@ router.get(
     }
 );
 
-//Description: Get project balance of a project
-// Param 1: req.headers-> {token}; req.params-> {projectId};
-//Returns: 200: {projectBalance}; 400: Error.
+/*
+ * Description: Get project balance of a project
+ *  Param 1: req.headers-> {token}; req.params-> {projectId};
+ * Returns: 200: {projectBalance}; 400: Error.
+ */
 router.get(
     '/:projectId/balance',
     getUser,
@@ -336,10 +342,12 @@ router.get(
     }
 );
 
-// Description: Resetting the API key of a project.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId};
-// Returns: 200: {project}; 400: Error.
+/*
+ * Description: Resetting the API key of a project.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId};
+ * Returns: 200: {project}; 400: Error.
+ */
 router.get(
     '/:projectId/resetToken',
     getUser,
@@ -364,10 +372,12 @@ router.get(
     }
 );
 
-// Description: Renaming a project.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName}
-// Returns: 200: {project}; 400: Error.
+/*
+ * Description: Renaming a project.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName}
+ * Returns: 200: {project}; 400: Error.
+ */
 router.put(
     '/:projectId/renameProject',
     getUser,
@@ -402,10 +412,12 @@ router.put(
     }
 );
 
-// Description: updating a project balance by admin.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId};
-// Returns: 200; 400: Error.
+/*
+ * Description: updating a project balance by admin.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId};
+ * Returns: 200; 400: Error.
+ */
 router.put(
     '/:projectId/updateBalance',
     getUser,
@@ -528,10 +540,12 @@ router.put(
     }
 );
 
-// Description: Deleting a project.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId};
-// Returns: 200; 400: Error.
+/*
+ * Description: Deleting a project.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId};
+ * Returns: 200; 400: Error.
+ */
 router.delete(
     '/:projectId/deleteProject',
     getUser,
@@ -593,9 +607,11 @@ router.delete(
     }
 );
 
-// delete a project from init script
-// once the subscription of a project is already deleted
-// the init script ensures we also deletes the project
+/*
+ * Delete a project from init script
+ * Once the subscription of a project is already deleted
+ * The init script ensures we also deletes the project
+ */
 router.delete(
     '/:projectId/initScript/deleteProject',
     ClusterKeyAuthorization.isAuthorizedService,
@@ -626,7 +642,7 @@ router.delete(
                 project = await ProjectService.deleteBy(
                     { _id: projectId },
                     userId,
-                    false // cancel sub should be false, since the subscription is already canceled by stripe
+                    false // Cancel sub should be false, since the subscription is already canceled by stripe
                 );
             }
 
@@ -637,10 +653,12 @@ router.delete(
     }
 );
 
-// Description: Changing Suscription Plan for a project.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName, planId, oldPlan, newPlan}
-// Returns: 200: {project}; 400: Error.
+/*
+ * Description: Changing Suscription Plan for a project.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName, planId, oldPlan, newPlan}
+ * Returns: 200: {project}; 400: Error.
+ */
 router.post(
     '/:projectId/changePlan',
     getUser,
@@ -749,7 +767,7 @@ router.put(
             }
 
             if (planId === 'enterprise') {
-                // run all the upgrade here for enterprise plan
+                // Run all the upgrade here for enterprise plan
                 const response: $TSFixMe =
                     await ProjectService.upgradeToEnterprise(projectId);
                 return sendItemResponse(req, res, response);
@@ -799,10 +817,12 @@ router.put(
     }
 );
 
-// Description: Emailing OneUptime Support to upgrade to Enterprise Plan after maxing out of Pro Plan.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName, planId, oldPlan}
-// Returns: 200: {project}; 400: Error.
+/*
+ * Description: Emailing OneUptime Support to upgrade to Enterprise Plan after maxing out of Pro Plan.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId}; req.body-> {projectName, planId, oldPlan}
+ * Returns: 200: {project}; 400: Error.
+ */
 router.post(
     '/:projectId/upgradeToEnterprise',
     getUser,
@@ -861,10 +881,12 @@ router.post(
     }
 );
 
-// Description: Removing team member by Project Admin.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId, userId}
-// Returns: 200: "User successfully removed"; 400: Error.
+/*
+ * Description: Removing team member by Project Admin.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId, userId}
+ * Returns: 200: "User successfully removed"; 400: Error.
+ */
 router.delete(
     '/:projectId/user/:userId/exitProject',
     getUser,
@@ -886,10 +908,12 @@ router.delete(
     }
 );
 
-// Description: Creating a new subproject by Project Admin.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId, userId}
-// Returns: 200: subproject;
+/*
+ * Description: Creating a new subproject by Project Admin.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId, userId}
+ * Returns: 200: subproject;
+ */
 router.post(
     '/:projectId/subProject',
     getUser,
@@ -914,7 +938,7 @@ router.post(
                     message: 'Subproject name is not in string format.',
                 });
             }
-            // check if project has a sub-project with provided name
+            // Check if project has a sub-project with provided name
             const countSubProject: $TSFixMe = await ProjectService.countBy({
                 name: subProjectName,
                 parentProjectId: parentProjectId,
@@ -979,10 +1003,12 @@ router.delete(
     }
 );
 
-// Description: Fetch all subprojects.
-// Params:
-// Param 1: req.headers-> {token}; req.params-> {projectId, userId}
-// Returns: 200: [...subprojects];
+/*
+ * Description: Fetch all subprojects.
+ * Params:
+ * Param 1: req.headers-> {token}; req.params-> {projectId, userId}
+ * Returns: 200: [...subprojects];
+ */
 router.get(
     '/:projectId/subProjects',
     getUser,
@@ -993,8 +1019,8 @@ router.get(
             const parentProjectId: $TSFixMe = req.params.projectId;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const populate: $TSFixMe = [
                 { path: 'parentProjectId', select: 'name' },
             ];
@@ -1027,8 +1053,8 @@ router.get(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.params.userId;
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const { projects, count }: $TSFixMe =
                 await ProjectService.getUserProjects(userId, skip, limit);
             return sendListResponse(req, res, projects, count);
@@ -1044,8 +1070,8 @@ router.get(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const [projects, count]: $TSFixMe = await Promise.all([
                 ProjectService.getAllProjects(skip, limit),
                 ProjectService.countBy({
@@ -1223,7 +1249,7 @@ router.put(
                     message: 'SubProject Name must be present.',
                 });
             }
-            // check if project has a sub-project with provided name
+            // Check if project has a sub-project with provided name
             const count: $TSFixMe = await ProjectService.countBy({
                 name: subProjectName,
                 parentProjectId,
@@ -1307,8 +1333,8 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const filter: $TSFixMe = req.body.filter;
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const [users, count]: $TSFixMe = await Promise.all([
                 ProjectService.searchProjects(
                     {

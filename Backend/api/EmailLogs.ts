@@ -23,8 +23,8 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const query: $TSFixMe = {};
-            const skip: $TSFixMe = req.query['skip'];
-            const limit: $TSFixMe = req.query['limit'];
+            const skip: $TSFixMe = req.query.skip;
+            const limit: $TSFixMe = req.query.limit;
             const selectEmailStatus: $TSFixMe =
                 'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
@@ -185,8 +185,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const filter: $TSFixMe = req.body.filter;
-            const skip: $TSFixMe = req.query['skip'];
-            const limit: $TSFixMe = req.query['limit'];
+            const skip: $TSFixMe = req.query.skip;
+            const limit: $TSFixMe = req.query.limit;
 
             const { searchedEmailLogs, totalSearchCount }: $TSFixMe =
                 await EmailLogsService.search({ filter, skip, limit });

@@ -5,8 +5,10 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/errorTracker';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-//Create new error tracker
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Create new error tracker
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export function createErrorTracker(
     projectId: ObjectID,
     componentId: $TSFixMe,
@@ -311,8 +313,10 @@ export const setCurrentErrorEvent: Function = (
     };
 };
 
-//Delete an errorTrackeer
-//props -> {name: '', type, data -> { data.url}}
+/*
+ * Delete an errorTrackeer
+ * Props -> {name: '', type, data -> { data.url}}
+ */
 export function deleteErrorTracker(
     projectId: ObjectID,
     componentId: $TSFixMe,

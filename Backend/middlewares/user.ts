@@ -1,4 +1,4 @@
-const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
+const jwtSecretKey: $TSFixMe = process.env.JWT_SECRET;
 import {
     ExpressResponse,
     ExpressRequest,
@@ -15,10 +15,12 @@ import apiMiddleware from '../middlewares/api';
 import { getPlanById } from '../config/plans';
 
 const _this: $TSFixMe = {
-    // Description: Checking if user is authorized to access the page and decode jwt to get user data.
-    // Params:
-    // Param 1: req.headers-> {token}
-    // Returns: 400: User is unauthorized since unauthorized token was present.
+    /*
+     * Description: Checking if user is authorized to access the page and decode jwt to get user data.
+     * Params:
+     * Param 1: req.headers-> {token}
+     * Returns: 400: User is unauthorized since unauthorized token was present.
+     */
 
     getUser: async function (
         req: ExpressRequest,
@@ -41,7 +43,7 @@ const _this: $TSFixMe = {
         }
 
         const accessToken: $TSFixMe =
-            req.headers['authorization'] ||
+            req.headers.authorization ||
             url.parse(req.url, true).query.accessToken;
 
         if (!accessToken) {
@@ -121,7 +123,7 @@ const _this: $TSFixMe = {
         next: NextFunction
     ) {
         const accessToken: $TSFixMe =
-            req.headers['authorization'] ||
+            req.headers.authorization ||
             url.parse(req.url, true).query.accessToken;
 
         if (!accessToken) {
@@ -166,7 +168,7 @@ const _this: $TSFixMe = {
         next: NextFunction
     ) {
         const accessToken: $TSFixMe =
-            req.headers['authorization'] ||
+            req.headers.authorization ||
             url.parse(req.url, true).query.accessToken;
         if (!accessToken) {
             req.user = null;

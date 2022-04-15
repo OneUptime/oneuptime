@@ -120,7 +120,7 @@ app.use(
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// enable trust proxy
+// Enable trust proxy
 
 app.set('trust proxy', true);
 

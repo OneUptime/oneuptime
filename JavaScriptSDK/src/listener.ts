@@ -41,23 +41,23 @@ class OneUptimeListener {
         this._setUpXhrListener();
     }
     public getTimeline(): void {
-        // this always get the current state of the timeline array
+        // This always get the current state of the timeline array
         return this.timelineObj.getTimeline();
     }
     public clearTimeline(eventId: $TSFixMe): void {
-        // set a new eventId
+        // Set a new eventId
         this.currentEventId = eventId;
-        // this will reset the state of the timeline array
+        // This will reset the state of the timeline array
         return this.timelineObj.clearTimeline();
     }
-    // set up console listener
+    // Set up console listener
     private _setUpConsoleListener(): void {
-        // set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
+        // Set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
         const console: Function = (function (oldCons: $TSFixMe): void {
             return {
                 log: function (text: $TSFixMe): void {
                     oldCons.log(text);
-                    // this._logConsoleEvent(text, this.utilObj.getErrorType().INFO);
+                    // This._logConsoleEvent(text, this.utilObj.getErrorType().INFO);
                 },
                 info: function (text: $TSFixMe): void {
                     oldCons.info(text);
@@ -86,24 +86,24 @@ class OneUptimeListener {
 
         global.console = console;
     }
-    // set up dom listener
+    // Set up dom listener
     private _setUpDomListener(): void {
         Object.keys(window).forEach((key: $TSFixMe) => {
             if (/^on(keypress|click)/.test(key)) {
                 window.addEventListener(key.slice(2), (event: $TSFixMe) => {
                     if (!this.keypressTimeout) {
-                        // confirm the event is new
+                        // Confirm the event is new
                         if (this.lastEvent === event) {
                             return;
                         }
                         this.lastEvent = event;
-                        // set up how to send this log to the server
+                        // Set up how to send this log to the server
                         this._logClickEvent(
                             event,
                             this.utilObj.getErrorType().INFO
                         );
                     }
-                    // not logging cus of timeout
+                    // Not logging cus of timeout
 
                     clearTimeout(this.keypressTimeout);
 
@@ -114,7 +114,7 @@ class OneUptimeListener {
             }
         });
     }
-    // set up xhr listener
+    // Set up xhr listener
     private _setUpXhrListener(): void {
         const open: $TSFixMe = window.XMLHttpRequest.prototype.open;
 
@@ -129,35 +129,35 @@ class OneUptimeListener {
                 status_code: '',
             };
             this.addEventListener('load', function (thisObj: $TSFixMe): void {
-                // check if it is not a request to OneUptime servers
+                // Check if it is not a request to OneUptime servers
                 if (!url.startsWith(this.BASE_URL)) {
                     obj.status_code = thisObj.status;
                     this._logXHREvent(obj, this.utilObj.getErrorType().INFO);
                 }
             });
             this.addEventListener('error', function (thisObj: $TSFixMe): void {
-                // check if it is not a request to OneUptime servers
+                // Check if it is not a request to OneUptime servers
                 if (!url.startsWith(this.BASE_URL)) {
                     obj.status_code = thisObj.status;
                     this._logXHREvent(obj, this.utilObj.getErrorType().INFO);
                 }
             });
 
-            // set up how to send this log to the server to take this log
+            // Set up how to send this log to the server to take this log
 
             return open.apply(this, arguments);
         }
 
         window.XMLHttpRequest.prototype.open = openReplacement;
     }
-    // set up fetch listener
+    // Set up fetch listener
     private _setUpFetchListener(): void {
         const currentFetch: $TSFixMe = global.fetch;
 
         global.fetch = function (url, options): void {
             const obj: $TSFixMe = {
                 url,
-                method: options ? options.method : 'GET', // get request doesnt have a method on fetch, so its set as default
+                method: options ? options.method : 'GET', // Get request doesnt have a method on fetch, so its set as default
                 status_code: '',
             };
             const promise: Promise = currentFetch(url, options);
@@ -197,7 +197,7 @@ class OneUptimeListener {
                     switch (eventName) {
                         case 'response': {
                             response.on('end', () => {
-                                // get status from final response
+                                // Get status from final response
                                 log.status = response.statusCode;
                                 if (!log.url.startsWith(this.BASE_URL)) {
                                     this._logHttpRequestEvent(
@@ -210,7 +210,7 @@ class OneUptimeListener {
                     }
                     return emit.apply(this, arguments);
                 };
-                // return the original call
+                // Return the original call
                 return req;
             }
             module.request = wrapper;
@@ -241,7 +241,7 @@ class OneUptimeListener {
             type,
             eventId: this.currentEventId,
         };
-        // add timeline to the stack
+        // Add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
     private _logXHREvent(content: $TSFixMe, type: $TSFixMe): void {
@@ -253,7 +253,7 @@ class OneUptimeListener {
             type,
             eventId: this.currentEventId,
         };
-        // add timeline to the stack
+        // Add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
     private _logFetchEvent(content: $TSFixMe, type: $TSFixMe): void {
@@ -265,7 +265,7 @@ class OneUptimeListener {
             type,
             eventId: this.currentEventId,
         };
-        // add timeline to the stack
+        // Add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
     private _logHttpRequestEvent(content: $TSFixMe, type: $TSFixMe): void {
@@ -277,7 +277,7 @@ class OneUptimeListener {
             type,
             eventId: this.currentEventId,
         };
-        // add timeline to the stack
+        // Add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
     public logErrorEvent(content: $TSFixMe, category = 'exception'): void {
@@ -289,17 +289,17 @@ class OneUptimeListener {
             type: this.utilObj.getErrorType().ERROR,
             eventId: this.currentEventId,
         };
-        // add timeline to the stack
+        // Add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
     public logCustomTimelineEvent(timelineObj: $TSFixMe): void {
         timelineObj.eventId = this.currentEventId;
 
-        // add timeline to the stack
+        // Add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
     private _logClickEvent(event: $TSFixMe, type: $TSFixMe): void {
-        // preepare the event tree
+        // Preepare the event tree
         const content: $TSFixMe = this._getEventTree(event);
         const timelineObj: $TSFixMe = {
             category: `ui.${event.type}`,
@@ -309,35 +309,35 @@ class OneUptimeListener {
             type,
             eventId: this.currentEventId,
         };
-        // add timeline to the stack
+        // Add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
     private _getEventTree(event: $TSFixMe): void {
         const tree: $TSFixMe = [];
-        const MAX_UP_TREE: $TSFixMe = 5; // we just want to go up the DOM for 5 times
+        const MAX_UP_TREE: $TSFixMe = 5; // We just want to go up the DOM for 5 times
         let current: $TSFixMe = 0;
         const fullPath: $TSFixMe = [];
         while (current < MAX_UP_TREE && event.path[current]) {
-            // the current element has a path and we havent got up to 5 items, and its not an html tag
+            // The current element has a path and we havent got up to 5 items, and its not an html tag
             const currentElem: $TSFixMe = event.path[current];
             if (currentElem.localName !== 'html') {
                 let elementPath: $TSFixMe = '';
 
                 elementPath += `${currentElem.localName}`;
-                // attach ID if it has
+                // Attach ID if it has
                 if (currentElem.id) {
                     elementPath += `${currentElem.id}`;
                 }
-                // for classes
+                // For classes
                 let classes: $TSFixMe = [];
-                classes = currentElem.classList; // get all classes
+                classes = currentElem.classList; // Get all classes
                 let classesForElement: $TSFixMe = '';
                 classes.forEach((element: $TSFixMe) => {
                     classesForElement += `.${element}`;
                 });
                 elementPath += classesForElement;
 
-                // get attributes
+                // Get attributes
                 const attributes: $TSFixMe =
                     this._getElementAttributes(currentElem);
                 if (attributes.length > 0) {
@@ -356,7 +356,7 @@ class OneUptimeListener {
                     }
                 }
                 fullPath.push(elementPath);
-                // setting up the whole object for the element
+                // Setting up the whole object for the element
                 tree.push({
                     name: currentElem.localName,
                     class: classes,
@@ -364,22 +364,22 @@ class OneUptimeListener {
                 });
             }
 
-            // increate the counter
+            // Increate the counter
             current = current + 1;
         }
         let path: $TSFixMe = fullPath.reverse();
 
         path = path.join(' > ');
-        return { tree, path }; // return the final tree which contains a max of 5 elements
+        return { tree, path }; // Return the final tree which contains a max of 5 elements
     }
     private _getElementAttributes(elem: $TSFixMe): void {
         const attributes: $TSFixMe = [];
-        const elementAtrributes: $TSFixMe = elem.attributes; // get all the attritubtes related to the element
-        const excludedAttributes: $TSFixMe = ['class', 'value']; // exclude items that are nnot needed
+        const elementAtrributes: $TSFixMe = elem.attributes; // Get all the attritubtes related to the element
+        const excludedAttributes: $TSFixMe = ['class', 'value']; // Exclude items that are nnot needed
 
         for (const [, value] of Object.entries(elementAtrributes)) {
             if (!excludedAttributes.includes(value.name)) {
-                // if each attribute doesnt exist in the excluded one, we get the value and make an object
+                // If each attribute doesnt exist in the excluded one, we get the value and make an object
 
                 const attribute: $TSFixMe = elem[value.name];
                 attributes.push({
@@ -388,7 +388,7 @@ class OneUptimeListener {
                 });
             }
         }
-        return attributes; // return the final list of attributes
+        return attributes; // Return the final list of attributes
     }
 }
 export default OneUptimeListener;

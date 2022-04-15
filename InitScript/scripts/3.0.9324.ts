@@ -5,14 +5,14 @@ const monitorCollection: string = 'monitors';
 const incidentCollection: string = 'incidents';
 
 async function run(): void {
-    // fetch all monitor that is not online
+    // Fetch all monitor that is not online
     const monitors: $TSFixMe = await find(monitorCollection, {
         monitorStatus: { $ne: 'online' },
         deleted: false,
     });
 
     for (const monitor of monitors) {
-        // check if there's no unresolved incident
+        // Check if there's no unresolved incident
         const query: $TSFixMe = {
             deleted: false,
 
@@ -22,10 +22,10 @@ async function run(): void {
         const incidents: $TSFixMe = await global.db
             .collection(incidentCollection)
             .find(query)
-            .limit(1) // should return only one item if it exist
+            .limit(1) // Should return only one item if it exist
             .toArray();
 
-        // grab the latest incident and check if it's resolved
+        // Grab the latest incident and check if it's resolved
         const incident: $TSFixMe = incidents[0];
         if (incident && incident.resolved) {
             await update(

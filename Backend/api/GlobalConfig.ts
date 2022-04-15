@@ -16,9 +16,11 @@ const isUserMasterAdmin: $TSFixMe =
     require('../middlewares/user').isUserMasterAdmin;
 import twilioService from '../services/twilioService';
 
-// Route Description: Creating global config(s).
-// Body: [{name, value}] | {name, value}
-// Return: [{name, value, createdAt}] | {name, value, createdAt}
+/*
+ * Route Description: Creating global config(s).
+ * Body: [{name, value}] | {name, value}
+ * Return: [{name, value, createdAt}] | {name, value, createdAt}
+ */
 
 router.post(
     '/',
@@ -71,7 +73,7 @@ router.post(
                     const data: $TSFixMe = {
                         accountSid: value['account-sid'],
                         authToken: value['authentication-token'],
-                        phoneNumber: value['phone'],
+                        phoneNumber: value.phone,
                     };
                     await twilioService.test(data);
                 }
@@ -109,9 +111,11 @@ router.post(
     }
 );
 
-// Route Description: Getting global configs.
-// Params: [name];
-// Return: [{name, value, createdAt}]
+/*
+ * Route Description: Getting global configs.
+ * Params: [name];
+ * Return: [{name, value, createdAt}]
+ */
 
 router.post(
     '/configs',
@@ -141,9 +145,11 @@ router.post(
     }
 );
 
-// Route Description: Getting global config by name.
-// Params: {name};
-// Return: {name, value, createdAt}
+/*
+ * Route Description: Getting global config by name.
+ * Params: {name};
+ * Return: {name, value, createdAt}
+ */
 
 router.get(
     '/:name',

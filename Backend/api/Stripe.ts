@@ -23,11 +23,13 @@ import ProjectService from '../services/projectService';
 
 const router: $TSFixMe = express.getRouter();
 
-// Route
-// Description: Getting events from stripe via webhooks.
-// Params:
-// Param 1: webhookURL
-// Returns: 200: Event object with various status.
+/*
+ * Route
+ * Description: Getting events from stripe via webhooks.
+ * Params:
+ * Param 1: webhookURL
+ * Returns: 200: Event object with various status.
+ */
 router.post('/events', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const event: $TSFixMe = req.body;

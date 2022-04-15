@@ -10,7 +10,8 @@ const user: $TSFixMe = {
 const gitUsername: $TSFixMe = utils.gitCredential.gitUsername;
 const gitPassword: $TSFixMe = utils.gitCredential.gitPassword;
 
-/** This is a test to check:
+/**
+ * This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
  */

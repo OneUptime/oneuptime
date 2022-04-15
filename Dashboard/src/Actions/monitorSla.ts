@@ -206,7 +206,7 @@ export const deleteMonitorSla: $TSFixMe = (
     };
 };
 
-// set active monitor sla
+// Set active monitor sla
 export const setActiveMonitorSla: Function = (monitorSlaId: $TSFixMe): void => {
     return {
         type: types.SET_ACTIVE_MONITOR_SLA,

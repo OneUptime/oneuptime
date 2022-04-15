@@ -23,7 +23,7 @@ async function run(): void {
             default: false,
         };
 
-        // add default criterion
+        // Add default criterion
         newDownCriteria.push({
             createAlert:
                 monitor.criteria && monitor.criteria.down

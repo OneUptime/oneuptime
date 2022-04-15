@@ -122,7 +122,7 @@ export default class TwilioService {
                     await AlertService.checkPhoneAlertsLimit(projectId);
                 if (alertLimit) {
                     options.from = creds.phone;
-                    // create incidentSMSAction entry for matching sms from twilio.
+                    // Create incidentSMSAction entry for matching sms from twilio.
                     const incidentSMSAction: $TSFixMe =
                         new incidentSMSActionModel();
 

@@ -34,10 +34,12 @@ export default {
                 'iv',
             ];
 
-            // Audit logging is attached to res 'finish' event, because of below reasons.
-            //    - To get 'projectId' value if available. (Mostly passed as route parameter)
-            //    - To access 'res.logBody' which is added in 'response' middlewares.
-            //    - Also for some resason when run inside docker container only req.end and res.finish get emmited.
+            /*
+             * Audit logging is attached to res 'finish' event, because of below reasons.
+             *    - To get 'projectId' value if available. (Mostly passed as route parameter)
+             *    - To access 'res.logBody' which is added in 'response' middlewares.
+             *    - Also for some resason when run inside docker container only req.end and res.finish get emmited.
+             */
             res.on('finish', async () => {
                 let userId: $TSFixMe =
                     req.user && req.user.id ? req.user.id : null;
@@ -53,15 +55,15 @@ export default {
                             select: 'value',
                         });
 
-                    // check if the global config has auditLog flag and is storing logs before trying to store logs
+                    // Check if the global config has auditLog flag and is storing logs before trying to store logs
                     shouldStoreLogs = !(
                         auditLogStatus && !auditLogStatus.value
                     );
                 }
 
-                //  skip storing if audit log config exist and it is not storing
+                //  Skip storing if audit log config exist and it is not storing
                 if (shouldStoreLogs) {
-                    // store logs if storing
+                    // Store logs if storing
                     const parsedUrl: $TSFixMe = url.parse(req.originalUrl);
 
                     // Avoiding logging any audit data, if its a blacklisted url/route.
@@ -103,7 +105,7 @@ export default {
                     }
 
                     const apiRequestDetails: $TSFixMe = {
-                        apiSection: parsedUrl.pathname, // url path without any query strings.
+                        apiSection: parsedUrl.pathname, // Url path without any query strings.
                         apiUrl: modifiedReq.originalUrl,
                         protocol: modifiedReq.protocol,
                         hostname: modifiedReq.hostname,

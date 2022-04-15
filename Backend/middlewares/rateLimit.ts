@@ -8,8 +8,8 @@ const {
 
 const limiter: $TSFixMe = rateLimit({
     store: new redisStore({
-        redisURL: `//${process.env['REDIS_HOST']}`,
-        expiry: Number(RATE_LIMITTER_TIME_PERIOD_IN_MS) / 1000, // convert to seconds, same as windowMs
+        redisURL: `//${process.env.REDIS_HOST}`,
+        expiry: Number(RATE_LIMITTER_TIME_PERIOD_IN_MS) / 1000, // Convert to seconds, same as windowMs
     }),
     max: Number(RATE_LIMITTER_REQUEST_LIMIT),
     keyGenerator: function (req: $TSFixMe): void {

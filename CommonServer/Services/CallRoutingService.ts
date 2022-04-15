@@ -77,7 +77,7 @@ class Service extends DatabaseService<typeof Model> {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const numbers: $TSFixMe = await Model.findOneAndUpdate(
             query,
             {
@@ -277,8 +277,8 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     public async chargeRoutedCall(projectId: ObjectID, body: $TSFixMe): void {
-        const callSid: $TSFixMe = body['CallSid'];
-        const callStatus: $TSFixMe = body['CallStatus'] || null;
+        const callSid: $TSFixMe = body.CallSid;
+        const callStatus: $TSFixMe = body.CallStatus || null;
         const callDetails: $TSFixMe = await TwilioService.getCallDetails(
             projectId,
             callSid
@@ -346,11 +346,11 @@ class Service extends DatabaseService<typeof Model> {
         body: $TSFixMe,
         backup: $TSFixMe
     ): void {
-        const fromNumber: $TSFixMe = body['From'];
-        const callSid: $TSFixMe = body['CallSid'];
-        const dialCallSid: $TSFixMe = body['DialCallSid'] || null;
-        const callStatus: $TSFixMe = body['CallStatus'] || null;
-        const dialCallStatus: $TSFixMe = body['DialCallStatus'] || null;
+        const fromNumber: $TSFixMe = body.From;
+        const callSid: $TSFixMe = body.CallSid;
+        const dialCallSid: $TSFixMe = body.DialCallSid || null;
+        const callStatus: $TSFixMe = body.CallStatus || null;
+        const dialCallStatus: $TSFixMe = body.DialCallStatus || null;
 
         const project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: data.projectId },

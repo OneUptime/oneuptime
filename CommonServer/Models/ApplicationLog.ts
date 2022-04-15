@@ -11,7 +11,7 @@ const schema: $TSFixMe = new Schema({
         ref: 'Component',
         alias: 'component',
         index: true,
-    }, //which component this application log belongs to.
+    }, //Which component this application log belongs to.
     name: String,
     slug: { type: String, index: true },
     key: String,
@@ -24,7 +24,7 @@ const schema: $TSFixMe = new Schema({
         type: Boolean,
         default: true,
     },
-    createdById: { type: String, ref: 'User', index: true }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //UserId.
     createdAt: {
         type: Date,
         default: Date.now,

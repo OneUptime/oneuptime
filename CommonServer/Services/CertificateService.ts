@@ -15,8 +15,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const certificateQuery: $TSFixMe = CertificateModel.findOne(query)
@@ -58,8 +58,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const certificateQuery: $TSFixMe = CertificateModel.find(query)
@@ -80,7 +80,7 @@ export default class Service {
             query = {};
         }
 
-        // if (!query['deleted']) query['deleted'] = false;
+        // If (!query['deleted']) query['deleted'] = false;
 
         let certificate: $TSFixMe = await CertificateModel.findOneAndUpdate(
             query,
@@ -114,8 +114,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await CertificateModel.countDocuments(query);
         return count;

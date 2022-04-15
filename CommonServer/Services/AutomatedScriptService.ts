@@ -4,7 +4,7 @@ import ScriptModelLog from '../Models/automationScriptsLog';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BackendAPI from '../Utils/api';
 import getSlug from '../Utils/getSlug';
-const scriptBaseUrl: $TSFixMe = process.env['SCRIPT_RUNNER_URL'];
+const scriptBaseUrl: $TSFixMe = process.env.SCRIPT_RUNNER_URL;
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
@@ -39,7 +39,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
 
         const sortDataListQuery: $TSFixMe = ScriptModel.find(query)
             .sort(sort)
@@ -57,7 +57,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await ScriptModel.countDocuments(query);
         return count;
     }
@@ -66,7 +66,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await ScriptModelLog.countDocuments(query);
         return count;
     }
@@ -119,7 +119,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const response: $TSFixMe = ScriptModel.findOneAndUpdate(
             query,
             {
@@ -155,7 +155,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const response: $TSFixMe = await ScriptModelLog.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -171,7 +171,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const responseQuery: $TSFixMe = ScriptModel.findOne(query)
             .sort(sort)
             .lean();
@@ -236,7 +236,7 @@ export default class Service {
         }
         const events: $TSFixMe = Array.isArray(resources)
             ? resources
-            : [resources]; // object property => {callSchedule?, automatedScript?}
+            : [resources]; // Object property => {callSchedule?, automatedScript?}
         const eventPromises: $TSFixMe = events.map((event: $TSFixMe) => {
             let resourceType: $TSFixMe;
             if (event.automatedScript) {
@@ -373,7 +373,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const response: $TSFixMe = await ScriptModel.findOneAndUpdate(
             query,
             {

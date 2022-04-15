@@ -73,7 +73,7 @@ export default {
                     : project._id
                 : incidentTimeline.projectId._id || incidentTimeline.projectId;
 
-            // realtime update
+            // Realtime update
             post(
                 `${realtimeBaseUrl}/update-incident-timeline`,
                 {

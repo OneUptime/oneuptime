@@ -12,14 +12,16 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-// Route
-// Description: reset refresh token and access token.
-// Params:
-// Param 1: req.body-> {refreshToken};
-// Returns: 400: Error; 500: Server Error; 200: {
-//                                                   jwtAccessToken: token.accessToken,
-//                                                   jwtRefreshToken: token.refreshToken,
-//                                               }
+/*
+ * Route
+ * Description: reset refresh token and access token.
+ * Params:
+ * Param 1: req.body-> {refreshToken};
+ * Returns: 400: Error; 500: Server Error; 200: {
+ *                                                   JwtAccessToken: token.accessToken,
+ *                                                   JwtRefreshToken: token.refreshToken,
+ *                                               }
+ */
 router.post('/new', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const jwtRefreshToken: $TSFixMe = req.body.refreshToken;

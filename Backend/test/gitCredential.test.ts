@@ -1,6 +1,6 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
+process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 const expect: $TSFixMe = chai.expect;
@@ -155,7 +155,7 @@ describe('Git Credential API', function (): void {
 
     it('should not create git credential with an existing git user in a project', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const gitUsername: string = 'anotherUsername'; // an existing username
+        const gitUsername: string = 'anotherUsername'; // An existing username
         const gitPassword: string = 'password';
 
         request
@@ -216,7 +216,7 @@ describe('Git Credential API', function (): void {
 
     it('should not remove a non-existing git credential', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const credentialId: string = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
+        const credentialId: string = '5e8db97b2cc46e3a229ebc62'; // Non-existing credential id
 
         request
             .delete(`/credential/${projectId}/gitCredential/${credentialId}`)

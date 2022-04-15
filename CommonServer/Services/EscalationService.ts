@@ -37,8 +37,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const escalationsQuery: $TSFixMe = EscalationModel.find(query)
             .lean()
@@ -58,8 +58,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const escalationQuery: $TSFixMe = EscalationModel.findOne(query)
             .sort(sort)
@@ -108,7 +108,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await EscalationModel.countDocuments(query);
         return count;
     }
@@ -135,8 +135,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const escalation: $TSFixMe = await EscalationModel.findOneAndUpdate(
             query,
@@ -155,8 +155,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedData: $TSFixMe = await EscalationModel.updateMany(query, {
             $set: data,
@@ -203,10 +203,10 @@ export default class Service {
                     const teamMembers: $TSFixMe = team.teamMembers;
                     const filtered: $TSFixMe = teamMembers
                         .filter((meamber: $TSFixMe) => {
-                            return meamber['groupId'] !== memberId;
+                            return meamber.groupId !== memberId;
                         })
                         .filter((member: $TSFixMe) => {
-                            return member['userId'] !== memberId;
+                            return member.userId !== memberId;
                         });
                     newTeams.push({
                         _id: team._id,
@@ -332,7 +332,7 @@ function computeActiveTeams(escalation: $TSFixMe): void {
     if (rotateBy && rotateBy != '') {
         let intervalDifference: $TSFixMe = 0;
 
-        //convert rotation switch time to timezone.
+        //Convert rotation switch time to timezone.
         firstRotationOn = DateTime.changeDateTimezone(
             firstRotationOn,
             rotationTimezone
@@ -366,7 +366,7 @@ function computeActiveTeams(escalation: $TSFixMe): void {
         );
         let activeTeamRotationStartTime: $TSFixMe = null;
 
-        //if the first rotation hasn't kicked in yet.
+        //If the first rotation hasn't kicked in yet.
         if (DateTime.lessThan(currentDate, firstRotationOn)) {
             activeTeamRotationStartTime = createdAt;
         } else {

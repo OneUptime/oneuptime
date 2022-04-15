@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -152,7 +152,7 @@ describe('Error Tracker API', function (): void {
     it('should not return a list of error trackers under wrong component', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
-            .get(`/error-tracker/${projectId}/5ee8d7cc8701d678901ab908`) // wrong component ID
+            .get(`/error-tracker/${projectId}/5ee8d7cc8701d678901ab908`) // Wrong component ID
             .set('Authorization', authorization)
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
@@ -162,7 +162,7 @@ describe('Error Tracker API', function (): void {
                 done();
             });
     });
-    // reset api key
+    // Reset api key
 
     it('should reset error tracker key', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
@@ -174,13 +174,13 @@ describe('Error Tracker API', function (): void {
             .set('Authorization', authorization)
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
-                expect(res.body._id).to.be.equal(errorTracker._id); // same error tracker id
-                expect(res.body.key).to.not.be.equal(currentKey); // error tracker key has chaged
-                errorTracker.key = res.body.key; // update the new key.
+                expect(res.body._id).to.be.equal(errorTracker._id); // Same error tracker id
+                expect(res.body.key).to.not.be.equal(currentKey); // Error tracker key has chaged
+                errorTracker.key = res.body.key; // Update the new key.
                 done();
             });
     });
-    // edit error tracker details
+    // Edit error tracker details
 
     it('should update the current error tracker name', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
@@ -194,10 +194,10 @@ describe('Error Tracker API', function (): void {
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 const updatedErrorTracker: $TSFixMe = res.body;
-                expect(errorTracker._id).to.be.equal(updatedErrorTracker._id); // same id
-                expect(errorTracker.key).to.be.equal(updatedErrorTracker.key); // same key
-                expect(updatedErrorTracker.name).to.be.equal(appName); // change of name
-                errorTracker = updatedErrorTracker; // update the error track
+                expect(errorTracker._id).to.be.equal(updatedErrorTracker._id); // Same id
+                expect(errorTracker.key).to.be.equal(updatedErrorTracker.key); // Same key
+                expect(updatedErrorTracker.name).to.be.equal(appName); // Change of name
+                errorTracker = updatedErrorTracker; // Update the error track
                 done();
             });
     });
@@ -384,13 +384,13 @@ describe('Error Tracker API', function (): void {
             .send(sampleErrorEvent)
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
-                errorEvent = res.body; // save as an error event
+                errorEvent = res.body; // Save as an error event
 
                 expect(errorEvent.type).to.be.equal(sampleErrorEvent.type);
                 expect(errorEvent).to.have.property('fingerprintHash');
                 expect(errorEvent).to.have.property('issueId');
                 expect(errorEvent.errorTrackerId).to.be.equal(errorTracker._id);
-                issueCount = issueCount + 1; // increment number of new issue created
+                issueCount = issueCount + 1; // Increment number of new issue created
                 done();
             });
     });
@@ -416,7 +416,7 @@ describe('Error Tracker API', function (): void {
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
             .end((err: $TSFixMe, res: $TSFixMe): void => {
-                expect(res).to.have.status(200); // weve created an error event with the existing issue fingerprint
+                expect(res).to.have.status(200); // Weve created an error event with the existing issue fingerprint
                 expect(res.body.issueId).to.be.equal(errorEvent.issueId);
 
                 sampleErrorEvent.fingerprint = ['random', 'testing'];
@@ -426,7 +426,7 @@ describe('Error Tracker API', function (): void {
                     .send(sampleErrorEvent)
                     .end((err: $TSFixMe, res: $TSFixMe): void => {
                         expect(res).to.have.status(200);
-                        issueCount = issueCount + 1; // weve created a new issue entirely
+                        issueCount = issueCount + 1; // Weve created a new issue entirely
 
                         errorEventTwo = res.body;
                         expect(errorEventTwo.type).to.be.equal(errorEvent.type);
@@ -451,7 +451,7 @@ describe('Error Tracker API', function (): void {
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.data.errorTrackerIssues).to.be.an('array');
-                expect(res.body.data.count).to.be.equal(issueCount); // confirm the issue count is accurate
+                expect(res.body.data.count).to.be.equal(issueCount); // Confirm the issue count is accurate
                 done();
             });
     });
@@ -468,7 +468,7 @@ describe('Error Tracker API', function (): void {
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.data.errorTrackerIssues).to.be.an('array');
-                expect(res.body.data.count).to.be.equal(limit); // confirm the issue count is accurate based on the limit
+                expect(res.body.data.count).to.be.equal(limit); // Confirm the issue count is accurate based on the limit
                 done();
             });
     });
@@ -483,8 +483,8 @@ describe('Error Tracker API', function (): void {
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.errorEvent).to.be.an('object');
-                expect(res.body.previous).to.be.equal(null); // since this error event is the first, nothing should come before it
-                expect(res.body.next).to.have.property('_id'); // since we createdd another eevent after it, the next should have another event ID
+                expect(res.body.previous).to.be.equal(null); // Since this error event is the first, nothing should come before it
+                expect(res.body.next).to.have.property('_id'); // Since we createdd another eevent after it, the next should have another event ID
                 expect(res.body.totalEvents).to.be.equal(2);
                 done();
             });
@@ -552,7 +552,7 @@ describe('Error Tracker API', function (): void {
                         return issue._id === errorEvent.issueId;
                     }
                 )[0];
-                // expect it to have value of the user that ignored it
+                // Expect it to have value of the user that ignored it
                 expect(currentIssue.ignoredById).to.have.property('_id');
                 expect(currentIssue.ignoredById).to.have.property('name');
                 done();
@@ -575,11 +575,11 @@ describe('Error Tracker API', function (): void {
                         return issue._id === errorEvent.issueId;
                     }
                 )[0];
-                // expect it to have value of the user that resolved it
+                // Expect it to have value of the user that resolved it
                 expect(currentIssue.resolvedById).to.have.property('_id');
                 expect(currentIssue.resolvedById).to.have.property('name');
 
-                // expect it to null the ignored section
+                // Expect it to null the ignored section
                 expect(currentIssue.ignoredById).to.be.equal(null);
                 done();
             });
@@ -601,10 +601,10 @@ describe('Error Tracker API', function (): void {
                         return issue._id === errorEvent.issueId;
                     }
                 )[0];
-                // expect it to null the resolved section
+                // Expect it to null the resolved section
                 expect(currentIssue.resolvedById).to.be.equal(null);
 
-                // expect it to null the ignored section
+                // Expect it to null the ignored section
                 expect(currentIssue.ignoredById).to.be.equal(null);
                 done();
             });
@@ -724,13 +724,13 @@ describe('Error Tracker API', function (): void {
             .send({ teamMemberId: [userId] })
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
-                errorEventMembers += 1; // increase the member count
+                errorEventMembers += 1; // Increase the member count
                 expect(res.body.issueId).to.be.equal(errorEvent.issueId);
                 expect(res.body.members.length).to.be.equal(errorEventMembers);
-                expect(res.body.members[0].userId._id).to.be.equal(userId); // confirm the user id matches
+                expect(res.body.members[0].userId._id).to.be.equal(userId); // Confirm the user id matches
                 expect(res.body.members[0].issueId._id).to.be.equal(
                     errorEvent.issueId
-                ); // confirm the issue id matches
+                ); // Confirm the issue id matches
                 done();
             });
     });
@@ -751,7 +751,7 @@ describe('Error Tracker API', function (): void {
                 done();
             });
     });
-    // delete error tracker
+    // Delete error tracker
 
     it('should delete the error tracker', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;

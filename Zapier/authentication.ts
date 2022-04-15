@@ -1,10 +1,14 @@
 const testAuth: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
-    // Normally you want to make a request to an endpoint that is either specifically designed to test auth, or one that
-    // every user will have access to, such as an account or profile endpoint like /me.
-    // In this example, we'll hit httpbin, which validates the Authorization Header against the arguments passed in the URL path
+    /*
+     * Normally you want to make a request to an endpoint that is either specifically designed to test auth, or one that
+     * Every user will have access to, such as an account or profile endpoint like /me.
+     * In this example, we'll hit httpbin, which validates the Authorization Header against the arguments passed in the URL path
+     */
 
-    // This method can return any truthy value to indicate the credentials are valid.
-    // Raise an error to show
+    /*
+     * This method can return any truthy value to indicate the credentials are valid.
+     * Raise an error to show
+     */
     if (bundle.cleanedRequest) {
         return bundle.cleanedRequest;
     }
@@ -34,8 +38,10 @@ const testAuth: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
 
 export default {
     type: 'custom',
-    // Define any auth fields your app requires here. The user will be prompted to enter this info when
-    // they connect their account.
+    /*
+     * Define any auth fields your app requires here. The user will be prompted to enter this info when
+     * They connect their account.
+     */
     fields: [
         {
             key: 'serverUrl',
@@ -58,10 +64,12 @@ export default {
             type: 'string',
         },
     ],
-    // The test method allows Zapier to verify that the credentials a user provides are valid. We'll execute this
-    // method whenver a user connects their account for the first time.
+    /*
+     * The test method allows Zapier to verify that the credentials a user provides are valid. We'll execute this
+     * Method whenver a user connects their account for the first time.
+     */
     test: testAuth,
-    // assuming "username" is a key in the json returned from testAuth
+    // Assuming "username" is a key in the json returned from testAuth
     connectionLabel: (z: $TSFixMe, bundle: $TSFixMe) => {
         return bundle.inputData.projectName;
     },

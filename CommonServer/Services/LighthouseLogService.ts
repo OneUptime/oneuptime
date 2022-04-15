@@ -226,7 +226,7 @@ export default class Service {
             populate: [{ path: 'projectId', select: '_id' }],
         });
         if (monitor && monitor.projectId && monitor.projectId._id) {
-            // run in the background
+            // Run in the background
             RealTimeService.updateLighthouseLog(data, monitor.projectId._id);
         }
     }

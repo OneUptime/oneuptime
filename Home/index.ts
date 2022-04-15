@@ -17,7 +17,7 @@ import productCompare from './config/product-compare';
 import axios from 'axios';
 import builder from 'xmlbuilder2';
 
-if (process.env['NODE_ENV'] === 'production') {
+if (process.env.NODE_ENV === 'production') {
     app.use(compression());
 }
 
@@ -178,8 +178,8 @@ app.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { monitorId, subscriberId } = req.params;
         let apiHost: $TSFixMe;
-        if (process.env['ONEUPTIME_HOST']) {
-            apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
+        if (process.env.ONEUPTIME_HOST) {
+            apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
         } else {
             apiHost = 'http://localhost:3002/api';
         }
@@ -211,8 +211,8 @@ app.get(
 
 app.post('/unsubscribe', async (req: ExpressRequest, res: ExpressResponse) => {
     let apiHost: string;
-    if (process.env['ONEUPTIME_HOST']) {
-        apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
+    if (process.env.ONEUPTIME_HOST) {
+        apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
     } else {
         apiHost = 'http://localhost:3002/api';
     }
@@ -708,7 +708,7 @@ app.get(
 
 app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
     const productConfig: $TSFixMe = productCompare(
-        req.params['product'] as string
+        req.params.product as string
     );
 
     if (!productConfig) {
@@ -735,7 +735,7 @@ app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
 
 app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
     const productConfig: $TSFixMe = productCompare(
-        req.params['product'] as string
+        req.params.product as string
     );
 
     if (!productConfig) {
@@ -760,7 +760,7 @@ app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-// minify default.js
+// Minify default.js
 app.get(
     '/js/default.js',
     async (_req: ExpressRequest, res: ExpressResponse) => {
@@ -779,7 +779,7 @@ app.get(
     }
 );
 
-// minify
+// Minify
 app.get('/css/home.css', async (_req: ExpressRequest, res: ExpressResponse) => {
     res.setHeader('Content-Type', 'text/css');
     const [error, data] = await tryToCatch(minify, './public/css/home.css');
@@ -790,7 +790,7 @@ app.get('/css/home.css', async (_req: ExpressRequest, res: ExpressResponse) => {
     res.send(data);
 });
 
-// minify
+// Minify
 app.get(
     '/css/comparision.css',
     async (_req: ExpressRequest, res: ExpressResponse) => {
@@ -809,7 +809,7 @@ app.get(
     }
 );
 
-// generate sitemap
+// Generate sitemap
 app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
     const siteUrls: $TSFixMe = [
         'https://oneuptime.com/',
@@ -863,7 +863,7 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
         'https://oneuptime.com/files/iso-27001.pdf',
     ];
 
-    // build xml
+    // Build xml
     const urlsetAttr: $TSFixMe = [
         { xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9' },
         { 'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance' },
@@ -873,7 +873,7 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
         },
     ];
 
-    // get previous day's date/timestamp
+    // Get previous day's date/timestamp
     const today: $TSFixMe = new Date();
     today.setDate(today.getDate() - 1);
 
@@ -881,27 +881,29 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
 
     const urlset: $TSFixMe = builder.create().ele('urlset');
 
-    // apply attributes to root element
+    // Apply attributes to root element
     urlsetAttr.forEach((attr: $TSFixMe) => {
         urlset.att(attr);
     });
 
-    //append urls to root element
+    //Append urls to root element
     siteUrls.forEach((url: $TSFixMe) => {
         const urlElement: $TSFixMe = urlset.ele('url');
         urlElement.ele('loc').txt(url);
         urlElement.ele('lastmod').txt(timestamp);
     });
 
-    // generate xml file
+    // Generate xml file
     const xml: $TSFixMe = urlset.end({ prettyPrint: true });
 
     res.setHeader('Content-Type', 'text/xml');
     res.send(xml);
 });
 
-// cache policy for static contents
-// loads up the site faster
+/*
+ * Cache policy for static contents
+ * Loads up the site faster
+ */
 app.use(
     ExpressStatic(path.join(__dirname, 'public'), {
         setHeaders(res: ExpressResponse) {

@@ -11,13 +11,13 @@ const schema: $TSFixMe = new Schema({
         ref: 'ErrorTracker',
         alias: 'errorTracker',
         index: true,
-    }, //which error tracker this error event belongs to.
+    }, //Which error tracker this error event belongs to.
     issueId: {
         type: Schema.Types.ObjectId,
         ref: 'Issue',
         alias: 'issue',
         index: true,
-    }, //which issue this error event belongs to.
+    }, //Which issue this error event belongs to.
     content: Object,
     type: {
         type: String,

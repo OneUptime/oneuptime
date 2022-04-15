@@ -1,8 +1,10 @@
 export default class Service {
-    //Description: Create new user entry on airtable.
-    //Params:
-    //Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
-    //Returns: promise
+    /*
+     * Description: Create new user entry on airtable.
+     * Params:
+     * Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
+     * Returns: promise
+     */
 
     public async find({ tableName, view, limit }: $TSFixMe): void {
         return base(tableName).select({ view, pageSize: limit }).firstPage();
@@ -82,10 +84,12 @@ export default class Service {
         return base('User').destroy(airtableId);
     }
 
-    //Description: Create new feedback entry on airtable.
-    //Params:
-    //Param 1: data: Feedback data (message, name, email, project, page).
-    //Returns: promise
+    /*
+     * Description: Create new feedback entry on airtable.
+     * Params:
+     * Param 1: data: Feedback data (message, name, email, project, page).
+     * Returns: promise
+     */
     public logFeedback({
         message,
         name,
@@ -166,8 +170,8 @@ export default class Service {
 }
 
 import Airtable from 'airtable';
-const AirtableApiKey: $TSFixMe = process.env['AIRTABLE_API_KEY'];
-const AirtableBaseId: $TSFixMe = process.env['AIRTABLE_BASE_ID'];
+const AirtableApiKey: $TSFixMe = process.env.AIRTABLE_API_KEY;
+const AirtableBaseId: $TSFixMe = process.env.AIRTABLE_BASE_ID;
 let base: $TSFixMe = null;
 if (AirtableApiKey && AirtableBaseId) {
     base = new Airtable({ apiKey: AirtableApiKey }).base(AirtableBaseId);

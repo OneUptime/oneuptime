@@ -5,12 +5,14 @@ import UserService from './UserService';
 import ProjectService from './ProjectService';
 import AirtableService from './AirtableService';
 export default class Service {
-    //Description: Create new project for user.
-    //Params:
-    //Param 1: projectName: Project name.
-    //Param 2: projectId: Project Id present in req.params.
-    //Param 3: userId: User Id.
-    //Returns: promise
+    /*
+     * Description: Create new project for user.
+     * Params:
+     * Param 1: projectName: Project name.
+     * Param 2: projectId: Project Id present in req.params.
+     * Param 3: userId: User Id.
+     * Returns: promise
+     */
     public async create(
         projectId: ObjectID,
         message: $TSFixMe,

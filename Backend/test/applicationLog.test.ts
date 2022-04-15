@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -162,7 +162,7 @@ describe('Application Log API', function (): void {
     it('should not return a list of application logs under wrong component', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
         request
-            .get(`/application-log/${projectId}/5ee8d7cc8701d678901ab908`) // wrong component ID
+            .get(`/application-log/${projectId}/5ee8d7cc8701d678901ab908`) // Wrong component ID
             .set('Authorization', authorization)
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
@@ -265,9 +265,9 @@ describe('Application Log API', function (): void {
                 expect(res.body.message).to.be.equal(
                     'Application Log Tags must be of type String or Array of Strings'
                 );
-                // remove the invalid tag
+                // Remove the invalid tag
 
-                delete log['tags'];
+                delete log.tags;
                 done();
             });
     });
@@ -291,14 +291,14 @@ describe('Application Log API', function (): void {
                 expect(res.body.tags).to.have.lengthOf(log.tags.length);
                 logCount.error++;
 
-                delete log['tags'];
+                delete log.tags;
                 done();
             });
     });
 
     it('should fetch logs related to application log with tag search params', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        // create a log
+        // Create a log
         log.applicationLogKey = applicationLog.key;
         log.content = 'another content';
         log.type = 'warning';
@@ -370,11 +370,11 @@ describe('Application Log API', function (): void {
             .set('Authorization', authorization)
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
-                // confirm that the new key is not the same with the old key
+                // Confirm that the new key is not the same with the old key
                 expect(res.body.key).to.not.be.equal(applicationLog.key);
-                // confirm the id are the same
+                // Confirm the id are the same
                 expect(res.body.id).to.be.equal(applicationLog.id);
-                // now set the new key to our global applicationLog so other test can make use of it
+                // Now set the new key to our global applicationLog so other test can make use of it
                 applicationLog.key = res.body.key; //
                 done();
             });
@@ -401,7 +401,7 @@ describe('Application Log API', function (): void {
 
     it('should fetch logs related to application log with search params', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        // create a log
+        // Create a log
         log.applicationLogKey = applicationLog.key;
         log.content = 'another content';
         log.type = 'warning';
@@ -429,10 +429,10 @@ describe('Application Log API', function (): void {
 
     it('should fetch logs related to application log with search params related to content', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        // create a log
+        // Create a log
         log.applicationLogKey = applicationLog.key;
 
-        log.content = { code: '007', name: 'james', location: 'berlin' }; // log an object of type error
+        log.content = { code: '007', name: 'james', location: 'berlin' }; // Log an object of type error
         log.type = 'error';
         request
             .post(`/application-log/${applicationLog._id}/log`)
@@ -445,7 +445,7 @@ describe('Application Log API', function (): void {
                 `/application-log/${projectId}/${componentId}/${applicationLog._id}/logs`
             )
             .set('Authorization', authorization)
-            .send({ type: 'error' }) // filter by error
+            .send({ type: 'error' }) // Filter by error
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('object');
@@ -458,7 +458,7 @@ describe('Application Log API', function (): void {
                 `/application-log/${projectId}/${componentId}/${applicationLog._id}/logs`
             )
             .set('Authorization', authorization)
-            .send({ type: 'error', filter: 'james' }) // filter by error and keyword from content
+            .send({ type: 'error', filter: 'james' }) // Filter by error and keyword from content
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('object');
@@ -471,10 +471,10 @@ describe('Application Log API', function (): void {
 
     it('should fetch logs all log stat related to application log', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        // create a log
+        // Create a log
         log.applicationLogKey = applicationLog.key;
 
-        log.content = { code: '007', name: 'james', location: 'berlin' }; // log an object of type error
+        log.content = { code: '007', name: 'james', location: 'berlin' }; // Log an object of type error
         log.type = 'error';
         request
             .post(`/application-log/${applicationLog._id}/log`)
@@ -493,10 +493,10 @@ describe('Application Log API', function (): void {
                 expect(res.body.data).to.be.an('object');
                 expect(res.body.data.all).to.be.equal(
                     logCount.error + logCount.warning + logCount.info
-                ); // total logs
-                expect(res.body.data.error).to.be.equal(logCount.error); // total error
-                expect(res.body.data.info).to.be.equal(logCount.info); // total info
-                expect(res.body.data.warning).to.be.equal(logCount.warning); // total warning
+                ); // Total logs
+                expect(res.body.data.error).to.be.equal(logCount.error); // Total error
+                expect(res.body.data.info).to.be.equal(logCount.info); // Total info
+                expect(res.body.data.warning).to.be.equal(logCount.warning); // Total warning
                 done();
             });
     });

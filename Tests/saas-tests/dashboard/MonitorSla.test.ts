@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const slaName: string = 'fxPro';
@@ -27,7 +27,7 @@ describe('Monitor SLA', () => {
             email,
             password,
         };
-        // user
+        // User
         await init.registerUser(user, page);
 
         done();
@@ -512,7 +512,7 @@ describe('Monitor SLA', () => {
             });
             await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) => {
                 return elem.click();
-            }); // set isDefault to false
+            }); // Set isDefault to false
 
             await init.pageClick(page, '#editSlaBtn');
 

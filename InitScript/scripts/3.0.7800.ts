@@ -3,7 +3,7 @@ import { find, update } from '../util/db';
 const monitorCollection: string = 'monitors';
 
 async function run(): void {
-    // get all monitors that have a monitorCategoryId
+    // Get all monitors that have a monitorCategoryId
     const monitors: $TSFixMe = await find(monitorCollection, {
         disabled: { $exists: false },
     });

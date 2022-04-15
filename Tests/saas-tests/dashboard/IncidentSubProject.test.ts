@@ -2,13 +2,13 @@ import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
-// parent user credentials
+// Parent user credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
 
-// sub-project user credentials
+// Sub-project user credentials
 const newUser: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -43,7 +43,7 @@ describe('Incident API With SubProjects', () => {
     test(
         'should create an incident in parent project for valid `admin`',
         async (done: $TSFixMe) => {
-            // add sub-project
+            // Add sub-project
             await init.addSubProject(subProjectName, page);
 
             await init.pageClick(page, '#projectFilterToggle');
@@ -53,7 +53,7 @@ describe('Incident API With SubProjects', () => {
             await init.addComponent(componentName, page);
             await init.addAdditionalComponent(newComponentName, page);
             await page.goto(utils.DASHBOARD_URL);
-            // add new user to sub-project
+            // Add new user to sub-project
 
             await init.addUserToProject(
                 {
@@ -63,14 +63,16 @@ describe('Incident API With SubProjects', () => {
                 },
                 page
             );
-            // This navigates to component details as well as creates monitor
-            // add new montor to parent project
+            /*
+             * This navigates to component details as well as creates monitor
+             * Add new montor to parent project
+             */
             await init.addNewMonitorToComponent(
                 page,
                 componentName,
                 projectMonitorName
             );
-            // add new monitor to sub-project
+            // Add new monitor to sub-project
             await init.addAdditionalMonitorToComponent(
                 page,
                 componentName,
@@ -92,7 +94,7 @@ describe('Incident API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
-            // await init.pageType(page, '#title', 'new incident');
+            // Await init.pageType(page, '#title', 'new incident');
 
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
@@ -103,7 +105,7 @@ describe('Incident API With SubProjects', () => {
                 timeout: init.timeout,
             });
 
-            // close incident modal
+            // Close incident modal
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -168,7 +170,7 @@ describe('Incident API With SubProjects', () => {
         'should create an incident in sub-project for sub-project `member`',
         async (done: $TSFixMe) => {
             await init.registerAndLoggingTeamMember(newUser, page);
-            // close incident modal
+            // Close incident modal
             const closeModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#closeIncident_0',
@@ -193,7 +195,7 @@ describe('Incident API With SubProjects', () => {
 
             await init.pageClick(page, `#project-${subProjectName}`);
             await init.navigateToComponentDetails(componentName, page);
-            // create incident
+            // Create incident
 
             await init.pageWaitForSelector(
                 page,
@@ -207,7 +209,7 @@ describe('Incident API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
-            // await init.pageType(page, '#title', 'new incident');
+            // Await init.pageType(page, '#title', 'new incident');
 
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
@@ -215,7 +217,7 @@ describe('Incident API With SubProjects', () => {
             });
 
             await page.reload({ waitUntil: 'networkidle0' });
-            // close incident modal
+            // Close incident modal
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -267,7 +269,7 @@ describe('Incident API With SubProjects', () => {
 
             await init.pageClick(page, '#incident_0');
 
-            // acknowledge incident
+            // Acknowledge incident
             await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -299,7 +301,7 @@ describe('Incident API With SubProjects', () => {
 
             await init.pageClick(page, '#incident_0');
 
-            // resolve incident
+            // Resolve incident
             await init.pageWaitForSelector(page, '#btnResolve_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -351,7 +353,7 @@ describe('Incident API With SubProjects', () => {
             );
 
             const type: string = 'internal';
-            // fill internal message thread form
+            // Fill internal message thread form
 
             await init.pageWaitForSelector(page, `#add-${type}-message`);
             await init.page$Eval(
@@ -413,115 +415,127 @@ describe('Incident API With SubProjects', () => {
      * If the need arises in the future, then we refactor this
      */
 
-    // test(
-    //     'should get incident timeline and paginate for incident timeline in sub-project',
-    //     async (done: $TSFixMe) => {
-    //         const internalNote: string = utils.generateRandomString();
-    //         const  type: string = 'internal';
-    //         await init.loginUser(newUser, page);
-    //         // switch to invited project for new user
-    //         await init.switchProject(projectName, page);
-    //         // Navigate to Component details
-    //         await init.navigateToMonitorDetails(
-    //             componentName,
-    //             projectMonitorName1,
-    //             page
-    //         );
+    /*
+     * Test(
+     *     'should get incident timeline and paginate for incident timeline in sub-project',
+     *     Async (done: $TSFixMe) => {
+     *         Const internalNote: string = utils.generateRandomString();
+     *         Const  type: string = 'internal';
+     *         Await init.loginUser(newUser, page);
+     *         // switch to invited project for new user
+     *         Await init.switchProject(projectName, page);
+     *         // Navigate to Component details
+     *         Await init.navigateToMonitorDetails(
+     *             ComponentName,
+     *             ProjectMonitorName1,
+     *             Page
+     *         );
+     */
 
-    //         await init.pageWaitForSelector(page, `#incident_0`, {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
-    //         await init.pageWaitForSelector(page, '#incident_0', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         // click on incident notes tab
-    //         await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
+    /*
+     *         Await init.pageWaitForSelector(page, `#incident_0`, {
+     *             Visible: true,
+     *             Timeout: init.timeout,
+     *         });
+     *         Await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
+     *         Await init.pageWaitForSelector(page, '#incident_0', {
+     *             Visible: true,
+     *             Timeout: init.timeout,
+     *         });
+     *         // click on incident notes tab
+     *         Await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
+     */
 
-    //         for (let i: $TSFixMe = 0; i < 10; i++) {
-    //             await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) =>
-    //                 e.click()
-    //             );
-    //             await init.pageWaitForSelector(
-    //                 page,
-    //                 `#form-new-incident-${type}-message`
-    //             );
-    //             await init.pageClick(page, `textarea[id=new-${type}]`);
-    //             await init.pageType(
-    //                 page,
-    //                 `textarea[id=new-${type}]`,
-    //                 `${internalNote}`
-    //             );
-    //             await init.selectDropdownValue(
-    //                 '#incident_state',
-    //                 'update',
-    //                 page
-    //             );
-    //             await init.pageClick(page, `#${type}-addButton`);
-    //             await init.pageWaitForSelector(page, `#${type}-addButton`, {
-    //                 hidden: true,
-    //             });
-    //         }
-    //         // click on incident timeline tab
-    //         await init.gotoTab(
-    //             utils.incidentTabIndexes.INCIDENT_TIMELINE,
-    //             page
-    //         );
-    //         await page.reload({ waitUntil: 'networkidle0' });
-    //         await init.gotoTab(
-    //             utils.incidentTabIndexes.INCIDENT_TIMELINE,
-    //             page
-    //         );
+    /*
+     *         For (let i: $TSFixMe = 0; i < 10; i++) {
+     *             Await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) =>
+     *                 E.click()
+     *             );
+     *             Await init.pageWaitForSelector(
+     *                 Page,
+     *                 `#form-new-incident-${type}-message`
+     *             );
+     *             Await init.pageClick(page, `textarea[id=new-${type}]`);
+     *             Await init.pageType(
+     *                 Page,
+     *                 `textarea[id=new-${type}]`,
+     *                 `${internalNote}`
+     *             );
+     *             Await init.selectDropdownValue(
+     *                 '#incident_state',
+     *                 'update',
+     *                 Page
+     *             );
+     *             Await init.pageClick(page, `#${type}-addButton`);
+     *             Await init.pageWaitForSelector(page, `#${type}-addButton`, {
+     *                 Hidden: true,
+     *             });
+     *         }
+     *         // click on incident timeline tab
+     *         Await init.gotoTab(
+     *             Utils.incidentTabIndexes.INCIDENT_TIMELINE,
+     *             Page
+     *         );
+     *         Await page.reload({ waitUntil: 'networkidle0' });
+     *         Await init.gotoTab(
+     *             Utils.incidentTabIndexes.INCIDENT_TIMELINE,
+     *             Page
+     *         );
+     */
 
-    //         await init.pageWaitForSelector(
-    //             page,
-    //             '#incidentTimeline tr.incidentListItem',
-    //             { visible: true, timeout: init.timeout }
-    //         );
-    //         let incidentTimelineRows: $TSFixMe = await init.page$$(
-    //             page,
-    //             '#incidentTimeline tr.incidentListItem'
-    //         );
-    //         let countIncidentTimelines: $TSFixMe = incidentTimelineRows.length;
+    /*
+     *         Await init.pageWaitForSelector(
+     *             Page,
+     *             '#incidentTimeline tr.incidentListItem',
+     *             { visible: true, timeout: init.timeout }
+     *         );
+     *         Let incidentTimelineRows: $TSFixMe = await init.page$$(
+     *             Page,
+     *             '#incidentTimeline tr.incidentListItem'
+     *         );
+     *         Let countIncidentTimelines: $TSFixMe = incidentTimelineRows.length;
+     */
 
-    //         expect(countIncidentTimelines).toEqual(10);
+    //         Expect(countIncidentTimelines).toEqual(10);
 
-    //         await init.page$Eval(page, '#btnTimelineNext', (e: $TSFixMe) => e.click());
-    //         await init.pageWaitForSelector(page, '.ball-beat', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageWaitForSelector(page, '.ball-beat', {
-    //             hidden: true,
-    //         });
-    //         incidentTimelineRows = await init.page$$(
-    //             page,
-    //             '#incidentTimeline tr.incidentListItem'
-    //         );
-    //         countIncidentTimelines = incidentTimelineRows.length;
-    //         expect(countIncidentTimelines).toEqual(5);
+    /*
+     *         Await init.page$Eval(page, '#btnTimelineNext', (e: $TSFixMe) => e.click());
+     *         Await init.pageWaitForSelector(page, '.ball-beat', {
+     *             Visible: true,
+     *             Timeout: init.timeout,
+     *         });
+     *         Await init.pageWaitForSelector(page, '.ball-beat', {
+     *             Hidden: true,
+     *         });
+     *         IncidentTimelineRows = await init.page$$(
+     *             Page,
+     *             '#incidentTimeline tr.incidentListItem'
+     *         );
+     *         CountIncidentTimelines = incidentTimelineRows.length;
+     *         Expect(countIncidentTimelines).toEqual(5);
+     */
 
-    //         await init.page$Eval(page, '#btnTimelinePrev', (e: $TSFixMe) => e.click());
-    //         await init.pageWaitForSelector(page, '.ball-beat', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageWaitForSelector(page, '.ball-beat', {
-    //             hidden: true,
-    //         });
-    //         incidentTimelineRows = await init.page$$(
-    //             page,
-    //             '#incidentTimeline tr.incidentListItem'
-    //         );
-    //         countIncidentTimelines = incidentTimelineRows.length;
-    //         expect(countIncidentTimelines).toEqual(10);
-    //         await init.logout(page);
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+    /*
+     *         Await init.page$Eval(page, '#btnTimelinePrev', (e: $TSFixMe) => e.click());
+     *         Await init.pageWaitForSelector(page, '.ball-beat', {
+     *             Visible: true,
+     *             Timeout: init.timeout,
+     *         });
+     *         Await init.pageWaitForSelector(page, '.ball-beat', {
+     *             Hidden: true,
+     *         });
+     *         IncidentTimelineRows = await init.page$$(
+     *             Page,
+     *             '#incidentTimeline tr.incidentListItem'
+     *         );
+     *         CountIncidentTimelines = incidentTimelineRows.length;
+     *         Expect(countIncidentTimelines).toEqual(10);
+     *         Await init.logout(page);
+     *         Done();
+     *     },
+     *     OperationTimeOut
+     * );
+     */
 
     test(
         'should get list of incidents and paginate for incidents in sub-project',

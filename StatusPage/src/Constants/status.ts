@@ -104,7 +104,7 @@ export const FETCH_LAST_INCIDENT_TIMELINES_FAILURE: $TSFixMe =
 export const SHOW_EVENT_CARD: string = 'SHOW_EVENT_CARD';
 export const SHOW_INCIDENT_CARD: string = 'SHOW_INCIDENT_CARD';
 
-// announcements
+// Announcements
 export const FETCH_ANNOUNCEMENTS_REQUEST: string =
     'FETCH_ANNOUNCEMENTS_REQUEST';
 export const FETCH_ANNOUNCEMENTS_SUCCESS: string =
@@ -126,7 +126,7 @@ export const FETCH_ANNOUNCEMEMTLOGS_SUCCESS: string =
 export const FETCH_ANNOUNCEMEMTLOGS_FAILURE: string =
     'FETCH_ANNOUNCEMEMTLOGS_FAILURE';
 
-// past events
+// Past events
 export const PAST_EVENTS_REQUEST: string = 'PAST_EVENTS_REQUEST';
 export const PAST_EVENTS_SUCCESS: string = 'PAST_EVENTS_SUCCESS';
 export const PAST_EVENTS_FAILURE: string = 'PAST_EVENTS_FAILURE';
@@ -134,17 +134,17 @@ export const MORE_PAST_EVENTS_REQUEST: string = 'MORE_PAST_EVENTS_REQUEST';
 export const MORE_PAST_EVENTS_SUCCESS: string = 'MORE_PAST_EVENTS_SUCCESS';
 export const MORE_PAST_EVENTS_FAILURE: string = 'MORE_PAST_EVENTS_FAILURE';
 
-// calculate time
+// Calculate time
 export const CALCULATE_TIME_REQUEST: string = 'CALCULATE_TIME_REQUEST';
 export const CALCULATE_TIME_SUCCESS: string = 'CALCULATE_TIME_SUCCESS';
 export const CALCULATE_TIME_FAILURE: string = 'CALCULATE_TIME_FAILURE';
 
-// fetch tweets
+// Fetch tweets
 export const FETCH_TWEETS_REQUEST: string = 'FETCH_TWEETS_REQUEST';
 export const FETCH_TWEETS_SUCCESS: string = 'FETCH_TWEETS_SUCCESS';
 export const FETCH_TWEETS_FAILURE: string = 'FETCH_TWEETS_FAILURE';
 
-// fetch external statuspage
+// Fetch external statuspage
 export const FETCH_EXTERNAL_STATUSPAGES_REQUEST: $TSFixMe =
     'FETCH_EXTERNAL_STATUS_PAGESREQUEST';
 export const FETCH_EXTERNAL_STATUSPAGES_SUCCESS: $TSFixMe =
@@ -152,9 +152,9 @@ export const FETCH_EXTERNAL_STATUSPAGES_SUCCESS: $TSFixMe =
 export const FETCH_EXTERNAL_STATUSPAGES_FAILURE: $TSFixMe =
     'FETCH_EXTERNAL_STATUS_PAGESFAILURE';
 
-//fetch all resources
+//Fetch all resources
 export const FETCH_ALL_RESOURCES_SUCCESS: string =
     'FETCH_ALL_RESOURCES_SUCCESS';
 
-//handle language change
+//Handle language change
 export const TRANSLATE_LANGUAGE: string = 'TRANSLATE_LANGUAGE';

@@ -9,17 +9,19 @@ if ('function' === typeof importScripts) {
         const { precacheAndRoute, cleanupOutdatedCaches }: $TSFixMe =
             workbox.precaching;
 
-        // skip waiting and switch to activating stage
+        // Skip waiting and switch to activating stage
         skipWaiting();
-        // control webpage as soon as possible
+        // Control webpage as soon as possible
         clientsClaim();
-        // try to clean up old caches from previous versions
+        // Try to clean up old caches from previous versions
         cleanupOutdatedCaches();
 
-        /* injection point for manifest files.  */
-        // precacheAndRoute([], {
-        //     cleanURLs: false,
-        // });
+        /* Injection point for manifest files.  */
+        /*
+         * PrecacheAndRoute([], {
+         *     CleanURLs: false,
+         * });
+         */
 
         precacheAndRoute(self.__WB_MANIFEST, { cleanUrls: false });
 

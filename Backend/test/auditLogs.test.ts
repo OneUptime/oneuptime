@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import { expect } from 'chai';
@@ -78,8 +78,10 @@ describe('Audit Logs API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
         await GlobalConfig.removeTestConfig();
 
-        // Deleting any auditLogs created between this test suite.
-        // Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
+        /*
+         * Deleting any auditLogs created between this test suite.
+         * Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
+         */
         const deleteQuery: $TSFixMe = {
             $or: [
                 { userId: userId },
@@ -99,8 +101,10 @@ describe('Audit Logs API', function (): void {
     });
 
     afterEach(async (): void => {
-        // Deleting any auditLogs created between each test case in this suite.
-        // Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
+        /*
+         * Deleting any auditLogs created between each test case in this suite.
+         * Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
+         */
         const deleteQuery: $TSFixMe = {
             $or: [
                 { userId: userId },

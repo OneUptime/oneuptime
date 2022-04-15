@@ -66,29 +66,29 @@ export const CHANGE_PLAN_REQUEST: string = 'CHANGE_PLAN_REQUEST';
 export const CHANGE_PLAN_SUCCESS: string = 'CHANGE_PLAN_SUCCESS';
 export const CHANGE_PLAN_FAILURE: string = 'CHANGE_PLAN_FAILURE';
 
-// fetch project team
+// Fetch project team
 export const FETCH_PROJECT_TEAM_REQUEST: string = 'FETCH_PROJECT_TEAM_REQUEST';
 export const FETCH_PROJECT_TEAM_SUCCESS: string = 'FETCH_PROJECT_TEAM_SUCCESS';
 export const FETCH_PROJECT_TEAM_ERROR: string = 'FETCH_PROJECT_TEAM_ERROR';
 
-// add user to project
+// Add user to project
 export const USER_CREATE_REQUEST: string = 'USER_CREATE_REQUEST';
 export const USER_CREATE_SUCCESS: string = 'USER_CREATE_SUCCESS';
 export const USER_CREATE_FAILURE: string = 'USER_CREATE_FAILURE';
 
-//update user role
+//Update user role
 export const USER_UPDATE_ROLE_REQUEST: string = 'USER_UPDATE_ROLE_REQUEST';
 export const USER_UPDATE_ROLE_SUCCESS: string = 'USER_UPDATE_ROLE_SUCCESS';
 export const USER_UPDATE_ROLE_FAILURE: string = 'USER_UPDATE_ROLE_FAILURE';
 export const CHANGE_USER_PROJECT_ROLES: string = 'CHANGE_USER_PROJECT_ROLES';
 
-//delete user from project
+//Delete user from project
 export const TEAM_DELETE_SUCCESS: string = 'TEAM_DELETE_SUCCESS';
 export const TEAM_DELETE_FAILURE: string = 'TEAM_DELETE_FAILURE';
 export const TEAM_DELETE_RESET: string = 'TEAM_DELETE_RESET';
 export const TEAM_DELETE_REQUEST: string = 'TEAM_DELETE_REQUEST';
 
-//project balance
+//Project balance
 export const PROJECT_BALANCE_UPDATE_REQUEST: string =
     'PROJECT_BALANCE_UPDATE_REQUEST';
 export const PROJECT_BALANCE_UPDATE_SUCCESS: string =
@@ -96,16 +96,16 @@ export const PROJECT_BALANCE_UPDATE_SUCCESS: string =
 export const PROJECT_BALANCE_UPDATE_FAILURE: string =
     'PROJECT_BALANCE_UPDATE_FAILURE';
 
-//users pagination
+//Users pagination
 export const PAGINATE_USERS_NEXT: string = 'PAGINATE_USERS_NEXT';
 export const PAGINATE_USERS_PREV: string = 'PAGINATE_USERS_PREV';
 
-//project domain settings
+//Project domain settings
 export const PROJECT_DOMAIN_REQUEST: string = 'PROJECT_DOMAIN_REQUEST';
 export const PROJECT_DOMAIN_SUCCESS: string = 'PROJECT_DOMAIN_SUCCESS';
 export const PROJECT_DOMAIN_FAILURE: string = 'PROJECT_DOMAIN_FAILURE';
 
-//delete project domain
+//Delete project domain
 export const DELETE_PROJECT_DOMAIN_REQUEST: string =
     'DELETE_PROJECT_DOMAIN_REQUEST';
 export const DELETE_PROJECT_DOMAIN_SUCCESS: string =
@@ -115,7 +115,7 @@ export const DELETE_PROJECT_DOMAIN_FAILURE: string =
 export const RESET_DELETE_PROJECT_DOMAIN: string =
     'RESET_DELETE_PROJECT_DOMAIN';
 
-//verify project domain
+//Verify project domain
 export const VERIFY_PROJECT_DOMAIN_REQUEST: string =
     'VERIFY_PROJECT_DOMAIN_REQUEST';
 export const VERIFY_PROJECT_DOMAIN_SUCCESS: string =
@@ -125,7 +125,7 @@ export const VERIFY_PROJECT_DOMAIN_FAILURE: string =
 export const RESET_VERIFY_PROJECT_DOMAIN: string =
     'RESET_VERIFY_PROJECT_DOMAIN';
 
-//unverify project domain
+//Unverify project domain
 export const UNVERIFY_PROJECT_DOMAIN_REQUEST: $TSFixMe =
     'UNVERIFY_PROJECT_DOMAIN_REQUEST';
 export const UNVERIFY_PROJECT_DOMAIN_SUCCESS: $TSFixMe =
@@ -135,7 +135,7 @@ export const UNVERIFY_PROJECT_DOMAIN_FAILURE: $TSFixMe =
 export const RESET_UNVERIFY_PROJECT_DOMAIN: string =
     'RESET_UNVERIFY_PROJECT_DOMAIN';
 
-//reset project domain
+//Reset project domain
 export const RESET_PROJECT_DOMAIN_REQUEST: string =
     'RESET_PROJECT_DOMAIN_REQUEST';
 export const RESET_PROJECT_DOMAIN_SUCCESS: string =

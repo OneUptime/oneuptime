@@ -5,7 +5,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
-// user credentials
+// User credentials
 const password: string = '1234567890';
 
 describe('API Monitor API', () => {
@@ -90,8 +90,10 @@ describe('API Monitor API', () => {
     test(
         'should not add API monitor with invalid url',
         async (done: $TSFixMe) => {
-            // Create Component first
-            // Redirects automatically component to details page
+            /*
+             * Create Component first
+             * Redirects automatically component to details page
+             */
             await init.navigateToComponentDetails(componentName, page);
 
             await init.pageWaitForSelector(page, '#form-new-monitor');

@@ -19,10 +19,10 @@ import axios from 'axios';
 
 import cors from 'cors';
 
-// mongodb
+// Mongodb
 const MongoClient: $TSFixMe = require('mongodb').MongoClient;
 const mongoUrl: $TSFixMe =
-    process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
+    process.env.MONGO_URL || 'mongodb://localhost:27017/oneuptimedb';
 
 const { NODE_ENV }: $TSFixMe = process.env;
 
@@ -33,7 +33,7 @@ function getMongoClient(): void {
     });
 }
 
-// setup mongodb connection
+// Setup mongodb connection
 const client: $TSFixMe = getMongoClient();
 (async function (): void {
     try {
@@ -58,10 +58,10 @@ let apiHost: $TSFixMe = 'http://localhost:3002/api';
 if (process.env.BACKEND_URL) {
     apiHost = 'http://' + process.env.BACKEND_URL + '/api';
 }
-if (process.env['ONEUPTIME_HOST']) {
+if (process.env.ONEUPTIME_HOST) {
     apiHost = process.env.BACKEND_PROTOCOL
-        ? `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}/api`
-        : `http://${process.env['ONEUPTIME_HOST']}/api`;
+        ? `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}/api`
+        : `http://${process.env.ONEUPTIME_HOST}/api`;
 }
 
 app.get(
@@ -69,15 +69,15 @@ app.get(
     (req: ExpressRequest, res: ExpressResponse) => {
         let REACT_APP_ONEUPTIME_HOST: $TSFixMe = null;
         let REACT_APP_BACKEND_PROTOCOL: $TSFixMe = null;
-        if (!process.env['ONEUPTIME_HOST']) {
+        if (!process.env.ONEUPTIME_HOST) {
             REACT_APP_ONEUPTIME_HOST = req.hostname;
         } else {
-            REACT_APP_ONEUPTIME_HOST = process.env['ONEUPTIME_HOST'];
+            REACT_APP_ONEUPTIME_HOST = process.env.ONEUPTIME_HOST;
             if (REACT_APP_ONEUPTIME_HOST.includes('*.')) {
                 REACT_APP_ONEUPTIME_HOST = REACT_APP_ONEUPTIME_HOST.replace(
                     '*.',
                     ''
-                ); //remove wildcard from host.
+                ); //Remove wildcard from host.
             }
         }
 
@@ -92,7 +92,7 @@ app.get(
             const ONEUPTIME_HOST: $TSFixMe = REACT_APP_ONEUPTIME_HOST.replace(
                 /(http:\/\/|https:\/\/)/,
                 ''
-            ); // remove any protocol that might have been added
+            ); // Remove any protocol that might have been added
             let protocol: $TSFixMe = 'http:';
             if (process.env.BACKEND_PROTOCOL) {
                 protocol = process.env.BACKEND_PROTOCOL + ':';
@@ -109,8 +109,8 @@ app.get(
             REACT_APP_BACKEND_PROTOCOL,
             REACT_APP_BACKEND_URL: process.env.BACKEND_URL,
             REACT_APP_VERSION:
-                process.env['REACT_APP_VERSION'] ||
-                process.env['npm_package_version'],
+                process.env.REACT_APP_VERSION ||
+                process.env.npm_package_version,
         };
 
         res.contentType('application/javascript');
@@ -121,7 +121,7 @@ app.get(
 app.use(
     '/.well-known/acme-challenge/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
-        // make api call to backend and fetch keyAuthorization
+        // Make api call to backend and fetch keyAuthorization
         const { token }: $TSFixMe = req.params;
         const url: string = `${apiHost}/ssl/challenge/authorization/${token}`;
         const response: $TSFixMe = await axios.get(url);
@@ -129,14 +129,14 @@ app.use(
     }
 );
 
-// fetch details about a domain from the db
+// Fetch details about a domain from the db
 async function handleCustomDomain(
     client: $TSFixMe,
     collection: $TSFixMe,
     domain: $TSFixMe
 ): void {
     const statusPage: $TSFixMe = await client
-        .db(process.env['DB_NAME'])
+        .db(process.env.DB_NAME)
         .collection(collection)
         .findOne({
             domains: { $elemMatch: { domain } },
@@ -165,14 +165,14 @@ async function handleCustomDomain(
     };
 }
 
-// fetch certificate for a particular domain
+// Fetch certificate for a particular domain
 async function handleCertificate(
     client: $TSFixMe,
     collection: $TSFixMe,
     domain: $TSFixMe
 ): void {
     const certificate: $TSFixMe = await client
-        .db(process.env['DB_NAME'])
+        .db(process.env.DB_NAME)
         .collection(collection)
         .findOne({ id: domain });
 
@@ -265,7 +265,7 @@ async function fetchCredential(
             (res: ExpressResponse) => {
                 const dest: $TSFixMe = fs.createWriteStream(configPath);
                 res.body.pipe(dest);
-                // at this point, writing to the specified file is complete
+                // At this point, writing to the specified file is complete
                 dest.on('finish', async () => {
                     resolve('done writing to file');
                 });
@@ -322,8 +322,10 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
 
     // A loop to slide pat[] one by one
     for (let i: $TSFixMe = 0; i <= N - M; i++) {
-        // For current index i, check for
-        // pattern match
+        /*
+         * For current index i, check for
+         * Pattern match
+         */
         let j: $TSFixMe;
         for (j = 0; j < M; j++) {
             if (txt[i + j] != pat[j]) {
@@ -339,19 +341,23 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
     return res;
 }
 
-// using an IIFE here because we have an asynchronous code we want to run as we start the server
-// and since we can't await outside an async function, we had to use an IIFE to handle that
+/*
+ * Using an IIFE here because we have an asynchronous code we want to run as we start the server
+ * And since we can't await outside an async function, we had to use an IIFE to handle that
+ */
 (async function (): void {
-    // create http server
+    // Create http server
     http.createServer(app).listen(3006, () => {
         return logger.info('Server running on port 3006');
     });
 
     try {
-        // create https server
+        // Create https server
         await createDir('credentials');
-        // decode base64 of the cert and private key
-        // store the value to disc
+        /*
+         * Decode base64 of the cert and private key
+         * Store the value to disc
+         */
         const cert: $TSFixMe = process.env.STATUSPAGE_CERT;
         const certPath: $TSFixMe = path.resolve(
             process.cwd(),
@@ -399,11 +405,13 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
                         enableHttps,
                         domain,
                     } = res;
-                    // have a condition to check for autoProvisioning
-                    // if auto provisioning is set
-                    // fetch the stored cert/privateKey
-                    // cert and private key is a string
-                    // store it to a file on disk
+                    /*
+                     * Have a condition to check for autoProvisioning
+                     * If auto provisioning is set
+                     * Fetch the stored cert/privateKey
+                     * Cert and private key is a string
+                     * Store it to a file on disk
+                     */
                     if (enableHttps && autoProvisioning) {
                         const certificate: $TSFixMe = await handleCertificate(
                             client,
@@ -424,8 +432,10 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
                                 `${certificate.id}.key`
                             );
 
-                            // check if the certificate is container chain
-                            // if not, add anc show update view for the frontend
+                            /*
+                             * Check if the certificate is container chain
+                             * If not, add anc show update view for the frontend
+                             */
                             let fullCert: $TSFixMe = certificate.cert;
                             if (
                                 countFreq(
@@ -488,7 +498,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
                     }
                 }
 
-                // default for custom domains without cert/key credentials
+                // Default for custom domains without cert/key credentials
                 return cb(
                     null,
                     tls.createSecureContext({

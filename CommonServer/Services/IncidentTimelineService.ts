@@ -70,7 +70,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         let incidentTimeline: $TSFixMe =
             await IncidentTimelineModel.findOneAndUpdate(
@@ -103,7 +103,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         let incidentTimelines: $TSFixMe =
             await IncidentTimelineModel.updateMany(query, {
@@ -153,7 +153,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const incidentTimelinesQuery: $TSFixMe = IncidentTimelineModel.find(
             query
@@ -175,7 +175,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const incidentTimelineQuery: $TSFixMe = IncidentTimelineModel.findOne(
             query
@@ -194,7 +194,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const count: $TSFixMe = await IncidentTimelineModel.countDocuments(
             query
@@ -203,8 +203,10 @@ export default class Service {
         return count;
     }
 
-    // fetches just the last/latest incident timeline
-    // this timelines will be used in status page
+    /*
+     * Fetches just the last/latest incident timeline
+     * This timelines will be used in status page
+     */
     public async getIncidentLastTimelines(incidents: $TSFixMe): void {
         const skip: $TSFixMe = 0,
             limit: PositiveNumber = 1;
@@ -239,7 +241,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
 
         const incidentTimelineModel: $TSFixMe =
             await IncidentTimelineModel.findOneAndUpdate(

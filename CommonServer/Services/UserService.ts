@@ -15,7 +15,7 @@ import ErrorService from '../Utils/error';
 import jwt from 'jsonwebtoken';
 
 import geoip from 'geoip-lite';
-const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
+const jwtSecretKey: $TSFixMe = process.env.JWT_SECRET;
 
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
 const { NODE_ENV }: $TSFixMe = process.env;
@@ -91,39 +91,49 @@ class Service extends DatabaseService<typeof Model> {
         });
     }
 
-    // async addUserToDefaultProjects({ domain, userId }: $TSFixMe):void {
+    // Async addUserToDefaultProjects({ domain, userId }: $TSFixMe):void {
 
-    //     const populateDefaultRoleSso: $TSFixMe = [
-    //         { path: 'domain', select: '_id domain' },
-    //         { path: 'project', select: '_id name' },
-    //     ];
+    /*
+     *     Const populateDefaultRoleSso: $TSFixMe = [
+     *         { path: 'domain', select: '_id domain' },
+     *         { path: 'project', select: '_id name' },
+     *     ];
+     */
 
-    //     const ssoDefaultRoles: $TSFixMe = await this.findBy({
-    //         query: { domain },
-    //         select: 'project role',
-    //         populate: populateDefaultRoleSso,
-    //     });
+    /*
+     *     Const ssoDefaultRoles: $TSFixMe = await this.findBy({
+     *         Query: { domain },
+     *         Select: 'project role',
+     *         Populate: populateDefaultRoleSso,
+     *     });
+     */
 
-    //     if (!ssoDefaultRoles.length) return;
+    //     If (!ssoDefaultRoles.length) return;
 
-    //     for (const ssoDefaultRole of ssoDefaultRoles) {
-    //         const { project, role }: $TSFixMe = ssoDefaultRole;
-    //         const { _id: projectId } = project;
+    /*
+     *     For (const ssoDefaultRole of ssoDefaultRoles) {
+     *         Const { project, role }: $TSFixMe = ssoDefaultRole;
+     *         Const { _id: projectId } = project;
+     */
 
-    //         const projectObj: $TSFixMe = await ProjectService.findOneBy({
-    //             query: { _id: projectId },
-    //             select: 'users',
-    //         });
-    //         if (!projectObj) continue;
+    /*
+     *         Const projectObj: $TSFixMe = await ProjectService.findOneBy({
+     *             Query: { _id: projectId },
+     *             Select: 'users',
+     *         });
+     *         If (!projectObj) continue;
+     */
 
-    //         const { users }: $TSFixMe = projectObj;
-    //         users.push({
-    //             userId,
-    //             role,
-    //         });
-    //         await ProjectService.updateOneBy({ _id: projectId }, { users });
-    //     }
-    // }
+    /*
+     *         Const { users }: $TSFixMe = projectObj;
+     *         Users.push({
+     *             UserId,
+     *             Role,
+     *         });
+     *         Await ProjectService.updateOneBy({ _id: projectId }, { users });
+     *     }
+     * }
+     */
 
     protected override async onBeforeCreate({
         data,
@@ -184,10 +194,10 @@ class Service extends DatabaseService<typeof Model> {
             return g[1].toUpperCase();
         });
 
-        // if projectID is passed, get the current tutorial status
+        // If projectID is passed, get the current tutorial status
         const currentStatus: $TSFixMe = data[projectId] || {};
-        currentStatus[type] = { show: false }; // overwrite that current type under that project
-        data[projectId] = currentStatus; // update the data object then
+        currentStatus[type] = { show: false }; // Overwrite that current type under that project
+        data[projectId] = currentStatus; // Update the data object then
 
         const tutorial: $TSFixMe = await UserModel.findOneAndUpdate(
             query,
@@ -230,10 +240,12 @@ class Service extends DatabaseService<typeof Model> {
         return verificationToken.token;
     }
 
-    //Description: signup function for new user.
-    //Params:
-    //Param 1: data: User details.
-    //Returns: promise.
+    /*
+     * Description: signup function for new user.
+     * Params:
+     * Param 1: data: User details.
+     * Returns: promise.
+     */
     public async signup(data: $TSFixMe): void {
         const email: $TSFixMe = data.email;
         const stripePlanId: $TSFixMe = data.planId || null;
@@ -267,7 +279,7 @@ class Service extends DatabaseService<typeof Model> {
                 user = await this.create(data);
 
                 if (IS_SAAS_SERVICE && paymentIntent !== null) {
-                    //update customer Id
+                    //Update customer Id
                     user = await this.updateOneBy(
                         { _id: user._id },
                         {
@@ -425,11 +437,13 @@ class Service extends DatabaseService<typeof Model> {
         return isValidCode;
     }
 
-    //Description: login function to authenticate user.
-    //Params:
-    //Param 1: email: User email.
-    //Param 2: password: User password.
-    //Returns: promise.
+    /*
+     * Description: login function to authenticate user.
+     * Params:
+     * Param 1: email: User email.
+     * Param 2: password: User password.
+     * Returns: promise.
+     */
     public async login(
         email: $TSFixMe,
         password: $TSFixMe,
@@ -438,10 +452,12 @@ class Service extends DatabaseService<typeof Model> {
     ): void {
         let user: $TSFixMe = null;
         if (util.isEmailValid(email)) {
-            // find user if present in db.
+            // Find user if present in db.
 
-            // If no users are in the DB, and is your have ADMIN_USERNAME and ADMIN_PASSWORD env var set,
-            // then create an admin user and the log in.
+            /*
+             * If no users are in the DB, and is your have ADMIN_USERNAME and ADMIN_PASSWORD env var set,
+             * Then create an admin user and the log in.
+             */
             if (
                 process.env.ADMIN_EMAIL &&
                 process.env.ADMIN_PASSWORD &&
@@ -450,7 +466,7 @@ class Service extends DatabaseService<typeof Model> {
             ) {
                 const count: $TSFixMe = await this.countBy({});
                 if (count === 0) {
-                    //create a new admin user.
+                    //Create a new admin user.
                     user = await this.create({
                         name: 'OneUptime Admin',
                         email: process.env.ADMIN_EMAIL,
@@ -478,7 +494,7 @@ class Service extends DatabaseService<typeof Model> {
                 throw error;
             } else {
                 if (user.paymentFailedDate && IS_SAAS_SERVICE) {
-                    // calculate number of days the subscription renewal has failed.
+                    // Calculate number of days the subscription renewal has failed.
                     const oneDayInMilliSeconds: $TSFixMe = 1000 * 60 * 60 * 24;
                     const daysAfterPaymentFailed: $TSFixMe = Math.round(
                         (new Date() - user.paymentFailedDate) /
@@ -533,7 +549,7 @@ class Service extends DatabaseService<typeof Model> {
                     if (
                         res &&
                         user.twoFactorAuthEnabled &&
-                        !user.isAdminMode // ignore 2FA in admin mode
+                        !user.isAdminMode // Ignore 2FA in admin mode
                     ) {
                         return { message: 'Login with 2FA token', email };
                     }
@@ -547,8 +563,10 @@ class Service extends DatabaseService<typeof Model> {
                         );
                         return user;
                     } else {
-                        // show a different error message in admin mode as user most
-                        // likely provided a wrong password
+                        /*
+                         * Show a different error message in admin mode as user most
+                         * Likely provided a wrong password
+                         */
                         let error: $TSFixMe;
                         if (user.isAdminMode && user.cachedPassword) {
                             error = new Error(
@@ -575,10 +593,12 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    // Description: forgot password function
-    //Params:
-    //Param 1: email: User email.
-    //Returns: promise.
+    /*
+     *  Description: forgot password function
+     * Params:
+     * Param 1: email: User email.
+     * Returns: promise.
+     */
     public async forgotPassword(email: $TSFixMe): void {
         if (util.isEmailValid(email)) {
             let user: $TSFixMe = await this.findOneBy({
@@ -589,7 +609,7 @@ class Service extends DatabaseService<typeof Model> {
             if (!user) {
                 throw new BadDataException('User does not exist.');
             } else {
-                // ensure user is not in admin mode
+                // Ensure user is not in admin mode
                 if (user.isAdminMode && user.cachedPassword) {
                     const error: $TSFixMe = new BadDataException(
                         'Your account is currently under maintenance. Please try again later'
@@ -599,7 +619,7 @@ class Service extends DatabaseService<typeof Model> {
                 const buf: $TSFixMe = await crypto.randomBytes(20);
                 const token: $TSFixMe = buf.toString('hex');
 
-                //update a user.
+                //Update a user.
                 user = await this.updateOneBy(
                     {
                         _id: user._id,
@@ -617,11 +637,13 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    // Description: forgot password function.
-    //Params:
-    //Param 1:  password: User password.
-    //Param 2:  token: token generated in forgot password function.
-    //Returns: promise.
+    /*
+     *  Description: forgot password function.
+     * Params:
+     * Param 1:  password: User password.
+     * Param 2:  token: token generated in forgot password function.
+     * Returns: promise.
+     */
     public async resetPassword(password: $TSFixMe, token: $TSFixMe): void {
         let user: $TSFixMe = await this.findOneBy({
             query: {
@@ -636,7 +658,7 @@ class Service extends DatabaseService<typeof Model> {
         if (!user) {
             return null;
         } else {
-            // ensure user is not in admin mode
+            // Ensure user is not in admin mode
             if (user.isAdminMode && user.cachedPassword) {
                 const error: $TSFixMe = new Error(
                     'Your account is currently under maintenance. Please try again later'
@@ -651,7 +673,7 @@ class Service extends DatabaseService<typeof Model> {
                 constants.saltRounds
             );
 
-            //update a user.
+            //Update a user.
             user = await this.updateOneBy(
                 {
                     _id: user._id,
@@ -694,9 +716,11 @@ class Service extends DatabaseService<typeof Model> {
                 constants.saltRounds
             );
 
-            //update the user.
-            // if already in admin mode we shouldn't
-            // replace the cached/original password so we don't lose it
+            /*
+             * Update the user.
+             *  If already in admin mode we shouldn't
+             *  Replace the cached/original password so we don't lose it
+             */
             const passwordToCache: $TSFixMe = user.isAdminMode
                 ? user.cachedPassword
                 : user.password;
@@ -725,16 +749,16 @@ class Service extends DatabaseService<typeof Model> {
         if (!user) {
             throw new BadDataException('User not found');
         } else {
-            // ensure user is in admin mode
+            // Ensure user is in admin mode
             if (!user.isAdminMode) {
                 throw new BadDataException(
                     'User is not currently in admin mode'
                 );
             }
 
-            //update the user.
+            //Update the user.
             const passwordToRestore: $TSFixMe =
-                user.cachedPassword ?? user.password; // unlikely but just in case cachedPassword is null
+                user.cachedPassword ?? user.password; // Unlikely but just in case cachedPassword is null
             const updatedUser: $TSFixMe = await this.updateOneBy(
                 {
                     _id: userId,
@@ -750,10 +774,12 @@ class Service extends DatabaseService<typeof Model> {
         }
     }
 
-    //Description: Get new access token.
-    //Params:
-    //Param 1:  refreshToken: Refresh token.
-    //Returns: promise.
+    /*
+     * Description: Get new access token.
+     * Params:
+     * Param 1:  refreshToken: Refresh token.
+     * Returns: promise.
+     */
     public async getNewToken(refreshToken: $TSFixMe): void {
         let user: $TSFixMe = await this.findOneBy({
             query: { jwtRefreshToken: refreshToken },
@@ -790,7 +816,7 @@ class Service extends DatabaseService<typeof Model> {
             select: 'isAdminMode cachedPassword password',
         });
 
-        // ensure user is not in admin mode
+        // Ensure user is not in admin mode
         if (user.isAdminMode && user.cachedPassword) {
             const error: $TSFixMe = new Error(
                 'Your account is currently under maintenance. Please try again later'
@@ -836,7 +862,7 @@ class Service extends DatabaseService<typeof Model> {
         });
         users = await Promise.all(
             users.map(async (user: $TSFixMe) => {
-                // find user subprojects and parent projects
+                // Find user subprojects and parent projects
 
                 let userProjects: $TSFixMe = await ProjectService.findBy({
                     query: { 'users.userId': user._id },
@@ -949,7 +975,7 @@ class Service extends DatabaseService<typeof Model> {
         let users: $TSFixMe = await this.findBy({ query, skip, limit, select });
         users = await Promise.all(
             users.map(async (user: $TSFixMe) => {
-                // find user subprojects and parent projects
+                // Find user subprojects and parent projects
 
                 let userProjects: $TSFixMe = await ProjectService.findBy({
                     query: { 'users.userId': user._id },

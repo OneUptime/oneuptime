@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import userData from './data/user';
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
@@ -99,8 +99,8 @@ describe('Incident Alerts', function (): void {
                                     projectId,
                                     type: 'ip',
                                     name: 'test monitor ',
-                                    data: { IPAddress: '216.58.223.196' }, // www.google.com
-                                    // deviceId: "abcdef", IOT device has been replaced with IP
+                                    data: { IPAddress: '216.58.223.196' }, // Www.google.com
+                                    // DeviceId: "abcdef", IOT device has been replaced with IP
                                     criteria: {},
                                 });
                             monitorId = monitor.body._id;
@@ -224,8 +224,10 @@ describe('Incident Alerts', function (): void {
                 .set('Authorization', authorization);
             expect(incidentResolveEndpointResponse).to.have.status(200);
             await sleep(10 * 1000);
-            // slug is what is been used to query subscriber and onCall
-            // The slug is gotten from the schema of the database
+            /*
+             * Slug is what is been used to query subscriber and onCall
+             * The slug is gotten from the schema of the database
+             */
             const slug: $TSFixMe =
                 incidentResolveEndpointResponse.body.incident.slug;
             const subscribersAlertsEndpointReponse: $TSFixMe = await request
@@ -310,8 +312,10 @@ describe('Incident Alerts', function (): void {
                 .set('Authorization', authorization);
             expect(incidentResolveEndpointResponse).to.have.status(200);
             await sleep(10 * 1000);
-            // slug is what is been used to query subscriber and onCall
-            // The slug is gotten from the schema of the database
+            /*
+             * Slug is what is been used to query subscriber and onCall
+             * The slug is gotten from the schema of the database
+             */
             const slug: $TSFixMe =
                 incidentResolveEndpointResponse.body.incident.slug;
             const subscribersAlertsEndpointReponse: $TSFixMe = await request
@@ -405,8 +409,10 @@ describe('Incident Alerts', function (): void {
                 .set('Authorization', authorization);
             expect(incidentResolveEndpointResponse).to.have.status(200);
             await sleep(10 * 1000);
-            // slug is what is been used to query subscriber and onCall
-            // The slug is gotten from the schema of the database
+            /*
+             * Slug is what is been used to query subscriber and onCall
+             * The slug is gotten from the schema of the database
+             */
             const slug: $TSFixMe =
                 incidentResolveEndpointResponse.body.incident.slug;
             const subscribersAlertsEndpointReponse: $TSFixMe = await request
@@ -522,8 +528,10 @@ describe('Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            // slug is what is been used to query subscriber and onCall
-            // The slug is gotten from the schema of the database
+            /*
+             * Slug is what is been used to query subscriber and onCall
+             * The slug is gotten from the schema of the database
+             */
             const slug: $TSFixMe =
                 incidentResolveEndpointResponse.body.incident.slug;
 
@@ -627,8 +635,10 @@ describe('Incident Alerts', function (): void {
 
             await sleep(10 * 1000);
 
-            // slug is what is been used to query subscriber and onCall
-            // The slug is gotten from the schema of the database
+            /*
+             * Slug is what is been used to query subscriber and onCall
+             * The slug is gotten from the schema of the database
+             */
             const slug: $TSFixMe =
                 incidentResolveEndpointResponse.body.incident.slug;
 

@@ -3,7 +3,7 @@ import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 

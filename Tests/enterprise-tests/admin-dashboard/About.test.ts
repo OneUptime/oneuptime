@@ -41,7 +41,7 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 waitUntil: 'networkidle0',
             });
 
-            // if element does not exist it will timeout and throw
+            // If element does not exist it will timeout and throw
             await init.pageWaitForSelector(page, '#profile-menu', {
                 visible: true,
                 timeout: init.timeout,

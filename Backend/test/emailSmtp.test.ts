@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import { expect } from 'chai';
 import data from './data/user';
 import chai from 'chai';
@@ -82,7 +82,7 @@ describe('Email SMTP Api Test', function (): void {
             pass: value.password,
             host: value['smtp-server'],
             port: value['smtp-port'],
-            from: value['from'],
+            from: value.from,
             name: value['from-name'],
             secure: value['smtp-secure'],
             email: testemail,
@@ -110,7 +110,7 @@ describe('Email SMTP Api Test', function (): void {
             host: value['smtp-server'],
             port: value['smtp-port'],
             name: value['from-name'],
-            from: value['from'],
+            from: value.from,
             secure: value['smtp-secure'],
             email: testemail,
         };
@@ -135,7 +135,7 @@ describe('Email SMTP Api Test', function (): void {
             host: value['smtp-server'],
             port: value['smtp-port'],
             name: value['from-name'],
-            from: value['from'],
+            from: value.from,
             secure: value['smtp-secure'],
             email: testemail,
         };

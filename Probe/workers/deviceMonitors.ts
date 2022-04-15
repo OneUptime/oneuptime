@@ -1,9 +1,11 @@
 import moment from 'moment';
 import ApiService from '../Utils/apiService';
 
-// it collects all IOT device monitors then check the last time they where pinged
-// If the difference is greater than 2 minutes
-// creates incident if a website is down and resolves it when they come back up
+/*
+ * It collects all IOT device monitors then check the last time they where pinged
+ * If the difference is greater than 2 minutes
+ * Creates incident if a website is down and resolves it when they come back up
+ */
 export default {
     ping: async (monitor: $TSFixMe) => {
         const newDate: $TSFixMe = new moment();

@@ -1,6 +1,6 @@
 import userData from './data/user';
 
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 process.env.ADMIN_EMAIL = userData.adminUser.email.toLowerCase();
 process.env.ADMIN_PASSWORD = userData.adminUser.password;
 import chai from 'chai';

@@ -8,7 +8,7 @@ async function run(): void {
     });
 
     for (const monitor of monitors) {
-        // reset probeScanning field to empty array
+        // Reset probeScanning field to empty array
         await update(
             monitorCollection,
             { _id: monitor._id },

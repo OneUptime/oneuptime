@@ -3,7 +3,7 @@ import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const teamEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
@@ -33,7 +33,7 @@ describe('Project Settings', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        // user
+        // User
         await init.registerUser(user, page);
 
         await init.renameProject(newProjectName, page);
@@ -96,28 +96,28 @@ describe('Project Settings', () => {
         'should show delete project modal and click on cancel',
         async (done: $TSFixMe) => {
             await init.loginUser({ email, password }, page);
-            // click on settings
+            // Click on settings
             await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await init.pageClick(page, '#projectSettings');
-            // click on advanced
+            // Click on advanced
             await init.pageWaitForSelector(page, '#advanced', {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await init.pageClick(page, '#advanced');
-            // click on delete button
+            // Click on delete button
             await init.pageWaitForSelector(page, `#delete-${newProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
 
             await init.pageClick(page, `#delete-${newProjectName}`);
-            // confirm the delete modal comes up and the form is available
+            // Confirm the delete modal comes up and the form is available
             await init.pageWaitForSelector(page, '#btnDeleteProject', {
                 visible: true,
                 timeout: init.timeout,
@@ -128,7 +128,7 @@ describe('Project Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // fill the feedback form
+            // Fill the feedback form
 
             await init.pageClick(page, `textarea[id=feedback]`);
 
@@ -137,7 +137,7 @@ describe('Project Settings', () => {
                 `textarea[id=feedback]`,
                 `This is a test deletion`
             );
-            // click submit button
+            // Click submit button
             await init.pageWaitForSelector(page, '#btnDeleteProject', {
                 visible: true,
                 timeout: init.timeout,
@@ -145,7 +145,7 @@ describe('Project Settings', () => {
 
             await init.pageClick(page, '#btnDeleteProject');
 
-            // find the button for creating a project and expect it to be defined
+            // Find the button for creating a project and expect it to be defined
             const createProjectBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#createButton',
@@ -163,9 +163,9 @@ describe('Project Settings', () => {
     test(
         'should show all projects not just a limit of 10 projects',
         async (done: $TSFixMe) => {
-            //register user
+            //Register user
             await init.registerUser(user2, page);
-            //adding project
+            //Adding project
 
             await init.addProject(page, 'project1');
 

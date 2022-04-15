@@ -192,7 +192,7 @@ export default function security(
             };
 
         case types.DELETE_CONTAINER_SECURITY_SUCCESS: {
-            // update the list of container securities
+            // Update the list of container securities
             const securities: $TSFixMe =
                 state.containerSecurities.securities.filter(
                     (containerSecurity: $TSFixMe) => {
@@ -505,7 +505,7 @@ export default function security(
             };
 
         case types.DELETE_APPLICATION_SECURITY_SUCCESS: {
-            // update the list of application securities
+            // Update the list of application securities
             const securities: $TSFixMe =
                 state.applicationSecurities.securities.filter(
                     (applicationSecurity: $TSFixMe) => {

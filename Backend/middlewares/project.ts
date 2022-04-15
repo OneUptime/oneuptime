@@ -10,18 +10,20 @@ import {
 import apiMiddleware from '../middlewares/api';
 
 export default {
-    // Description: Checks if user belongs to the project.
-    //
-    // Params:
-    // Param 1: req.params-> {projectId}; req.user-> {id}
-    // Returns: 400: Project does not exist or User is not present in this project; 500: Server Error
+    /*
+     * Description: Checks if user belongs to the project.
+     *
+     * Params:
+     * Param 1: req.params-> {projectId}; req.user-> {id}
+     * Returns: 400: Project does not exist or User is not present in this project; 500: Server Error
+     */
     doesUserBelongToProject: async function (
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
     ): void {
         try {
-            // authorize if user is master-admin
+            // Authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
             } else {
@@ -32,7 +34,7 @@ export default {
                     req.params.projectId ||
                     req.body.projectId ||
                     url.parse(req.url, true).query.projectId;
-                //sanitize
+                //Sanitize
                 if (!projectId) {
                     return sendErrorResponse(req, res, {
                         code: 400,
@@ -58,7 +60,7 @@ export default {
                         }
                     }
 
-                    // if not in project, look at subprojects.
+                    // If not in project, look at subprojects.
 
                     const subProjects: $TSFixMe = await ProjectService.findBy({
                         query: { parentProjectId: project._id },
@@ -107,11 +109,13 @@ export default {
         }
     },
 
-    // Description: Checks if user is admin.
-    //
-    // Params:
-    // Param 1: req.params-> {projectId}; req.user-> {id}
-    // Returns: 400: You are not authorized to add member to project. Only admin can add.; 500: Server Error
+    /*
+     * Description: Checks if user is admin.
+     *
+     * Params:
+     * Param 1: req.params-> {projectId}; req.user-> {id}
+     * Returns: 400: You are not authorized to add member to project. Only admin can add.; 500: Server Error
+     */
     isUserAdmin: async function (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -137,8 +141,10 @@ export default {
                 }
             }
 
-            // authorize if user is master-admin
-            //
+            /*
+             * Authorize if user is master-admin
+             *
+             */
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
             } else {
@@ -190,7 +196,7 @@ export default {
         next: NextFunction
     ): void {
         try {
-            // authorize if user is master-admin
+            // Authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
             } else {

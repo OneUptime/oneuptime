@@ -20,7 +20,7 @@ router.get(
         try {
             const oneUptimeRequest: $TSFixMe = req as OneUptimeRequest;
             const limit: PositiveNumber = new PositiveNumber(
-                parseInt((req.query['limit'] as string) || '10')
+                parseInt((req.query.limit as string) || '10')
             );
 
             const monitors: $TSFixMe = await MonitorService.getProbeMonitors(

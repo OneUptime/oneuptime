@@ -2,7 +2,7 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/statusPageCategory';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-// create status page category
+// Create status page category
 export const createStatusPageCategoryRequest: Function = (): void => {
     return {
         type: types.CREATE_STATUS_PAGE_CATEGORY_REQUEST,
@@ -53,7 +53,7 @@ export const createStatusPageCategory: $TSFixMe = ({
     };
 };
 
-// update status page category
+// Update status page category
 export const updateStatusPageCategoryRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUS_PAGE_CATEGORY_REQUEST,
@@ -104,7 +104,7 @@ export const updateStatusPageCategory: $TSFixMe = ({
     };
 };
 
-// fetch status page categories
+// Fetch status page categories
 export const fetchStatusPageCategoriesRequest: Function = (): void => {
     return {
         type: types.FETCH_STATUS_PAGE_CATEGORIES_REQUEST,
@@ -159,7 +159,7 @@ export const fetchStatusPageCategories: $TSFixMe = ({
     };
 };
 
-// fetch  status page categories
+// Fetch  status page categories
 export const fetchAllStatusPageCategoriesRequest: Function = (): void => {
     return {
         type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_REQUEST,
@@ -214,7 +214,7 @@ export const fetchAllStatusPageCategories: $TSFixMe = ({
     };
 };
 
-// delete status page category
+// Delete status page category
 export const deleteStatusPageCategoryRequest: Function = (): void => {
     return {
         type: types.DELETE_STATUS_PAGE_CATEGORY_REQUEST,

@@ -35,7 +35,7 @@ class Logger {
             }
         }
         const logType: string = 'info';
-        // make api request to the server to save a log with the key, id and content
+        // Make api request to the server to save a log with the key, id and content
         return await this._makeApiRequest(data, logType, tags);
     }
     public async warning(data: $TSFixMe, tags = null): void {
@@ -51,7 +51,7 @@ class Logger {
             }
         }
         const logType: string = 'warning';
-        // make api request to the server to save a log with the key, id and content
+        // Make api request to the server to save a log with the key, id and content
         return await this._makeApiRequest(data, logType, tags);
     }
     public async error(data: $TSFixMe, tags = null): void {
@@ -67,7 +67,7 @@ class Logger {
             }
         }
         const logType: string = 'error';
-        // make api request to the server to save a log with the key, id and content
+        // Make api request to the server to save a log with the key, id and content
         return await this._makeApiRequest(data, logType, tags);
     }
 

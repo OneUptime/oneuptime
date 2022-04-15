@@ -77,14 +77,16 @@ router.get(
     }
 );
 
-// get subscribers alerts by projectId
-// req.params-> {projectId};
-// Returns: response subscriber alerts, error message
+/*
+ * Get subscribers alerts by projectId
+ * Req.params-> {projectId};
+ * Returns: response subscriber alerts, error message
+ */
 router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const projectId: $TSFixMe = req.params.projectId;
-        const skip: $TSFixMe = req.query['skip'] || 0;
-        const limit: $TSFixMe = req.query['limit'] || 10;
+        const skip: $TSFixMe = req.query.skip || 0;
+        const limit: $TSFixMe = req.query.limit || 10;
         const populate: $TSFixMe = [
             { path: 'incidentId', select: 'name' },
             { path: 'projectId', select: 'name' },
@@ -113,9 +115,11 @@ router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-//get subscribers by incidentSlug
-// req.params-> {projectId, incidentSlug};
-// Returns: response subscriber alerts, error message
+/*
+ * Get subscribers by incidentSlug
+ *  Req.params-> {projectId, incidentSlug};
+ *  Returns: response subscriber alerts, error message
+ */
 router.get(
     '/:projectId/incident/:incidentSlug',
     async (req: ExpressRequest, res: ExpressResponse) => {
@@ -126,8 +130,8 @@ router.get(
                 query: { slug: incidentSlug },
                 select: '_id',
             });
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
 
             let subscriberAlerts: $TSFixMe = [],
                 count: $TSFixMe = 0;

@@ -14,7 +14,8 @@ const gitUsername: $TSFixMe = utils.gitCredential.gitUsername;
 const gitPassword: $TSFixMe = utils.gitCredential.gitPassword;
 const gitRepositoryUrl: $TSFixMe = utils.gitCredential.gitRepositoryUrl;
 
-/** This is a test to check:
+/**
+ * This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
  */
@@ -42,10 +43,12 @@ describe('OneUptime Page Reload', () => {
     test(
         'Should reload the application security page and confirm there are no errors',
         async (done: $TSFixMe) => {
-            //const  categoryName: string = 'Random-Category';
-            // create a new resource category
-            // await init.addResourceCategory(categoryName, page);
-            //navigate to component details
+            /*
+             * Const  categoryName: string = 'Random-Category';
+             *  Create a new resource category
+             *  Await init.addResourceCategory(categoryName, page);
+             * Navigate to component details
+             */
             await init.navigateToComponentDetails(componentName, page);
 
             await init.pageWaitForSelector(page, '#security', {
@@ -88,11 +91,13 @@ describe('OneUptime Page Reload', () => {
             await init.pageClick(page, '#name');
 
             await init.pageType(page, '#name', applicationSecurityName);
-            // await init.selectDropdownValue(
-            //     '#resourceCategory',
-            //     categoryName,
-            //     page
-            // ); // add category
+            /*
+             * Await init.selectDropdownValue(
+             *     '#resourceCategory',
+             *     CategoryName,
+             *     Page
+             * ); // add category
+             */
 
             await init.pageClick(page, '#gitRepositoryUrl');
 
@@ -100,7 +105,7 @@ describe('OneUptime Page Reload', () => {
 
             await init.pageClick(page, '#gitCredential');
 
-            await init.pageType(page, '#gitCredential', gitUsername); // select the created credential
+            await init.pageType(page, '#gitCredential', gitUsername); // Select the created credential
             await page.keyboard.press('Enter'); // Enter Key
 
             await init.pageClick(page, '#addApplicationBtn');

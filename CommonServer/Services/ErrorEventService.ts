@@ -1,10 +1,10 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
 export default class Service {
     public async create(data: $TSFixMe): void {
-        // prepare error event model
+        // Prepare error event model
         const errorEvent: $TSFixMe = new ErrorEventModel();
 
-        // used this to sort JavaSDK having a different stack trace structure
+        // Used this to sort JavaSDK having a different stack trace structure
         data.exception.stackTraceFrame
             ? (data.exception.stacktrace = {
                   ...data.exception.stacktrace,
@@ -26,15 +26,15 @@ export default class Service {
 
         errorEvent.fingerprint = data.fingerprint;
 
-        // set error trackerid
+        // Set error trackerid
 
         errorEvent.errorTrackerId = data.errorTrackerId;
 
-        // set issueId
+        // Set issueId
 
         errorEvent.issueId = data.issueId;
 
-        // set timeline
+        // Set timeline
 
         errorEvent.timeline = data.timeline;
 
@@ -58,7 +58,7 @@ export default class Service {
         const result: $TSFixMe = await errorEventQuery;
         return result;
     }
-    // get all error events that matches the specified query
+    // Get all error events that matches the specified query
     public async findBy({
         query,
         limit,
@@ -100,7 +100,7 @@ export default class Service {
         const result: $TSFixMe = await errorEventsQuery;
         return result;
     }
-    // get all error events that matches the specified query
+    // Get all error events that matches the specified query
     public async findDistinct(
         query: Query,
         limit: PositiveNumber,
@@ -109,7 +109,7 @@ export default class Service {
         if (!query.deleted) {
             delete query.deleted;
         }
-        // get all unique hashes by error tracker Id
+        // Get all unique hashes by error tracker Id
 
         const populateIssue: $TSFixMe = [
             { path: 'errorTrackerId', select: 'name' },
@@ -139,7 +139,7 @@ export default class Service {
 
         const errorTrackerIssues: $TSFixMe = await IssueService.findBy({
             query,
-            limit: 0, // set limit to 0 to get ALL issues related by query
+            limit: 0, // Set limit to 0 to get ALL issues related by query
             skip,
             select: selectIssue,
             populate: populateIssue,
@@ -148,20 +148,20 @@ export default class Service {
         const totalErrorEvents: $TSFixMe = [];
         let index: $TSFixMe = 0;
 
-        // if the next index is available in the issue tracker, proceed
+        // If the next index is available in the issue tracker, proceed
         while (
             errorTrackerIssues[index] &&
-            totalErrorEvents.length < limit // the limit will be used here to fetch limited issues from the ALL issues fetched before
+            totalErrorEvents.length < limit // The limit will be used here to fetch limited issues from the ALL issues fetched before
         ) {
             const issue: $TSFixMe = errorTrackerIssues[index];
 
             if (issue) {
-                // set query with the current error tracker and issue ID
+                // Set query with the current error tracker and issue ID
                 const innerQuery: $TSFixMe = {
                     errorTrackerId: query.errorTrackerId,
                     issueId: issue._id,
                 };
-                // run a query to get the first and last error event that has current error tracker id and fingerprint hash
+                // Run a query to get the first and last error event that has current error tracker id and fingerprint hash
                 const [earliestErrorEvent, latestErrorEvent]: $TSFixMe =
                     await Promise.all([
                         ErrorEventModel.findOne(innerQuery).sort({
@@ -171,19 +171,19 @@ export default class Service {
                             createdAt: -1,
                         }),
                     ]);
-                // if we have an earliest and latest error event
+                // If we have an earliest and latest error event
                 if (earliestErrorEvent && latestErrorEvent) {
                     const [totalNumberOfEvents, members, timeline]: $TSFixMe =
                         await Promise.all([
-                            // get total number of events for that issue
+                            // Get total number of events for that issue
                             this.countBy(innerQuery),
-                            // we get the memebrs attached to this issue
+                            // We get the memebrs attached to this issue
                             IssueMemberService.findBy({
                                 query: { issueId: issue._id, removed: false },
                                 select: selectIssueMember,
                                 populate: populateIssueMember,
                             }),
-                            // we get the timeline to attach to this issue
+                            // We get the timeline to attach to this issue
                             IssueTimelineService.findBy({
                                 issueId: issue._id,
                                 populate: populateIssueTimeline,
@@ -191,7 +191,7 @@ export default class Service {
                             }),
                         ]);
 
-                    // fill in its biodata with the latest error event details
+                    // Fill in its biodata with the latest error event details
                     const errorEvent: $TSFixMe = {
                         _id: issue._id,
                         name: issue.name,
@@ -208,14 +208,14 @@ export default class Service {
                         members,
                         timeline,
                     };
-                    // add it to the list of error events
+                    // Add it to the list of error events
                     totalErrorEvents.push(errorEvent);
                 }
             }
-            // increment index
+            // Increment index
             index = index + 1;
         }
-        // sort total error events by latest occurence date
+        // Sort total error events by latest occurence date
 
         totalErrorEvents.sort((eventA: $TSFixMe, eventB: $TSFixMe) => {
             return moment(eventB.latestOccurennce).isAfter(
@@ -223,7 +223,7 @@ export default class Service {
             );
         });
         let dateRange: $TSFixMe = { startDate: '', endDate: '' };
-        // set the date time range
+        // Set the date time range
         if (query.createdAt) {
             dateRange = {
                 startDate: query.createdAt.$gte,
@@ -283,7 +283,7 @@ export default class Service {
         const selectIssueTimeline: $TSFixMe =
             'issueId createdById createdAt status deleted';
 
-        // add issue timeline to this error event
+        // Add issue timeline to this error event
         const issueTimeline: $TSFixMe = await IssueTimelineService.findBy({
             query: { issueId: errorEvent.issueId._id },
             select: selectIssueTimeline,
@@ -375,8 +375,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let errorEvent: $TSFixMe = await ErrorEventModel.findOneAndUpdate(
             query,
@@ -402,8 +402,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const updateProcess: $TSFixMe = await ErrorEventModel.updateMany(
             query,

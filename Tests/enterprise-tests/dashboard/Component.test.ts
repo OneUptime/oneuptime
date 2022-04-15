@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 let browser: $TSFixMe, page: $TSFixMe;
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),

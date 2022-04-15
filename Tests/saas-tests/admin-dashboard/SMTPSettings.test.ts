@@ -7,7 +7,7 @@ import axios from 'axios';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
-// user credentials
+// User credentials
 const email: string = 'masteradmin@hackerbay.io';
 const password: string = '1234567890';
 
@@ -28,11 +28,11 @@ describe('SMTP Settings API', () => {
             email: email,
             password: password,
         };
-        // user
+        // User
 
         await init.loginAdminUser(user, page);
 
-        // delete existing smtp details, if there is any.
+        // Delete existing smtp details, if there is any.
         const data: $TSFixMe = JSON.stringify({
             collection: 'globalconfigs',
             query: {},

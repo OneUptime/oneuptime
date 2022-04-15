@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
@@ -150,42 +150,42 @@ describe('Email Logs', () => {
 
             await init.pageClick(page, '#emailLogs');
 
-            // visit the email log settings page by clicking on settings first to show drop down
+            // Visit the email log settings page by clicking on settings first to show drop down
 
             await init.pageWaitForSelector(page, '#settings');
 
             await init.pageClick(page, '#settings');
 
-            // click on th email log
+            // Click on th email log
 
             await init.pageWaitForSelector(page, '#emailLog');
 
             await init.pageClick(page, '#emailLog');
 
-            // turn email log off
+            // Turn email log off
 
             await init.pageWaitForSelector(page, '.Toggler-wrap');
 
             await init.pageClick(page, '.Toggler-wrap');
 
-            // click the submit button
+            // Click the submit button
 
             await init.pageWaitForSelector(page, '#emailLogSubmit');
 
             await init.pageClick(page, '#emailLogSubmit');
 
-            // go back to logs page
+            // Go back to logs page
 
             await init.pageWaitForSelector(page, '#logs');
 
             await init.pageClick(page, '#logs');
-            //go to email logs page
+            //Go to email logs page
 
             await init.pageWaitForSelector(page, '#emailLogs');
 
             await init.pageClick(page, '#emailLogs');
 
-            // look for the alert panel
+            // Look for the alert panel
 
             const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -209,7 +209,7 @@ describe('Email Logs', () => {
 
             await init.pageClick(page, '#emailLogs');
 
-            // look for the alert panel
+            // Look for the alert panel
 
             const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -217,7 +217,7 @@ describe('Email Logs', () => {
             );
             expect(alertPanelElement).toBeDefined();
 
-            // count currently available logs
+            // Count currently available logs
 
             let logCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -227,10 +227,10 @@ describe('Email Logs', () => {
             logCount = await logCount.jsonValue();
             logCount = Number(logCount.split(' ')[0]);
 
-            // test smpt credential inorder to get an email
+            // Test smpt credential inorder to get an email
             await init.testSmptSettings(page, email);
 
-            // come back to logs page
+            // Come back to logs page
 
             await init.pageWaitForSelector(page, '#logs');
 
@@ -240,7 +240,7 @@ describe('Email Logs', () => {
 
             await init.pageClick(page, '#emailLogs');
 
-            // validate that the number doesnt change
+            // Validate that the number doesnt change
 
             let newLogCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -259,7 +259,7 @@ describe('Email Logs', () => {
         'Should validate that email logs are enabled and on performing email related activity email is logged again',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            //await init.testSmptSettings(page, email);
+            //Await init.testSmptSettings(page, email);
 
             await init.pageWaitForSelector(page, '#logs');
 
@@ -269,7 +269,7 @@ describe('Email Logs', () => {
 
             await init.pageClick(page, '#emailLogs');
 
-            // count number of logs
+            // Count number of logs
 
             let logCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -279,7 +279,7 @@ describe('Email Logs', () => {
             logCount = await logCount.jsonValue();
             logCount = Number(logCount.split(' ')[0]);
 
-            // look for the alert panel
+            // Look for the alert panel
 
             const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -287,13 +287,13 @@ describe('Email Logs', () => {
             );
             expect(alertPanelElement).toBeDefined();
 
-            // find the a tag to enable logs and click on it
+            // Find the a tag to enable logs and click on it
 
             await init.pageWaitForSelector(page, '#emailLogSetting');
 
             await init.pageClick(page, '#emailLogSetting');
 
-            // enable logs
+            // Enable logs
             await init.page$Eval(
                 page,
                 'input[name=emailStatusToggler]',
@@ -302,15 +302,15 @@ describe('Email Logs', () => {
                 }
             );
 
-            // click the submit button
+            // Click the submit button
 
             await init.pageWaitForSelector(page, '#emailLogSubmit');
 
             await init.pageClick(page, '#emailLogSubmit');
 
-            // create email log by testing smpt settings
+            // Create email log by testing smpt settings
             await init.testSmptSettings(page, email);
-            //go back to log email
+            //Go back to log email
 
             await init.pageWaitForSelector(page, '#logs');
 
@@ -320,7 +320,7 @@ describe('Email Logs', () => {
 
             await init.pageClick(page, '#emailLogs');
 
-            // count new number of logs
+            // Count new number of logs
 
             let newLogCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -330,7 +330,7 @@ describe('Email Logs', () => {
             newLogCount = await newLogCount.jsonValue();
             newLogCount = Number(newLogCount.split(' ')[0]);
 
-            // expect it to be greater now
+            // Expect it to be greater now
             expect(newLogCount).toBeGreaterThan(logCount);
         },
         operationTimeOut

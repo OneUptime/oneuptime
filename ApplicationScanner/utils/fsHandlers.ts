@@ -51,7 +51,7 @@ async function deleteFolderRecursive(dir: $TSFixMe): void {
                     : unlink(fullPath);
             })
         );
-        await rmdir(dir); // finally remove now empty directory
+        await rmdir(dir); // Finally remove now empty directory
     }
 }
 

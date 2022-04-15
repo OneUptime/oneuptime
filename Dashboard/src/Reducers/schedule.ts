@@ -177,7 +177,7 @@ export default function schedule(
                 },
             });
 
-        // fetch subproject schedules
+        // Fetch subproject schedules
         case SUBPROJECT_SCHEDULE_FETCH_SUCCESS:
             return Object.assign({}, state, {
                 schedules: {
@@ -211,7 +211,7 @@ export default function schedule(
                 subProjectSchedules: [],
             });
 
-        // fetch list of schedules in a project
+        // Fetch list of schedules in a project
         case PROJECT_SCHEDULE_FETCH_SUCCESS:
             return Object.assign({}, state, {
                 schedules: {

@@ -12,11 +12,11 @@ const format: Function = (number: $TSFixMe): void => {
         { index: 'M', value: 1e6 },
         { index: 'K', value: 1000 },
     ];
-    // return the number if less than 1000.
+    // Return the number if less than 1000.
     if (number < 1000) {
         formattedValue = number.toString();
     }
-    // terminate if we have a formatted value or the next index is not defined
+    // Terminate if we have a formatted value or the next index is not defined
     while (formattedValue === '' && formats[index]) {
         const currentFormat: $TSFixMe = formats[index];
 
@@ -27,17 +27,21 @@ const format: Function = (number: $TSFixMe): void => {
         let formattedRemainder: $TSFixMe = '';
 
         if (!isValueLessThanOne) {
-            // this is a success we try to format the value and the remainder
+            // This is a success we try to format the value and the remainder
             if (remainder !== 0) {
-                // value has remainder
-                // convert value to string and fetch the digit after the decimal
+                /*
+                 * Value has remainder
+                 * Convert value to string and fetch the digit after the decimal
+                 */
                 const stringVal: $TSFixMe = val.toString();
                 formattedRemainder = stringVal.substr(
                     stringVal.indexOf('.') + 1
                 );
 
-                // if the formatted remainder is divisible by 10, without a remainder, we return just the first digit
-                // this is to avoid .50 instead we have .5
+                /*
+                 * If the formatted remainder is divisible by 10, without a remainder, we return just the first digit
+                 * This is to avoid .50 instead we have .5
+                 */
                 const intFormattedRemainder: $TSFixMe =
                     parseInt(formattedRemainder);
                 const tenthRemainder: $TSFixMe = intFormattedRemainder % 10;
@@ -45,23 +49,23 @@ const format: Function = (number: $TSFixMe): void => {
                     formattedRemainder = formattedRemainder.substr(0, 1);
                 }
             }
-            // parse value to integer to get whole number
+            // Parse value to integer to get whole number
 
             val = parseInt(number / currentFormat.value);
 
-            // prepare the final value with the whole number, remainder and indicator
+            // Prepare the final value with the whole number, remainder and indicator
             formattedValue =
                 remainder === 0
                     ? `${val}${currentFormat.index}`
                     : `${val}.${formattedRemainder}${currentFormat.index}`;
         }
-        // goto the next index
+        // Goto the next index
         index = index + 1;
     }
     return formattedValue;
 };
 
-// return the provided number in a particular decimal place
+// Return the provided number in a particular decimal place
 export const numDecimal: Function = (
     num: $TSFixMe,
     decimalPlace: $TSFixMe = 2

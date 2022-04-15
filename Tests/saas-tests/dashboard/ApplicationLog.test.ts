@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -117,7 +117,7 @@ describe('Log Containers', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(applicationLogName);
 
-            // find the log api key button which appears only on the details page
+            // Find the log api key button which appears only on the details page
 
             const logKeyElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -135,17 +135,19 @@ describe('Log Containers', () => {
         async (done: $TSFixMe) => {
             const categoryName: string = 'Random-Category';
             const appLogName: string = 'NewAppLog';
-            // create a new resource category
+            // Create a new resource category
             await init.addResourceCategory(categoryName, page);
-            //navigate to component details
+            //Navigate to component details
             await init.navigateToComponentDetails(componentName, page);
-            // go to logs
+            // Go to logs
 
             await init.pageWaitForSelector(page, '#logs');
 
             await init.pageClick(page, '#logs');
-            // create a new log and select the category
-            // Fill and submit New Application  log form
+            /*
+             * Create a new log and select the category
+             * Fill and submit New Application  log form
+             */
 
             await init.pageWaitForSelector(page, '#cbLogs');
 
@@ -168,7 +170,7 @@ describe('Log Containers', () => {
             );
 
             await init.pageClick(page, 'button[type=submit]');
-            // confirm the category shows in the details page.
+            // Confirm the category shows in the details page.
             await init.pageWaitForSelector(page, `#${appLogName}Badge`, {
                 visible: true,
                 timeout: init.timeout,
@@ -260,14 +262,14 @@ describe('Log Containers', () => {
     test(
         'Should display warning for empty log container',
         async (done: $TSFixMe) => {
-            // goto thee details page
+            // Goto thee details page
             await init.navigateToApplicationLogDetails(
                 componentName,
                 applicationLogName,
                 page
             );
 
-            // get the error element, Expect it to be defined
+            // Get the error element, Expect it to be defined
 
             const errorElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -283,14 +285,14 @@ describe('Log Containers', () => {
     test(
         'Should filter log container by selected log type',
         async (done: $TSFixMe) => {
-            // goto thee details page
+            // Goto thee details page
             await init.navigateToApplicationLogDetails(
                 componentName,
                 applicationLogName,
                 page
             );
 
-            // toggle the filter section
+            // Toggle the filter section
 
             await init.pageWaitForSelector(
                 page,
@@ -299,11 +301,13 @@ describe('Log Containers', () => {
 
             await init.pageClick(page, `#filter_${applicationLogName}`);
 
-            // select the drop down and confirm the current value as all
+            // Select the drop down and confirm the current value as all
             let logTypeElement: $TSFixMe = await init.pageWaitForSelector(
-                /** React-Select Library is used in the dashboard
+                /**
+                 * React-Select Library is used in the dashboard
                  * This reminds puppeteer that the <input /> is hidden
-                 * as init.pageWaitForSelector is 'visible : true' by default  */
+                 * as init.pageWaitForSelector is 'visible : true' by default
+                 */
 
                 page,
                 'input[name=log_type_selector]',
@@ -314,7 +318,7 @@ describe('Log Containers', () => {
             logTypeElement = await logTypeElement.jsonValue();
             logTypeElement.should.be.exactly('');
 
-            // click on the warning tab
+            // Click on the warning tab
             await init.pageClick(page, '#log_type_selector', { hidden: true });
             await init.pageType(page, '#log_type_selector', 'Warning', {
                 hidden: true,
@@ -330,14 +334,14 @@ describe('Log Containers', () => {
             logTypeElement = await logTypeElement.jsonValue();
             logTypeElement.should.be.exactly('warning');
 
-            // click on the info tab
+            // Click on the info tab
             await init.pageClick(page, '#log_type_selector', { hidden: true });
             await init.pageType(page, '#log_type_selector', 'Info', {
                 hidden: true,
             });
             await page.keyboard.press('Tab');
 
-            // confim that thee drop down current value is info
+            // Confim that thee drop down current value is info
             logTypeElement = await init.pageWaitForSelector(
                 page,
                 'input[name=log_type_selector]',
@@ -348,14 +352,14 @@ describe('Log Containers', () => {
             logTypeElement = await logTypeElement.jsonValue();
             logTypeElement.should.be.exactly('info');
 
-            // click on the error tab
+            // Click on the error tab
             await init.pageClick(page, '#log_type_selector', { hidden: true });
             await init.pageType(page, '#log_type_selector', 'Error', {
                 hidden: true,
             });
             await page.keyboard.press('Tab');
 
-            // confim that thee drop down current value is error
+            // Confim that thee drop down current value is error
             logTypeElement = await init.pageWaitForSelector(
                 page,
                 'input[name=log_type_selector]',
@@ -366,14 +370,14 @@ describe('Log Containers', () => {
             logTypeElement = await logTypeElement.jsonValue();
             logTypeElement.should.be.exactly('error');
 
-            // click on the all tab
+            // Click on the all tab
             await init.pageClick(page, '#log_type_selector', { hidden: true });
             await init.pageType(page, '#log_type_selector', 'All Logs', {
                 hidden: true,
             });
             await page.keyboard.press('Tab');
 
-            // confim that thee drop down current value is all
+            // Confim that thee drop down current value is all
             logTypeElement = await init.pageWaitForSelector(
                 page,
                 'input[name=log_type_selector]',

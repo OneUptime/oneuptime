@@ -2,10 +2,12 @@ import * as types from '../constants/logout';
 import Cookies from 'universal-cookie';
 import { ACCOUNTS_URL } from '../config';
 import { Dispatch } from 'redux';
-// Three possible states for our logout process as well.
-// Since we are using JWTs, we just need to remove the token
-// from localStorage. These actions are more useful if we
-// were calling the API to log the user out
+/*
+ * Three possible states for our logout process as well.
+ * Since we are using JWTs, we just need to remove the token
+ * From localStorage. These actions are more useful if we
+ * Were calling the API to log the user out
+ */
 
 export const requestLogout: Function = (): void => {
     return {

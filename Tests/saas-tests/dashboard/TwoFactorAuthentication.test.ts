@@ -10,7 +10,7 @@ import 'should';
 const projectName: string = 'project';
 
 let browser: $TSFixMe, page: $TSFixMe;
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let token: $TSFixMe;
@@ -36,7 +36,7 @@ describe('TwoFactor Authentication API', () => {
             email: email,
             password: password,
         };
-        //user login
+        //User login
         await init.registerUser(user, page);
 
         await init.addProject(page, projectName);

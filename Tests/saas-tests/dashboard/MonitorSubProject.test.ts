@@ -4,13 +4,13 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
-// parent user credentials
+// Parent user credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const projectName: string = utils.generateRandomString();
 const subProjectMonitorName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
-// sub-project user credentials
+// Sub-project user credentials
 const newEmail: Email = utils.generateRandomBusinessEmail();
 const newPassword: string = '1234567890';
 const subProjectName: string = utils.generateRandomString();
@@ -33,11 +33,11 @@ describe('Monitor API With SubProjects', () => {
 
         await init.registerUser(user, page);
 
-        // rename default project
+        // Rename default project
         await init.renameProject(projectName, page);
         await init.growthPlanUpgrade(page); // Growth Plan is needed for subproject
 
-        // add sub-project
+        // Add sub-project
         await init.addSubProject(subProjectName, page);
 
         await init.pageClick(page, '#projectFilterToggle');
@@ -49,7 +49,7 @@ describe('Monitor API With SubProjects', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
-        // add new user to sub-project
+        // Add new user to sub-project
 
         await init.addUserToProject(
             {
@@ -72,7 +72,7 @@ describe('Monitor API With SubProjects', () => {
         'should not display new monitor form for user that is not `admin` in sub-project.',
         async (done: $TSFixMe) => {
             const user: $TSFixMe = { email: newEmail, password: newPassword };
-            // await init.loginUser(user, page);
+            // Await init.loginUser(user, page);
             await init.saasLogout(page);
             await init.registerAndLoggingTeamMember(user, page); // SubProject User registration and login
 
@@ -118,7 +118,7 @@ describe('Monitor API With SubProjects', () => {
 
             await init.pageClick(page, `#project-${subProjectName}`);
             await init.navigateToComponentDetails(componentName, page);
-            // switch to invited project for new user
+            // Switch to invited project for new user
 
             await init.pageWaitForSelector(page, '#monitors');
 

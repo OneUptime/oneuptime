@@ -23,7 +23,7 @@ describe('OneUptimeLogger', function (): void {
         token: $TSFixMe,
         componentId: $TSFixMe,
         applicationLog: $TSFixMe;
-    // create a new user
+    // Create a new user
     const component: $TSFixMe = { name: 'Our Component' };
 
     before(function (done: $TSFixMe): void {

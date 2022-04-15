@@ -73,7 +73,7 @@ const _this: $TSFixMe = {
                 new BadDataException('Tags is required.')
             );
         }
-        // confirm tags are valid data type if present
+        // Confirm tags are valid data type if present
         if (data.tags && !Array.isArray(data.tags)) {
             return sendErrorResponse(
                 req,
@@ -89,7 +89,7 @@ const _this: $TSFixMe = {
                 new BadDataException('Timeline is required.')
             );
         }
-        // confirm timeline is valid data type if present
+        // Confirm timeline is valid data type if present
         if (!Array.isArray(data.timeline)) {
             return sendErrorResponse(
                 req,
@@ -105,12 +105,12 @@ const _this: $TSFixMe = {
                 new BadDataException('Exception is required.')
             );
         }
-        // try to get the error tracker by the ID and key
+        // Try to get the error tracker by the ID and key
         const errorTrackerCount: $TSFixMe = await ErrorTrackerService.countBy({
             _id: errorTrackerId,
             key: data.errorTrackerKey,
         });
-        // send an error if the error tracker doesnt exist
+        // Send an error if the error tracker doesnt exist
         if (errorTrackerCount === 0) {
             return sendErrorResponse(
                 req,
@@ -118,7 +118,7 @@ const _this: $TSFixMe = {
                 new BadDataException('Error Tracker does not exist.')
             );
         }
-        // all checks fine now, proceed with the request
+        // All checks fine now, proceed with the request
         return next();
     },
 };

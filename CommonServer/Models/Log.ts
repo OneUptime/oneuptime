@@ -11,7 +11,7 @@ const schema: $TSFixMe = new Schema({
         ref: 'ApplicationLog',
         alias: 'applicationLog',
         index: true,
-    }, //which application log this content log belongs to.
+    }, //Which application log this content log belongs to.
     content: Object,
     stringifiedContent: String,
     type: {
@@ -24,7 +24,7 @@ const schema: $TSFixMe = new Schema({
             type: String,
         },
     ],
-    createdById: { type: String, ref: 'User', index: true }, //userId.
+    createdById: { type: String, ref: 'User', index: true }, //UserId.
     createdAt: {
         type: Date,
         default: Date.now,

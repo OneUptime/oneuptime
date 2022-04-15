@@ -20,7 +20,7 @@ class ErrorTracker {
     private options: $TSFixMe;
     private tags: $TSFixMe;
     private utilObj: $TSFixMe;
-    // constructor to set up global listeners
+    // Constructor to set up global listeners
     public constructor(
         apiUrl: URL,
         errorTrackerId: $TSFixMe,
@@ -40,7 +40,7 @@ class ErrorTracker {
         };
         this.MAX_ITEMS_ALLOWED_IN_STACK = 100;
         this.configKeys = ['baseUrl'];
-        // set up option
+        // Set up option
         this._setUpOptions(options);
         this._setEventId();
         this.isWindow = typeof window !== 'undefined';
@@ -50,7 +50,7 @@ class ErrorTracker {
             this.options
         ); // Initialize Listener for timeline
         this.utilObj = new Util(this.options);
-        // set up error listener
+        // Set up error listener
         if (this.isWindow) {
             this._setUpErrorListener();
         } else {
@@ -68,19 +68,19 @@ class ErrorTracker {
     }
     private _setUpOptions(options: $TSFixMe): void {
         for (const [key, value] of Object.entries(options)) {
-            // proceed with current key if it is not in the config keys
+            // Proceed with current key if it is not in the config keys
             if (!this.configKeys.includes(key)) {
-                // if key is in allowed options keys
+                // If key is in allowed options keys
                 if (this.options[key]) {
-                    // set max timeline properly after checking conditions
+                    // Set max timeline properly after checking conditions
                     if (
                         key === 'maxTimeline' &&
                         (value > this.MAX_ITEMS_ALLOWED_IN_STACK || value < 1)
                     ) {
                         this.options[key] = this.MAX_ITEMS_ALLOWED_IN_STACK;
                     } else if (key === 'captureCodeSnippet') {
-                        const isBoolean: $TSFixMe = typeof value === 'boolean'; // check if the passed value is a boolean
-                        // set boolean value if boolean or set default `true` if annything other than boolean is passed
+                        const isBoolean: $TSFixMe = typeof value === 'boolean'; // Check if the passed value is a boolean
+                        // Set boolean value if boolean or set default `true` if annything other than boolean is passed
                         this.options[key] = isBoolean ? value : true;
                     } else {
                         this.options[key] = value;
@@ -99,19 +99,19 @@ class ErrorTracker {
         if (!(typeof key === 'string') || !(typeof value === 'string')) {
             return 'Invalid Tags type';
         }
-        // get the index if the key exist already
+        // Get the index if the key exist already
         const index: $TSFixMe = this.tags.findIndex((tag: $TSFixMe) => {
             return tag.key === key;
         });
         if (index !== -1) {
-            // replace value if it exist
+            // Replace value if it exist
             this.tags[index].value = value;
         } else {
-            // push key and value if it doesnt
+            // Push key and value if it doesnt
             this.tags = [...this.tags, { key, value }];
         }
     }
-    // pass an array of tags
+    // Pass an array of tags
     public setTags(tags: $TSFixMe): void {
         if (!Array.isArray(tags)) {
             return 'Invalid Tags type';
@@ -143,14 +143,14 @@ class ErrorTracker {
         this.fingerprint = keys ? (Array.isArray(keys) ? keys : [keys]) : [];
     }
     private _getFingerprint(errorMessage: $TSFixMe): void {
-        // if no fingerprint exist currently
+        // If no fingerprint exist currently
         if (this.fingerprint.length < 1) {
-            // set up finger print based on error since none exist
+            // Set up finger print based on error since none exist
             this.setFingerprint(errorMessage);
         }
         return this.fingerprint;
     }
-    // set up error listener
+    // Set up error listener
     private _setUpErrorListener(): void {
         window.onerror = async function (
             message,
@@ -166,18 +166,18 @@ class ErrorTracker {
                 : errorEvent.toLowerCase();
             const substring: string = 'script error';
             if (string.indexOf(substring) > -1) {
-                return; // third party error
+                return; // Third party error
             } else {
-                // construct the error object
+                // Construct the error object
                 const errorObj: $TSFixMe =
                     await this.utilObj._getErrorStackTrace(errorEvent);
 
-                // set the a handled tag
+                // Set the a handled tag
                 this.setTag('handled', 'false');
-                // prepare to send to server
+                // Prepare to send to server
                 this.prepareErrorObject('error', errorObj);
 
-                // send to the server
+                // Send to the server
                 this.sendErrorEventToServer();
             }
         };
@@ -185,32 +185,32 @@ class ErrorTracker {
     private _setUpNodeErrorListener(): void {
         process
             .on('uncaughtException', (err: $TSFixMe) => {
-                // display for the user
+                // Display for the user
                 //eslint-disable-next-line no-console
                 console.info(`${err}`);
-                // any uncaught error
+                // Any uncaught error
                 this._manageErrorNode(err);
             })
             .on('unhandledRejection', (err: $TSFixMe) => {
-                // display this for the user
+                // Display this for the user
                 //eslint-disable-next-line no-console
                 console.info(`UnhandledPromiseRejectionWarning: ${err.stack}`);
-                // any unhandled promise error
+                // Any unhandled promise error
                 this._manageErrorNode(err);
             });
     }
     private async _manageErrorNode(error: $TSFixMe): void {
-        // construct the error object
+        // Construct the error object
         const errorObj: $TSFixMe = await this.utilObj._getErrorStackTrace(
             error
         );
 
-        // set the a handled tag
+        // Set the a handled tag
         this.setTag('handled', 'false');
-        // prepare to send to server
+        // Prepare to send to server
         this.prepareErrorObject('error', errorObj);
 
-        // send to the server
+        // Send to the server
         return this.sendErrorEventToServer();
     }
     public addToTimeline(
@@ -231,25 +231,25 @@ class ErrorTracker {
         return this.listenerObj.getTimeline();
     }
     public captureMessage(message: $TSFixMe): void {
-        // set the a handled tag
+        // Set the a handled tag
         this.setTag('handled', 'true');
         this.prepareErrorObject('message', { message });
 
-        // send to the server
+        // Send to the server
         return this.sendErrorEventToServer();
     }
     public async captureException(error: $TSFixMe): void {
-        // construct the error object
+        // Construct the error object
         const errorObj: $TSFixMe = await this.utilObj._getErrorStackTrace(
             error
         );
 
-        // set the a handled tag
+        // Set the a handled tag
         this.setTag('handled', 'true');
 
         this.prepareErrorObject('exception', errorObj);
 
-        // send to the server
+        // Send to the server
         return this.sendErrorEventToServer();
     }
     private _setHost(): void {
@@ -257,29 +257,33 @@ class ErrorTracker {
             // Web apps
             this.setTag('url', window.location.origin);
         } else {
-            // JS Backend
-            // TODO create a way to get host on the backend
+            /*
+             * JS Backend
+             * TODO create a way to get host on the backend
+             */
         }
     }
     public prepareErrorObject(type: $TSFixMe, errorStackTrace: $TSFixMe): void {
-        // log event
+        // Log event
         const content: $TSFixMe = {
             message: errorStackTrace.message,
         };
         this.listenerObj.logErrorEvent(content, type);
-        // set the host as a tag to be used later
+        // Set the host as a tag to be used later
         this._setHost();
-        // get current timeline
+        // Get current timeline
         const timeline: $TSFixMe = this.getTimeline();
-        // get device location and details
+        // Get device location and details
         const deviceDetails: $TSFixMe = this.utilObj._getUserDeviceDetails();
         const tags: $TSFixMe = this._getTags();
         const fingerprint: $TSFixMe = this._getFingerprint(
             errorStackTrace.message
-        ); // default fingerprint will be the message from the error stacktrace
-        // get event ID
-        // Temporary display the state of the error stack, timeline and device details when an error occur
-        // prepare the event so it can be sent to the server
+        ); // Default fingerprint will be the message from the error stacktrace
+        /*
+         * Get event ID
+         * Temporary display the state of the error stack, timeline and device details when an error occur
+         * Prepare the event so it can be sent to the server
+         */
         this.event = {
             type,
             timeline,
@@ -297,9 +301,9 @@ class ErrorTracker {
         await this._makeApiRequest(this.event)
             .then((response: $TSFixMe) => {
                 content = response;
-                // generate a new event Id
+                // Generate a new event Id
                 this._setEventId();
-                // clear the timeline after a successful call to the server
+                // Clear the timeline after a successful call to the server
                 this._clear(this.getEventId());
             })
             .catch((error: Error) => {
@@ -326,13 +330,13 @@ class ErrorTracker {
         return { name, version };
     }
     private _clear(newEventId: $TSFixMe): void {
-        // clear tags
+        // Clear tags
         this.tags = [];
-        // clear extras
+        // Clear extras
         this.extras = [];
-        // clear fingerprint
+        // Clear fingerprint
         this.fingerprint = [];
-        // clear timeline
+        // Clear timeline
         this.listenerObj.clearTimeline(newEventId);
     }
 }

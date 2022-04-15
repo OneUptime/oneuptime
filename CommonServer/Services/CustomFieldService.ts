@@ -11,7 +11,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const customFieldQuery: $TSFixMe = CustomFieldModel.findOne(query)
             .sort(sort)
             .lean();
@@ -47,8 +47,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const oldCustomField: $TSFixMe =
@@ -56,8 +56,10 @@ export default class Service {
                 $set: data,
             });
 
-        // fetch all the corresponding incoming request
-        // and update the custom fields
+        /*
+         * Fetch all the corresponding incoming request
+         * And update the custom fields
+         */
 
         const populateCustomField: $TSFixMe = [
             { path: 'projectId', select: 'name' },
@@ -102,8 +104,10 @@ export default class Service {
                 data.customFields.push(field);
             }
 
-            // make the update synchronous
-            // so we can propagate the update in the background
+            /*
+             * Make the update synchronous
+             * So we can propagate the update in the background
+             */
             IncomingRequestService.updateCustomFieldBy(
                 { projectId: query.projectId, _id: request._id },
                 data
@@ -147,7 +151,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const customFieldsQuery: $TSFixMe = CustomFieldModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -166,14 +170,16 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query['deleted'] = false;
+        query.deleted = false;
         const count: $TSFixMe = await CustomFieldModel.countDocuments(query);
         return count;
     }
 
     public async deleteBy(query: Query): void {
-        // when a custom field is deleted
-        // it should be removed from the corresponding incoming request
+        /*
+         * When a custom field is deleted
+         * It should be removed from the corresponding incoming request
+         */
         const select: $TSFixMe =
             'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
@@ -213,8 +219,10 @@ export default class Service {
                 }
             );
 
-            // make the update synchronous
-            // so we can propagate the update in the background
+            /*
+             * Make the update synchronous
+             * So we can propagate the update in the background
+             */
             IncomingRequestService.updateCustomFieldBy(
                 { projectId: query.projectId, _id: request._id },
                 data
@@ -235,8 +243,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let updatedCustomField: $TSFixMe = await CustomFieldModel.updateMany(
             query,

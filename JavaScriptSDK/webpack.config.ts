@@ -30,9 +30,11 @@ const serverBuild: $TSFixMe = {
         extensions: ['.js'],
     },
 };
-/*const webBuild: $TSFixMe = {
-    ...serverBuild,
-    target: 'web',
-    output: { ...serverBuild.output, filename: 'oneuptime.min.js' },
-};*/
+/*
+ *Const webBuild: $TSFixMe = {
+ *  ...serverBuild,
+ *  target: 'web',
+ *  output: { ...serverBuild.output, filename: 'oneuptime.min.js' },
+ *};
+ */
 export default serverBuild;

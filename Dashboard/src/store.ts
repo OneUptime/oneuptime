@@ -5,7 +5,7 @@ import { routerMiddleware } from 'react-router-redux';
 import thunk from 'redux-thunk';
 
 import { createBrowserHistory, createMemoryHistory } from 'history';
-// import createHistory from 'history/createBrowserHistory';
+// Import createHistory from 'history/createBrowserHistory';
 import rootReducer from './reducers';
 
 // A nice helper to tell us if we're on the server
@@ -14,7 +14,7 @@ export const isApiServer: $TSFixMe = !(
     window.document &&
     window.document.createElement
 );
-// export const history: $TSFixMe = createHistory();
+// Export const history: $TSFixMe = createHistory();
 const url: string = '/';
 export const history: $TSFixMe = isApiServer
     ? createMemoryHistory({ initialEntries: [url] })
@@ -25,7 +25,7 @@ const enhancers: $TSFixMe = [];
 const logger: $TSFixMe = createLogger();
 const middleware: $TSFixMe = [thunk, routerMiddleware(history)];
 
-if (process.env['NODE_ENV'] === 'development') {
+if (process.env.NODE_ENV === 'development') {
     let devToolsExtension: $TSFixMe;
     if (!isApiServer) {
         devToolsExtension = window.devToolsExtension;

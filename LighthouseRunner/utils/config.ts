@@ -38,7 +38,7 @@ const COMMAND: $TSFixMe = {
 
 export default {
     COMMAND,
-    serverUrl: process.env['SERVER_URL'],
-    clusterKey: process.env['CLUSTER_KEY'],
+    serverUrl: process.env.SERVER_URL,
+    clusterKey: process.env.CLUSTER_KEY,
     lighthouseVersion: packageJson.version,
 };

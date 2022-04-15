@@ -22,8 +22,10 @@ export default class Service {
         }
 
         if (data.isDefault) {
-            // automatically set isDefault to false
-            // for any previous SLA with a default status
+            /*
+             * Automatically set isDefault to false
+             * For any previous SLA with a default status
+             */
             await IncidentCommunicationSlaModel.findOneAndUpdate(
                 {
                     projectId: data.projectId,
@@ -53,8 +55,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const incidentCommunicationSlaQuery: $TSFixMe =
@@ -77,8 +79,8 @@ export default class Service {
         select,
         sort,
     }: FindBy): void {
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         const incidentCommunicationSlaQuery: $TSFixMe =
@@ -102,12 +104,14 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
-        // check if we are only setting default sla
-        // or using update modal for editing the details
+        /*
+         * Check if we are only setting default sla
+         * Or using update modal for editing the details
+         */
 
         if (!data.handleDefault) {
             const incidentCommunicationSla: $TSFixMe = await this.findOneBy({
@@ -155,15 +159,17 @@ export default class Service {
                     query._id
                 );
             } else {
-                // unset incidentCommunicationSla for removed monitors
-                // at this point all the monitors were removed
+                /*
+                 * Unset incidentCommunicationSla for removed monitors
+                 * At this point all the monitors were removed
+                 */
                 await MonitorService.unsetColumnsOfManyMonitors(
                     initialMonitorIds,
                     { incidentCommunicationSla: true }
                 );
             }
 
-            // unset incidentCommunicationSla for removed monitors
+            // Unset incidentCommunicationSla for removed monitors
             if (removedMonitors && removedMonitors.length > 0) {
                 await MonitorService.unsetColumnsOfManyMonitors(
                     removedMonitors,
@@ -246,8 +252,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe =
             await IncidentCommunicationSlaModel.countDocuments(query);

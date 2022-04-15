@@ -35,7 +35,7 @@ const getReducer: Function = ({ actionBase }: $TSFixMe): void => {
 
     return (state: $TSFixMe = INITIAL_STATE, action: Action) => {
         switch (action.type) {
-            // request
+            // Request
             case createConstants.request: {
                 return {
                     ...state,
@@ -85,7 +85,7 @@ const getReducer: Function = ({ actionBase }: $TSFixMe): void => {
                 };
             }
 
-            // error
+            // Error
 
             case createConstants.failure: {
                 return {

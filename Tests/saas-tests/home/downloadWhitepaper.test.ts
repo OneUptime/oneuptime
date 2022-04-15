@@ -7,7 +7,7 @@ import axios from 'axios';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
-// user credentials
+// User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const queryString: string =
     '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
@@ -68,7 +68,7 @@ describe('Download Whitepaper form', () => {
         await init.pageClick(page, '#request-resource-btn');
 
         const params: $TSFixMe = new URLSearchParams(queryString);
-        // formating query string to an object
+        // Formating query string to an object
         for (const param of params) {
             queryObj = { ...queryObj, [`${param[0]}`]: param[1] };
         }

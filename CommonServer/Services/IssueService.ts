@@ -11,14 +11,14 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     public async create(data: $TSFixMe): void {
-        // prepare issue model
+        // Prepare issue model
         let issue: $TSFixMe = new IssueModel();
 
         issue.name = data.exception ? data.exception.type : 'Unknown Error';
 
         issue.description = data.exception ? data.exception.message : '';
 
-        // generate hash from fingerprint
+        // Generate hash from fingerprint
         const hash: $TSFixMe = sha256(data.fingerprint.join('')).toString();
 
         issue.fingerprintHash = hash;
@@ -46,7 +46,7 @@ export default class Service {
         });
         return issue;
     }
-    // find a list of Issues
+    // Find a list of Issues
     public async findBy({
         query,
         limit,
@@ -75,8 +75,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const issuesQuery: $TSFixMe = IssueModel.find(query)
             .lean()
@@ -97,8 +97,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const issueQuery: $TSFixMe = IssueModel.findOne(query)
             .sort(sort)
@@ -118,8 +118,8 @@ export default class Service {
         const query: $TSFixMe = {};
         const hash: $TSFixMe = sha256(fingerprint.join('')).toString();
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
 
         query.fingerprintHash = hash;
@@ -141,8 +141,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         let issue: $TSFixMe = await IssueModel.findOneAndUpdate(
             query,
@@ -189,7 +189,7 @@ export default class Service {
             query = {};
         }
 
-        query['deleted'] = false;
+        query.deleted = false;
         const issue: $TSFixMe = await IssueModel.findOneAndUpdate(
             query,
             {
@@ -213,7 +213,7 @@ export default class Service {
                 issue.deletedById._id,
                 'errorTrackerIssueaddremove'
             );
-            // run in the background
+            // Run in the background
             RealTimeService.sendErrorTrackerIssueDelete(issue);
             return issue;
         } else {
@@ -226,8 +226,8 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) {
-            query['deleted'] = false;
+        if (!query.deleted) {
+            query.deleted = false;
         }
         const count: $TSFixMe = await IssueModel.countDocuments(query);
         return count;

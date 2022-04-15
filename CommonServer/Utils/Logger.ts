@@ -19,7 +19,7 @@ const consoleTransport: $TSFixMe = new winston.transports.Console({
 
 const transports: $TSFixMe = [];
 
-// configure transports (defined above)
+// Configure transports (defined above)
 transports.push(consoleTransport);
 
 const logger: $TSFixMe = winston.createLogger({

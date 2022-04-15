@@ -4,7 +4,7 @@ import init from '../../test-init';
 
 import 'should';
 
-// user credentials
+// User credentials
 const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
@@ -46,7 +46,7 @@ describe('Components', () => {
     test(
         'Should create an incident in monitor details and change monitor status in component list',
         async (done: $TSFixMe) => {
-            // launch component page
+            // Launch component page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
@@ -102,7 +102,7 @@ describe('Components', () => {
                 hidden: true,
             });
 
-            // close incident modal
+            // Close incident modal
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -118,7 +118,7 @@ describe('Components', () => {
             await init.page$Eval(page, '#components', (e: $TSFixMe) => {
                 return e.click();
             });
-            // check that the monitor is offline on component page
+            // Check that the monitor is offline on component page
 
             componentSpanElement = await init.pageWaitForSelector(
                 page,
@@ -130,36 +130,40 @@ describe('Components', () => {
             componentSpanElement = await componentSpanElement.jsonValue();
 
             expect(componentSpanElement).toMatch('Offline');
-            // bring monitor window to the front so as to resolve incident
+            // Bring monitor window to the front so as to resolve incident
             await monitorPage.bringToFront();
-            // open incident details
+            // Open incident details
             await monitorPage.waitForSelector(`#incident_0`);
             await monitorPage.$eval(`#incident_0`, (e: $TSFixMe) => {
                 return e.click();
             });
 
-            // click acknowledge button
-            // acknowledge incident
+            /*
+             * Click acknowledge button
+             * Acknowledge incident
+             */
             await monitorPage.waitForSelector('#btnAcknowledge_0');
             await monitorPage.$eval('#btnAcknowledge_0', (e: $TSFixMe) => {
                 return e.click();
             });
             await monitorPage.waitForSelector('#AcknowledgeText_0');
 
-            // click resolve button
-            // resolve incident
+            /*
+             * Click resolve button
+             * Resolve incident
+             */
             await monitorPage.waitForSelector('#btnResolve_0');
             await monitorPage.$eval('#btnResolve_0', (e: $TSFixMe) => {
                 return e.click();
             });
             await monitorPage.waitForSelector('#ResolveText_0');
-            // confirm it is resolved here
+            // Confirm it is resolved here
             const resolveTextSelector: $TSFixMe = await monitorPage.$(
                 '#ResolveText_0'
             );
             expect(resolveTextSelector).not.toBeNull();
 
-            // goto component page
+            // Goto component page
             await page.bringToFront();
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -167,7 +171,7 @@ describe('Components', () => {
             await init.page$Eval(page, '#components', (e: $TSFixMe) => {
                 return e.click();
             });
-            // confirm that the monitor is back online!
+            // Confirm that the monitor is back online!
 
             componentSpanElement = await init.pageWaitForSelector(
                 page,
@@ -271,7 +275,7 @@ describe('Components', () => {
                 timeout: init.timeout,
             });
 
-            await init.pageClick(page, '#deleteComponent'); // after deleting the component
+            await init.pageClick(page, '#deleteComponent'); // After deleting the component
 
             const componentClicked: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -318,7 +322,7 @@ describe('Components', () => {
                 hidden: true,
             });
 
-            // close incident modal
+            // Close incident modal
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -427,7 +431,7 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            //create offline incidence
+            //Create offline incidence
             await init.page$Eval(
                 page,
                 `#monitorCreateIncident_${newMonitorName}`,

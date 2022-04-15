@@ -12,7 +12,8 @@ const user: $TSFixMe = {
 const projectName: string = utils.generateRandomString();
 const teamMember: Email = utils.generateRandomBusinessEmail();
 
-/** This is a test to check:
+/**
+ * This is a test to check:
  * No errors on page reload
  * It stays on the same page on reload
  */
