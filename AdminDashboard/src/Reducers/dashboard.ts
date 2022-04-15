@@ -13,7 +13,7 @@ const initialState: $TSFixMe = {
     success: false,
 };
 
-export default (state = initialState, action: Action): void => {
+export default (state: $TSFixMe = initialState, action: Action): void => {
     switch (action.type) {
         case DASHBOARD_LOAD_REQUEST:
             return Object.assign({}, state, {

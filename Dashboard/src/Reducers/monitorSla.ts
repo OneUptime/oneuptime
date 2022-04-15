@@ -28,7 +28,7 @@ const initialState: $TSFixMe = {
     page: 1,
 };
 
-export default function monitorSla(state = initialState, action: Action): void {
+export default function monitorSla(state: $TSFixMe = initialState, action: Action): void {
     switch (action.type) {
         case types.CREATE_MONITOR_SLA_REQUEST:
             return {

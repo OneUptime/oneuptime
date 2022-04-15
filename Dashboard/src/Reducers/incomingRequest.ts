@@ -33,7 +33,7 @@ const initialState: $TSFixMe = {
 };
 
 export default function incomingRequest(
-    state = initialState,
+    state: $TSFixMe = initialState,
     action: Action
 ): void {
     switch (action.type) {

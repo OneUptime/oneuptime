@@ -12,7 +12,7 @@ const initialState: $TSFixMe = {
     oncallDuty: [],
 };
 
-export default function groups(state = initialState, action: Action): void {
+export default function groups(state: $TSFixMe = initialState, action: Action): void {
     let updatedGroup: $TSFixMe;
     switch (action.type) {
         case types.GET_GROUPS_REQUEST:

@@ -28,7 +28,7 @@ const initialState: $TSFixMe = {
 };
 
 export default function incidentCommunicationSla(
-    state = initialState,
+    state: $TSFixMe = initialState,
     action: Action
 ): void {
     switch (action.type) {

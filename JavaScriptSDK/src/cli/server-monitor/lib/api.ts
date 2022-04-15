@@ -29,7 +29,7 @@ const ping: Function = (
     monitorId: $TSFixMe,
     apiUrl: URL,
     apiKey: string,
-    interval = '* * * * *',
+    interval: $TSFixMe = '* * * * *',
     simulate: $TSFixMe,
     simulateData: $TSFixMe
 ): void => {

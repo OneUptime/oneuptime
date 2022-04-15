@@ -14,7 +14,7 @@ const initialState: $TSFixMe = {
     dockerSecurities: [],
 };
 
-export default function credential(state = initialState, action: Action): void {
+export default function credential(state: $TSFixMe = initialState, action: Action): void {
     switch (action.type) {
         case types.ADD_GIT_CREDENTIAL_REQUEST:
             return {

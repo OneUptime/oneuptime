@@ -1096,7 +1096,7 @@ public async getEvents(
             // do not repeat the same event two times
 
             events = eventIds.map((id: $TSFixMe) =>  {
-                return events.find(event => String(event._id) === String(id));
+                return events.find((event : $TSFixMe) =>String(event._id) === String(id));
             });
             const count: $TSFixMe = events.length;
 
@@ -1203,7 +1203,7 @@ public async getFutureEvents(
             // do not repeat the same event two times
 
             events = eventIds.map((id: $TSFixMe) =>  {
-                return events.find(event => String(event._id) === String(id));
+                return events.find((event : $TSFixMe) =>String(event._id) === String(id));
             });
 
             // // sort in ascending start date
@@ -1311,7 +1311,7 @@ public async getPastEvents(
             // do not repeat the same event two times
 
             events = eventIds.map((id: $TSFixMe) =>  {
-                return events.find(event => String(event._id) === String(id));
+                return events.find((event : $TSFixMe) =>String(event._id) === String(id));
             });
 
             // sort in ascending start date

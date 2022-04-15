@@ -18,7 +18,7 @@ const initialState: $TSFixMe = {
     feedbackModalVisble: false,
 };
 
-export default (state = initialState, action: Action): void => {
+export default (state: $TSFixMe = initialState, action: Action): void => {
     switch (action.type) {
         case OPEN_FEEDBACK_MODAL:
             return Object.assign({}, state, {

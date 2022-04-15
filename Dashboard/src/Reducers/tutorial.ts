@@ -35,7 +35,7 @@ const initialState: $TSFixMe = {
     },
 };
 
-export default (state = initialState, action: Action): void => {
+export default (state: $TSFixMe = initialState, action: Action): void => {
     switch (action.type) {
         case FETCH_TUTORIAL_REQUEST:
             return Object.assign({}, state, {

@@ -30,7 +30,7 @@ const initialState: $TSFixMe = {
     },
 };
 
-export default function card(state = initialState, action: Action): void {
+export default function card(state: $TSFixMe = initialState, action: Action): void {
     switch (action.type) {
         case types.ADD_CARD_REQUEST:
             return Object.assign({}, state, {

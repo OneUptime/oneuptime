@@ -29,7 +29,7 @@ const initialState: $TSFixMe = {
     },
 };
 
-export default function probes(state = initialState, action: Action): void {
+export default function probes(state: $TSFixMe = initialState, action: Action): void {
     switch (action.type) {
         case types.PROBE_SUCCESS:
             return Object.assign({}, state, {

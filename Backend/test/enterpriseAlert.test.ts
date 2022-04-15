@@ -39,7 +39,7 @@ describe('Enterprise Alert API', function (): void {
                     projectId = project._id;
 
                     ComponentModel.create({ name: 'New Component' }).then(
-                        (component:  $TSFixMe) => {
+                        (component: $TSFixMe) => {
                             request
                                 .post('/user/login')
                                 .send({

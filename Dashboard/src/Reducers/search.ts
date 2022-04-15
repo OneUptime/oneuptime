@@ -17,7 +17,7 @@ const initialState: $TSFixMe = {
     searchFieldVisible: false,
 };
 
-export default function search(state = initialState, action: Action): void {
+export default function search(state: $TSFixMe = initialState, action: Action): void {
     switch (action.type) {
         case SHOW_SEARCH_BAR:
             return Object.assign({}, state, {

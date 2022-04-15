@@ -14,7 +14,7 @@ const initialState: InitialStateType = {
 };
 
 export default (
-    state = initialState,
+    state: $TSFixMe = initialState,
     action: ModalAction
 ): InitialStateType => {
     switch (action.type) {

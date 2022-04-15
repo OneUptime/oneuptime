@@ -48,7 +48,7 @@ const initialState: $TSFixMe = {
     },
 };
 
-export default (state = initialState, action: Action): void => {
+export default (state: $TSFixMe = initialState, action: Action): void => {
     switch (action.type) {
         case types.ALERT_FETCH_SUCCESS:
             return Object.assign({}, state, {

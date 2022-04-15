@@ -22,7 +22,7 @@ const initialState: $TSFixMe = {
 };
 
 export default function customField(
-    state = initialState,
+    state: $TSFixMe = initialState,
     action: Action
 ): void {
     switch (action.type) {

@@ -110,7 +110,7 @@ const checkParams: Function = (params: $TSFixMe): void => {
  * @return {Promise} The cli param value promise.
  */
 
-const getParamValue: Function = (params, name): void => {
+const getParamValue: Function = (params: $TSFixMe, name: $TSFixMe): void => {
     const options: $TSFixMe = program.opts();
     return new Promise((resolve: $TSFixMe) => {
         if (options[name] === true || options[name] === undefined) {

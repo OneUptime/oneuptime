@@ -64,7 +64,7 @@ const initialState: $TSFixMe = {
     pages: {},
 };
 
-export default (state = initialState, action: Action): void => {
+export default (state: $TSFixMe = initialState, action: Action): void => {
     switch (action.type) {
         case TEAM_LOADING_REQUEST:
             return {
