@@ -14,7 +14,9 @@ import OneUptimeLogger from '../src/logger';
 
 describe('OneUptimeLogger', function (): void {
     const sleep: Function = (milliseconds: $TSFixMe): void => {
-        return new Promise((resolve: $TSFixMe) =>  setTimeout(resolve, milliseconds));
+        return new Promise((resolve: $TSFixMe) =>
+            setTimeout(resolve, milliseconds)
+        );
     };
     this.timeout(timeout + 1000);
     let projectId: ObjectID,

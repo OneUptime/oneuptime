@@ -69,7 +69,7 @@ import uuid from 'uuid';
 import axios from 'axios';
 
 const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
-    new Promise((resolve: $TSFixMe) =>  setTimeout(resolve, waitTimeInMs));
+    new Promise((resolve: $TSFixMe) => setTimeout(resolve, waitTimeInMs));
 
 let authorization: $TSFixMe,
     userId: ObjectID,

@@ -39,7 +39,7 @@ import UserModel from '../backend/models/user';
 import GlobalConfigModel from '../backend/models/globalConfig';
 
 const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
-    new Promise((resolve: $TSFixMe) =>  setTimeout(resolve, waitTimeInMs));
+    new Promise((resolve: $TSFixMe) => setTimeout(resolve, waitTimeInMs));
 
 let authorization: $TSFixMe,
     token,

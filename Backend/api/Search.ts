@@ -249,7 +249,10 @@ const getStatusPages: Function = async (
     return null;
 };
 
-const getUsers: Function = async (projectIds: $TSFixMe, val: $TSFixMe): void => {
+const getUsers: Function = async (
+    projectIds: $TSFixMe,
+    val: $TSFixMe
+): void => {
     //get project users id so as to search for only users in a project and its subproject
     const projectUsers: $TSFixMe = [];
 
@@ -260,7 +263,9 @@ const getUsers: Function = async (projectIds: $TSFixMe, val: $TSFixMe): void => 
     projects.forEach((project: $TSFixMe) => {
         projectUsers.push(project.users);
     });
-    const userIds: $TSFixMe = projectUsers.flat().map((user: $TSFixMe) => user.userId);
+    const userIds: $TSFixMe = projectUsers
+        .flat()
+        .map((user: $TSFixMe) => user.userId);
     const users: $TSFixMe = await UserService.findBy({
         query: {
             _id: { $in: userIds },
@@ -466,7 +471,9 @@ const getErrorTrackers: Function = async (
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
-    const componentIds: $TSFixMe = components.map((component: $TSFixMe) => component._id);
+    const componentIds: $TSFixMe = components.map(
+        (component: $TSFixMe) => component._id
+    );
     const select: $TSFixMe =
         'componentId name slug key showQuickStart resourceCategory createdById createdAt';
     const populate: $TSFixMe = [
@@ -518,7 +525,9 @@ const getLogContainers: Function = async (
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
-    const componentIds: $TSFixMe = components.map((component: $TSFixMe) => component._id);
+    const componentIds: $TSFixMe = components.map(
+        (component: $TSFixMe) => component._id
+    );
     const populateAppLogs: $TSFixMe = [
         {
             path: 'componentId',
@@ -575,7 +584,9 @@ const getPerformanceTrackers: Function = async (
         select: 'id',
     });
 
-    const componentIds: $TSFixMe = components.map((component: $TSFixMe) => component._id);
+    const componentIds: $TSFixMe = components.map(
+        (component: $TSFixMe) => component._id
+    );
     const selectPerfTracker: $TSFixMe =
         'componentId name slug key showQuickStart createdById';
 

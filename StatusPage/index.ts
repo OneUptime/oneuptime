@@ -279,7 +279,7 @@ async function fetchCredential(
 }
 
 function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe): void {
-    return new Promise((resolve: $TSFixMe) =>  {
+    return new Promise((resolve: $TSFixMe) => {
         const command: string = `echo ${content} | base64 -d`;
         let output: $TSFixMe = '';
 

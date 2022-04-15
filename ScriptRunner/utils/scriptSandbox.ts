@@ -16,7 +16,8 @@ class ScriptError extends Error {
         this.message = message;
         this.errors = Array.isArray(errors)
             ? errors.reduce(
-                  (allErr: $TSFixMe, err: $TSFixMe) => [...allErr, err.message].join(','),
+                  (allErr: $TSFixMe, err: $TSFixMe) =>
+                      [...allErr, err.message].join(','),
                   []
               )
             : errors.message ?? errors;
@@ -42,7 +43,7 @@ const run: Function = async (
             return;
         }
         const start: $TSFixMe = performance.now();
-        return new Promise((resolve: $TSFixMe) =>  {
+        return new Promise((resolve: $TSFixMe) => {
             const worker: $TSFixMe = new Worker(__filename, {
                 workerData: { functionCode },
                 execArgv: [

@@ -20,7 +20,10 @@ const router: $TSFixMe = express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 
-const callForward: Function = async (req: ExpressRequest, res: ExpressResponse): void => {
+const callForward: Function = async (
+    req: ExpressRequest,
+    res: ExpressResponse
+): void => {
     try {
         const body: $TSFixMe = req.body;
         const to: $TSFixMe = body['To'];
@@ -69,7 +72,10 @@ const backupCallForward: Function = async (
     }
 };
 
-const callStatus: Function = async (req: ExpressRequest, res: ExpressResponse): void => {
+const callStatus: Function = async (
+    req: ExpressRequest,
+    res: ExpressResponse
+): void => {
     try {
         const body: $TSFixMe = req.body;
         const to: $TSFixMe = body['To'];
@@ -107,7 +113,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            let {skip, limit}: $TSFixMe = req.query;
+            let { skip, limit }: $TSFixMe = req.query;
             const { projectId }: $TSFixMe = req.params;
 
             if (typeof skip === 'string') {

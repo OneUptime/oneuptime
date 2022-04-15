@@ -3,8 +3,8 @@ import { performance } from 'perf_hooks';
 
 const run: Function = async (script: $TSFixMe): void => {
     const start: $TSFixMe = performance.now();
-    return new Promise((resolve: $TSFixMe) =>  {
-        exec(script, (err: $TSFixMe, stdout: $TSFixMe)=>{
+    return new Promise((resolve: $TSFixMe) => {
+        exec(script, (err: $TSFixMe, stdout: $TSFixMe) => {
             if (err) {
                 return resolve({
                     success: false,
