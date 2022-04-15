@@ -1520,7 +1520,7 @@ const checkAnd: Function = (
 
     con: $TSFixMe,
 
-    statusCode,: $TSFixMe
+    statusCode: $TSFixMe,
 
     body: $TSFixMe,
 

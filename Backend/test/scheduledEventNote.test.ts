@@ -22,10 +22,10 @@ import ComponentModel from '../backend/models/component';
 import scheduledEventNoteService from '../backend/services/scheduledEventNoteService';
 
 let token: $TSFixMe,
-    userId,
+    userId: $TSFixMe,
     projectId: ObjectID,
     scheduledEventId: $TSFixMe,
-    componentId,
+    componentId: $TSFixMe,
     monitorId: $TSFixMe,
     internalNoteId: $TSFixMe,
     investigationNoteId: $TSFixMe;

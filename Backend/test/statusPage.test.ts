@@ -658,21 +658,27 @@ describe('Status API', function (): void {
                     query: { domain },
                     select: selectDomainVerify,
                     populate: populateDomainVerify,
-                }).then(({ domain, verificationToken, _id: domainId }: $TSFixMe) => {
-                    request
-                        .put(
-                            `/domainVerificationToken/${projectId}/verify/${domainId}`
-                        )
-                        .set('Authorization', authorization)
-                        .send({ domain, verificationToken })
-                        .end((err: $TSFixMe, res: $TSFixMe): void => {
-                            if (err) {
-                                throw err;
-                            }
-                            expect(res).to.have.status(400);
-                            done();
-                        });
-                });
+                }).then(
+                    ({
+                        domain,
+                        verificationToken,
+                        _id: domainId,
+                    }: $TSFixMe) => {
+                        request
+                            .put(
+                                `/domainVerificationToken/${projectId}/verify/${domainId}`
+                            )
+                            .set('Authorization', authorization)
+                            .send({ domain, verificationToken })
+                            .end((err: $TSFixMe, res: $TSFixMe): void => {
+                                if (err) {
+                                    throw err;
+                                }
+                                expect(res).to.have.status(400);
+                                done();
+                            });
+                    }
+                );
             }
         );
     });

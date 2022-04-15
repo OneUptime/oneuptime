@@ -20,9 +20,9 @@ export default {
                     stripe.paymentIntents.confirm(
                         res.body.id,
                         (
-                            err,
+                            err: $TSFixMe,
 
-                            paymentIntent
+                            paymentIntent: $TSFixMe
                         ) => {
                             if (err) {
                                 if (callback) {

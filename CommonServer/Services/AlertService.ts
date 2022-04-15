@@ -3916,11 +3916,11 @@ export default class Service {
         }
     }
 
-    mapCountryShortNameToCountryCode(shortName: $TSFixMe): void {
+    public mapCountryShortNameToCountryCode(shortName: $TSFixMe): void {
         return countryCode[[shortName]];
     }
 
-    isOnDuty(
+    public isOnDuty(
         timezone: $TSFixMe,
         escalationStartTime: $TSFixMe,
         escalationEndTime: $TSFixMe
@@ -3945,7 +3945,7 @@ export default class Service {
         );
     }
 
-    checkIsOnDuty(startTime: $TSFixMe, endTime: $TSFixMe): void {
+    public checkIsOnDuty(startTime: $TSFixMe, endTime: $TSFixMe): void {
         if (!startTime && !endTime) {
             return true;
         }
