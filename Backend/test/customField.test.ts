@@ -32,7 +32,7 @@ describe('Incident Custom Field API', function (): void {
             fieldName: 'inTextField',
             fieldType: 'text',
         },
-        incidentFieldNumber = {
+        incidentFieldNumber: $TSFixMe = {
             fieldName: 'inNumField',
             fieldType: 'number',
         };

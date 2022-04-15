@@ -3104,7 +3104,7 @@ export default class Service {
         }
 
         const monitorCustomFields: $TSFixMe = {},
-            incidentCustomFields = {};
+            incidentCustomFields: $TSFixMe = {};
         if (monitor && monitor.customFields) {
             monitor.customFields.forEach((field: $TSFixMe) => {
                 return (monitorCustomFields[field.fieldName] =

@@ -6162,7 +6162,10 @@ const checkOr: Function = (
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-const checkScriptCondition: Function = (condition: $TSFixMe, body: $TSFixMe): void => {
+const checkScriptCondition: Function = (
+    condition: $TSFixMe,
+    body: $TSFixMe
+): void => {
     if (!condition || !condition.responseType) {
         return;
     }
@@ -6404,7 +6407,11 @@ const criteriaStrings: $TSFixMe = {
     ip: 'IP is',
 };
 
-const formatDecimal: Function = (value: $TSFixMe, decimalPlaces: $TSFixMe, roundType: $TSFixMe): void => {
+const formatDecimal: Function = (
+    value: $TSFixMe,
+    decimalPlaces: $TSFixMe,
+    roundType: $TSFixMe
+): void => {
     let formattedNumber: $TSFixMe;
     switch (roundType) {
         case 'up':
@@ -6427,7 +6434,13 @@ const formatDecimal: Function = (value: $TSFixMe, decimalPlaces: $TSFixMe, round
     );
 };
 
-const formatBytes: Function = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, e: $TSFixMe): void => {
+const formatBytes: Function = (
+    a: $TSFixMe,
+    b: $TSFixMe,
+    c: $TSFixMe,
+    d: $TSFixMe,
+    e: $TSFixMe
+): void => {
     let value: $TSFixMe = a;
     let decimalPlaces: $TSFixMe;
     let roundType: $TSFixMe;

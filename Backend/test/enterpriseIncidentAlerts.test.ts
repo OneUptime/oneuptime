@@ -45,12 +45,12 @@ const sleep: Function = (waitTimeInMs: $TSFixMe): void => {
 };
 
 let authorization: $TSFixMe,
-    token,
+    token: $TSFixMe,
     userId: ObjectID,
     projectId: ObjectID,
-    componentId,
+    componentId: $TSFixMe,
     monitorId: $TSFixMe,
-    scheduleId;
+    scheduleId: $TSFixMe;
 
 describe('Incident Alerts', function (): void {
     this.timeout(30000);

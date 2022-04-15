@@ -23,8 +23,8 @@ import MonitorCustomFieldService from '../backend/services/monitorCustomField';
 describe('Monitor Custom Field API', function (): void {
     const timeout: $TSFixMe = 30000;
     let projectId: ObjectID,
-        userId,
-        token,
+        userId: $TSFixMe,
+        token: $TSFixMe,
         authorization: $TSFixMe,
         monitorCustomFieldId: $TSFixMe;
 
@@ -32,7 +32,7 @@ describe('Monitor Custom Field API', function (): void {
             fieldName: 'textField',
             fieldType: 'text',
         },
-        monitorFieldNumber = {
+        monitorFieldNumber: $TSFixMe = {
             fieldName: 'numField',
             fieldType: 'number',
         };

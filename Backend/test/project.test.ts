@@ -543,9 +543,9 @@ describe('Projects SubProjects API', function (): void {
                 VerificationTokenModel.findOne(
                     { userId },
                     (
-                        err,
+                        err: $TSFixMe,
 
-                        verificationToken
+                        verificationToken: $TSFixMe
                     ) => {
                         request
                             .get(
@@ -633,9 +633,9 @@ describe('Projects SubProjects API', function (): void {
                 VerificationTokenModel.findOne(
                     { userId },
                     (
-                        err,
+                        err: $TSFixMe,
 
-                        verificationToken
+                        verificationToken: $TSFixMe
                     ) => {
                         request
                             .get(
