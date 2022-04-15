@@ -58,7 +58,7 @@ describe('Alert API', (): void => {
                         userId = res.body.id;
 
                         ComponentModel.create({ name: 'Test Component' }).then(
-                            component => {
+                            (component:  $TSFixMe) => {
                                 UserModel.findByIdAndUpdate(
                                     userId,
                                     { $set: { isVerified: true } },

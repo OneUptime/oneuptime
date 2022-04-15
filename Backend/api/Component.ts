@@ -367,12 +367,14 @@ router.post(
                             );
 
                             const monitorUptime: $TSFixMe =
-                                uptimePercents.reduce((a: $TSFixMe, b: $TSFixMe) => {
-                                    return (
-                                        parseFloat(a || 100) +
-                                        parseFloat(b || 100)
-                                    );
-                                }) / uptimePercents.length;
+                                uptimePercents.reduce(
+                                    (a: $TSFixMe, b: $TSFixMe) => {
+                                        return (
+                                            parseFloat(a || 100) +
+                                            parseFloat(b || 100)
+                                        );
+                                    }
+                                ) / uptimePercents.length;
 
                             return {
                                 ...stat,

@@ -321,7 +321,7 @@ export default function errorTracker(
                     error: null,
                     success: true,
                     errorTrackers: state.errorTrackersList.errorTrackers.filter(
-                        ({ _id }) => {
+                        ({ _id }: $TSFixMe) => {
                             return _id !== action.payload;
                         }
                     ),
@@ -352,7 +352,7 @@ export default function errorTracker(
             });
         case EDIT_ERROR_TRACKER_SWITCH:
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
-                errorTracker => {
+                (errorTracker: $TSFixMe) => {
                     if (errorTracker._id === action.payload) {
                         if (!errorTracker.editMode) {
                             errorTracker.editMode = true;
@@ -381,7 +381,7 @@ export default function errorTracker(
             });
         case EDIT_ERROR_TRACKER_SUCCESS:
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
-                errorTracker => {
+                (errorTracker: $TSFixMe) => {
                     if (errorTracker._id === action.payload._id) {
                         errorTracker = action.payload;
                     }
@@ -421,7 +421,7 @@ export default function errorTracker(
             });
         case RESET_ERROR_TRACKER_KEY_SUCCESS:
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
-                errorTracker => {
+                (errorTracker: $TSFixMe) => {
                     if (errorTracker._id === action.payload._id) {
                         errorTracker = action.payload;
                     }

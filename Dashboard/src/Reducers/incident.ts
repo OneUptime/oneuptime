@@ -607,7 +607,7 @@ export default function incident(state = initialState, action: Action): void {
                         error: null,
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
-                            incident => {
+                            (incident: $TSFixMe) => {
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
                                 } else {
@@ -632,7 +632,7 @@ export default function incident(state = initialState, action: Action): void {
                         error: null,
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
-                            incident => {
+                            (incident: $TSFixMe) => {
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
                                 } else {
@@ -657,7 +657,7 @@ export default function incident(state = initialState, action: Action): void {
                         error: null,
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
-                            incident => {
+                            (incident: $TSFixMe) => {
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
                                 } else {
@@ -682,7 +682,7 @@ export default function incident(state = initialState, action: Action): void {
                         error: null,
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
-                            incident => {
+                            (incident: $TSFixMe) => {
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
                                 } else {
@@ -1068,7 +1068,7 @@ export default function incident(state = initialState, action: Action): void {
                     error: null,
                     success: true,
                     incidents: state.unresolvedincidents.incidents.map(
-                        incident => {
+                        (incident: $TSFixMe) => {
                             if (
                                 String(incident._id) ===
                                 String(action.payload.data._id)
@@ -1125,7 +1125,7 @@ export default function incident(state = initialState, action: Action): void {
                     error: null,
                     success: true,
                     incidents: state.unresolvedincidents.incidents.map(
-                        incident => {
+                        (incident: $TSFixMe) => {
                             if (
                                 String(incident._id) ===
                                 String(action.payload.data._id)
@@ -1177,7 +1177,7 @@ export default function incident(state = initialState, action: Action): void {
 
         case 'DELETE_MONITOR_BY_SOCKET': {
             const incidents: $TSFixMe = state.unresolvedincidents.incidents.map(
-                incident => {
+                (incident: $TSFixMe) => {
                     const monitors: $TSFixMe = incident.monitors.filter(
                         (monitor: $TSFixMe) => {
                             if (monitor.monitorId._id === action.payload) {
@@ -1214,7 +1214,7 @@ export default function incident(state = initialState, action: Action): void {
                 unresolvedincidents: {
                     ...state.unresolvedincidents,
                     incidents: state.unresolvedincidents.incidents.map(
-                        incident => {
+                        (incident: $TSFixMe) => {
                             let monitors: $TSFixMe = incident.monitors;
                             if (monitors && monitors.length > 0) {
                                 monitors = monitors.map((monitor: $TSFixMe) => {
@@ -1244,7 +1244,7 @@ export default function incident(state = initialState, action: Action): void {
                     error: null,
                     success: true,
                     incidents: state.unresolvedincidents.incidents.filter(
-                        incident => {
+                        (incident: $TSFixMe) => {
                             if (incident._id === action.payload._id) {
                                 return false;
                             } else {
@@ -1291,7 +1291,7 @@ export default function incident(state = initialState, action: Action): void {
                 unresolvedincidents: {
                     ...state.unresolvedincidents,
                     incidents: state.unresolvedincidents.incidents.filter(
-                        incident => {
+                        (incident: $TSFixMe) => {
                             return incident._id !== action.payload;
                         }
                     ),
@@ -1309,7 +1309,7 @@ export default function incident(state = initialState, action: Action): void {
                                 ...state.incidents.incidents[0],
                                 incidents:
                                     state.incidents.incidents[0].incidents.filter(
-                                        incident => {
+                                        (incident: $TSFixMe) => {
                                             return (
                                                 String(incident._id) !==
                                                 String(action.payload._id)
@@ -1322,7 +1322,7 @@ export default function incident(state = initialState, action: Action): void {
                     unresolvedincidents: {
                         ...state.unresolvedincidents,
                         incidents: state.unresolvedincidents.incidents.filter(
-                            incident => {
+                            (incident: $TSFixMe) => {
                                 return (
                                     String(incident._id) !==
                                     String(action.payload._id)

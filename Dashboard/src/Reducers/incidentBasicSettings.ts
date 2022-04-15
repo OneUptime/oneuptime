@@ -186,7 +186,7 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                 incidentTemplates: {
                     ...state.incidentTemplates,
                     templates: state.incidentTemplates.templates.map(
-                        template => {
+                        (template: $TSFixMe) => {
                             if (
                                 String(template._id) ===
                                 String(action.payload._id)
@@ -268,7 +268,7 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
                 incidentTemplates: {
                     ...state.incidentTemplates,
                     templates: state.incidentTemplates.templates.map(
-                        template => {
+                        (template: $TSFixMe) => {
                             if (
                                 String(template._id) ===
                                 String(action.payload._id)

@@ -784,7 +784,7 @@ export default class Service {
                         request: data.request,
                     };
 
-                    let _incident:$TSFixMe;
+                    let _incident: $TSFixMe;
                     if (data.customFields && data.customFields.length > 0) {
                         for (const field of data.customFields) {
                             if (
@@ -891,7 +891,7 @@ export default class Service {
                         componentName: joinNames(componentNames),
                         request: data.request,
                     };
-                    let _incident:$TSFixMe;
+                    let _incident: $TSFixMe;
                     if (data.customFields && data.customFields.length > 0) {
                         for (const field of data.customFields) {
                             if (

@@ -229,35 +229,35 @@ export const setErrorEndDate: Function = (date: $TSFixMe): void => {
     };
 };
 
-export const resetTimeDate: Function = (startDate, endDate): void => {
+export const resetTimeDate: Function = (startDate: $TSFixMe, endDate: $TSFixMe): void => {
     return {
         type: types.RESET_TIME_DATE,
         payload: { startDate, endDate },
     };
 };
 
-export const resetThroughputDate: Function = (startDate, endDate): void => {
+export const resetThroughputDate: Function = (startDate: $TSFixMe, endDate: $TSFixMe): void => {
     return {
         type: types.RESET_THROUGHPUT_DATE,
         payload: { startDate, endDate },
     };
 };
 
-export const resetErrorDate: Function = (startDate, endDate): void => {
+export const resetErrorDate: Function = (startDate: $TSFixMe, endDate: $TSFixMe): void => {
     return {
         type: types.RESET_ERROR_DATE,
         payload: { startDate, endDate },
     };
 };
 
-export const resetIncomingDate: Function = (startDate, endDate): void => {
+export const resetIncomingDate: Function = (startDate: $TSFixMe, endDate: $TSFixMe): void => {
     return {
         type: types.RESET_INCOMING_DATE,
         payload: { startDate, endDate },
     };
 };
 
-export const resetOutgoingDate: Function = (startDate, endDate): void => {
+export const resetOutgoingDate: Function = (startDate: $TSFixMe, endDate: $TSFixMe): void => {
     return {
         type: types.RESET_OUTGOING_DATE,
         payload: { startDate, endDate },

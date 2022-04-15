@@ -1797,7 +1797,11 @@ export default class Service {
         }
     }
 
-    public calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
+    public calculateTime(
+        statuses: $TSFixMe,
+        start: $TSFixMe,
+        range: $TSFixMe
+    ): void {
         const timeBlock: $TSFixMe = [];
         let totalUptime: $TSFixMe = 0;
         let totalTime: $TSFixMe = 0;
@@ -2067,7 +2071,11 @@ export default class Service {
         return updatedMonitor;
     }
 
-    public calcTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
+    public calcTime(
+        statuses: $TSFixMe,
+        start: $TSFixMe,
+        range: $TSFixMe
+    ): void {
         const timeBlock: $TSFixMe = [];
         let totalUptime: $TSFixMe = 0;
         let totalTime: $TSFixMe = 0;

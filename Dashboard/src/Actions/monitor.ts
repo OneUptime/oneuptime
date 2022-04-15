@@ -818,7 +818,7 @@ export function fetchMonitorLogs(
             { startDate, endDate }
         );
         dispatch(fetchMonitorLogsRequest(monitorId));
-        dispatch(updateDateRange(startDate, endDate));
+        dispatch(updateDateRange(startDate: $TSFixMe, endDate: $TSFixMe));
 
         promise.then(
             (monitorLogs: $TSFixMe): void => {
