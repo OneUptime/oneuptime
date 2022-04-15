@@ -79,7 +79,7 @@ let authorization: $TSFixMe,
     projectId: ObjectID,
     componentId: $TSFixMe,
     monitorId: $TSFixMe,
-    scheduleId;
+    scheduleId: $TSFixMe;
 
 describe('SMS/Calls Incident Alerts', function (): void {
     this.timeout(30000);

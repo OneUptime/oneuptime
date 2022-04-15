@@ -21,9 +21,9 @@ let token: $TSFixMe,
     componentId: $TSFixMe,
     errorTracker: $TSFixMe,
     errorEvent: $TSFixMe,
-    errorEventTwo,
-    issueCount = 0,
-    errorEventMembers = 0;
+    errorEventTwo: $TSFixMe,
+    issueCount: $TSFixMe = 0,
+    errorEventMembers: $TSFixMe = 0;
 const sampleErrorEvent: $TSFixMe = {};
 
 describe('Error Tracker API', function (): void {

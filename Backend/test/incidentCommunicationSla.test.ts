@@ -28,8 +28,8 @@ const incidentSlaPayload: $TSFixMe = {
 describe('Incident Communication SLA', function (): void {
     const timeout: $TSFixMe = 30000;
     let projectId: ObjectID,
-        userId,
-        token,
+        userId: $TSFixMe,
+        token: $TSFixMe,
         authorization: $TSFixMe,
         slaId: $TSFixMe;
 

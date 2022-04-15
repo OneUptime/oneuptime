@@ -26,7 +26,7 @@ import DockerCredentialService from '../backend/services/dockerCredentialService
 import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe,
-    userId,
+    userId: $TSFixMe,
     projectId: ObjectID,
     componentId: $TSFixMe,
     monitorId: $TSFixMe,
