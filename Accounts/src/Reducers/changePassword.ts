@@ -12,7 +12,10 @@ const initialState: $TSFixMe = {
     success: false,
 };
 
-export default function register(state: $TSFixMe = initialState, action: Action): void {
+export default function register(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     switch (action.type) {
         case types.CHANGEPASSWORD_REQUEST:
             return Object.assign({}, state, {

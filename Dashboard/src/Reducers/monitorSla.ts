@@ -28,7 +28,10 @@ const initialState: $TSFixMe = {
     page: 1,
 };
 
-export default function monitorSla(state: $TSFixMe = initialState, action: Action): void {
+export default function monitorSla(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     switch (action.type) {
         case types.CREATE_MONITOR_SLA_REQUEST:
             return {
@@ -76,9 +79,9 @@ export default function monitorSla(state: $TSFixMe = initialState, action: Actio
             };
 
         case types.DELETE_MONITOR_SLA_SUCCESS: {
-            const slas: $TSFixMe = state.monitorSlas.slas.filter(
-                sla => String(sla._id) !== String(action.payload._id)
-            );
+            const slas: $TSFixMe = state.monitorSlas.slas.filter(sla => {
+                return String(sla._id) !== String(action.payload._id);
+            });
             return {
                 ...state,
                 monitorSlas: {
@@ -184,20 +187,22 @@ export default function monitorSla(state: $TSFixMe = initialState, action: Actio
             };
 
         case types.UPDATE_MONITOR_SLA_SUCCESS: {
-            const slas: $TSFixMe = state.monitorSlas.slas.map(sla: $TSFixMe => {
-                if (
-                    action.payload.isDefault &&
-                    String(sla._id) !== String(action.payload._id)
-                ) {
-                    sla.isDefault = false;
-                }
+            const slas: $TSFixMe = state.monitorSlas.slas.map(
+                (sla: $TSFixMe) => {
+                    if (
+                        action.payload.isDefault &&
+                        String(sla._id) !== String(action.payload._id)
+                    ) {
+                        sla.isDefault = false;
+                    }
 
-                if (String(sla._id) === String(action.payload._id)) {
-                    sla = action.payload;
-                }
+                    if (String(sla._id) === String(action.payload._id)) {
+                        sla = action.payload;
+                    }
 
-                return sla;
-            });
+                    return sla;
+                }
+            );
             return {
                 ...state,
                 monitorSlas: {

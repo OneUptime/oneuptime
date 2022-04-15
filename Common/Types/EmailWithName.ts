@@ -29,7 +29,7 @@ export default class EmailWithName {
         this.name = name;
     }
 
-    toString(): string {
+    public  toString(): string {
         return `"${this.name}" <${this.email}>`;
     }
 }

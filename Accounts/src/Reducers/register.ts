@@ -47,7 +47,10 @@ const initialState: $TSFixMe = {
     email: null,
 };
 
-export default function register(state: $TSFixMe = initialState, action: Action): void {
+export default function register(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     let incCount: $TSFixMe, decCount: $TSFixMe, stage: $TSFixMe;
     switch (action.type) {
         case SIGNUP_REQUEST:

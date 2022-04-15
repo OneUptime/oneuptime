@@ -84,7 +84,10 @@ const initialState: $TSFixMe = {
     activeIncident: null,
 };
 
-export default function incident(state: $TSFixMe = initialState, action: Action): void {
+export default function incident(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     let incident: $TSFixMe,
         incidents: $TSFixMe,
         unresolvedincidents: $TSFixMe,

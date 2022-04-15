@@ -12,7 +12,11 @@ class OneUptimeListener {
     options: $TSFixMe;
     timelineObj: $TSFixMe;
     utilObj: $TSFixMe;
-    public constructor(eventId: $TSFixMe, isWindow: $TSFixMe, options: $TSFixMe) {
+    public constructor(
+        eventId: $TSFixMe,
+        isWindow: $TSFixMe,
+        options: $TSFixMe
+    ) {
         this.options = options;
         this.isWindow = isWindow;
         this.timelineObj = new OneUptimeTimelineManager(options);
@@ -36,11 +40,11 @@ class OneUptimeListener {
         this._setUpFetchListener();
         this._setUpXhrListener();
     }
-public getTimeline(): void {
+    public getTimeline(): void {
         // this always get the current state of the timeline array
         return this.timelineObj.getTimeline();
     }
-public clearTimeline(eventId: $TSFixMe): void {
+    public clearTimeline(eventId: $TSFixMe): void {
         // set a new eventId
         this.currentEventId = eventId;
         // this will reset the state of the timeline array
@@ -101,7 +105,7 @@ public clearTimeline(eventId: $TSFixMe): void {
                     }
                     // not logging cus of timeout
 
-                public clearTimeout(this.keypressTimeout);
+                    clearTimeout(this.keypressTimeout);
 
                     this.keypressTimeout = setTimeout(() => {
                         this.keypressTimeout = undefined;
@@ -276,7 +280,7 @@ public clearTimeline(eventId: $TSFixMe): void {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-public logErrorEvent(content: $TSFixMe, category = 'exception'): void {
+    public logErrorEvent(content: $TSFixMe, category = 'exception'): void {
         const timelineObj: $TSFixMe = {
             category,
             data: {
@@ -288,7 +292,7 @@ public logErrorEvent(content: $TSFixMe, category = 'exception'): void {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-public logCustomTimelineEvent(timelineObj: $TSFixMe): void {
+    public logCustomTimelineEvent(timelineObj: $TSFixMe): void {
         timelineObj.eventId = this.currentEventId;
 
         // add timeline to the stack

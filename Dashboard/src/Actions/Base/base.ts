@@ -3,13 +3,13 @@ import { getErrorMessageFromResponse } from '../../utils/error';
 import { Dispatch } from 'redux';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 class BaseAction {
-    actionKeys: $TSFixMe;
-    actionType: $TSFixMe;
-    apiName: $TSFixMe;
-    constantKeys: $TSFixMe;
-    friendlyName: $TSFixMe;
-    isRequestAllowed: $TSFixMe;
-    isResourceInProject: $TSFixMe;
+    private actionKeys: $TSFixMe;
+    private actionType: $TSFixMe;
+    private apiName: $TSFixMe;
+    private constantKeys: $TSFixMe;
+    private friendlyName: $TSFixMe;
+    private isRequestAllowed: $TSFixMe;
+    private isResourceInProject: $TSFixMe;
     public constructor({
         friendlyName,
         apiPath,
@@ -43,7 +43,7 @@ class BaseAction {
         };
     }
 
-    getConstants(): void {
+    public getConstants(): void {
         const friendlyName: $TSFixMe = this.friendlyName
             .replace(' ', '_')
             .toUpperCase();
@@ -88,7 +88,7 @@ class BaseAction {
         return constants;
     }
 
-    getActions(): void {
+    public getActions(): void {
         const constants: $TSFixMe = this.getConstants();
 
         const actions: $TSFixMe = {};

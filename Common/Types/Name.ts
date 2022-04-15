@@ -19,11 +19,11 @@ export default class Name {
         this.name = name;
     }
 
-    getFirstName(): string {
+    public getFirstName(): string {
         return this.name.split(' ')[0] || '';
     }
 
-    getLastName(): string {
+    public getLastName(): string {
         if (this.name.split(' ').length > 1) {
             return this.name.split(' ')[this.name.split(' ').length - 1] || '';
         } else {
@@ -31,7 +31,7 @@ export default class Name {
         }
     }
 
-    getMiddleName(): string {
+    public getMiddleName(): string {
         if (this.name.split(' ').length > 2) {
             return this.name.split(' ')[1] || '';
         } else {
@@ -39,7 +39,7 @@ export default class Name {
         }
     }
 
-    toString(): string {
+    public toString(): string {
         return this.name;
     }
 }

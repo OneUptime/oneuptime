@@ -37,11 +37,11 @@ export default class URL {
         }
     }
 
-    isHttps(): boolean {
+    public isHttps(): boolean {
         return this.protocol === Protocol.HTTPS;
     }
 
-    toString(): string {
+    public toString(): string {
         return `${this.protocol}${this.hostname}${this.route}`;
     }
 

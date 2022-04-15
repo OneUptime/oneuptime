@@ -193,7 +193,7 @@ export default function resourceCategory(
                     ...state.resourceCategoryListForNewResource,
                     resourceCategories:
                         state.resourceCategoryListForNewResource.resourceCategories.filter(
-                            resourceCategory => {
+                            (resourceCategory: $TSFixMe) => {
                                 if (resourceCategory._id === action.payload) {
                                     return false;
                                 } else {
@@ -206,7 +206,7 @@ export default function resourceCategory(
                     ...state.resourceCategoryList,
                     resourceCategories:
                         state.resourceCategoryList.resourceCategories.filter(
-                            resourceCategory => {
+                            (resourceCategory: $TSFixMe) => {
                                 if (resourceCategory._id === action.payload) {
                                     return false;
                                 } else {

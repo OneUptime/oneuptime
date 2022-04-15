@@ -51,8 +51,8 @@ class DatabaseService<ModelType> {
     public memberItemProps: ItemProps;
     public memberListProps: ListProps;
     public model: Model<ModelType>;
-    publicItemProps: ItemProps;
-    publicListProps: ListProps;
+    public ItemProps: ItemProps;
+    public ListProps: ListProps;
     public requiredFields: RequiredFields;
     public uniqueFields: UniqueFields;
     public encryptedFields: EncryptedFields;

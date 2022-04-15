@@ -217,7 +217,7 @@ export default class Service {
         }
         // sort total error events by latest occurence date
 
-        totalErrorEvents.sort((eventA, eventB) => {
+        totalErrorEvents.sort((eventA: $TSFixMe, eventB: $TSFixMe) => {
             return moment(eventB.latestOccurennce).isAfter(
                 eventA.latestOccurennce
             );

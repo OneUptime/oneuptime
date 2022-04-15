@@ -48,7 +48,7 @@ export default class Domain {
         this.domain = domain;
     }
 
-    toString(): string {
+    public toString(): string {
         return this.domain;
     }
 }

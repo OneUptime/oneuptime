@@ -8,8 +8,8 @@ const secondsToHms: Function = (value: $TSFixMe): void => {
     if (!isNaN(value)) {
         value = Number(value);
         const hr: $TSFixMe = Math.floor(value / 3600),
-            min = Math.floor((value % 3600) / 60),
-            sec = Math.floor((value % 3600) % 60);
+            min: $TSFixMe = Math.floor((value % 3600) / 60),
+            sec: $TSFixMe = Math.floor((value % 3600) % 60);
 
         const formattedValue: string = `${hr > 0 ? `${hr} hr` : ''} ${
             min > 0

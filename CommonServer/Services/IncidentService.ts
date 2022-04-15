@@ -163,7 +163,7 @@ export default class Service {
 
             let incident: $TSFixMe = new IncidentModel();
             let parentCount: $TSFixMe = 0,
-                deletedParentCount = 0;
+                deletedParentCount: $TSFixMe = 0;
             if (project && project.parentProjectId) {
                 const [pCount, dpCount]: $TSFixMe = await Promise.all([
                     this.countBy({

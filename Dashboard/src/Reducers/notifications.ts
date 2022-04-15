@@ -97,7 +97,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                 notifications: {
                     ...state.notifications,
                     notifications: state.notifications.notifications.map(
-                        notification => {
+                        (notification: $TSFixMe) => {
                             if (
                                 notification._id ===
                                 action.payload.notificationId
@@ -121,7 +121,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                 notifications: {
                     ...state.notifications,
                     notifications: state.notifications.notifications.map(
-                        notification => {
+                        (notification: $TSFixMe) => {
                             if (
                                 notification._id ===
                                 action.payload.notificationId
@@ -145,7 +145,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                 notifications: {
                     ...state.notifications,
                     notifications: state.notifications.notifications.map(
-                        notification => {
+                        (notification: $TSFixMe) => {
                             return {
                                 ...notification,
                                 read: notification.read.concat([
@@ -162,7 +162,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                 notifications: {
                     ...state.notifications,
                     notifications: state.notifications.notifications.filter(
-                        notification => {
+                        (notification: $TSFixMe) => {
                             return notification.projectId !== action.payload;
                         }
                     ),

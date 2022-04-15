@@ -295,8 +295,7 @@ export default class MailService {
         try {
             await this.transportMail(mail, mailServer);
         } catch (error) {
-            if (mailServer.backupMailServer) {
-            }
+            throw error;
         }
     }
 }

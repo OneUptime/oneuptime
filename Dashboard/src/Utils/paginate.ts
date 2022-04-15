@@ -7,8 +7,8 @@
 
 function paginate(items: $TSFixMe, page = 1, limit = 10): void {
     const offset: Function = (page - 1) * limit,
-        paginatedItems = items.slice(offset).slice(0, limit),
-        total_pages = Math.ceil(items.length / limit);
+        paginatedItems: $TSFixMe = items.slice(offset).slice(0, limit),
+        total_pages: $TSFixMe = Math.ceil(items.length / limit);
     return {
         pre_page: page - 1 ? page - 1 : null,
         next_page: total_pages > page ? page + 1 : null,

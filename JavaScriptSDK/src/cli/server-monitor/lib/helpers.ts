@@ -51,7 +51,7 @@ const get: Function = (
     url: URL,
     key: $TSFixMe,
     success: $TSFixMe,
-    error = defaultErrorHandler
+    error: $TSFixMe = defaultErrorHandler
 ): void => {
     headers['apiKey'] = key;
 

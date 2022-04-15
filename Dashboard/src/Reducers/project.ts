@@ -128,7 +128,10 @@ const initialState: $TSFixMe = {
     },
 };
 
-export default function project(state: $TSFixMe = initialState, action: Action): void {
+export default function project(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     let projects: $TSFixMe, newProjects: $TSFixMe;
     switch (action.type) {
         case types.CHANGE_DELETE_MODAL:

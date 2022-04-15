@@ -312,21 +312,21 @@ export default class StripeService {
             );
             if (amountRechargedStripe) {
                 const projectId: $TSFixMe = paymentIntent.metadata.projectId,
-                    minimumBalance =
+                    minimumBalance : $TSFixMe =
                         paymentIntent.metadata.minimumBalance &&
                         Number(paymentIntent.metadata.minimumBalance),
-                    rechargeToBalance =
+                    rechargeToBalance: $TSFixMe =
                         paymentIntent.metadata.rechargeToBalance &&
                         Number(paymentIntent.metadata.rechargeToBalance),
-                    billingUS =
+                    billingUS: $TSFixMe =
                         paymentIntent.metadata.billingUS &&
                         JSON.parse(paymentIntent.metadata.billingUS),
-                    billingNonUSCountries =
+                    billingNonUSCountries: $TSFixMe =
                         paymentIntent.metadata.billingNonUSCountries &&
                         JSON.parse(
                             paymentIntent.metadata.billingNonUSCountries
                         ),
-                    billingRiskCountries =
+                    billingRiskCountries: $TSFixMe =
                         paymentIntent.metadata.billingRiskCountries &&
                         JSON.parse(paymentIntent.metadata.billingRiskCountries);
 

@@ -43,7 +43,10 @@ const initialState: $TSFixMe = {
     activeApplicationSecurity: '',
 };
 
-export default function security(state: $TSFixMe = initialState, action: Action): void {
+export default function security(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     switch (action.type) {
         case types.ADD_CONTAINER_SECURITY_REQUEST:
             return {
@@ -97,7 +100,7 @@ export default function security(state: $TSFixMe = initialState, action: Action)
             const securities: $TSFixMe =
                 state.containerSecurities.securities.length > 0
                     ? state.containerSecurities.securities.map(
-                          (containerSecurity : $TSFixMe) =>{
+                          (containerSecurity: $TSFixMe) => {
                               if (
                                   String(containerSecurity._id) ===
                                   String(action.payload._id)
@@ -192,7 +195,7 @@ export default function security(state: $TSFixMe = initialState, action: Action)
             // update the list of container securities
             const securities: $TSFixMe =
                 state.containerSecurities.securities.filter(
-                    (containerSecurity : $TSFixMe) =>{
+                    (containerSecurity: $TSFixMe) => {
                         return (
                             String(containerSecurity._id) !==
                             String(action.payload._id)
@@ -410,7 +413,7 @@ export default function security(state: $TSFixMe = initialState, action: Action)
             const securities: $TSFixMe =
                 state.applicationSecurities.securities.length > 0
                     ? state.applicationSecurities.securities.map(
-                          (applicationSecurity : $TSFixMe) =>{
+                          (applicationSecurity: $TSFixMe) => {
                               if (
                                   String(applicationSecurity._id) ===
                                   String(action.payload._id)
@@ -505,7 +508,7 @@ export default function security(state: $TSFixMe = initialState, action: Action)
             // update the list of application securities
             const securities: $TSFixMe =
                 state.applicationSecurities.securities.filter(
-                    (applicationSecurity : $TSFixMe) =>{
+                    (applicationSecurity: $TSFixMe) => {
                         return (
                             String(applicationSecurity._id) !==
                             String(action.payload._id)

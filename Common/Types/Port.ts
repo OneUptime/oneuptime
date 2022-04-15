@@ -20,11 +20,11 @@ export default class Port {
         }
     }
 
-    toString(): string {
+    public toString(): string {
         return this.port.toString();
     }
 
-    toNumber(): number {
+    public toNumber(): number {
         return this.port.toNumber();
     }
 }

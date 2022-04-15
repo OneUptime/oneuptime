@@ -13,7 +13,10 @@ const initialState: $TSFixMe = {
     success: false,
 };
 
-export default function register(state: $TSFixMe = initialState, action: Action): void {
+export default function register(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     switch (action.type) {
         case RESENDTOKEN_REQUEST:
             return Object.assign({}, state, {

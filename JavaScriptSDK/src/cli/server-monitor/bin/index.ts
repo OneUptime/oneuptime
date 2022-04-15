@@ -88,7 +88,7 @@ const checkParams: Function = (params: $TSFixMe): void => {
 
     return new Promise((resolve: $TSFixMe) => {
         resolve(
-            params.reduce((promiseChain, param) => {
+            params.reduce((promiseChain: $TSFixMe, param: $TSFixMe) => {
                 return promiseChain.then(() => {
                     return getParamValue(params, param.name).then(
                         (value: $TSFixMe) => {

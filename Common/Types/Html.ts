@@ -11,7 +11,7 @@ export default class HTML {
         this.html = html;
     }
 
-    toString(): string {
+    public toString(): string {
         return this.html;
     }
 }

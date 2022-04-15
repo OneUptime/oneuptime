@@ -22,11 +22,11 @@ export interface JSONObject {
 export interface JSONArray extends Array<JSONObject> {}
 
 export class JSONFunctions {
-    toCompressedString(val: JSONValue): string {
+    public toCompressedString(val: JSONValue): string {
         return JSON.stringify(val, null, 2);
     }
 
-    toString(val: JSONValue): string {
+    public toString(val: JSONValue): string {
         return JSON.stringify(val);
     }
 }

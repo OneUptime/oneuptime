@@ -20,7 +20,7 @@ export default class Service {
         return base(tableName).destroy(id);
     }
 
-    logUser({
+    public logUser({
         name,
         email,
         phone,
@@ -44,7 +44,7 @@ export default class Service {
         });
     }
 
-    logLeads({
+    public logLeads({
         name,
         country,
         email,
@@ -74,7 +74,7 @@ export default class Service {
         });
     }
 
-    deleteUser(airtableId: $TSFixMe): void {
+    public deleteUser(airtableId: $TSFixMe): void {
         if (!base) {
             return;
         }
@@ -86,7 +86,7 @@ export default class Service {
     //Params:
     //Param 1: data: Feedback data (message, name, email, project, page).
     //Returns: promise
-    logFeedback({ message, name, email, project, page }: $TSFixMe): void {
+    public logFeedback({ message, name, email, project, page }: $TSFixMe): void {
         if (!base) {
             return;
         }
@@ -100,7 +100,7 @@ export default class Service {
         });
     }
 
-    deleteFeedback(airtableId: $TSFixMe): void {
+    public deleteFeedback(airtableId: $TSFixMe): void {
         if (!base) {
             return;
         }
@@ -140,7 +140,7 @@ export default class Service {
         }
     }
 
-    logProjectDeletionFeedback({
+    public logProjectDeletionFeedback({
         reason,
         project,
         name,

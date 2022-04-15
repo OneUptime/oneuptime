@@ -52,7 +52,10 @@ const initialState: $TSFixMe = {
     loginMethod: 'standard',
 };
 
-export default function register(state: $TSFixMe = initialState, action: Action): void {
+export default function register(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     switch (action.type) {
         case CHANGE_LOGIN:
             return Object.assign({}, state, {

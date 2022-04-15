@@ -16,9 +16,9 @@ import serverMonitor from '../lib/api';
 const user: $TSFixMe = require('./test-utils').user;
 user.email = utils.generateRandomBusinessEmail();
 
-let token, projectId: ObjectID, apiKey: string, monitorId: $TSFixMe;
+let token: $TSFixMe, projectId: ObjectID, apiKey: string, monitorId: $TSFixMe;
 const badProjectId: string = 'badProjectId',
-    badApiKey = 'badApiKey';
+    badApiKey: $TSFixMe = 'badApiKey';
 const invalidProjectId: string = utils.generateRandomString();
 const timeout: $TSFixMe = 5000,
     monitor = {

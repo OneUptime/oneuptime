@@ -1938,7 +1938,7 @@ export default (state: $TSFixMe = INITIAL_STATE, action: Action): void => {
             const timelineIds: $TSFixMe = [];
             let singleTimeline: $TSFixMe = false;
             let timelines: $TSFixMe = state.lastIncidentTimelines.timelines.map(
-                timeline => {
+                (timeline: $TSFixMe) => {
                     if (
                         String(timeline.incidentId) ===
                         String(action.payload.incidentId)

@@ -94,7 +94,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                 notifications: {
                     ...state.notifications,
                     notifications: state.notifications.notifications.map(
-                        notification => {
+                        (notification: $TSFixMe) => {
                             if (
                                 notification._id ===
                                 action.payload.notificationId._id

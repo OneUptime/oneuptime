@@ -40,7 +40,10 @@ const initialState: $TSFixMe = {
     },
 };
 
-export default function subscriber(state: $TSFixMe = initialState, action: Action): void {
+export default function subscriber(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     switch (action.type) {
         case types.CREATE_SUBSCRIBER_RESET:
             return Object.assign({}, state, {
@@ -127,7 +130,7 @@ export default function subscriber(state: $TSFixMe = initialState, action: Actio
                 subscribers: {
                     ...state.subscribers,
                     subscribers: state.subscribers.subscribers.filter(
-                        subscriber => {
+                        (subscriber: $TSFixMe) => {
                             return subscriber !== action.payload._id;
                         }
                     ),

@@ -35,7 +35,10 @@ const initialState: $TSFixMe = {
     showEmailSmtpConfiguration: false,
 };
 
-export default function incident(state: $TSFixMe = initialState, action: Action): void {
+export default function incident(
+    state: $TSFixMe = initialState,
+    action: Action
+): void {
     switch (action.type) {
         case types.EMAIL_TEMPLATES_SUCCESS:
             return Object.assign({}, state, {

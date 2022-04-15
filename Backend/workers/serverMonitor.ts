@@ -1,8 +1,8 @@
 import moment from 'moment';
 const MonitorService: $TSFixMe = require('../Services/monitorService'),
-    MonitorLogService = require('../Services/monitorLogService'),
-    MonitorStatusService = require('../Services/monitorStatusService'),
-    ProbeService = require('../Services/probeService');
+    MonitorLogService: $TSFixMe = require('../Services/monitorLogService'),
+    MonitorStatusService: $TSFixMe = require('../Services/monitorStatusService'),
+    ProbeService: $TSFixMe = require('../Services/probeService');
 
 export default {
     checkAllServerMonitors: async () => {

@@ -1073,8 +1073,8 @@ export default class Service {
                 const incidentArray: $TSFixMe = [];
                 for (const filter of updatedFilters) {
                     const filterCriteria: $TSFixMe = filter.filterCriteria,
-                        filterCondition = filter.filterCondition,
-                        filterText = filter.filterText;
+                        filterCondition: $TSFixMe = filter.filterCondition,
+                        filterText: $TSFixMe = filter.filterText;
 
                     if (
                         filterCriteria &&
@@ -1625,8 +1625,8 @@ export default class Service {
                 const incidentArray: $TSFixMe = [];
                 for (const filter of updatedFilters) {
                     const filterCriteria: $TSFixMe = filter.filterCriteria,
-                        filterCondition = filter.filterCondition,
-                        filterText = filter.filterText;
+                        filterCondition: $TSFixMe = filter.filterCondition,
+                        filterText: $TSFixMe = filter.filterText;
 
                     if (
                         filterCriteria &&
@@ -1901,8 +1901,8 @@ export default class Service {
                         for (const field of incidentCustomFields) {
                             const filterCriteria: $TSFixMe =
                                     filter.filterCriteria,
-                                filterCondition = filter.filterCondition,
-                                filterText = filter.filterText;
+                                filterCondition: $TSFixMe = filter.filterCondition,
+                                filterText: $TSFixMe = filter.filterText;
 
                             if (
                                 filterCriteria &&
