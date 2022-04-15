@@ -682,7 +682,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         const authorization: string = `Basic ${token}`;
 
         const createdMonitorCategories: $TSFixMe = monitorCategories.map(
-            async resourceCategoryName => {
+            async (resourceCategoryName: $TSFixMe) => {
                 const sentRequests: $TSFixMe = await request
 
                     .post(`/resourceCategory/${projectId}`)

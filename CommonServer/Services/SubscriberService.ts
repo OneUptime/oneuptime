@@ -379,7 +379,7 @@ export default class Service {
         let subscriber: $TSFixMe = await this.findBy({ query, select: '_id' });
         if (subscriber && subscriber.length > 1) {
             const subscribers: $TSFixMe = await Promise.all(
-                subscriber.map(async subscriber => {
+                subscriber.map(async (subscriber: $TSFixMe) => {
                     const subscriberId: $TSFixMe = subscriber._id;
                     subscriber = await this.updateOneBy(
                         { _id: subscriberId, deleted: true },

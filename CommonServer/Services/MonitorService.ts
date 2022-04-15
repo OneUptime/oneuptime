@@ -862,7 +862,7 @@ export default class Service {
                 const selectSchedule: $TSFixMe =
                     '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
                 const monitorsWithSchedules: $TSFixMe = await Promise.all(
-                    monitorsWithStatus.map(async monitor => {
+                    monitorsWithStatus.map(async (monitor: $TSFixMe) => {
                         const monitorSchedules: $TSFixMe =
                             await ScheduleService.findBy({
                                 query: { monitorIds: monitor._id },
@@ -982,7 +982,7 @@ export default class Service {
         const selectSchedule: $TSFixMe =
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
         const monitorsWithSchedules: $TSFixMe = await Promise.all(
-            monitorsWithStatus.map(async monitor => {
+            monitorsWithStatus.map(async (monitor: $TSFixMe) => {
                 const monitorSchedules: $TSFixMe = await ScheduleService.findBy(
                     {
                         query: { monitorIds: monitor._id },

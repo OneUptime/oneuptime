@@ -137,7 +137,7 @@ describe('Scheduled event API', function (): void {
 
                                                             const createdScheduledEvents: $TSFixMe =
                                                                 scheduledEvents.map(
-                                                                    async scheduledEvent => {
+                                                                    async (scheduledEvent: $TSFixMe) => {
                                                                         const sentRequests: $TSFixMe =
                                                                             await request
                                                                                 .post(

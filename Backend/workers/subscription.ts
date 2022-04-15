@@ -9,7 +9,7 @@ import AlertService from '../Services/alertService';
 import { IS_SAAS_SERVICE } from '../config/server';
 
 const handleFetchingUnpaidSubscriptions: Function = async (
-    startAfter
+    startAfter: $TSFixMe
 ): void => {
     if (startAfter) {
         return await stripe.subscriptions.list({
@@ -36,7 +36,7 @@ const _this: $TSFixMe = {
      * THE SERVICE TO ALERT PROJECT OWNERS BY MAIL WILL ALSO RUN IN THE BACKGROUND
      */
 
-    handleUnpaidSubscription: async startAfter => {
+    handleUnpaidSubscription: async (startAfter: $TSFixMe) => {
         if (IS_SAAS_SERVICE) {
             const subscriptions: $TSFixMe =
                 await handleFetchingUnpaidSubscriptions(startAfter);

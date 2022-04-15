@@ -132,7 +132,7 @@ export default class Service {
         const select: string =
             'projectId subject body emailType allowedVariables';
         const templates: $TSFixMe = await Promise.all(
-            defaultTemplate.map(async template => {
+            defaultTemplate.map(async (template: $TSFixMe) => {
                 const emailTemplate: $TSFixMe = await this.findOneBy({
                     query: {
                         projectId: projectId,

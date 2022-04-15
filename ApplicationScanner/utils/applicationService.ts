@@ -78,7 +78,7 @@ export default {
         return promise;
     },
 
-    sshScanApplicationSecurity: async security => {
+    sshScanApplicationSecurity: async (security: $TSFixMe) => {
         let securityDir: $TSFixMe = 'application_security_dir';
 
         securityDir = await createDir(securityDir);
@@ -120,7 +120,7 @@ export default {
                                 throw error;
                             });
 
-                            audit.stdout.on('data', data => {
+                            audit.stdout.on('data', (data: $TSFixMe) => {
                                 const strData: $TSFixMe = data.toString();
                                 auditOutput += strData;
                             });
@@ -216,7 +216,7 @@ export default {
         });
     },
 
-    scanApplicationSecurity: async security => {
+    scanApplicationSecurity: async (security: $TSFixMe) => {
         let securityDir: $TSFixMe = 'application_security_dir';
 
         securityDir = await createDir(securityDir);
@@ -262,7 +262,7 @@ export default {
                             throw error;
                         });
 
-                        audit.stdout.on('data', data => {
+                        audit.stdout.on('data', (data: $TSFixMe) => {
                             const strData: $TSFixMe = data.toString();
                             auditOutput += strData;
                         });

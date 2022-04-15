@@ -125,7 +125,7 @@ describe('Project Setting: Change Plan', () => {
         'should update project account when admin recharge account',
         async (done: $TSFixMe) => {
             let balance: $TSFixMe = 0,
-                creditedBalance = 0;
+                creditedBalance: $TSFixMe = 0;
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,

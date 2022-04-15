@@ -763,7 +763,7 @@ describe('Incident Created test', () => {
     //             await init.pageWaitForSelector(page, '#closeIncident_0', {
     //                 visible: true,
     //             });
-    //             await init.page$Eval(page, '#closeIncident_0', elem => elem.click());
+    //             await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) => elem.click());
     //             await init.pageWaitForSelector(page, '#closeIncidentButton_0');
     //             await init.page$Eval(page, '#closeIncidentButton_0',e=>e.click());
     //             const elementHandle: $TSFixMe = await init.page$(page, '#modal-ok');

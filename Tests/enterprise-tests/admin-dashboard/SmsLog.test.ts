@@ -401,7 +401,7 @@ describe('SMS Logs', () => {
     //         await init.pageClick(page, '#smsLogSetting');
 
     //         // enable logs
-    //         await init.page$Eval(page, 'input[name=smsStatusToggler]', e =>
+    //         await init.page$Eval(page, 'input[name=smsStatusToggler]', (e: $TSFixMe) =>
     //             e.click()
     //         );
 

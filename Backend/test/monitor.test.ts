@@ -1317,7 +1317,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function (): void
         await MonitorService.hardDeleteBy({ projectId });
 
         await Promise.all(
-            monitorDataArray.map(async monitor => {
+            monitorDataArray.map(async (monitor: $TSFixMe) => {
                 await request
                     .post(`/monitor/${projectId}`)
                     .set('Authorization', authorization)

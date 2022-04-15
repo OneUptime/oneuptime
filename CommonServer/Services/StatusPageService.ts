@@ -591,7 +591,7 @@ public async deleteBy(query: Query, userId: ObjectID): void {
                 populate: populateSubscriber,
             });
             await Promise.all(
-                subscribers.map(async subscriber => {
+                subscribers.map(async (subscriber: $TSFixMe) => {
                     await SubscriberService.deleteBy(
                         { _id: subscriber._id },
                         userId

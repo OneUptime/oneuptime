@@ -229,13 +229,13 @@ public async deleteBy(query, userId, cancelSub = true): void {
             ]);
 
             await Promise.all(
-                monitors.map(async monitor => {
+                monitors.map(async (monitor: $TSFixMe) => {
                     await MonitorService.deleteBy({ _id: monitor._id }, userId);
                 })
             );
 
             await Promise.all(
-                schedules.map(async schedule => {
+                schedules.map(async (schedule: $TSFixMe) => {
                     await ScheduleService.deleteBy({ _id: schedule._id });
                 })
             );
@@ -247,7 +247,7 @@ public async deleteBy(query, userId, cancelSub = true): void {
             }
 
             await Promise.all(
-                statusPages.map(async statusPage => {
+                statusPages.map(async (statusPage: $TSFixMe) => {
                     await StatusPageService.deleteBy({
                         _id: statusPage._id,
                     });
@@ -255,7 +255,7 @@ public async deleteBy(query, userId, cancelSub = true): void {
             );
 
             await Promise.all(
-                components.map(async component => {
+                components.map(async (component: $TSFixMe) => {
                     await componentService.deleteBy(
                         { _id: component._id },
                         userId
@@ -563,7 +563,7 @@ public async exitProject(projectId, userId, deletedById, saveUserSeat): void {
                         query: { _id: userId },
                         select: 'email',
                     });
-                    domains.domains.forEach(async domain => {
+                    domains.domains.forEach(async (domain: $TSFixMe) => {
                         if (user_member.email.indexOf(domain) > -1) {
                             count++;
                         }
@@ -629,7 +629,7 @@ public async getAllProjects(skip, limit): void {
         });
 
         projects = await Promise.all(
-            projects.map(async project => {
+            projects.map(async (project: $TSFixMe) => {
                 // get both sub-project users and project users
                 let users: $TSFixMe = await TeamService.getTeamMembersBy({
                     parentProjectId: project._id,
@@ -701,7 +701,7 @@ public async getUserProjects(userId, skip, limit): void {
 
         // add project monitors
         const projects: $TSFixMe = await Promise.all(
-            allProjects.map(async project => {
+            allProjects.map(async (project: $TSFixMe) => {
                 // get both sub-project users and project users
                 let users: $TSFixMe = [];
                 if (project.parentProjectId) {
@@ -715,7 +715,7 @@ public async getUserProjects(userId, skip, limit): void {
                     const select: $TSFixMe =
                         'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
                     users = await Promise.all(
-                        project.users.map(async user => {
+                        project.users.map(async (user: $TSFixMe) => {
                             const foundUser: $TSFixMe = await UserService.findOneBy({
                                 query: {
                                     _id: user.userId,
@@ -756,7 +756,7 @@ public async restoreBy(query: $TSFixMe): void {
         );
         let subscription: $TSFixMe;
         await Promise.all(
-            projectOwners.map(async projectOwner => {
+            projectOwners.map(async (projectOwner: $TSFixMe) => {
                 const owner: $TSFixMe = await UserService.findOneBy({
                     query: { _id: projectOwner.userId },
                     select: 'stripeCustomerId',
@@ -830,7 +830,7 @@ public async searchProjects(query, skip, limit): void {
         let projects: $TSFixMe = await this.findBy({ query, limit, skip, select });
 
         projects = await Promise.all(
-            projects.map(async project => {
+            projects.map(async (project: $TSFixMe) => {
                 // get both sub-project users and project users
                 let users: $TSFixMe = await TeamService.getTeamMembersBy({
                     parentProjectId: project._id,

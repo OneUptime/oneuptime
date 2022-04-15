@@ -345,7 +345,7 @@ router.post(
 
                         if (monitorStatus && monitorStatus.length) {
                             const uptimePercents: $TSFixMe = await Promise.all(
-                                monitorStatus.map(async probe => {
+                                monitorStatus.map(async (probe: $TSFixMe) => {
                                     const { uptimePercent }: $TSFixMe =
                                         await MonitorService.calculateTime(
                                             probe.statuses,
@@ -746,7 +746,7 @@ router.get(
                 { path: 'resourceCategory', select: 'name' },
             ];
             await Promise.all(
-                allComponents.map(async component => {
+                allComponents.map(async (component: $TSFixMe) => {
                     const componentErrorTrackers: $TSFixMe =
                         await ErrorTrackerService.findBy({
                             query: {

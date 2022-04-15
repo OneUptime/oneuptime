@@ -618,7 +618,7 @@ public async incidentResolveOrAcknowledge(data, allCriteria): void {
             // }
         }
         await Promise.all(
-            incidentsV1.map(async incident => {
+            incidentsV1.map(async (incident: $TSFixMe) => {
                 if (
                     incident.probes &&
                     incident.probes.length > 0 &&
@@ -663,7 +663,7 @@ public async incidentResolveOrAcknowledge(data, allCriteria): void {
             })
         );
 
-        await forEach(incidentsV2, async incident => {
+        await forEach(incidentsV2, async (incident: $TSFixMe) => {
             const trueArray: $TSFixMe = [];
             const falseArray: $TSFixMe = [];
 
@@ -793,7 +793,7 @@ public async updateProbeStatus(probeId: $TSFixMe): void {
         let matchedCriterion: $TSFixMe;
 
         if (con && con.length) {
-            eventOccurred = some(con, condition => {
+            eventOccurred = some(con, (condition: $TSFixMe) => {
                 let stat: $TSFixMe = true;
                 if (
                     condition &&
@@ -863,7 +863,7 @@ public async updateProbeStatus(probeId: $TSFixMe): void {
         let eventOccurred: $TSFixMe = false;
         let matchedCriterion: $TSFixMe;
         if (conditions && conditions.length) {
-            eventOccurred = some(conditions, condition => {
+            eventOccurred = some(conditions, (condition: $TSFixMe) => {
                 let response: $TSFixMe = false;
                 let respAnd: $TSFixMe = false,
                     respOr = false,

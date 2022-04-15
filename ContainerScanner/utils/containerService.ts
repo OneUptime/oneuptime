@@ -62,7 +62,7 @@ export default {
         return promise;
     },
 
-    scanContainerSecurity: async security => {
+    scanContainerSecurity: async (security: $TSFixMe) => {
         const { imagePath, imageTags }: $TSFixMe = security;
         const testPath: $TSFixMe = imageTags
             ? `${imagePath}:${imageTags}`

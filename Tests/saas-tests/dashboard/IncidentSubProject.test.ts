@@ -415,7 +415,7 @@ describe('Incident API With SubProjects', () => {
 
     // test(
     //     'should get incident timeline and paginate for incident timeline in sub-project',
-    //     async done => {
+    //     async (done: $TSFixMe) => {
     //         const internalNote: string = utils.generateRandomString();
     //         const  type: string = 'internal';
     //         await init.loginUser(newUser, page);
@@ -432,7 +432,7 @@ describe('Incident API With SubProjects', () => {
     //             visible: true,
     //             timeout: init.timeout,
     //         });
-    //         await init.page$Eval(page, `#incident_0`, e => e.click());
+    //         await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) => e.click());
     //         await init.pageWaitForSelector(page, '#incident_0', {
     //             visible: true,
     //             timeout: init.timeout,
@@ -441,7 +441,7 @@ describe('Incident API With SubProjects', () => {
     //         await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
     //         for (let i: $TSFixMe = 0; i < 10; i++) {
-    //             await init.page$Eval(page, `#add-${type}-message`, e =>
+    //             await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) =>
     //                 e.click()
     //             );
     //             await init.pageWaitForSelector(
@@ -488,7 +488,7 @@ describe('Incident API With SubProjects', () => {
 
     //         expect(countIncidentTimelines).toEqual(10);
 
-    //         await init.page$Eval(page, '#btnTimelineNext', e => e.click());
+    //         await init.page$Eval(page, '#btnTimelineNext', (e: $TSFixMe) => e.click());
     //         await init.pageWaitForSelector(page, '.ball-beat', {
     //             visible: true,
     //             timeout: init.timeout,
@@ -503,7 +503,7 @@ describe('Incident API With SubProjects', () => {
     //         countIncidentTimelines = incidentTimelineRows.length;
     //         expect(countIncidentTimelines).toEqual(5);
 
-    //         await init.page$Eval(page, '#btnTimelinePrev', e => e.click());
+    //         await init.page$Eval(page, '#btnTimelinePrev', (e: $TSFixMe) => e.click());
     //         await init.pageWaitForSelector(page, '.ball-beat', {
     //             visible: true,
     //             timeout: init.timeout,

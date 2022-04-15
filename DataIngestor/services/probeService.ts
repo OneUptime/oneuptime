@@ -618,7 +618,7 @@ export default {
             }
         }
 
-        await forEach(incidentsV2, async incident => {
+        await forEach(incidentsV2, async (incident: $TSFixMe) => {
             const trueArray: $TSFixMe = [];
             const falseArray: $TSFixMe = [];
 
@@ -842,7 +842,7 @@ export default {
         let eventOccurred: $TSFixMe = false;
         let matchedCriterion: $TSFixMe;
         if (conditions && conditions.length) {
-            eventOccurred = some(conditions, condition => {
+            eventOccurred = some(conditions, (condition: $TSFixMe) => {
                 let response: $TSFixMe = false;
                 let respAnd: $TSFixMe = false,
                     respOr = false,

@@ -57,7 +57,7 @@ const lighthouseFetch: Function = (url: URL): void => {
         }, 300000);
 
         lighthouseWorker.send(url);
-        lighthouseWorker.on('message', async result => {
+        lighthouseWorker.on('message', async (result: $TSFixMe) => {
             await processLighthouseScan(result);
         });
 

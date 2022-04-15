@@ -399,14 +399,14 @@ export default {
 
                                 // handle deployment output
                                 let desiredDeployment: $TSFixMe = 0,
-                                    readyDeployment = 0;
+                                    readyDeployment: $TSFixMe = 0;
 
                                 const unhealthyDeployments: $TSFixMe = [],
-                                    healthyDeployments = [],
-                                    allDeployments = [],
-                                    unhealthyDeploymentData = [],
-                                    healthyDeploymentData = [],
-                                    allDeploymentData = [];
+                                    healthyDeployments: $TSFixMe = [],
+                                    allDeployments: $TSFixMe = [],
+                                    unhealthyDeploymentData: $TSFixMe = [],
+                                    healthyDeploymentData: $TSFixMe = [],
+                                    allDeploymentData: $TSFixMe = [];
 
                                 deploymentOutput.items.forEach(
                                     (item: $TSFixMe) => {
@@ -735,7 +735,7 @@ function loadPodOutput(configPath, namespace): void {
             cwd: process.cwd(),
             shell: true,
         });
-        podCommandOutput.stdout.on('data', data => {
+        podCommandOutput.stdout.on('data', (data: $TSFixMe) => {
             const strData: $TSFixMe = data.toString();
             podOutput += strData;
         });
@@ -758,7 +758,7 @@ function loadJobOutput(configPath, namespace): void {
             cwd: process.cwd(),
             shell: true,
         });
-        jobCommandOutput.stdout.on('data', data => {
+        jobCommandOutput.stdout.on('data', (data: $TSFixMe) => {
             const strData: $TSFixMe = data.toString();
             jobOutput += strData;
         });
@@ -781,7 +781,7 @@ function loadServiceOutput(configPath, namespace): void {
             cwd: process.cwd(),
             shell: true,
         });
-        serviceCommandOutput.stdout.on('data', data => {
+        serviceCommandOutput.stdout.on('data', (data: $TSFixMe) => {
             const strData: $TSFixMe = data.toString();
             serviceOutput += strData;
         });
@@ -804,7 +804,7 @@ function loadDeploymentOutput(configPath, namespace): void {
             cwd: process.cwd(),
             shell: true,
         });
-        deploymentCommandOutput.stdout.on('data', data => {
+        deploymentCommandOutput.stdout.on('data', (data: $TSFixMe) => {
             const strData: $TSFixMe = data.toString();
             deploymentOutput += strData;
         });
@@ -827,7 +827,7 @@ function loadStatefulsetOutput(configPath, namespace): void {
             cwd: process.cwd(),
             shell: true,
         });
-        statefulsetCommandOutput.stdout.on('data', data => {
+        statefulsetCommandOutput.stdout.on('data', (data: $TSFixMe) => {
             const strData: $TSFixMe = data.toString();
             statefulsetOutput += strData;
         });

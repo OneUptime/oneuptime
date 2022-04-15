@@ -287,7 +287,7 @@ function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe): void {
             cwd: process.cwd(),
             shell: true,
         });
-        commandOutput.stdout.on('data', data => {
+        commandOutput.stdout.on('data', (data: $TSFixMe) => {
             const strData: $TSFixMe = data.toString();
             output += strData;
         });

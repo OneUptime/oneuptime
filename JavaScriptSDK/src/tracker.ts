@@ -184,14 +184,14 @@ class ErrorTracker {
     }
     private _setUpNodeErrorListener(): void {
         process
-            .on('uncaughtException', err => {
+            .on('uncaughtException', (err: $TSFixMe) => {
                 // display for the user
                 //eslint-disable-next-line no-console
                 console.info(`${err}`);
                 // any uncaught error
                 this._manageErrorNode(err);
             })
-            .on('unhandledRejection', err => {
+            .on('unhandledRejection', (err: $TSFixMe) => {
                 // display this for the user
                 //eslint-disable-next-line no-console
                 console.info(`UnhandledPromiseRejectionWarning: ${err.stack}`);

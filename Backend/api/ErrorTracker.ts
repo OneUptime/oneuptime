@@ -983,7 +983,7 @@ router.post(
 
             // get the list of team members
             await Promise.all(
-                teamMemberId.map(async teamMemberUserId => {
+                teamMemberId.map(async (teamMemberUserId: $TSFixMe) => {
                     // check if in organization
                     let member: $TSFixMe;
                     try {
@@ -1133,7 +1133,7 @@ router.post(
 
             // get the list of team members
             await Promise.all(
-                teamMemberId.map(async teamMemberUserId => {
+                teamMemberId.map(async (teamMemberUserId: $TSFixMe) => {
                     // check if in organization
                     let member: $TSFixMe;
                     try {

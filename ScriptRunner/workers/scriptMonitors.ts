@@ -4,7 +4,7 @@ import { run as runScript } from '../Utils/scriptSandbox';
 
 // it collects all monitors then ping them one by one to store their response
 export default {
-    run: async monitor => {
+    run: async (monitor: $TSFixMe) => {
         if (monitor && monitor.type === 'script') {
             if (monitor.data.script) {
                 const code: $TSFixMe = monitor.data.script; // redundant now but may be expanded in future
