@@ -6,7 +6,7 @@ export default class Service {
     //Param 1: projectId: Project id.
     //Param 2: subProjectId: SubProject id
     //Returns: list of team members
-public async getTeamMembersBy(query: Query): void {
+    public async getTeamMembersBy(query: Query): void {
         let projectMembers: $TSFixMe = [];
 
         const projects: $TSFixMe = await ProjectService.findBy({
@@ -25,9 +25,9 @@ public async getTeamMembersBy(query: Query): void {
                 });
                 projectMembers = projectMembers.concat(parentProject.users);
             }
-            const projectUsers: $TSFixMe = projects.map(
-                (project: $TSFixMe) => project.users
-            );
+            const projectUsers: $TSFixMe = projects.map((project: $TSFixMe) => {
+                return project.users;
+            });
             projectUsers.forEach((users: $TSFixMe) => {
                 projectMembers = projectMembers.concat(users);
             });
@@ -36,7 +36,7 @@ public async getTeamMembersBy(query: Query): void {
         let usersId: $TSFixMe = [];
 
         // eslint-disable-next-line array-callback-return
-        projectMembers.map((user: $TSFixMe) =>  {
+        projectMembers.map((user: $TSFixMe) => {
             if (user.show) {
                 usersId.push(user.userId.toString());
             }
@@ -51,9 +51,9 @@ public async getTeamMembersBy(query: Query): void {
 
         const response: $TSFixMe = [];
         for (let i: $TSFixMe = 0; i < users.length; i++) {
-            const memberDetail: $TSFixMe = projectMembers.filter(
-                member => member.userId === users[i]._id.toString()
-            )[0];
+            const memberDetail: $TSFixMe = projectMembers.filter(member => {
+                return member.userId === users[i]._id.toString();
+            })[0];
 
             response.push({
                 userId: users[i]._id,
@@ -67,7 +67,7 @@ public async getTeamMembersBy(query: Query): void {
         return response;
     }
 
-public async getTeamMemberBy(
+    public async getTeamMemberBy(
         projectId: ObjectID,
         teamMemberUserId: ObjectID
     ): void {
@@ -119,7 +119,7 @@ public async getTeamMemberBy(
         }
     }
 
-public async getSeats(members: $TSFixMe): void {
+    public async getSeats(members: $TSFixMe): void {
         let seats: $TSFixMe = members.filter(async (user: $TSFixMe) => {
             let count: $TSFixMe = 0;
             const user_member: $TSFixMe = await UserService.findOneBy({
@@ -148,7 +148,7 @@ public async getSeats(members: $TSFixMe): void {
     //Param 2: emails: Emails of new user added by Admin.
     //Param 3: role: Role set by Admin.
     //Returns: promise
-public async inviteTeamMembers(
+    public async inviteTeamMembers(
         addedByUserId: ObjectID,
         projectId: ObjectID,
         emails: $TSFixMe,
@@ -195,7 +195,10 @@ public async inviteTeamMembers(
             }
 
             // Checks if users to be added as team members are already present or not.
-            const isUserInProject: $TSFixMe = await this.checkUser(teamMembers, emails);
+            const isUserInProject: $TSFixMe = await this.checkUser(
+                teamMembers,
+                emails
+            );
             if (isUserInProject) {
                 const error: $TSFixMe = new Error(
                     'These users are already members of the project.'
@@ -211,18 +214,21 @@ public async inviteTeamMembers(
                 });
 
                 if (adminUser && emails.includes(adminUser.email)) {
-                    const isAdminInProject: $TSFixMe = adminUser.projects.filter(
-                        (proj: $TSFixMe) =>
-                            proj._id.toString() === projectId.toString()
-                    );
+                    const isAdminInProject: $TSFixMe =
+                        adminUser.projects.filter((proj: $TSFixMe) => {
+                            return proj._id.toString() === projectId.toString();
+                        });
                     let isHiddenAdminUser: $TSFixMe = false;
 
                     if (isAdminInProject) {
                         isHiddenAdminUser = isAdminInProject[0]?.users.filter(
-                            (user: $TSFixMe) =>
-                                user.show === false &&
-                                user.role === 'Administrator' &&
-                                user.userId === adminUser._id.toString()
+                            (user: $TSFixMe) => {
+                                return (
+                                    user.show === false &&
+                                    user.role === 'Administrator' &&
+                                    user.userId === adminUser._id.toString()
+                                );
+                            }
                         );
                     }
 
@@ -253,7 +259,7 @@ public async inviteTeamMembers(
     //Params:
     //Param 1: projectId: Project id.
     //Returns: promise
-public async getTeamMembers(projectId: ObjectID): void {
+    public async getTeamMembers(projectId: ObjectID): void {
         const subProject: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId',
@@ -288,7 +294,7 @@ public async getTeamMembers(projectId: ObjectID): void {
         return valid;
     }
 
-public async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe): void {
+    public async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe): void {
         const teamMembersEmail: $TSFixMe = [];
 
         for (let i: $TSFixMe = 0; i < teamMembers.length; i++) {
@@ -301,9 +307,9 @@ public async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe): void {
 
         for (let i: $TSFixMe = 0; i < teamMembersEmail.length; i++) {
             if (
-                emails.filter(
-                    (email: $TSFixMe) => email === teamMembersEmail[i]
-                ).length > 0
+                emails.filter((email: $TSFixMe) => {
+                    return email === teamMembersEmail[i];
+                }).length > 0
             ) {
                 return true;
             }
@@ -319,7 +325,7 @@ public async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe): void {
     //Param 4: addedBy: Admin who added the user.
     //Param 5: project: Project.
     //Returns: promise
-public async inviteTeamMembersMethod(
+    public async inviteTeamMembersMethod(
         projectId: ObjectID,
         emails: $TSFixMe,
         role: $TSFixMe,
@@ -374,9 +380,9 @@ public async inviteTeamMembersMethod(
                 projectUsers = await this.getTeamMembersBy({
                     parentProjectId: project._id,
                 });
-                const userInProject: $TSFixMe = projectUsers.find(
-                    user => user.userId === member._id
-                );
+                const userInProject: $TSFixMe = projectUsers.find(user => {
+                    return user.userId === member._id;
+                });
                 try {
                     if (userInProject) {
                         if (role === 'Viewer') {
@@ -428,11 +434,13 @@ public async inviteTeamMembersMethod(
                     );
                 }
             } else {
-                const verificationTokenModel: $TSFixMe = new VerificationTokenModel({
-                    userId: member._id,
-                    token: crypto.randomBytes(16).toString('hex'),
-                });
-                const verificationToken: $TSFixMe = await verificationTokenModel.save();
+                const verificationTokenModel: $TSFixMe =
+                    new VerificationTokenModel({
+                        userId: member._id,
+                        token: crypto.randomBytes(16).toString('hex'),
+                    });
+                const verificationToken: $TSFixMe =
+                    await verificationTokenModel.save();
                 if (verificationToken) {
                     registerUrl = `${registerUrl}?token=${verificationToken.token}`;
                 }
@@ -496,7 +504,9 @@ public async inviteTeamMembersMethod(
             // add user to all subProjects
             for (const subProject of subProjects) {
                 const subProjectMembers: $TSFixMe = members
-                    .map((user: $TSFixMe) =>  ({ ...user, show: false }))
+                    .map((user: $TSFixMe) => {
+                        return { ...user, show: false };
+                    })
                     .concat(subProject.users);
                 await ProjectService.updateOneBy(
                     { _id: subProject._id },
@@ -513,9 +523,9 @@ public async inviteTeamMembersMethod(
             projectSeats = parseInt(projectSeats);
         }
         for (const email of emails) {
-            const user: $TSFixMe = existingUsers.find(
-                (data: $TSFixMe) =>  String(data.email) === String(email)
-            );
+            const user: $TSFixMe = existingUsers.find((data: $TSFixMe) => {
+                return String(data.email) === String(email);
+            });
             if (user) {
                 extraUsersToAdd = extraUsersToAdd - 1;
             }
@@ -575,7 +585,7 @@ public async inviteTeamMembersMethod(
     //Param 2: userId: User id of admin.
     //Param 3: teamMemberUserId: Team Member Id of user to delete by Owner.
     //Returns: promise
-public async removeTeamMember(
+    public async removeTeamMember(
         projectId: ObjectID,
         userId: ObjectID,
         teamMemberUserId: ObjectID
@@ -755,7 +765,7 @@ public async removeTeamMember(
     //Param 3: teamMemberUserId: id of Team Member.
     //Param 4: nextRole: Role of user to updated by Admin.
     //Returns: promise
-public async updateTeamMemberRole(
+    public async updateTeamMemberRole(
         projectId: ObjectID,
         userId: ObjectID,
         teamMemberUserId: ObjectID,
@@ -781,13 +791,13 @@ public async updateTeamMemberRole(
             });
         }
         if (subProject) {
-            index = subProject.users.findIndex(
-                (user: $TSFixMe) => user.userId === teamMemberUserId
-            );
+            index = subProject.users.findIndex((user: $TSFixMe) => {
+                return user.userId === teamMemberUserId;
+            });
         } else {
-            index = project.users.findIndex(
-                (user: $TSFixMe) => user.userId === teamMemberUserId
-            );
+            index = project.users.findIndex((user: $TSFixMe) => {
+                return user.userId === teamMemberUserId;
+            });
         }
 
         subProjects = await ProjectService.findBy({
@@ -796,13 +806,17 @@ public async updateTeamMemberRole(
         });
         const prevTeams: $TSFixMe = subProjects
             .concat(project)
-            .map((res: $TSFixMe) => res.users);
+            .map((res: $TSFixMe) => {
+                return res.users;
+            });
         const prevFlatTeams: $TSFixMe = flatten(prevTeams);
-        const prevTeamArr: $TSFixMe = prevFlatTeams.filter(
-            user => String(user.userId) === String(teamMemberUserId)
-        );
+        const prevTeamArr: $TSFixMe = prevFlatTeams.filter(user => {
+            return String(user.userId) === String(teamMemberUserId);
+        });
         const checkPrevViewer: $TSFixMe = prevTeamArr.every(
-            (data: $TSFixMe) =>  data.role === 'Viewer'
+            (data: $TSFixMe) => {
+                return data.role === 'Viewer';
+            }
         );
 
         // Checks if user to be updated is present in the project.
@@ -845,8 +859,9 @@ public async updateTeamMemberRole(
                     await Promise.all(
                         subProjects.map(async (subProject: $TSFixMe) => {
                             index = subProject.users.findIndex(
-                                (user: $TSFixMe) =>
-                                    user.userId === teamMemberUserId
+                                (user: $TSFixMe) => {
+                                    return user.userId === teamMemberUserId;
+                                }
                             );
                             if (index !== -1) {
                                 subProject.users[index].role = nextRole;
@@ -924,13 +939,17 @@ public async updateTeamMemberRole(
                     teamMembers: team,
                     projectId,
                 });
-                const teams: $TSFixMe = response.map((res: $TSFixMe) => res.team);
+                const teams: $TSFixMe = response.map((res: $TSFixMe) => {
+                    return res.team;
+                });
                 const flatTeams: $TSFixMe = flatten(teams);
-                const teamArr: $TSFixMe = flatTeams.filter(
-                    (team: $TSFixMe) => String(team.userId) === String(teamMemberUserId)
-                );
+                const teamArr: $TSFixMe = flatTeams.filter((team: $TSFixMe) => {
+                    return String(team.userId) === String(teamMemberUserId);
+                });
                 const checkCurrentViewer: $TSFixMe = teamArr.every(
-                    (data: $TSFixMe) =>  data.role === 'Viewer'
+                    (data: $TSFixMe) => {
+                        return data.role === 'Viewer';
+                    }
                 );
                 let projectSeats: $TSFixMe = project.seats;
 

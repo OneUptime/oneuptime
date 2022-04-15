@@ -768,7 +768,13 @@ export default {
         };
     },
 
-    conditions: (monitorType: $TSFixMe, con: $TSFixMe, payload: $TSFixMe, resp: $TSFixMe, response: $TSFixMe) => {
+    conditions: (
+        monitorType: $TSFixMe,
+        con: $TSFixMe,
+        payload: $TSFixMe,
+        resp: $TSFixMe,
+        response: $TSFixMe
+    ) => {
         const status: $TSFixMe = resp
             ? resp.status
                 ? resp.status
@@ -979,9 +985,11 @@ export default {
             status = 'offline';
             reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             if (monitor.criteria.down) {
-                matchedCriterion = monitor.criteria.down.find((criterion: $TSFixMe) => {
-                    return criterion.default === true;
-                });
+                matchedCriterion = monitor.criteria.down.find(
+                    (criterion: $TSFixMe) => {
+                        return criterion.default === true;
+                    }
+                );
             }
         }
         const logData: $TSFixMe = {};
@@ -1043,7 +1051,10 @@ export default {
 
 import _ from 'lodash';
 
-const incomingCheckAnd: Function = (payload: $TSFixMe, condition: $TSFixMe): void => {
+const incomingCheckAnd: Function = (
+    payload: $TSFixMe,
+    condition: $TSFixMe
+): void => {
     let validity: $TSFixMe = false;
     let val: $TSFixMe = 0;
     let incomingVal: $TSFixMe = 0;
@@ -6209,7 +6220,11 @@ const criteriaStrings: $TSFixMe = {
     ip: 'IP is',
 };
 
-const formatDecimal: Function = (value: $TSFixMe, decimalPlaces: $TSFixMe, roundType: $TSFixMe): void => {
+const formatDecimal: Function = (
+    value: $TSFixMe,
+    decimalPlaces: $TSFixMe,
+    roundType: $TSFixMe
+): void => {
     let formattedNumber: $TSFixMe;
     switch (roundType) {
         case 'up':
@@ -6232,7 +6247,13 @@ const formatDecimal: Function = (value: $TSFixMe, decimalPlaces: $TSFixMe, round
     );
 };
 
-const formatBytes: Function = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, e: $TSFixMe): void => {
+const formatBytes: Function = (
+    a: $TSFixMe,
+    b: $TSFixMe,
+    c: $TSFixMe,
+    d: $TSFixMe,
+    e: $TSFixMe
+): void => {
     let value: $TSFixMe = a;
     let decimalPlaces: $TSFixMe;
     let roundType: $TSFixMe;

@@ -319,10 +319,7 @@ describe('Non-admin user access to create, delete and access resource category.'
                     userId = res.body.id;
                     VerificationTokenModel.findOne(
                         { userId },
-                        (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ) => {
+                        (err: $TSFixMe, verificationToken: $TSFixMe) => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
