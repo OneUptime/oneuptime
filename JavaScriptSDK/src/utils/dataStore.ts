@@ -36,8 +36,8 @@ class DataStore {
         if (store.has(path)) {
             const s: $TSFixMe = store.get(path);
             const avg: $TSFixMe = s.avgTime,
-                rq = s.requests,
-                ct = time;
+                rq: $TSFixMe = s.requests,
+                ct: $TSFixMe = time;
             let avgTime: $TSFixMe = avg * rq + ct;
             avgTime = avgTime / (rq + 1);
             return {

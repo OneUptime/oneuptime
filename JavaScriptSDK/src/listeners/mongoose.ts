@@ -30,7 +30,7 @@ class MongooseListener {
         };
     }
 
-private _setUpMongooseListener(mod: $TSFixMe): void {
+    private _setUpMongooseListener(mod: $TSFixMe): void {
         const proto: $TSFixMe = Object.getPrototypeOf(mod);
         const exec: $TSFixMe = proto.Query.prototype.exec;
 

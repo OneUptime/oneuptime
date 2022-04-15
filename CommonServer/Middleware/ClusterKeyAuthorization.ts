@@ -9,7 +9,7 @@ import { sendErrorResponse } from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class ClusterKeyAuthorization {
-    static async isAuthorizedService(
+public static async isAuthorizedService(
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction

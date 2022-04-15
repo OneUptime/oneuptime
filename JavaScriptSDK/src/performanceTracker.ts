@@ -76,7 +76,7 @@ class PerformanceTracker {
     async _sendDataOnExit(): void {
         await this.store.processDataOnExit();
     }
-private _setUpOutgoingListener(): void {
+    private _setUpOutgoingListener(): void {
         return new OutgoingListener(this.start, this.end, this.store);
     }
     setUpDataBaseListener(): void {
@@ -94,7 +94,7 @@ private _setUpOutgoingListener(): void {
             return res;
         };
     }
-private _setUpIncomingListener(app: $TSFixMe): void {
+    private _setUpIncomingListener(app: $TSFixMe): void {
         return new IncomingListener(this.start, this.end, this.store, app);
     }
 }

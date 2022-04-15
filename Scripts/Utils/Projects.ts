@@ -1,7 +1,7 @@
 import ProjectType from '../Types/Project';
 
 class Project {
-    static getProjects(): Array<ProjectType> {
+public static getProjects(): Array<ProjectType> {
         return [
             {
                 name: 'licensing',

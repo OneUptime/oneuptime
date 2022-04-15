@@ -14,7 +14,7 @@ class OutgoingListener {
         this.store = store;
         this._setUpOutgoingListener();
     }
-private _setUpOutgoingListener(): void {
+    private _setUpOutgoingListener(): void {
         override(Http);
         override(Https);
 
