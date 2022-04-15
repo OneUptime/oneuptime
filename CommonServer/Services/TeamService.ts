@@ -924,7 +924,7 @@ public async updateTeamMemberRole(
                     teamMembers: team,
                     projectId,
                 });
-                const teams: $TSFixMe = response.map(res: $TSFixMe => res.team);
+                const teams: $TSFixMe = response.map((res: $TSFixMe) => res.team);
                 const flatTeams: $TSFixMe = flatten(teams);
                 const teamArr: $TSFixMe = flatTeams.filter(
                     (team: $TSFixMe) => String(team.userId) === String(teamMemberUserId)

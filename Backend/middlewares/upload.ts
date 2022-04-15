@@ -13,7 +13,7 @@ export default new GridFsStorage({
     },
     file: () => {
         return new Promise((resolve: Function, reject: Function) => {
-            crypto.randomBytes(16, (err: $TSFixMe, random: $TSFixMe){
+            crypto.randomBytes(16, (err: $TSFixMe, random: $TSFixMe) => {
                 if (err) {
                     return reject(err);
                 }

@@ -109,7 +109,7 @@ export default function ssoDefaultRoles(
                     ...state.ssoDefaultRoles,
                     ssoDefaultRoles:
                         state.ssoDefaultRoles.ssoDefaultRoles.filter(
-                            element => {
+                            (element: $TSFixMe) => {
                                 return element._id !== action.payload._id;
                             }
                         ),

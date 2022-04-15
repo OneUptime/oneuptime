@@ -202,9 +202,9 @@ describe('User from other project have access to read / write and delete API.', 
                             VerificationTokenModel.findOne(
                                 { userId },
                                 (
-                                    err,
+                                    err: $TSFixMe,
 
-                                    verificationToken
+                                    verificationToken: $TSFixMe
                                 ) => {
                                     request
                                         .get(
@@ -320,9 +320,8 @@ describe('Non-admin user access to create, delete and access resource category.'
                     VerificationTokenModel.findOne(
                         { userId },
                         (
-                            err,
-
-                            verificationToken
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
                         ) => {
                             request
                                 .get(
@@ -434,9 +433,8 @@ describe('Non-admin user access to create, delete and access resource category.'
                                                                                                         )
                                                                                                         .end(
                                                                                                             (
-                                                                                                                err,
-
-                                                                                                                res
+                                                                                                                err: $TSFixMe,
+                                                                                                                res: $TSFixMe
                                                                                                             ) => {
                                                                                                                 token =
                                                                                                                     res

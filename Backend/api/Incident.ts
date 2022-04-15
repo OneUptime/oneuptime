@@ -415,9 +415,9 @@ router.get(
                 query: { projectId },
                 select: '_id',
             });
-            const monitorIds: $TSFixMe = monitors.map(
-                (monitor: $TSFixMe) => monitor._id
-            );
+            const monitorIds: $TSFixMe = monitors.map((monitor: $TSFixMe) => {
+                return monitor._id;
+            });
 
             const query: $TSFixMe = {
                 'monitors.monitorId': { $in: monitorIds },
@@ -533,7 +533,9 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const subProjectIds: $TSFixMe = req.user.subProjects
-                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => {
+                      return project._id;
+                  })
                 : null;
             // Call the IncidentService.
 
@@ -685,7 +687,7 @@ router.post(
                 ...timeline,
                 ...alerts,
                 ...incidentMessages,
-            ].sort((a: $TSFixMe, b: $TSFixMe){
+            ].sort((a: $TSFixMe, b: $TSFixMe) => {
                 return b.createdAt - a.createdAt;
             });
             incidentMessages = [
@@ -693,14 +695,18 @@ router.post(
                 ...subAlerts,
                 ...callScheduleStatus,
             ];
-            incidentMessages.sort(
-                (a: $TSFixMe, b: $TSFixMe) =>
+            incidentMessages.sort((a: $TSFixMe, b: $TSFixMe) => {
+                return (
                     typeof a.schedule !== 'object' && b.createdAt - a.createdAt
-            );
+                );
+            });
             const filteredMsg: $TSFixMe = incidentMessages.filter(
-                (a: $TSFixMe) =>
-                    a.status !== 'internal notes added' &&
-                    a.status !== 'internal notes updated'
+                (a: $TSFixMe) => {
+                    return (
+                        a.status !== 'internal notes added' &&
+                        a.status !== 'internal notes updated'
+                    );
+                }
             );
             const result: $TSFixMe = {
                 data: await Services.rearrangeDuty(filteredMsg),
@@ -851,7 +857,7 @@ router.post(
                 ...timeline,
                 ...alerts,
                 ...incidentMessages,
-            ].sort((a: $TSFixMe, b: $TSFixMe){
+            ].sort((a: $TSFixMe, b: $TSFixMe) => {
                 return b.createdAt - a.createdAt;
             });
             incidentMessages = [
@@ -859,14 +865,18 @@ router.post(
                 ...subAlerts,
                 ...callScheduleStatus,
             ];
-            incidentMessages.sort(
-                (a: $TSFixMe, b: $TSFixMe) =>
+            incidentMessages.sort((a: $TSFixMe, b: $TSFixMe) => {
+                return (
                     typeof a.schedule !== 'object' && b.createdAt - a.createdAt
-            );
+                );
+            });
             const filteredMsg: $TSFixMe = incidentMessages.filter(
-                (a: $TSFixMe) =>
-                    a.status !== 'internal notes added' &&
-                    a.status !== 'internal notes updated'
+                (a: $TSFixMe) => {
+                    return (
+                        a.status !== 'internal notes added' &&
+                        a.status !== 'internal notes updated'
+                    );
+                }
             );
             const result: $TSFixMe = {
                 data: await Services.rearrangeDuty(filteredMsg),
@@ -1069,7 +1079,9 @@ router.post(
                 data.incidentId = incidentId;
 
                 const monitors: $TSFixMe = incident.monitors.map(
-                    (monitor: $TSFixMe) => monitor.monitorId.name
+                    (monitor: $TSFixMe) => {
+                        return monitor.monitorId.name;
+                    }
                 );
                 const templateInput: $TSFixMe = {
                     time: moment(incident.createdAt).format('h:mm:ss a'),
@@ -1092,7 +1104,9 @@ router.post(
                 if (!data.id) {
                     data.createdById = req.user.id;
                     data.monitors = incident.monitors.map(
-                        (monitor: $TSFixMe) => monitor.monitorId
+                        (monitor: $TSFixMe) => {
+                            return monitor.monitorId;
+                        }
                     );
                     incidentMessage = await IncidentMessageService.create(data);
                     if (data.post_statuspage) {
@@ -1279,7 +1293,7 @@ router.post(
                         ...timeline,
                         ...alerts,
                         ...incidentMessages,
-                    ].sort((a: $TSFixMe, b: $TSFixMe){
+                    ].sort((a: $TSFixMe, b: $TSFixMe) => {
                         return b.createdAt - a.createdAt;
                     });
                     incidentMessages = [
@@ -1287,15 +1301,19 @@ router.post(
                         ...subAlerts,
                         ...callScheduleStatus,
                     ];
-                    incidentMessages.sort(
-                        (a: $TSFixMe, b: $TSFixMe) =>
+                    incidentMessages.sort((a: $TSFixMe, b: $TSFixMe) => {
+                        return (
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
-                    );
+                        );
+                    });
                     const filteredMsg: $TSFixMe = incidentMessages.filter(
-                        (a: $TSFixMe) =>
-                            a.status !== 'internal notes added' &&
-                            a.status !== 'internal notes updated'
+                        (a: $TSFixMe) => {
+                            return (
+                                a.status !== 'internal notes added' &&
+                                a.status !== 'internal notes updated'
+                            );
+                        }
                     );
                     incidentMessage = {
                         type: data.type,
@@ -1501,7 +1519,7 @@ router.delete(
                         ...timeline,
                         ...alerts,
                         ...incidentMessages,
-                    ].sort((a: $TSFixMe, b: $TSFixMe){
+                    ].sort((a: $TSFixMe, b: $TSFixMe) => {
                         return b.createdAt - a.createdAt;
                     });
                     incidentMessages = [
@@ -1509,15 +1527,19 @@ router.delete(
                         ...subAlerts,
                         ...callScheduleStatus,
                     ];
-                    incidentMessages.sort(
-                        (a: $TSFixMe, b: $TSFixMe) =>
+                    incidentMessages.sort((a: $TSFixMe, b: $TSFixMe) => {
+                        return (
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
-                    );
+                        );
+                    });
                     const filteredMsg: $TSFixMe = incidentMessages.filter(
-                        (a: $TSFixMe) =>
-                            a.status !== 'internal notes added' &&
-                            a.status !== 'internal notes updated'
+                        (a: $TSFixMe) => {
+                            return (
+                                a.status !== 'internal notes added' &&
+                                a.status !== 'internal notes updated'
+                            );
+                        }
                     );
                     result = {
                         type: checkMsg.type,
@@ -1681,7 +1703,7 @@ router.get(
                         ...timeline,
                         ...alerts,
                         ...incidentMessages,
-                    ].sort((a: $TSFixMe, b: $TSFixMe){
+                    ].sort((a: $TSFixMe, b: $TSFixMe) => {
                         return b.createdAt - a.createdAt;
                     });
                     incidentMessages = [
@@ -1689,16 +1711,18 @@ router.get(
                         ...subAlerts,
                         ...callScheduleStatus,
                     ];
-                    incidentMessages.sort(
-                        (a: $TSFixMe, b: $TSFixMe) =>
+                    incidentMessages.sort((a: $TSFixMe, b: $TSFixMe) => {
+                        return (
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
-                    );
-                    const filteredMsg: $TSFixMe = incidentMessages.filter(
-                        a =>
+                        );
+                    });
+                    const filteredMsg: $TSFixMe = incidentMessages.filter(a => {
+                        return (
                             a.status !== 'internal notes added' &&
                             a.status !== 'internal notes updated'
-                    );
+                        );
+                    });
 
                     result = await Services.rearrangeDuty(filteredMsg);
                 }

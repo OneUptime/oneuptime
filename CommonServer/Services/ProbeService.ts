@@ -3661,7 +3661,7 @@ const checkAnd: Function = (
                         } else {
                             payload.deploymentData.allDeployments.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                deployment => {
+                                (deployment: $TSFixMe) => {
                                     if (
                                         deployment.desiredDeployment ===
                                         deployment.readyDeployment
@@ -3692,7 +3692,7 @@ const checkAnd: Function = (
                         } else {
                             payload.deploymentData.allDeployments.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                deployment => {
+                                (deployment: $TSFixMe) => {
                                     if (
                                         deployment.desiredDeployment !==
                                         deployment.readyDeployment
@@ -5925,7 +5925,7 @@ const checkOr: Function = (
                         } else {
                             payload.deploymentData.allDeployments.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                deployment => {
+                                (deployment: $TSFixMe) => {
                                     if (
                                         deployment.desiredDeployment ===
                                         deployment.readyDeployment
@@ -5955,7 +5955,7 @@ const checkOr: Function = (
                         } else {
                             payload.deploymentData.allDeployments.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                deployment => {
+                                (deployment: $TSFixMe) => {
                                     if (
                                         deployment.desiredDeployment !==
                                         deployment.readyDeployment

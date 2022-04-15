@@ -1008,7 +1008,7 @@ class Service extends DatabaseService<typeof Model> {
         return users;
     }
 
-    getAccessToken({ userId, expiresIn }: $TSFixMe): void {
+    public getAccessToken({ userId, expiresIn }: $TSFixMe): void {
         return jwt.sign(
             {
                 id: userId,

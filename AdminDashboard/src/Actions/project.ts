@@ -978,8 +978,8 @@ export const fetchProjectDomainsFailure: Function = (error: $TSFixMe): void => {
 
 export const fetchProjectDomains: Function = (
     projectId: ObjectID,
-    skip: number = 0
-    limit = 10
+    skip: number = 0,
+    limit: number = 10
 ): void => {
     return async function (dispatch: Dispatch): void {
         dispatch(fetchProjectDomainsRequest());

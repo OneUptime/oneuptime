@@ -38,7 +38,7 @@ export default {
         return security;
     },
 
-    decrypt: (encText: $TSFixMe, iv: $TSFixMe){
+    decrypt: (encText: $TSFixMe, iv: $TSFixMe) => {
         const promise: Promise = new Promise(
             (resolve: Function, reject: Function): $TSFixMe => {
                 try {
@@ -230,15 +230,17 @@ export default {
                     auditData.vulnerabilityInfo = counter;
 
                     const arrayData: $TSFixMe = auditData.vulnerabilityData.map(
-                        log => log.vulnerabilities
+                        (log: $TSFixMe) => {
+                            return log.vulnerabilities;
+                        }
                     );
 
                     auditData.vulnerabilityData = flattenArray(arrayData);
 
                     const criticalArr: $TSFixMe = [],
-                        highArr = [],
-                        moderateArr = [],
-                        lowArr = [];
+                        highArr: $TSFixMe = [],
+                        moderateArr: $TSFixMe = [],
+                        lowArr: $TSFixMe = [];
                     auditData.vulnerabilityData.map(
                         (vulnerability: $TSFixMe) => {
                             if (vulnerability.severity === 'critical') {
@@ -309,12 +311,16 @@ function createDir(dirPath: $TSFixMe): void {
 function readFileContent(filePath: $TSFixMe): void {
     return new Promise((resolve: Function, reject: Function) => {
         if (fs.existsSync(filePath)) {
-            fs.readFile(filePath, { encoding: 'utf8' }, (error: $TSFixMe, data: $TSFixMe): void => {
-                if (error) {
-                    reject(error);
+            fs.readFile(
+                filePath,
+                { encoding: 'utf8' },
+                (error: $TSFixMe, data: $TSFixMe): void => {
+                    if (error) {
+                        reject(error);
+                    }
+                    resolve(data);
                 }
-                resolve(data);
-            });
+            );
         }
     });
 }

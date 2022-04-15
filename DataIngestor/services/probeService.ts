@@ -138,19 +138,19 @@ export default {
 
         const allCriteria: $TSFixMe = [];
         if (data.matchedUpCriterion) {
-            data.matchedUpCriterion.forEach(criteria =>
-                allCriteria.push(criteria)
-            );
+            data.matchedUpCriterion.forEach((criteria: $TSFixMe) => {
+                return allCriteria.push(criteria);
+            });
         }
         if (data.matchedDownCriterion) {
-            data.matchedDownCriterion.forEach(criteria =>
-                allCriteria.push(criteria)
-            );
+            data.matchedDownCriterion.forEach((criteria: $TSFixMe) => {
+                return allCriteria.push(criteria);
+            });
         }
         if (data.matchedDegradedCriterion) {
-            data.matchedDegradedCriterion.forEach(criteria =>
-                allCriteria.push(criteria)
-            );
+            data.matchedDegradedCriterion.forEach((criteria: $TSFixMe) => {
+                return allCriteria.push(criteria);
+            });
         }
 
         if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
@@ -170,7 +170,8 @@ export default {
                 await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
-            const incidentIdsOrRetry: $TSFixMe = await this.incidentCreateOrUpdate(data);
+            const incidentIdsOrRetry: $TSFixMe =
+                await this.incidentCreateOrUpdate(data);
 
             if (incidentIdsOrRetry.retry) {
                 return incidentIdsOrRetry;
@@ -205,7 +206,11 @@ export default {
                 },
             });
 
-            const incidentIds: $TSFixMe = incidents.map((incident: $TSFixMe) => incident._id);
+            const incidentIds: $TSFixMe = incidents.map(
+                (incident: $TSFixMe) => {
+                    return incident._id;
+                }
+            );
 
             if (incidentIds && incidentIds.length) {
                 log = await MonitorLogService.updateOneBy(
@@ -250,7 +255,7 @@ export default {
             matchedCriterion.scripts &&
             matchedCriterion.scripts.length > 0
         ) {
-            scripts = matchedCriterion.scripts.map((script: $TSFixMe) =>  {
+            scripts = matchedCriterion.scripts.map((script: $TSFixMe) => {
                 return {
                     automatedScript: script.scriptId,
                 };
@@ -267,12 +272,16 @@ export default {
                 const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes: $TSFixMe = incident.probes.map((probe: $TSFixMe) => ({
-                            probeId: probe.probeId._id || probe.probeId,
-                            updatedAt: probe.updatedAt,
-                            status: probe.status,
-                            reportedStatus: probe.reportedStatus,
-                        }));
+                        const initialProbes: $TSFixMe = incident.probes.map(
+                            (probe: $TSFixMe) => {
+                                return {
+                                    probeId: probe.probeId._id || probe.probeId,
+                                    updatedAt: probe.updatedAt,
+                                    status: probe.status,
+                                    reportedStatus: probe.reportedStatus,
+                                };
+                            }
+                        );
                         incident = await IncidentService.updateOneBy(
                             {
                                 _id: ObjectId(incident._id),
@@ -347,12 +356,16 @@ export default {
                 const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes: $TSFixMe = incident.probes.map((probe: $TSFixMe) => ({
-                            probeId: probe.probeId._id || probe.probeId,
-                            updatedAt: probe.updatedAt,
-                            status: probe.status,
-                            reportedStatus: probe.reportedStatus,
-                        }));
+                        const initialProbes: $TSFixMe = incident.probes.map(
+                            (probe: $TSFixMe) => {
+                                return {
+                                    probeId: probe.probeId._id || probe.probeId,
+                                    updatedAt: probe.updatedAt,
+                                    status: probe.status,
+                                    reportedStatus: probe.reportedStatus,
+                                };
+                            }
+                        );
                         incident = await IncidentService.updateOneBy(
                             {
                                 _id: ObjectId(incident._id),
@@ -426,12 +439,16 @@ export default {
                 const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes: $TSFixMe = incident.probes.map((probe: $TSFixMe) => ({
-                            probeId: probe.probeId._id || probe.probeId,
-                            updatedAt: probe.updatedAt,
-                            status: probe.status,
-                            reportedStatus: probe.reportedStatus,
-                        }));
+                        const initialProbes: $TSFixMe = incident.probes.map(
+                            (probe: $TSFixMe) => {
+                                return {
+                                    probeId: probe.probeId._id || probe.probeId,
+                                    updatedAt: probe.updatedAt,
+                                    status: probe.status,
+                                    reportedStatus: probe.reportedStatus,
+                                };
+                            }
+                        );
                         incident = await IncidentService.updateOneBy(
                             {
                                 _id: ObjectId(incident._id),
@@ -497,7 +514,9 @@ export default {
             }
         }
 
-        incidentIds = incidentIds.map((i: $TSFixMe) =>  i._id);
+        incidentIds = incidentIds.map((i: $TSFixMe) => {
+            return i._id;
+        });
         return incidentIds;
     },
 
@@ -582,12 +601,16 @@ export default {
                 incident.probes.length > 0 &&
                 monitor.type !== 'incomingHttpRequest'
             ) {
-                const initialProbes: $TSFixMe = incident.probes.map((probe: $TSFixMe) => ({
-                    probeId: probe.probeId._id || probe.probeId,
-                    updatedAt: probe.updatedAt,
-                    status: probe.status,
-                    reportedStatus: probe.reportedStatus,
-                }));
+                const initialProbes: $TSFixMe = incident.probes.map(
+                    (probe: $TSFixMe) => {
+                        return {
+                            probeId: probe.probeId._id || probe.probeId,
+                            updatedAt: probe.updatedAt,
+                            status: probe.status,
+                            reportedStatus: probe.reportedStatus,
+                        };
+                    }
+                );
                 const [newIncident]: $TSFixMe = await Promise.all([
                     IncidentService.updateOneBy(
                         {
@@ -685,7 +708,7 @@ export default {
         return probe;
     },
 
-    scriptConditions: (resp: $TSFixMe, con: $TSFixMe){
+    scriptConditions: (resp: $TSFixMe, con: $TSFixMe) => {
         const body: $TSFixMe = resp ?? null;
 
         const successReasons: $TSFixMe = [];
@@ -745,7 +768,7 @@ export default {
         };
     },
 
-    conditions: (monitorType, con, payload, resp, response) => {
+    conditions: (monitorType: $TSFixMe, con: $TSFixMe, payload: $TSFixMe, resp: $TSFixMe, response: $TSFixMe) => {
         const status: $TSFixMe = resp
             ? resp.status
                 ? resp.status
@@ -754,7 +777,8 @@ export default {
                 : null
             : null;
         const body: $TSFixMe = resp && resp.body ? resp.body : null;
-        const queryParams: $TSFixMe = resp && resp.queryParams ? resp.queryParams : null;
+        const queryParams: $TSFixMe =
+            resp && resp.queryParams ? resp.queryParams : null;
         const headers: $TSFixMe = resp && resp.headers ? resp.headers : null;
         const sslCertificate: $TSFixMe =
             resp && resp.sslCertificate ? resp.sslCertificate : null;
@@ -838,7 +862,7 @@ export default {
         };
     },
 
-    incomingCondition: (payload: $TSFixMe, conditions: $TSFixMe){
+    incomingCondition: (payload: $TSFixMe, conditions: $TSFixMe) => {
         let eventOccurred: $TSFixMe = false;
         let matchedCriterion: $TSFixMe;
         if (conditions && conditions.length) {
@@ -895,7 +919,10 @@ export default {
         let status: $TSFixMe, reason: $TSFixMe;
         let matchedCriterion: $TSFixMe;
         const lastPingTime: $TSFixMe = monitor.lastPingTime;
-        const payload: $TSFixMe = moment().diff(moment(lastPingTime), 'minutes');
+        const payload: $TSFixMe = moment().diff(
+            moment(lastPingTime),
+            'minutes'
+        );
 
         const {
             eventOccurred: validUp,
@@ -922,9 +949,9 @@ export default {
         } =
             monitor && monitor.criteria && monitor.criteria.down
                 ? this.incomingCondition(payload, [
-                      ...monitor.criteria.down.filter(
-                          criterion => criterion.default !== true
-                      ),
+                      ...monitor.criteria.down.filter((criterion: $TSFixMe) => {
+                          return criterion.default !== true;
+                      }),
                   ])
                 : false;
         let timeHours: $TSFixMe = 0;
@@ -952,9 +979,9 @@ export default {
             status = 'offline';
             reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             if (monitor.criteria.down) {
-                matchedCriterion = monitor.criteria.down.find(
-                    criterion => criterion.default === true
-                );
+                matchedCriterion = monitor.criteria.down.find((criterion: $TSFixMe) => {
+                    return criterion.default === true;
+                });
             }
         }
         const logData: $TSFixMe = {};
@@ -1016,7 +1043,7 @@ export default {
 
 import _ from 'lodash';
 
-const incomingCheckAnd: Function = (payload, condition): void => {
+const incomingCheckAnd: Function = (payload: $TSFixMe, condition: $TSFixMe): void => {
     let validity: $TSFixMe = false;
     let val: $TSFixMe = 0;
     let incomingVal: $TSFixMe = 0;
@@ -2348,7 +2375,8 @@ const checkAnd: Function = (
                     const memoryUsedBytes: $TSFixMe = payload
                         ? parseInt(payload.memoryUsed || 0)
                         : 0;
-                    const memoryUsed: $TSFixMe = memoryUsedBytes / Math.pow(1e3, 3);
+                    const memoryUsed: $TSFixMe =
+                        memoryUsedBytes / Math.pow(1e3, 3);
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -3323,7 +3351,11 @@ const checkAnd: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'podStatus'
                 ) {
-                    const healthyPods: $TSFixMe = ['running', 'pending', 'succeeded'];
+                    const healthyPods: $TSFixMe = [
+                        'running',
+                        'pending',
+                        'succeeded',
+                    ];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -3501,7 +3533,7 @@ const checkAnd: Function = (
                         } else {
                             payload.deploymentData.allDeployments.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                deployment => {
+                                (deployment: $TSFixMe) => {
                                     if (
                                         deployment.desiredDeployment ===
                                         deployment.readyDeployment
@@ -3532,7 +3564,7 @@ const checkAnd: Function = (
                         } else {
                             payload.deploymentData.allDeployments.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                deployment => {
+                                (deployment: $TSFixMe) => {
                                     if (
                                         deployment.desiredDeployment !==
                                         deployment.readyDeployment
@@ -4647,7 +4679,8 @@ const checkOr: Function = (
                     const memoryUsedBytes: $TSFixMe = payload
                         ? parseInt(payload.memoryUsed || 0)
                         : 0;
-                    const memoryUsed: $TSFixMe = memoryUsedBytes / Math.pow(1e3, 3);
+                    const memoryUsed: $TSFixMe =
+                        memoryUsedBytes / Math.pow(1e3, 3);
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -5580,7 +5613,11 @@ const checkOr: Function = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'podStatus'
                 ) {
-                    const healthyPods: $TSFixMe = ['running', 'pending', 'succeeded'];
+                    const healthyPods: $TSFixMe = [
+                        'running',
+                        'pending',
+                        'succeeded',
+                    ];
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -5753,7 +5790,7 @@ const checkOr: Function = (
                         } else {
                             payload.deploymentData.allDeployments.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                deployment => {
+                                (deployment: $TSFixMe) => {
                                     if (
                                         deployment.desiredDeployment ===
                                         deployment.readyDeployment
@@ -5783,7 +5820,7 @@ const checkOr: Function = (
                         } else {
                             payload.deploymentData.allDeployments.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                deployment => {
+                                (deployment: $TSFixMe) => {
                                     if (
                                         deployment.desiredDeployment !==
                                         deployment.readyDeployment
@@ -6071,7 +6108,10 @@ const checkScriptAnd: Function = (
                     }
                 }
             } else {
-                const validity: $TSFixMe = checkScriptCondition(con.criteria[i], body);
+                const validity: $TSFixMe = checkScriptCondition(
+                    con.criteria[i],
+                    body
+                );
                 if (validity) {
                     if (validity.valid) {
                         successReasons.push(validity.reason);
@@ -6089,10 +6129,10 @@ const checkScriptAnd: Function = (
 };
 
 const checkScriptOr: Function = (
-    con,
-    body,
-    successReasons,
-    failedReasons
+    con: $TSFixMe,
+    body: $TSFixMe,
+    successReasons: $TSFixMe,
+    failedReasons: $TSFixMe
 ): void => {
     let valid: $TSFixMe = false;
     if (con && con.criteria && con.criteria.length > 0) {
@@ -6131,7 +6171,10 @@ const checkScriptOr: Function = (
                     }
                 }
             } else {
-                const validity: $TSFixMe = checkScriptCondition(con.criteria[i], body);
+                const validity: $TSFixMe = checkScriptCondition(
+                    con.criteria[i],
+                    body
+                );
                 if (validity) {
                     if (validity.valid) {
                         valid = true;
@@ -6166,7 +6209,7 @@ const criteriaStrings: $TSFixMe = {
     ip: 'IP is',
 };
 
-const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
+const formatDecimal: Function = (value: $TSFixMe, decimalPlaces: $TSFixMe, roundType: $TSFixMe): void => {
     let formattedNumber: $TSFixMe;
     switch (roundType) {
         case 'up':
@@ -6189,7 +6232,7 @@ const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
     );
 };
 
-const formatBytes: Function = (a, b, c, d, e): void => {
+const formatBytes: Function = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, e: $TSFixMe): void => {
     let value: $TSFixMe = a;
     let decimalPlaces: $TSFixMe;
     let roundType: $TSFixMe;
