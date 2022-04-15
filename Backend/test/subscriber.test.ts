@@ -31,7 +31,7 @@ let projectId: ObjectID,
     subscriberId: $TSFixMe,
     statusPageId: $TSFixMe,
     componentId: $TSFixMe;
-    
+
 const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',

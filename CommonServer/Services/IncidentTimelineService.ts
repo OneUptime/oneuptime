@@ -268,5 +268,5 @@ import flattenArray from '../Utils/flattenArray';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
-import Query from '../Types/DB/Query';import PositiveNumber from 'Common/Types/PositiveNumber';
-
+import Query from '../Types/DB/Query';
+import PositiveNumber from 'Common/Types/PositiveNumber';

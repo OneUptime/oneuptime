@@ -312,7 +312,7 @@ describe('Project API', function (): void {
                 planId: 'enterprise',
             })
 
-            .end( (err: $TSFixMe,response : $TSFixMe): void => {
+            .end((err: $TSFixMe, response: $TSFixMe): void => {
                 expect(response).to.have.status(400);
                 done();
             });
@@ -332,7 +332,7 @@ describe('Project API', function (): void {
                         planId: 'enterprise',
                     })
 
-                    .end( (err: $TSFixMe,response : $TSFixMe): void => {
+                    .end((err: $TSFixMe, response: $TSFixMe): void => {
                         expect(response).to.have.status(200);
                         expect(response.body.stripePlanId).to.be.equal(
                             'enterprise'
@@ -358,7 +358,7 @@ describe('Project API', function (): void {
                 newPlan: `${plans[1].category} ${plans[1].details}`,
             })
 
-            .end( (err: $TSFixMe,response : $TSFixMe): void => {
+            .end((err: $TSFixMe, response: $TSFixMe): void => {
                 expect(response).to.have.status(200);
 
                 expect(response.body.stripePlanId).to.be.equal(plans[1].planId);
@@ -382,7 +382,7 @@ describe('Project API', function (): void {
                 newPlan: `${plans[1].category} ${plans[1].details}`,
             })
 
-            .end( (err: $TSFixMe,response : $TSFixMe): void => {
+            .end((err: $TSFixMe, response: $TSFixMe): void => {
                 expect(response).to.have.status(200);
 
                 expect(response.body.stripePlanId).to.be.equal(plans[1].planId);

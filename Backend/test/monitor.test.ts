@@ -95,7 +95,7 @@ describe('Monitor API', function (): void {
 
                     ComponentModel.create(
                         { name: 'Test Component' },
-                         (err: $TSFixMe,component : $TSFixMe): void => {
+                        (err: $TSFixMe, component: $TSFixMe): void => {
                             componentId = component;
                             VerificationTokenModel.findOne(
                                 { userId },
@@ -485,7 +485,7 @@ describe('API Monitor API', function (): void {
 
                     ComponentModel.create(
                         { name: 'Test Component' },
-                         (err: $TSFixMe,component : $TSFixMe): void => {
+                        (err: $TSFixMe, component: $TSFixMe): void => {
                             componentId = component;
                             VerificationTokenModel.findOne(
                                 { userId },
@@ -709,7 +709,7 @@ describe('IncomingHttpRequest Monitor', function (): void {
 
                     ComponentModel.create(
                         { name: 'Test Component' },
-                         (err: $TSFixMe,component : $TSFixMe): void => {
+                        (err: $TSFixMe, component: $TSFixMe): void => {
                             componentId = component;
                             VerificationTokenModel.findOne(
                                 { userId },
