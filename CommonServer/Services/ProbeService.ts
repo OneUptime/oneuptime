@@ -795,7 +795,13 @@ class Service extends DatabaseService<typeof Model> {
         };
     }
 
-    public conditions(monitorType: $TSFixMe, con: $TSFixMe, payload: $TSFixMe, resp: $TSFixMe, response: $TSFixMe): void {
+    public conditions(
+        monitorType: $TSFixMe,
+        con: $TSFixMe,
+        payload: $TSFixMe,
+        resp: $TSFixMe,
+        response: $TSFixMe
+    ): void {
         const status: $TSFixMe = resp
             ? resp.status
                 ? resp.status
@@ -884,7 +890,7 @@ class Service extends DatabaseService<typeof Model> {
         };
     }
 
-    incomingCondition(payload, conditions): void {
+    incomingCondition(payload: $TSFixMe, conditions: $TSFixMe): void {
         let eventOccurred: $TSFixMe = false;
         let matchedCriterion: $TSFixMe;
         if (conditions && conditions.length) {
@@ -6073,7 +6079,7 @@ const checkOr: Function = (
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                statefulset => {
+                                (statefulset: $TSFixMe) => {
                                     if (
                                         statefulset.desiredStatefulsets !==
                                         statefulset.readyStatefulsets
@@ -6156,7 +6162,7 @@ const checkOr: Function = (
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-const checkScriptCondition: Function = (condition, body): void => {
+const checkScriptCondition: Function = (condition: $TSFixMe, body: $TSFixMe): void => {
     if (!condition || !condition.responseType) {
         return;
     }
@@ -6255,10 +6261,10 @@ const checkScriptCondition: Function = (condition, body): void => {
 };
 
 const checkScriptAnd: Function = (
-    con,
-    body,
-    successReasons,
-    failedReasons
+    con: $TSFixMe,
+    body: $TSFixMe,
+    successReasons: $TSFixMe,
+    failedReasons: $TSFixMe
 ): void => {
     let valid: $TSFixMe = true;
     if (con && con.criteria && con.criteria.length > 0) {
@@ -6318,10 +6324,10 @@ const checkScriptAnd: Function = (
 };
 
 const checkScriptOr: Function = (
-    con,
-    body,
-    successReasons,
-    failedReasons
+    con: $TSFixMe,
+    body: $TSFixMe,
+    successReasons: $TSFixMe,
+    failedReasons: $TSFixMe
 ): void => {
     let valid: $TSFixMe = false;
     if (con && con.criteria && con.criteria.length > 0) {
@@ -6398,7 +6404,7 @@ const criteriaStrings: $TSFixMe = {
     ip: 'IP is',
 };
 
-const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
+const formatDecimal: Function = (value: $TSFixMe, decimalPlaces: $TSFixMe, roundType: $TSFixMe): void => {
     let formattedNumber: $TSFixMe;
     switch (roundType) {
         case 'up':
@@ -6421,7 +6427,7 @@ const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
     );
 };
 
-const formatBytes: Function = (a, b, c, d, e): void => {
+const formatBytes: Function = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, e: $TSFixMe): void => {
     let value: $TSFixMe = a;
     let decimalPlaces: $TSFixMe;
     let roundType: $TSFixMe;
@@ -6444,6 +6450,5 @@ const formatBytes: Function = (a, b, c, d, e): void => {
         (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
     );
 };
-
 
 export default Service;

@@ -1515,7 +1515,7 @@ public async getStatusPage({ query, userId, populate, select }: $TSFixMe): void 
                 0,
                 0
             );
-            const filteredMonitorData: $TSFixMe = monitors.map(subProject: $TSFixMe => {
+            const filteredMonitorData: $TSFixMe = monitors.map((subProject: $TSFixMe) => {
                 return subProject.monitors.filter((monitor: $TSFixMe) =>
                     monitorIds.includes(monitor._id.toString())
                 );

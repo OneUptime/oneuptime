@@ -61,9 +61,13 @@ export default class Service {
      * @param {Object} incident the current incident
      * @returns {Object[]} list of schedules
      */
-public async getSchedulesForAlerts(incident: $TSFixMe, monitor: $TSFixMe): void {
+    public async getSchedulesForAlerts(
+        incident: $TSFixMe,
+        monitor: $TSFixMe
+    ): void {
         const monitorId: $TSFixMe = monitor._id;
-        const projectId: $TSFixMe = incident.projectId._id || incident.projectId;
+        const projectId: $TSFixMe =
+            incident.projectId._id || incident.projectId;
 
         const { lastMatchedCriterion: matchedCriterion } =
             await MonitorService.findOneBy({
@@ -122,7 +126,7 @@ public async getSchedulesForAlerts(incident: $TSFixMe, monitor: $TSFixMe): void 
         return schedules;
     }
 
-public async doesPhoneNumberComplyWithHighRiskConfig(
+    public async doesPhoneNumberComplyWithHighRiskConfig(
         projectId: ObjectID,
         alertPhoneNumber: $TSFixMe
     ): void {
@@ -145,7 +149,14 @@ public async doesPhoneNumberComplyWithHighRiskConfig(
         return false;
     }
 
-public async findBy({ query, skip, limit, sort, populate, select }: FindBy): void {
+    public async findBy({
+        query,
+        skip,
+        limit,
+        sort,
+        populate,
+        select,
+    }: FindBy): void {
         if (!skip) {
             skip = 0;
         }
@@ -185,7 +196,7 @@ public async findBy({ query, skip, limit, sort, populate, select }: FindBy): voi
         return alerts;
     }
 
-public async create({
+    public async create({
         projectId,
         monitorId,
         alertVia,
@@ -242,7 +253,7 @@ public async create({
         return savedAlert;
     }
 
-public async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe): void {
+    public async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe): void {
         const populateIncidentMessage: $TSFixMe = [
             {
                 path: 'incidentId',
@@ -338,7 +349,9 @@ public async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe): void {
                 populate: populateOnCallScheduleStatus,
             }),
         ]);
-        const callScheduleStatus: $TSFixMe = await Services.checkCallSchedule(callStatus);
+        const callScheduleStatus: $TSFixMe = await Services.checkCallSchedule(
+            callStatus
+        );
         const timelineAlerts: $TSFixMe = [
             ...timeline,
             ...alerts,
@@ -351,15 +364,15 @@ public async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe): void {
             ...subAlerts,
             ...callScheduleStatus,
         ];
-        incidentMessages.sort(
-            (a: $TSFixMe, b: $TSFixMe) =>
-                typeof a.schedule !== 'object' && b.createdAt - a.createdAt
-        );
-        let filteredMsg: $TSFixMe = incidentMessages.filter(
-            (a: $TSFixMe) =>
+        incidentMessages.sort((a: $TSFixMe, b: $TSFixMe) => {
+            return typeof a.schedule !== 'object' && b.createdAt - a.createdAt;
+        });
+        let filteredMsg: $TSFixMe = incidentMessages.filter((a: $TSFixMe) => {
+            return (
                 a.status !== 'internal notes added' &&
                 a.status !== 'internal notes updated'
-        );
+            );
+        });
         filteredMsg = await Services.rearrangeDuty(filteredMsg);
         const result: $TSFixMe = {
             data: filteredMsg,
@@ -370,7 +383,7 @@ public async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe): void {
         RealTimeService.sendIncidentTimeline(result);
     }
 
-public async countBy(query: Query): void {
+    public async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -382,7 +395,7 @@ public async countBy(query: Query): void {
         return count;
     }
 
-public async updateOneBy(query: Query, data: $TSFixMe): void {
+    public async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -402,7 +415,7 @@ public async updateOneBy(query: Query, data: $TSFixMe): void {
         return updatedAlert;
     }
 
-public async updateBy(query: Query, data: $TSFixMe): void {
+    public async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -430,7 +443,7 @@ public async updateBy(query: Query, data: $TSFixMe): void {
         return updatedData;
     }
 
-public async deleteBy(query: Query, userId: ObjectID): void {
+    public async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -452,7 +465,10 @@ public async deleteBy(query: Query, userId: ObjectID): void {
         return alerts;
     }
 
-public async sendCreatedIncident(incident: $TSFixMe, monitor: $TSFixMe): void {
+    public async sendCreatedIncident(
+        incident: $TSFixMe,
+        monitor: $TSFixMe
+    ): void {
         if (incident) {
             const scheduleList: $TSFixMe = await this.getSchedulesForAlerts(
                 incident,
@@ -481,7 +497,7 @@ public async sendCreatedIncident(incident: $TSFixMe, monitor: $TSFixMe): void {
         }
     }
 
-public async sendAlertsToTeamMembersInSchedule({
+    public async sendAlertsToTeamMembersInSchedule({
         schedule,
         incident,
         monitorId,
@@ -499,7 +515,9 @@ public async sendAlertsToTeamMembersInSchedule({
             return;
         }
 
-        const monitorPopulate: $TSFixMe = [{ path: 'componentId', select: 'name' }];
+        const monitorPopulate: $TSFixMe = [
+            { path: 'componentId', select: 'name' },
+        ];
         const monitorSelect: string = '_id name data method componentId';
         const selectOnCallScheduleStatus: $TSFixMe =
             'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
@@ -604,7 +622,8 @@ public async sendAlertsToTeamMembersInSchedule({
             callProgress: null,
             pushProgress: null,
         };
-        const emailRem: $TSFixMe = currentEscalationStatus.emailRemindersSent + 1;
+        const emailRem: $TSFixMe =
+            currentEscalationStatus.emailRemindersSent + 1;
         const smsRem: $TSFixMe = currentEscalationStatus.smsRemindersSent + 1;
         const callRem: $TSFixMe = currentEscalationStatus.callRemindersSent + 1;
         const pushRem: $TSFixMe = currentEscalationStatus.pushRemindersSent + 1;
@@ -668,7 +687,7 @@ public async sendAlertsToTeamMembersInSchedule({
         }
     }
 
-public async escalate({
+    public async escalate({
         schedule,
         incident,
         alertProgress,
@@ -687,11 +706,12 @@ public async escalate({
                 select: 'projectId teams scheduleId',
             },
         ];
-        const callScheduleStatuses: $TSFixMe = await OnCallScheduleStatusService.findBy({
-            query: { incident: incident._id, schedule: schedule._id },
-            select: selectOnCallScheduleStatus,
-            populate: populateOnCallScheduleStatus,
-        });
+        const callScheduleStatuses: $TSFixMe =
+            await OnCallScheduleStatusService.findBy({
+                query: { incident: incident._id, schedule: schedule._id },
+                select: selectOnCallScheduleStatus,
+                populate: populateOnCallScheduleStatus,
+            });
 
         if (callScheduleStatuses.length === 0) {
             return;
@@ -760,7 +780,7 @@ public async escalate({
         });
     }
 
-public async sendAlertsToTeamMembersInEscalationPolicy({
+    public async sendAlertsToTeamMembersInEscalationPolicy({
         escalation,
         incident,
         monitor,
@@ -821,14 +841,20 @@ public async sendAlertsToTeamMembersInEscalationPolicy({
             });
         }
 
-        const groupUsers: $TSFixMe = teamGroup.map((group: $TSFixMe) => group.teams);
+        const groupUsers: $TSFixMe = teamGroup.map((group: $TSFixMe) => {
+            return group.teams;
+        });
         const groupUserIds: $TSFixMe = [].concat
             .apply([], groupUsers)
-            .map((id: $TSFixMe) =>  ({ userId: id }));
-        const filterdUserIds: $TSFixMe = groupUserIds.filter((user: $TSFixMe) =>
-            activeTeam.teamMembers.some(
-                (team: $TSFixMe) => team.userId !== user.userId
-            )
+            .map((id: $TSFixMe) => {
+                return { userId: id };
+            });
+        const filterdUserIds: $TSFixMe = groupUserIds.filter(
+            (user: $TSFixMe) => {
+                return activeTeam.teamMembers.some((team: $TSFixMe) => {
+                    return team.userId !== user.userId;
+                });
+            }
         );
 
         const currentEscalationStatus: $TSFixMe =
@@ -878,7 +904,10 @@ public async sendAlertsToTeamMembersInEscalationPolicy({
             },
         });
 
-        const allUsers: $TSFixMe = [...activeTeam.teamMembers, ...filterdUserIds];
+        const allUsers: $TSFixMe = [
+            ...activeTeam.teamMembers,
+            ...filterdUserIds,
+        ];
         for (const teamMember of allUsers) {
             const isOnDuty: $TSFixMe = await this.checkIsOnDuty(
                 teamMember.startTime,
@@ -1036,7 +1065,7 @@ public async sendAlertsToTeamMembersInEscalationPolicy({
         }
     }
 
-public async sendPushAlert({
+    public async sendPushAlert({
         incident,
         user,
         monitor,
@@ -1153,7 +1182,7 @@ public async sendPushAlert({
         }
     }
 
-public async sendEmailAlert({
+    public async sendEmailAlert({
         incident,
         user,
         project,
@@ -1174,7 +1203,8 @@ public async sendEmailAlert({
                 expiresIn: 12 * 60 * 60 * 1000,
             });
 
-            const projectId: $TSFixMe = incident.projectId._id || incident.projectId;
+            const projectId: $TSFixMe =
+                incident.projectId._id || incident.projectId;
             const queryString: string = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
 
             const ack_url: string = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
@@ -1305,7 +1335,7 @@ public async sendEmailAlert({
         }
     }
 
-public async sendSlaEmailToTeamMembers(
+    public async sendSlaEmailToTeamMembers(
         { projectId, incidentCommunicationSla, incident, alertTime }: $TSFixMe,
         breached = false
     ): void {
@@ -1347,7 +1377,8 @@ public async sendSlaEmailToTeamMembers(
             // const incidentUrl:string: $TSFixMe = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.slug}`;
 
             const incidentUrl: string = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.slug}`;
-            let incidentSlaTimeline: $TSFixMe = incidentCommunicationSla.duration * 60;
+            let incidentSlaTimeline: $TSFixMe =
+                incidentCommunicationSla.duration * 60;
 
             incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
             const incidentSlaRemaining: $TSFixMe = secondsToHms(alertTime);
@@ -1390,7 +1421,7 @@ public async sendSlaEmailToTeamMembers(
         }
     }
 
-public async sendCallAlert({
+    public async sendCallAlert({
         incident,
         user,
         project,
@@ -1404,7 +1435,8 @@ public async sendCallAlert({
         let alert: $TSFixMe;
         const date: $TSFixMe = new Date();
         const monitorId: $TSFixMe = monitor._id;
-        const projectId: $TSFixMe = incident.projectId._id || incident.projectId;
+        const projectId: $TSFixMe =
+            incident.projectId._id || incident.projectId;
         const accessToken: $TSFixMe = UserService.getAccessToken({
             userId: user._id,
             expiresIn: 12 * 60 * 60 * 1000,
@@ -1481,7 +1513,9 @@ public async sendCallAlert({
                     user.alertPhoneNumber
                 );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
-                const countryType: $TSFixMe = getCountryType(user.alertPhoneNumber);
+                const countryType: $TSFixMe = getCountryType(
+                    user.alertPhoneNumber
+                );
                 let errorMessageText: $TSFixMe;
                 if (countryType === 'us') {
                     errorMessageText =
@@ -1510,12 +1544,13 @@ public async sendCallAlert({
                 });
             }
 
-            const status: $TSFixMe = await PaymentService.checkAndRechargeProjectBalance(
-                project,
-                user._id,
-                user.alertPhoneNumber,
-                AlertType.Call
-            );
+            const status: $TSFixMe =
+                await PaymentService.checkAndRechargeProjectBalance(
+                    project,
+                    user._id,
+                    user.alertPhoneNumber,
+                    AlertType.Call
+                );
 
             if (!status.success) {
                 return await this.create({
@@ -1536,16 +1571,17 @@ public async sendCallAlert({
                 });
             }
         }
-        const alertStatus: $TSFixMe = await TwilioService.sendIncidentCreatedCall(
-            date,
-            monitor.name,
-            user.alertPhoneNumber,
-            accessToken,
-            incident._id,
-            projectId,
-            incident.incidentType,
-            callProgress
-        );
+        const alertStatus: $TSFixMe =
+            await TwilioService.sendIncidentCreatedCall(
+                date,
+                monitor.name,
+                user.alertPhoneNumber,
+                accessToken,
+                incident._id,
+                projectId,
+                incident.incidentType,
+                callProgress
+            );
         if (alertStatus && alertStatus.code && alertStatus.code === 400) {
             return await this.create({
                 projectId: project._id,
@@ -1600,7 +1636,7 @@ public async sendCallAlert({
         }
     }
 
-public async sendSMSAlert({
+    public async sendSMSAlert({
         incident,
         user,
         project,
@@ -1689,7 +1725,9 @@ public async sendSMSAlert({
                     user.alertPhoneNumber
                 );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
-                const countryType: $TSFixMe = getCountryType(user.alertPhoneNumber);
+                const countryType: $TSFixMe = getCountryType(
+                    user.alertPhoneNumber
+                );
                 let errorMessageText: $TSFixMe;
                 if (countryType === 'us') {
                     errorMessageText =
@@ -1718,12 +1756,13 @@ public async sendSMSAlert({
                 });
             }
 
-            const status: $TSFixMe = await PaymentService.checkAndRechargeProjectBalance(
-                project,
-                user._id,
-                user.alertPhoneNumber,
-                AlertType.SMS
-            );
+            const status: $TSFixMe =
+                await PaymentService.checkAndRechargeProjectBalance(
+                    project,
+                    user._id,
+                    user.alertPhoneNumber,
+                    AlertType.SMS
+                );
 
             if (!status.success) {
                 return await this.create({
@@ -1745,17 +1784,18 @@ public async sendSMSAlert({
             }
         }
 
-        const sendResult: $TSFixMe = await TwilioService.sendIncidentCreatedMessage(
-            date,
-            monitor.name,
-            user.alertPhoneNumber,
-            incident._id,
-            user._id,
-            user.name,
-            incident.incidentType,
-            projectId,
-            smsProgress
-        );
+        const sendResult: $TSFixMe =
+            await TwilioService.sendIncidentCreatedMessage(
+                date,
+                monitor.name,
+                user.alertPhoneNumber,
+                incident._id,
+                user._id,
+                user.name,
+                incident.incidentType,
+                projectId,
+                smsProgress
+            );
 
         if (sendResult && sendResult.code && sendResult.code === 400) {
             await this.create({
@@ -1815,13 +1855,15 @@ public async sendSMSAlert({
         }
     }
 
-public async sendStausPageNoteNotificationToProjectWebhooks(
+    public async sendStausPageNoteNotificationToProjectWebhooks(
         projectId: ObjectID,
         incident: $TSFixMe,
         statusPageNoteData: $TSFixMe
     ): void {
         const monitors: $TSFixMe = incident.monitors.map(
-            (monitor: $TSFixMe) => monitor.monitorId
+            (monitor: $TSFixMe) => {
+                return monitor.monitorId;
+            }
         );
         const populateComponent: $TSFixMe = [
             { path: 'projectId', select: 'name' },
@@ -1870,7 +1912,7 @@ public async sendStausPageNoteNotificationToProjectWebhooks(
         }
     }
 
-public async sendInvestigationNoteToSubscribers(
+    public async sendInvestigationNoteToSubscribers(
         incident: $TSFixMe,
         data: $TSFixMe,
         statusNoteStatus: $TSFixMe,
@@ -1880,14 +1922,19 @@ public async sendInvestigationNoteToSubscribers(
         const track: $TSFixMe = {};
 
         const monitors: $TSFixMe = incident.monitors.map(
-            (monitor: $TSFixMe) => monitor.monitorId
+            (monitor: $TSFixMe) => {
+                return monitor.monitorId;
+            }
         );
-        const monitorIds: $TSFixMe = monitors.map((monitor: $TSFixMe) => monitor._id);
-        const subscribers: $TSFixMe = await SubscriberService.subscribersForAlert({
-            subscribed: true,
-            $or: [{ monitorId: { $in: monitorIds } }, { monitorId: null }],
-            projectId,
+        const monitorIds: $TSFixMe = monitors.map((monitor: $TSFixMe) => {
+            return monitor._id;
         });
+        const subscribers: $TSFixMe =
+            await SubscriberService.subscribersForAlert({
+                subscribed: true,
+                $or: [{ monitorId: { $in: monitorIds } }, { monitorId: null }],
+                projectId,
+            });
 
         const sendSubscriberAlert: Function = async ({
             subscriber,
@@ -1919,12 +1966,13 @@ public async sendInvestigationNoteToSubscribers(
                     let statusPageSlug: $TSFixMe = null;
 
                     if (subscriber.statusPageId) {
-                        const statusPage: $TSFixMe = await StatusPageService.findOneBy({
-                            query: {
-                                _id: subscriber.statusPageId,
-                            },
-                            select: 'slug',
-                        });
+                        const statusPage: $TSFixMe =
+                            await StatusPageService.findOneBy({
+                                query: {
+                                    _id: subscriber.statusPageId,
+                                },
+                                select: 'slug',
+                            });
 
                         statusPageSlug = statusPage ? statusPage.slug : null;
                     }
@@ -1953,7 +2001,7 @@ public async sendInvestigationNoteToSubscribers(
         }
     }
 
-public async sendCreatedIncidentToSubscribers(
+    public async sendCreatedIncidentToSubscribers(
         incident: $TSFixMe,
         monitors: $TSFixMe
     ): void {
@@ -1993,12 +2041,11 @@ public async sendCreatedIncidentToSubscribers(
         if (incident) {
             for (const monitor of monitors) {
                 const monitorId: $TSFixMe = monitor && monitor._id;
-                const subscribers: $TSFixMe = await SubscriberService.subscribersForAlert(
-                    {
+                const subscribers: $TSFixMe =
+                    await SubscriberService.subscribersForAlert({
                         monitorId: monitorId,
                         subscribed: true,
-                    }
-                );
+                    });
                 for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage: $TSFixMe =
@@ -2057,7 +2104,7 @@ public async sendCreatedIncidentToSubscribers(
         }
     }
 
-public async sendAcknowledgedIncidentMail(
+    public async sendAcknowledgedIncidentMail(
         incident: $TSFixMe,
         monitor: $TSFixMe
     ): void {
@@ -2066,7 +2113,9 @@ public async sendAcknowledgedIncidentMail(
                 ? incident.projectId._id
                 : incident.projectId;
 
-            const monitorPopulate: $TSFixMe = [{ path: 'componentId', select: 'name' }];
+            const monitorPopulate: $TSFixMe = [
+                { path: 'componentId', select: 'name' },
+            ];
             const monitorSelect: string = '_id name data method componentId';
 
             const selectOnCallScheduleStatus: $TSFixMe =
@@ -2243,7 +2292,7 @@ public async sendAcknowledgedIncidentMail(
         }
     }
 
-public async sendAcknowledgeEmailAlert({
+    public async sendAcknowledgeEmailAlert({
         incident,
         user,
         project,
@@ -2253,7 +2302,8 @@ public async sendAcknowledgeEmailAlert({
         onCallScheduleStatus,
         eventType,
     }: $TSFixMe): void {
-        const projectId: $TSFixMe = incident.projectId._id || incident.projectId;
+        const projectId: $TSFixMe =
+            incident.projectId._id || incident.projectId;
         try {
             let date: $TSFixMe = new Date();
             const accessToken: $TSFixMe = UserService.getAccessToken({
@@ -2411,13 +2461,18 @@ public async sendAcknowledgeEmailAlert({
         }
     }
 
-public async sendResolveIncidentMail(incident: $TSFixMe, monitor: $TSFixMe): void {
+    public async sendResolveIncidentMail(
+        incident: $TSFixMe,
+        monitor: $TSFixMe
+    ): void {
         if (incident) {
             const projectId: $TSFixMe = incident.projectId._id
                 ? incident.projectId._id
                 : incident.projectId;
 
-            const monitorPopulate: $TSFixMe = [{ path: 'componentId', select: 'name' }];
+            const monitorPopulate: $TSFixMe = [
+                { path: 'componentId', select: 'name' },
+            ];
             const monitorSelect: string = '_id name data method componentId';
             const selectOnCallScheduleStatus: $TSFixMe =
                 'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
@@ -2596,7 +2651,7 @@ public async sendResolveIncidentMail(incident: $TSFixMe, monitor: $TSFixMe): voi
         }
     }
 
-public async sendResolveEmailAlert({
+    public async sendResolveEmailAlert({
         incident,
         user,
         project,
@@ -2606,7 +2661,8 @@ public async sendResolveEmailAlert({
         onCallScheduleStatus,
         eventType,
     }: $TSFixMe): void {
-        const projectId: $TSFixMe = incident.projectId._id || incident.projectId;
+        const projectId: $TSFixMe =
+            incident.projectId._id || incident.projectId;
 
         try {
             let date: $TSFixMe = new Date();
@@ -2760,7 +2816,7 @@ public async sendResolveEmailAlert({
         }
     }
 
-public async sendAcknowledgedIncidentToSubscribers(
+    public async sendAcknowledgedIncidentToSubscribers(
         incident: $TSFixMe,
         monitors: $TSFixMe
     ): void {
@@ -2799,12 +2855,11 @@ public async sendAcknowledgedIncidentToSubscribers(
 
         if (incident) {
             for (const monitor of monitors) {
-                const subscribers: $TSFixMe = await SubscriberService.subscribersForAlert(
-                    {
+                const subscribers: $TSFixMe =
+                    await SubscriberService.subscribersForAlert({
                         monitorId: monitor._id,
                         subscribed: true,
-                    }
-                );
+                    });
                 for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage: $TSFixMe =
@@ -2863,7 +2918,7 @@ public async sendAcknowledgedIncidentToSubscribers(
         }
     }
 
-public async sendResolvedIncidentToSubscribers(
+    public async sendResolvedIncidentToSubscribers(
         incident: $TSFixMe,
         monitors: $TSFixMe
     ): void {
@@ -2902,12 +2957,11 @@ public async sendResolvedIncidentToSubscribers(
 
         if (incident) {
             for (const monitor of monitors) {
-                const subscribers: $TSFixMe = await SubscriberService.subscribersForAlert(
-                    {
+                const subscribers: $TSFixMe =
+                    await SubscriberService.subscribersForAlert({
                         monitorId: monitor._id,
                         subscribed: true,
-                    }
-                );
+                    });
                 for (const subscriber of subscribers) {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage: $TSFixMe =
@@ -2966,7 +3020,7 @@ public async sendResolvedIncidentToSubscribers(
         }
     }
 
-public async sendSubscriberAlert(
+    public async sendSubscriberAlert(
         subscriber: $TSFixMe,
         incident: $TSFixMe,
         templateType = 'Subscriber Incident Created',
@@ -2983,10 +3037,12 @@ public async sendSubscriberAlert(
         monitor: $TSFixMe
     ): void {
         const date: $TSFixMe = new Date();
-        const isStatusPageNoteAlert: $TSFixMe = note && incidentState && statusNoteStatus;
+        const isStatusPageNoteAlert: $TSFixMe =
+            note && incidentState && statusNoteStatus;
         const statusPageNoteAlertEventType: string = `Investigation note ${statusNoteStatus}`;
 
-        const projectId: $TSFixMe = incident.projectId._id || incident.projectId;
+        const projectId: $TSFixMe =
+            incident.projectId._id || incident.projectId;
         const monitorPopulate: $TSFixMe = [
             { path: 'componentId', select: '_id' },
             { path: 'projectId', select: 'slug' },
@@ -3050,16 +3106,16 @@ public async sendSubscriberAlert(
         const monitorCustomFields: $TSFixMe = {},
             incidentCustomFields = {};
         if (monitor && monitor.customFields) {
-            monitor.customFields.forEach(
-                (field: $TSFixMe) =>
-                    (monitorCustomFields[field.fieldName] = field.fieldValue)
-            );
+            monitor.customFields.forEach((field: $TSFixMe) => {
+                return (monitorCustomFields[field.fieldName] =
+                    field.fieldValue);
+            });
         }
         if (incident && incident.customFields) {
-            incident.customFields.forEach(
-                (field: $TSFixMe) =>
-                    (incidentCustomFields[field.fieldName] = field.fieldValue)
-            );
+            incident.customFields.forEach((field: $TSFixMe) => {
+                return (incidentCustomFields[field.fieldName] =
+                    field.fieldValue);
+            });
         }
         const customFields: $TSFixMe = {
             monitor: { customFields: monitorCustomFields },
@@ -3230,14 +3286,15 @@ public async sendSubscriberAlert(
                 }
                 const select: $TSFixMe =
                     'projectId subject body emailType allowedVariables';
-                const emailTemplate: $TSFixMe = await EmailTemplateService.findOneBy({
-                    query: {
-                        projectId,
-                        emailType: templateType,
-                    },
-                    select,
-                    populate: [{ path: 'projectId', select: 'nmae' }],
-                });
+                const emailTemplate: $TSFixMe =
+                    await EmailTemplateService.findOneBy({
+                        query: {
+                            projectId,
+                            emailType: templateType,
+                        },
+                        select,
+                        populate: [{ path: 'projectId', select: 'nmae' }],
+                    });
 
                 if (isStatusPageNoteAlert) {
                     eventType = statusPageNoteAlertEventType;
@@ -3250,16 +3307,17 @@ public async sendSubscriberAlert(
                 } else {
                     eventType = 'identified';
                 }
-                const subscriberAlert: $TSFixMe = await SubscriberAlertService.create({
-                    projectId,
-                    incidentId: incident._id,
-                    subscriberId: subscriber._id,
-                    alertVia: AlertType.Email,
-                    alertStatus: 'Pending',
-                    eventType: eventType,
-                    totalSubscribers,
-                    id,
-                });
+                const subscriberAlert: $TSFixMe =
+                    await SubscriberAlertService.create({
+                        projectId,
+                        incidentId: incident._id,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.Email,
+                        alertStatus: 'Pending',
+                        eventType: eventType,
+                        totalSubscribers,
+                        id,
+                    });
                 const alertId: $TSFixMe = subscriberAlert._id;
 
                 const trackEmailAsViewedUrl: string = `${global.apiHost}/subscriberAlert/${projectId}/${alertId}/viewed`;
@@ -3506,25 +3564,27 @@ public async sendSubscriberAlert(
                         id,
                     });
                 }
-                const countryCode: $TSFixMe = await this.mapCountryShortNameToCountryCode(
-                    subscriber.countryCode
-                );
+                const countryCode: $TSFixMe =
+                    await this.mapCountryShortNameToCountryCode(
+                        subscriber.countryCode
+                    );
                 let contactPhone: $TSFixMe = subscriber.contactPhone;
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
 
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    owner = project.users.filter(
-                        (user: $TSFixMe) => user.role === 'Owner'
-                    )[0];
+                    owner = project.users.filter((user: $TSFixMe) => {
+                        return user.role === 'Owner';
+                    })[0];
                     const doesPhoneNumberComplyWithHighRiskConfig: $TSFixMe =
                         await this.doesPhoneNumberComplyWithHighRiskConfig(
                             projectId,
                             contactPhone
                         );
                     if (!doesPhoneNumberComplyWithHighRiskConfig) {
-                        const countryType: $TSFixMe = getCountryType(contactPhone);
+                        const countryType: $TSFixMe =
+                            getCountryType(contactPhone);
                         let errorMessageText: $TSFixMe, eventType: $TSFixMe;
                         if (countryType === 'us') {
                             errorMessageText =
@@ -3603,10 +3663,11 @@ public async sendSubscriberAlert(
                 }
 
                 let sendResult: $TSFixMe;
-                const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
-                    query: { projectId, smsType: templateType },
-                    select: 'body',
-                });
+                const smsTemplate: $TSFixMe =
+                    await SmsTemplateService.findOneBy({
+                        query: { projectId, smsType: templateType },
+                        select: 'body',
+                    });
                 let eventType: $TSFixMe;
                 if (isStatusPageNoteAlert) {
                     eventType = statusPageNoteAlertEventType;
@@ -3619,16 +3680,17 @@ public async sendSubscriberAlert(
                 } else {
                     eventType = 'identified';
                 }
-                const subscriberAlert: $TSFixMe = await SubscriberAlertService.create({
-                    projectId,
-                    incidentId: incident._id,
-                    subscriberId: subscriber._id,
-                    alertVia: AlertType.SMS,
-                    alertStatus: 'Pending',
-                    eventType: eventType,
-                    totalSubscribers,
-                    id,
-                });
+                const subscriberAlert: $TSFixMe =
+                    await SubscriberAlertService.create({
+                        projectId,
+                        incidentId: incident._id,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.SMS,
+                        alertStatus: 'Pending',
+                        eventType: eventType,
+                        totalSubscribers,
+                        id,
+                    });
                 const alertId: $TSFixMe = subscriberAlert._id;
 
                 let alertStatus: $TSFixMe = null;
@@ -3797,7 +3859,9 @@ public async sendSubscriberAlert(
                             !hasCustomTwilioSettings
                         ) {
                             // charge sms per 160 chars
-                            const segments: $TSFixMe = calcSmsSegments(sendResult.body);
+                            const segments: $TSFixMe = calcSmsSegments(
+                                sendResult.body
+                            );
                             const balanceStatus: $TSFixMe =
                                 await PaymentService.chargeAlertAndGetProjectBalance(
                                     owner.userId,
@@ -3897,7 +3961,7 @@ public async sendSubscriberAlert(
         return false;
     }
 
-public async getSubProjectAlerts(subProjectIds: $TSFixMe): void {
+    public async getSubProjectAlerts(subProjectIds: $TSFixMe): void {
         const populateAlert: $TSFixMe = [
             { path: 'userId', select: 'name email' },
             { path: 'monitorId', select: 'name' },
@@ -3923,7 +3987,7 @@ public async getSubProjectAlerts(subProjectIds: $TSFixMe): void {
         return subProjectAlerts;
     }
 
-public async restoreBy(query: Query): void {
+    public async restoreBy(query: Query): void {
         query.deleted = true;
         let alert: $TSFixMe = await this.findBy({ query, select: '_id' });
         if (alert && alert.length > 1) {
@@ -3964,32 +4028,34 @@ public async restoreBy(query: Query): void {
     }
 
     //Return true, if the limit is not reached yet.
-public async checkPhoneAlertsLimit(projectId: ObjectID): void {
-        const hasCustomSettings: $TSFixMe = await TwilioService.hasCustomSettings(
-            projectId
-        );
+    public async checkPhoneAlertsLimit(projectId: ObjectID): void {
+        const hasCustomSettings: $TSFixMe =
+            await TwilioService.hasCustomSettings(projectId);
         if (hasCustomSettings) {
             return true;
         }
-        const yesterday: $TSFixMe = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
-        const [alerts, smsCounts, project, twilioSettings]: $TSFixMe = await Promise.all([
-            this.countBy({
-                projectId: projectId,
-                alertVia: { $in: [AlertType.Call, AlertType.SMS] },
-                error: { $in: [null, undefined, false] },
-                createdAt: { $gte: yesterday },
-            }),
-            SmsCountService.countBy({
-                projectId: projectId,
-                createdAt: { $gte: yesterday },
-            }),
+        const yesterday: $TSFixMe = new Date(
+            new Date().getTime() - 24 * 60 * 60 * 1000
+        );
+        const [alerts, smsCounts, project, twilioSettings]: $TSFixMe =
+            await Promise.all([
+                this.countBy({
+                    projectId: projectId,
+                    alertVia: { $in: [AlertType.Call, AlertType.SMS] },
+                    error: { $in: [null, undefined, false] },
+                    createdAt: { $gte: yesterday },
+                }),
+                SmsCountService.countBy({
+                    projectId: projectId,
+                    createdAt: { $gte: yesterday },
+                }),
 
-            ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'alertLimit',
-            }),
-            TwilioService.getSettings(),
-        ]);
+                ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'alertLimit',
+                }),
+                TwilioService.getSettings(),
+            ]);
         let limit: $TSFixMe =
             project && project.alertLimit
                 ? project.alertLimit
@@ -4008,7 +4074,10 @@ public async checkPhoneAlertsLimit(projectId: ObjectID): void {
         }
     }
 
-public async sendUnpaidSubscriptionEmail(project: $TSFixMe, user: $TSFixMe): void {
+    public async sendUnpaidSubscriptionEmail(
+        project: $TSFixMe,
+        user: $TSFixMe
+    ): void {
         const { name: userName, email: userEmail } = user;
         const { stripePlanId, name: projectName, slug: projectSlug } = project;
 
@@ -4024,7 +4093,7 @@ public async sendUnpaidSubscriptionEmail(project: $TSFixMe, user: $TSFixMe): voi
         });
     }
 
-public async sendProjectDeleteEmailForUnpaidSubscription(
+    public async sendProjectDeleteEmailForUnpaidSubscription(
         project: $TSFixMe,
         user: $TSFixMe
     ): void {
@@ -4041,7 +4110,9 @@ public async sendProjectDeleteEmailForUnpaidSubscription(
         });
     }
 
-public async sendCreatedScheduledEventToSubscribers(schedule: $TSFixMe): void {
+    public async sendCreatedScheduledEventToSubscribers(
+        schedule: $TSFixMe
+    ): void {
         const uuid: $TSFixMe = new Date().getTime();
         if (schedule) {
             const track: $TSFixMe = {};
@@ -4061,12 +4132,11 @@ public async sendCreatedScheduledEventToSubscribers(schedule: $TSFixMe): void {
             };
             for (const monitor of schedule.monitors) {
                 const component: $TSFixMe = monitor.monitorId.componentId.name;
-                const subscribers: $TSFixMe = await SubscriberService.subscribersForAlert(
-                    {
+                const subscribers: $TSFixMe =
+                    await SubscriberService.subscribersForAlert({
                         monitorId: monitor.monitorId._id,
                         subscribed: true,
-                    }
-                );
+                    });
 
                 for (const subscriber of subscribers) {
                     if (subscriber.alertVia === AlertType.Email) {
@@ -4091,7 +4161,9 @@ public async sendCreatedScheduledEventToSubscribers(schedule: $TSFixMe): void {
         }
     }
 
-public async sendResolvedScheduledEventToSubscribers(schedule: $TSFixMe): void {
+    public async sendResolvedScheduledEventToSubscribers(
+        schedule: $TSFixMe
+    ): void {
         const uuid: $TSFixMe = new Date().getTime();
         if (schedule) {
             const track: $TSFixMe = {};
@@ -4111,12 +4183,11 @@ public async sendResolvedScheduledEventToSubscribers(schedule: $TSFixMe): void {
             };
             for (const monitor of schedule.monitors) {
                 const component: $TSFixMe = monitor.monitorId.componentId.name;
-                const subscribers: $TSFixMe = await SubscriberService.subscribersForAlert(
-                    {
+                const subscribers: $TSFixMe =
+                    await SubscriberService.subscribersForAlert({
                         monitorId: monitor.monitorId._id,
                         subscribed: true,
-                    }
-                );
+                    });
 
                 for (const subscriber of subscribers) {
                     if (subscriber.alertVia === AlertType.Email) {
@@ -4141,16 +4212,17 @@ public async sendResolvedScheduledEventToSubscribers(schedule: $TSFixMe): void {
         }
     }
 
-public async sendCancelledScheduledEventToSubscribers(schedule: $TSFixMe): void {
+    public async sendCancelledScheduledEventToSubscribers(
+        schedule: $TSFixMe
+    ): void {
         const uuid: $TSFixMe = new Date().getTime();
         if (schedule) {
             for (const monitor of schedule.monitors) {
-                const subscribers: $TSFixMe = await SubscriberService.subscribersForAlert(
-                    {
+                const subscribers: $TSFixMe =
+                    await SubscriberService.subscribersForAlert({
                         monitorId: monitor.monitorId._id,
                         subscribed: true,
-                    }
-                );
+                    });
 
                 for (const subscriber of subscribers) {
                     await this.sendSubscriberScheduledEventAlert(
@@ -4166,16 +4238,16 @@ public async sendCancelledScheduledEventToSubscribers(schedule: $TSFixMe): void 
         }
     }
 
-public async sendScheduledEventInvestigationNoteToSubscribers(
+    public async sendScheduledEventInvestigationNoteToSubscribers(
         message: $TSFixMe
     ): void {
         const uuid: $TSFixMe = new Date().getTime();
 
         const monitorIds: $TSFixMe =
             message.scheduledEventId &&
-            message.scheduledEventId.monitors.map(
-                (monitor: $TSFixMe) => monitor.monitorId
-            );
+            message.scheduledEventId.monitors.map((monitor: $TSFixMe) => {
+                return monitor.monitorId;
+            });
 
         const monitorsAffected: $TSFixMe = await MonitorService.findBy({
             query: { _id: { $in: monitorIds }, deleted: false },
@@ -4184,18 +4256,19 @@ public async sendScheduledEventInvestigationNoteToSubscribers(
 
         if (message) {
             for (const monitor of message.scheduledEventId.monitors) {
-                const monitorId: $TSFixMe = monitor.monitorId._id || monitor.monitorId;
+                const monitorId: $TSFixMe =
+                    monitor.monitorId._id || monitor.monitorId;
 
-                const subscribers: $TSFixMe = await SubscriberService.subscribersForAlert(
-                    {
+                const subscribers: $TSFixMe =
+                    await SubscriberService.subscribersForAlert({
                         monitorId,
                         subscribed: true,
-                    }
-                );
+                    });
                 const totalSubscribers: $TSFixMe = subscribers.length;
 
                 for (const subscriber of subscribers) {
-                    const projectId: $TSFixMe = message.scheduledEventId.projectId._id;
+                    const projectId: $TSFixMe =
+                        message.scheduledEventId.projectId._id;
 
                     const project: $TSFixMe = await ProjectService.findOneBy({
                         query: { _id: projectId },
@@ -4296,8 +4369,8 @@ public async sendScheduledEventInvestigationNoteToSubscribers(
                                 ? message.createdById.name
                                 : 'OneUptime';
 
-                            const replyAddress: $TSFixMe = message.scheduledEventId
-                                .projectId.replyAddress
+                            const replyAddress: $TSFixMe = message
+                                .scheduledEventId.projectId.replyAddress
                                 ? message.scheduledEventId.projectId
                                       .replyAddress
                                 : null;
@@ -4317,11 +4390,12 @@ public async sendScheduledEventInvestigationNoteToSubscribers(
                                 monitor.name,
                                 projectId,
                                 unsubscribeUrl,
-                                monitorsAffected.filter(
-                                    (monitor: $TSFixMe) =>
+                                monitorsAffected.filter((monitor: $TSFixMe) => {
+                                    return (
                                         String(monitor._id) ===
                                         String(monitorId)
-                                )
+                                    );
+                                })
                             );
                             alertStatus = 'Sent';
                             await SubscriberAlertService.updateOneBy(
@@ -4412,9 +4486,9 @@ public async sendScheduledEventInvestigationNoteToSubscribers(
                         }
 
                         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                            owner = project.users.filter(
-                                (user: $TSFixMe) => user.role === 'Owner'
-                            )[0];
+                            owner = project.users.filter((user: $TSFixMe) => {
+                                return user.role === 'Owner';
+                            })[0];
                             const doesPhoneNumberComplyWithHighRiskConfig: $TSFixMe =
                                 await this.doesPhoneNumberComplyWithHighRiskConfig(
                                     projectId,
@@ -4475,13 +4549,14 @@ public async sendScheduledEventInvestigationNoteToSubscribers(
                         }
 
                         let sendResult: $TSFixMe;
-                        const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
-                            query: {
-                                projectId,
-                                smsType: templateType,
-                            },
-                            select: 'body',
-                        });
+                        const smsTemplate: $TSFixMe =
+                            await SmsTemplateService.findOneBy({
+                                query: {
+                                    projectId,
+                                    smsType: templateType,
+                                },
+                                select: 'body',
+                            });
                         const subscriberAlert: $TSFixMe =
                             await SubscriberAlertService.create({
                                 projectId,
@@ -4583,7 +4658,7 @@ public async sendScheduledEventInvestigationNoteToSubscribers(
         }
     }
 
-public async sendSubscriberScheduledEventAlert(
+    public async sendSubscriberScheduledEventAlert(
         subscriber: $TSFixMe,
         schedule: $TSFixMe,
         templateType = 'Subscriber Scheduled Maintenance Created',
@@ -4673,15 +4748,16 @@ public async sendSubscriberScheduledEventAlert(
                     });
                 }
 
-                const subscriberAlert: $TSFixMe = await SubscriberAlertService.create({
-                    projectId,
-                    subscriberId: subscriber._id,
-                    alertVia: AlertType.Email,
-                    alertStatus: 'Pending',
-                    eventType,
-                    totalSubscribers,
-                    id,
-                });
+                const subscriberAlert: $TSFixMe =
+                    await SubscriberAlertService.create({
+                        projectId,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.Email,
+                        alertStatus: 'Pending',
+                        eventType,
+                        totalSubscribers,
+                        id,
+                    });
                 const alertId: $TSFixMe = subscriberAlert._id;
 
                 const unsubscribeUrl: string = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
@@ -4817,25 +4893,27 @@ public async sendSubscriberScheduledEventAlert(
                         id,
                     });
                 }
-                const countryCode: $TSFixMe = await this.mapCountryShortNameToCountryCode(
-                    subscriber.countryCode
-                );
+                const countryCode: $TSFixMe =
+                    await this.mapCountryShortNameToCountryCode(
+                        subscriber.countryCode
+                    );
                 let contactPhone: $TSFixMe = subscriber.contactPhone;
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
                 }
 
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                    owner = project.users.filter(
-                        (user: $TSFixMe) => user.role === 'Owner'
-                    )[0];
+                    owner = project.users.filter((user: $TSFixMe) => {
+                        return user.role === 'Owner';
+                    })[0];
                     const doesPhoneNumberComplyWithHighRiskConfig: $TSFixMe =
                         await this.doesPhoneNumberComplyWithHighRiskConfig(
                             projectId,
                             contactPhone
                         );
                     if (!doesPhoneNumberComplyWithHighRiskConfig) {
-                        const countryType: $TSFixMe = getCountryType(contactPhone);
+                        const countryType: $TSFixMe =
+                            getCountryType(contactPhone);
                         let errorMessageText: $TSFixMe;
                         if (countryType === 'us') {
                             errorMessageText =
@@ -4885,19 +4963,21 @@ public async sendSubscriberScheduledEventAlert(
                 }
 
                 let sendResult: $TSFixMe;
-                const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
-                    query: { projectId, smsType: templateType },
-                    select: 'body smsType allowedVariables projectId',
-                });
-                const subscriberAlert: $TSFixMe = await SubscriberAlertService.create({
-                    projectId,
-                    subscriberId: subscriber._id,
-                    alertVia: AlertType.SMS,
-                    alertStatus: 'Pending',
-                    eventType,
-                    totalSubscribers,
-                    id,
-                });
+                const smsTemplate: $TSFixMe =
+                    await SmsTemplateService.findOneBy({
+                        query: { projectId, smsType: templateType },
+                        select: 'body smsType allowedVariables projectId',
+                    });
+                const subscriberAlert: $TSFixMe =
+                    await SubscriberAlertService.create({
+                        projectId,
+                        subscriberId: subscriber._id,
+                        alertVia: AlertType.SMS,
+                        alertStatus: 'Pending',
+                        eventType,
+                        totalSubscribers,
+                        id,
+                    });
                 const alertId: $TSFixMe = subscriberAlert._id;
 
                 let alertStatus: $TSFixMe = null;
@@ -4985,7 +5065,9 @@ public async sendSubscriberScheduledEventAlert(
                             !hasCustomTwilioSettings
                         ) {
                             // charge sms per 160 chars
-                            const segments: $TSFixMe = calcSmsSegments(sendResult.body);
+                            const segments: $TSFixMe = calcSmsSegments(
+                                sendResult.body
+                            );
                             const balanceStatus: $TSFixMe =
                                 await PaymentService.chargeAlertAndGetProjectBalance(
                                     owner.userId,
@@ -5023,7 +5105,8 @@ public async sendSubscriberScheduledEventAlert(
             }
         };
 
-        let scheduledEventAlert: $TSFixMe = subscriber.notificationType?.scheduledEvent;
+        let scheduledEventAlert: $TSFixMe =
+            subscriber.notificationType?.scheduledEvent;
         const statusPageId: $TSFixMe = subscriber?.statusPageId;
 
         if (!subscriber.notificationType) {
@@ -5039,7 +5122,9 @@ public async sendSubscriberScheduledEventAlert(
         }
     }
 
-public async sendAnnouncementNotificationToSubscribers(message: $TSFixMe): void {
+    public async sendAnnouncementNotificationToSubscribers(
+        message: $TSFixMe
+    ): void {
         const uuid: $TSFixMe = new Date().getTime();
 
         if (message) {
@@ -5123,8 +5208,8 @@ public async sendAnnouncementNotificationToSubscribers(message: $TSFixMe): void 
                         });
                     }
 
-                    const subscriberAlert: $TSFixMe = await SubscriberAlertService.create(
-                        {
+                    const subscriberAlert: $TSFixMe =
+                        await SubscriberAlertService.create({
                             projectId,
                             subscriberId: subscriber._id,
                             alertVia: AlertType.Email,
@@ -5132,8 +5217,7 @@ public async sendAnnouncementNotificationToSubscribers(message: $TSFixMe): void 
                             eventType: 'Announcement notification created',
                             totalSubscribers: subscribers.length,
                             uuid,
-                        }
-                    );
+                        });
                     const alertId: $TSFixMe = subscriberAlert._id;
 
                     let alertStatus: $TSFixMe = null;
@@ -5167,14 +5251,16 @@ public async sendAnnouncementNotificationToSubscribers(message: $TSFixMe): void 
                     }
                 } else if (subscriber.alertVia === AlertType.SMS) {
                     let owner: $TSFixMe;
-                    const [hasGlobalTwilioSettings, hasCustomTwilioSettings]: $TSFixMe =
-                        await Promise.all([
-                            GlobalConfigService.findOneBy({
-                                query: { name: 'twilio' },
-                                select: 'value',
-                            }),
-                            TwilioService.hasCustomSettings(projectId),
-                        ]);
+                    const [
+                        hasGlobalTwilioSettings,
+                        hasCustomTwilioSettings,
+                    ]: $TSFixMe = await Promise.all([
+                        GlobalConfigService.findOneBy({
+                            query: { name: 'twilio' },
+                            select: 'value',
+                        }),
+                        TwilioService.hasCustomSettings(projectId),
+                    ]);
                     const areAlertsEnabledGlobally: $TSFixMe =
                         hasGlobalTwilioSettings &&
                         hasGlobalTwilioSettings.value &&
@@ -5237,16 +5323,17 @@ public async sendAnnouncementNotificationToSubscribers(message: $TSFixMe): void 
                     }
 
                     if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                        owner = project.users.filter(
-                            (user: $TSFixMe) => user.role === 'Owner'
-                        )[0];
+                        owner = project.users.filter((user: $TSFixMe) => {
+                            return user.role === 'Owner';
+                        })[0];
                         const doesPhoneNumberComplyWithHighRiskConfig: $TSFixMe =
                             await this.doesPhoneNumberComplyWithHighRiskConfig(
                                 projectId,
                                 contactPhone
                             );
                         if (!doesPhoneNumberComplyWithHighRiskConfig) {
-                            const countryType: $TSFixMe = getCountryType(contactPhone);
+                            const countryType: $TSFixMe =
+                                getCountryType(contactPhone);
                             let errorMessageText: $TSFixMe;
                             if (countryType === 'us') {
                                 errorMessageText =
@@ -5297,15 +5384,16 @@ public async sendAnnouncementNotificationToSubscribers(message: $TSFixMe): void 
                     }
 
                     let sendResult: $TSFixMe;
-                    const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
-                        query: {
-                            projectId,
-                            smsType: templateType,
-                        },
-                        select: 'body allowedVariables projectId smsType',
-                    });
-                    const subscriberAlert: $TSFixMe = await SubscriberAlertService.create(
-                        {
+                    const smsTemplate: $TSFixMe =
+                        await SmsTemplateService.findOneBy({
+                            query: {
+                                projectId,
+                                smsType: templateType,
+                            },
+                            select: 'body allowedVariables projectId smsType',
+                        });
+                    const subscriberAlert: $TSFixMe =
+                        await SubscriberAlertService.create({
                             projectId,
                             subscriberId: subscriber._id,
                             alertVia: AlertType.SMS,
@@ -5313,8 +5401,7 @@ public async sendAnnouncementNotificationToSubscribers(message: $TSFixMe): void 
                             eventType: eventType,
                             totalSubscribers,
                             uuid,
-                        }
-                    );
+                        });
                     const alertId: $TSFixMe = subscriberAlert._id;
 
                     let alertStatus: $TSFixMe = null;
@@ -5400,12 +5487,11 @@ public async sendAnnouncementNotificationToSubscribers(message: $TSFixMe): void 
                 }
             };
             for (const monitor of message.monitors) {
-                const subscribers: $TSFixMe = await SubscriberService.subscribersForAlert(
-                    {
+                const subscribers: $TSFixMe =
+                    await SubscriberService.subscribersForAlert({
                         monitorId: monitor.monitorId,
                         subscribed: true,
-                    }
-                );
+                    });
                 const totalSubscribers: $TSFixMe = subscribers.length;
 
                 for (const subscriber of subscribers) {

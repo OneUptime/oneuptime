@@ -22,7 +22,10 @@ import AirtableService from '../backend/services/airtableService';
 
 describe('Docker Credential API', function (): void {
     const timeout: $TSFixMe = 30000;
-    let projectId: ObjectID, userId: $TSFixMe, token: $TSFixMe, credentialId: $TSFixMe;
+    let projectId: ObjectID,
+        userId: $TSFixMe,
+        token: $TSFixMe,
+        credentialId: $TSFixMe;
     const dockerRegistryUrl: $TSFixMe = dockerCredential.dockerRegistryUrl;
     const dockerUsername: $TSFixMe = dockerCredential.dockerUsername;
     const dockerPassword: $TSFixMe = dockerCredential.dockerPassword;
