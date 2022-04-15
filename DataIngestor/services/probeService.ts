@@ -685,7 +685,7 @@ export default {
         return probe;
     },
 
-    scriptConditions: (resp, con) => {
+    scriptConditions: (resp: $TSFixMe, con: $TSFixMe){
         const body: $TSFixMe = resp ?? null;
 
         const successReasons: $TSFixMe = [];
@@ -838,7 +838,7 @@ export default {
         };
     },
 
-    incomingCondition: (payload, conditions) => {
+    incomingCondition: (payload: $TSFixMe, conditions: $TSFixMe){
         let eventOccurred: $TSFixMe = false;
         let matchedCriterion: $TSFixMe;
         if (conditions && conditions.length) {

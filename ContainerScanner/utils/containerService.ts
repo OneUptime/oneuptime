@@ -38,7 +38,7 @@ export default {
         return security;
     },
 
-    decrypt: (encText, iv) => {
+    decrypt: (encText: $TSFixMe, iv: $TSFixMe){
         const promise: Promise = new Promise(
             (resolve: Function, reject: Function): $TSFixMe => {
                 try {

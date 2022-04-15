@@ -1816,7 +1816,7 @@ router.post(
                 if (status === 'All Systems Operational') {
                     data.description = status;
                 } else {
-                    $('div.component-container.border-color').each((i, el) => {
+                    $('div.component-container.border-color').each((i: $TSFixMe, el: $TSFixMe){
                         const componentStatus: $TSFixMe = $(el)
                             .find('.component-status')
                             .text()
@@ -1912,7 +1912,7 @@ router.post(
                 if (status === 'All Systems Operational') {
                     data.description = status;
                 } else {
-                    $('div.component-container.border-color').each((i, el) => {
+                    $('div.component-container.border-color').each((i: $TSFixMe, el: $TSFixMe){
                         const componentStatus: $TSFixMe = $(el)
                             .find('.component-status')
                             .text()

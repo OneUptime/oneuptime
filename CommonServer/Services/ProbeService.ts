@@ -1007,7 +1007,7 @@ class Service extends DatabaseService<typeof Model> {
         if (index > -1) {
             reason = reason.filter(item => !item.includes('Response Time is'));
         }
-        reason = reason.filter((item, pos, self) => self.indexOf(item) === pos);
+        reason = reason.filter((item: $TSFixMe, pos: $TSFixMe,  self: $TSFixMe)self.indexOf(item) === pos);
         const logData: $TSFixMe = body;
         logData.responseTime = 0;
         logData.responseStatus = null;

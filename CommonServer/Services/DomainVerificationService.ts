@@ -187,7 +187,7 @@ export default class Service {
         projectList.push(...subProjects);
 
         projectList = projectList.filter(
-            (projectId, index) => projectList.indexOf(projectId) === index
+            (projectId: $TSFixMe, index: $TSFixMe)projectList.indexOf(projectId) === index
         );
 
         const parsed: $TSFixMe = psl.parse(subDomain);

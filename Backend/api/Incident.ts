@@ -685,7 +685,7 @@ router.post(
                 ...timeline,
                 ...alerts,
                 ...incidentMessages,
-            ].sort((a, b) => {
+            ].sort((a: $TSFixMe, b: $TSFixMe){
                 return b.createdAt - a.createdAt;
             });
             incidentMessages = [
@@ -851,7 +851,7 @@ router.post(
                 ...timeline,
                 ...alerts,
                 ...incidentMessages,
-            ].sort((a, b) => {
+            ].sort((a: $TSFixMe, b: $TSFixMe){
                 return b.createdAt - a.createdAt;
             });
             incidentMessages = [
@@ -1279,7 +1279,7 @@ router.post(
                         ...timeline,
                         ...alerts,
                         ...incidentMessages,
-                    ].sort((a, b) => {
+                    ].sort((a: $TSFixMe, b: $TSFixMe){
                         return b.createdAt - a.createdAt;
                     });
                     incidentMessages = [
@@ -1501,7 +1501,7 @@ router.delete(
                         ...timeline,
                         ...alerts,
                         ...incidentMessages,
-                    ].sort((a, b) => {
+                    ].sort((a: $TSFixMe, b: $TSFixMe){
                         return b.createdAt - a.createdAt;
                     });
                     incidentMessages = [
@@ -1681,7 +1681,7 @@ router.get(
                         ...timeline,
                         ...alerts,
                         ...incidentMessages,
-                    ].sort((a, b) => {
+                    ].sort((a: $TSFixMe, b: $TSFixMe){
                         return b.createdAt - a.createdAt;
                     });
                     incidentMessages = [

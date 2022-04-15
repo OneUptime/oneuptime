@@ -159,7 +159,7 @@ class Util {
     }
     _readFileFromSource(fileName: $TSFixMe): void {
         return new Promise(resolve => {
-            readFile(fileName, (err, data) => {
+            readFile(fileName, (err: $TSFixMe, data: $TSFixMe){
                 const content: $TSFixMe = err ? null : data.toString();
 
                 CONTENT_CACHE.set(fileName, content);

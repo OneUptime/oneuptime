@@ -343,7 +343,7 @@ export default class Service {
             ...timeline,
             ...alerts,
             ...incidentMessages,
-        ].sort((a, b) => {
+        ].sort((a: $TSFixMe, b: $TSFixMe){
             return b.createdAt - a.createdAt;
         });
         incidentMessages = [

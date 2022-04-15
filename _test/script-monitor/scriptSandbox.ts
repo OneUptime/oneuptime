@@ -23,7 +23,7 @@ class ScriptMonitorError extends Error {
         this.message = message;
         this.errors = Array.isArray(errors)
             ? errors.reduce(
-                (allErr, err) => [...allErr, err.message].join(','),
+                (allErr: $TSFixMe, err: $TSFixMe)[...allErr, err.message].join(','),
                 []
             )
             : (errors.message ?? errors);
