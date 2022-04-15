@@ -1167,7 +1167,7 @@ import _ from 'lodash';
 import CreateBy from '../Types/DB/CreateBy';
 import UUID from 'Common/Utils/UUID';
 
-const incomingCheckAnd: Function = (payload, condition): void => {
+const incomingCheckAnd: Function = (payload: $TSFixMe, condition: $TSFixMe): void => {
     let validity: $TSFixMe = false;
     let val: $TSFixMe = 0;
     let incomingVal: $TSFixMe = 0;
@@ -1317,7 +1317,7 @@ const incomingCheckAnd: Function = (payload, condition): void => {
     return validity;
 };
 
-const incomingCheckOr: Function = (payload, condition): void => {
+const incomingCheckOr: Function = (payload: $TSFixMe, condition: $TSFixMe): void => {
     let validity: $TSFixMe = false;
     let val: $TSFixMe = 0;
     let incomingVal: $TSFixMe = 0;

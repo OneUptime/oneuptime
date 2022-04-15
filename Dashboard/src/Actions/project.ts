@@ -1269,7 +1269,7 @@ export const fetchProjectDomainsFailure: Function = (
 export const fetchProjectDomains: Function = (
     projectId: ObjectID,
     skip: number = 0
-    limit = 10
+    limit: $TSFixMe = 10
 ): void => {
     return async function (dispatch: Dispatch): void {
         dispatch(fetchProjectDomainsRequest());

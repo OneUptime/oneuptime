@@ -2897,7 +2897,7 @@ async function getStatusPageNote(
     const skip: $TSFixMe = req.query['skip'] || 0;
     const limit: $TSFixMe = req.query['limit'] || 10;
     const days: $TSFixMe = req.query.days || 14;
-    const newTheme: $TSFixMe = theme: $TSFixMe === 'Clean Theme';
+    const newTheme: $TSFixMe = theme === 'Clean Theme';
     // Call the StatusPageService.
     const response: $TSFixMe = await StatusPageService.getNotes(
         { slug: statusPageSlug },

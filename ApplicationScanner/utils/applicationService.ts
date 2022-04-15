@@ -136,9 +136,9 @@ export default {
                                 }
 
                                 const criticalArr: $TSFixMe = [],
-                                    highArr = [],
-                                    moderateArr = [],
-                                    lowArr = [];
+                                    highArr: $TSFixMe = [],
+                                    moderateArr: $TSFixMe = [],
+                                    lowArr: $TSFixMe = [];
                                 advisories.map((advisory: $TSFixMe) => {
                                     if (advisory.severity === 'critical') {
                                         criticalArr.push(advisory);
@@ -278,9 +278,9 @@ export default {
                             }
 
                             const criticalArr: $TSFixMe = [],
-                                highArr = [],
-                                moderateArr = [],
-                                lowArr = [];
+                                highArr: $TSFixMe = [],
+                                moderateArr: $TSFixMe = [],
+                                lowArr: $TSFixMe = [];
                             advisories.map((advisory: $TSFixMe) => {
                                 if (advisory.severity === 'critical') {
                                     criticalArr.push(advisory);

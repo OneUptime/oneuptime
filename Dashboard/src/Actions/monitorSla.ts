@@ -81,7 +81,7 @@ export const updateMonitorSla: $TSFixMe = (
     projectId: ObjectID,
     monitorSlaId: $TSFixMe,
     data: $TSFixMe,
-    handleDefault = false
+    handleDefault: $TSFixMe = false
 ) => {
     return async (dispatch: Dispatch) => {
         try {

@@ -1571,9 +1571,9 @@ router.get(
             type = 'internal';
         }
         try {
-            let incidentMessages,
-                result = [],
-                count = 0;
+            let incidentMessages: $TSFixMe,
+                result: $TSFixMe = [],
+                count: $TSFixMe = 0;
             const incidentSlug: $TSFixMe = req.params.incidentSlug;
             const projectId: $TSFixMe = req.params.projectId;
             let incidentId: $TSFixMe = await IncidentService.findOneBy({
@@ -1717,12 +1717,14 @@ router.get(
                             b.createdAt - a.createdAt
                         );
                     });
-                    const filteredMsg: $TSFixMe = incidentMessages.filter(a => {
-                        return (
-                            a.status !== 'internal notes added' &&
-                            a.status !== 'internal notes updated'
-                        );
-                    });
+                    const filteredMsg: $TSFixMe = incidentMessages.filter(
+                        (a: $TSFixMe) => {
+                            return (
+                                a.status !== 'internal notes added' &&
+                                a.status !== 'internal notes updated'
+                            );
+                        }
+                    );
 
                     result = await Services.rearrangeDuty(filteredMsg);
                 }

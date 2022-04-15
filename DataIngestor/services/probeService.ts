@@ -875,9 +875,9 @@ export default {
             eventOccurred = some(conditions, (condition: $TSFixMe) => {
                 let response: $TSFixMe = false;
                 let respAnd: $TSFixMe = false,
-                    respOr = false,
-                    countAnd = 0,
-                    countOr = 0;
+                    respOr: $TSFixMe = false,
+                    countAnd: $TSFixMe = 0,
+                    countOr: $TSFixMe = 0;
 
                 if (
                     condition &&
@@ -1204,7 +1204,10 @@ const incomingCheckAnd: Function = (
     return validity;
 };
 
-const incomingCheckOr: Function = (payload, condition): void => {
+const incomingCheckOr: Function = (
+    payload: $TSFixMe,
+    condition: $TSFixMe
+): void => {
     let validity: $TSFixMe = false;
     let val: $TSFixMe = 0;
     let incomingVal: $TSFixMe = 0;
@@ -1354,27 +1357,27 @@ const incomingCheckOr: Function = (payload, condition): void => {
 };
 
 const checkAnd: Function = (
-    payload,
+    payload: $TSFixMe,
 
-    con,
+    con: $TSFixMe,
 
-    statusCode,
+    statusCode: $TSFixMe,
 
-    body,
+    body: $TSFixMe,
 
-    ssl,
+    ssl: $TSFixMe,
 
-    response,
+    response: $TSFixMe,
 
-    successReasons,
+    successReasons: $TSFixMe,
 
-    failedReasons,
+    failedReasons: $TSFixMe,
 
-    type,
+    type: $TSFixMe,
 
-    queryParams,
+    queryParams: $TSFixMe,
 
-    headers
+    headers: $TSFixMe
 ): void => {
     let validity: $TSFixMe = true;
     if (con && con.criteria && con.criteria.length > 0) {
@@ -3611,7 +3614,7 @@ const checkAnd: Function = (
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                statefulset => {
+                                (statefulset: $TSFixMe) => {
                                     if (
                                         statefulset.desiredStatefulsets ===
                                         statefulset.readyStatefulsets
@@ -3642,7 +3645,7 @@ const checkAnd: Function = (
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                statefulset => {
+                                (statefulset: $TSFixMe) => {
                                     if (
                                         statefulset.desiredStatefulsets !==
                                         statefulset.readyStatefulsets
@@ -5896,7 +5899,7 @@ const checkOr: Function = (
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
                                 // eslint-disable-next-line no-loop-func
-                                statefulset => {
+                                (statefulset: $TSFixMe) => {
                                     if (
                                         statefulset.desiredStatefulsets !==
                                         statefulset.readyStatefulsets
@@ -5978,7 +5981,10 @@ const checkOr: Function = (
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-const checkScriptCondition: Function = (condition, body): void => {
+const checkScriptCondition: Function = (
+    condition: $TSFixMe,
+    body: $TSFixMe
+): void => {
     if (!condition || !condition.responseType) {
         return;
     }
@@ -6077,10 +6083,10 @@ const checkScriptCondition: Function = (condition, body): void => {
 };
 
 const checkScriptAnd: Function = (
-    con,
-    body,
-    successReasons,
-    failedReasons
+    con: $TSFixMe,
+    body: $TSFixMe,
+    successReasons: $TSFixMe,
+    failedReasons: $TSFixMe
 ): void => {
     let valid: $TSFixMe = true;
     if (con && con.criteria && con.criteria.length > 0) {

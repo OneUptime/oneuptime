@@ -54,8 +54,8 @@ router.post(
         try {
             const { monitor, resp }: $TSFixMe = req.body;
 
-            let log,
-                data = {};
+            let log: $TSFixMe,
+                data: $TSFixMe = {};
 
             data = req.body;
 

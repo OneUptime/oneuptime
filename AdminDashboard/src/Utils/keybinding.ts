@@ -40,7 +40,7 @@ const keyBind: Function = (
 };
 
 export const navKeyBind: Function = (route: $TSFixMe): void => {
-    let keys: $TSFixMe = [];
+    const keys: $TSFixMe = [];
     const resetKeys: Function = (): void => {
         return [];
     };
@@ -53,9 +53,9 @@ export const navKeyBind: Function = (route: $TSFixMe): void => {
 };
 
 export const cleanBind: Function = (route: $TSFixMe): void => {
-    let keys: $TSFixMe = [];
+    const keys: $TSFixMe = [];
     const resetKeys: Function = (): void => {
-        return (acc: $TSFixMe = []);
+        return [];
     };
     window.removeEventListener('keydown', (e: $TSFixMe) => {
         return keyBind(e, route, keys, resetKeys);

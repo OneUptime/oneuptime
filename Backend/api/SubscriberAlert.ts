@@ -130,7 +130,7 @@ router.get(
             const limit: $TSFixMe = req.query['limit'] || 10;
 
             let subscriberAlerts: $TSFixMe = [],
-                count = 0;
+                count: $TSFixMe = 0;
             if (incidentId) {
                 incidentId = incidentId._id;
                 const populate: $TSFixMe = [
