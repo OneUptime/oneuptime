@@ -282,7 +282,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
         const parsedQuery: $TSFixMe = queryString.parse(
             loginLink.split('?')[1]
         );
-        expect(!!parsedQuery.id).to.equal(true);
+        expect(Boolean(parsedQuery.id)).to.equal(true);
         userId = parsedQuery.id;
         expect(projectRequest).to.have.status(200);
         expect(projectRequest.body).to.be.an('Object');

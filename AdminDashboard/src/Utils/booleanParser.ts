@@ -6,5 +6,5 @@
 
 export default (val: $TSFixMe): void => {
     const falsy: $TSFixMe = /^(?:f(?:alse)?|no?|0+)$/i;
-    return !falsy.test(val) && !!val;
+    return !falsy.test(val) && Boolean(val);
 };

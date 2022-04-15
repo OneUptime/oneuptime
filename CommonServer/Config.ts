@@ -7,7 +7,9 @@ export const DatabaseUrl: string =
 
 export const DatabaseName: string = process.env.DB_NAME || 'oneuptimedb';
 
-export const IsMongoReplicaSet: boolean = !!process.env.IS_MONGO_REPLICA_SET;
+export const IsMongoReplicaSet: boolean = Boolean(
+    process.env.IS_MONGO_REPLICA_SET
+);
 
 export const EncryptionSecret: string = process.env.ENCRYPTIOJN_SECRET || '';
 

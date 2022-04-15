@@ -12,6 +12,6 @@ export default abstract class LocalCache {
     }
 
     public static hasValue(key: string): boolean {
-        return !!this.cache[key];
+        return Boolean(this.cache[key]);
     }
 }

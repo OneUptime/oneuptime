@@ -58,6 +58,7 @@
         "no-implicit-coercion": "error",
         "no-extra-label": "error",
         "multiline-comment-style": "error",
+        "no-lonely-if": "error",
         "no-floating-decimal": "error",
         "eqeqeq": "error",
         "dot-notation": "error",

@@ -15,7 +15,9 @@ export const InternalSmtpPort: Port = new Port(
     parseInt(process.env.INTERNAL_SMTP_PORT || '25')
 );
 
-export const InternalSmtpSecure: boolean = !!process.env.INTERNAL_SMTP_SECURE;
+export const InternalSmtpSecure: boolean = Boolean(
+    process.env.INTERNAL_SMTP_SECURE
+);
 
 export const InternalSmtpFromEmail: Email = new Email(
     process.env.INTERNAL_SMTP_FROM || 'noreply@oneuptime.com'

@@ -141,7 +141,7 @@ export default class Service {
                     select,
                     populate: [{ path: 'projectId', select: 'nmae' }],
                 });
-                return emailTemplate!==null && emailTemplate!==undefined
+                return emailTemplate !== null && emailTemplate !== undefined
                     ? emailTemplate
                     : template;
             })

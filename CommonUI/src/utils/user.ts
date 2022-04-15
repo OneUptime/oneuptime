@@ -16,7 +16,7 @@ export default class User {
     }
 
     public static isCardRegistered(): boolean {
-        return !!LocalStorage.getItem('cardRegistered');
+        return Boolean(LocalStorage.getItem('cardRegistered'));
     }
 
     public static setCardRegistered(value: boolean): void {

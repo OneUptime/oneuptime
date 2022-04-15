@@ -93,7 +93,7 @@ function generateRandomString(): void {
 // These are other required functions, variables present in other test-utils dashboard folder.
 function parseBoolean(val: $TSFixMe): void {
     const falsy: $TSFixMe = /^(?:f(?:alse)?|no?|0+)$/i;
-    return !falsy.test(val) && !!val;
+    return !falsy.test(val) && Boolean(val);
 }
 
 function generateWrongEmail(): void {

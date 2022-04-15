@@ -406,7 +406,7 @@ router.put(
             componentId: componentId,
         };
 
-        if (data.resourceCategory!=='') {
+        if (data.resourceCategory !== '') {
             existingQuery.resourceCategory = data.resourceCategory;
         }
         const existingApplicationCount: $TSFixMe =
@@ -414,7 +414,7 @@ router.put(
 
         if (
             existingApplicationCount > 0 &&
-            data.resourceCategory!=='' &&
+            data.resourceCategory !== '' &&
             data.showQuickStart === undefined
         ) {
             return sendErrorResponse(
