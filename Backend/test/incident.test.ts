@@ -46,7 +46,7 @@ const selectEmailStatus: $TSFixMe =
 
 const sleep: Function = (waitTimeInMs: $TSFixMe): void => {
     return new Promise((resolve: $TSFixMe) => {
-        return setTimeout(resolve, waitTimeInMs);
+        setTimeout(resolve, waitTimeInMs);
     });
 };
 

@@ -915,9 +915,9 @@ export default class Service {
             );
 
             if (
-                (JSON.stringify(escalation.scheduleId._id) ==
+                (JSON.stringify(escalation.scheduleId._id) ===
                     JSON.stringify(onCallScheduleStatus.schedule._id) ||
-                    JSON.stringify(escalation.scheduleId._id) ==
+                    JSON.stringify(escalation.scheduleId._id) ===
                         JSON.stringify(onCallScheduleStatus.schedule)) &&
                 isOnDuty
             ) {

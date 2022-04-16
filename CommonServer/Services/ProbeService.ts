@@ -1329,7 +1329,7 @@ const incomingCheckAnd: Function = (
                             payload &&
                             payload != condition.criteria[i].field1
                         ) {
-                            val++;!==
+                            val++;
                         }
                     } else if (
                         condition.criteria[i] &&
@@ -1481,7 +1481,7 @@ const incomingCheckOr: Function = (
                             payload &&
                             payload != condition.criteria[i].field1
                         ) {
-                            val++;!==
+                            val++;
                         }
                     } else if (
                         condition.criteria[i] &&
@@ -1719,9 +1719,9 @@ const checkAnd: Function = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload != con.criteria[i].field1
+                                payload !== con.criteria[i].field1
                             )
-                        ) {!==
+                        ) {
                             validity = false;
                             failedReasons.push(
                                 `${criteriaStrings.responseTime} ${payload} ms`
@@ -5449,7 +5449,7 @@ const checkOr: Function = (
                             payload.mainTemp &&
                             payload.mainTemp != con.criteria[i].field1
                         ) {
-                            validity = true;!==
+                            validity = true;
                             if (payload && payload.mainTemp !== null) {
                                 successReasons.push(
                                     `${criteriaStrings.temperature} ${payload.mainTemp} °C`

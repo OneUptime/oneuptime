@@ -24,7 +24,7 @@ let errorTracker: $TSFixMe;
 describe('Tracker Timeline', function (): void {
     const sleep: Function = (milliseconds: $TSFixMe): void => {
         return new Promise((resolve: $TSFixMe) => {
-            return setTimeout(resolve, milliseconds);
+            setTimeout(resolve, milliseconds);
         });
     };
     this.timeout(timeout + 1000);

@@ -39,30 +39,28 @@ export default class Service {
                     show: false,
                 };
             });
+        } else if (
+            adminUser?._id &&
+            data.userId.toString() !== adminUser._id.toString()
+        ) {
+            projectModel.users = [
+                {
+                    userId: data.userId,
+                    role: 'Owner',
+                },
+                {
+                    userId: adminUser._id,
+                    role: 'Administrator',
+                    show: false,
+                },
+            ];
         } else {
-            if (
-                adminUser?._id &&
-                data.userId.toString() !== adminUser._id.toString()
-            ) {
-                projectModel.users = [
-                    {
-                        userId: data.userId,
-                        role: 'Owner',
-                    },
-                    {
-                        userId: adminUser._id,
-                        role: 'Administrator',
-                        show: false,
-                    },
-                ];
-            } else {
-                projectModel.users = [
-                    {
-                        userId: data.userId,
-                        role: 'Owner',
-                    },
-                ];
-            }
+            projectModel.users = [
+                {
+                    userId: data.userId,
+                    role: 'Owner',
+                },
+            ];
         }
 
         projectModel.name = data.name || null;
@@ -557,10 +555,10 @@ export default class Service {
             projectId = subProject ? subProject._id : project._id;
             const remainingUsers: $TSFixMe = [];
             for (const user of users) {
-                if (user.userId != userId) {
+                if (user.userId !== userId) {
                     remainingUsers.push(user);
                 }
-            }!==
+            }
             await Promise.all([
                 this.updateOneBy({ _id: projectId }, { users: remainingUsers }),
                 EscalationService.deleteEscalationMember(

@@ -1515,8 +1515,8 @@ export default class TwilioService {
         )[0];
         let smsContent: $TSFixMe = defaultTemplate.body;
         if (
-            smsTemplate != null &&
-            smsTemplate != undefined &&
+            smsTemplate !== null &&
+            smsTemplate !== undefined &&
             smsTemplate.body
         ) {
             smsContent = smsTemplate.body;

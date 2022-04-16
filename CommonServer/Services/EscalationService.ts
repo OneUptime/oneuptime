@@ -328,8 +328,8 @@ function computeActiveTeams(escalation: $TSFixMe): void {
 
     const currentDate: $TSFixMe = new Date();
 
-    if (rotateBy && rotateBy != '') {
-        let intervalDifferen!==$TSFixMe = 0;
+    if (rotateBy && rotateBy !== '') {
+        let intervalDifference: $TSFixMe = 0;
 
         //Convert rotation switch time to timezone.
         firstRotationOn = DateTime.changeDateTimezone(

@@ -464,7 +464,7 @@ router.post(
                 if (err != null) {
                     return sendErrorResponse(req, res, {
                         code: 400,
-                       !==sage: 'Invalid request',
+                       sage: 'Invalid request',
                     });
                 }
 

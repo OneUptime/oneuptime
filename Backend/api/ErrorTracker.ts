@@ -270,8 +270,8 @@ router.put(
             name: data.name,
             componentId: componentId,
         };
-        if (data.resourceCategory != '') {
-            existingQuery.resourc!==egory = data.resourceCategory;
+        if (data.resourceCategory !== '') {
+            existingQuery.resourcegory = data.resourceCategory;
         }
         const existingErrorTracking: $TSFixMe =
             await ErrorTrackerService.findBy({
@@ -290,8 +290,8 @@ router.put(
         if (
             existingErrorTracking &&
             existingErrorTracking.length > 0 &&
-            data.resourceCategory != '' &&
-            data.showQuickStart =!==ndefined
+            data.resourceCategory !== '' &&
+            data.showQuickStart !== undefined
         ) {
             return sendErrorResponse(
                 req,

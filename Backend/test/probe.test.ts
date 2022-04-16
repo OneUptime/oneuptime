@@ -36,7 +36,7 @@ let token: $TSFixMe,
 const probeKey: string = 'test-key';
 const sleep: Function = (waitTimeInMs: $TSFixMe): void => {
     return new Promise((resolve: $TSFixMe) => {
-        return setTimeout(resolve, waitTimeInMs);
+        setTimeout(resolve, waitTimeInMs);
     });
 };
 const generateRandomString: $TSFixMe =
