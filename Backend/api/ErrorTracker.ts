@@ -361,20 +361,18 @@ router.post(
             // If it doesnt exist, create the issue and use its details
             if (!issue) {
                 issue = await IssueService.create(data);
-            } else {
+            } else if (issue.resolved) {
                 // Issue exist but checked if it is resolved so to uresolve it
-                if (issue.resolved) {
-                    const updateData: $TSFixMe = {
-                        resolved: false,
-                        resolvedAt: '',
-                        resolvedById: null,
-                    };
-                    const query: $TSFixMe = {
-                        _id: issue._id,
-                        errorTrackerId,
-                    };
-                    await IssueService.updateOneBy(query, updateData);
-                }
+                const updateData: $TSFixMe = {
+                    resolved: false,
+                    resolvedAt: '',
+                    resolvedById: null,
+                };
+                const query: $TSFixMe = {
+                    _id: issue._id,
+                    errorTrackerId,
+                };
+                await IssueService.updateOneBy(query, updateData);
             }
             // Since it now exist, use the issue details
             data.issueId = issue._id;

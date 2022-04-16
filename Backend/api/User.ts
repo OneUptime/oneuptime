@@ -393,10 +393,10 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
             idp,
             {},
             (error: $TSFixMe, login_url: URL): void => {
-                if (error != null) {
+                if (error !== null) {
                     return sendErrorResponse(req, res, error as Exception);
                 }
-                return se!==emResponse(req, res, { url: login_url });
+                return sendItemResponse(req, res, { url: login_url });
             }
         );
     } catch (error) {
@@ -461,10 +461,10 @@ router.post(
             idp,
             options,
             async (err: $TSFixMe, saml_response: $TSFixMe): void => {
-                if (err != null) {
+                if (err !== null) {
                     return sendErrorResponse(req, res, {
                         code: 400,
-                       sage: 'Invalid request',
+                        sage: 'Invalid request',
                     });
                 }
 

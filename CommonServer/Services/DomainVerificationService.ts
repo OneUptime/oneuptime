@@ -113,37 +113,30 @@ export default class Service {
             const domainToLookup: string = `${host}.${domain}`;
             const prevDomainToLookup: string = `${previousHost}.${domain}`;
 
-            const records: $TSFixMe = await dnsPromises.resolveTxt(
+            let records: $TSFixMe = await dnsPromises.resolveTxt(
                 domainToLookup
             );
             /*
              * Records is an array of arrays
              * Flatten the array to a single array
              */
-            const txtRecords: $TSFixMe = flatten(records);
-            const result: $TSFixMe = txtRecords.some((txtRecord: $TSFixMe) => {
+            let txtRecords: $TSFixMe = flatten(records);
+            let result: $TSFixMe = txtRecords.some((txtRecord: $TSFixMe) => {
                 return verificationToken === txtRecord;
             });
 
             if (result) {
                 return { result, txtRecords };
-            } else {
-                const records: $TSFixMe = await dnsPromises.resolveTxt(
-                    prevDomainToLookup
-                );
-                /*
-                 * Records is an array of arrays
-                 * Flatten the array to a single array
-                 */
-                const txtRecords: $TSFixMe = flatten(records);
-                const result: $TSFixMe = txtRecords.some(
-                    (txtRecord: $TSFixMe) => {
-                        return verificationToken === txtRecord;
-                    }
-                );
-
-                return { result, txtRecords };
             }
+
+            records = await dnsPromises.resolveTxt(prevDomainToLookup);
+
+            txtRecords = flatten(records);
+            result = txtRecords.some((txtRecord: $TSFixMe) => {
+                return verificationToken === txtRecord;
+            });
+
+            return { result, txtRecords };
         } catch (error) {
             if (error.code === 'ENODATA') {
                 throw {
