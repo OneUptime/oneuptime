@@ -1903,66 +1903,27 @@ export default class Service {
                         : nextIncident.end;
                     firstIncident.end = end;
                     incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
-                } else {
-                    //If the firstIncident has a higher priority
-                    if (
-                        firstIncident.status === 'offline' ||
-                        (firstIncident.status === 'degraded' &&
-                            nextIncident.status === 'online')
-                    ) {
-                        if (
-                            moment(firstIncident.end).isAfter(nextIncident.end)
-                        ) {
-                            incidentsHappenedDuringTheDay.splice(
-                                nextIncidentIndex,
-                                1
-                            );
-                        } else {
-                            nextIncident.start = firstIncident.end;
-                            //We will need to shift the next incident to keep the array sorted.
-                            incidentsHappenedDuringTheDay.splice(
-                                nextIncidentIndex,
-                                1
-                            );
-                            let j: $TSFixMe = nextIncidentIndex;
-                            while (j < incidentsHappenedDuringTheDay.length) {
-                                if (
-                                    moment(nextIncident.start).isBefore(
-                                        incidentsHappenedDuringTheDay[j].start
-                                    )
-                                ) {
-                                    break;
-                                }
-                                j += 1;
-                            }
-                            incidentsHappenedDuringTheDay.splice(
-                                j,
-                                0,
-                                nextIncident
-                            );
-                        }
-                    } else if (
-                        moment(firstIncident.end).isBefore(nextIncident.end)
-                    ) {
-                        firstIncident.end = nextIncident.start;
+                } else if (
+                    firstIncident.status === 'offline' ||
+                    (firstIncident.status === 'degraded' &&
+                        nextIncident.status === 'online')
+                ) {
+                    if (moment(firstIncident.end).isAfter(nextIncident.end)) {
+                        incidentsHappenedDuringTheDay.splice(
+                            nextIncidentIndex,
+                            1
+                        );
                     } else {
-                        /**
-                         * The firstIncident is less important than the next incident,
-                         * it also starts before and ends after the nextIncident.
-                         * In the case The first incident needs to be devided into to two parts.
-                         * The first part comes before the nextIncident,
-                         * the second one comes after the nextIncident.
-                         */
-                        const newIncident: $TSFixMe = {
-                            start: nextIncident.end,
-                            end: firstIncident.end,
-                            status: firstIncident.status,
-                        };
-                        firstIncident.end = nextIncident.start;
-                        let j: $TSFixMe = nextIncidentIndex + 1;
+                        nextIncident.start = firstIncident.end;
+                        //We will need to shift the next incident to keep the array sorted.
+                        incidentsHappenedDuringTheDay.splice(
+                            nextIncidentIndex,
+                            1
+                        );
+                        let j: $TSFixMe = nextIncidentIndex;
                         while (j < incidentsHappenedDuringTheDay.length) {
                             if (
-                                moment(newIncident.start).isBefore(
+                                moment(nextIncident.start).isBefore(
                                     incidentsHappenedDuringTheDay[j].start
                                 )
                             ) {
@@ -1970,9 +1931,44 @@ export default class Service {
                             }
                             j += 1;
                         }
-                        incidentsHappenedDuringTheDay.splice(j, 0, newIncident);
+                        incidentsHappenedDuringTheDay.splice(
+                            j,
+                            0,
+                            nextIncident
+                        );
                     }
+                } else if (
+                    moment(firstIncident.end).isBefore(nextIncident.end)
+                ) {
+                    firstIncident.end = nextIncident.start;
+                } else {
+                    /**
+                     * The firstIncident is less important than the next incident,
+                     * it also starts before and ends after the nextIncident.
+                     * In the case The first incident needs to be devided into to two parts.
+                     * The first part comes before the nextIncident,
+                     * the second one comes after the nextIncident.
+                     */
+                    const newIncident: $TSFixMe = {
+                        start: nextIncident.end,
+                        end: firstIncident.end,
+                        status: firstIncident.status,
+                    };
+                    firstIncident.end = nextIncident.start;
+                    let j: $TSFixMe = nextIncidentIndex + 1;
+                    while (j < incidentsHappenedDuringTheDay.length) {
+                        if (
+                            moment(newIncident.start).isBefore(
+                                incidentsHappenedDuringTheDay[j].start
+                            )
+                        ) {
+                            break;
+                        }
+                        j += 1;
+                    }
+                    incidentsHappenedDuringTheDay.splice(j, 0, newIncident);
                 }
+
                 i--;
             }
             //Remove events having start and end time equal.
@@ -2202,78 +2198,69 @@ export default class Service {
                         : nextIncident.end;
                     firstIncident.end = end;
                     incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
-                } else {
-                    //If the firstIncident has a higher priority
-                    if (
-                        firstIncident.status === 'disabled' ||
-                        (firstIncident.status === 'offline' &&
-                            nextIncident.status !== 'disabled') ||
-                        (firstIncident.status === 'degraded' &&
-                            nextIncident.status === 'online')
-                    ) {
+                } else if (
+                    firstIncident.status === 'disabled' ||
+                    (firstIncident.status === 'offline' &&
+                        nextIncident.status !== 'disabled') ||
+                    (firstIncident.status === 'degraded' &&
+                        nextIncident.status === 'online' &&
+                        moment(firstIncident.end).isAfter(nextIncident.end))
+                ) {
+                    incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
+                } else if (
+                    firstIncident.status === 'disabled' ||
+                    (firstIncident.status === 'offline' &&
+                        nextIncident.status !== 'disabled') ||
+                    (firstIncident.status === 'degraded' &&
+                        nextIncident.status === 'online')
+                ) {
+                    nextIncident.start = firstIncident.end;
+                    //We will need to shift the next incident to keep the array sorted.
+                    incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
+                    let j: $TSFixMe = nextIncidentIndex;
+                    while (j < incidentsHappenedDuringTheDay.length) {
                         if (
-                            moment(firstIncident.end).isAfter(nextIncident.end)
+                            moment(nextIncident.start).isBefore(
+                                incidentsHappenedDuringTheDay[j].start
+                            )
                         ) {
-                            incidentsHappenedDuringTheDay.splice(
-                                nextIncidentIndex,
-                                1
-                            );
-                        } else {
-                            nextIncident.start = firstIncident.end;
-                            //We will need to shift the next incident to keep the array sorted.
-                            incidentsHappenedDuringTheDay.splice(
-                                nextIncidentIndex,
-                                1
-                            );
-                            let j: $TSFixMe = nextIncidentIndex;
-                            while (j < incidentsHappenedDuringTheDay.length) {
-                                if (
-                                    moment(nextIncident.start).isBefore(
-                                        incidentsHappenedDuringTheDay[j].start
-                                    )
-                                ) {
-                                    break;
-                                }
-                                j += 1;
-                            }
-                            incidentsHappenedDuringTheDay.splice(
-                                j,
-                                0,
-                                nextIncident
-                            );
+                            break;
                         }
-                    } else if (
-                        moment(firstIncident.end).isBefore(nextIncident.end)
-                    ) {
-                        firstIncident.end = nextIncident.start;
-                    } else {
-                        /**
-                         * The firstIncident is less important than the next incident,
-                         * it also starts before and ends after the nextIncident.
-                         * In the case The first incident needs to be devided into to two parts.
-                         * The first part comes before the nextIncident,
-                         * the second one comes after the nextIncident.
-                         */
-                        const newIncident: $TSFixMe = {
-                            start: nextIncident.end,
-                            end: firstIncident.end,
-                            status: firstIncident.status,
-                        };
-                        firstIncident.end = nextIncident.start;
-                        let j: $TSFixMe = nextIncidentIndex + 1;
-                        while (j < incidentsHappenedDuringTheDay.length) {
-                            if (
-                                moment(newIncident.start).isBefore(
-                                    incidentsHappenedDuringTheDay[j].start
-                                )
-                            ) {
-                                break;
-                            }
-                            j += 1;
-                        }
-                        incidentsHappenedDuringTheDay.splice(j, 0, newIncident);
+                        j += 1;
                     }
+                    incidentsHappenedDuringTheDay.splice(j, 0, nextIncident);
+                } else if (
+                    moment(firstIncident.end).isBefore(nextIncident.end)
+                ) {
+                    firstIncident.end = nextIncident.start;
+                } else {
+                    /**
+                     * The firstIncident is less important than the next incident,
+                     * it also starts before and ends after the nextIncident.
+                     * In the case The first incident needs to be devided into to two parts.
+                     * The first part comes before the nextIncident,
+                     * the second one comes after the nextIncident.
+                     */
+                    const newIncident: $TSFixMe = {
+                        start: nextIncident.end,
+                        end: firstIncident.end,
+                        status: firstIncident.status,
+                    };
+                    firstIncident.end = nextIncident.start;
+                    let j: $TSFixMe = nextIncidentIndex + 1;
+                    while (j < incidentsHappenedDuringTheDay.length) {
+                        if (
+                            moment(newIncident.start).isBefore(
+                                incidentsHappenedDuringTheDay[j].start
+                            )
+                        ) {
+                            break;
+                        }
+                        j += 1;
+                    }
+                    incidentsHappenedDuringTheDay.splice(j, 0, newIncident);
                 }
+
                 i--;
             }
             //Remove events having start and end time equal.

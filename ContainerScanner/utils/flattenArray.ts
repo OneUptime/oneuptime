@@ -4,7 +4,7 @@
  * @return {array} a flattened array
  */
 
- export default function flat(arr: $TSFixMe): void {
+export default function flat(arr: $TSFixMe): void {
     const flattened: $TSFixMe = [];
     const flatten: Function = (arr: $TSFixMe): void => {
         for (const val of arr) {

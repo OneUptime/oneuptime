@@ -140,7 +140,7 @@
         "no-loop-func": "error",
         // "no-duplicate-imports": "error", /// Enable this and fix errors.
         "no-promise-executor-return": "error",
-        "capitalized-comments": "error",
+        "capitalized-comments": "off", // turn this on after ts-migration.
         "for-direction": "error",
         "getter-return": "error",
         "jsx-a11y/anchor-is-valid": "error",

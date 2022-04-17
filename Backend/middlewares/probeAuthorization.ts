@@ -130,25 +130,21 @@ export default {
                     };
                 }
             }
+        } else if (global.probes[probeName]) {
+            probeId = global.probes[probeName]._id;
         } else {
-            //This executes if clusterKey && CLUSTER_KEY is false
+            const probe: $TSFixMe = await ProbeService.findOneBy({
+                query: { probeKey, probeName },
+                select: selectProbe,
+            });
+            if (probe && probe._id) {
+                probeId = probe._id;
 
-            if (global.probes[probeName]) {
-                probeId = global.probes[probeName]._id;
-            } else {
-                const probe: $TSFixMe = await ProbeService.findOneBy({
-                    query: { probeKey, probeName },
-                    select: selectProbe,
-                });
-                if (probe && probe._id) {
-                    probeId = probe._id;
-
-                    global.probes[probeName] = {
-                        _id: probe._id,
-                        probeKey: probe.probeKey,
-                        version: probe.version,
-                    };
-                }
+                global.probes[probeName] = {
+                    _id: probe._id,
+                    probeKey: probe.probeKey,
+                    version: probe.version,
+                };
             }
         }
 
