@@ -4,7 +4,7 @@ import ScriptModelLog from '../Models/automationScriptsLog';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BackendAPI from '../Utils/api';
 import getSlug from '../Utils/getSlug';
-const scriptBaseUrl: $TSFixMe = process.env.SCRIPT_RUNNER_URL;
+const scriptBaseUrl: $TSFixMe = process.env['SCRIPT_RUNNER_URL'];
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

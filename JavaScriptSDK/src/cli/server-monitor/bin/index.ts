@@ -115,11 +115,11 @@ const getParamValue: Function = (params: $TSFixMe, name: $TSFixMe): void => {
     return new Promise((resolve: $TSFixMe) => {
         if (options[name] === true || options[name] === undefined) {
             if (name === 'monitorId') {
-                resolve(process.env[name] || null);
+                resolve(process.env['name]'] || null);
             } else if (name === 'daemon') {
                 resolve(options[name] === true);
-            } else if (process.env[name]) {
-                resolve(process.env[name]);
+            } else if (process.env['name]']) {
+                resolve(process.env['name]']);
             } else if (typeof options.daemon === 'string') {
                 resolve(null);
             } else {

@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Usage: node ./test.js example.com username xxxxxxxxx
-const record: $TSFixMe = process.argv[2] || process.env.RECORD;
+const record: $TSFixMe = process.argv[2] || process.env['RECORD'];
 
 import Challenger from './index.ts';
 const challenger: $TSFixMe = Challenger.create({});

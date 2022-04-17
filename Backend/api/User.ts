@@ -4,7 +4,7 @@ import express, {
 } from 'CommonServer/Utils/Express';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
-const jwtSecretKey: $TSFixMe = process.env.JWT_SECRET;
+const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 import jwt from 'jsonwebtoken';
@@ -44,8 +44,8 @@ import Ip from '../middlewares/ipHandler';
 router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         if (
-            typeof process.env.DISABLE_SIGNUP === 'string' &&
-            process.env.DISABLE_SIGNUP === 'true'
+            typeof process.env['DISABLE_SIGNUP'] === 'string' &&
+            process.env['DISABLE_SIGNUP'] === 'true'
         ) {
             // Res,and next is skipped in isUserMasterAdmin because we don't want to reject the request.
             if (!(await isUserMasterAdmin(req))) {

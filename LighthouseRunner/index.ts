@@ -14,7 +14,7 @@ import config from './utils/config';
 const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
 app.use(cors());
-app.set('port', process.env.PORT || 3015);
+app.set('port', process.env['PORT'] || 3015);
 
 app.get(
     ['/lighthouse/status', '/status'],
@@ -36,7 +36,7 @@ app.get(
     ['/lighthouse/version', '/version'],
     (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
-        res.send({ lighthouseVersion: process.env.npm_package_version });
+        res.send({ lighthouseVersion: process.env['npm_package_version'] });
     }
 );
 

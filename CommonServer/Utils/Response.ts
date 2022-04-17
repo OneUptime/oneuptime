@@ -29,7 +29,7 @@ function logResponse(
     const duration_info: string = `OUTGOING RESPONSE ID: ${
         oneUptimeRequest.id
     } -- POD NAME: ${
-        process.env.POD_NAME || 'NONE'
+        process.env['POD_NAME'] || 'NONE'
     } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${(
         requestEndedAt.getTime() - oneUptimeRequest.requestStartedAt.getTime()
     ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
@@ -57,7 +57,7 @@ export const sendEmptyResponse: Function = (
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
+    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     oneUptimeResponse.status(200).send();
 
@@ -103,7 +103,7 @@ export const sendErrorResponse: Function = (
     logger.error(error);
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
+    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     oneUptimeResponse.status(status).send({ message });
     return logResponse(req, res, { message });
@@ -119,7 +119,7 @@ export const sendListResponse: Function = async (
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
+    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     const listData: ListData = new ListData({
         data: [],
@@ -174,7 +174,7 @@ export const sendItemResponse: Function = async (
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
+    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {
         const csv: $TSFixMe = JsonToCsv.ToCsv([item]);

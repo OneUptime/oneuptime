@@ -42,7 +42,7 @@ export default (state: $TSFixMe = initialState, action: Action): void => {
                     helm: action.payload.helmChartVersion,
                     dashboard: action.payload.dashboardVersion,
                     docs: action.payload.docsVersion,
-                    adminDashboard: process.env.REACT_APP_VERSION,
+                    adminDashboard: process.env['REACT_APP_VERSION'],
                 },
             });
 

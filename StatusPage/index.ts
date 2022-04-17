@@ -12,13 +12,13 @@
 
 /*
  * let apiHost: $TSFixMe = 'http://localhost:3002/api';
- * if (process.env.BACKEND_URL) {
- *     apiHost = 'http://' + process.env.BACKEND_URL + '/api';
+ * if (process.env['BACKEND_URL']) {
+ *     apiHost = 'http://' + process.env['BACKEND_URL'] + '/api';
  * }
- * if (process.env.ONEUPTIME_HOST) {
- *     apiHost = process.env.BACKEND_PROTOCOL
- *         ? `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}/api`
- *         : `http://${process.env.ONEUPTIME_HOST}/api`;
+ * if (process.env['ONEUPTIME_HOST']) {
+ *     apiHost = process.env['BACKEND_PROTOCOL']
+ *         ? `${process.env['BACKEND_PROTOCOL']}://${process.env['ONEUPTIME_HOST']}/api`
+ *         : `http://${process.env['ONEUPTIME_HOST']}/api`;
  * }
  */
 
@@ -28,10 +28,10 @@
  *     (req: ExpressRequest, res: ExpressResponse) => {
  *         let REACT_APP_ONEUPTIME_HOST: $TSFixMe = null;
  *         let REACT_APP_BACKEND_PROTOCOL: $TSFixMe = null;
- *         if (!process.env.ONEUPTIME_HOST) {
+ *         if (!process.env['ONEUPTIME_HOST']) {
  *             REACT_APP_ONEUPTIME_HOST = req.hostname;
  *         } else {
- *             REACT_APP_ONEUPTIME_HOST = process.env.ONEUPTIME_HOST;
+ *             REACT_APP_ONEUPTIME_HOST = process.env['ONEUPTIME_HOST'];
  *             if (REACT_APP_ONEUPTIME_HOST.includes('*.')) {
  *                 REACT_APP_ONEUPTIME_HOST = REACT_APP_ONEUPTIME_HOST.replace(
  *                     '*.',
@@ -55,8 +55,8 @@
  *                 ''
  *             ); // Remove any protocol that might have been added
  *             let protocol: $TSFixMe = 'http:';
- *             if (process.env.BACKEND_PROTOCOL) {
- *                 protocol = process.env.BACKEND_PROTOCOL + ':';
+ *             if (process.env['BACKEND_PROTOCOL']) {
+ *                 protocol = process.env['BACKEND_PROTOCOL'] + ':';
  *             } else if (req.secure) {
  *                 protocol = 'https:';
  *             }
@@ -68,14 +68,14 @@
  */
 
 /*
- *         REACT_APP_BACKEND_PROTOCOL = process.env.BACKEND_PROTOCOL;
+ *         REACT_APP_BACKEND_PROTOCOL = process.env['BACKEND_PROTOCOL'];
  *         const env: $TSFixMe = {
  *             REACT_APP_ONEUPTIME_HOST,
  *             REACT_APP_BACKEND_PROTOCOL,
- *             REACT_APP_BACKEND_URL: process.env.BACKEND_URL,
+ *             REACT_APP_BACKEND_URL: process.env['BACKEND_URL'],
  *             REACT_APP_VERSION:
- *                 process.env.REACT_APP_VERSION ||
- *                 process.env.npm_package_version,
+ *                 process.env['REACT_APP_VERSION'] ||
+ *                 process.env['npm_package_version'],
  *         };
  */
 
@@ -107,7 +107,7 @@
 //  *     Domain: $TSFixMe
 //  * ): void {
 //  *     Const statusPage: $TSFixMe = await client
-//  *         .db(process.env.DB_NAME)
+//  *         .db(process.env['DB_NAME'])
 //  *         .collection(collection)
 //  *         .findOne({
 //  *             Domains: { $elemMatch: { domain } },
@@ -151,7 +151,7 @@
 //  *     Domain: $TSFixMe
 //  * ): void {
 //  *     Const certificate: $TSFixMe = await client
-//  *         .db(process.env.DB_NAME)
+//  *         .db(process.env['DB_NAME'])
 //  *         .collection(collection)
 //  *         .findOne({ id: domain });
 //  */
@@ -362,14 +362,14 @@
 //          * Decode base64 of the cert and private key
 //          * Store the value to disc
 //          */
-//         const cert: $TSFixMe = process.env.STATUSPAGE_CERT;
+//         const cert: $TSFixMe = process.env['STATUSPAGE_CERT'];
 //         const certPath: $TSFixMe = path.resolve(
 //             process.cwd(),
 //             'src',
 //             'credentials',
 //             'certificate.crt'
 //         );
-//         const privateKey: $TSFixMe = process.env.STATUSPAGE_PRIVATEKEY;
+//         const privateKey: $TSFixMe = process.env['STATUSPAGE_PRIVATEKEY'];
 //         const privateKeyPath: $TSFixMe = path.resolve(
 //             process.cwd(),
 //             'src',

@@ -9,7 +9,7 @@ export const env: Function = (value: $TSFixMe): void => {
     const { _env }: $TSFixMe = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
-        process.env[`REACT_APP_${value}`]
+        process.env['`REACT_APP_']${value}`]
     );
 };
 
@@ -51,7 +51,7 @@ export const ACCOUNTS_URL: $TSFixMe = accountsUrl;
 
 export const DOMAIN: $TSFixMe = window.location.origin;
 
-export const VERSION: $TSFixMe = process.env.VERSION || env('VERSION');
+export const VERSION: $TSFixMe = process.env['VERSION'] || env('VERSION');
 
 export const User: $TSFixMe = {
     getAccessToken() {

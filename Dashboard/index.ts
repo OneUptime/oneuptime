@@ -28,7 +28,7 @@ app.get(
         if (req.host.includes('localhost')) {
             if (req.get('host').includes('localhost:')) {
                 global.dashboardHost =
-                    'http://' + req.host + ':' + (process.env.PORT || 3002);
+                    'http://' + req.host + ':' + (process.env['PORT'] || 3002);
 
                 global.accountsHost = 'http://' + req.host + ':' + 3003;
 
@@ -51,7 +51,7 @@ app.get(
         }
 
         const env: $TSFixMe = {
-            REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
+            REACT_APP_IS_SAAS_SERVICE: process.env['IS_SAAS_SERVICE'],
             ...(!isClustLocal && {
                 REACT_APP_HOST: global.dashboardHost,
 
@@ -60,12 +60,12 @@ app.get(
                 REACT_APP_BACKEND_HOST: global.backendHost,
             }),
             REACT_APP_DOMAIN: req.host,
-            REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
+            REACT_APP_STRIPE_PUBLIC_KEY: process.env['STRIPE_PUBLIC_KEY'],
             REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY:
-                process.env.PUSHNOTIFICATION_PUBLIC_KEY,
-            REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
-            REACT_APP_VERSION: process.env.REACT_APP_VERSION,
-            REACT_APP_STATUSPAGE_DOMAIN: process.env.STATUSPAGE_DOMAIN,
+                process.env['PUSHNOTIFICATION_PUBLIC_KEY'],
+            REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env['AMPLITUDE_PUBLIC_KEY'],
+            REACT_APP_VERSION: process.env['REACT_APP_VERSION'],
+            REACT_APP_STATUSPAGE_DOMAIN: process.env['STATUSPAGE_DOMAIN'],
         };
 
         res.contentType('application/javascript');
@@ -78,7 +78,7 @@ app.use(
     ['/dashboard/api/version', '/dashboard/version'],
     (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
-        res.json({ dashboardVersion: process.env.npm_package_version });
+        res.json({ dashboardVersion: process.env['npm_package_version'] });
     }
 );
 

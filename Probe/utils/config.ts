@@ -38,11 +38,11 @@ const COMMAND: $TSFixMe = {
 
 export default {
     COMMAND,
-    serverUrl: process.env.SERVER_URL,
-    probeName: process.env.PROBE_NAME,
-    probeKey: process.env.PROBE_KEY,
-    clusterKey: process.env.CLUSTER_KEY,
+    serverUrl: process.env['SERVER_URL'],
+    probeName: process.env['PROBE_NAME'],
+    probeKey: process.env['PROBE_KEY'],
+    clusterKey: process.env['CLUSTER_KEY'],
     probeVersion: packageJson.version,
-    dataIngestorUrl: process.env.DATA_INGESTOR_URL,
-    probeApiUrl: process.env.PROBE_API_URL,
+    dataIngestorUrl: process.env['DATA_INGESTOR_URL'],
+    probeApiUrl: process.env['PROBE_API_URL'],
 };

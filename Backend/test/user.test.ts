@@ -1,4 +1,4 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import data from './data/user';
 const profile: $TSFixMe = require('./data/user').profile;

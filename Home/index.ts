@@ -18,7 +18,7 @@ import axios from 'axios';
 import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env['NODE_ENV'] === 'production') {
     app.use(compression());
 }
 
@@ -179,8 +179,8 @@ app.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { monitorId, subscriberId } = req.params;
         let apiHost: $TSFixMe;
-        if (process.env.ONEUPTIME_HOST) {
-            apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
+        if (process.env['ONEUPTIME_HOST']) {
+            apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
         } else {
             apiHost = 'http://localhost:3002/api';
         }
@@ -212,8 +212,8 @@ app.get(
 
 app.post('/unsubscribe', async (req: ExpressRequest, res: ExpressResponse) => {
     let apiHost: string;
-    if (process.env.ONEUPTIME_HOST) {
-        apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
+    if (process.env['ONEUPTIME_HOST']) {
+        apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
     } else {
         apiHost = 'http://localhost:3002/api';
     }

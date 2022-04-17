@@ -7,7 +7,7 @@ import ServerMonitors from './serverMonitors';
 
 import IncomingHttpRequestMonitors from './incomingHttpRequestMonitors';
 import KubernetesMonitors from './kubernetesMonitors';
-let limit: $TSFixMe = process.env.RESOURCES_LIMIT;
+let limit: $TSFixMe = process.env['RESOURCES_LIMIT'];
 
 if (limit && typeof limit === 'string') {
     limit = parseInt(limit);

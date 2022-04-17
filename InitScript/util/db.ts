@@ -1,6 +1,6 @@
 const MongoClient: $TSFixMe = require('mongodb').MongoClient;
 const url: $TSFixMe =
-    process.env.MONGO_URL || 'mongodb://localhost/oneuptimedb';
+    process.env['MONGO_URL'] || 'mongodb://localhost/oneuptimedb';
 import Query from 'CommonServer/types/db/Query';
 global.client = global.client || MongoClient;
 
@@ -102,7 +102,7 @@ async function rename(
  * You should NEVER use this function. This is just used for tests.
  */
 async function deleteDatabase(): void {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env['NODE_ENV'] === 'development') {
         await global.db.dropDatabase();
     }
 }

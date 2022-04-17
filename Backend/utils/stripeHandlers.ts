@@ -1,5 +1,5 @@
 import BackendAPI from './api';
-const SLACK_URL: $TSFixMe = process.env.SLACK_BILLING_WEBHOOK;
+const SLACK_URL: $TSFixMe = process.env['SLACK_BILLING_WEBHOOK'];
 
 export default {
     // Webhook notification to slack channel

@@ -31,7 +31,7 @@ app.get(
     (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send({
-            applicationScannerVersion: process.env.npm_package_version,
+            applicationScannerVersion: process.env['npm_package_version'],
         });
     }
 );

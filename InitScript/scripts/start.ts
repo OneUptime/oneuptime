@@ -7,13 +7,13 @@ import bcrypt from 'bcrypt';
 async function run(): void {
     await updateVersion();
 
-    if (process.env.NODE_ENV === 'ci') {
+    if (process.env['NODE_ENV'] === 'ci') {
         await deleteDatabase();
         await setupTestProbes();
 
         if (
-            process.env.IS_SAAS_SERVICE === 'true' ||
-            process.env.IS_SAAS_SERVICE === true
+            process.env['IS_SAAS_SERVICE'] === 'true' ||
+            process.env['IS_SAAS_SERVICE'] === true
         ) {
             // If SaaS Service create master admin user automatically.
             await addMasterAdminUser();

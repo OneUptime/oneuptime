@@ -1,4 +1,4 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import { expect } from 'chai';

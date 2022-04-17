@@ -6,7 +6,7 @@ import {
     NextFunction,
 } from 'CommonServer/Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-const CLUSTER_KEY: $TSFixMe = process.env.CLUSTER_KEY;
+const CLUSTER_KEY: $TSFixMe = process.env['CLUSTER_KEY'];
 
 /*
  * TODO: Make sure this is stored in redis.

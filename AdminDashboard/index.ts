@@ -10,13 +10,13 @@ app.get(
     ['/env.js', '/admin/env.js'],
     (req: ExpressRequest, res: ExpressResponse) => {
         const env: $TSFixMe = {
-            REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
-            REACT_APP_LICENSE_URL: process.env.LICENSE_URL,
+            REACT_APP_IS_SAAS_SERVICE: process.env['IS_SAAS_SERVICE'],
+            REACT_APP_LICENSE_URL: process.env['LICENSE_URL'],
             REACT_APP_IS_THIRD_PARTY_BILLING:
-                process.env.IS_THIRD_PARTY_BILLING,
+                process.env['IS_THIRD_PARTY_BILLING'],
             REACT_APP_VERSION:
-                process.env.npm_package_version ||
-                process.env.REACT_APP_VERSION,
+                process.env['npm_package_version'] ||
+                process.env['REACT_APP_VERSION'],
         };
 
         res.contentType('application/javascript');
