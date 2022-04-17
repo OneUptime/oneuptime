@@ -6,7 +6,8 @@
             "jsx": true,
             "spread": true
         },
-        "sourceType": "module"
+        "sourceType": "module",
+        "project": ["./tsconfig.json"]
     },
     "env": {
         "browser": true,
