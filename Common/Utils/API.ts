@@ -151,15 +151,14 @@ export default class API {
 
         try {
             const result: {
-                data: JSONObjectOrArray,
-                status: number
-            }
-                = await axios({
-                    method: method,
-                    url: url.toString(),
-                    headers: apiHeaders,
-                    data,
-                });
+                data: JSONObjectOrArray;
+                status: number;
+            } = await axios({
+                method: method,
+                url: url.toString(),
+                headers: apiHeaders,
+                data,
+            });
 
             const response: HTTPResponse = new HTTPResponse(
                 result.status,

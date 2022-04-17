@@ -2,7 +2,7 @@ import Hostname from 'Common/Types/api/hostname';
 import Protocol from 'Common/Types/api/protocol';
 
 export const env: Function = (key: string): string => {
-    return process.env['`REACT_APP_']${key}`] || '';
+    return process.env[`REACT_APP_${key}`] || '';
 };
 
 export const IS_SAAS_SERVICE: $TSFixMe = env('IS_SAAS_SERVICE') === 'true';

@@ -2,28 +2,29 @@ import EmailTemplate from '../../Types/Email/EmailTemplate';
 import EmailTemplateType from '../../Types/Email/EmailTemplateType';
 export default class DefaultEmailTemplate {
     public static getDefaultTemplates(): Array<EmailTemplate> {
-      return [
-        {
-          allowedVariables: [
-            '{{userName}} : User display name.',
-            '{{monitorName}} : Name of the monitor on which incident has occurred.',
-            '{{componentName}} : Name of the component the monitor belongs to',
-            '{{projectName}} : Name of the project on which the incident has occurred.',
-            '{{incidentTime}} : Time at which this incident occurred.',
-            '{{incidentDescription}} : Description of the incident.',
-            '{{incidentType}} : Type of incident.',
-            '{{userId}} : Unique identifier for user account.',
-            '{{projectId}} : Unique identifier for the current project.',
-            "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
-            '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
-            '{{incident.customFields.*}} : The value of any incident custom field',
-            '{{monitor.customFields.*}} : The value of any monitor custom field',
-            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
-          ],
-          emailType: EmailTemplateType.SUBSCRIBER_INCIDENT_CREATED,
-          emailBody: {
-            subject: '{{projectName}} - {{monitorName}}: Incident Created',
-            body: `
+        return [
+            {
+                allowedVariables: [
+                    '{{userName}} : User display name.',
+                    '{{monitorName}} : Name of the monitor on which incident has occurred.',
+                    '{{componentName}} : Name of the component the monitor belongs to',
+                    '{{projectName}} : Name of the project on which the incident has occurred.',
+                    '{{incidentTime}} : Time at which this incident occurred.',
+                    '{{incidentDescription}} : Description of the incident.',
+                    '{{incidentType}} : Type of incident.',
+                    '{{userId}} : Unique identifier for user account.',
+                    '{{projectId}} : Unique identifier for the current project.',
+                    "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+                    '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+                    '{{incident.customFields.*}} : The value of any incident custom field',
+                    '{{monitor.customFields.*}} : The value of any monitor custom field',
+                    '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+                ],
+                emailType: EmailTemplateType.SUBSCRIBER_INCIDENT_CREATED,
+                emailBody: {
+                    subject:
+                        '{{projectName}} - {{monitorName}}: Incident Created',
+                    body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
   <head>
@@ -553,30 +554,30 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     <!-- /Background -->
 </body></html>
 `,
-          }
-        },
-        {
-          allowedVariables: [
-            '{{userName}} : User display name.',
-            '{{monitorName}} : Name of the monitor on which incident has occurred.',
-            '{{componentName}} : Name of the component the monitor belongs to',
-            '{{projectName}} : Name of the project on which the incident has occurred.',
-            '{{incidentTime}} : Time at which this incident occurred.',
-            '{{incidentType}} : Type of incident.',
-            '{{userId}} : Unique identifier for user account.',
-            '{{projectId}} : Unique identifier for the current project.',
-            "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
-            '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
-            '{{incident.customFields.*}} : The value of any incident custom field',
-            '{{monitor.customFields.*}} : The value of any monitor custom field',
-            '{{length}} : Length of the incident',
-            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
-          ],
-          emailType: EmailTemplateType.SUBSCRIBER_INCIDENT_ACKNOWLEDGED,
-          emailBody: {
-            subject:
-              '{{projectName}} - {{monitorName}}: Incident Acknowledged',
-            body: `
+                },
+            },
+            {
+                allowedVariables: [
+                    '{{userName}} : User display name.',
+                    '{{monitorName}} : Name of the monitor on which incident has occurred.',
+                    '{{componentName}} : Name of the component the monitor belongs to',
+                    '{{projectName}} : Name of the project on which the incident has occurred.',
+                    '{{incidentTime}} : Time at which this incident occurred.',
+                    '{{incidentType}} : Type of incident.',
+                    '{{userId}} : Unique identifier for user account.',
+                    '{{projectId}} : Unique identifier for the current project.',
+                    "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+                    '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+                    '{{incident.customFields.*}} : The value of any incident custom field',
+                    '{{monitor.customFields.*}} : The value of any monitor custom field',
+                    '{{length}} : Length of the incident',
+                    '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+                ],
+                emailType: EmailTemplateType.SUBSCRIBER_INCIDENT_ACKNOWLEDGED,
+                emailBody: {
+                    subject:
+                        '{{projectName}} - {{monitorName}}: Incident Acknowledged',
+                    body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -1092,29 +1093,30 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
   <!-- /Background -->
 </body></html>
 `,
-          }
-        },
-        {
-          allowedVariables: [
-            '{{userName}} : User display name.',
-            '{{monitorName}} : Name of the monitor on which incident has occured.',
-            '{{componentName}} : Name of the component the monitor belongs to',
-            '{{projectName}} : Name of the project on which the incident has occured.',
-            '{{incidentTime}} : Time at which this incident occured.',
-            '{{incidentType}} : Type of incident.',
-            '{{userId}} : Unique identifier for user account.',
-            '{{projectId}} : Unique identifier for the current project.',
-            "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
-            '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
-            '{{incident.customFields.*}} : The value of any incident custom field',
-            '{{monitor.customFields.*}} : The value of any monitor custom field',
-            '{{length}} : Length of the incident',
-            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
-          ],
-          emailType: EmailTemplateType.SUBSCRIBER_INCIDENT_RESOLVED,
-          emailBody: {
-            subject: '{{projectName}} - {{monitorName}}: Incident Resolved',
-            body: `
+                },
+            },
+            {
+                allowedVariables: [
+                    '{{userName}} : User display name.',
+                    '{{monitorName}} : Name of the monitor on which incident has occured.',
+                    '{{componentName}} : Name of the component the monitor belongs to',
+                    '{{projectName}} : Name of the project on which the incident has occured.',
+                    '{{incidentTime}} : Time at which this incident occured.',
+                    '{{incidentType}} : Type of incident.',
+                    '{{userId}} : Unique identifier for user account.',
+                    '{{projectId}} : Unique identifier for the current project.',
+                    "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+                    '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+                    '{{incident.customFields.*}} : The value of any incident custom field',
+                    '{{monitor.customFields.*}} : The value of any monitor custom field',
+                    '{{length}} : Length of the incident',
+                    '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+                ],
+                emailType: EmailTemplateType.SUBSCRIBER_INCIDENT_RESOLVED,
+                emailBody: {
+                    subject:
+                        '{{projectName}} - {{monitorName}}: Incident Resolved',
+                    body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -1622,32 +1624,32 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
   <!-- /Background -->
 </body></html>
 `,
-          }
-        },
-        {
-          allowedVariables: [
-            '{{userName}} : User display name.',
-            '{{monitorName}} : Name of the monitor on which incident has occured.',
-            '{{componentName}} : Name of the component the monitor belongs to',
-            '{{projectName}} : Name of the project on which the incident has occured.',
-            '{{incidentTime}} : Time at which this incident occured.',
-            '{{incidentType}} : Type of incident.',
-            '{{noteType}} : Type of note created.',
-            '{{userId}} : Unique identifier for user account.',
-            '{{projectId}} : Unique identifier for the current project.',
-            "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
-            '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
-            '{{incidentNoteStatus}} : Status of the incident note',
-            '{{incident.customFields.*}} : The value of any incident custom field',
-            '{{monitor.customFields.*}} : The value of any monitor custom field',
-            '{{incidentNote}} : The content of the investigation note',
-            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
-          ],
-          emailType: EmailTemplateType.INVESTIGATION_NOTE_CREATED,
-          emailBody: {
-            subject:
-              'An update on an active incident {{#if monitorName}} for {{monitorName}} {{/if}}',
-            body: `
+                },
+            },
+            {
+                allowedVariables: [
+                    '{{userName}} : User display name.',
+                    '{{monitorName}} : Name of the monitor on which incident has occured.',
+                    '{{componentName}} : Name of the component the monitor belongs to',
+                    '{{projectName}} : Name of the project on which the incident has occured.',
+                    '{{incidentTime}} : Time at which this incident occured.',
+                    '{{incidentType}} : Type of incident.',
+                    '{{noteType}} : Type of note created.',
+                    '{{userId}} : Unique identifier for user account.',
+                    '{{projectId}} : Unique identifier for the current project.',
+                    "{{trackEmailAsViewedUrl}} : Include this in your email to track emails and know when they're opened.",
+                    '{{statusPageUrl}} : URL of the Status Page your subscriber can go to. ',
+                    '{{incidentNoteStatus}} : Status of the incident note',
+                    '{{incident.customFields.*}} : The value of any incident custom field',
+                    '{{monitor.customFields.*}} : The value of any monitor custom field',
+                    '{{incidentNote}} : The content of the investigation note',
+                    '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+                ],
+                emailType: EmailTemplateType.INVESTIGATION_NOTE_CREATED,
+                emailBody: {
+                    subject:
+                        'An update on an active incident {{#if monitorName}} for {{monitorName}} {{/if}}',
+                    body: `
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
     <head>
@@ -2169,28 +2171,29 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
     </body>
   </html>
 `,
-          }
-        },
-        {
-          allowedVariables: [
-            '{{userName}} : User display name.',
-            '{{eventName}} : Name of the maintenance event.',
-            '{{eventDescription}} :Description of the scheduled event.',
-            '{{eventCreateTime}} : Time at which scheduled event is created.',
-            '{{eventStartTime}} : Time at which scheduled event is starts.',
-            '{{eventEndTime}} : Time at which scheduled event ends.',
-            '{{projectName}} : Name of the project on which the event was created.',
-            '{{monitorName}} : Name of the monitor on which the event was created.',
-            '{{userId}} : Unique identifier for user account.',
-            '{{projectId}} : Unique identifier for the current project.',
-            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
-            '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
-          ],
+                },
+            },
+            {
+                allowedVariables: [
+                    '{{userName}} : User display name.',
+                    '{{eventName}} : Name of the maintenance event.',
+                    '{{eventDescription}} :Description of the scheduled event.',
+                    '{{eventCreateTime}} : Time at which scheduled event is created.',
+                    '{{eventStartTime}} : Time at which scheduled event is starts.',
+                    '{{eventEndTime}} : Time at which scheduled event ends.',
+                    '{{projectName}} : Name of the project on which the event was created.',
+                    '{{monitorName}} : Name of the monitor on which the event was created.',
+                    '{{userId}} : Unique identifier for user account.',
+                    '{{projectId}} : Unique identifier for the current project.',
+                    '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+                    '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
+                ],
 
-          emailType: EmailTemplateType.SUBSCRIBER_SCHEDULED_MAINTENANCE_CREATED,
-          emailBody: {
-            subject: `New Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
-            body: `
+                emailType:
+                    EmailTemplateType.SUBSCRIBER_SCHEDULED_MAINTENANCE_CREATED,
+                emailBody: {
+                    subject: `New Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
+                    body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -2707,24 +2710,25 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
   <!-- /Background -->
 </body></html>
 `,
-          }
-        },
-        {
-          allowedVariables: [
-            '{{userName}} : User display name.',
-            '{{eventName}} : Name of the maintenance event.',
-            '{{status}} : Status of the created note.',
-            '{{createdBy}} : Time at which scheduled event is starts.',
-            '{{content}} : Content of created note.',
-            '{{projectName}} : Name of the project on which the event was created.',
-            '{{monitorName}} : Name of the monitor on which the event was created.',
-            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
-            '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
-          ],
-          emailType: EmailTemplateType.SUBSCRIBER_SCHEDULED_MAINTENANCE_NOTE_CREATED,
-          emailBody: {
-            subject: `New Scheduled Maintenance Event Note for {{projectName}} - {{eventName}} `,
-            body: `
+                },
+            },
+            {
+                allowedVariables: [
+                    '{{userName}} : User display name.',
+                    '{{eventName}} : Name of the maintenance event.',
+                    '{{status}} : Status of the created note.',
+                    '{{createdBy}} : Time at which scheduled event is starts.',
+                    '{{content}} : Content of created note.',
+                    '{{projectName}} : Name of the project on which the event was created.',
+                    '{{monitorName}} : Name of the monitor on which the event was created.',
+                    '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+                    '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
+                ],
+                emailType:
+                    EmailTemplateType.SUBSCRIBER_SCHEDULED_MAINTENANCE_NOTE_CREATED,
+                emailBody: {
+                    subject: `New Scheduled Maintenance Event Note for {{projectName}} - {{eventName}} `,
+                    body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -3230,24 +3234,25 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
   <!-- /Background -->
 </body></html>
 `,
-          }
-        },
+                },
+            },
 
-        {
-          allowedVariables: [
-            '{{userName}} : User display name.',
-            '{{eventName}} : Name of the maintenance event.',
-            '{{eventDescription}} :Description of the scheduled event.',
-            '{{eventResolveTime}} : Time at which scheduled event is created.',
-            '{{projectName}} : Name of the project on which the event was created.',
-            '{{monitorName}} : Name of the monitor on which the event was created.',
-            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
-            '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
-          ],
-          emailType: EmailTemplateType.SUBSCRIBER_SCHEDULED_MAINTENANCE_RESOLVED,
-          emailBody: {
-            subject: `Resolved Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
-            body: `
+            {
+                allowedVariables: [
+                    '{{userName}} : User display name.',
+                    '{{eventName}} : Name of the maintenance event.',
+                    '{{eventDescription}} :Description of the scheduled event.',
+                    '{{eventResolveTime}} : Time at which scheduled event is created.',
+                    '{{projectName}} : Name of the project on which the event was created.',
+                    '{{monitorName}} : Name of the monitor on which the event was created.',
+                    '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+                    '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
+                ],
+                emailType:
+                    EmailTemplateType.SUBSCRIBER_SCHEDULED_MAINTENANCE_RESOLVED,
+                emailBody: {
+                    subject: `Resolved Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
+                    body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -3744,23 +3749,24 @@ You are receiving this mail because you are subscribed to this monitor.
 <!-- /Background -->
 </body></html>
 `,
-          }
-        },
-        {
-          allowedVariables: [
-            '{{userName}} : User display name.',
-            '{{eventName}} : Name of the maintenance event.',
-            '{{eventDescription}} :Description of the scheduled event.',
-            '{{eventCancelTime}} : Time at which scheduled event is cancelled.',
-            '{{projectName}} : Name of the project on which the event was created.',
-            '{{monitorName}} : Name of the monitor on which the event was created.',
-            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
-            '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
-          ],
-          emailType: EmailTemplateType.SUBSCRIBER_SCHEDULED_MAINTENANCE_CANCELLED,
-          emailBody: {
-            subject: `Cancelled Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
-            body: `
+                },
+            },
+            {
+                allowedVariables: [
+                    '{{userName}} : User display name.',
+                    '{{eventName}} : Name of the maintenance event.',
+                    '{{eventDescription}} :Description of the scheduled event.',
+                    '{{eventCancelTime}} : Time at which scheduled event is cancelled.',
+                    '{{projectName}} : Name of the project on which the event was created.',
+                    '{{monitorName}} : Name of the monitor on which the event was created.',
+                    '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+                    '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
+                ],
+                emailType:
+                    EmailTemplateType.SUBSCRIBER_SCHEDULED_MAINTENANCE_CANCELLED,
+                emailBody: {
+                    subject: `Cancelled Scheduled Maintenance Event for {{projectName}} - {{eventName}}`,
+                    body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -4257,20 +4263,21 @@ OneUptime Team.
 <!-- /Background -->
 </body></html>
 `,
-          }
-          },
+                },
+            },
             {
-          allowedVariables: [
-            '{{announcementTitle}} : Name of the maintenance event.',
-            '{{announcementDescription}} : Description of the scheduled event.',
-            '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
-            '{{projectName}} : Name of project on which announcement is created',
-            '{{monitorName}} : List of monitors affected by scheduled maintenance event',
-          ],
-          emailType: EmailTemplateType.SUBSCRIBER_ANNOUNCEMENT_NOTIFICATION_CREATED,
-              emailBody: {
-                subject: `Announcement Notification for {{projectName}}`,
-                body: `
+                allowedVariables: [
+                    '{{announcementTitle}} : Name of the maintenance event.',
+                    '{{announcementDescription}} : Description of the scheduled event.',
+                    '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
+                    '{{projectName}} : Name of project on which announcement is created',
+                    '{{monitorName}} : List of monitors affected by scheduled maintenance event',
+                ],
+                emailType:
+                    EmailTemplateType.SUBSCRIBER_ANNOUNCEMENT_NOTIFICATION_CREATED,
+                emailBody: {
+                    subject: `Announcement Notification for {{projectName}}`,
+                    body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
@@ -4769,8 +4776,7 @@ OneUptime Team.
 <!-- /Background -->
 </body></html>
 `,
-              }
-        
+                },
             },
         ];
     }

@@ -9,7 +9,7 @@ import Express, {
     NextFunction,
     ExpressJson,
     ExpressUrlEncoded,
-    ExpressApplication
+    ExpressApplication,
 } from './Express';
 
 // Connect common api's.

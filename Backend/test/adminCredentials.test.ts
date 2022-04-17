@@ -17,7 +17,7 @@ import AirtableService from '../backend/services/airtableService';
 
 let token: $TSFixMe;
 
-describe('Admin process.env['login'] API', function (): void {
+describe('Admin process.env.login API', function (): void {
     this.timeout(30000);
 
     before(async function (): void {

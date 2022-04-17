@@ -9,7 +9,7 @@ export const env: Function = (value: $TSFixMe): void => {
     const { _env }: $TSFixMe = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
-        process.env['`REACT_APP_']${value}`]
+        process.env[`REACT_APP_${value}`]
     );
 };
 

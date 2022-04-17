@@ -10,7 +10,7 @@ export default class Email {
     }
 
     public constructor(email: string) {
-        const re: RegExp = 
+        const re: RegExp =
             /^(([^<>()[\].,;:\s@"]+(.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+.)+[^<>()[\].,;:\s@"]{2,})$/i;
         const isValid: boolean = re.test(email);
         if (!isValid) {

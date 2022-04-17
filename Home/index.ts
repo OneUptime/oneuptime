@@ -824,7 +824,9 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
         URL.fromString('https://oneuptime.com/product/api-monitoring'),
         URL.fromString('https://oneuptime.com/product/server-monitoring'),
         URL.fromString('https://oneuptime.com/product/logs-management'),
-        URL.fromString('https://oneuptime.com/product/docker-container-security'),
+        URL.fromString(
+            'https://oneuptime.com/product/docker-container-security'
+        ),
         URL.fromString('https://oneuptime.com/product/oncall-management'),
         URL.fromString('https://oneuptime.com/customers'),
         URL.fromString('https://oneuptime.com/enterprise/overview'),
@@ -847,10 +849,18 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
         URL.fromString('https://oneuptime.com/legal/iso-27018'),
         URL.fromString('https://oneuptime.com/legal/hipaa'),
         URL.fromString('https://oneuptime.com/legal/pci'),
-        URL.fromString('https://oneuptime.com/enterprise/download-resource/website-monitoring'),
-        URL.fromString('https://oneuptime.com/enterprise/download-resource/speed-equals-revenue'),
-        URL.fromString('https://oneuptime.com/enterprise/download-resource/best-practices'),
-        URL.fromString('https://oneuptime.com/enterprise/download-resource/planning-for-peak-performance'),
+        URL.fromString(
+            'https://oneuptime.com/enterprise/download-resource/website-monitoring'
+        ),
+        URL.fromString(
+            'https://oneuptime.com/enterprise/download-resource/speed-equals-revenue'
+        ),
+        URL.fromString(
+            'https://oneuptime.com/enterprise/download-resource/best-practices'
+        ),
+        URL.fromString(
+            'https://oneuptime.com/enterprise/download-resource/planning-for-peak-performance'
+        ),
         URL.fromString('https://oneuptime.com/legal/sla'),
         URL.fromString('https://oneuptime.com/legal/iso-27001'),
         URL.fromString('https://oneuptime.com/legal/data-residency'),
@@ -866,7 +876,7 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
 
     // Build xml
     const urlsetAttr: Dictionary<string> = [
-        { 'xmlns': 'http://www.sitemaps.org/schemas/sitemap/0.9' },
+        { xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9' },
         { 'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance' },
         {
             'xsi:schemaLocation':

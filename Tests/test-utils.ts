@@ -143,7 +143,8 @@ const dockerCredential: $TSFixMe = {
         process.env['DOCKER_SECURITY_SCAN_REGISTRY_URL'] ||
         'https://registry.hub.docker.com',
     imagePath:
-        process.env['DOCKER_SECURITY_SCAN_IMAGE_PATH'] || 'oneuptimeproject/home',
+        process.env['DOCKER_SECURITY_SCAN_IMAGE_PATH'] ||
+        'oneuptimeproject/home',
     imageTags: process.env['DOCKER_SECURITY_SCAN_IMAGE_TAGS'] || 'latest',
 };
 
@@ -159,7 +160,8 @@ const gitCredential: $TSFixMe = {
 const smtpCredential: $TSFixMe = {
     user: process.env['TEST_EMAIL'] || 'noreply@oneuptime.com',
     pass:
-        process.env['TEST_EMAIL_PASSWORD'] || 'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD',
+        process.env['TEST_EMAIL_PASSWORD'] ||
+        'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD',
     host: process.env['TEST_EMAIL_SMTP_SERVER'] || 'smtp.gmail.com',
     port: process.env['TEST_EMAIL_SMTP_PORT'] || '465',
     from: process.env['TEST_EMAIL'] || 'noreply@oneuptime.com',
