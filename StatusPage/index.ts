@@ -8,51 +8,12 @@ import logger from 'CommonServer/Utils/Logger';
 import path from 'path';
 const app: $TSFixMe = express.getExpressApp();
 
-import https from 'https';
-import http from 'http';
 import tls from 'tls';
 import fs from 'fs';
 
 import fetch from 'node-fetch';
 import { spawn } from 'child_process';
 import axios from 'axios';
-
-import cors from 'cors';
-
-// Mongodb
-const MongoClient: $TSFixMe = require('mongodb').MongoClient;
-const mongoUrl: $TSFixMe =
-    process.env.MONGO_URL || 'mongodb://localhost:27017/oneuptimedb';
-
-const { NODE_ENV }: $TSFixMe = process.env;
-
-function getMongoClient(): void {
-    return new MongoClient(mongoUrl, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    });
-}
-
-// Setup mongodb connection
-const client: $TSFixMe = getMongoClient();
-(async function (): void {
-    try {
-        logger.info('connecting to db');
-        await client.connect();
-
-        logger.info('connected to db');
-    } catch (error) {
-        logger.info('connection error: ', error);
-    }
-})();
-
-if (!NODE_ENV || NODE_ENV === 'development') {
-    // Load env vars from /StatusPage/.env
-    import dotenv from 'dotenv';
-    dotenv.config();
-}
-
-app.use(cors());
 
 let apiHost: $TSFixMe = 'http://localhost:3002/api';
 if (process.env.BACKEND_URL) {
@@ -200,7 +161,7 @@ app.use(
 
         try {
             const response: $TSFixMe = await handleCustomDomain(
-                client,
+                global.MongoClient,
                 'statuspages',
                 host
             );
@@ -344,12 +305,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
  * Using an IIFE here because we have an asynchronous code we want to run as we start the server
  * And since we can't await outside an async function, we had to use an IIFE to handle that
  */
-(async function (): void {
-    // Create http server
-    http.createServer(app).listen(3006, () => {
-        return logger.info('Server running on port 3006');
-    });
-
+const setupCerts: Function = async (): void => {
     try {
         // Create https server
         await createDir('credentials');
@@ -521,13 +477,11 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
                 );
             },
         };
-
-        https.createServer(options, app).listen(3007, () => {
-            logger.info('Server running on port 3007');
-        });
     } catch (e) {
         logger.info('Unable to create HTTPS Server');
 
         logger.info(e);
     }
-})();
+};
+
+setupCerts();

@@ -182,7 +182,7 @@ router.post(
                         const apiResponse: $TSFixMe = await axios(payload);
                         const headerContentType: $TSFixMe =
                             apiResponse.headers['content-type'];
-                        if (/text\/html/.test(headerContentType)) {
+                        if ((/text\/html/).test(headerContentType)) {
                             return sendErrorResponse(req, res, {
                                 code: 400,
                                 message:
@@ -391,7 +391,7 @@ router.put(
                     const apiResponse: $TSFixMe = await axios(payload);
                     const headerContentType: $TSFixMe =
                         apiResponse.headers['content-type'];
-                    if (/text\/html/.test(headerContentType)) {
+                    if ((/text\/html/).test(headerContentType)) {
                         return sendErrorResponse(req, res, {
                             code: 400,
                             message:

@@ -50,10 +50,11 @@ class OneUptimeListener {
         // This will reset the state of the timeline array
         return this.timelineObj.clearTimeline();
     }
+
     // Set up console listener
     private _setUpConsoleListener(): void {
         // Set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
-        const console: Function = (function (oldCons: $TSFixMe): void {
+        const consoleFunc: Function = (oldCons: $TSFixMe): void => {
             return {
                 log: function (text: $TSFixMe): void {
                     oldCons.log(text);
@@ -81,9 +82,10 @@ class OneUptimeListener {
                     );
                 },
             };
-        })(global.console);
-        //Then redefine the old console
+        };
 
+        const console = consoleFunc(global.console);
+        //Then redefine the old console
         global.console = console;
     }
     // Set up dom listener
