@@ -150,20 +150,24 @@ export default class API {
         const apiHeaders: Headers = this.getHeaders(headers);
 
         try {
-            const result: $TSFixMe = await axios({
-                method: method,
-                url: url.toString(),
-                headers: apiHeaders,
-                data,
-            });
+            const result: {
+                data: JSONObjectOrArray,
+                status: number
+            }
+                = await axios({
+                    method: method,
+                    url: url.toString(),
+                    headers: apiHeaders,
+                    data,
+                });
 
-            const response: $TSFixMe = new HTTPResponse(
+            const response: HTTPResponse = new HTTPResponse(
                 result.status,
                 result.data
             );
             return response;
         } catch (e) {
-            const error: $TSFixMe = e as Error | AxiosError;
+            const error: Error | AxiosError = e as Error | AxiosError;
             let errorResponse: HTTPErrorResponse | APIException;
             if (axios.isAxiosError(error)) {
                 // Do whatever you want with native error

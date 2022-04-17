@@ -10,9 +10,9 @@ export default class Email {
     }
 
     public constructor(email: string) {
-        const re: $TSFixMe =
+        const re: RegExp = 
             /^(([^<>()[\].,;:\s@"]+(.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+.)+[^<>()[\].,;:\s@"]{2,})$/i;
-        const isValid: $TSFixMe = re.test(email);
+        const isValid: boolean = re.test(email);
         if (!isValid) {
             throw new BadDataException('Email is not in valid format.');
         }

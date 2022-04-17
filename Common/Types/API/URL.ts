@@ -75,7 +75,7 @@ export default class URL {
 
         const hostname: Hostname = new Hostname(url.split('/')[0] || '');
 
-        let route: Route;
+        let route: Route | undefined = undefined;
 
         if (url.split('/').length > 1) {
             const paths: Array<string> = url.split('/');
