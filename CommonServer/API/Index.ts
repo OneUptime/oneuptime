@@ -1,8 +1,8 @@
 import version from './Version';
 import status from './Status';
-import Express from '../Utils/Express';
+import Express, { ExpressApplication} from '../Utils/Express';
 
-const app: $TSFixMe = Express.getExpressApp();
+const app: ExpressApplication = Express.getExpressApp();
 
 app.use('/version', version);
 app.use('/status', status);

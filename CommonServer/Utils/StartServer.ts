@@ -9,14 +9,15 @@ import Express, {
     NextFunction,
     ExpressJson,
     ExpressUrlEncoded,
+    ExpressApplication
 } from './Express';
 
 // Connect common api's.
 import '../API/Index';
 
-const app: $TSFixMe = Express.getExpressApp();
+const app: ExpressApplication = Express.getExpressApp();
 
-app.set('port', process.env.PORT);
+app.set('port', process.env['PORT']);
 
 const logRequest: Function = (
     req: ExpressRequest,

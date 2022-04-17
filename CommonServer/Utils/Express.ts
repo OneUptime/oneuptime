@@ -14,6 +14,7 @@ export type ProbeRequest = {
 
 export type ExpressRequest = express.Request;
 export type ExpressResponse = express.Response;
+export type ExpressApplication = express.Application;
 
 export interface OneUptimeRequest extends express.Request {
     probe?: ProbeRequest;

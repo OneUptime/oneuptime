@@ -5,17 +5,18 @@ import {
 } from 'CommonServer/Utils/Express';
 import ObjectID from 'Common/Types/ObjectID';
 import app from 'CommonServer/Utils/StartServer';
-
+import Dictionary from 'Common/Types/Dictionary';
 import path from 'path';
 
 import compression from 'compression';
 
 import minify from 'minify';
-
+import URL from 'Common/Types/API/URL';
 import tryToCatch from 'try-to-catch';
 import productCompare from './config/product-compare';
 import axios from 'axios';
 import builder from 'xmlbuilder2';
+import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
 if (process.env.NODE_ENV === 'production') {
     app.use(compression());
@@ -811,61 +812,61 @@ app.get(
 
 // Generate sitemap
 app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
-    const siteUrls: $TSFixMe = [
-        'https://oneuptime.com/',
-        'https://oneuptime.com/pricing',
-        'https://oneuptime.com/support',
-        'https://oneuptime.com/product/public-StatusPage',
-        'https://oneuptime.com/product/private-StatusPage',
-        'https://oneuptime.com/product/uptime-monitoring',
-        'https://oneuptime.com/product/incident-management',
-        'https://oneuptime.com/product/app-security',
-        'https://oneuptime.com/product/api-monitoring',
-        'https://oneuptime.com/product/server-monitoring',
-        'https://oneuptime.com/product/logs-management',
-        'https://oneuptime.com/product/docker-container-security',
-        'https://oneuptime.com/product/oncall-management',
-        'https://oneuptime.com/customers',
-        'https://oneuptime.com/enterprise/overview',
-        'https://oneuptime.com/enterprise/demo',
-        'https://oneuptime.com/enterprise/resources',
-        'https://oneuptime.com/legal/terms',
-        'https://oneuptime.com/legal/privacy',
-        'https://oneuptime.com/legal/gdpr',
-        'https://oneuptime.com/legal/ccpa',
-        'https://oneuptime.com/legal',
-        'https://oneuptime.com/compare/pagerduty',
-        'https://oneuptime.com/compare/pingdom',
-        'https://oneuptime.com/compare/statuspage.io',
-        'https://oneuptime.com/table/pagerduty',
-        'https://oneuptime.com/table/pingdom',
-        'https://oneuptime.com/table/statuspage.io',
-        'https://oneuptime.com/legal/soc-2',
-        'https://oneuptime.com/legal/soc-3',
-        'https://oneuptime.com/legal/iso-27017',
-        'https://oneuptime.com/legal/iso-27018',
-        'https://oneuptime.com/legal/hipaa',
-        'https://oneuptime.com/legal/pci',
-        'https://oneuptime.com/enterprise/download-resource/website-monitoring',
-        'https://oneuptime.com/enterprise/download-resource/speed-equals-revenue',
-        'https://oneuptime.com/enterprise/download-resource/best-practices',
-        'https://oneuptime.com/enterprise/download-resource/planning-for-peak-performance',
-        'https://oneuptime.com/legal/sla',
-        'https://oneuptime.com/legal/iso-27001',
-        'https://oneuptime.com/legal/data-residency',
-        'https://oneuptime.com/legal/dmca',
-        'https://oneuptime.com/legal/subprocessors',
-        'https://oneuptime.com/legal/contact',
-        'https://oneuptime.com/files/soc-3.pdf',
-        'https://oneuptime.com/files/iso-27017.pdf',
-        'https://oneuptime.com/files/iso-27018.pdf',
-        'https://oneuptime.com/files/pci.pdf',
-        'https://oneuptime.com/files/iso-27001.pdf',
+    const siteUrls: Array<URL> = [
+        URL.fromString('https://oneuptime.com/'),
+        URL.fromString('https://oneuptime.com/pricing'),
+        URL.fromString('https://oneuptime.com/support'),
+        URL.fromString('https://oneuptime.com/product/public-StatusPage'),
+        URL.fromString('https://oneuptime.com/product/private-StatusPage'),
+        URL.fromString('https://oneuptime.com/product/uptime-monitoring'),
+        URL.fromString('https://oneuptime.com/product/incident-management'),
+        URL.fromString('https://oneuptime.com/product/app-security'),
+        URL.fromString('https://oneuptime.com/product/api-monitoring'),
+        URL.fromString('https://oneuptime.com/product/server-monitoring'),
+        URL.fromString('https://oneuptime.com/product/logs-management'),
+        URL.fromString('https://oneuptime.com/product/docker-container-security'),
+        URL.fromString('https://oneuptime.com/product/oncall-management'),
+        URL.fromString('https://oneuptime.com/customers'),
+        URL.fromString('https://oneuptime.com/enterprise/overview'),
+        URL.fromString('https://oneuptime.com/enterprise/demo'),
+        URL.fromString('https://oneuptime.com/enterprise/resources'),
+        URL.fromString('https://oneuptime.com/legal/terms'),
+        URL.fromString('https://oneuptime.com/legal/privacy'),
+        URL.fromString('https://oneuptime.com/legal/gdpr'),
+        URL.fromString('https://oneuptime.com/legal/ccpa'),
+        URL.fromString('https://oneuptime.com/legal'),
+        URL.fromString('https://oneuptime.com/compare/pagerduty'),
+        URL.fromString('https://oneuptime.com/compare/pingdom'),
+        URL.fromString('https://oneuptime.com/compare/statuspage.io'),
+        URL.fromString('https://oneuptime.com/table/pagerduty'),
+        URL.fromString('https://oneuptime.com/table/pingdom'),
+        URL.fromString('https://oneuptime.com/table/statuspage.io'),
+        URL.fromString('https://oneuptime.com/legal/soc-2'),
+        URL.fromString('https://oneuptime.com/legal/soc-3'),
+        URL.fromString('https://oneuptime.com/legal/iso-27017'),
+        URL.fromString('https://oneuptime.com/legal/iso-27018'),
+        URL.fromString('https://oneuptime.com/legal/hipaa'),
+        URL.fromString('https://oneuptime.com/legal/pci'),
+        URL.fromString('https://oneuptime.com/enterprise/download-resource/website-monitoring'),
+        URL.fromString('https://oneuptime.com/enterprise/download-resource/speed-equals-revenue'),
+        URL.fromString('https://oneuptime.com/enterprise/download-resource/best-practices'),
+        URL.fromString('https://oneuptime.com/enterprise/download-resource/planning-for-peak-performance'),
+        URL.fromString('https://oneuptime.com/legal/sla'),
+        URL.fromString('https://oneuptime.com/legal/iso-27001'),
+        URL.fromString('https://oneuptime.com/legal/data-residency'),
+        URL.fromString('https://oneuptime.com/legal/dmca'),
+        URL.fromString('https://oneuptime.com/legal/subprocessors'),
+        URL.fromString('https://oneuptime.com/legal/contact'),
+        URL.fromString('https://oneuptime.com/files/soc-3.pdf'),
+        URL.fromString('https://oneuptime.com/files/iso-27017.pdf'),
+        URL.fromString('https://oneuptime.com/files/iso-27018.pdf'),
+        URL.fromString('https://oneuptime.com/files/pci.pdf'),
+        URL.fromString('https://oneuptime.com/files/iso-27001.pdf'),
     ];
 
     // Build xml
-    const urlsetAttr: $TSFixMe = [
-        { xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9' },
+    const urlsetAttr: Dictionary<string> = [
+        { 'xmlns': 'http://www.sitemaps.org/schemas/sitemap/0.9' },
         { 'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance' },
         {
             'xsi:schemaLocation':
@@ -879,7 +880,7 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
 
     const timestamp: $TSFixMe = today.toISOString();
 
-    const urlset: $TSFixMe = builder.create().ele('urlset');
+    const urlset: XMLBuilder = builder.create().ele('urlset');
 
     // Apply attributes to root element
     urlsetAttr.forEach((attr: $TSFixMe) => {
@@ -887,7 +888,7 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
     });
 
     //Append urls to root element
-    siteUrls.forEach((url: $TSFixMe) => {
+    siteUrls.forEach((url: string) => {
         const urlElement: $TSFixMe = urlset.ele('url');
         urlElement.ele('loc').txt(url);
         urlElement.ele('lastmod').txt(timestamp);
