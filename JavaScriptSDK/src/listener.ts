@@ -84,14 +84,14 @@ class OneUptimeListener {
             };
         };
 
-        const console = consoleFunc(global.console);
+        const console: $TSFixMe = consoleFunc(global.console);
         //Then redefine the old console
         global.console = console;
     }
     // Set up dom listener
     private _setUpDomListener(): void {
         Object.keys(window).forEach((key: $TSFixMe) => {
-            if (/^on(keypress|click)/.test(key)) {
+            if ((/^on(keypress|click)/).test(key)) {
                 window.addEventListener(key.slice(2), (event: $TSFixMe) => {
                     if (!this.keypressTimeout) {
                         // Confirm the event is new
