@@ -91,7 +91,7 @@ class OneUptimeListener {
     // Set up dom listener
     private _setUpDomListener(): void {
         Object.keys(window).forEach((key: $TSFixMe) => {
-            if ((/^on(keypress|click)/).test(key)) {
+            if (key.includes('onclick') || key.includes('onkeypress')) {
                 window.addEventListener(key.slice(2), (event: $TSFixMe) => {
                     if (!this.keypressTimeout) {
                         // Confirm the event is new

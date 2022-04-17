@@ -320,36 +320,40 @@
  * }
  */
 
-// // function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
-// //     const M: $TSFixMe = pat.length;
-// //     const N: $TSFixMe = txt.length;
-// //     let res: $TSFixMe = 0;
+/*
+ * function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
+ *     const M: $TSFixMe = pat.length;
+ *     const N: $TSFixMe = txt.length;
+ *     let res: $TSFixMe = 0;
+ */
 
-// //     // A loop to slide pat[] one by one
-// //     for (let i: $TSFixMe = 0; i <= N - M; i++) {
-// //         /*
-// //          * For current index i, check for
-// //          * Pattern match
-// //          */
-// //         let j: $TSFixMe;
-// //         for (j = 0; j < M; j++) {
-// //             if (txt[i + j] !== pat[j]) {
-// //                 break;
-// //             }
-// //         }
+//     // A loop to slide pat[] one by one
+//     for (let i: $TSFixMe = 0; i <= N - M; i++) {
+//         /*
+//          * For current index i, check for
+//          * Pattern match
+//          */
+//         let j: $TSFixMe;
+//         for (j = 0; j < M; j++) {
+//             if (txt[i + j] !== pat[j]) {
+//                 break;
+//             }
+//         }
 
-// //         if (j === M) {
-// //             res++;
-// //             j = 0;
-// //         }
-// //     }
-// //     return res;
-// // }
+/*
+ *         if (j === M) {
+ *             res++;
+ *             j = 0;
+ *         }
+ *     }
+ *     return res;
+ * }
+ */
 
-// /*
-//  * Using an IIFE here because we have an asynchronous code we want to run as we start the server
-//  * And since we can't await outside an async function, we had to use an IIFE to handle that
-//  */
+/*
+ * Using an IIFE here because we have an asynchronous code we want to run as we start the server
+ * And since we can't await outside an async function, we had to use an IIFE to handle that
+ */
 // const setupCerts: Function = async (): void => {
 //     try {
 //         // Create https server
@@ -377,166 +381,168 @@
 //             decodeAndSave(privateKey, privateKeyPath),
 //         ]);
 
-//         /*
-//          * TODO: Needs to be refactored.
-//          * const options: $TSFixMe = {
-//          *     cert: fs.readFileSync(
-//          *         path.resolve(
-//          *             process.cwd(),
-//          *             'src',
-//          *             'credentials',
-//          *             'certificate.crt'
-//          *         )
-//          *     ),
-//          *     key: fs.readFileSync(
-//          *         path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
-//          *     ),
-//          *     SNICallback: async function (domain: $TSFixMe, cb: $TSFixMe): void {
-//          *         const res: $TSFixMe = await handleCustomDomain(
-//          *             global.MongoClient,
-//          *             'statuspages',
-//          *             domain
-//          *         );
-//          */
+/*
+ * TODO: Needs to be refactored.
+ * const options: $TSFixMe = {
+ *     cert: fs.readFileSync(
+ *         path.resolve(
+ *             process.cwd(),
+ *             'src',
+ *             'credentials',
+ *             'certificate.crt'
+ *         )
+ *     ),
+ *     key: fs.readFileSync(
+ *         path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
+ *     ),
+ *     SNICallback: async function (domain: $TSFixMe, cb: $TSFixMe): void {
+ *         const res: $TSFixMe = await handleCustomDomain(
+ *             global.MongoClient,
+ *             'statuspages',
+ *             domain
+ *         );
+ */
 
-//         //         Let certPath: $TSFixMe, privateKeyPath: $TSFixMe;
-//         //         If (res) {
-//         //             Const {
-//         //                 Cert,
-//         //                 PrivateKey,
-//         //                 AutoProvisioning,
-//         //                 EnableHttps,
-//         //                 Domain,
-//         //             } = res;
-//         //             /*
-//         //              * Have a condition to check for autoProvisioning
-//         //              * If auto provisioning is set
-//         //              * Fetch the stored cert/privateKey
-//         //              * Cert and private key is a string
-//         //              * Store it to a file on disk
-//         //              */
-//         //             If (enableHttps && autoProvisioning) {
-//         //                 Const certificate: $TSFixMe = await handleCertificate(
-//         //                     Global.MongoClient,
-//         //                     'certificates',
-//         //                     Domain
-//         //                 );
-//         //                 If (certificate) {
-//         //                     CertPath = path.resolve(
-//         //                         Process.cwd(),
-//         //                         'src',
-//         //                         'credentials',
-//         //                         `${certificate.id}.crt`
-//         //                     );
-//         //                     PrivateKeyPath = path.resolve(
-//         //                         Process.cwd(),
-//         //                         'src',
-//         //                         'credentials',
-//         //                         `${certificate.id}.key`
-//         //                     );
+//         Let certPath: $TSFixMe, privateKeyPath: $TSFixMe;
+//         If (res) {
+//             Const {
+//                 Cert,
+//                 PrivateKey,
+//                 AutoProvisioning,
+//                 EnableHttps,
+//                 Domain,
+//             } = res;
+//             /*
+//              * Have a condition to check for autoProvisioning
+//              * If auto provisioning is set
+//              * Fetch the stored cert/privateKey
+//              * Cert and private key is a string
+//              * Store it to a file on disk
+//              */
+//             If (enableHttps && autoProvisioning) {
+//                 Const certificate: $TSFixMe = await handleCertificate(
+//                     Global.MongoClient,
+//                     'certificates',
+//                     Domain
+//                 );
+//                 If (certificate) {
+//                     CertPath = path.resolve(
+//                         Process.cwd(),
+//                         'src',
+//                         'credentials',
+//                         `${certificate.id}.crt`
+//                     );
+//                     PrivateKeyPath = path.resolve(
+//                         Process.cwd(),
+//                         'src',
+//                         'credentials',
+//                         `${certificate.id}.key`
+//                     );
 
-//         //                     /*
-//         //                      * Check if the certificate is container chain
-//         //                      * If not, add anc show update view for the frontend
-//         //                      */
-//         //                     Let fullCert: $TSFixMe = certificate.cert;
-//         //                     If (
-//         //                         CountFreq(
-//         //                             'BEGIN CERTIFICATE',
-//         //                             Certificate.cert
-//         //                         ) === 1
-//         //                     ) {
-//         //                         FullCert =
-//         //                             Certificate.cert +
-//         //                             '\n' +
-//         //                             '\n' +
-//         //                             Certificate.chain;
-//         //                     }
-//         //                     Fs.writeFileSync(certPath, fullCert);
-//         //                     Fs.writeFileSync(
-//         //                         PrivateKeyPath,
-//         //                         Certificate.privateKeyPem
-//         //                     );
+//                     /*
+//                      * Check if the certificate is container chain
+//                      * If not, add anc show update view for the frontend
+//                      */
+//                     Let fullCert: $TSFixMe = certificate.cert;
+//                     If (
+//                         CountFreq(
+//                             'BEGIN CERTIFICATE',
+//                             Certificate.cert
+//                         ) === 1
+//                     ) {
+//                         FullCert =
+//                             Certificate.cert +
+//                             '\n' +
+//                             '\n' +
+//                             Certificate.chain;
+//                     }
+//                     Fs.writeFileSync(certPath, fullCert);
+//                     Fs.writeFileSync(
+//                         PrivateKeyPath,
+//                         Certificate.privateKeyPem
+//                     );
 
-//         /*
-//          *                     Return cb(
-//          *                         null,
-//          *                         tls.createSecureContext({
-//          *                             key: fs.readFileSync(privateKeyPath),
-//          *                             cert: fs.readFileSync(certPath),
-//          *                         })
-//          *                     );
-//          *                 }
-//          *             }
-//          */
+/*
+ *                     Return cb(
+ *                         null,
+ *                         tls.createSecureContext({
+ *                             key: fs.readFileSync(privateKeyPath),
+ *                             cert: fs.readFileSync(certPath),
+ *                         })
+ *                     );
+ *                 }
+ *             }
+ */
 
-//         /*
-//          *             If (cert && privateKey) {
-//          *                 certPath = path.resolve(
-//          *                     process.cwd(),
-//          *                     'src',
-//          *                     'credentials',
-//          *                     `${cert}.crt`
-//          *                 );
-//          *                 privateKeyPath = path.resolve(
-//          *                     process.cwd(),
-//          *                     'src',
-//          *                     'credentials',
-//          *                     `${privateKey}.key`
-//          *                 );
-//          */
+/*
+ *             If (cert && privateKey) {
+ *                 certPath = path.resolve(
+ *                     process.cwd(),
+ *                     'src',
+ *                     'credentials',
+ *                     `${cert}.crt`
+ *                 );
+ *                 privateKeyPath = path.resolve(
+ *                     process.cwd(),
+ *                     'src',
+ *                     'credentials',
+ *                     `${privateKey}.key`
+ *                 );
+ */
 
-//         /*
-//          *                 Await Promise.all([
-//          *                     fetchCredential(apiHost, cert, certPath),
-//          *                     fetchCredential(
-//          *                         apiHost,
-//          *                         privateKey,
-//          *                         privateKeyPath
-//          *                     ),
-//          *                 ]);
-//          */
+/*
+ *                 Await Promise.all([
+ *                     fetchCredential(apiHost, cert, certPath),
+ *                     fetchCredential(
+ *                         apiHost,
+ *                         privateKey,
+ *                         privateKeyPath
+ *                     ),
+ *                 ]);
+ */
 
-//         /*
-//          *                 Return cb(
-//          *                     null,
-//          *                     tls.createSecureContext({
-//          *                         key: fs.readFileSync(privateKeyPath),
-//          *                         cert: fs.readFileSync(certPath),
-//          *                     })
-//          *                 );
-//          *             }
-//          *         }
-//          */
+/*
+ *                 Return cb(
+ *                     null,
+ *                     tls.createSecureContext({
+ *                         key: fs.readFileSync(privateKeyPath),
+ *                         cert: fs.readFileSync(certPath),
+ *                     })
+ *                 );
+ *             }
+ *         }
+ */
 
-//         /*
-//          *         // Default for custom domains without cert/key credentials
-//          *         return cb(
-//          *             null,
-//          *             tls.createSecureContext({
-//          *                 cert: fs.readFileSync(
-//          *                     path.resolve(
-//          *                         process.cwd(),
-//          *                         'src',
-//          *                         'credentials',
-//          *                         'certificate.crt'
-//          *                     )
-//          *                 ),
-//          *                 key: fs.readFileSync(
-//          *                     path.resolve(
-//          *                         process.cwd(),
-//          *                         'src',
-//          *                         'credentials',
-//          *                         'private.key'
-//          *                     )
-//          *                 ),
-//          *             })
-//          *         );
-//          *     },
-//          * };
-//          */
-//     } catch (e) {
-//         logger.info('Unable to create HTTPS Server');
+/*
+ *         // Default for custom domains without cert/key credentials
+ *         return cb(
+ *             null,
+ *             tls.createSecureContext({
+ *                 cert: fs.readFileSync(
+ *                     path.resolve(
+ *                         process.cwd(),
+ *                         'src',
+ *                         'credentials',
+ *                         'certificate.crt'
+ *                     )
+ *                 ),
+ *                 key: fs.readFileSync(
+ *                     path.resolve(
+ *                         process.cwd(),
+ *                         'src',
+ *                         'credentials',
+ *                         'private.key'
+ *                     )
+ *                 ),
+ *             })
+ *         );
+ *     },
+ * };
+ */
+/*
+ * } catch (e) {
+ *     logger.info('Unable to create HTTPS Server');
+ */
 
 /*
  *         logger.info(e);
