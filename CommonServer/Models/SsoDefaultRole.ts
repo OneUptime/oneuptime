@@ -2,12 +2,13 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
+   Schema
 } from '../Infrastructure/ORM';
 
 import { RoleArray } from 'Common/Types/Role';
 
-const Schema: $TSFixMe = mongoose.Schema;
-const schema: $TSFixMe = new Schema({
+
+const schema: Schema = new Schema({
     domain: {
         type: Schema.Types.ObjectId,
         required: true,

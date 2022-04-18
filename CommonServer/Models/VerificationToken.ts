@@ -2,13 +2,14 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
+   Schema
 } from '../Infrastructure/ORM';
 
-const Schema: $TSFixMe = mongoose.Schema;
+
 
 const { EMAIL_VERIFY_TIME }: $TSFixMe = process.env;
 
-const schema: $TSFixMe = new Schema({
+const schema: Schema = new Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,

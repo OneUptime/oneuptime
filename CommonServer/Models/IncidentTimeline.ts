@@ -2,10 +2,11 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
+   Schema
 } from '../Infrastructure/ORM';
 
-const Schema: $TSFixMe = mongoose.Schema;
-const schema: $TSFixMe = new Schema({
+
+const schema: Schema = new Schema({
     incidentId: { type: String, ref: 'Incident', index: true },
     createdById: { type: String, ref: 'User', index: true }, // UserId
     probeId: { type: String, ref: 'Probe', index: true }, // ProbeId

@@ -2,11 +2,12 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
+   Schema
 } from '../Infrastructure/ORM';
 
-const Schema: $TSFixMe = mongoose.Schema;
 
-const schema: $TSFixMe = new Schema(
+
+const schema: Schema = new Schema(
     {
         securityId: {
             type: Schema.Types.ObjectId,

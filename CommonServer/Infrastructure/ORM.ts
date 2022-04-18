@@ -3,7 +3,7 @@ import logger from '../Utils/Logger';
 
 import { DatabaseUrl, IsMongoReplicaSet } from '../Config';
 
-let options: $TSFixMe = {};
+let options: mongoose.ConnectOptions = {};
 
 if (IsMongoReplicaSet) {
     options = {
@@ -11,7 +11,7 @@ if (IsMongoReplicaSet) {
          * Commented because this was having issues reading "latest" data that was saved on primary.
          * ReadPreference: 'secondaryPreferred',
          */
-        keepAlive: 1,
+        keepAlive: true
     };
 }
 
@@ -20,7 +20,7 @@ mongoose
     .then(() => {
         return logger.info('Mongo connected');
     })
-    .catch((err: $TSFixMe) => {
+    .catch((err: Error) => {
         // Mongoose connection error will be handled here
         logger.error(err);
         process.exit(1);
@@ -36,4 +36,6 @@ export interface RequiredFields extends Array<string> {}
 
 export interface UniqueFields extends Array<string> {}
 
-export interface EncryptedFields extends Array<string> {}
+export interface EncryptedFields extends Array<string> { }
+
+export class Schema extends mongoose.Schema { }

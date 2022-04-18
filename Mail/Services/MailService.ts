@@ -146,7 +146,7 @@ export default class MailService {
             LocalCache.set(emailTemplateType, templateData);
         }
 
-        const emailBody: $TSFixMe = Handlebars.compile(templateData);
+        const emailBody: HandlebarsTemplateDelegate = Handlebars.compile(templateData);
         return emailBody(vars).toString();
     }
 
@@ -154,7 +154,8 @@ export default class MailService {
         subject: string,
         vars: Dictionary<string>
     ): string {
-        const subjectHandlebars: $TSFixMe = Handlebars.compile(subject);
+        
+        const subjectHandlebars: HandlebarsTemplateDelegate = Handlebars.compile(subject);
         return subjectHandlebars(vars).toString();
     }
 
@@ -175,7 +176,7 @@ export default class MailService {
             extName: '.hbs',
         };
 
-        const privateMailer: $TSFixMe = nodemailer.createTransport({
+        const privateMailer: Transporter = nodemailer.createTransport({
             host: mailServer.host.toString(),
             port: mailServer.port.toNumber(),
             secure: mailServer.secure,
@@ -245,7 +246,7 @@ export default class MailService {
                 );
             }
 
-            const exception: $TSFixMe = error as Exception;
+            const exception: Exception = error as Exception;
 
             await this.createEmailStatus({
                 fromEmail: mailServer.fromEmail,

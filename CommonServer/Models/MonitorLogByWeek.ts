@@ -2,10 +2,11 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
+   Schema
 } from '../Infrastructure/ORM';
 
-const Schema: $TSFixMe = mongoose.Schema;
-const schema: $TSFixMe = new Schema({
+
+const schema: Schema = new Schema({
     monitorId: { type: String, ref: 'Monitor', index: true }, // Which monitor does this belong to.
     probeId: { type: String, ref: 'Probe' }, // Which probe does this belong to.
     status: String, // Current status based on criteria.
