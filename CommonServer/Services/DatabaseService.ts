@@ -322,8 +322,8 @@ class DatabaseService<ModelType> {
     public async countBy({ query = {} }: CountBy): Promise<PositiveNumber> {
         try {
             query.deleted = false;
-            const count: $TSFixMe = await this.model.countDocuments(query);
-            let countPositive: $TSFixMe = new PositiveNumber(count);
+            const count: number = await this.model.countDocuments(query);
+            let countPositive: PositiveNumber = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
             return countPositive;
         } catch (error) {

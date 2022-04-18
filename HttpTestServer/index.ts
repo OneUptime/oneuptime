@@ -10,6 +10,7 @@ import path from 'path';
 
 import HTTPTestServerResponse from './types/HttpTestServerResponse';
 import ResponseType from 'Common/Types/api/ResponseType';
+import Headers from 'Common/Types/API/Headers';
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -20,7 +21,7 @@ app.use(require('./api/webhooks'));
 
 app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(HTTPTestServerResponse.statusCode.toNumber());
-    const header: $TSFixMe = HTTPTestServerResponse.headers;
+    const header: Headers = HTTPTestServerResponse.headers;
 
     for (const key in header) {
         res.setHeader(key, header[key] as string);

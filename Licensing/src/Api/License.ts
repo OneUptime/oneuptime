@@ -14,12 +14,13 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 
 import LicenseService from '../Services/LicenseService';
 import Exception from 'Common/Types/Exception/Exception';
+import { JSONObject } from 'Common/Types/JSON';
 
 router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const data: $TSFixMe = req.body;
+        const data: JSONObject = req.body;
 
-        if (!data.license) {
+        if (!data['license']) {
             return sendErrorResponse(
                 req,
                 res,
@@ -27,7 +28,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
 
-        if (typeof data.license !== 'string') {
+        if (typeof data['license'] !== 'string') {
             return sendErrorResponse(
                 req,
                 res,
@@ -35,7 +36,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
 
-        if (!data.email) {
+        if (!data['email']) {
             return sendErrorResponse(
                 req,
                 res,
@@ -43,7 +44,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
 
-        if (typeof data.email !== 'string') {
+        if (typeof data['email'] !== 'string') {
             return sendErrorResponse(
                 req,
                 res,
@@ -51,13 +52,13 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
 
-        const limit: $TSFixMe = new PositiveNumber(
+        const limit: PositiveNumber = new PositiveNumber(
             parseInt((req.query['limit'] as string) || '100')
         );
 
-        const item: $TSFixMe = await LicenseService.confirm(
-            data.license,
-            new Email(data.email),
+        const item: string = await LicenseService.confirm(
+            data['license'],
+            new Email(data['email']),
             limit
         );
 

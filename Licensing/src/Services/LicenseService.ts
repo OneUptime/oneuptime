@@ -1,14 +1,18 @@
-const generateWebToken: $TSFixMe =
-    require('../utils/WebToken').generateWebToken;
-import AirtableService from 'CommonServer/Utils/airtable';
+import WebToken from '../Utils/WebToken';
+import AirtableService, { AirtableRecords } from 'CommonServer/Utils/airtable';
 import Email from 'Common/Types/email';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
+import OneUptimeDate from 'Common/Types/Date';
 
 export default {
-    confirm: async (license: string, email: Email, limit: PositiveNumber) => {
-        const records: $TSFixMe = await AirtableService.find(
+    confirm: async (
+        license: string,
+        email: Email,
+        limit: PositiveNumber
+    ): Promise<string> => {
+        const records: AirtableRecords = await AirtableService.find(
             'License',
             'Grid view',
             limit
@@ -21,10 +25,10 @@ export default {
             expiryDate: new Date(),
         };
 
-        let licenseFound: $TSFixMe = false;
+        let licenseFound: boolean = false;
 
         for (const record of records) {
-            const fetchedLicense: $TSFixMe = record.get('License Key');
+            const fetchedLicense: string = record.get('License Key') as string;
             if (license === fetchedLicense) {
                 userRecord.id = new ObjectID(record.id.toString());
                 userRecord.expiryDate = new Date(
@@ -38,11 +42,11 @@ export default {
             throw new BadDataException('Invalid Expired');
         }
 
-        const presentTime: $TSFixMe = new Date().getTime();
+        const presentTime: Date = OneUptimeDate.getCurrentDate();
 
-        const expiryTime: $TSFixMe = new Date(userRecord.expiryDate).getTime();
+        const expiryTime: Date = new Date(userRecord.expiryDate);
 
-        if (expiryTime < presentTime) {
+        if (expiryTime.getTime() < presentTime.getTime()) {
             throw new BadDataException('License Expired');
         }
 
@@ -50,12 +54,8 @@ export default {
             'Contact Email': email.toString(),
         });
 
-        const token: $TSFixMe = generateWebToken({
-            license,
-            presentTime,
-            expiryTime,
-        });
+        const token: string = WebToken.generateWebToken(license, expiryTime);
 
-        return { token };
+        return token;
     },
 };

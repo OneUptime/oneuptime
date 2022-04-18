@@ -19,7 +19,7 @@ router.get(
     ProbeAuthorization.isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const oneUptimeRequest: $TSFixMe = req as OneUptimeRequest;
+            const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
             const limit: PositiveNumber = new PositiveNumber(
                 parseInt((req.query.limit as string) || '10')
             );

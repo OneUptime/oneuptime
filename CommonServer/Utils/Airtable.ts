@@ -3,6 +3,8 @@ import AirtableLib, { FieldSet, Records } from 'airtable';
 import Dictionary from 'Common/Types/Dictionary';
 import { AirtableApiKey, AirtableBaseId } from '../Config';
 
+export type AirtableRecords = Records<FieldSet>;
+
 class Airtable {
     private static base = new AirtableLib({ apiKey: AirtableApiKey }).base(
         AirtableBaseId
@@ -12,7 +14,7 @@ class Airtable {
         tableName: string,
         airtableView: string,
         limit: PositiveNumber
-    ): Promise<Records<FieldSet>> {
+    ): Promise<AirtableRecords> {
         return this.base(tableName)
             .select({ view: airtableView, pageSize: limit.toNumber() })
             .firstPage();
