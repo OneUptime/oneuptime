@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
@@ -21,7 +22,7 @@ import PerformanceTracker from '../services/performanceTrackerService';
 
 import { getSubProjects } from '../middlewares/subProject';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 router.post(
     '/:projectId',

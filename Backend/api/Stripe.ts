@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import StripeService from '../services/stripeService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import {
@@ -21,7 +22,7 @@ import { isUserOwner } from '../middlewares/project';
 import { isAuthorized } from '../middlewares/authorization';
 import ProjectService from '../services/projectService';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 /*
  * Route

@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import axios from 'axios';
 import UserService from '../services/userService';
 import MonitorService from '../services/monitorService';
@@ -15,7 +16,7 @@ import ComponentService from '../services/componentService';
 import ErrorService from 'CommonServer/Utils/error';
 import Api from '../Utils/api';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 const getSubProjects: $TSFixMe =

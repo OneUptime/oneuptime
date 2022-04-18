@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -10,7 +11,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import ApiStatusService from '../services/apiStatusService';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 // Store account details to the db
 router.get('/', async (req: ExpressRequest, res: ExpressResponse) => {

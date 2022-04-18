@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -12,7 +13,7 @@ import CertificateStoreService from '../services/certificateStoreService';
 import StatusPageService from '../services/statusPageService';
 import SiteManagerService from '../services/siteManagerService';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 // Store certificate details to the db
 router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {

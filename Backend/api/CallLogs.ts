@@ -1,8 +1,9 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
-const router: $TSFixMe = express.getRouter();
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
+const router: ExpressRouter = Express.getRouter();
 
 import CallLogsService from '../services/callLogsService';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;

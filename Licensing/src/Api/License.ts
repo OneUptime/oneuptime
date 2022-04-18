@@ -1,9 +1,10 @@
 import Express, {
     ExpressRequest,
     ExpressResponse,
+    ExpressRouter,
 } from 'CommonServer/Utils/Express';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-const router: $TSFixMe = Express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -51,7 +52,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
         }
 
         const limit: $TSFixMe = new PositiveNumber(
-            parseInt((req.query.limit as string) || '100')
+            parseInt((req.query['limit'] as string) || '100')
         );
 
         const item: $TSFixMe = await LicenseService.confirm(

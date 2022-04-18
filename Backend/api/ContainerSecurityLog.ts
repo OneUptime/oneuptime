@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -13,7 +14,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import ContainerSecurityLogService from '../services/containerSecurityLogService';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 /*
  * Route: GET

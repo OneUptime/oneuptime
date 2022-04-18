@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import StatusPageService from '../services/statusPageService';
 import MonitorService from '../services/monitorService';
@@ -12,7 +13,7 @@ import DomainVerificationService from '../services/domainVerificationService';
 import IncidentService from '../services/incidentService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 import validUrl from 'valid-url';
 import multer from 'multer';

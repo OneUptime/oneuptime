@@ -1,6 +1,6 @@
 import JsonToCsv from './JsonToCsv';
 import logger from './Logger';
-import { GridFSBucket } from 'mongodb';
+import { GridFSBucket, GridFSBucketReadStream } from 'mongodb';
 import {
     OneUptimeRequest,
     ExpressResponse,
@@ -13,6 +13,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
 import Database from '../Infrastructure/Database';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import URL from 'Common/Types/API/URL';
 
 function logResponse(
     req: ExpressRequest,
@@ -23,14 +24,14 @@ function logResponse(
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     const requestEndedAt: Date = new Date();
-    const method: $TSFixMe = oneUptimeRequest.method;
-    const url: $TSFixMe = oneUptimeRequest.url;
+    const method: string = oneUptimeRequest.method;
+    const url: URL = URL.fromString(oneUptimeRequest.url);
 
     const duration_info: string = `OUTGOING RESPONSE ID: ${
         oneUptimeRequest.id
     } -- POD NAME: ${
         process.env['POD_NAME'] || 'NONE'
-    } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${(
+    } -- METHOD: ${method} -- URL: ${url.toString()} -- DURATION: ${(
         requestEndedAt.getTime() - oneUptimeRequest.requestStartedAt.getTime()
     ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
 
@@ -73,11 +74,13 @@ export const sendFileResponse: Function = async (
 
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    const gfs: $TSFixMe = new GridFSBucket(await Database.getDatabase(), {
+    const gfs: GridFSBucket = new GridFSBucket(await Database.getDatabase(), {
         bucketName: 'uploads',
     });
 
-    const readstream: $TSFixMe = gfs.openDownloadStreamByName(file.name);
+    const readstream: GridFSBucketReadStream = gfs.openDownloadStreamByName(
+        file.name
+    );
 
     /** Set the proper content type */
     oneUptimeResponse.set('Content-Type', file.contentType);
@@ -142,20 +145,20 @@ export const sendListResponse: Function = async (
         listData.count = new PositiveNumber(list.length);
     }
 
-    if (oneUptimeRequest.query.skip) {
+    if (oneUptimeRequest.query['skip']) {
         listData.skip = new PositiveNumber(
-            parseInt(oneUptimeRequest.query.skip.toString())
+            parseInt(oneUptimeRequest.query['skip'].toString())
         );
     }
 
-    if (oneUptimeRequest.query.limit) {
+    if (oneUptimeRequest.query['limit']) {
         listData.limit = new PositiveNumber(
-            parseInt(oneUptimeRequest.query.limit.toString())
+            parseInt(oneUptimeRequest.query['limit'].toString())
         );
     }
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {
-        const csv: $TSFixMe = await JsonToCsv.ToCsv(listData.data);
+        const csv: string = await JsonToCsv.ToCsv(listData.data);
         oneUptimeResponse.status(200).send(csv);
     } else {
         oneUptimeResponse.status(200).send(listData);
@@ -177,7 +180,7 @@ export const sendItemResponse: Function = async (
     oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {
-        const csv: $TSFixMe = JsonToCsv.ToCsv([item]);
+        const csv: string = JsonToCsv.ToCsv([item]);
         oneUptimeResponse.status(200).send(csv);
         logResponse(req, res);
         return;

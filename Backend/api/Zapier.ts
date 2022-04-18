@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import ZapierService from '../services/zapierService';
 import MonitorService from '../services/monitorService';
 import ProjectService from '../services/projectService';
@@ -15,7 +16,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import { sendEmptyResponse } from 'CommonServer/Utils/response';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 router.get(
     '/test',

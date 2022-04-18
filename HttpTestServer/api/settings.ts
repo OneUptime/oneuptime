@@ -1,12 +1,13 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
+    ExpressRouter,
 } from 'CommonServer/utils/Express';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 import HTTPTestServerResponse from '../types/HttpTestServerResponse';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 router.get('/settings', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(200).render('settings.ejs', {

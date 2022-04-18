@@ -3,18 +3,16 @@ import {
     ExpressResponse,
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
-import ObjectID from 'Common/Types/ObjectID';
 import app from 'CommonServer/Utils/StartServer';
 import Dictionary from 'Common/Types/Dictionary';
 import path from 'path';
 
 import compression from 'compression';
-
+import OneUptimeDate from 'Common/Types/Date';
 import minify from 'minify';
 import URL from 'Common/Types/API/URL';
 import tryToCatch from 'try-to-catch';
-import productCompare from './config/product-compare';
-import axios from 'axios';
+import productCompare, { Product } from './config/product-compare';
 import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
@@ -172,88 +170,6 @@ app.get(
 
 app.get('/error-tracking', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/error-tracking');
-});
-
-app.get(
-    '/unsubscribe/:monitorId/:subscriberId',
-    async (req: ExpressRequest, res: ExpressResponse) => {
-        const { monitorId, subscriberId } = req.params;
-        let apiHost: $TSFixMe;
-        if (process.env['ONEUPTIME_HOST']) {
-            apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
-        } else {
-            apiHost = 'http://localhost:3002/api';
-        }
-
-        try {
-            const subscriptions: $TSFixMe = await axios({
-                method: 'GET',
-                url: `${apiHost}/subscriber/monitorList/${subscriberId}`,
-            });
-
-            if (subscriptions.data.data.length < 1) {
-                res.render('unsubscribe', {
-                    message: 'You are currently not subscribed to any monitor',
-                });
-            } else {
-                res.render('subscriberMonitors', {
-                    subscriptions: subscriptions.data.data,
-                    defaultMonitor: monitorId,
-                });
-            }
-        } catch (err) {
-            res.render('unsubscribe', {
-                message:
-                    'Encountered an error while trying to display your monitor list',
-            });
-        }
-    }
-);
-
-app.post('/unsubscribe', async (req: ExpressRequest, res: ExpressResponse) => {
-    let apiHost: string;
-    if (process.env['ONEUPTIME_HOST']) {
-        apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
-    } else {
-        apiHost = 'http://localhost:3002/api';
-    }
-
-    try {
-        const { email, monitors } = req.body;
-        if (
-            !email ||
-            email[0] === null ||
-            email[0] === undefined ||
-            email[0] === ''
-        ) {
-            throw Error;
-        } else if (
-            !monitors ||
-            monitors === null ||
-            monitors === undefined ||
-            monitors.length === 0
-        ) {
-            res.render('unsubscribe', {
-                message: 'No monitor was selected',
-            });
-        } else {
-            monitors.forEach(async (monitorId: ObjectID) => {
-                await axios({
-                    method: 'PUT',
-                    url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${email}`,
-                });
-            });
-
-            res.render('unsubscribe', {
-                message: 'You have been successfully unsubscribed.',
-            });
-        }
-    } catch (err) {
-        res.render('unsubscribe', {
-            message:
-                'Encountered an error while trying to unsubscribe you from this monitor',
-        });
-    }
 });
 
 app.get(
@@ -708,8 +624,8 @@ app.get(
 );
 
 app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig: $TSFixMe = productCompare(
-        req.params.product as string
+    const productConfig: Product = productCompare(
+        req.params['product'] as string
     );
 
     if (!productConfig) {
@@ -735,8 +651,8 @@ app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig: $TSFixMe = productCompare(
-        req.params.product as string
+    const productConfig: Product = productCompare(
+        req.params['product'] as string
     );
 
     if (!productConfig) {
@@ -875,37 +791,33 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
     ];
 
     // Build xml
-    const urlsetAttr: Dictionary<string> = [
-        { xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9' },
-        { 'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance' },
-        {
-            'xsi:schemaLocation':
-                'http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd',
-        },
-    ];
+    const urlsetAttr: Dictionary<string> = {
+        xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9',
+        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        'xsi:schemaLocation':
+            'http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd',
+    };
 
     // Get previous day's date/timestamp
-    const today: $TSFixMe = new Date();
-    today.setDate(today.getDate() - 1);
-
-    const timestamp: $TSFixMe = today.toISOString();
+    const today: Date = OneUptimeDate.getOneDayAgo();
+    const timestamp: string = today.toISOString();
 
     const urlset: XMLBuilder = builder.create().ele('urlset');
 
     // Apply attributes to root element
-    urlsetAttr.forEach((attr: $TSFixMe) => {
-        urlset.att(attr);
-    });
+    for (const key in urlsetAttr) {
+        urlset.att({ key: urlsetAttr[key] });
+    }
 
     //Append urls to root element
-    siteUrls.forEach((url: string) => {
-        const urlElement: $TSFixMe = urlset.ele('url');
-        urlElement.ele('loc').txt(url);
+    siteUrls.forEach((url: URL) => {
+        const urlElement: XMLBuilder = urlset.ele('url');
+        urlElement.ele('loc').txt(url.toString());
         urlElement.ele('lastmod').txt(timestamp);
     });
 
     // Generate xml file
-    const xml: $TSFixMe = urlset.end({ prettyPrint: true });
+    const xml: string = urlset.end({ prettyPrint: true });
 
     res.setHeader('Content-Type', 'text/xml');
     res.send(xml);

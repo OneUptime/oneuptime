@@ -1,11 +1,12 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
     OneUptimeRequest,
     ProbeRequest,
+    ExpressRouter,
 } from 'CommonServer/utils/Express';
 import MonitorService from '../Services/monitorService';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 import ProbeAuthorization from 'CommonServer/middleware/ProbeAuthorization';
 import { sendErrorResponse } from 'CommonServer/utils/Response';
 import Exception from 'Common/Types/Exception/Exception';

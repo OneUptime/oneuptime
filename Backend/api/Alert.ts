@@ -1,14 +1,15 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import alertService from '../services/alertService';
 import IncidentService from '../services/incidentService';
 import alertChargeService from '../services/alertChargeService';
 import path from 'path';
 import fs from 'fs';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
@@ -112,7 +113,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const incidentSlug: $TSFixMe = req.params.incidentSlug;
-            // Const projectId: $TSFixMe = req.params.projectId;
+            // Const projectId: $TSFixMe = req.params['projectId'];
             let incidentId: $TSFixMe = await IncidentService.findOneBy({
                 // Query: { projectId, slug: incidentSlug },
                 query: { slug: incidentSlug },

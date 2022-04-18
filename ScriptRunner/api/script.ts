@@ -1,10 +1,11 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
+    ExpressRouter,
 } from 'CommonServer/utils/Express';
 
 import { sendErrorResponse, sendSuccessResponse } from '../Utils/response';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 import jsScript from '../Utils/scriptSandbox';
 
 import bashScript from '../Utils/bash';

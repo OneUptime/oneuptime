@@ -1,8 +1,9 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
-const router: $TSFixMe = express.getRouter();
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
+const router: ExpressRouter = Express.getRouter();
 import NotificationService from '../services/notificationService';
 import PerformanceTrackerService from '../services/performanceTrackerService';
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';

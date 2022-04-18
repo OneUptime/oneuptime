@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 
 import { fetchPhoneNumbers } from '../services/twilioService';
 import CallRoutingService from '../services/callRoutingService';
@@ -16,7 +17,7 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 

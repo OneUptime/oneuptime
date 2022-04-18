@@ -1,10 +1,11 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import ProjectService from '../services/projectService';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 import PaymentService from '../services/paymentService';
 import UserService from '../services/userService';
 import MailService from '../services/mailService';

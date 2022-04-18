@@ -1,8 +1,9 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
-const router: $TSFixMe = express.getRouter();
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
+const router: ExpressRouter = Express.getRouter();
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import moment from 'moment';
 import { decode } from 'js-base64';

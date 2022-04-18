@@ -33,7 +33,7 @@ app.get('/outgoing-requests', async (req: ExpressRequest, res: ExpressResponse) 
 })
 
 app.get('/user/:id', async (req: ExpressRequest, res: ExpressResponse) => {
-    res.send({ user: req.params.id })
+    res.send({ user: req.params['id'] })
 })
 
 app.post('/post', async (req: ExpressRequest, res: ExpressResponse) => {

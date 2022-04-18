@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import IntegrationService from '../services/integrationService';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
@@ -12,7 +13,7 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 router.post(
     '/:projectId/create',
@@ -337,7 +338,7 @@ router.get(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // Const projectId: $TSFixMe = req.params.projectId;
+            // Const projectId: $TSFixMe = req.params['projectId'];
             const integrationType: $TSFixMe = req.query.type || 'webhook';
             const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';

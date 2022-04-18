@@ -1,9 +1,10 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 import NotificationService from '../services/notificationService';
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -72,7 +73,7 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // Const notificationId: $TSFixMe = req.params.notificationId;
+            // Const notificationId: $TSFixMe = req.params['notificationId'];
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
 

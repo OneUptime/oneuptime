@@ -10,44 +10,36 @@ import Express, {
     ExpressJson,
     ExpressUrlEncoded,
     ExpressApplication,
+    RequestHandler,
 } from './Express';
 
 // Connect common api's.
 import '../API/Index';
 
+import OneUptimeDate from 'Common/Types/Date';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 app.set('port', process.env['PORT']);
 
-const logRequest: Function = (
+const logRequest: RequestHandler = (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction
 ): void => {
-    const current_datetime: $TSFixMe = new Date();
-    const formatted_date: $TSFixMe =
-        current_datetime.getFullYear() +
-        '-' +
-        (current_datetime.getMonth() + 1) +
-        '-' +
-        current_datetime.getDate() +
-        ' ' +
-        current_datetime.getHours() +
-        ':' +
-        current_datetime.getMinutes() +
-        ':' +
-        current_datetime.getSeconds();
+    const formatted_date: string =
+        OneUptimeDate.getCurrentDateAsFormattedString();
 
-    const method: $TSFixMe = req.method;
-    const url: $TSFixMe = req.url;
-    const status: $TSFixMe = res.statusCode;
+    const method: string = req.method;
+    const url: string = req.url;
+    const status: number = res.statusCode;
 
     const log: string = `[${formatted_date}] ${method}:${url} ${status}`;
     logger.info(log);
     next();
 };
 
-const setDefaultHeaders: Function = (
+const setDefaultHeaders: RequestHandler = (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction
@@ -68,6 +60,8 @@ const setDefaultHeaders: Function = (
 
 app.use(cors());
 app.use(setDefaultHeaders);
+
+app.use();
 
 /*
  * Add limit of 10 MB to avoid "Request Entity too large error"

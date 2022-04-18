@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 
 import psl from 'psl';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -21,7 +22,7 @@ import { sendListResponse } from 'CommonServer/Utils/response';
 import StatusPageService from '../services/statusPageService';
 import ProjectService from '../services/projectService';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 /*
  * Route Description: Verifies a domain

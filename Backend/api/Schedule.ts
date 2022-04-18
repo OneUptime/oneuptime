@@ -1,10 +1,11 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import ObjectID from 'Common/Types/ObjectID';
 import ScheduleService from '../services/scheduleService';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 const getSubProjects: $TSFixMe =

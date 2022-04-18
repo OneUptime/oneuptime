@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -10,7 +11,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import SiteManagerService from '../services/siteManagerService';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 // Store site details to the db
 router.post('/site', async (req: ExpressRequest, res: ExpressResponse) => {

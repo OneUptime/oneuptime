@@ -551,3 +551,97 @@
  */
 
 // setupCerts();
+
+/*
+ * app.post('/unsubscribe', async (req: ExpressRequest, res: ExpressResponse) => {
+ *     let apiHost: string;
+ *     if (process.env['ONEUPTIME_HOST']) {
+ *         apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
+ *     } else {
+ *         apiHost = 'http://localhost:3002/api';
+ *     }
+ */
+
+/*
+ *     try {
+ *         const { email, monitors } = req.body;
+ *         if (
+ *             !email ||
+ *             email[0] === null ||
+ *             email[0] === undefined ||
+ *             email[0] === ''
+ *         ) {
+ *             throw Error;
+ *         } else if (
+ *             !monitors ||
+ *             monitors === null ||
+ *             monitors === undefined ||
+ *             monitors.length === 0
+ *         ) {
+ *             res.render('unsubscribe', {
+ *                 message: 'No monitor was selected',
+ *             });
+ *         } else {
+ *             monitors.forEach(async (monitorId: ObjectID) => {
+ *                 await axios({
+ *                     method: 'PUT',
+ *                     url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${email}`,
+ *                 });
+ *             });
+ */
+
+/*
+ *             res.render('unsubscribe', {
+ *                 message: 'You have been successfully unsubscribed.',
+ *             });
+ *         }
+ *     } catch (err) {
+ *         res.render('unsubscribe', {
+ *             message:
+ *                 'Encountered an error while trying to unsubscribe you from this monitor',
+ *         });
+ *     }
+ * });
+ */
+
+/*
+ * app.get(
+ *     '/unsubscribe/:monitorId/:subscriberId',
+ *     async (req: ExpressRequest, res: ExpressResponse) => {
+ *         const { monitorId, subscriberId } = req.params;
+ *         let apiHost: $TSFixMe;
+ *         if (process.env['ONEUPTIME_HOST']) {
+ *             apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
+ *         } else {
+ *             apiHost = 'http://localhost:3002/api';
+ *         }
+ */
+
+/*
+ *         try {
+ *             const subscriptions: $TSFixMe = await axios({
+ *                 method: 'GET',
+ *                 url: `${apiHost}/subscriber/monitorList/${subscriberId}`,
+ *             });
+ */
+
+/*
+ *             if (subscriptions.data.data.length < 1) {
+ *                 res.render('unsubscribe', {
+ *                     message: 'You are currently not subscribed to any monitor',
+ *                 });
+ *             } else {
+ *                 res.render('subscriberMonitors', {
+ *                     subscriptions: subscriptions.data.data,
+ *                     defaultMonitor: monitorId,
+ *                 });
+ *             }
+ *         } catch (err) {
+ *             res.render('unsubscribe', {
+ *                 message:
+ *                     'Encountered an error while trying to display your monitor list',
+ *             });
+ *         }
+ *     }
+ * );
+ */

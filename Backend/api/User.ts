@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
 const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
@@ -23,7 +24,7 @@ import {
 import Exception from 'Common/Types/Exception/Exception';
 
 import { sendListResponse } from 'CommonServer/Utils/response';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 import winston from 'winston';

@@ -1,11 +1,12 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,

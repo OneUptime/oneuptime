@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import moment from 'moment';
 import Handlebars from 'handlebars';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -14,7 +15,7 @@ import IncidentMessageService from '../services/incidentMessageService';
 import AlertService from '../services/alertService';
 import UserService from '../services/userService';
 import MonitorService from '../services/monitorService';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 import errorService from 'CommonServer/Utils/error';

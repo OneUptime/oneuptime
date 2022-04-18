@@ -1,9 +1,10 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';

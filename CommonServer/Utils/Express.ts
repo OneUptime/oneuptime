@@ -2,11 +2,13 @@ import express from 'express';
 import logger from './Logger';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
+
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
-export const ExpressStatic: $TSFixMe = express.static;
-export const ExpressJson: $TSFixMe = express.json;
-export const ExpressUrlEncoded: $TSFixMe = express.urlencoded;
+
+export const ExpressStatic: Function = express.static;
+export const ExpressJson: Function = express.json;
+export const ExpressUrlEncoded: Function = express.urlencoded;
 
 export type ProbeRequest = {
     id: String;
@@ -15,6 +17,7 @@ export type ProbeRequest = {
 export type ExpressRequest = express.Request;
 export type ExpressResponse = express.Response;
 export type ExpressApplication = express.Application;
+export type ExpressRouter = express.Router;
 
 export interface OneUptimeRequest extends express.Request {
     probe?: ProbeRequest;

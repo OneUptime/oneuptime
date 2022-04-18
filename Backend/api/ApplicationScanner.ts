@@ -1,10 +1,11 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import ApplicationSecurityService from '../services/applicationSecurityService';
 import ApplicationSecurityLogService from '../services//applicationSecurityLogService';
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 const isAuthorizedApplicationScanner: $TSFixMe =
     require('../middlewares/applicationScannerAuthorization').isAuthorizedApplicationScanner;
 import {

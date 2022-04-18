@@ -14,18 +14,20 @@ export default class ClusterKeyAuthorization {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-        let clusterKey: $TSFixMe;
+        let clusterKey: string;
 
-        if (req.params && req.params.clusterKey) {
-            clusterKey = req.params.clusterKey;
-        } else if (req.query && req.query.clusterKey) {
-            clusterKey = req.query.clusterKey;
+        if (req.params && req.params['clusterKey']) {
+            clusterKey = req.params['clusterKey'];
+        } else if (req.query && req.query['clusterKey']) {
+            clusterKey = req.query['clusterKey'] as string;
         } else if (
             req.headers &&
-            (req.headers.clusterKey || req.headers.clusterkey)
+            (req.headers['clusterKey'] || req.headers['clusterkey'])
         ) {
             // Header keys are automatically transformed to lowercase
-            clusterKey = req.headers.clusterKey || req.headers.clusterkey;
+            clusterKey =
+                (req.headers['clusterKey'] as string) ||
+                (req.headers['clusterkey'] as string);
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
         } else {
@@ -36,7 +38,7 @@ export default class ClusterKeyAuthorization {
             );
         }
 
-        const isAuthorized: $TSFixMe = clusterKey === CLUSTER_KEY;
+        const isAuthorized: boolean = clusterKey === CLUSTER_KEY;
 
         if (!isAuthorized) {
             return sendErrorResponse(

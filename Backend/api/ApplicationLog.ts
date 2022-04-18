@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import ApplicationLogService from '../services/applicationLogService';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
@@ -11,7 +12,7 @@ import ErrorService from 'CommonServer/Utils/error';
 import NotificationService from '../services/notificationService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 const isApplicationLogValid: $TSFixMe =
     require('../middlewares/applicationLog').isApplicationLogValid;

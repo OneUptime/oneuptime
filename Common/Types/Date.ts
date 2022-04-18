@@ -49,4 +49,8 @@ export default class OneUptimeDate {
     public static getCurrentYear(): number {
         return moment().year();
     }
+
+    public static getCurrentDateAsFormattedString(): string {
+        return moment().format('MMMM Do YYYY, HH:MM:SS');
+    }
 }

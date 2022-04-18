@@ -1,7 +1,36 @@
-import { JSONObject } from 'Common/Types/JSON';
+import Dictionary from 'Common/Types/Dictionary';
 
-export default (product: string): JSONObject => {
-    const products: JSONObject = {
+export interface FAQ {
+    question: string;
+    answer: string;
+}
+
+export enum ItemType {
+    Item = 'item',
+    Category = 'category',
+}
+
+export interface Item {
+    type: ItemType;
+    title: string;
+    description?: string;
+    productColumn?: string;
+    oneuptimeColumn?: string;
+}
+
+export interface Product {
+    productName: string;
+    iconUrl: string;
+    price: string;
+    oneuptimePrice: string;
+    description: string;
+    descriptionLine2: string;
+    faq: Array<FAQ>;
+    items: Array<Item>;
+}
+
+export default (product: string): Product => {
+    const products: Dictionary<Product> = {
         pagerduty: {
             productName: 'PagerDuty',
             iconUrl: '/img/pagerduty.jpeg',
@@ -29,11 +58,11 @@ export default (product: string): JSONObject => {
             ],
             items: [
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Incident Management and On Call Scheduling',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Alerts by Email, SMS, Call and Push Notifications',
                     description:
                         'Have your team alerted by any of the channels including Slack and Microsoft Teams',
@@ -41,7 +70,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'On Call Rotations',
                     description:
                         'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
@@ -49,7 +78,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Vacation Policy',
                     description:
                         "Have vacation policy built into your company's on-call schedule.",
@@ -57,7 +86,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Sick Policy',
                     description:
                         "Have sick policy built into your company's on-call schedule.",
@@ -65,7 +94,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'On-call for Geo-distributed teams',
                     description:
                         'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
@@ -73,11 +102,11 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Monitoring',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Monitor anything',
                     description:
                         "Server, Containers, API's, Websites, IoT and more.",
@@ -85,14 +114,14 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Uptime Check',
                     description: 'How often we check uptime of your resources.',
                     productColumn: '',
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Probe Locations',
                     description:
                         'We check your uptime from different locations around the world.',
@@ -100,25 +129,25 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Public Status Pages',
                     description: 'Public Status Page for your customers.',
                     productColumn: 'Every 1 second',
                     oneuptimeColumn: 'US, Canada, EU & Australia.',
                 },
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Status Page',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Public Status Pages',
                     description: 'Public Status Page for your customers.',
                     productColumn: '',
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Unlimited Subscribers',
                     description:
                         'You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.',
@@ -126,7 +155,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Scheduled Events',
                     description:
                         'You can show scheduled maintenance window on your status page.',
@@ -134,18 +163,18 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Private Status Page',
                     description: 'Private status pages for your internal team.',
                     productColumn: '',
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Misc',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Integrations',
                     description:
                         'Integrate OneUptime with more than 2000+ apps.',
@@ -153,7 +182,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'Integrates with 2000+ apps',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'API Access',
                     description:
                         'Build custom integrations with unlimited API access.',
@@ -189,11 +218,11 @@ export default (product: string): JSONObject => {
             ],
             items: [
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Incident Management and On Call Scheduling',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Alerts by Email, SMS, Call and Push Notifications',
                     description:
                         'Have your team alerted by any of the channels including Slack and Microsoft Teams',
@@ -201,7 +230,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'On Call Rotations',
                     description:
                         'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
@@ -209,7 +238,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Vacation Policy',
                     description:
                         "Have vacation policy built into your company's on-call schedule.",
@@ -217,7 +246,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Sick Policy',
                     description:
                         "Have sick policy built into your company's on-call schedule.",
@@ -225,7 +254,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'On-call for Geo-distributed teams',
                     description:
                         'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
@@ -233,11 +262,11 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Monitoring',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Monitor anything',
                     description:
                         "Server, Containers, API's, Websites, IoT and more.",
@@ -245,14 +274,14 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Uptime Check',
                     description: 'How often we check uptime of your resources.',
                     productColumn: '',
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Probe Locations',
                     description:
                         'We check your uptime from different locations around the world.',
@@ -260,25 +289,25 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Public Status Pages',
                     description: 'Public Status Page for your customers.',
                     productColumn: '',
                     oneuptimeColumn: 'US, Canada, EU & Australia.',
                 },
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Status Page',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Public Status Pages',
                     description: 'Public Status Page for your customers.',
                     productColumn: 'tick',
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Subscribers',
                     description:
                         'You can have customer subscribers and have them alerted by Email, SMS, RSS or more.',
@@ -286,7 +315,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'Unlimited Subscribers',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Scheduled Events',
                     description:
                         'You can show scheduled maintenance window on your status page.',
@@ -294,18 +323,18 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Private Status Page',
                     description: 'Private status pages for your internal team.',
                     productColumn: 'tick',
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Misc',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Integrations',
                     description:
                         'Integrate OneUptime with more than 2000+ apps.',
@@ -313,7 +342,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'Integrates with 2000+ apps',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'API Access',
                     description:
                         'Build custom integrations with unlimited API access.',
@@ -349,11 +378,11 @@ export default (product: string): JSONObject => {
             ],
             items: [
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Incident Management and On Call Scheduling',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Alerts by Email, SMS, Call and Push Notifications',
                     description:
                         'Have your team alerted by any of the channels including Slack and Microsoft Teams',
@@ -361,7 +390,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'On Call Rotations',
                     description:
                         'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
@@ -369,7 +398,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Vacation Policy',
                     description:
                         "Have vacation policy built into your company's on-call schedule.",
@@ -377,7 +406,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Sick Policy',
                     description:
                         "Have sick policy built into your company's on-call schedule.",
@@ -385,7 +414,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'On-call for Geo-distributed teams',
                     description:
                         'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
@@ -393,11 +422,11 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Monitoring',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Monitor anything',
                     description:
                         "Server, Containers, API's, Websites, IoT and more.",
@@ -405,14 +434,14 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Uptime Check',
                     description: 'How often we check uptime of your resources.',
                     productColumn: 'tick',
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Probe Locations',
                     description:
                         'We check your uptime from different locations around the world.',
@@ -420,18 +449,18 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Status Page',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Public Status Pages',
                     description: 'Public Status Page for your customers.',
                     productColumn: 'tick',
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Unlimited Subscribers',
                     description:
                         'You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.',
@@ -439,7 +468,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Scheduled Events',
                     description:
                         'You can show scheduled maintenance window on your status page.',
@@ -447,18 +476,18 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Private Status Page',
                     description: 'Private status pages for your internal team.',
                     productColumn: '',
                     oneuptimeColumn: 'tick',
                 },
                 {
-                    type: 'category',
+                    type: ItemType.Category,
                     title: 'Misc',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'Integrations',
                     description:
                         'Integrate OneUptime with more than 2000+ apps.',
@@ -466,7 +495,7 @@ export default (product: string): JSONObject => {
                     oneuptimeColumn: 'Integrates with 2000+ apps',
                 },
                 {
-                    type: 'item',
+                    type: ItemType.Item,
                     title: 'API Access',
                     description:
                         'Build custom integrations with unlimited API access.',
@@ -477,5 +506,5 @@ export default (product: string): JSONObject => {
         },
     };
 
-    return products[product] as JSONObject;
+    return products[product] as Product;
 };

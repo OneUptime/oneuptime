@@ -19,7 +19,11 @@ export const ClusterKey: string = process.env['CLUSTER_KEY'] || '';
 
 export const RealtimeHostname: string = process.env['REALTIME_HOSTNAME'] || '';
 
+export const BackendHostname: string = process.env['BACKEND_HOSTNAME'] || '';
+
 export const Version: string = process.env['npm_package_version'] || '';
+
+export const Env: string = process.env['NODE_ENV'] || '';
 
 export const HttpProtocol: Protocol = (
     process.env['HTTP_PROTOCOL'] || ''

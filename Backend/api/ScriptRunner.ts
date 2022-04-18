@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -13,7 +14,7 @@ import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
 import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthorization';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 // Get all script monitors for ScriptRunner
 router.get(

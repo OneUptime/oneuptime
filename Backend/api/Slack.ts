@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import request from 'request';
 import IntegrationService from '../services/integrationService';
@@ -20,7 +21,7 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
     // Get oneuptime project id from slack auth state query params

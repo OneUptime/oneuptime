@@ -1,7 +1,8 @@
-import express, {
+import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/Utils/Express';
+    ExpressRouter,
+} from 'CommonServer/utils/Express';
 
 import { isAuthorized } from '../middlewares/authorization';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -15,7 +16,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import CustomFieldService from '../services/customFieldService';
 
-const router: $TSFixMe = express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 router.post(
     '/:projectId',

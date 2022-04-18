@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
+import { Env } from '../Config';
 
-const { NODE_ENV }: $TSFixMe = process.env;
-if (!NODE_ENV || NODE_ENV === 'development') {
+if (Env === 'development') {
     /*
      * Load env vars from /.env, do this only on development.
      * Production values are supplied by Kubernetes Helm charts.
