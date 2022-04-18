@@ -2,11 +2,8 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
-
-class Schema extends mongoose.Schema{}
 
 const schema: Schema = new Schema({
     fromEmail: { type: String },

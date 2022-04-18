@@ -2,9 +2,8 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
 
 const schema: Schema = new Schema({
     monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor', index: true },

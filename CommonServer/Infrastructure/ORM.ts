@@ -11,7 +11,7 @@ if (IsMongoReplicaSet) {
          * Commented because this was having issues reading "latest" data that was saved on primary.
          * ReadPreference: 'secondaryPreferred',
          */
-        keepAlive: true
+        keepAlive: true,
     };
 }
 
@@ -36,6 +36,6 @@ export interface RequiredFields extends Array<string> {}
 
 export interface UniqueFields extends Array<string> {}
 
-export interface EncryptedFields extends Array<string> { }
+export interface EncryptedFields extends Array<string> {}
 
-export class Schema extends mongoose.Schema { }
+export class Schema extends mongoose.Schema {}

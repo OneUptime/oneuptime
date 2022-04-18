@@ -2,10 +2,8 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
-
 
 const { EMAIL_VERIFY_TIME }: $TSFixMe = process.env;
 

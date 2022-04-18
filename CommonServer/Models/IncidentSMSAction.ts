@@ -2,10 +2,8 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
-
 
 const schema: Schema = new Schema({
     incidentId: { type: String, ref: 'Incident', index: true }, //Which project this incident belongs to.

@@ -2,9 +2,8 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
 
 const schema: Schema = new Schema({
     domain: String, // The main or base domain eg oneuptime.com

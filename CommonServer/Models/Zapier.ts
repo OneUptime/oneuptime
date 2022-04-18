@@ -2,10 +2,8 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
-
 
 /**
  * Represents the Zapier Schema in the database.

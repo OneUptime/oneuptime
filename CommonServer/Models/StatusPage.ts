@@ -1,11 +1,9 @@
-import mongoose, {
+import {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
-
 
 export default new Schema({
     projectId: {

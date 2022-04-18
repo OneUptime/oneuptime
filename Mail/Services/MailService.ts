@@ -146,7 +146,8 @@ export default class MailService {
             LocalCache.set(emailTemplateType, templateData);
         }
 
-        const emailBody: HandlebarsTemplateDelegate = Handlebars.compile(templateData);
+        const emailBody: Handlebars.TemplateDelegate =
+            Handlebars.compile(templateData);
         return emailBody(vars).toString();
     }
 
@@ -154,8 +155,8 @@ export default class MailService {
         subject: string,
         vars: Dictionary<string>
     ): string {
-        
-        const subjectHandlebars: HandlebarsTemplateDelegate = Handlebars.compile(subject);
+        const subjectHandlebars: Handlebars.TemplateDelegate =
+            Handlebars.compile(subject);
         return subjectHandlebars(vars).toString();
     }
 

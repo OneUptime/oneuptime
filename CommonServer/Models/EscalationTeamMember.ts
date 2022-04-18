@@ -1,10 +1,9 @@
-import mongoose, {
+import {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
 
 const schema: Schema = new Schema({
     teamMembers: [

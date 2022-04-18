@@ -2,11 +2,10 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
 
 import { RoleArray } from 'Common/Types/Role';
-
 
 const schema: Schema = new Schema({
     domain: {

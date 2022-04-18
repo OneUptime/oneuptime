@@ -2,9 +2,8 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
 
 const schema: Schema = new Schema({
     monitorId: { type: String, ref: 'Monitor', index: true }, //Which monitor does this belong to.

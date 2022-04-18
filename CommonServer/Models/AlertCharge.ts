@@ -2,9 +2,8 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
 
 const schema: Schema = new Schema({
     projectId: { type: String, ref: 'Project', index: true },

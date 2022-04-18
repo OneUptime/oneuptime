@@ -2,12 +2,10 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
 
 import TeamMemberSchema from './EscalationTeamMember';
-
-
 
 const schema: Schema = new Schema({
     projectId: {

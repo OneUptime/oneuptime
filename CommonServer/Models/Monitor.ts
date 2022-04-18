@@ -2,10 +2,8 @@ import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
-   Schema
+    Schema,
 } from '../Infrastructure/ORM';
-
-
 
 // A schema definition for a criterion event, i.e up, down, or degraded
 const criterionEventSchema: $TSFixMe = {
