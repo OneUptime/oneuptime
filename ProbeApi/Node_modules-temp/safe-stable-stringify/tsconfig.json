@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "allowJs": true,
+    "checkJs": true,
+    "sourceMap": false,
+    "declaration": false,
+    "noEmit": true,
+    "downlevelIteration": false,
+    "experimentalDecorators": false,
+    "moduleResolution": "node",
+    "importHelpers": false,
+    "target": "esnext",
+    "module": "CommonJS",
+    "lib": [
+      "esnext",
+      "dom"
+    ]
+  },
+  "include": ["**/*.js", "**/*.ts"],
+  "exclude": ["compare.js", "benchmark.js", "./coverage"]
+}

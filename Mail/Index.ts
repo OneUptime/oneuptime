@@ -1,5 +1,9 @@
 import app from 'CommonServer/utils/StartServer';
 
-app.use(['/Mail/probe', '/probe'], require('./api/probe'));
+// API
+
+import MailAPI from './API/Mail'
+
+app.use(['/mail/email', '/email'], MailAPI);
 
 export default app;

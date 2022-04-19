@@ -1,1 +1,3 @@
-export default require('./lib/index.ts');
+import Main from './lib/index.ts';
+
+export default Main;
