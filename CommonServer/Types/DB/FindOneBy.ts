@@ -6,6 +6,6 @@ import Sort from './Sort';
 export default interface FindOneBy {
     query: Query;
     select: Select;
-    populate?: Populate;
-    sort?: Sort;
+    populate: Populate | undefined;
+    sort: Sort | undefined;
 }

@@ -21,7 +21,7 @@ const schema: Schema = new Schema({
     role: {
         type: String,
         required: true,
-        enum: RoleArray.filter((item: $TSFixMe) => {
+        enum: RoleArray.filter((item: string) => {
             return item !== 'Owner';
         }), // All roles except Owner
     },

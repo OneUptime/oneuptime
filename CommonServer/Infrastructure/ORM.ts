@@ -39,3 +39,7 @@ export interface UniqueFields extends Array<string> {}
 export interface EncryptedFields extends Array<string> {}
 
 export class Schema extends mongoose.Schema {}
+
+export type Query<T> = mongoose.FilterQuery<T>;
+
+export type Populate = mongoose.PopulateOptions;

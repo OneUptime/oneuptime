@@ -19,6 +19,10 @@ import OneUptimeDate from 'Common/Types/Date';
 import Exception from 'Common/Types/Exception/Exception';
 import SearchResult from '../Types/DB/SearchResult';
 import Encryption from '../Utils/Encryption';
+import { Query as DbQuery } from '../Infrastructure/ORM';
+import { JSONObject } from 'Common/Types/JSON';
+import SortOrder from '../Types/DB/SortOrder';
+import DbFunctions from '../Utils/DBFunctions';
 
 export interface ListProps {
     populate: Populate;
@@ -51,8 +55,8 @@ class DatabaseService<ModelType> {
     public memberItemProps: ItemProps;
     public memberListProps: ListProps;
     public model: Model<ModelType>;
-    public ItemProps: ItemProps;
-    public ListProps: ListProps;
+    public publicItemProps: ItemProps;
+    public publicListProps: ListProps;
     public requiredFields: RequiredFields;
     public uniqueFields: UniqueFields;
     public encryptedFields: EncryptedFields;
@@ -117,7 +121,7 @@ class DatabaseService<ModelType> {
         this.encryptedFields = encryptedFields;
     }
 
-    protected isValid(data: Document): boolean {
+    protected isValid(data: JSONObject): boolean {
         if (!data) {
             throw new BadDataException('Data cannot be null');
         }
@@ -125,10 +129,10 @@ class DatabaseService<ModelType> {
         return true;
     }
 
-    protected checkRequiredFields(data: Document): Promise<void> {
+    protected checkRequiredFields(data: JSONObject): void {
         // Check required fields.
         for (const requiredField of this.requiredFields) {
-            if (!data.get(requiredField)) {
+            if (!data[requiredField]) {
                 throw new BadDataException(`${requiredField} is required`);
             }
         }
@@ -139,23 +143,26 @@ class DatabaseService<ModelType> {
         return Promise.resolve({ data } as CreateBy);
     }
 
-    protected encrypt(data: Document): Document {
+    protected encrypt(data: JSONObject): JSONObject {
         const iv: Buffer = Encryption.getIV();
-        data.set('iv', iv);
+        data['iv'] = iv;
 
         for (const key of this.encryptedFields) {
             // If data is an object.
-            if (typeof data.get(key) === 'object') {
-                const dataObj: $TSFixMe = data.get(key);
+            if (typeof data[key] === 'object') {
+                const dataObj: JSONObject = data[key] as JSONObject;
 
                 for (const key in dataObj) {
-                    dataObj[key] = Encryption.encrypt(dataObj[key], iv);
+                    dataObj[key] = Encryption.encrypt(
+                        dataObj[key] as string,
+                        iv
+                    );
                 }
 
-                data.set(key, dataObj);
+                data[key] = dataObj;
             } else {
                 //If its string or other type.
-                data.set(key, Encryption.encrypt(data.get(key), iv));
+                data[key] = Encryption.encrypt(data[key] as string, iv);
             }
         }
 
@@ -168,10 +175,13 @@ class DatabaseService<ModelType> {
         for (const key of this.encryptedFields) {
             // If data is an object.
             if (typeof data.get(key) === 'object') {
-                const dataObj: $TSFixMe = data.get(key);
+                const dataObj: JSONObject = data.get(key);
 
                 for (const key in dataObj) {
-                    dataObj[key] = Encryption.decrypt(dataObj[key], iv);
+                    dataObj[key] = Encryption.decrypt(
+                        dataObj[key] as string,
+                        iv
+                    );
                 }
 
                 data.set(key, dataObj);
@@ -258,11 +268,11 @@ class DatabaseService<ModelType> {
     }
 
     public async create(createBy: CreateBy): Promise<Document> {
-        const _createdBy: $TSFixMe = await this.onBeforeCreate({
+        const _createdBy: CreateBy = await this.onBeforeCreate({
             data: createBy.data,
         });
 
-        let data: $TSFixMe = _createdBy.data;
+        let data: JSONObject = _createdBy.data;
 
         this.checkRequiredFields(data);
 
@@ -274,20 +284,35 @@ class DatabaseService<ModelType> {
         data = this.encrypt(data);
 
         try {
-            const item: $TSFixMe = new this.model();
+            const item: Document = new this.model();
 
             if (this.uniqueFields && this.uniqueFields.length > 0) {
-                const countQuery: Query = {};
+                const countQuery: Query = new Query();
 
                 if (this.isResourceByProject) {
-                    countQuery.projectId = data.get('projectId');
+                    countQuery.equalTo(
+                        'projectId',
+                        data['projectId'] as string
+                    );
                 }
 
                 for (const duplicateValueIn of this.uniqueFields) {
-                    countQuery[duplicateValueIn] = data.get(duplicateValueIn);
+                    if (typeof data[duplicateValueIn] === 'number') {
+                        countQuery.equalTo(
+                            duplicateValueIn,
+                            data[duplicateValueIn] as number
+                        );
+                    }
+
+                    if (typeof data[duplicateValueIn] === 'string') {
+                        countQuery.equalTo(
+                            duplicateValueIn,
+                            data[duplicateValueIn] as string
+                        );
+                    }
                 }
 
-                const existingItemCount: $TSFixMe = await this.countBy({
+                const existingItemCount: PositiveNumber = await this.countBy({
                     query: countQuery,
                 });
 
@@ -303,11 +328,14 @@ class DatabaseService<ModelType> {
             }
 
             for (const key in data) {
-                item.set(key, data.get(key));
+                item.set(key, data[key]);
             }
 
             if (this.slugifyField) {
-                item.set('slug', Slug.getSlug(data.get(this.slugifyField)));
+                item.set(
+                    'slug',
+                    Slug.getSlug(data[this.slugifyField] as string)
+                );
             }
 
             await this.onCreateSuccess(item);
@@ -319,9 +347,9 @@ class DatabaseService<ModelType> {
         }
     }
 
-    public async countBy({ query = {} }: CountBy): Promise<PositiveNumber> {
+    public async countBy({ query }: CountBy): Promise<PositiveNumber> {
         try {
-            query.deleted = false;
+            query.equalTo('deleted', false);
             const count: number = await this.model.countDocuments(query);
             let countPositive: PositiveNumber = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
@@ -333,7 +361,7 @@ class DatabaseService<ModelType> {
     }
 
     public async deleteOneBy({
-        query = {},
+        query,
         deletedByUserId,
     }: DeleteOneBy): Promise<void> {
         return await this._deleteBy({
@@ -343,10 +371,7 @@ class DatabaseService<ModelType> {
         });
     }
 
-    public async deleteBy({
-        query = {},
-        deletedByUserId,
-    }: DeleteBy): Promise<void> {
+    public async deleteBy({ query, deletedByUserId }: DeleteBy): Promise<void> {
         return await this._deleteBy({
             query,
             multiple: false,
@@ -354,24 +379,28 @@ class DatabaseService<ModelType> {
         });
     }
 
+    public async hardDeleteBy(query: Query): Promise<void> {
+        return await this._hardDeleteBy(query);
+    }
+
     private async _hardDeleteBy(query: Query): Promise<void> {
-        await this.model.remove(query);
+        return await this.model.remove(query);
     }
 
     private async _deleteBy({
-        query = {},
+        query,
         multiple = false,
         deletedByUserId,
     }: InternalDeleteBy): Promise<void> {
         try {
-            const beforeDeleteBy: $TSFixMe = await this.onBeforeDelete({
+            const beforeDeleteBy: DeleteBy = await this.onBeforeDelete({
                 query,
                 deletedByUserId,
             });
 
-            query.deleted = false;
+            query.equalTo('deleted', false);
 
-            const item: $TSFixMe = new this.model();
+            const item: Document = new this.model();
             item.set('deleted', true);
             item.set('deletedById', beforeDeleteBy.deletedByUserId);
             item.set('deletedAt', OneUptimeDate.getCurrentDate());
@@ -396,11 +425,11 @@ class DatabaseService<ModelType> {
     }
 
     public async getListForViewer({
-        query = {},
+        query,
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Array<Document> {
+    }: FindBy): Promise<Array<Document>> {
         return await this.findBy({
             query,
             skip,
@@ -412,11 +441,11 @@ class DatabaseService<ModelType> {
     }
 
     public async getListForAdmin({
-        query = {},
+        query,
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Array<Document> {
+    }: FindBy): Promise<Array<Document>> {
         return await this.findBy({
             query,
             skip,
@@ -428,11 +457,11 @@ class DatabaseService<ModelType> {
     }
 
     public async getListForOwner({
-        query = {},
+        query,
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Array<Document> {
+    }: FindBy): Promise<Array<Document>> {
         return await this.findBy({
             query,
             skip,
@@ -444,11 +473,11 @@ class DatabaseService<ModelType> {
     }
 
     public async getListForMember({
-        query = {},
+        query,
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Array<Document> {
+    }: FindBy): Promise<Array<Document>> {
         return await this.findBy({
             query,
             skip,
@@ -460,11 +489,11 @@ class DatabaseService<ModelType> {
     }
 
     public async getListForPublic({
-        query = {},
+        query,
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Array<Document> {
+    }: FindBy): Promise<Array<Document>> {
         return await this.findBy({
             query,
             skip,
@@ -476,7 +505,7 @@ class DatabaseService<ModelType> {
     }
 
     public async getItemForViewer({
-        query = {},
+        query,
         sort,
     }: FindOneBy): Promise<Document | null> {
         return await this.findOneBy({
@@ -488,7 +517,7 @@ class DatabaseService<ModelType> {
     }
 
     public async getItemForAdmin({
-        query = {},
+        query,
         sort,
     }: FindOneBy): Promise<Document | null> {
         return await this.findOneBy({
@@ -500,7 +529,7 @@ class DatabaseService<ModelType> {
     }
 
     public async getItemForMember({
-        query = {},
+        query,
         sort,
     }: FindOneBy): Promise<Document | null> {
         return await this.findOneBy({
@@ -512,7 +541,7 @@ class DatabaseService<ModelType> {
     }
 
     public async getItemForOwner({
-        query = {},
+        query,
         sort,
     }: FindOneBy): Promise<Document | null> {
         return await this.findOneBy({
@@ -524,7 +553,7 @@ class DatabaseService<ModelType> {
     }
 
     public async getItemForPublic({
-        query = {},
+        query,
         sort,
     }: FindOneBy): Promise<Document | null> {
         return await this.findOneBy({
@@ -536,7 +565,7 @@ class DatabaseService<ModelType> {
     }
 
     public async findBy({
-        query = {},
+        query,
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         populate,
@@ -555,7 +584,7 @@ class DatabaseService<ModelType> {
     }
 
     private async _findBy({
-        query = {},
+        query,
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         populate,
@@ -564,7 +593,7 @@ class DatabaseService<ModelType> {
         multiple = false,
     }: InternalFindBy): Promise<Array<Document>> {
         try {
-            const onBeforeFind: $TSFixMe = await this.onBeforeFind({
+            const onBeforeFind: FindBy = await this.onBeforeFind({
                 query,
                 skip,
                 limit,
@@ -573,28 +602,35 @@ class DatabaseService<ModelType> {
                 sort,
             });
 
-            query.deleted = false;
+            onBeforeFind.query.equalTo('deleted', false);
 
-            let dbQuery: $TSFixMe = null;
+            const dbQuery: DbQuery<typeof query> =
+                onBeforeFind.query.asOrmQuery();
 
             if (!multiple) {
-                dbQuery = this.model.findOne(onBeforeFind.query);
-            } else {
-                dbQuery = this.model.find(onBeforeFind.query);
+                limit = new PositiveNumber(1);
             }
 
-            dbQuery
+            if (!onBeforeFind.sort) {
+                onBeforeFind.sort = [
+                    {
+                        createdAt: SortOrder.Descending,
+                    },
+                ];
+            }
+
+            //convert populate to dbpopulate
+
+            const items: Array<Document> = (await this.model
+                .find(dbQuery)
                 .sort(onBeforeFind.sort)
                 .limit(onBeforeFind.limit.toNumber())
                 .skip(onBeforeFind.skip.toNumber())
-                .lean();
+                .select(onBeforeFind.select)
+                .populate(DbFunctions.toDbPopulate(onBeforeFind.populate))
+                .lean()) as Array<Document>;
 
-            dbQuery.select(onBeforeFind.select);
-            dbQuery.populate(onBeforeFind.populate);
-
-            const items: Function = (await dbQuery) as Array<Document>;
-
-            const decryptedItems: $TSFixMe = [];
+            const decryptedItems: Array<Document> = [];
 
             for (const item of items) {
                 decryptedItems.push(this.decrypt(item));
@@ -610,12 +646,12 @@ class DatabaseService<ModelType> {
     }
 
     public async findOneBy({
-        query = {},
+        query,
         populate = [],
         select = ['_id'],
         sort = [],
     }: FindOneBy): Promise<Document | null> {
-        const documents: $TSFixMe = await this._findBy({
+        const documents: Array<Document> = await this._findBy({
             query,
             skip: new PositiveNumber(0),
             limit: new PositiveNumber(1),
@@ -637,11 +673,11 @@ class DatabaseService<ModelType> {
         multiple = true,
     }: InternalUpdateBy): Promise<void> {
         try {
-            if (!query.deleted) {
-                query.deleted = false;
+            if (!query.hasQueryFor('deleted')) {
+                query.equalTo('deleted', false);
             }
 
-            const beforeUpdateBy: $TSFixMe = await this.onBeforeUpdate({
+            const beforeUpdateBy: UpdateBy = await this.onBeforeUpdate({
                 query,
                 data,
             });
@@ -686,14 +722,20 @@ class DatabaseService<ModelType> {
         select,
         populate,
     }: SearchBy): Promise<SearchResult> {
-        const query: Query = {
-            [column]: { $regex: new RegExp(text), $options: 'i' },
-        };
+        const query: Query = new Query().regexp(column, text, 'i');
 
-        const [items, count]: $TSFixMe = await Promise.all([
-            this.findBy({ query, skip, limit, select, populate }),
-            this.countBy({ query }),
-        ]);
+        const [items, count]: [Array<Document>, PositiveNumber] =
+            await Promise.all([
+                this.findBy({
+                    query,
+                    skip,
+                    limit,
+                    select,
+                    populate,
+                    sort: undefined,
+                }),
+                this.countBy({ query }),
+            ]);
 
         return { items, count };
     }

@@ -19,11 +19,14 @@ import Dictionary from 'Common/Types/Dictionary';
 import TaskStatus from 'Common/Types/TaskStatus';
 import Hostname from 'Common/Types/API/Hostname';
 import Exception from 'Common/Types/Exception/Exception';
+import { Document } from 'CommonServer/Infrastructure/ORM';
+import Select from 'CommonServer/Types/DB/Select';
+import Query from 'CommonServer/Types/DB/Query';
 
 export default class MailService {
     private static async getGlobalSmtpSettings(): Promise<MailServer> {
-        const document: $TSFixMe = await GlobalConfigService.findOneBy({
-            query: { name: 'smtp' },
+        const document: Document | null = await GlobalConfigService.findOneBy({
+            query: new Query().equalTo('name', 'smtp'),
             select: ['value'],
             populate: [],
             sort: [],
@@ -93,7 +96,7 @@ export default class MailService {
     private static async getProjectSmtpSettings(
         projectId: ObjectID
     ): Promise<MailServer> {
-        const select: $TSFixMe = [
+        const select: Select = [
             'user',
             'pass',
             'host',
@@ -103,8 +106,10 @@ export default class MailService {
             'secure',
         ];
 
-        const projectSmtp: $TSFixMe = await EmailSmtpService.findOneBy({
-            query: { projectId, enabled: true },
+        const projectSmtp: Document | null = await EmailSmtpService.findOneBy({
+            query: new Query()
+                .equalTo('projectId', projectId)
+                .equalTo('enabled', true),
             select,
             populate: [],
             sort: [],
@@ -131,7 +136,7 @@ export default class MailService {
     ): Promise<string> {
         // Localcache templates, so we dont read from disk all the time.
 
-        let templateData: $TSFixMe;
+        let templateData: string;
         if (LocalCache.hasValue(emailTemplateType)) {
             templateData = LocalCache.get(emailTemplateType);
         } else {
@@ -161,11 +166,11 @@ export default class MailService {
     }
 
     private static createMailer(mailServer: MailServer): Transporter {
-        const helpers: $TSFixMe = {
-            year: OneUptimeDate.getCurrentYear(),
+        const helpers: Dictionary<string> = {
+            year: OneUptimeDate.getCurrentYear().toString(),
         };
 
-        const options: $TSFixMe = {
+        const options: hbs.NodemailerExpressHandlebarsOptions = {
             viewEngine: {
                 extname: '.hbs',
                 layoutsDir: 'Templates',

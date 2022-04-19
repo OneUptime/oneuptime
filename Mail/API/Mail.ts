@@ -13,26 +13,30 @@ import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthoriza
 import MailService from '../Services/MailService';
 import Mail from '../Types/Mail';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import { JSONObject } from 'Common/Types/JSON';
+import Email from 'Common/Types/Email';
+import Dictionary from 'Common/Types/Dictionary';
+import ObjectID from 'Common/Types/ObjectID';
 
 router.post(
     '/:template-name',
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const body: $TSFixMe = req.body;
+            const body: JSONObject = req.body;
 
             const mail: Mail = {
                 templateType: req.params['template-name'] as EmailTemplateType,
-                toEmail: body.toEmail,
-                subject: body.subject,
-                vars: body.vars,
+                toEmail: new Email(body['toEmail'] as string),
+                subject: body['subject'] as string,
+                vars: body['vars'] as Dictionary<string>,
                 body: '',
             };
 
             await MailService.send(
                 mail,
-                body.projectId,
-                body.forceSendFromGlobalMailServer
+                new ObjectID(body['projectId'] as string),
+                body['forceSendFromGlobalMailServer'] as boolean
             );
 
             return sendEmptyResponse(req, res);

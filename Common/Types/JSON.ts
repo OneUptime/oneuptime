@@ -13,6 +13,7 @@ export type JSONValue =
     | Array<Date>
     | ObjectID
     | Array<ObjectID>
+    | Buffer
     | null;
 
 export interface JSONObject {
