@@ -23,7 +23,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            data.projectId = req.params['projectId'];
+            data.projectId = req.params.projectId;
             if (!data.accountSid) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -61,7 +61,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
             const populate: $TSFixMe = [{ path: 'projectId', select: 'name' }];
             const select: $TSFixMe =
                 'projectId accountSid authToken phoneNumber iv enabled createdAt deletedById';
@@ -84,7 +84,7 @@ router.put(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
-            const smsSmtpId: $TSFixMe = req.params['smsSmtpId'];
+            const smsSmtpId: $TSFixMe = req.params.smsSmtpId;
             const testResult: $TSFixMe = await TwilioService.test(data);
             if (testResult && !testResult.errorCode) {
                 const smsSmtp: $TSFixMe = await SmsSmtpService.updateOneBy(
@@ -105,7 +105,7 @@ router.delete(
     isUserOwner,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const smsSmtpId: $TSFixMe = req.params['smsSmtpId'];
+            const smsSmtpId: $TSFixMe = req.params.smsSmtpId;
             const payload: $TSFixMe = {
                 enabled: false,
                 accountSid: '',

@@ -124,7 +124,7 @@ router.post(
             const { to }: $TSFixMe = req.body;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            const projectId: $TSFixMe = req.query['projectId'];
+            const projectId: $TSFixMe = req.query.projectId;
             const validationResult: $TSFixMe =
                 await SmsCountService.validateResend(userId);
             const sendVerifyToken: $TSFixMe = await sendVerificationSMS(

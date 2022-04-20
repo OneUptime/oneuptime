@@ -30,7 +30,7 @@ router.post(
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
             data.createdById = userId;
-            data.projectId = req.params['projectId'];
+            data.projectId = req.params.projectId;
 
             if (!data.name) {
                 return sendErrorResponse(req, res, {
@@ -52,7 +52,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
             const populate: $TSFixMe = [
                 { path: 'userIds', select: 'name' },
                 { path: 'createdById', select: 'name' },
@@ -84,8 +84,8 @@ router.get(
             const [schedules, count]: $TSFixMe = await Promise.all([
                 ScheduleService.findBy({
                     query: { projectId: projectId },
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     populate,
                     select,
                 }),
@@ -125,7 +125,7 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
             const populate: $TSFixMe = [
                 { path: 'userIds', select: 'name' },
                 { path: 'createdById', select: 'name' },
@@ -149,8 +149,8 @@ router.get(
             const [schedule, count]: $TSFixMe = await Promise.all([
                 ScheduleService.findBy({
                     query: { projectId },
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     populate,
                     select,
                 }),
@@ -190,7 +190,7 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const scheduleId: $TSFixMe = req.params['scheduleId'];
+            const scheduleId: $TSFixMe = req.params.scheduleId;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
 
@@ -223,7 +223,7 @@ router.get(
                       return project._id;
                   })
                 : null;
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
             const escalations: $TSFixMe =
                 await ScheduleService.getUserEscalations(subProjectIds, userId);
             return sendListResponse(req, res, escalations);
@@ -239,7 +239,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const scheduleId: $TSFixMe = req.params['scheduleId'];
+            const scheduleId: $TSFixMe = req.params.scheduleId;
             const response: $TSFixMe = await ScheduleService.getEscalations(
                 scheduleId
             );
@@ -263,7 +263,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            const scheduleId: $TSFixMe = req.params['scheduleId'];
+            const scheduleId: $TSFixMe = req.params.scheduleId;
             const escalations: $TSFixMe = [];
             let escalationPolicyCount: $TSFixMe = 0;
             for (const value of req.body) {
@@ -447,7 +447,7 @@ router.post(
 
                 storagevalue.push = value.push;
 
-                storagevalue.projectId = req.params['projectId'];
+                storagevalue.projectId = req.params.projectId;
 
                 storagevalue.scheduleId = scheduleId;
 

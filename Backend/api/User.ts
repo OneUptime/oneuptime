@@ -164,7 +164,7 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                 select: '_id password',
             }),
             VerificationTokenModel.findOne({
-                token: req.query['token'],
+                token: req.query.token,
             }),
         ]);
         let user: $TSFixMe = userData;
@@ -900,7 +900,7 @@ router.post(
     '/totp/token/:userId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
             const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId },
                 select: '_id otpauth_url',
@@ -1219,7 +1219,7 @@ router.put(
             ]);
 
             upload(req, res, async (error: $TSFixMe): void => {
-                const userId: $TSFixMe = req.params['userId'];
+                const userId: $TSFixMe = req.params.userId;
                 const data: $TSFixMe = req.body;
 
                 if (error) {
@@ -1417,9 +1417,9 @@ router.get(
     '/confirmation/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            if (req.params && req.params['token']) {
+            if (req.params && req.params.token) {
                 const token: $TSFixMe = await VerificationTokenModel.findOne({
-                    token: req.params['token'],
+                    token: req.params.token,
                 });
                 if (!token) {
                     return res.redirect(
@@ -1526,8 +1526,8 @@ router.get(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const [users, count]: $TSFixMe = await Promise.all([
                 UserService.getAllUsers(skip, limit),
                 UserService.countBy({
@@ -1548,7 +1548,7 @@ router.get(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
             const select: $TSFixMe =
                 'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
             const user: $TSFixMe = await UserService.findOneBy({
@@ -1569,7 +1569,7 @@ router.delete(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
 
             const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
@@ -1599,7 +1599,7 @@ router.put(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
 
             const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
@@ -1627,7 +1627,7 @@ router.put(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
 
             const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
@@ -1655,7 +1655,7 @@ router.put(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
 
             const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
@@ -1690,7 +1690,7 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
 
             const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
@@ -1726,7 +1726,7 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
 
             const authUserId: $TSFixMe = req.user.id;
             if (userId === authUserId) {
@@ -1751,7 +1751,7 @@ router.post(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
             if (Array.isArray(req.body)) {
                 const data: $TSFixMe = [];
                 if (req.body.length > 0) {
@@ -1802,8 +1802,8 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const filter: $TSFixMe = req.body.filter;
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const [users, count]: $TSFixMe = await Promise.all([
                 UserService.searchUsers(
                     {
@@ -1859,7 +1859,7 @@ router.delete(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            if (req.params['userId'] !== req.user.id) {
+            if (req.params.userId !== req.user.id) {
                 return sendErrorResponse(req, res, {
                     code: 401,
                     message: 'You are unauthorized to access the page',
@@ -1945,7 +1945,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const token: $TSFixMe = await VerificationTokenModel.findOne({
-                token: req.params['token'],
+                token: req.params.token,
             }).populate('userId', 'email');
 
             return sendItemResponse(req, res, { token });

@@ -33,7 +33,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const val: $TSFixMe = req.body.search;
-            const parentProjectId: $TSFixMe = req.params['projectId'];
+            const parentProjectId: $TSFixMe = req.params.projectId;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => {

@@ -30,9 +30,9 @@ router.post(
             const body: $TSFixMe = req.body;
             const data: $TSFixMe = {};
 
-            data.projectId = req.params['projectId'];
+            data.projectId = req.params.projectId;
 
-            data.statusPageId = req.params['statusPageId'];
+            data.statusPageId = req.params.statusPageId;
 
             data.notificationType = body.notificationType;
 
@@ -177,8 +177,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            data.projectId = req.params['projectId'];
-            data.monitorId = req.params['monitorId'];
+            data.projectId = req.params.projectId;
+            data.monitorId = req.params.monitorId;
             if (!data.alertVia) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -335,9 +335,9 @@ router.post(
  */
 router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const projectId: $TSFixMe = req.params['projectId'];
-        const skip: $TSFixMe = req.query['skip'] || 0;
-        const limit: $TSFixMe = req.query['limit'] || 10;
+        const projectId: $TSFixMe = req.params.projectId;
+        const skip: $TSFixMe = req.query.skip || 0;
+        const limit: $TSFixMe = req.query.limit || 10;
         const select: $TSFixMe =
             'monitorId projectId statusPageId alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod notificationType createdAt subscribed';
 
@@ -360,9 +360,9 @@ router.get(
     '/:projectId/monitor/:monitorId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const monitorId: $TSFixMe = req.params['monitorId'];
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const monitorId: $TSFixMe = req.params.monitorId;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const populate: $TSFixMe = [
                 { path: 'projectId', select: 'name _id' },
                 { path: 'monitorId', select: 'name _id' },
@@ -396,7 +396,7 @@ router.get(
     '/monitorList/:subscriberId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const subscriberId: $TSFixMe = req.params['subscriberId'];
+            const subscriberId: $TSFixMe = req.params.subscriberId;
 
             const subscriber: $TSFixMe = await SubscriberService.findBy({
                 query: { _id: subscriberId },
@@ -456,8 +456,8 @@ router.get(
     '/:projectId/:subscriberId',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
-            const subscriberId: $TSFixMe = req.params['subscriberId'];
+            const projectId: $TSFixMe = req.params.projectId;
+            const subscriberId: $TSFixMe = req.params.subscriberId;
             const populate: $TSFixMe = [
                 { path: 'projectId', select: 'name _id' },
                 { path: 'monitorId', select: 'name _id' },
@@ -506,7 +506,7 @@ router.delete(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const subscriberId: $TSFixMe = req.params['subscriberId'];
+            const subscriberId: $TSFixMe = req.params.subscriberId;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const subscriber: $TSFixMe = await SubscriberService.deleteBy(
@@ -525,8 +525,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            data.projectId = req.params['projectId'];
-            data.monitorId = req.params['monitorId'];
+            data.projectId = req.params.projectId;
+            data.monitorId = req.params.monitorId;
 
             if (data.data.length === 0) {
                 return sendErrorResponse(req, res, {

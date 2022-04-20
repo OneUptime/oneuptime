@@ -16,7 +16,7 @@ const _this: $TSFixMe = {
         next: NextFunction
     ): void {
         const data: $TSFixMe = req.body;
-        const applicationLogId: $TSFixMe = req.params['applicationLogId'];
+        const applicationLogId: $TSFixMe = req.params.applicationLogId;
         if (!applicationLogId) {
             return sendErrorResponse(req, res, {
                 code: 400,

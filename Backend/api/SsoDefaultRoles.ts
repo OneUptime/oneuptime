@@ -22,8 +22,8 @@ router.get(
     getUser,
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const skip: $TSFixMe = req.query['skip'] || 0;
-        const limit: $TSFixMe = req.query['limit'] || 10;
+        const skip: $TSFixMe = req.query.skip || 0;
+        const limit: $TSFixMe = req.query.limit || 10;
 
         const populateDefaultRoleSso: $TSFixMe = [
             { path: 'domain', select: '_id domain' },
@@ -57,11 +57,11 @@ router.delete(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            if (!req.params['id']) {
+            if (!req.params.id) {
                 throw new Error('Id must be defined');
             }
             const sso: $TSFixMe = await SsoDefaultRolesService.deleteBy({
-                _id: req.params['id'],
+                _id: req.params.id,
             });
             return sendItemResponse(req, res, sso);
         } catch (error) {
@@ -100,7 +100,7 @@ router.get(
             const selectDefaultRoleSso: $TSFixMe =
                 '_id domain project role createdAt deleted deletedAt deletedById';
             const sso: $TSFixMe = await SsoDefaultRolesService.findOneBy({
-                query: { _id: req.params['id'] },
+                query: { _id: req.params.id },
                 select: selectDefaultRoleSso,
                 populate: populateDefaultRoleSso,
             });
@@ -125,7 +125,7 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const id: $TSFixMe = req.params['id'];
+            const id: $TSFixMe = req.params.id;
             const ssoDefaultRole: $TSFixMe =
                 await SsoDefaultRolesService.updateById(id, req.body);
             return sendItemResponse(req, res, ssoDefaultRole);

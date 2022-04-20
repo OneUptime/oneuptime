@@ -21,7 +21,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const userId: $TSFixMe = req.params['userId'];
+            const userId: $TSFixMe = req.params.userId;
             let { skip, limit }: $TSFixMe = req.query;
             if (!skip) {
                 skip = 0;

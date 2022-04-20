@@ -32,7 +32,7 @@ router.get(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId: $TSFixMe = req.params['projectId'];
+        const projectId: $TSFixMe = req.params.projectId;
 
         try {
             // Call the TeamService
@@ -86,8 +86,8 @@ router.get(
     getUser,
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
-        const projectId: $TSFixMe = req.params['projectId'];
-        const teamMemberUserId: $TSFixMe = req.params['teamMemberId'];
+        const projectId: $TSFixMe = req.params.projectId;
+        const teamMemberUserId: $TSFixMe = req.params.teamMemberId;
 
         try {
             const teamMember: $TSFixMe = await TeamService.getTeamMemberBy(
@@ -252,8 +252,8 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         const userId: $TSFixMe = req.user ? req.user.id : null;
-        const teamMemberUserId: $TSFixMe = req.params['teamMemberId'];
-        const projectId: $TSFixMe = req.params['projectId'];
+        const teamMemberUserId: $TSFixMe = req.params.teamMemberId;
+        const projectId: $TSFixMe = req.params.projectId;
 
         if (!teamMemberUserId) {
             return sendErrorResponse(req, res, {
@@ -299,8 +299,8 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         const data: $TSFixMe = req.body;
-        const projectId: $TSFixMe = req.params['projectId'];
-        data.teamMemberId = req.params['teamMemberId'];
+        const projectId: $TSFixMe = req.params.projectId;
+        data.teamMemberId = req.params.teamMemberId;
         if (!data.teamMemberId) {
             return sendErrorResponse(req, res, {
                 code: 400,

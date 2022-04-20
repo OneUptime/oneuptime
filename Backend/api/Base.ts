@@ -38,25 +38,25 @@ export default ({
             if (req.role === 'member') {
                 item = await service.getItemForMember({
                     query: {
-                        _id: req.params['id'],
+                        _id: req.params.id,
                     },
                 });
             } else if (req.role === 'admin' || req.role === 'owner') {
                 item = await service.getItemForAdmin({
                     query: {
-                        _id: req.params['id'],
+                        _id: req.params.id,
                     },
                 });
             } else if (req.role === 'viewer') {
                 item = await service.getItemForViewer({
                     query: {
-                        _id: req.params['id'],
+                        _id: req.params.id,
                     },
                 });
             } else {
                 item = await service.getItemForPublic({
                     query: {
-                        _id: req.params['id'],
+                        _id: req.params.id,
                     },
                 });
             }
@@ -99,7 +99,7 @@ export default ({
                 promises.push(
                     service.getListForMember({
                         query: {
-                            _id: req.params['id'],
+                            _id: req.params.id,
                         },
                         limit,
                         skip,
@@ -110,7 +110,7 @@ export default ({
                 promises.push(
                     service.getListForAdmin({
                         query: {
-                            _id: req.params['id'],
+                            _id: req.params.id,
                         },
                         limit,
                         skip,
@@ -121,7 +121,7 @@ export default ({
                 promises.push(
                     service.getListForViewer({
                         query: {
-                            _id: req.params['id'],
+                            _id: req.params.id,
                         },
                         limit,
                         skip,
@@ -132,7 +132,7 @@ export default ({
                 promises.push(
                     service.getListForPulic({
                         query: {
-                            _id: req.params['id'],
+                            _id: req.params.id,
                         },
                         limit,
                         skip,
@@ -157,7 +157,7 @@ export default ({
             const data: $TSFixMe = req.body;
 
             if (isResourceInProject) {
-                data.projectId = req.params['projectId'];
+                data.projectId = req.params.projectId;
             }
 
             const item: $TSFixMe = await service.create(data);
@@ -184,7 +184,7 @@ export default ({
 
             await service.deleteOneBy({
                 query: {
-                    _id: req.params['id'],
+                    _id: req.params.id,
                 },
                 deletedByUserId: req.user._id,
             });
@@ -218,7 +218,7 @@ export default ({
 
             await service.updateOneBy({
                 query: {
-                    _id: req.params['id'],
+                    _id: req.params.id,
                 },
                 updatedValues: data,
             });

@@ -25,8 +25,8 @@ const router: ExpressRouter = Express.getRouter();
 
 router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
     // Get oneuptime project id from slack auth state query params
-    let state: $TSFixMe = req.query['state'];
-    const slackCode: $TSFixMe = req.query['code'];
+    let state: $TSFixMe = req.query.state;
+    const slackCode: $TSFixMe = req.query.code;
 
     if (!slackCode) {
         return sendErrorResponse(req, res, {
@@ -70,8 +70,8 @@ router.post(
     getUser,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId: $TSFixMe = req.params['projectId'];
-        const code: $TSFixMe = req.query['code'];
+        const projectId: $TSFixMe = req.params.projectId;
+        const code: $TSFixMe = req.query.code;
 
         const userId: $TSFixMe = req.user ? req.user.id : null;
         const slug: $TSFixMe = req.body.slug;
@@ -148,8 +148,8 @@ router.delete(
     getUser,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId: $TSFixMe = req.params['projectId'];
-        const teamId: $TSFixMe = req.params['teamId'];
+        const projectId: $TSFixMe = req.params.projectId;
+        const teamId: $TSFixMe = req.params.teamId;
 
         const userId: $TSFixMe = req.user ? req.user.id : null;
 
@@ -176,7 +176,7 @@ router.get(
     '/:projectId/teams',
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId: $TSFixMe = req.params['projectId'];
+        const projectId: $TSFixMe = req.params.projectId;
         const integrationType: string = 'slack';
 
         try {
@@ -197,8 +197,8 @@ router.get(
                         projectId: projectId,
                         integrationType: integrationType,
                     },
-                    skip: req.query['skip'] || 0,
-                    limit: req.query['limit'] || 10,
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
                     select,
                     populate,
                 }),

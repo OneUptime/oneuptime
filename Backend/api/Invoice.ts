@@ -17,9 +17,9 @@ import Exception from 'Common/Types/Exception/Exception';
  */
 router.post('/:userId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const userId: $TSFixMe = req.params['userId'];
-        let startingAfter: $TSFixMe = req.query['startingAfter'];
-        let endingBefore: $TSFixMe = req.query['endingBefore'];
+        const userId: $TSFixMe = req.params.userId;
+        let startingAfter: $TSFixMe = req.query.startingAfter;
+        let endingBefore: $TSFixMe = req.query.endingBefore;
 
         if (startingAfter === 'undefined') {
             startingAfter = {};

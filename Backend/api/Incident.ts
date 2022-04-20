@@ -141,7 +141,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
             const incidentType: $TSFixMe = req.body.incidentType;
             const incidentPriority: $TSFixMe = req.body.incidentPriority;
             const title: $TSFixMe = req.body.title;
@@ -385,8 +385,8 @@ router.get(
                 await IncidentService.getProjectComponentIncidents(
                     projectId,
                     componentId,
-                    req.query['limit'] || 10,
-                    req.query['skip'] || 0
+                    req.query.limit || 10,
+                    req.query.skip || 0
                 );
             return sendListResponse(req, res, incident); // Frontend expects sendListResponse
         } catch (error) {
@@ -401,7 +401,7 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
             const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
@@ -442,8 +442,8 @@ router.get(
             const [incident, count]: $TSFixMe = await Promise.all([
                 IncidentService.findBy({
                     query,
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     select,
                     populate,
                 }),
@@ -529,8 +529,8 @@ router.get(
             const [timeline, count]: $TSFixMe = await Promise.all([
                 IncidentTimelineService.findBy({
                     query: { incidentId },
-                    skip: req.query['skip'] || 0,
-                    limit: req.query['limit'] || 10,
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
                     populate: populateIncTimeline,
                     select: selectIncTimeline,
                 }),
@@ -589,8 +589,8 @@ router.post(
             if (req.user && req.user.id === 'API') {
                 acknowledgedByApi = true;
             }
-            const projectId: $TSFixMe = req.params['projectId'];
-            const incidentId: $TSFixMe = req.params['incidentId'];
+            const projectId: $TSFixMe = req.params.projectId;
+            const incidentId: $TSFixMe = req.params.incidentId;
 
             const incident: $TSFixMe = await IncidentService.acknowledge(
                 incidentId,
@@ -761,8 +761,8 @@ router.post(
             if (req.user && req.user.id === 'API') {
                 resolvedByApi = true;
             }
-            const projectId: $TSFixMe = req.params['projectId'];
-            const incidentId: $TSFixMe = req.params['incidentId'];
+            const projectId: $TSFixMe = req.params.projectId;
+            const incidentId: $TSFixMe = req.params.incidentId;
 
             const incident: $TSFixMe = await IncidentService.resolve(
                 incidentId,
@@ -940,8 +940,8 @@ router.put(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId: $TSFixMe = req.params['projectId'];
-        const incidentId: $TSFixMe = req.params['incidentId'];
+        const projectId: $TSFixMe = req.params.projectId;
+        const incidentId: $TSFixMe = req.params.incidentId;
         const { title, description, incidentPriority }: $TSFixMe = req.body;
 
         const query: $TSFixMe = {
@@ -978,8 +978,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            const incidentId: $TSFixMe = req.params['incidentId'];
-            const projectId: $TSFixMe = req.params['projectId'];
+            const incidentId: $TSFixMe = req.params.incidentId;
+            const projectId: $TSFixMe = req.params.projectId;
             const populate: $TSFixMe = [
                 {
                     path: 'monitors.monitorId',
@@ -1382,9 +1382,9 @@ router.get(
                     await StatusPageService.getStatusPagesForIncident(
                         incident._id,
 
-                        parseInt(req.query['skip']) || 0,
+                        parseInt(req.query.skip) || 0,
 
-                        parseInt(req.query['limit']) || 10
+                        parseInt(req.query.limit) || 10
                     );
                 return sendListResponse(req, res, statusPages, count);
             }
@@ -1589,15 +1589,15 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         let type: $TSFixMe = 'investigation';
-        if (req.query['type'] && req.query['type'] === 'internal') {
+        if (req.query.type && req.query.type === 'internal') {
             type = 'internal';
         }
         try {
             let incidentMessages: $TSFixMe,
                 result: $TSFixMe = [],
                 count: $TSFixMe = 0;
-            const incidentSlug: $TSFixMe = req.params['incidentSlug'];
-            const projectId: $TSFixMe = req.params['projectId'];
+            const incidentSlug: $TSFixMe = req.params.incidentSlug;
+            const projectId: $TSFixMe = req.params.projectId;
             let incidentId: $TSFixMe = await IncidentService.findOneBy({
                 query: { slug: incidentSlug },
                 select: '_id',
@@ -1607,9 +1607,9 @@ router.get(
                 let skip: $TSFixMe = 0,
                     limit: $TSFixMe = 0;
                 if (type === 'investigation') {
-                    skip = req.query['skip'] || 0;
+                    skip = req.query.skip || 0;
 
-                    limit = req.query['limit'] || 10;
+                    limit = req.query.limit || 10;
                 }
 
                 const populateIncidentMessage: $TSFixMe = [

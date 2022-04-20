@@ -34,7 +34,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            data.componentId = req.params['componentId'];
+            data.componentId = req.params.componentId;
 
             if (!data) {
                 return sendErrorResponse(req, res, {

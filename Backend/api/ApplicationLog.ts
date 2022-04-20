@@ -45,7 +45,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            const componentId: $TSFixMe = req.params['componentId'];
+            const componentId: $TSFixMe = req.params.componentId;
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -121,7 +121,7 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const componentId: $TSFixMe = req.params['componentId'];
+            const componentId: $TSFixMe = req.params.componentId;
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -180,7 +180,7 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
-            const applicationLogId: $TSFixMe = req.params['applicationLogId'];
+            const applicationLogId: $TSFixMe = req.params.applicationLogId;
 
             if (data.tags) {
                 if (
@@ -214,7 +214,7 @@ router.post(
         try {
             const { skip, limit, startDate, endDate, type, filter }: $TSFixMe =
                 req.body;
-            const applicationLogId: $TSFixMe = req.params['applicationLogId'];
+            const applicationLogId: $TSFixMe = req.params.applicationLogId;
 
             const currentApplicationCount: $TSFixMe =
                 await ApplicationLogService.countBy({
@@ -279,7 +279,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const applicationLogId: $TSFixMe = req.params['applicationLogId'];
+            const applicationLogId: $TSFixMe = req.params.applicationLogId;
 
             const currentApplicationCount: $TSFixMe =
                 await ApplicationLogService.countBy({
@@ -330,7 +330,7 @@ router.post(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const applicationLogId: $TSFixMe = req.params['applicationLogId'];
+        const applicationLogId: $TSFixMe = req.params.applicationLogId;
 
         const currentApplicationCount: $TSFixMe =
             await ApplicationLogService.countBy({

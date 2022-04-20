@@ -685,7 +685,7 @@ router.post(
         try {
             const data: $TSFixMe = req.body;
             data.probeId = req.probe.id;
-            data.monitorId = req.params['monitorId'];
+            data.monitorId = req.params.monitorId;
             const log: $TSFixMe = await ProbeService.saveMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
@@ -701,7 +701,7 @@ router.post(
         try {
             const data: $TSFixMe = req.body;
             data.probeId = req.probe.id;
-            data.monitorId = req.params['monitorId'];
+            data.monitorId = req.params.monitorId;
             const log: $TSFixMe = await ProbeService.getMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {

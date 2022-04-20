@@ -14,7 +14,7 @@ const _this: $TSFixMe = {
         next: NextFunction
     ): void {
         const data: $TSFixMe = req.body;
-        const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
+        const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
         if (!errorTrackerId) {
             return sendErrorResponse(req, res, {
                 code: 400,

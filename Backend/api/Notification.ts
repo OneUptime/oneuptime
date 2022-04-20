@@ -51,8 +51,8 @@ router.get(
             const [notifications, count]: $TSFixMe = await Promise.all([
                 NotificationService.findBy({
                     query: { projectId: { $in: subProjectIds } },
-                    skip: req.query['skip'] || 0,
-                    limit: req.query['limit'] || 20,
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 20,
                     populate: populateNotification,
                     select: selectNotification,
                 }),
@@ -103,7 +103,7 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const notificationId: $TSFixMe = req.params['notificationId'];
+            const notificationId: $TSFixMe = req.params.notificationId;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const notification: $TSFixMe =
@@ -166,7 +166,7 @@ router.put(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const notificationId: $TSFixMe = req.params['notificationId'];
+            const notificationId: $TSFixMe = req.params.notificationId;
             const updateObject: $TSFixMe = req.body;
             const notification: $TSFixMe =
                 await NotificationService.updateOneBy(
@@ -192,7 +192,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const data: $TSFixMe = req.body;

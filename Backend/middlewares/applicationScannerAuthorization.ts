@@ -18,10 +18,10 @@ export default {
             clusterKey: $TSFixMe,
             applicationScannerVersion: $TSFixMe;
 
-        if (req.params && req.params['applicationscannerkey']) {
-            applicationScannerKey = req.params['applicationscannerkey'];
-        } else if (req.query && req.query['applicationScannerKey']) {
-            applicationScannerKey = req.query['applicationscannerkey'];
+        if (req.params && req.params.applicationscannerkey) {
+            applicationScannerKey = req.params.applicationscannerkey;
+        } else if (req.query && req.query.applicationScannerKey) {
+            applicationScannerKey = req.query.applicationscannerkey;
         } else if (req.headers && req.headers.applicationscannerkey) {
             applicationScannerKey = req.headers.applicationscannerkey;
         } else if (req.body && req.body.applicationScannerKey) {
@@ -34,10 +34,10 @@ export default {
             );
         }
 
-        if (req.params && req.params['applicationscannername']) {
-            applicationScannerName = req.params['applicationscannername'];
-        } else if (req.query && req.query['applicationscannername']) {
-            applicationScannerName = req.query['applicationscannername'];
+        if (req.params && req.params.applicationscannername) {
+            applicationScannerName = req.params.applicationscannername;
+        } else if (req.query && req.query.applicationscannername) {
+            applicationScannerName = req.query.applicationscannername;
         } else if (req.headers && req.headers.applicationscannername) {
             applicationScannerName = req.headers.applicationscannername;
         } else if (req.body && req.body.applicationscannerName) {
@@ -50,10 +50,10 @@ export default {
             );
         }
 
-        if (req.params && req.params['clusterKey']) {
-            clusterKey = req.params['clusterKey'];
-        } else if (req.query && req.query['clusterKey']) {
-            clusterKey = req.query['clusterKey'];
+        if (req.params && req.params.clusterKey) {
+            clusterKey = req.params.clusterKey;
+        } else if (req.query && req.query.clusterKey) {
+            clusterKey = req.query.clusterKey;
         } else if (
             req.headers &&
             (req.headers.clusterKey || req.headers.clusterkey)
@@ -64,10 +64,10 @@ export default {
             clusterKey = req.body.clusterKey;
         }
 
-        if (req.params && req.params['applicationscannerversion']) {
-            applicationScannerVersion = req.params['applicationscannerversion'];
-        } else if (req.query && req.query['applicationscannerversion']) {
-            applicationScannerVersion = req.query['applicationscannerversion'];
+        if (req.params && req.params.applicationscannerversion) {
+            applicationScannerVersion = req.params.applicationscannerversion;
+        } else if (req.query && req.query.applicationscannerversion) {
+            applicationScannerVersion = req.query.applicationscannerversion;
         } else if (req.headers && req.headers.applicationscannerversion) {
             applicationScannerVersion = req.headers.applicationscannerversion;
         } else if (req.body && req.body.applicationscannerversion) {

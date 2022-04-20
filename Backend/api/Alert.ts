@@ -30,7 +30,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
 
             const userId: $TSFixMe = req.user.id;
             const data: $TSFixMe = req.body;
@@ -79,7 +79,7 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
             const populateAlert: $TSFixMe = [
                 { path: 'userId', select: 'name' },
                 { path: 'monitorId', select: 'name' },
@@ -92,8 +92,8 @@ router.get(
             const [alerts, count]: $TSFixMe = await Promise.all([
                 alertService.findBy({
                     query: { projectId },
-                    skip: req.query['skip'] || 0,
-                    limit: req.query['limit'] || 10,
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
                     populate: populateAlert,
                     select: selectColumns,
                 }),
@@ -112,15 +112,15 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const incidentSlug: $TSFixMe = req.params['incidentSlug'];
+            const incidentSlug: $TSFixMe = req.params.incidentSlug;
             // Const projectId: $TSFixMe = req.params['projectId'];
             let incidentId: $TSFixMe = await IncidentService.findOneBy({
                 // Query: { projectId, slug: incidentSlug },
                 query: { slug: incidentSlug },
                 select: '_id',
             });
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
 
             let alerts: $TSFixMe = [],
                 count: $TSFixMe = 0;
@@ -163,8 +163,8 @@ router.get(
     '/:projectId/:alertId/viewed',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const alertId: $TSFixMe = req.params['alertId'];
-            const projectId: $TSFixMe = req.params['projectId'];
+            const alertId: $TSFixMe = req.params.alertId;
+            const projectId: $TSFixMe = req.params.projectId;
             await alertService.updateOneBy(
                 { _id: alertId, projectId: projectId },
                 { alertStatus: 'Viewed' }
@@ -194,7 +194,7 @@ router.delete(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
 
             const userId: $TSFixMe = req.user.id;
             const alert: $TSFixMe = await alertService.deleteBy(
@@ -220,7 +220,7 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
 
             //Important! Always pass required field(s)
             const populate: $TSFixMe = [
@@ -236,8 +236,8 @@ router.get(
             const [alertCharges, count]: $TSFixMe = await Promise.all([
                 alertChargeService.findBy({
                     query: { projectId },
-                    skip: req.query['skip'],
-                    limit: req.query['limit'],
+                    skip: req.query.skip,
+                    limit: req.query.limit,
                     sort: false,
                     populate,
                     select,

@@ -20,7 +20,7 @@ import Exception from 'Common/Types/Exception/Exception';
 router.get('/:filename', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const file: $TSFixMe = await FileService.findOneBy({
-            filename: req.params['filename'],
+            filename: req.params.filename,
         });
         return sendFileResponse(req, res, file);
     } catch (error) {

@@ -4,21 +4,22 @@ import Express, {
     OneUptimeRequest,
     ProbeRequest,
     ExpressRouter,
-    sendListResponse,
 } from 'CommonServer/utils/Express';
 
 import MonitorService from 'CommonServer/Services/MonitorService';
 import ProbeAuthorization from 'CommonServer/middleware/ProbeAuthorization';
-import { sendErrorResponse } from 'CommonServer/utils/Response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+} from 'CommonServer/utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import { Document } from 'CommonServer/Infrastructure/ORM';
 
-
 const router: ExpressRouter = Express.getRouter();
 
 router.get(
-    "/monitors",
+    '/monitors',
     ProbeAuthorization.isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
@@ -27,10 +28,11 @@ router.get(
                 parseInt((req.query['limit'] as string) || '10')
             );
 
-            const monitors: Array<Document> = await MonitorService.getMonitorsNotPingedByProbeInLastMinute(
-                (oneUptimeRequest.probe as ProbeRequest).id,
-                limit
-            );
+            const monitors: Array<Document> =
+                await MonitorService.getMonitorsNotPingedByProbeInLastMinute(
+                    (oneUptimeRequest.probe as ProbeRequest).id,
+                    limit
+                );
 
             return sendListResponse(req, res, monitors, monitors.length);
         } catch (error) {

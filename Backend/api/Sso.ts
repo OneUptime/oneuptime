@@ -24,8 +24,8 @@ router.get(
     getUser,
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const skip: $TSFixMe = req.query['skip'] || 0;
-        const limit: $TSFixMe = req.query['limit'] || 10;
+        const skip: $TSFixMe = req.query.skip || 0;
+        const limit: $TSFixMe = req.query.limit || 10;
 
         const selectSso: $TSFixMe =
             '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
@@ -54,7 +54,7 @@ router.delete(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const sso: $TSFixMe = await SsoService.deleteBy({
-                _id: req.params['id'],
+                _id: req.params.id,
             });
             return sendItemResponse(req, res, sso);
         } catch (error) {
@@ -87,7 +87,7 @@ router.get(
                 '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
 
             const sso: $TSFixMe = await SsoService.findOneBy({
-                query: { _id: req.params['id'] },
+                query: { _id: req.params.id },
                 select: selectSso,
             });
             return sendItemResponse(req, res, sso);
@@ -104,7 +104,7 @@ router.put(
         try {
             const data: $TSFixMe = req.body;
             const sso: $TSFixMe = await SsoService.updateBy(
-                { _id: req.params['id'] },
+                { _id: req.params.id },
                 data
             );
             return sendItemResponse(req, res, sso);
@@ -121,8 +121,8 @@ router.get(
     isScaleOrMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const skip: $TSFixMe = req.query['skip'] || 0;
-            const limit: $TSFixMe = req.query['limit'] || 10;
+            const skip: $TSFixMe = req.query.skip || 0;
+            const limit: $TSFixMe = req.query.limit || 10;
             const { projectId }: $TSFixMe = req.params;
 
             const selectSso: $TSFixMe =

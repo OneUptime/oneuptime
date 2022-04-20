@@ -18,10 +18,10 @@ export default {
             clusterKey: $TSFixMe,
             containerScannerVersion: $TSFixMe;
 
-        if (req.params && req.params['containerscannerkey']) {
-            containerScannerKey = req.params['containerscannerkey'];
-        } else if (req.query && req.query['containerScannerKey']) {
-            containerScannerKey = req.query['containerscannerkey'];
+        if (req.params && req.params.containerscannerkey) {
+            containerScannerKey = req.params.containerscannerkey;
+        } else if (req.query && req.query.containerScannerKey) {
+            containerScannerKey = req.query.containerscannerkey;
         } else if (req.headers && req.headers.containerscannerkey) {
             containerScannerKey = req.headers.containerscannerkey;
         } else if (req.body && req.body.containerScannerKey) {
@@ -34,10 +34,10 @@ export default {
             );
         }
 
-        if (req.params && req.params['containerscannername']) {
-            containerScannerName = req.params['containerscannername'];
-        } else if (req.query && req.query['containerscannername']) {
-            containerScannerName = req.query['containerscannername'];
+        if (req.params && req.params.containerscannername) {
+            containerScannerName = req.params.containerscannername;
+        } else if (req.query && req.query.containerscannername) {
+            containerScannerName = req.query.containerscannername;
         } else if (req.headers && req.headers.containerscannername) {
             containerScannerName = req.headers.containerscannername;
         } else if (req.body && req.body.containerscannerName) {
@@ -50,10 +50,10 @@ export default {
             );
         }
 
-        if (req.params && req.params['clusterKey']) {
-            clusterKey = req.params['clusterKey'];
-        } else if (req.query && req.query['clusterKey']) {
-            clusterKey = req.query['clusterKey'];
+        if (req.params && req.params.clusterKey) {
+            clusterKey = req.params.clusterKey;
+        } else if (req.query && req.query.clusterKey) {
+            clusterKey = req.query.clusterKey;
         } else if (
             req.headers &&
             (req.headers.clusterKey || req.headers.clusterkey)
@@ -63,10 +63,10 @@ export default {
             clusterKey = req.body.clusterKey;
         }
 
-        if (req.params && req.params['containerscannerversion']) {
-            containerScannerVersion = req.params['containerscannerversion'];
-        } else if (req.query && req.query['containerscannerversion']) {
-            containerScannerVersion = req.query['containerscannerversion'];
+        if (req.params && req.params.containerscannerversion) {
+            containerScannerVersion = req.params.containerscannerversion;
+        } else if (req.query && req.query.containerscannerversion) {
+            containerScannerVersion = req.query.containerscannerversion;
         } else if (req.headers && req.headers.containerscannerversion) {
             containerScannerVersion = req.headers.containerscannerversion;
         } else if (req.body && req.body.containerscannerversion) {

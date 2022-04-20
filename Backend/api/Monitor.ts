@@ -52,7 +52,7 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
 
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -484,7 +484,7 @@ router.get(
         try {
             // Const { projectId }: $TSFixMe = req.params;
             const { skip, limit, componentSlug }: $TSFixMe = req.query;
-            let componentId: $TSFixMe = req.query['componentId'];
+            let componentId: $TSFixMe = req.query.componentId;
 
             let component: $TSFixMe;
             if (!componentId) {
@@ -529,7 +529,7 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const type: $TSFixMe = req.query['type'];
+            const type: $TSFixMe = req.query.type;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => {
@@ -553,8 +553,8 @@ router.get(
             const [monitors, count]: $TSFixMe = await Promise.all([
                 MonitorService.findBy({
                     query,
-                    limit: req.query['limit'] || 10,
-                    skip: req.query['skip'] || 0,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
                     select,
                     populate,
                 }),
@@ -576,8 +576,8 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const monitorId: $TSFixMe = req.params['monitorId'];
-            const type: $TSFixMe = req.query['type'];
+            const monitorId: $TSFixMe = req.params.monitorId;
+            const type: $TSFixMe = req.query.type;
 
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => {
@@ -629,7 +629,7 @@ router.post(
                 incidentId,
                 type,
             } = req.body;
-            const monitorId: $TSFixMe = req.params['monitorId'];
+            const monitorId: $TSFixMe = req.params.monitorId;
             const query: $TSFixMe = {};
             const selectMonitorLog: $TSFixMe =
                 'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
@@ -716,7 +716,7 @@ router.post(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const monitorId: $TSFixMe = req.params['monitorId'] || req.body._id;
+            const monitorId: $TSFixMe = req.params.monitorId || req.body._id;
             const data: $TSFixMe = req.body;
             data.monitorId = monitorId;
 
@@ -812,7 +812,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { startDate, endDate }: $TSFixMe = req.body;
-            const monitorId: $TSFixMe = req.params['monitorId'];
+            const monitorId: $TSFixMe = req.params.monitorId;
             const monitorLogs: $TSFixMe = await MonitorService.getMonitorLogs(
                 monitorId,
                 startDate,
@@ -836,7 +836,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { startDate, endDate }: $TSFixMe = req.body;
-            const monitorId: $TSFixMe = req.params['monitorId'];
+            const monitorId: $TSFixMe = req.params.monitorId;
             const monitorStatuses: $TSFixMe =
                 await MonitorService.getMonitorStatuses(
                     monitorId,
@@ -861,7 +861,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { skip, limit, url }: $TSFixMe = req.query;
-            const monitorId: $TSFixMe = req.params['monitorId'];
+            const monitorId: $TSFixMe = req.params.monitorId;
 
             const { lighthouseLogs, count }: $TSFixMe =
                 await LighthouseLogService.findLastestScan({
@@ -895,7 +895,7 @@ router.get(
             ];
             const lighthouseIssue: $TSFixMe =
                 await LighthouseLogService.findOneBy({
-                    query: { _id: req.params['issueId'] },
+                    query: { _id: req.params.issueId },
                     select: selectLighthouseLogs,
                     populate: populateLighthouseLogs,
                 });
@@ -930,8 +930,8 @@ const _updateDeviceMonitorPingTime: $TSFixMe = async function (
     res: ExpressResponse
 ): void {
     try {
-        const projectId: $TSFixMe = req.params['projectId'];
-        const deviceId: $TSFixMe = req.params['deviceId'];
+        const projectId: $TSFixMe = req.params.projectId;
+        const deviceId: $TSFixMe = req.params.deviceId;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -972,7 +972,7 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const seatresponse: $TSFixMe = await MonitorService.addSeat({
-                _id: req.params['projectId'],
+                _id: req.params.projectId,
             });
             return sendItemResponse(req, res, seatresponse);
         } catch (error) {
@@ -990,7 +990,7 @@ router.post(
             const { siteUrl }: $TSFixMe = req.body;
             const monitor: $TSFixMe = await MonitorService.addSiteUrl(
                 {
-                    _id: req.params['monitorId'],
+                    _id: req.params.monitorId,
                 },
                 { siteUrl }
             );
@@ -1010,7 +1010,7 @@ router.delete(
             const { siteUrl }: $TSFixMe = req.body;
             const monitor: $TSFixMe = await MonitorService.removeSiteUrl(
                 {
-                    _id: req.params['monitorId'],
+                    _id: req.params.monitorId,
                 },
                 { siteUrl }
             );

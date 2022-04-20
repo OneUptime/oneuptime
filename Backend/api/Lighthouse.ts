@@ -83,7 +83,7 @@ router.post(
             data.lighthouseData =
                 resp && resp.lighthouseData ? resp.lighthouseData : null;
 
-            data.monitorId = req.params['monitorId'] || monitor._id;
+            data.monitorId = req.params.monitorId || monitor._id;
 
             const probeId: $TSFixMe = await ProbeService.findBy({
                 query: {},

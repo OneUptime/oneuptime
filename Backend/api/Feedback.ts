@@ -30,7 +30,7 @@ router.post(
                 });
             }
             const feedback: $TSFixMe = await FeedbackService.create(
-                req.params['projectId'],
+                req.params.projectId,
                 req.body.feedback,
                 req.body.page,
 

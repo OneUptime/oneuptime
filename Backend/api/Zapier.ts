@@ -22,8 +22,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const apiKey: $TSFixMe = req.query['apiKey'];
-            const projectId: $TSFixMe = req.query['projectId'];
+            const apiKey: $TSFixMe = req.query.apiKey;
+            const projectId: $TSFixMe = req.query.projectId;
             const response: $TSFixMe = await ZapierService.test(
                 projectId,
                 apiKey
@@ -40,7 +40,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.query['projectId'];
+            const projectId: $TSFixMe = req.query.projectId;
 
             const projects: $TSFixMe = await ProjectService.findBy({
                 query: {
@@ -91,7 +91,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.query['projectId'];
+            const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
             const incidents: $TSFixMe = await ZapierService.getIncidents(
                 projectId
@@ -109,7 +109,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.query['projectId'];
+            const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
             const incidents: $TSFixMe = await ZapierService.getIncidentsNotes(
                 projectId
@@ -142,7 +142,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.query['projectId'];
+            const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
             const incidents: $TSFixMe =
                 await ZapierService.getResolvedIncidents(projectId);
@@ -220,7 +220,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.query['projectId'];
+            const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
             const incidents: $TSFixMe =
                 await ZapierService.getAcknowledgedIncidents(
@@ -307,7 +307,7 @@ router.post(
                 req.body.input && req.body.input.monitors
                     ? req.body.input.monitors
                     : [];
-            const projectId: $TSFixMe = req.query['projectId'];
+            const projectId: $TSFixMe = req.query.projectId;
             if (!url) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -341,7 +341,7 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const id: $TSFixMe = req.params['id'];
+            const id: $TSFixMe = req.params.id;
             await ZapierService.unsubscribe(id);
             return sendEmptyResponse(req, res);
         } catch (error) {

@@ -12,18 +12,18 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 
 async function interactWithDB(req: ExpressRequest, res: ExpressResponse): void {
-    if (req.params['dbFunction'] === 'find') {
+    if (req.params.dbFunction === 'find') {
         res.send(await find(req.body.collection, req.body.query));
     }
-    if (req.params['dbFunction'] === 'save') {
+    if (req.params.dbFunction === 'save') {
         res.send(await save(req.body.collection, req.body.docs));
     }
-    if (req.params['dbFunction'] === 'update') {
+    if (req.params.dbFunction === 'update') {
         res.send(
             await update(req.body.collection, req.body.query, req.body.value)
         );
     }
-    if (req.params['dbFunction'] === 'removeMany') {
+    if (req.params.dbFunction === 'removeMany') {
         res.send(await removeMany(req.body.collection, req.body.query));
     }
 }

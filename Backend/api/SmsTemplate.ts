@@ -29,7 +29,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            data.projectId = req.params['projectId'];
+            data.projectId = req.params.projectId;
 
             if (!data.body) {
                 return sendErrorResponse(req, res, {
@@ -53,8 +53,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
-            const templateId: $TSFixMe = req.params['templateId'];
+            const projectId: $TSFixMe = req.params.projectId;
+            const templateId: $TSFixMe = req.params.templateId;
             await SmsTemplateService.resetTemplate(projectId, templateId);
             const templates: $TSFixMe = await SmsTemplateService.getTemplates(
                 projectId
@@ -72,7 +72,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params['projectId'];
+            const projectId: $TSFixMe = req.params.projectId;
             const templates: $TSFixMe = await SmsTemplateService.getTemplates(
                 projectId
             );
@@ -89,7 +89,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const smsTemplateId: $TSFixMe = req.params['smsTemplateId'];
+            const smsTemplateId: $TSFixMe = req.params.smsTemplateId;
             const populate: $TSFixMe = [{ path: 'projectId', select: 'name' }];
             const select: string = 'projectId body smsType allowedVariables';
             const smsTemplates: $TSFixMe = await SmsTemplateService.findOneBy({
@@ -111,7 +111,7 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            const smsTemplateId: $TSFixMe = req.params['smsTemplateId'];
+            const smsTemplateId: $TSFixMe = req.params.smsTemplateId;
             // Call the SMSTemplateService
             data.body = await DOMPurify.sanitize(data.body);
             const smsTemplate: $TSFixMe = await SmsTemplateService.updateOneBy(
@@ -182,7 +182,7 @@ router.delete(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const smsTemplateId: $TSFixMe = req.params['smsTemplateId'];
+            const smsTemplateId: $TSFixMe = req.params.smsTemplateId;
 
             const userId: $TSFixMe = req.user.id;
             const smsTemplate: $TSFixMe = await SmsTemplateService.deleteBy(
