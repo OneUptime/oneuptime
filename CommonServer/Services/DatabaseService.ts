@@ -7,6 +7,7 @@ import {
     RequiredFields,
     UniqueFields,
     Document,
+    Query as DbQuery,
 } from '../Infrastructure/ORM';
 import FindOneBy from '../Types/DB/FindOneBy';
 import UpdateOneBy from '../Types/DB/UpdateOneBy';
@@ -24,7 +25,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import Exception from 'Common/Types/Exception/Exception';
 import SearchResult from '../Types/DB/SearchResult';
 import Encryption from '../Utils/Encryption';
-import { Query as DbQuery } from '../Infrastructure/ORM';
 import { JSONObject } from 'Common/Types/JSON';
 import SortOrder from '../Types/DB/SortOrder';
 import DbFunctions from '../Utils/DBFunctions';
