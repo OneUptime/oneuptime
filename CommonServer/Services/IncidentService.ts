@@ -2,7 +2,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import IncidentModel from '../Models/incident';
 import ObjectID from 'Common/Types/ObjectID';
 import IncidentTimelineService from './IncidentTimelineService';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import AlertService from './AlertService';
 import RealTimeService from './realTimeService';
 import NotificationService from './NotificationService';

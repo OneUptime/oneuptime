@@ -8,7 +8,7 @@ import IncidentModel from '../Models/incident';
 
 import IncidentService from './IncidentService';
 import ScheduledEventsService from './ScheduledEventService';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import ErrorService from '../Utils/error';
 import SubscriberService from './SubscriberService';
 import ProjectService from './ProjectService';

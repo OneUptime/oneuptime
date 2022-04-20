@@ -1,5 +1,9 @@
 import app from 'CommonServer/utils/StartServer';
 
-app.use(['/ProbeAPI/probe', '/probe'], require('./api/probe'));
+// API
+import ProbeAPI from './API/Probe';
+
+// Attach to the app.
+app.use(['/probeapi/probe', '/probe'], ProbeAPI);
 
 export default app;

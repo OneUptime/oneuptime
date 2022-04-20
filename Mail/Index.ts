@@ -2,7 +2,7 @@ import app from 'CommonServer/utils/StartServer';
 
 // API
 
-import MailAPI from './API/Mail'
+import MailAPI from './API/Mail';
 
 app.use(['/mail/email', '/email'], MailAPI);
 

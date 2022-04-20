@@ -1,6 +1,6 @@
 import ProbeModel from '../Models/probe';
 import RealTimeService from './realTimeService';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import MonitorStatusService from './MonitorStatusService';
 import MonitorLogService from './MonitorLogService';
 import IncidentService from './IncidentService';

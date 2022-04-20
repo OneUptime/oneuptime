@@ -6,7 +6,6 @@ if (AirtableApiKey && AirtableBaseId) {
     base = new Airtable({ apiKey: AirtableApiKey }).base(AirtableBaseId);
 }
 
-
 export default class Service {
     /*
      * Description: Create new user entry on airtable.
@@ -177,4 +176,3 @@ export default class Service {
         });
     }
 }
-

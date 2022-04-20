@@ -251,7 +251,7 @@ export default class Service {
 
 import LighthouseLogModel from '../Models/lighthouseLog';
 import ObjectID from 'Common/Types/ObjectID';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import RealTimeService from './realTimeService';
 import probeService from './ProbeService';
 

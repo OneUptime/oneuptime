@@ -1,7 +1,7 @@
 import ProjectModel from '../Models/project';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { v1 as uuidv1 } from 'uuid';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import PaymentService from './PaymentService';
 import UserService from './UserService';
 import IncidentPrioritiesService from './IncidentPrioritiesService';

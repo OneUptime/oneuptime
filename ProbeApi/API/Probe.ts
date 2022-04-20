@@ -5,14 +5,16 @@ import Express, {
     ProbeRequest,
     ExpressRouter,
 } from 'CommonServer/utils/Express';
+
 import MonitorService from '../Services/monitorService';
-const router: ExpressRouter = Express.getRouter();
 import ProbeAuthorization from 'CommonServer/middleware/ProbeAuthorization';
 import { sendErrorResponse } from 'CommonServer/utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 
 import { sendListResponse } from 'CommonServer/utils/Response';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+
+const router: ExpressRouter = Express.getRouter();
 
 router.get(
     '/monitors',

@@ -7,7 +7,7 @@ import ScheduledEventNoteService from './ScheduledEventNoteService';
 import AlertService from './AlertService';
 import moment from 'moment';
 import getSlug from '../Utils/getSlug';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

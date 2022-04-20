@@ -292,7 +292,7 @@ export default class Service {
 
 import MonitorStatusModel from '../Models/monitorStatus';
 import ObjectID from 'Common/Types/ObjectID';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import RealTimeService from './realTimeService';
 
 import FindOneBy from '../Types/DB/FindOneBy';

@@ -6,7 +6,7 @@ import RealTimeService from './realTimeService';
 import NotificationService from './NotificationService';
 import ProjectService from './ProjectService';
 import PaymentService from './PaymentService';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import TeamService from './TeamService';
 import { IS_SAAS_SERVICE } from '../config/server';
 import getSlug from '../Utils/getSlug';

@@ -1,5 +1,5 @@
 import MonitorSlaModel from '../Models/monitorSla';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

@@ -2,7 +2,7 @@ import MonitorLogModel from '../Models/monitorLog';
 import MonitorLogByHourService from './MonitorLogByHourService';
 import MonitorLogByDayService from './MonitorLogByDayService';
 import MonitorLogByWeekService from './MonitorLogByWeekService';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import RealTimeService from './realTimeService';
 
 import FindOneBy from '../Types/DB/FindOneBy';

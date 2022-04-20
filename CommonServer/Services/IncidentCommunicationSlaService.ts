@@ -1,5 +1,5 @@
 import IncidentCommunicationSlaModel from '../Models/incidentCommunicationSla';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

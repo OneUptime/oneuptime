@@ -434,4 +434,4 @@ export default class Service {
 import moment from 'moment';
 import IncidentModel from '../Models/incident';
 import UserService from './UserService';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';

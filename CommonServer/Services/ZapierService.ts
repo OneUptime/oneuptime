@@ -2,7 +2,7 @@ import axios from 'axios';
 import ProjectService from './ProjectService';
 import IncidentService from './IncidentService';
 import IncidentTimelineService from './IncidentTimelineService';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import ZapierModel from '../Models/zapier';
 import ObjectID from 'Common/Types/ObjectID';
 import IncidentModel from '../Models/incident';

@@ -6,7 +6,7 @@ import mongoose, {
 } from '../Infrastructure/ORM';
 
 // A schema definition for a criterion event, i.e up, down, or degraded
-const criterionEventSchema: $TSFixMe = {
+const criterionEventSchema: Schema = new Schema({
     scheduleIds: [String],
     createAlert: { type: Boolean, default: false },
     autoAcknowledge: { type: Boolean, default: false },
@@ -28,7 +28,7 @@ const criterionEventSchema: $TSFixMe = {
             },
         },
     ],
-};
+});
 
 /**
  * SAMPLE STRUCTURE OF HOW CRITERIA WILL BE STRUCTURED IN THE DB
@@ -86,8 +86,8 @@ const schema: Schema = new Schema({
     },
     name: String,
     slug: { type: String, index: true },
-    data: Object, //Can be URL, IP address, or anything that depends on the type.
-    createdById: { type: String, ref: 'User', index: true }, //UserId.
+    config: {}, //Can be URL, IP address, or anything that depends on the type.
+    createdById: { type: String, ref: 'User' }, //UserId.
     type: {
         type: String,
         enum: [
@@ -105,23 +105,9 @@ const schema: Schema = new Schema({
     agentlessConfig: Object,
     kubernetesConfig: Schema.Types.Mixed,
     kubernetesNamespace: { type: String, default: 'default' },
-    resourceCategory: {
-        type: String,
-        ref: 'ResourceCategory',
-        index: true,
-    },
-    statusPageCategory: {
-        type: Schema.Types.ObjectId,
-        ref: 'StatusPageCategory',
-        index: true,
-    },
     createdAt: {
         type: Date,
         default: Date.now,
-    },
-    pollTime: {
-        type: Array,
-        index: true,
     },
     lastPingTime: {
         type: Date,
@@ -184,16 +170,6 @@ const schema: Schema = new Schema({
     scanning: { type: Boolean, default: false },
     probeScanning: [String],
     monitorStatus: String,
-    regions: [
-        {
-            probeId: {
-                type: Schema.Types.ObjectId,
-                indexed: true,
-                ref: 'Probe',
-            },
-            lastPingTime: { type: Date, indexed: true },
-        },
-    ],
 });
 
 schema.virtual('project', {
@@ -202,6 +178,7 @@ schema.virtual('project', {
     ref: 'Project',
     justOne: true,
 });
+
 export const requiredFields: RequiredFields = schema.requiredPaths();
 
 export const uniqueFields: UniqueFields = [];

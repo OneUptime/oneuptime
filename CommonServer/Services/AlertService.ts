@@ -11,7 +11,7 @@ import SmsTemplateService from './SmsTemplateService';
 import EscalationService from './EscalationService';
 import MailService from '../../MailService/Services/MailService';
 import UserService from './UserService';
-import MonitorService from './MonitorService';
+import MonitorService from './MonitorService.ts.temp';
 import TwilioService from './TwilioService';
 import ErrorService from '../Utils/error';
 import StatusPageService from './StatusPageService';
