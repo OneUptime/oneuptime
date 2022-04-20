@@ -3,78 +3,47 @@ import {
     SCHEDULE_FETCH_FAILED,
     SCHEDULE_FETCH_REQUEST,
     SCHEDULE_FETCH_RESET,
-} from '../constants/schedule';
-
-import {
     SUBPROJECT_SCHEDULE_FETCH_SUCCESS,
     SUBPROJECT_SCHEDULE_FETCH_FAILED,
     SUBPROJECT_SCHEDULE_FETCH_REQUEST,
     SUBPROJECT_SCHEDULE_FETCH_RESET,
-} from '../constants/schedule';
-
-import {
     PROJECT_SCHEDULE_FETCH_SUCCESS,
     PROJECT_SCHEDULE_FETCH_FAILED,
     PROJECT_SCHEDULE_FETCH_REQUEST,
     PROJECT_SCHEDULE_FETCH_RESET,
-} from '../constants/schedule';
-
-import {
     CREATE_SCHEDULE_SUCCESS,
     CREATE_SCHEDULE_FAILED,
     CREATE_SCHEDULE_REQUEST,
     CREATE_SCHEDULE_RESET,
-} from '../constants/schedule';
-
-import {
     RENAME_SCHEDULE_REQUEST,
     RENAME_SCHEDULE_SUCCESS,
     RENAME_SCHEDULE_FAILED,
     RENAME_SCHEDULE_RESET,
-} from '../constants/schedule';
-
-import {
     DELETE_SCHEDULE_REQUEST,
     DELETE_SCHEDULE_SUCCESS,
     DELETE_SCHEDULE_FAILED,
     DELETE_SCHEDULE_RESET,
     DELETE_PROJECT_SCHEDULES,
-} from '../constants/schedule';
-
-import {
     ADD_MONITOR_REQUEST,
     ADD_MONITOR_SUCCESS,
     ADD_MONITOR_FAILED,
     ADD_MONITOR_RESET,
-} from '../constants/schedule';
-
-import {
     ADD_USER_REQUEST,
     ADD_USER_SUCCESS,
     ADD_USER_FAILED,
     ADD_USER_RESET,
-} from '../constants/schedule';
-
-import {
     ESCALATION_REQUEST,
     ESCALATION_SUCCESS,
     ESCALATION_FAILED,
     ESCALATION_RESET,
-} from '../constants/schedule';
-
-import {
-    PAGINATE_NEXT,
-    PAGINATE_PREV,
-    PAGINATE_RESET,
-} from '../constants/schedule';
-
-import {
     USER_SCHEDULE_REQUEST,
     USER_SCHEDULE_SUCCESS,
     USER_SCHEDULE_FAILED,
     USER_SCHEDULE_RESET,
+    PAGINATE_NEXT,
+    PAGINATE_PREV,
+    PAGINATE_RESET,
 } from '../constants/schedule';
-
 import Action from 'CommonUI/src/types/action';
 
 const initialState: $TSFixMe = {

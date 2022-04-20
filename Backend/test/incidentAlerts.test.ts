@@ -1,8 +1,7 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import userData from './data/user';
-import chai from 'chai';
+import chai, { expect } from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
-import { expect } from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import chaiSubset from 'chai-subset';
@@ -49,7 +48,6 @@ import IncidentTimelineModel from '../backend/models/incidentTimeline';
 import AlertService from '../backend/services/alertService';
 import AlertChargeModel from '../backend/models/alertCharge';
 import TwilioModel from '../backend/models/twilio';
-import VerificationToken from '../backend/models/verificationToken';
 import LoginIPLog from '../backend/models/loginIPLog';
 
 import VerificationTokenModel from '../backend/models/verificationToken';
@@ -219,7 +217,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
         await TwilioModel.deleteMany({ projectId });
         await IncidentMessageModel.deleteMany({ createdById: userId });
         await IncidentTimelineModel.deleteMany({ createdById: userId });
-        await VerificationToken.deleteMany({ userId });
+        await VerificationTokenModel.deleteMany({ userId });
         await LoginIPLog.deleteMany({ userId });
         await ComponentService.hardDeleteBy({ projectId });
         await MonitorService.hardDeleteBy({ projectId });
@@ -1134,7 +1132,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             const randomId: $TSFixMe = uuid.v4();
 
             const link: string = `http://localhost:${
-                process.env['PORT'] || 3002
+                process.env.PORT || 3002
             }/api/incomingHttpRequest/${randomId}`;
 
             // Create a new incomingHttp monitor, with a resource that will fail
@@ -2747,7 +2745,7 @@ describe('Email Incident Alerts', (): void => {
         await AlertChargeModel.deleteMany({ projectId });
         await IncidentMessageModel.deleteMany({ createdById: userId });
         await IncidentTimelineModel.deleteMany({ createdById: userId });
-        await VerificationToken.deleteMany({ userId });
+        await VerificationTokenModel.deleteMany({ userId });
         await LoginIPLog.deleteMany({ userId });
         await ComponentService.hardDeleteBy({ projectId });
         await MonitorService.hardDeleteBy({ projectId });
@@ -3486,7 +3484,7 @@ describe('Webhook Incident Alerts', function (): void {
         await AlertChargeModel.deleteMany({ projectId });
         await IncidentMessageModel.deleteMany({ createdById: userId });
         await IncidentTimelineModel.deleteMany({ createdById: userId });
-        await VerificationToken.deleteMany({ userId });
+        await VerificationTokenModel.deleteMany({ userId });
         await LoginIPLog.deleteMany({ userId });
         await ComponentService.hardDeleteBy({ projectId });
         await MonitorService.hardDeleteBy({ projectId });

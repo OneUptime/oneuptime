@@ -9,10 +9,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendListResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/Utils/response';
 import ApplicationSecurityService from '../services/applicationSecurityService';
 import RealTimeService from '../services/realTimeService';
 import ResourceCategoryService from '../services/resourceCategoryService';

@@ -2,7 +2,7 @@ import AlertModel from '../Models/alert';
 import ObjectID from 'Common/Types/ObjectID';
 import ProjectService from './ProjectService';
 import PaymentService from './PaymentService';
-import AlertType from '../config/alertType';
+import AlertType, { getCountryType } from '../config/alertType';
 import ScheduleService from './ScheduleService';
 import SubscriberService from './SubscriberService';
 import SubscriberAlertService from './SubscriberAlertService';
@@ -18,7 +18,6 @@ import StatusPageService from './StatusPageService';
 import AlertChargeService from './AlertChargeService';
 import countryCode from '../config/countryCode';
 
-import { getCountryType } from '../config/alertType';
 import SmsCountService from './SmsCountService';
 import DateTime from '../Utils/DateTime';
 import moment from 'moment-timezone';
@@ -29,7 +28,10 @@ import { IS_SAAS_SERVICE } from '../config/server';
 import ComponentService from './ComponentService';
 import GlobalConfigService from './GlobalConfigService';
 import WebHookService from './WebHookService';
-import IncidentUtility from '../Utils/incident';
+import IncidentUtility, {
+    calculateHumanReadableDownTime,
+    getIncidentLength,
+} from '../Utils/incident';
 import TeamService from './TeamService';
 import secondsToHms from '../Utils/secondsToHms';
 
@@ -39,13 +41,7 @@ import {
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
 } from '../constants/incidentEvents';
-import componentService from './ComponentService';
-
 import webpush from 'web-push';
-import {
-    calculateHumanReadableDownTime,
-    getIncidentLength,
-} from '../Utils/incident';
 //  Import IncidentService from './incidentService' Declared but unused
 import IncidentMessageService from './IncidentMessageService';
 import IncidentTimelineService from './IncidentTimelineService';
@@ -1085,9 +1081,9 @@ export default class Service {
 
         const options: $TSFixMe = {
             vapidDetails: {
-                subject: process.env['PUSHNOTIFICATION_URL'], // Address or URL for this application
-                publicKey: process.env['PUSHNOTIFICATION_PUBLIC_KEY'], // URL Safe Base64 Encoded Public Key
-                privateKey: process.env['PUSHNOTIFICATION_PRIVATE_KEY'], // URL Safe Base64 Encoded Private Key
+                subject: process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
+                publicKey: process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
+                privateKey: process.env.PUSHNOTIFICATION_PRIVATE_KEY, // URL Safe Base64 Encoded Private Key
             },
             headers: {
                 'access-control-allow-headers':
@@ -1873,7 +1869,7 @@ export default class Service {
         const selectComponent: $TSFixMe =
             '_id createdAt name createdById projectId slug componentCategoryId';
         for (const monitor of monitors) {
-            const component: $TSFixMe = await componentService.findOneBy({
+            const component: $TSFixMe = await ComponentService.findOneBy({
                 query: { _id: monitor.componentId },
                 select: selectComponent,
                 populate: populateComponent,

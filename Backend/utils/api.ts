@@ -1,5 +1,5 @@
 import axios from 'axios';
-const CLUSTER_KEY: $TSFixMe = process.env['CLUSTER_KEY'];
+const CLUSTER_KEY: $TSFixMe = process.env.CLUSTER_KEY;
 
 export default {
     headers: async (val: $TSFixMe, type: $TSFixMe) => {

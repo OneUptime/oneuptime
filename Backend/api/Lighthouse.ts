@@ -10,10 +10,10 @@ const router: ExpressRouter = Express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendListResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/Utils/response';
 const {
     isAuthorizedLighthouse,
 } = require('../middlewares/lighthouseAuthorization');

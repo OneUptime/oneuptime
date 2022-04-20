@@ -12,8 +12,8 @@ describe('Acknowledge Trigger', () => {
     it('passes authentication and returns an acknowledged incident object', (done: $TSFixMe) => {
         const bundle: $TSFixMe = {
             authData: {
-                apiKey: process.env['DEV_API_KEY'],
-                projectId: process.env['DEV_PROJECT_ID'],
+                apiKey: process.env.DEV_API_KEY,
+                projectId: process.env.DEV_PROJECT_ID,
             },
             cleanedRequest: [
                 {

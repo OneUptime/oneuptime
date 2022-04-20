@@ -12,7 +12,7 @@ describe('Incident Trigger', () => {
 
         const bundle: $TSFixMe = {
             authData: {
-                apiKey: process.env['DEV_API_KEY'],
+                apiKey: process.env.DEV_API_KEY,
             },
             cleanedRequest: [
                 {

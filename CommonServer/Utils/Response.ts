@@ -30,7 +30,7 @@ function logResponse(
     const duration_info: string = `OUTGOING RESPONSE ID: ${
         oneUptimeRequest.id
     } -- POD NAME: ${
-        process.env['POD_NAME'] || 'NONE'
+        process.env.POD_NAME || 'NONE'
     } -- METHOD: ${method} -- URL: ${url.toString()} -- DURATION: ${(
         requestEndedAt.getTime() - oneUptimeRequest.requestStartedAt.getTime()
     ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
@@ -58,7 +58,7 @@ export const sendEmptyResponse: Function = (
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
 
     oneUptimeResponse.status(200).send();
 
@@ -106,7 +106,7 @@ export const sendErrorResponse: Function = (
     logger.error(error);
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
 
     oneUptimeResponse.status(status).send({ message });
     return logResponse(req, res, { message });
@@ -122,7 +122,7 @@ export const sendListResponse: Function = async (
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
 
     const listData: ListData = new ListData({
         data: [],
@@ -145,15 +145,15 @@ export const sendListResponse: Function = async (
         listData.count = new PositiveNumber(list.length);
     }
 
-    if (oneUptimeRequest.query['skip']) {
+    if (oneUptimeRequest.query.skip) {
         listData.skip = new PositiveNumber(
-            parseInt(oneUptimeRequest.query['skip'].toString())
+            parseInt(oneUptimeRequest.query.skip.toString())
         );
     }
 
-    if (oneUptimeRequest.query['limit']) {
+    if (oneUptimeRequest.query.limit) {
         listData.limit = new PositiveNumber(
-            parseInt(oneUptimeRequest.query['limit'].toString())
+            parseInt(oneUptimeRequest.query.limit.toString())
         );
     }
 
@@ -177,7 +177,7 @@ export const sendItemResponse: Function = async (
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
-    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+    oneUptimeResponse.set('Pod-Id', process.env.POD_NAME);
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {
         const csv: string = JsonToCsv.ToCsv([item]);

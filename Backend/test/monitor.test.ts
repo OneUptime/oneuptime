@@ -1,9 +1,8 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
-import { expect } from 'chai';
+process.env.IS_SAAS_SERVICE = true;
+import chai, { expect } from 'chai';
 import userData from './data/user';
-import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
@@ -464,7 +463,7 @@ describe('Monitor API', function (): void {
     });
 });
 
-const BACKEND_URL: string = `http://localhost:${process.env['PORT']}/api`;
+const BACKEND_URL: string = `http://localhost:${process.env.PORT}/api`;
 const HTTP_TEST_SERVER_URL: string = 'http://localhost:3010';
 
 const testServer: $TSFixMe = chai.request(HTTP_TEST_SERVER_URL);

@@ -1,7 +1,6 @@
-process.env['PORT'] = 3020;
-import { expect } from 'chai';
+process.env.PORT = 3020;
+import chai, { expect } from 'chai';
 import userData from './data/user';
-import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
@@ -13,8 +12,7 @@ import ProjectService from '../backend/services/projectService';
 import GlobalConfig from './utils/globalConfig';
 
 // eslint-disable-next-line
-let token: $TSFixMe,
-    projectId: ObjectID;
+let token: $TSFixMe, projectId: ObjectID;
 
 describe('Slack API', function (): void {
     this.timeout(20000);

@@ -9,10 +9,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendListResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/Utils/response';
 import GroupService from '../services/groupService';
 const getSubProjects: $TSFixMe =
     require('../middlewares/subProject').getSubProjects;

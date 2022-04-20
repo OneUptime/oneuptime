@@ -74,7 +74,6 @@ import AuditLogAPI from './api/auditLogs';
 import SMSLogAPI from './api/smsLogs';
 import ScheduledEventAPI from './api/scheduledEvent';
 import LighthouseAPI from './api/lighthouse';
-import IncomingRequestAPI from './api/incomingHttpRequest';
 import ScriptRunnerAPI from './api/scriptRunner';
 import CustomFieldAPI from './api/customField';
 import ComponentAPI from './api/component';
@@ -264,7 +263,7 @@ app.use(['/incidentSla', '/api/incidentSla'], IncidentCommunicationSlaAPI);
 
 app.use(['/monitorSla', '/api/monitorSla'], MonitorSlaAPI);
 
-app.use(['/incoming-request', '/api/incoming-request'], IncomingRequestAPI);
+app.use(['/incoming-request', '/api/incoming-request'], IncomingHTTPRequestAPI);
 
 app.use(['/ScriptRunner', '/api/ScriptRunner'], ScriptRunnerAPI);
 
@@ -311,7 +310,7 @@ app.use('/*', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 mongoose.connection.on('connected', async () => {
-    if (!process.env['IS_TESTING']) {
+    if (!process.env.IS_TESTING) {
         const greenlock: $TSFixMe = Gl.create({
             manager: 'oneuptime-gl-manager',
             packageRoot: process.cwd(),

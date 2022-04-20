@@ -1,8 +1,7 @@
-process.env['PORT'] = 3020;
-import { expect } from 'chai';
+process.env.PORT = 3020;
+import chai, { expect } from 'chai';
 import userData from './data/user';
 import projectData from './data/project';
-import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);

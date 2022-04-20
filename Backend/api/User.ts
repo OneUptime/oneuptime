@@ -5,7 +5,7 @@ import Express, {
 } from 'CommonServer/utils/Express';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
-const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
+const jwtSecretKey: $TSFixMe = process.env.JWT_SECRET;
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 import jwt from 'jsonwebtoken';
@@ -20,10 +20,10 @@ const getUser: $TSFixMe = require('../middlewares/user').getUser;
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendListResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/Utils/response';
 const router: ExpressRouter = Express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
@@ -45,8 +45,8 @@ import Ip from '../middlewares/ipHandler';
 router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         if (
-            typeof process.env['DISABLE_SIGNUP'] === 'string' &&
-            process.env['DISABLE_SIGNUP'] === 'true'
+            typeof process.env.DISABLE_SIGNUP === 'string' &&
+            process.env.DISABLE_SIGNUP === 'true'
         ) {
             // Res,and next is skipped in isUserMasterAdmin because we don't want to reject the request.
             if (!(await isUserMasterAdmin(req))) {

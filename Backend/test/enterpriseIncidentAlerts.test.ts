@@ -1,8 +1,7 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import userData from './data/user';
-import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import chaiSubset from 'chai-subset';

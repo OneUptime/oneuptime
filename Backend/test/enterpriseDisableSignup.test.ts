@@ -1,7 +1,6 @@
-process.env['PORT'] = 3020;
-import { expect } from 'chai';
+process.env.PORT = 3020;
 import data from './data/user';
-import chai from 'chai';
+import chai, { expect } from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -27,14 +26,14 @@ describe('Disable Sign up test', function (): void {
             password: data.adminUser.password,
         });
         token = res.body.tokens.jwtAccessToken;
-        process.env['DISABLE_SIGNUP'] = 'true'; // This is in quotes because of helm chart and kubernetes.
+        process.env.DISABLE_SIGNUP = 'true'; // This is in quotes because of helm chart and kubernetes.
     });
 
     this.afterAll(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
         await ProjectService.hardDeleteBy({});
-        process.env['DISABLE_SIGNUP'] = undefined;
+        process.env.DISABLE_SIGNUP = undefined;
     });
 
     it('should not sign up the user when sign up is disabled', (done: $TSFixMe) => {

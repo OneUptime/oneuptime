@@ -13,6 +13,7 @@ const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendListResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
@@ -27,7 +28,6 @@ import uuid from 'uuid';
 const isErrorTrackerValid: $TSFixMe =
     require('../middlewares/errorTracker').isErrorTrackerValid;
 import ErrorEventService from '../services/errorEventService';
-import { sendListResponse } from 'CommonServer/Utils/response';
 import IssueService from '../services/issueService';
 import TeamService from '../services/teamService';
 import IssueMemberService from '../services/issueMemberService';

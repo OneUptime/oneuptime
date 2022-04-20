@@ -6,12 +6,12 @@ import Express, {
 const router: ExpressRouter = Express.getRouter();
 
 import AutomatedScriptService from '../services/automatedScriptService';
-import { sendErrorResponse } from 'CommonServer/Utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+    sendListResponse,
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
-
-import { sendListResponse } from 'CommonServer/Utils/response';
-
-import { sendItemResponse } from 'CommonServer/Utils/response';
 
 import { isAuthorized } from '../middlewares/authorization';
 

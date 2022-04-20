@@ -1144,7 +1144,6 @@ export default class Service {
     }
 
     public async getScriptMonitors({ limit, skip }: $TSFixMe): void {
-        import moment from 'moment';
         const monitors: $TSFixMe = await MonitorModel.find({
             $and: [
                 {

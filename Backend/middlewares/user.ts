@@ -1,4 +1,4 @@
-const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
+const jwtSecretKey: $TSFixMe = process.env.JWT_SECRET;
 import {
     ExpressResponse,
     ExpressRequest,

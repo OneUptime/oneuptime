@@ -7,10 +7,12 @@ const router: ExpressRouter = Express.getRouter();
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 const isUserMasterAdmin: $TSFixMe =
     require('../middlewares/user').isUserMasterAdmin;
-import { sendListResponse } from 'CommonServer/Utils/response';
-import { sendItemResponse } from 'CommonServer/Utils/response';
+import {
+    sendListResponse,
+    sendItemResponse,
+    sendErrorResponse,
+} from 'CommonServer/Utils/response';
 
-import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 import SsoDefaultRolesService from '../services/ssoDefaultRolesService';

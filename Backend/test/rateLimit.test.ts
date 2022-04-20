@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-import chai from 'chai';
+import chai, { expect } from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import dotenv from 'dotenv';

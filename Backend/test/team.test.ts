@@ -1,9 +1,8 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
-import { expect } from 'chai';
+process.env.IS_SAAS_SERVICE = true;
+import chai, { expect } from 'chai';
 import userData from './data/user';
-import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -24,7 +23,10 @@ const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 import VerificationTokenModel from '../backend/models/verificationToken';
 
 // eslint-disable-next-line
-let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe, anotherUser: $TSFixMe;
+let token: $TSFixMe,
+    userId: $TSFixMe,
+    projectId: $TSFixMe,
+    anotherUser: $TSFixMe;
 
 describe('Team API', function (): void {
     this.timeout(20000);

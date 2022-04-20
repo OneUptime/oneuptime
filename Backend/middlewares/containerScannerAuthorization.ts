@@ -6,7 +6,7 @@ import {
     ExpressRequest,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-const CLUSTER_KEY: $TSFixMe = process.env['CLUSTER_KEY'];
+const CLUSTER_KEY: $TSFixMe = process.env.CLUSTER_KEY;
 export default {
     isAuthorizedContainerScanner: async function (
         req: ExpressRequest,

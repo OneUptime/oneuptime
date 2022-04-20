@@ -1,7 +1,6 @@
-process.env['PORT'] = 3021;
-import { expect } from 'chai';
+process.env.PORT = 3021;
+import chai, { expect } from 'chai';
 import { validLicense, invalidLicense, expiredLicense } from './data/license';
-import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';

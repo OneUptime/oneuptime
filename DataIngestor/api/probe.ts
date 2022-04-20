@@ -11,10 +11,9 @@ import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendEmptyResponse,
 } from 'CommonServer/utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
-
-import { sendEmptyResponse } from 'CommonServer/utils/Response';
 
 import { ObjectId } from 'mongodb';
 

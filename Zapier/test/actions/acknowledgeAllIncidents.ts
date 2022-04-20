@@ -11,8 +11,8 @@ describe('Acknowledge All Incidents Action', () => {
         zapier.tools.env.inject();
         const bundle: $TSFixMe = {
             authData: {
-                apiKey: process.env['DEV_API_KEY'],
-                projectId: process.env['DEV_PROJECT_ID'],
+                apiKey: process.env.DEV_API_KEY,
+                projectId: process.env.DEV_PROJECT_ID,
             },
             cleanedRequest: {
                 projectName: 'New Project',

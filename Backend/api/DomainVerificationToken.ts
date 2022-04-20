@@ -12,12 +12,11 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendListResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 import DomainVerificationService from '../services/domainVerificationService';
-
-import { sendListResponse } from 'CommonServer/Utils/response';
 
 import StatusPageService from '../services/statusPageService';
 import ProjectService from '../services/projectService';
