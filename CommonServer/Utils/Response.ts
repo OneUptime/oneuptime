@@ -145,15 +145,15 @@ export const sendListResponse: Function = async (
         listData.count = new PositiveNumber(list.length);
     }
 
-    if (oneUptimeRequest.query.skip) {
+    if (oneUptimeRequest.query['skip']) {
         listData.skip = new PositiveNumber(
-            parseInt(oneUptimeRequest.query.skip.toString())
+            parseInt(oneUptimeRequest.query['skip'].toString())
         );
     }
 
-    if (oneUptimeRequest.query.limit) {
+    if (oneUptimeRequest.query['limit']) {
         listData.limit = new PositiveNumber(
-            parseInt(oneUptimeRequest.query.limit.toString())
+            parseInt(oneUptimeRequest.query['limit'].toString())
         );
     }
 
