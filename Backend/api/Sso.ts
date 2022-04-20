@@ -9,10 +9,12 @@ const isUserMasterAdmin: $TSFixMe =
     require('../middlewares/user').isUserMasterAdmin;
 const isScaleOrMasterAdmin: $TSFixMe =
     require('../middlewares/user').isScaleOrMasterAdmin;
-import { sendListResponse } from 'CommonServer/Utils/response';
-import { sendItemResponse } from 'CommonServer/Utils/response';
+import {
+    sendListResponse,
+    sendItemResponse,
+    sendErrorResponse,
+} from 'CommonServer/Utils/response';
 
-import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 import SsoService from '../services/ssoService';

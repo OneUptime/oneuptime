@@ -8,8 +8,8 @@ import path from 'path';
 
 /** The api url to send server information. */
 const API_URL: $TSFixMe =
-    process.env['API_URL'] ||
-    (process.env['NODE_ENV'] === 'development'
+    process.env.API_URL ||
+    (process.env.NODE_ENV === 'development'
         ? 'http://localhost:3002'
         : 'https://oneuptime.com/api');
 

@@ -6,10 +6,10 @@ import Express, {
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendListResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/Utils/response';
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
 import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthorization';

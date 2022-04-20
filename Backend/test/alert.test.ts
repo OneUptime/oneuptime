@@ -1,9 +1,8 @@
-process.env['PORT'] = 3020;
-process.env['NODE_ENV'] = 'development';
-import { expect } from 'chai';
+process.env.PORT = 3020;
+process.env.NODE_ENV = 'development';
 import userData from './data/user';
 import incidentData from './data/incident';
-import chai from 'chai';
+import chai, { expect } from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);

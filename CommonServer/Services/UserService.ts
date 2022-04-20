@@ -15,7 +15,7 @@ import ErrorService from '../Utils/error';
 import jwt from 'jsonwebtoken';
 
 import geoip from 'geoip-lite';
-const jwtSecretKey: $TSFixMe = process.env['JWT_SECRET'];
+const jwtSecretKey: $TSFixMe = process.env.JWT_SECRET;
 
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
 const { NODE_ENV }: $TSFixMe = process.env;
@@ -457,18 +457,18 @@ class Service extends DatabaseService<typeof Model> {
              * Then create an admin user and the log in.
              */
             if (
-                process.env['ADMIN_EMAIL'] &&
-                process.env['ADMIN_PASSWORD'] &&
-                email === process.env['ADMIN_EMAIL'].toLowerCase() &&
-                process.env['ADMIN_PASSWORD'] === password
+                process.env.ADMIN_EMAIL &&
+                process.env.ADMIN_PASSWORD &&
+                email === process.env.ADMIN_EMAIL.toLowerCase() &&
+                process.env.ADMIN_PASSWORD === password
             ) {
                 const count: $TSFixMe = await this.countBy({});
                 if (count === 0) {
                     //Create a new admin user.
                     user = await this.create({
                         name: 'OneUptime Admin',
-                        email: process.env['ADMIN_EMAIL'],
-                        password: process.env['ADMIN_PASSWORD'],
+                        email: process.env.ADMIN_EMAIL,
+                        password: process.env.ADMIN_PASSWORD,
                         role: 'master-admin',
                     });
                 }

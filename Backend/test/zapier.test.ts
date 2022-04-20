@@ -1,7 +1,6 @@
-process.env['PORT'] = 3020;
-import { expect } from 'chai';
+process.env.PORT = 3020;
+import chai, { expect } from 'chai';
 import userData from './data/user';
-import chai from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
@@ -21,7 +20,13 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import incidentData from './data/incident';
 
 // eslint-disable-next-line
-let token: $TSFixMe, projectId: ObjectID, apiKey: string, userId, zapierId: $TSFixMe, monitorId: $TSFixMe, incidentId: $TSFixMe;
+let token: $TSFixMe,
+    projectId: ObjectID,
+    apiKey: string,
+    userId: ObjectID,
+    zapierId: $TSFixMe,
+    monitorId: $TSFixMe,
+    incidentId: $TSFixMe;
 
 const monitor: $TSFixMe = {
     name: 'New Monitor',

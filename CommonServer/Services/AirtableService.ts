@@ -1,6 +1,6 @@
 import Airtable from 'airtable';
-const AirtableApiKey: $TSFixMe = process.env['AIRTABLE_API_KEY'];
-const AirtableBaseId: $TSFixMe = process.env['AIRTABLE_BASE_ID'];
+const AirtableApiKey: $TSFixMe = process.env.AIRTABLE_API_KEY;
+const AirtableBaseId: $TSFixMe = process.env.AIRTABLE_BASE_ID;
 let base: $TSFixMe = null;
 if (AirtableApiKey && AirtableBaseId) {
     base = new Airtable({ apiKey: AirtableApiKey }).base(AirtableBaseId);

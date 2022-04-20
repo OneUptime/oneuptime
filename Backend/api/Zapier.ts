@@ -11,10 +11,9 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendEmptyResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
-
-import { sendEmptyResponse } from 'CommonServer/Utils/response';
 
 const router: ExpressRouter = Express.getRouter();
 

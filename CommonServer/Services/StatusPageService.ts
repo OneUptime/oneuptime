@@ -31,7 +31,7 @@ import AnnouncementLogModel from '../Models/announcementLogs';
 
 import Query from '../Types/DB/Query';
 import axios from 'axios';
-const bearer: $TSFixMe = process.env['TWITTER_BEARER_TOKEN'];
+const bearer: $TSFixMe = process.env.TWITTER_BEARER_TOKEN;
 
 const publicListProps: $TSFixMe = {
     populate: [],

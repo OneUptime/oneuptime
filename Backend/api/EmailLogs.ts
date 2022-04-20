@@ -10,12 +10,12 @@ const getUser: $TSFixMe = require('../middlewares/user').getUser;
 const isUserMasterAdmin: $TSFixMe =
     require('../middlewares/user').isUserMasterAdmin;
 
-import { sendErrorResponse } from 'CommonServer/Utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+    sendItemResponse,
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
-
-import { sendListResponse } from 'CommonServer/Utils/response';
-
-import { sendItemResponse } from 'CommonServer/Utils/response';
 
 router.get(
     '/',

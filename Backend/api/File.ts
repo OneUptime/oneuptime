@@ -2,14 +2,13 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
+    sendErrorResponse,
+    sendFileResponse,
 } from 'CommonServer/utils/Express';
 
 const router: ExpressRouter = Express.getRouter();
 import FileService from '../services/fileService';
-import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
-
-import { sendFileResponse } from 'CommonServer/Utils/response';
 
 /*
  * Route Description: Getting uploaded files stored in mongodb.

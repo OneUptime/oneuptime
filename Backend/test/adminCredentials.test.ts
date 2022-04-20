@@ -1,10 +1,9 @@
 import userData from './data/user';
 
-process.env['PORT'] = 3020;
-process.env['ADMIN_EMAIL'] = userData.adminUser.email.toLowerCase();
-process.env['ADMIN_PASSWORD'] = userData.adminUser.password;
-import chai from 'chai';
-import { expect } from 'chai';
+process.env.PORT = 3020;
+process.env.ADMIN_EMAIL = userData.adminUser.email.toLowerCase();
+process.env.ADMIN_PASSWORD = userData.adminUser.password;
+import chai, { expect } from 'chai';
 import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
@@ -37,8 +36,8 @@ describe('Admin process.env.login API', function (): void {
         request
             .post('/user/login')
             .send({
-                email: process.env['ADMIN_EMAIL'],
-                password: process.env['ADMIN_PASSWORD'] + '1',
+                email: process.env.ADMIN_EMAIL,
+                password: process.env.ADMIN_PASSWORD + '1',
             })
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
@@ -50,8 +49,8 @@ describe('Admin process.env.login API', function (): void {
         request
             .post('/user/login')
             .send({
-                email: process.env['ADMIN_EMAIL'],
-                password: process.env['ADMIN_PASSWORD'],
+                email: process.env.ADMIN_EMAIL,
+                password: process.env.ADMIN_PASSWORD,
             })
             .end((err: $TSFixMe, res: $TSFixMe): void => {
                 token = res.body.tokens.jwtAccessToken;

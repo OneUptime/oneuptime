@@ -2,13 +2,12 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
+    sendListResponse,
 } from 'CommonServer/utils/Express';
 const router: ExpressRouter = Express.getRouter();
 import InvoiceService from '../services/invoiceService';
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
-
-import { sendListResponse } from 'CommonServer/Utils/response';
 
 /*
  * Description: Getting invoices paid.

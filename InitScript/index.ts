@@ -4,10 +4,8 @@ import app from 'CommonServer/utils/StartServer';
 
 import logger from 'CommonServer/utils/Logger';
 import fs from 'fs';
-import util from './util/db';
+import util, { find, save, update, removeMany } from './util/db';
 import scripts from './scripts';
-
-import { find, save, update, removeMany } from './util/db';
 
 import bodyParser from 'body-parser';
 
@@ -31,7 +29,7 @@ async function interactWithDB(req: ExpressRequest, res: ExpressResponse): void {
 }
 
 // IMPORTANT: only attach this server in development.
-if (process.env['NODE_ENV'] === 'development') {
+if (process.env.NODE_ENV === 'development') {
     app.use(cors());
 
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -109,7 +107,7 @@ async function run(): void {
 
     logger.info('END SCRIPT: Completed');
     // Keep connection open in dev
-    if (process.env['NODE_ENV'] !== 'development') {
+    if (process.env.NODE_ENV !== 'development') {
         connection.close();
 
         logger.info('Mongo connection closed.');

@@ -10,10 +10,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
+    sendListResponse,
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/Utils/response';
 import IncidentSettingsService from '../services/incidentSettingsService';
 import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 

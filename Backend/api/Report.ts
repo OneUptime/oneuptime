@@ -9,10 +9,12 @@ import { isAuthorized } from '../middlewares/authorization';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 const getSubProjects: $TSFixMe =
     require('../middlewares/subProject').getSubProjects;
-import { sendErrorResponse } from 'CommonServer/Utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/Utils/response';
 const router: ExpressRouter = Express.getRouter();
 
 /**

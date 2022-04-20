@@ -1,9 +1,8 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 
-process.env['IS_SAAS_SERVICE'] = true;
-import chai from 'chai';
+process.env.IS_SAAS_SERVICE = true;
+import chai, { expect } from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
-import { expect } from 'chai';
 import userData from './data/user';
 import dockerCredential from './data/dockerCredential';
 import app from '../server';

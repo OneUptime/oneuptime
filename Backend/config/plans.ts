@@ -2,9 +2,9 @@ export default {
     getPlans() {
         //If in testing.
         if (
-            !process.env['STRIPE_PRIVATE_KEY'] ||
-            (process.env['STRIPE_PRIVATE_KEY'] &&
-                process.env['STRIPE_PRIVATE_KEY'].startsWith('sk_test'))
+            !process.env.STRIPE_PRIVATE_KEY ||
+            (process.env.STRIPE_PRIVATE_KEY &&
+                process.env.STRIPE_PRIVATE_KEY.startsWith('sk_test'))
         ) {
             return [
                 {
@@ -148,9 +148,9 @@ export default {
     getReserveNumberProductId() {
         //If in testing.
         if (
-            !process.env['STRIPE_PRIVATE_KEY'] ||
-            (process.env['STRIPE_PRIVATE_KEY'] &&
-                process.env['STRIPE_PRIVATE_KEY'].startsWith('sk_test'))
+            !process.env.STRIPE_PRIVATE_KEY ||
+            (process.env.STRIPE_PRIVATE_KEY &&
+                process.env.STRIPE_PRIVATE_KEY.startsWith('sk_test'))
         ) {
             return 'prod_IrghVi0HPtZB95'; //Test
         }

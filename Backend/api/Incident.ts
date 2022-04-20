@@ -18,7 +18,7 @@ import MonitorService from '../services/monitorService';
 const router: ExpressRouter = Express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
-import errorService from 'CommonServer/Utils/error';
+import ErrorService from 'CommonServer/Utils/error';
 const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
@@ -36,7 +36,6 @@ import onCallScheduleStatusService from '../services/onCallScheduleStatusService
 import Services from '../Utils/services';
 import joinNames from '../Utils/joinNames';
 import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthorization';
-import ErrorService from 'CommonServer/Utils/error';
 
 /*
  * Data-ingestor will consume this api
@@ -1139,7 +1138,7 @@ router.post(
                             'created',
                             projectId
                         ).catch((error: Error) => {
-                            errorService.log(
+                            ErrorService.log(
                                 'AlertService.sendInvestigationNoteToSubscribers',
                                 error
                             );
@@ -1172,7 +1171,7 @@ router.post(
                             'updated',
                             projectId
                         ).catch((error: Error) => {
-                            errorService.log(
+                            ErrorService.log(
                                 'AlertService.sendInvestigationNoteToSubscribers',
                                 error
                             );
@@ -1188,7 +1187,7 @@ router.post(
                         statusNoteStatus: data.id ? 'updated' : 'created',
                     }
                 ).catch((error: Error) => {
-                    errorService.log(
+                    ErrorService.log(
                         'IncidentAPI.sendInvestigationToProjectWebhooks',
                         error
                     );

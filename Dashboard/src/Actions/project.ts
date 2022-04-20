@@ -6,7 +6,7 @@ import * as types from '../constants/project';
 import { User, IS_SAAS_SERVICE } from '../config.js';
 import { history } from '../store';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-import { fetchComponents } from './component';
+import { fetchComponents, resetFetchComponentResources } from './component';
 import {
     fetchMonitors,
     resetFetchMonitors,
@@ -30,16 +30,18 @@ import {
     resetSubProjectFetchStatusPages,
     deleteProjectStatusPages,
 } from './statusPage';
-import { fetchUnresolvedIncidents, resetUnresolvedIncidents } from './incident';
+import {
+    fetchUnresolvedIncidents,
+    resetUnresolvedIncidents,
+    deleteProjectIncidents,
+} from './incident';
 import { fetchNotifications, fetchNotificationsReset } from './notification';
 import { fetchAlert, resetAlert } from './alert';
-import { deleteProjectIncidents } from './incident';
 import {
     getSubProjects,
     resetSubProjects,
     setActiveSubProject,
 } from './subProject';
-import { resetFetchComponentResources } from './component';
 
 import isMainProjectViewer from '../Utils/isMainProjectViewer';
 import { socket } from '../components/basic/Socket';

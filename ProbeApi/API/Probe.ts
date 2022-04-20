@@ -4,6 +4,7 @@ import Express, {
     OneUptimeRequest,
     ProbeRequest,
     ExpressRouter,
+    sendListResponse,
 } from 'CommonServer/utils/Express';
 
 import MonitorService from '../Services/monitorService';
@@ -11,7 +12,6 @@ import ProbeAuthorization from 'CommonServer/middleware/ProbeAuthorization';
 import { sendErrorResponse } from 'CommonServer/utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/utils/Response';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 const router: ExpressRouter = Express.getRouter();

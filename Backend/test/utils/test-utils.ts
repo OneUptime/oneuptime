@@ -1,7 +1,6 @@
-import chai from 'chai';
+import chai, { expect } from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-import { expect } from 'chai';
 
 import decode from 'urldecode';
 

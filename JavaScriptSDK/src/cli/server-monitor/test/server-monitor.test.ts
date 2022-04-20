@@ -1,16 +1,15 @@
-process.env['NODE_ENV'] = 'development';
-process.env['LOG_LEVEL'] = 'error';
-process.env['API_URL'] = 'http://localhost:3002';
+process.env.NODE_ENV = 'development';
+process.env.LOG_LEVEL = 'error';
+process.env.API_URL = 'http://localhost:3002';
 
-import chai from 'chai';
+import chai, { expect } from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const request: $TSFixMe = chai.request.agent(process.env['API_URL']);
+const request: $TSFixMe = chai.request.agent(process.env.API_URL);
 
 import utils from './test-utils';
-import { expect } from 'chai';
 import serverMonitor from '../lib/api';
 
 const user: $TSFixMe = require('./test-utils').user;

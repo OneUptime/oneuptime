@@ -6,8 +6,10 @@ import Express, {
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-import { sendListResponse } from 'CommonServer/Utils/response';
-import { sendErrorResponse } from 'CommonServer/Utils/response';
+import {
+    sendListResponse,
+    sendErrorResponse,
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 import ObjectID from 'Common/Types/ObjectID';
 import MonitorService from '../services/monitorService';
