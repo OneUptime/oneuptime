@@ -1,6 +1,6 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 
-process.env.IS_SAAS_SERVICE = true;
+process.env['IS_SAAS_SERVICE'] = true;
 import data from './data/user';
 import chai, { expect } from 'chai';
 import chaihttp from 'chai-http';
@@ -38,14 +38,14 @@ describe('Disable Sign up test', function (): void {
             password: data.adminUser.password,
         });
         token = res.body.tokens.jwtAccessToken;
-        process.env.DISABLE_SIGNUP = 'true'; // This is in quotes because of helm chart and kubernetes.
+        process.env['DISABLE_SIGNUP'] = 'true'; // This is in quotes because of helm chart and kubernetes.
     });
 
     this.afterAll(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
         await AirtableService.deleteAll({ tableName: 'User' });
-        process.env.DISABLE_SIGNUP = undefined;
+        process.env['DISABLE_SIGNUP'] = undefined;
     });
 
     it('should not sign up the user when sign up is disabled', async () => {

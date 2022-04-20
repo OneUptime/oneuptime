@@ -20,7 +20,7 @@ import OneUptimeDate from 'Common/Types/Date';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-app.set('port', process.env.PORT);
+app.set('port', process.env['PORT']);
 
 const logRequest: RequestHandler = (
     req: ExpressRequest,

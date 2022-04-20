@@ -310,7 +310,7 @@ app.use('/*', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 mongoose.connection.on('connected', async () => {
-    if (!process.env.IS_TESTING) {
+    if (!process.env['IS_TESTING']) {
         const greenlock: $TSFixMe = Gl.create({
             manager: 'oneuptime-gl-manager',
             packageRoot: process.cwd(),

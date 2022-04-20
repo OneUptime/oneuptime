@@ -1081,9 +1081,9 @@ export default class Service {
 
         const options: $TSFixMe = {
             vapidDetails: {
-                subject: process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
-                publicKey: process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
-                privateKey: process.env.PUSHNOTIFICATION_PRIVATE_KEY, // URL Safe Base64 Encoded Private Key
+                subject: process.env['PUSHNOTIFICATION_URL'], // Address or URL for this application
+                publicKey: process.env['PUSHNOTIFICATION_PUBLIC_KEY'], // URL Safe Base64 Encoded Public Key
+                privateKey: process.env['PUSHNOTIFICATION_PRIVATE_KEY'], // URL Safe Base64 Encoded Private Key
             },
             headers: {
                 'access-control-allow-headers':

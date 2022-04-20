@@ -1,6 +1,6 @@
 import { registerService } from './serviceWorker';
 const publicVapidKey: $TSFixMe =
-    process.env.REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY; // URL Safe Base64 Encoded Public Key
+    process.env['REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY']; // URL Safe Base64 Encoded Public Key
 
 // Adk for permission
 export async function askUserPermission(): void {

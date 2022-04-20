@@ -1,4 +1,4 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 import chai, { expect } from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);

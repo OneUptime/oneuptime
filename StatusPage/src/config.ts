@@ -51,7 +51,7 @@ export const ACCOUNTS_URL: $TSFixMe = accountsUrl;
 
 export const DOMAIN: $TSFixMe = window.location.origin;
 
-export const VERSION: $TSFixMe = process.env.VERSION || env('VERSION');
+export const VERSION: $TSFixMe = process.env['VERSION'] || env('VERSION');
 
 export const User: $TSFixMe = {
     getAccessToken() {

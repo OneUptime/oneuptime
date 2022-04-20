@@ -14,15 +14,15 @@ const agent: $TSFixMe =
 let slomo: $TSFixMe = 20;
 
 if (
-    process.env.SLOMO &&
-    parseInt(process.env.SLOMO) &&
-    parseInt(process.env.SLOMO) > 20
+    process.env['SLOMO'] &&
+    parseInt(process.env['SLOMO']) &&
+    parseInt(process.env['SLOMO']) > 20
 ) {
-    slomo = parseInt(process.env.SLOMO);
+    slomo = parseInt(process.env['SLOMO']);
 }
 
 const puppeteerLaunchConfig: $TSFixMe = {
-    headless: process.env.HEADLESS === 'false' ? false : true,
+    headless: process.env['HEADLESS'] === 'false' ? false : true,
     defaultViewport: null,
     slowMo: slomo,
     args: [
@@ -41,23 +41,23 @@ const puppeteerLaunchConfig: $TSFixMe = {
     ],
 };
 
-const HOME_URL: $TSFixMe = process.env.HOME_URL || 'http://localhost:1444';
+const HOME_URL: $TSFixMe = process.env['HOME_URL'] || 'http://localhost:1444';
 const ACCOUNTS_URL: $TSFixMe =
-    process.env.ACCOUNTS_URL || 'http://localhost:3003';
+    process.env['ACCOUNTS_URL'] || 'http://localhost:3003';
 const ADMIN_DASHBOARD_URL: $TSFixMe =
-    process.env.ADMIN_DASHBOARD_URL || 'http://localhost:3100';
+    process.env['ADMIN_DASHBOARD_URL'] || 'http://localhost:3100';
 const DASHBOARD_URL: $TSFixMe =
-    process.env.DASHBOARD_URL || 'http://localhost:3000';
+    process.env['DASHBOARD_URL'] || 'http://localhost:3000';
 const BACKEND_URL: $TSFixMe =
-    process.env.BACKEND_URL || 'http://localhost:3002';
+    process.env['BACKEND_URL'] || 'http://localhost:3002';
 const STATUSPAGE_URL: $TSFixMe =
-    process.env.STATUSPAGE_URL || 'http://localhost:3006';
+    process.env['STATUSPAGE_URL'] || 'http://localhost:3006';
 const APIDOCS_URL: $TSFixMe =
-    process.env.APIDOCS_URL || 'http://localhost:1445';
+    process.env['APIDOCS_URL'] || 'http://localhost:1445';
 const HTTP_TEST_SERVER_URL: $TSFixMe =
-    process.env.HTTP_TEST_SERVER_URL || 'http://localhost:3010';
+    process.env['HTTP_TEST_SERVER_URL'] || 'http://localhost:3010';
 const INIT_SCRIPT_URL: $TSFixMe =
-    process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
+    process.env['INIT_SCRIPT_URL'] || 'http://localhost:1447';
 
 function generateRandomBusinessEmail(): void {
     return (
@@ -137,43 +137,45 @@ const updatedScheduledEventDescription: string = 'event description updated';
 const updatedScheduledEventName: string = 'event name updated';
 
 const dockerCredential: $TSFixMe = {
-    dockerUsername: process.env.DOCKER_UNMASKED_USERNAME || 'oneuptimetest',
-    dockerPassword: process.env.DOCKER_UNMASKED_PASSWORD || '4G76c2aavPHa',
+    dockerUsername: process.env['DOCKER_UNMASKED_USERNAME'] || 'oneuptimetest',
+    dockerPassword: process.env['DOCKER_UNMASKED_PASSWORD'] || '4G76c2aavPHa',
     dockerRegistryUrl:
-        process.env.DOCKER_SECURITY_SCAN_REGISTRY_URL ||
+        process.env['DOCKER_SECURITY_SCAN_REGISTRY_URL'] ||
         'https://registry.hub.docker.com',
     imagePath:
-        process.env.DOCKER_SECURITY_SCAN_IMAGE_PATH || 'oneuptimeproject/home',
-    imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS || 'latest',
+        process.env['DOCKER_SECURITY_SCAN_IMAGE_PATH'] ||
+        'oneuptimeproject/home',
+    imageTags: process.env['DOCKER_SECURITY_SCAN_IMAGE_TAGS'] || 'latest',
 };
 
 const gitCredential: $TSFixMe = {
-    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'oneuptimetest',
+    gitUsername: process.env['GITHUB_UNMASKED_USERNAME'] || 'oneuptimetest',
     gitPassword:
-        process.env.GITHUB_UNMASKED_PASSWORD || 'FzUHPgxBGrqCuf68aaHjPqaFZH',
+        process.env['GITHUB_UNMASKED_PASSWORD'] || 'FzUHPgxBGrqCuf68aaHjPqaFZH',
     gitRepositoryUrl:
-        process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL ||
+        process.env['GITHUB_SECURITY_SCAN_REPOSITORY_URL'] ||
         'https://github.com/twbs/bootstrap',
 };
 
 const smtpCredential: $TSFixMe = {
-    user: process.env.TEST_EMAIL || 'noreply@oneuptime.com',
+    user: process.env['TEST_EMAIL'] || 'noreply@oneuptime.com',
     pass:
-        process.env.TEST_EMAIL_PASSWORD || 'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD',
-    host: process.env.TEST_EMAIL_SMTP_SERVER || 'smtp.gmail.com',
-    port: process.env.TEST_EMAIL_SMTP_PORT || '465',
-    from: process.env.TEST_EMAIL || 'noreply@oneuptime.com',
+        process.env['TEST_EMAIL_PASSWORD'] ||
+        'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD',
+    host: process.env['TEST_EMAIL_SMTP_SERVER'] || 'smtp.gmail.com',
+    port: process.env['TEST_EMAIL_SMTP_PORT'] || '465',
+    from: process.env['TEST_EMAIL'] || 'noreply@oneuptime.com',
     secure: true,
 };
 
 const twilioCredentials: $TSFixMe = {
     accountSid:
-        process.env.TEST_TWILIO_ACCOUNT_SID ||
+        process.env['TEST_TWILIO_ACCOUNT_SID'] ||
         'AC4b957669470069d68cd5a09d7f91d7c6',
     authToken:
-        process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN ||
+        process.env['TEST_TWILIO_ACCOUNT_AUTH_TOKEN'] ||
         '79a35156d9967f0f6d8cc0761ef7d48d',
-    phoneNumber: process.env.TEST_TWILIO_PHONE || '+15005550006',
+    phoneNumber: process.env['TEST_TWILIO_PHONE'] || '+15005550006',
 };
 
 const monitorTabIndexes: $TSFixMe = {

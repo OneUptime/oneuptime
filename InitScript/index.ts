@@ -29,7 +29,7 @@ async function interactWithDB(req: ExpressRequest, res: ExpressResponse): void {
 }
 
 // IMPORTANT: only attach this server in development.
-if (process.env.NODE_ENV === 'development') {
+if (process.env['NODE_ENV'] === 'development') {
     app.use(cors());
 
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -107,7 +107,7 @@ async function run(): void {
 
     logger.info('END SCRIPT: Completed');
     // Keep connection open in dev
-    if (process.env.NODE_ENV !== 'development') {
+    if (process.env['NODE_ENV'] !== 'development') {
         connection.close();
 
         logger.info('Mongo connection closed.');
