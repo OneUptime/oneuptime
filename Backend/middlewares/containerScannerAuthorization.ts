@@ -56,9 +56,9 @@ export default {
             clusterKey = req.query.clusterKey;
         } else if (
             req.headers &&
-            (req.headers.clusterKey || req.headers.clusterkey)
+            (req.headers.clusterkey || req.headers.clusterkey)
         ) {
-            clusterKey = req.headers.clusterKey || req.headers.clusterkey;
+            clusterKey = req.headers.clusterkey || req.headers.clusterkey;
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
         }

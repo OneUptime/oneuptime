@@ -22,12 +22,12 @@ export default class ClusterKeyAuthorization {
             clusterKey = req.query['clusterKey'] as string;
         } else if (
             req.headers &&
-            (req.headers.clusterKey || req.headers.clusterkey)
+            (req.headers['clusterkey'] || req.headers['clusterkey'])
         ) {
             // Header keys are automatically transformed to lowercase
             clusterKey =
-                (req.headers.clusterKey as string) ||
-                (req.headers.clusterkey as string);
+                (req.headers['clusterkey'] as string) ||
+                (req.headers['clusterkey'] as string);
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
         } else {
