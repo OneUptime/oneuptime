@@ -22,10 +22,10 @@ export default {
             clusterKey: $TSFixMe,
             probeVersion: $TSFixMe;
 
-        if (req.params && req.params.probeKey) {
-            probeKey = req.params.probeKey;
-        } else if (req.query && req.query.probeKey) {
-            probeKey = req.query.probeKey;
+        if (req.params && req.params['probeKey']) {
+            probeKey = req.params['probeKey'];
+        } else if (req.query && req.query['probeKey']) {
+            probeKey = req.query['probeKey'];
         } else if (
             req.headers &&
             (req.headers.probeKey || req.headers.probekey)
@@ -42,10 +42,10 @@ export default {
             );
         }
 
-        if (req.params && req.params.probeName) {
-            probeName = req.params.probeName;
-        } else if (req.query && req.query.probeName) {
-            probeName = req.query.probeName;
+        if (req.params && req.params['probeName']) {
+            probeName = req.params['probeName'];
+        } else if (req.query && req.query['probeName']) {
+            probeName = req.query['probeName'];
         } else if (
             req.headers &&
             (req.headers.probeName || req.headers.probename)
@@ -62,10 +62,10 @@ export default {
             );
         }
 
-        if (req.params && req.params.clusterKey) {
-            clusterKey = req.params.clusterKey;
-        } else if (req.query && req.query.clusterKey) {
-            clusterKey = req.query.clusterKey;
+        if (req.params && req.params['clusterKey']) {
+            clusterKey = req.params['clusterKey'];
+        } else if (req.query && req.query['clusterKey']) {
+            clusterKey = req.query['clusterKey'];
         } else if (
             req.headers &&
             (req.headers.clusterKey || req.headers.clusterkey)
@@ -76,10 +76,10 @@ export default {
             clusterKey = req.body.clusterKey;
         }
 
-        if (req.params && req.params.probeVersion) {
-            probeVersion = req.params.probeVersion;
-        } else if (req.query && req.query.probeVersion) {
-            probeVersion = req.query.probeVersion;
+        if (req.params && req.params['probeVersion']) {
+            probeVersion = req.params['probeVersion'];
+        } else if (req.query && req.query['probeVersion']) {
+            probeVersion = req.query['probeVersion'];
         } else if (
             req.headers &&
             (req.headers.probeversion || req.headers.probeVersion)

@@ -187,7 +187,7 @@ const _this: $TSFixMe = {
                     ? req.user.id
                     : null || url.parse(req.url, true).query.userId;
                 const projectId: $TSFixMe =
-                    req.params.projectId ||
+                    req.params['projectId'] ||
                     req.body.projectId ||
                     url.parse(req.url, true).query.projectId;
                 if (!projectId) {

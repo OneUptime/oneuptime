@@ -36,7 +36,7 @@ router.post(
         try {
             const resourceCategoryName: $TSFixMe =
                 req.body.resourceCategoryName;
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
 
@@ -89,8 +89,8 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const resourceCategoryId: $TSFixMe = req.params.resourceCategoryId;
-            const projectId: $TSFixMe = req.params.projectId;
+            const resourceCategoryId: $TSFixMe = req.params['resourceCategoryId'];
+            const projectId: $TSFixMe = req.params['projectId'];
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
 
@@ -145,8 +145,8 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const resourceCategoryId: $TSFixMe = req.params.resourceCategoryId;
-            const projectId: $TSFixMe = req.params.projectId;
+            const resourceCategoryId: $TSFixMe = req.params['resourceCategoryId'];
+            const projectId: $TSFixMe = req.params['projectId'];
             const { name }: $TSFixMe = req.body;
 
             if (!resourceCategoryId) {
@@ -196,7 +196,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const { limit, skip }: $TSFixMe = req.query;
 
             if (!projectId) {

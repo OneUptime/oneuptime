@@ -101,7 +101,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            data.projectId = req.params.projectId;
+            data.projectId = req.params['projectId'];
             const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: req.user.id },
                 select: 'email',
@@ -167,7 +167,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const select: $TSFixMe =
                 'projectId user pass host port from name iv secure enabled createdAt';
             const emailSmtp: $TSFixMe = await EmailSmtpService.findOneBy({
@@ -189,7 +189,7 @@ router.put(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
-            const emailSmtpId: $TSFixMe = req.params.emailSmtpId;
+            const emailSmtpId: $TSFixMe = req.params['emailSmtpId'];
             const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: req.user.id },
                 select: 'email',
@@ -262,7 +262,7 @@ router.delete(
             const data: $TSFixMe = req.body;
             data.deleted = true;
             data.enabled = false;
-            const emailSmtpId: $TSFixMe = req.params.emailSmtpId;
+            const emailSmtpId: $TSFixMe = req.params['emailSmtpId'];
             const emailSmtp: $TSFixMe = await EmailSmtpService.updateOneBy(
                 { _id: emailSmtpId },
                 data

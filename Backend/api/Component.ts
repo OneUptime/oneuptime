@@ -51,7 +51,7 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -155,7 +155,7 @@ router.get(
             // Call the ComponentService.
             const components: $TSFixMe =
                 await ComponentService.getComponentsBySubprojects(
-                    [req.params.projectId],
+                    [req.params['projectId']],
                     limit || 0,
                     skip || 0
                 );
@@ -227,7 +227,7 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const type: $TSFixMe = req.query.type;
+            const type: $TSFixMe = req.query['type'];
 
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => {
@@ -249,8 +249,8 @@ router.get(
             const [components, count]: $TSFixMe = await Promise.all([
                 ComponentService.findBy({
                     query,
-                    limit: req.query.limit || 10,
-                    skip: req.query.skip || 0,
+                    limit: req.query['limit'] || 10,
+                    skip: req.query['skip'] || 0,
                     populate: populateComponent,
                     select: selectComponent,
                 }),
@@ -272,8 +272,8 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const componentId: $TSFixMe = req.params.componentId;
-            const type: $TSFixMe = req.query.type;
+            const componentId: $TSFixMe = req.params['componentId'];
+            const type: $TSFixMe = req.query['type'];
 
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => {
@@ -312,7 +312,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { startDate, endDate }: $TSFixMe = req.body;
-            const componentId: $TSFixMe = req.params.componentId;
+            const componentId: $TSFixMe = req.params['componentId'];
 
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => {
@@ -415,8 +415,8 @@ router.get(
     getSubProjects,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const componentId: $TSFixMe = req.params.componentId;
-            const type: $TSFixMe = req.query.type;
+            const componentId: $TSFixMe = req.params['componentId'];
+            const type: $TSFixMe = req.query['type'];
 
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => {
@@ -449,7 +449,7 @@ router.get(
             }
             const totalResources: $TSFixMe = [];
             const limit: $TSFixMe = 1000;
-            const skip: $TSFixMe = req.query.skip || 0;
+            const skip: $TSFixMe = req.query['skip'] || 0;
 
             const populateApplicationSecurity: $TSFixMe = [
                 {
@@ -742,8 +742,8 @@ router.get(
             const components: $TSFixMe =
                 await ComponentService.getComponentsBySubprojects(
                     subProjectIds,
-                    req.query.limit || 0,
-                    req.query.skip || 0
+                    req.query['limit'] || 0,
+                    req.query['skip'] || 0
                 );
             let allComponents: $TSFixMe = [];
 

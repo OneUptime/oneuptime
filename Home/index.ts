@@ -624,7 +624,7 @@ app.get(
 );
 
 app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig: Product = productCompare(req.params.product as string);
+    const productConfig: Product = productCompare(req.params['product'] as string);
 
     if (!productConfig) {
         res.status(404);
@@ -649,7 +649,7 @@ app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig: Product = productCompare(req.params.product as string);
+    const productConfig: Product = productCompare(req.params['product'] as string);
 
     if (!productConfig) {
         res.status(404);

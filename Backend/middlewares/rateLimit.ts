@@ -14,13 +14,13 @@ const limiter: $TSFixMe = rateLimit({
     max: Number(RATE_LIMITTER_REQUEST_LIMIT),
     keyGenerator: function (req: $TSFixMe): void {
         const accessToken: $TSFixMe =
-            req.headers.authorization || req.query.accessToken;
+            req.headers.authorization || req.query['accessToken'];
         if (accessToken) {
             return accessToken;
         }
 
         const apiKey: $TSFixMe =
-            req.query.apiKey || req.headers.apikey || req.body.apiKey;
+            req.query['apiKey'] || req.headers.apikey || req.body.apiKey;
         if (apiKey) {
             return apiKey;
         }

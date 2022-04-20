@@ -14,10 +14,10 @@ export default {
     ): void {
         let clusterKey: $TSFixMe;
 
-        if (req.params && req.params.clusterKey) {
-            clusterKey = req.params.clusterKey;
-        } else if (req.query && req.query.clusterKey) {
-            clusterKey = req.query.clusterKey;
+        if (req.params && req.params['clusterKey']) {
+            clusterKey = req.params['clusterKey'];
+        } else if (req.query && req.query['clusterKey']) {
+            clusterKey = req.query['clusterKey'];
         } else if (
             req.headers &&
             (req.headers.clusterKey || req.headers.clusterkey)
