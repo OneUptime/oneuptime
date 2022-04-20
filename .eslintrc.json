@@ -69,7 +69,7 @@
         "eqeqeq": "error",
 
         "dot-notation": "off", // Off because it messes up with typescript compiler.
-        "@typescript-eslint/dot-notation": "error", 
+        "@typescript-eslint/dot-notation": "off", //temp off.
         
         "progress/activate": 1,
         "linebreak-style": [
