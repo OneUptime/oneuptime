@@ -34,14 +34,14 @@ services:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
             - redis
             - haraka
-            - ScriptRunner
+            - script-runner
     accounts:
         ports:
             - '3003:3003'
@@ -71,10 +71,10 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         image: oneuptime/home:latest
-    StatusPage:
+    status-page:
         ports:
             - '3006:3006'
-        image: oneuptime/StatusPage:latest
+        image: oneuptime/status-page:latest
         env_file:
             - ./StatusPage/.env
         environment:
@@ -83,10 +83,10 @@ services:
             - dashboard-api
             - accounts
             - dashboard
-    AdminDashboard:
+    admin-dashboard:
         ports:
             - '3100:3100'
-        image: oneuptime/AdminDashboard:latest
+        image: oneuptime/admin-dashboard:latest
         env_file:
             - ./AdminDashboard/.env
         environment:
@@ -94,19 +94,19 @@ services:
         depends_on:
             - dashboard-api
             - accounts
-    HttpTestServer:
+    http-test-server:
         ports:
             - '3010:3010'
         env_file:
             - ./HttpTestServer/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        image: oneuptime/HttpTestServer:latest
+        image: oneuptime/http-test-server:latest
     licensing:
         ports:
             - '3004:3004'
         env_file:
-            - ./licensing/.env
+            - ./Licensing/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         image: oneuptime/licensing:latest
@@ -119,12 +119,12 @@ services:
         environment:
             - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
-            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
-            - ScriptRunner
+            - script-runner
             - dashboard-api
             - realtime
     realtime:
@@ -136,12 +136,12 @@ services:
         environment:
             - CLUSTER_KEY=test
             - PORT=3300
-    ProbeAPI:
+    probe-api:
         ports:
             - '3400:3400'
-        image: oneuptime/ProbeAPI:latest
+        image: oneuptime/probe-api:latest
         env_file:
-            - ./ProbeAPI/.env
+            - ./ProbeApi/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
@@ -159,7 +159,7 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
             - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - PROBE_API_URL=http://ProbeAPI:3400
+            - PROBE_API_URL=http://probe-api:3400
         depends_on:
             - dashboard-api
             - data-ingestor
@@ -178,16 +178,16 @@ services:
         depends_on:
             - dashboard-api
             - data-ingestor
-    ApiDocs:
+    api-docs:
         ports:
             - '1445:1445'
-        image: oneuptime/ApiDocs:latest
+        image: oneuptime/api-docs:latest
         env_file:
             - ./ApiDocs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-    InitScript:
-        image: oneuptime/InitScript:latest
+    init-script:
+        image: oneuptime/init-script:latest
         ports:
             - '1447:1447'
         env_file:
@@ -214,20 +214,20 @@ services:
             - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"
             - TLS_KEY="${TLS_KEY}"
-    ScriptRunner:
+    script-runner:
         ports:
             - '3009:3009'
-        image: oneuptime/ScriptRunner:latest
+        image: oneuptime/script-runner:latest
         env_file:
             - ./ScriptRunner/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
-    ApplicationScanner:
+    application-scanner:
         ports:
             - '3005:3005'
-        image: oneuptime/ApplicationScanner:latest
+        image: oneuptime/application-scanner:latest
         env_file:
             - ./ApplicationScanner/.env
         environment:
@@ -238,10 +238,10 @@ services:
         depends_on:
             - dashboard-api
             
-    ContainerScanner:
+    container-scanner:
         ports:
             - '3055:3055'
-        image: oneuptime/ContainerScanner:latest
+        image: oneuptime/container-scanner:latest
         env_file:
             - ./ContainerScanner/.env
         environment:
@@ -251,10 +251,10 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - dashboard-api
-    LighthouseRunner:
+    lighthouse-runner:
         ports:
             - '3015:3015'
-        image: oneuptime/LighthouseRunner:latest
+        image: oneuptime/lighthouse-runner:latest
         env_file:
             - ./LighthouseRunner/.env
         environment:
@@ -272,7 +272,7 @@ services:
             - home
             - dashboard
             - accounts
-            - AdminDashboard
+            - admin-dashboard
         restart: always
         image: oneuptime/nginx:latest
         ports:

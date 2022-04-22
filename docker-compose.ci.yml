@@ -1,4 +1,8 @@
+# This docker file is for CI. 
+# It it builds and tests docker containers in the CI pipeline.
+
 version: '3.7'
+
 services:
     mongo:
         image: mongo:4.2.3
@@ -23,6 +27,7 @@ services:
         ports:
             - '6379:6379'
         command: redis-server
+
     dashboard-api:
         ports:
             - '3002:3002'
@@ -35,20 +40,20 @@ services:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
             - redis
             - haraka
-            - ScriptRunner
+            - script-runner
     accounts:
         ports:
             - '3003:3003'
         build:
             context: .
-            dockerfile: ./accounts/Dockerfile
+            dockerfile: ./Accounts/Dockerfile
         env_file:
             - ./Accounts/.env
         environment:
@@ -60,7 +65,7 @@ services:
             - '3000:3000'
         build:
             context: .
-            dockerfile: ./dashboard/Dockerfile
+            dockerfile: ./Dashboard/Dockerfile
         env_file:
             - ./Dashboard/.env
         environment:
@@ -77,13 +82,13 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
             context: .
-            dockerfile: ./home/Dockerfile
-    StatusPage:
+            dockerfile: ./Home/Dockerfile
+    status-page:
         ports:
             - '3006:3006'
         build:
             context: .
-            dockerfile: ./StatusPage/Dockerfile
+            dockerfile: ./status-page/Dockerfile
         env_file:
             - ./StatusPage/.env
         environment:
@@ -92,7 +97,7 @@ services:
             - dashboard-api
             - accounts
             - dashboard
-    AdminDashboard:
+    admin-dashboard:
         ports:
             - '3100:3100'
         build:
@@ -105,7 +110,7 @@ services:
         depends_on:
             - dashboard-api
             - accounts
-    HttpTestServer:
+    http-test-server:
         ports:
             - '3010:3010'
         env_file:
@@ -119,29 +124,29 @@ services:
         ports:
             - '3004:3004'
         env_file:
-            - ./licensing/.env
+            - ./Licensing/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
             context: .
-            dockerfile: ./licensing/Dockerfile
+            dockerfile: ./Licensing/Dockerfile
     data-ingestor:
         ports:
             - '3200:3200'
         build:
             context: .
-            dockerfile: ./data-ingestor/Dockerfile
+            dockerfile: ./DataIngestor/Dockerfile
         env_file:
             - ./DataIngestor/.env
         environment:
             - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
-            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
-            - ScriptRunner
+            - script-runner
             - dashboard-api
             - realtime
     realtime:
@@ -149,20 +154,20 @@ services:
             - '3300:3300'
         build:
             context: .
-            dockerfile: ./realtime/Dockerfile
+            dockerfile: ./Realtime/Dockerfile
         env_file:
             - ./Realtime/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3300
-    ProbeAPI:
+    probe-api:
         ports:
             - '3400:3400'
         build:
             context: .
             dockerfile: ./ProbeAPI/Dockerfile
         env_file:
-            - ./ProbeAPI/.env
+            - ./ProbeApi/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
@@ -171,7 +176,7 @@ services:
     probe1:
         build:
             context: .
-            dockerfile: ./probe/Dockerfile
+            dockerfile: ./Probe/Dockerfile
         env_file:
             - ./Probe/.env
         environment:
@@ -182,14 +187,14 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
             - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - PROBE_API_URL=http://ProbeAPI:3400
+            - PROBE_API_URL=http://probe-api:3400
         depends_on:
             - dashboard-api
             - data-ingestor
     probe2:
         build:
             context: .
-            dockerfile: ./probe/Dockerfile
+            dockerfile: ./Probe/Dockerfile
         env_file:
             - ./Probe/.env
         environment:
@@ -203,7 +208,7 @@ services:
         depends_on:
             - dashboard-api
             - data-ingestor
-    ApiDocs:
+    api-docs:
         ports:
             - '1445:1445'
         build:
@@ -213,7 +218,7 @@ services:
             - ./ApiDocs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-    InitScript:
+    init-script:
         build:
             context: .
             dockerfile: ./InitScript/Dockerfile
@@ -246,7 +251,7 @@ services:
             - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"
             - TLS_KEY="${TLS_KEY}"
-    ScriptRunner:
+    script-runner:
         ports:
             - '3009:3009'
         build:
@@ -258,7 +263,7 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
-    ApplicationScanner:
+    application-scanner:
         ports:
             - '3005:3005'
         build:
@@ -273,7 +278,7 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - dashboard-api
-    ContainerScanner:
+    container-scanner:
         ports:
             - '3055:3055'
         build:
@@ -288,7 +293,7 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - dashboard-api
-    LighthouseRunner:
+    lighthouse-runner:
         ports:
             - '3015:3015'
         build:
@@ -310,7 +315,7 @@ services:
             - home
             - dashboard
             - accounts
-            - AdminDashboard
+            - admin-dashboard
         restart: always
         build:
             dockerfile: Dockerfile
