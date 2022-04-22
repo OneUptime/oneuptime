@@ -53,7 +53,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
         }
 
         const limit: PositiveNumber = new PositiveNumber(
-            parseInt((req.query['limit'] as string) || '100')
+            parseInt((req.query.limit as string) || '100')
         );
 
         const item: string = await LicenseService.confirm(

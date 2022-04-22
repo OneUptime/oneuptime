@@ -38,9 +38,9 @@ const COMMAND: $TSFixMe = {
 
 export default {
     COMMAND,
-    serverUrl: process.env['SERVER_URL'],
-    containerScannerName: process.env['CONTAINER_SCANNER_NAME'],
-    containerScannerKey: process.env['CONTAINER_SCANNER_KEY'],
-    clusterKey: process.env['CLUSTER_KEY'],
+    serverUrl: process.env.SERVER_URL,
+    containerScannerName: process.env.CONTAINER_SCANNER_NAME,
+    containerScannerKey: process.env.CONTAINER_SCANNER_KEY,
+    clusterKey: process.env.CLUSTER_KEY,
     containerScannerVersion: packageJson.version,
 };

@@ -1,0 +1,26 @@
+{
+    "preset": "ts-jest",
+    "verbose": true,
+    "globals": {
+        "ts-jest": {
+            "tsconfig": "tsconfig.json",
+            "babelConfig": false
+        }
+    },
+    "moduleFileExtensions": ["ts", "js", "json"],
+    "transform": {
+        ".(ts|tsx)": "ts-jest"
+    },
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "coverageReporters": ["text"],
+    "collectCoverageFrom": ["./Utils/**"],
+    "coverageThreshold": {
+        "global": {
+            "lines": 0,
+            "functions": 0,
+            "branches": 0,
+            "statements": 0
+        }
+    }
+}

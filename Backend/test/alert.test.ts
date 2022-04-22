@@ -1,5 +1,5 @@
-process.env['PORT'] = 3020;
-process.env['NODE_ENV'] = 'development';
+process.env.PORT = 3020;
+process.env.NODE_ENV = 'development';
 import userData from './data/user';
 import incidentData from './data/incident';
 import chai, { expect } from 'chai';

@@ -16,7 +16,7 @@ import productCompare, { Product } from './config/product-compare';
 import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
-if (process.env['NODE_ENV'] === 'production') {
+if (process.env.NODE_ENV === 'production') {
     app.use(compression());
 }
 
@@ -624,9 +624,7 @@ app.get(
 );
 
 app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig: Product = productCompare(
-        req.params['product'] as string
-    );
+    const productConfig: Product = productCompare(req.params.product as string);
 
     if (!productConfig) {
         res.status(404);
@@ -651,9 +649,7 @@ app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig: Product = productCompare(
-        req.params['product'] as string
-    );
+    const productConfig: Product = productCompare(req.params.product as string);
 
     if (!productConfig) {
         res.status(404);

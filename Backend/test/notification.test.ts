@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import chai, { expect } from 'chai';
 import userData from './data/user';
 import projectData from './data/project';

@@ -1,7 +1,7 @@
 import { GridFsStorage } from 'multer-gridfs-storage';
 import crypto from 'crypto';
 
-const mongoUri: $TSFixMe = process.env['MONGO_URL'];
+const mongoUri: $TSFixMe = process.env.MONGO_URL;
 
 /*
  * Description: Generating random name of files.

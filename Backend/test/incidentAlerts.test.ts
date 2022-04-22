@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import userData from './data/user';
 import chai, { expect } from 'chai';
 import ObjectID from 'Common/Types/ObjectID';
@@ -1132,7 +1132,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             const randomId: $TSFixMe = uuid.v4();
 
             const link: string = `http://localhost:${
-                process.env['PORT'] || 3002
+                process.env.PORT || 3002
             }/api/incomingHttpRequest/${randomId}`;
 
             // Create a new incomingHttp monitor, with a resource that will fail

@@ -1,4 +1,4 @@
-process.env['PORT'] = 3020;
+process.env.PORT = 3020;
 import chai, { expect } from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
@@ -13,7 +13,7 @@ describe('Version API', function (): void {
         request.get('/version').end((err: $TSFixMe, res: $TSFixMe): void => {
             expect(res).to.have.status(200);
             expect(res.body.server).to.be.equal(
-                process.env['npm_package_version']
+                process.env.npm_package_version
             );
             done();
         });

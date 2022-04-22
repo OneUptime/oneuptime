@@ -12,8 +12,8 @@ describe('Authenticate API KEY and ProjectID', () => {
     it('passes authentication and returns json', (done: $TSFixMe) => {
         const bundle: $TSFixMe = {
             authData: {
-                apiKey: process.env['DEV_API_KEY'],
-                projectId: process.env['DEV_PROJECT_ID'],
+                apiKey: process.env.DEV_API_KEY,
+                projectId: process.env.DEV_PROJECT_ID,
             },
             cleanedRequest: {
                 projectId: '1',

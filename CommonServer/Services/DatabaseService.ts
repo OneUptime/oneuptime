@@ -150,7 +150,7 @@ class DatabaseService<ModelType> {
 
     protected encrypt(data: JSONObject): JSONObject {
         const iv: Buffer = Encryption.getIV();
-        data['iv'] = iv;
+        data.iv = iv;
 
         for (const key of this.encryptedFields) {
             // If data is an object.
@@ -295,10 +295,7 @@ class DatabaseService<ModelType> {
                 const countQuery: Query = new Query();
 
                 if (this.isResourceByProject) {
-                    countQuery.equalTo(
-                        'projectId',
-                        data['projectId'] as string
-                    );
+                    countQuery.equalTo('projectId', data.projectId as string);
                 }
 
                 for (const duplicateValueIn of this.uniqueFields) {
