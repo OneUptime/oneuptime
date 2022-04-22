@@ -18,11 +18,11 @@ SHELL ["/bin/bash", "-c"]
 RUN mkdir /usr/src
 
 # Install common
-RUN mkdir /usr/src/common
-WORKDIR /usr/src/common
-COPY ./common/package*.json /usr/src/common/
+RUN mkdir /usr/src/Common
+WORKDIR /usr/src/Common
+COPY ./Common/package*.json /usr/src/Common/
 RUN npm install
-COPY ./common /usr/src/common
+COPY ./Common /usr/src/Common
 RUN npm compile
 
 # Install CommonServer
@@ -44,12 +44,12 @@ WORKDIR /usr/src/app
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install app dependencies
-COPY ./backend/package*.json /usr/src/app/
+COPY ./DashboardAPI/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
 
 # Bundle app source
-COPY ./backend /usr/src/app
+COPY ./DashboardAPI /usr/src/app
 
 # Expose ports.
 #   - 3002: OneUptime-backend

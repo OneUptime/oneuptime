@@ -27,11 +27,11 @@ RUN mkdir /usr/src/app
 
 
 # Install common
-RUN mkdir /usr/src/common
-WORKDIR /usr/src/common
-COPY ./common/package*.json /usr/src/common/
+RUN mkdir /usr/src/Common
+WORKDIR /usr/src/Common
+COPY ./Common/package*.json /usr/src/Common/
 RUN npm install
-COPY ./common /usr/src/common
+COPY ./Common /usr/src/Common
 RUN npm compile
 
 # Install CommonServer

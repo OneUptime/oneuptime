@@ -17,11 +17,11 @@ ENV PRODUCTION=true
 RUN mkdir /usr/src
 
 # Install common
-RUN mkdir /usr/src/common
-WORKDIR /usr/src/common
-COPY ./common/package*.json /usr/src/common/
+RUN mkdir /usr/src/Common
+WORKDIR /usr/src/Common
+COPY ./Common/package*.json /usr/src/Common/
 RUN npm install
-COPY ./common /usr/src/common
+COPY ./Common /usr/src/Common
 RUN npm compile
 
 # Install CommonServer
@@ -53,7 +53,7 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
 
 
 # Install app dependencies
-COPY ./probe/package*.json /usr/src/app/
+COPY ./Porbe/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
 

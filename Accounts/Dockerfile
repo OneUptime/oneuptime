@@ -14,11 +14,11 @@ SHELL ["/bin/bash", "-c"]
 RUN mkdir /usr/src
 
 # Install common
-RUN mkdir /usr/src/common
-WORKDIR /usr/src/common
-COPY ./common/package*.json /usr/src/common/
+RUN mkdir /usr/src/Common
+WORKDIR /usr/src/Common
+COPY ./Common/package*.json /usr/src/Common/
 RUN npm install
-COPY ./common /usr/src/common
+COPY ./Common /usr/src/Common
 RUN npm compile
 
 # Install CommonServer
@@ -48,12 +48,12 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./accounts/package*.json /usr/src/app/
+COPY ./Accounts/package*.json /usr/src/app/
 RUN npm install  
 RUN npm install -g ts-node
 
 # Copy app source
-COPY ./accounts /usr/src/app
+COPY ./Accounts /usr/src/app
 
 # Bundle app source
 RUN npm run build
