@@ -1,0 +1,38 @@
+{
+    "name": "ProbeAPI",
+    "version": "3.0.0",
+    "description": "A project to handle all resource fetching or update for probes",
+    "main": "index.ts",
+    "scripts": {
+        "start": "ts-node index.ts",
+        "compile": "tsc",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true"
+    },
+    "keywords": [],
+    "author": "HackerBay, Inc. ",
+    "license": "ISC",
+    "type": "module",
+    "dependencies": {
+        "axios": "^0.26.1",
+        "CommonServer": "file:../CommonServer",
+"Common": "file:../Common",
+        "cors": "^2.8.5",
+        "cross-env": "^7.0.3",
+        "dotenv": "^16.0.0",
+        "express": "^4.17.3",
+        "lodash": "^4.17.21",
+        "moment": "^2.29.1",
+        "mongodb": "^4.4.1",
+        "uuid": "^8.3.2",
+        "winston": "^3.6.0",
+        "winston-slack-webhook-transport": "^2.1.0"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.12",
+        "@types/express": "^4.17.13",
+        "@types/node": "^17.0.22",
+        "ts-node-dev": "^1.1.8"
+    }
+}

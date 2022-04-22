@@ -1,1 +1,0 @@
-export const ANIMATE_SIDEBAR = 'ANIMATE_SIDEBAR';

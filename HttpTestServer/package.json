@@ -1,0 +1,46 @@
+{
+    "name": "HttpTestServer",
+    "version": "1.0.0",
+    "private": true,
+    "main": "server.js",
+    "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+        "start": "ts-node index.ts",
+        "compile": "tsc",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "audit": "npm audit --audit-level=low",
+        "test": "jest --forceExit --runInBand test",
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "module",
+    "dependencies": {
+        "CommonServer": "file:../CommonServer",
+"Common": "file:../Common",
+        "body-parser": "^1.19.2",
+        "cross-env": "^7.0.3",
+        "dotenv": "^16.0.0",
+        "ejs": "^3.1.6",
+        "express": "^4.17.3",
+        "faker": "^6.6.6",
+        "jest": "^27.5.1",
+        "should": "^13.2.3"
+    },
+    "resolutions": {},
+    "devDependencies": {
+        "depcheck": "^1.4.3",
+        "npm-force-resolutions": "0.0.10"
+    },
+    "jest": {
+        "collectCoverageFrom": [
+            "./**/*.js",
+            "!src/**/*.stories.js",
+            "!src/store.js",
+            "!src/config.js",
+            "!src/routes.js",
+            "!src/setupTests.js"
+        ]
+    }
+}

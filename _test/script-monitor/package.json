@@ -2,7 +2,7 @@
     "name": "script-monitor",
     "version": "1.0.0",
     "description": "Test for script monitor",
-    "main": "index.js",
+    "main": "index.ts",
     "scripts": {
         "test": "mocha ."
     },

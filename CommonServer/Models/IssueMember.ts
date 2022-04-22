@@ -1,0 +1,46 @@
+import mongoose, {
+    RequiredFields,
+    UniqueFields,
+    EncryptedFields,
+    Schema,
+} from '../Infrastructure/ORM';
+
+const schema: Schema = new Schema({
+    issueId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Issue',
+        alias: 'issue',
+        index: true,
+    }, // Which issue does this belongs to.
+    userId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        alias: 'user',
+        index: true,
+    }, // Which team member is this.
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+    createdById: { type: String, ref: 'User', index: true },
+    removed: { type: Boolean, default: false }, // This removed is the flag to be used to know if the member has been unassigned from the issue
+
+    removedAt: {
+        type: Date,
+    },
+    removedById: { type: String, ref: 'User', index: true },
+});
+schema.virtual('issue', {
+    localField: '_id',
+    foreignField: 'issueId',
+    ref: 'Issue',
+    justOne: true,
+});
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export const uniqueFields: UniqueFields = [];
+export const encryptedFields: EncryptedFields = [];
+
+export const slugifyField: string = '';
+
+export default mongoose.model('IssueMember', schema);

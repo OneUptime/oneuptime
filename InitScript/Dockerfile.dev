@@ -1,0 +1,57 @@
+#
+# Init Scirpt Dockerfile
+#
+
+# Pull base image nodejs image.
+FROM node:alpine
+
+# Install bash. 
+RUN apk update && apk add bash && apk add curl
+
+
+# Install python
+RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
+
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
+RUN mkdir /usr/src
+
+# Install common
+RUN mkdir /usr/src/common
+WORKDIR /usr/src/common
+COPY ./common/package*.json /usr/src/common/
+RUN npm install
+COPY ./common /usr/src/common
+RUN npm compile
+
+# Install CommonServer
+RUN mkdir /usr/src/CommonServer
+WORKDIR /usr/src/CommonServer
+COPY ./CommonServer/package*.json /usr/src/CommonServer/
+RUN npm install
+COPY ./CommonServer /usr/src/CommonServer
+RUN npm compile
+
+#SET ENV Variables
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+
+
+
+WORKDIR /usr/src/app
+
+# Copy package.json files
+COPY ./InitScript/package.json /usr/src/app/package.json
+COPY ./InitScript/package-lock.json /usr/src/app/package-lock.json
+
+
+# Install app dependencies
+RUN npm install
+
+# Expose Debugger port
+EXPOSE 9229 
+
+#Run the app
+CMD [ "npm", "run", "dev" ]

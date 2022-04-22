@@ -1,0 +1,20 @@
+/**
+ * @description renders a certain amount of content on the page, based on the page number and limit
+ * @param {array} items array of contents to be paginated
+ * @param {number} page current page
+ * @param {nummber} limit maximum amount of content to display
+ */
+
+function paginate(items: $TSFixMe, page = 1, limit = 10): void {
+    const offset: Function = (page - 1) * limit,
+        paginatedItems: $TSFixMe = items.slice(offset).slice(0, limit),
+        total_pages: $TSFixMe = Math.ceil(items.length / limit);
+    return {
+        pre_page: page - 1 ? page - 1 : null,
+        next_page: total_pages > page ? page + 1 : null,
+        data: paginatedItems,
+        count: items.length,
+    };
+}
+
+export default paginate;

@@ -1,1 +1,0 @@
-Highlighter={},Highlighter.highlight=function(e){$(e).find("span.highlight_js").each(function(e,t){hljs.highlightBlock(t)})},$(document).ready(function(){Highlighter.highlight(document)});

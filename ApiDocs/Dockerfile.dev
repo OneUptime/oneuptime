@@ -1,0 +1,54 @@
+#
+# OneUptime Docs Dockerfile
+#
+
+# Pull base image nodejs image.
+FROM node:alpine
+
+# Install bash. 
+RUN apk update && apk add bash && apk add curl
+
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
+RUN mkdir /usr/src
+
+# Install common
+RUN mkdir /usr/src/common
+WORKDIR /usr/src/common
+COPY ./common/package*.json /usr/src/common/
+RUN npm install
+COPY ./common /usr/src/common
+RUN npm compile
+
+# Install CommonServer
+RUN mkdir /usr/src/CommonServer
+WORKDIR /usr/src/CommonServer
+COPY ./CommonServer/package*.json /usr/src/CommonServer/
+RUN npm install
+COPY ./CommonServer /usr/src/CommonServer
+RUN npm compile
+
+#SET ENV Variables
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+
+
+
+WORKDIR /usr/src/app
+
+# Copy package.json files
+COPY ./ApiDocs/package.json /usr/src/app/package.json
+COPY ./ApiDocs/package-lock.json /usr/src/app/package-lock.json
+
+
+# Install app dependencies
+RUN npm install
+
+# Expose ports.
+#   - 3000:  OneUptime
+EXPOSE 3000
+
+#Run the app
+CMD [ "npm", "run", "dev" ]

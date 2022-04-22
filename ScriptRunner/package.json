@@ -1,0 +1,34 @@
+{
+    "name": "ScriptRunner",
+    "version": "1.0.0",
+    "description": "automation script runner",
+    "main": "index.ts",
+    "scripts": {
+        "start": "ts-node index.ts",
+        "compile": "tsc",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "audit": "npm audit --audit-level=low"
+    },
+    "author": "Augustine",
+    "license": "ISC",
+    "type": "module",
+    "dependencies": {
+        "@types/node-cron": "^3.0.1",
+        "axios": "^0.26.1",
+        "body-parser": "^1.19.2",
+        "Common": "file:../Common",
+        "CommonServer": "file:../CommonServer",
+        "cors": "^2.8.5",
+        "dotenv": "^16.0.0",
+        "express": "^4.17.3",
+        "node-cron": "^3.0.0",
+        "request": "^2.88.2",
+        "vm2": "^3.9.9",
+        "winston": "^3.6.0",
+        "winston-slack-transport": "^2.0.0"
+    },
+    "devDependencies": {
+        "ts-node-dev": "^1.1.8"
+    }
+}

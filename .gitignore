@@ -4,6 +4,9 @@ node_modules
 # dependencies
 /node_modules
 
+# Build Dist
+*/build/dist/*
+
 .idea
 # testing
 /coverage
@@ -53,4 +56,4 @@ tests/coverage
 
 settings.json
 
-go-sdk/tester/
+GoSDK/tester/

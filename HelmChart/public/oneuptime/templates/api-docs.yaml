@@ -1,0 +1,106 @@
+
+####################################
+#IMPORTANT: Kube Reosurces below are ONLY for SaaS service
+####################################
+
+{{- if .Values.saas.isSaasService }}
+###########-----ApiDocs------##############
+
+# OneUptime API docs Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+    namespace: {{ $.Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+    replicas: {{ $.Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "ApiDocs" .Values.image.tag }}
+                  name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
+                  resources:
+                    requests:
+                      cpu: 250m
+                    limits:
+                      cpu: 500m
+                  env:
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
+                      - name: NODE_ENV
+                        value: {{ $.Values.nodeEnv }}
+                      - name: NODE_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: spec.nodeName
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: POD_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: POD_IP
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: status.podIP
+                      - name: POD_SERVICE_ACCOUNT
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: spec.serviceAccountName
+                  ports:
+                      - containerPort: {{ $.Values.host.apiDocsPort }}
+                        hostPort: {{ $.Values.host.apiDocsPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
+
+---
+# OneUptime API docs Service
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+    namespace: {{ $.Release.Namespace }}
+spec:
+    ports:
+        - port: {{ $.Values.host.apiDocsServicePort }}
+          protocol: TCP
+          targetPort: {{ $.Values.host.apiDocsPort }}
+    selector:
+        app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+    type: ClusterIP
+---
+###########################################
+{{- end }}
+
+{{- if .Values.autoScaler.enabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+spec:
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
+---
+{{- end }}

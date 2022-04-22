@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd helm-chart
-          npm ci
+          cd HelmChart
+          npm install
           npm run audit
 

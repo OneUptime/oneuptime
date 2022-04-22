@@ -17,8 +17,6 @@ jobs:
       - run: sudo apt-get install -y curl gcc
       - run: sudo apt-get install -y build-essential
       - run: sudo apt-get install -y nodejs
-      - run: npm ci
+      - run: npm install
       - run: npm run lint
-      - run: chmod +x ./ci/scripts/cleanup.sh
-      - run: ./ci/scripts/cleanup.sh
 

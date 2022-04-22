@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd script-runner
-          npm ci
+          cd ScriptRunner
+          npm install
           npm run audit
 

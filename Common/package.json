@@ -1,0 +1,25 @@
+{
+  "name": "common",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "tsc"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^17.0.22"
+  },
+  "dependencies": {
+    "@types/nanoid-dictionary": "^4.2.0",
+    "@types/uuid": "^8.3.4",
+    "axios": "^0.26.1",
+    "moment": "^2.29.2",
+    "nanoid": "^3.3.2",
+    "nanoid-dictionary": "^4.3.0",
+    "slugify": "^1.6.5",
+    "uuid": "^8.3.2"
+  }
+}

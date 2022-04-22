@@ -1,0 +1,37 @@
+{
+    "name": "oneuptime-licensing",
+    "version": "3.0.0",
+    "private": true,
+    "type": "module",
+    "dependencies": {
+        "airtable": "^0.11.2",
+        "body-parser": "^1.19.2",
+        "chai": "^4.3.6",
+        "chai-http": "^4.3.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.0.0",
+        "depcheck": "^1.4.3",
+        "ejs": "^3.1.6",
+        "express": "^4.17.3",
+        "jsonwebtoken": "^8.5.1",
+        "mocha": "^9.2.2",
+        "moment": "^2.29.1",
+        "winston": "^3.6.0",
+        "CommonServer": "file:../CommonServer",
+        "common": "file:../common"
+    },
+    "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+        "start": "ts-node index.ts",
+        "compile": "tsc",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "test": "mocha --exit test/index.ts",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
+    },
+    "resolutions": {},
+    "devDependencies": {
+        "npm-force-resolutions": "0.0.10",
+        "ts-node-dev": "^1.1.8"
+    }
+}

@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd lighthouse-runner
-          npm ci
+          cd LighthouseRunner
+          npm install
           npm run audit
 

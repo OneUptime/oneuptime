@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd common-ui
-          npm ci
+          cd CommonUI
+          npm install
           npm run audit
 

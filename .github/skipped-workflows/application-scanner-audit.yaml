@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd application-scanner
-          npm ci
+          cd ApplicationScanner
+          npm install
           npm run audit
 

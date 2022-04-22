@@ -34,14 +34,14 @@ services:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
             - redis
             - haraka
-            - script-runner
+            - ScriptRunner
     accounts:
         ports:
             - '3003:3003'
@@ -71,37 +71,37 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         image: oneuptime/home:latest
-    status-page:
+    StatusPage:
         ports:
             - '3006:3006'
-        image: oneuptime/status-page:latest
+        image: oneuptime/StatusPage:latest
         env_file:
-            - ./status-page/.env
+            - ./StatusPage/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
             - accounts
             - dashboard
-    admin-dashboard:
+    AdminDashboard:
         ports:
             - '3100:3100'
-        image: oneuptime/admin-dashboard:latest
+        image: oneuptime/AdminDashboard:latest
         env_file:
-            - ./admin-dashboard/.env
+            - ./AdminDashboard/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
             - accounts
-    http-test-server:
+    HttpTestServer:
         ports:
             - '3010:3010'
         env_file:
-            - ./http-test-server/.env
+            - ./HttpTestServer/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        image: oneuptime/http-test-server:latest
+        image: oneuptime/HttpTestServer:latest
     licensing:
         ports:
             - '3004:3004'
@@ -119,12 +119,12 @@ services:
         environment:
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
-            - script-runner
+            - ScriptRunner
             - backend
             - realtime
     realtime:
@@ -136,12 +136,12 @@ services:
         environment:
             - CLUSTER_KEY=test
             - PORT=3300
-    probe-api:
+    ProbeAPI:
         ports:
             - '3400:3400'
-        image: oneuptime/probe-api:latest
+        image: oneuptime/ProbeAPI:latest
         env_file:
-            - ./probe-api/.env
+            - ./ProbeAPI/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
@@ -159,7 +159,7 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
             - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - PROBE_API_URL=http://probe-api:3400
+            - PROBE_API_URL=http://ProbeAPI:3400
         depends_on:
             - backend
             - data-ingestor
@@ -178,20 +178,20 @@ services:
         depends_on:
             - backend
             - data-ingestor
-    api-docs:
+    ApiDocs:
         ports:
             - '1445:1445'
-        image: oneuptime/api-docs:latest
+        image: oneuptime/ApiDocs:latest
         env_file:
-            - ./api-docs/.env
+            - ./ApiDocs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-    init-script:
-        image: oneuptime/init-script:latest
+    InitScript:
+        image: oneuptime/InitScript:latest
         ports:
             - '1447:1447'
         env_file:
-            - ./init-script/.env
+            - ./InitScript/.env
         environment:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
@@ -214,22 +214,22 @@ services:
             - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"
             - TLS_KEY="${TLS_KEY}"
-    script-runner:
+    ScriptRunner:
         ports:
             - '3009:3009'
-        image: oneuptime/script-runner:latest
+        image: oneuptime/ScriptRunner:latest
         env_file:
-            - ./script-runner/.env
+            - ./ScriptRunner/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
-    application-scanner:
+    ApplicationScanner:
         ports:
             - '3005:3005'
-        image: oneuptime/application-scanner:latest
+        image: oneuptime/ApplicationScanner:latest
         env_file:
-            - ./application-scanner/.env
+            - ./ApplicationScanner/.env
         environment:
             - PORT=3005
             - SERVER_URL=http://backend:3002
@@ -238,12 +238,12 @@ services:
         depends_on:
             - backend
             
-    container-scanner:
+    ContainerScanner:
         ports:
             - '3055:3055'
-        image: oneuptime/container-scanner:latest
+        image: oneuptime/ContainerScanner:latest
         env_file:
-            - ./container-scanner/.env
+            - ./ContainerScanner/.env
         environment:
             - PORT=3055
             - SERVER_URL=http://backend:3002
@@ -251,12 +251,12 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - backend
-    lighthouse-runner:
+    LighthouseRunner:
         ports:
             - '3015:3015'
-        image: oneuptime/lighthouse-runner:latest
+        image: oneuptime/LighthouseRunner:latest
         env_file:
-            - ./lighthouse-runner/.env
+            - ./LighthouseRunner/.env
         environment:
             - PORT=3015
             - SERVER_URL=http://backend:3002
@@ -272,7 +272,7 @@ services:
             - home
             - dashboard
             - accounts
-            - admin-dashboard
+            - AdminDashboard
         restart: always
         image: oneuptime/nginx:latest
         ports:

@@ -1,0 +1,50 @@
+{
+    "name": "oneuptime-InitScript",
+    "private": true,
+    "version": "3.0.0",
+    "main": "server.js",
+    "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+        "test": "jest --forceExit tests",
+        "start": "ts-node index.ts",
+        "compile": "tsc",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path'"
+    },
+    "type": "module",
+    "dependencies": {
+        "axios": "^0.26.1",
+        "bcrypt": "^5.0.1",
+        "body-parser": "^1.19.2",
+        "CommonServer": "file:../CommonServer",
+"Common": "file:../Common",
+        "cors": "^2.8.5",
+        "dotenv": "^16.0.0",
+        "express": "^4.17.3",
+        "moment": "^2.29.1",
+        "mongodb": "^4.4.1",
+        "nanoid": "^3.3.1",
+        "slugify": "^1.6.5",
+        "stripe": "^8.210.0",
+        "uuid": "^8.3.2"
+    },
+    "resolutions": {},
+    "devDependencies": {
+        "depcheck": "^1.4.3",
+        "jest": "^27.5.1",
+        "npm-force-resolutions": "0.0.10",
+        "ts-node-dev": "^1.1.8"
+    },
+    "jest": {
+        "collectCoverageFrom": [
+            "util",
+            "scripts/start.js",
+            "scripts/end.js",
+            "server.js"
+        ],
+        "testMatch": [
+            "<rootDir>/**/*.test.js"
+        ]
+    }
+}

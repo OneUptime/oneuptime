@@ -1,0 +1,23 @@
+{
+    "name": "oneuptime-le-store",
+    "version": "3.0.0",
+    "description": "Greenlock store module ported for OneUptime",
+    "main": "index.ts",
+    "keywords": [
+        "le-store",
+        "greenlock",
+        "letsencrypt",
+        "mongodb",
+        "mongo",
+        "oneuptime"
+    ],
+    "author": "HackerBay, Inc.  <hello@hackerbay.io>",
+    "contributors": [
+        "HackerBay, Inc.  <hello@hackerbay.io>"
+    ],
+    "license": "MIT",
+    "type": "module",
+    "dependencies": {
+        "axios": "^0.26.1"
+    }
+}

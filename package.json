@@ -2,41 +2,44 @@
     "name": "app",
     "version": "3.0.2",
     "description": "One Complete SRE and DevOps platform.",
-    "main": "index.js",
+    "main": "index.ts",
     "type": "module",
     "dependencies": {
         "eslint-plugin-progress": "^0.0.1"
     },
     "devDependencies": {
-        "@babel/core": "^7.10.2",
-        "@babel/plugin-proposal-class-properties": "^7.10.1",
-        "@babel/plugin-proposal-private-methods": "^7.10.1",
+        "@babel/core": "^7.17.8",
+        "@babel/plugin-proposal-class-properties": "^7.16.7",
+        "@babel/plugin-proposal-private-methods": "^7.16.11",
+        "@typescript-eslint/eslint-plugin": "^5.16.0",
+        "@typescript-eslint/parser": "^5.16.0",
         "babel-eslint": "^10.1.0",
         "ejs-lint": "^1.2.1",
-        "eslint": "^6.8.0",
-        "eslint-config-airbnb": "^18.2.1",
-        "eslint-config-prettier": "^6.10.0",
-        "eslint-plugin-import": "^2.22.1",
-        "eslint-plugin-jsx-a11y": "^6.4.1",
-        "eslint-plugin-prettier": "^3.1.2",
-        "eslint-plugin-react": "^7.21.5",
-        "eslint-plugin-react-hooks": "^4.2.0",
-        "husky": "^4.3.5",
-        "lint-staged": "^9.5.0",
-        "prettier": "^1.19.1"
+        "eslint": "^8.11.0",
+        "eslint-config-airbnb": "^19.0.4",
+        "eslint-config-prettier": "^8.5.0",
+        "eslint-plugin-import": "^2.25.4",
+        "eslint-plugin-jsx-a11y": "^6.5.1",
+        "eslint-plugin-prettier": "^4.0.0",
+        "eslint-plugin-react": "^7.29.4",
+        "eslint-plugin-react-hooks": "^4.3.0",
+        "eslint-plugin-unused-imports": "^2.0.0",
+        "husky": "^7.0.4",
+        "lint-staged": "^12.3.7",
+        "prettier": "^2.6.0"
     },
     "scripts": {
         "count-total-lines-of-code": "git grep ^ | wc -l",
         "uninstall": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)",
         "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D",
-        "lint": "ejslint home/views/*.ejs && eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore",
-        "fix-lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore --fix",
+        "lint": "ejslint home/views/*.ejs && eslint '**/*.ts' -c .eslintrc.json --ignore-path .eslintignore",
+        "fix-lint": "eslint '**/*.ts' -c .eslintrc.json --ignore-path .eslintignore --fix",
         "fix": "npm run fix-lint",
-        "build": "docker-compose build",
-        "build-dev": "docker-compose -f docker-compose.dev.yml build $npm_config_services",
+        "build": "docker-compose --env-file ./docker-enterprise.env build",
+        "build-dev": "docker-compose  --env-file ./docker-enterprise.env -f docker-compose.dev.yml build $npm_config_services",
         "ps-dev": "docker-compose -f docker-compose.dev.yml ps",
         "logs-dev": "docker-compose -f docker-compose.dev.yml logs --tail=100 -f $npm_config_services",
-        "force-build-dev": "docker-compose -f docker-compose.dev.yml build --no-cache $npm_config_services",
+        "force-build-dev": "docker-compose  --env-file ./docker-enterprise.env -f docker-compose.dev.yml build --no-cache $npm_config_services",
         "prod": "docker-compose up -d",
         "dev": "npm run start-enterprise-dev $npm_config_services",
         "saas-dev": "export IS_SAAS_SERVICE=true && npm run dev $npm_config_services",
@@ -49,8 +52,9 @@
         "docker-saas-test": "npm install && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up -d && cd tests && npm run-script saas-test",
         "ci-docker-enterprise": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up -d",
         "ci-docker-saas": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up -d",
-        "ci-docker-saas-init-script": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-saas-ci.env up -d init-script",
-        "ci-docker-enterprise-init-script": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-enterprise-ci.env up -d init-script"
+        "ci-docker-saas-InitScript": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build InitScript && docker compose --env-file=./docker-compose-saas-ci.env up -d InitScript",
+        "ci-docker-enterprise-InitScript": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build InitScript && docker compose --env-file=./docker-compose-enterprise-ci.env up -d InitScript",
+        "prepare": "husky install"
     },
     "repository": {
         "type": "git",
@@ -62,20 +66,5 @@
     "bugs": {
         "url": "https://gitlab.com/oneuptime/app/issues"
     },
-    "homepage": "https://gitlab.com/oneuptime/app#readme",
-    "husky": {
-        "hooks": {
-            "pre-commit": "lint-staged"
-        }
-    },
-    "lint-staged": {
-        "./**/*.{json,yml,yaml,md}": [
-            "prettier --write --config .prettierrc.json",
-            "git add"
-        ],
-        "./**/*.{js}": [
-            "eslint -c .eslintrc.json --ignore-path .eslintignore --fix",
-            "git add"
-        ]
-    }
+    "homepage": "https://gitlab.com/oneuptime/app#readme"
 }

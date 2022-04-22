@@ -1,0 +1,37 @@
+{
+    "name": "LighthouseRunner",
+    "version": "3.0.0",
+    "description": "Lighthouse Runner for Url Monitor",
+    "main": "index.ts",
+    "scripts": {
+        "start": "ts-node --max-http-header-size=80000 index.ts",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 --max-http-header-size=80000 index.ts",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true"
+    },
+    "author": "HackerBay, Inc.",
+    "license": "MIT",
+    "type": "module",
+    "dependencies": {
+        "axios": "^0.26.1",
+        "chrome-launcher": "^0.15.0",
+        "CommonServer": "file:../CommonServer",
+"Common": "file:../Common",
+        "cors": "^2.8.5",
+        "dotenv": "^16.0.0",
+        "express": "^4.17.3",
+        "get-ssl-certificate": "^2.3.3",
+        "lighthouse": "^9.5.0",
+        "moment": "^2.29.1",
+        "node-cron": "^3.0.0",
+        "node-fetch": "^3.2.3",
+        "ping": "^0.4.1",
+        "winston": "^3.6.0",
+        "winston-slack-transport": "^2.0.0"
+    },
+    "devDependencies": {
+        "depcheck": "^1.4.3",
+        "ts-node-dev": "^1.1.8"
+    }
+}

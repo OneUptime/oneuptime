@@ -1,0 +1,24 @@
+{
+    "name": "scripts",
+    "version": "1.0.0",
+    "description": "This package is for automating misc tasks",
+    "main": "generate_coupons.js",
+    "type": "commonjs",
+    "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "zx ./build/dist/index.js",
+        "compile": "tsc"
+    },
+    "resolutions": {},
+    "devDependencies": {
+        "npm-force-resolutions": "0.0.10"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "ts-node": "^10.7.0",
+        "typescript": "^4.6.3",
+        "zx": "^6.0.7"
+    }
+}

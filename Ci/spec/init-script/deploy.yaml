@@ -1,0 +1,66 @@
+# DEPLOYMENT STAGE - Init Script
+staging_InitScript:
+    stage: Deploy
+    retry: 2
+    allow_failure: true
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/install-helm.sh
+        - ./ci/scripts/install-helm.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build -t oneuptime/InitScript:staging ./InitScript
+        - sudo docker tag oneuptime/InitScript:staging oneuptime/InitScript:4.0.$CI_PIPELINE_ID
+        - sudo docker push oneuptime/InitScript:4.0.$CI_PIPELINE_ID
+        - sudo docker push oneuptime/InitScript:staging
+        ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a new job. .
+        - sudo kubectl delete job fi-InitScript || echo "Job not found"
+        - sudo helm upgrade --reuse-values fi ./HelmChart/public/oneuptime
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - hotfix-master
+    environment:
+        name: staging
+
+production_InitScript:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/install-helm.sh
+        - ./ci/scripts/install-helm.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build -t oneuptime/InitScript:latest ./InitScript
+        - sudo docker tag oneuptime/InitScript:latest oneuptime/InitScript:4.0.$CI_PIPELINE_ID
+        - sudo docker push oneuptime/InitScript:4.0.$CI_PIPELINE_ID
+        - sudo docker push oneuptime/InitScript:latest
+        ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a a new job. .
+        - sudo kubectl delete job fi-InitScript || echo "Job not found"
+        - sudo helm upgrade --reuse-values fi ./HelmChart/public/oneuptime
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - hotfix-release
+    environment:
+        name: production

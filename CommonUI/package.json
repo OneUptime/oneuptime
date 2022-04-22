@@ -1,0 +1,28 @@
+{
+    "name": "CommonUI",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.ts",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "compile": "tsc"
+    },
+    "author": "",
+    "license": "ISC",
+    "type": "module",
+    "dependencies": {
+        "@fortawesome/fontawesome-svg-core": "^6.1.0",
+        "@fortawesome/free-regular-svg-icons": "^6.1.0",
+        "@fortawesome/free-solid-svg-icons": "^6.1.0",
+        "@fortawesome/react-fontawesome": "^0.1.18",
+        "@types/react": "^17.0.43",
+        "Common": "file:../Common",
+        "prop-types": "^15.8.1",
+        "react": "^17.0.2",
+        "react-router": "^6.2.2",
+        "universal-cookie": "^4.0.4"
+    },
+    "devDependencies": {
+        "@types/node": "^17.0.23"
+    }
+}

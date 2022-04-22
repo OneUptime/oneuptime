@@ -3,18 +3,30 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": [  
+    "configurations": [
         {
             "name": "Node.js - Debug Current File",
             "type": "node",
             "request": "launch",
             "program": "${file}"
-          },   
+        },
         {
             "address": "0.0.0.0",
             "localRoot": "${workspaceFolder}/backend",
             "name": "Backend: Debug with Docker",
             "port": 9232,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/data-ingestor",
+            "name": "Data Ingestor: Debug with Docker",
+            "port": 9338,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [
@@ -36,7 +48,7 @@
         },
         {
             "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/probe-api",
+            "localRoot": "${workspaceFolder}/ProbeAPI",
             "name": "Probe API: Debug with Docker",
             "port": 9251,
             "remoteRoot": "/usr/src/app",
@@ -60,7 +72,7 @@
         },
         {
             "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/http-test-server",
+            "localRoot": "${workspaceFolder}/HttpTestServer",
             "name": "HTTP Test Server: Debug with Docker",
             "port": 9234,
             "remoteRoot": "/usr/src/app",
@@ -96,7 +108,7 @@
         },
         {
             "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/init-script",
+            "localRoot": "${workspaceFolder}/InitScript",
             "name": "Init Script: Debug with Docker",
             "port": 9237,
             "remoteRoot": "/usr/src/app",

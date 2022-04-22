@@ -1,7 +1,0 @@
-User-agent: *
-Disallow: /api/*
-Disallow: /status-page/*
-Disallow: /admin/*
-Disallow: /haraka/*
-Disallow: /dashboard/*
-Sitemap: https://oneuptime.com/sitemap.xml

@@ -1,0 +1,81 @@
+{
+    "name": "oneuptime",
+    "version": "3.0.0",
+    "description": "OneUptime is a JS package that tracks error event and send logs from your applications to your oneuptime dashboard.",
+    "main": "dist/oneuptime.js",
+    "unpkg": "dist/oneuptime.min.js",
+    "bin": {
+        "oneuptime": "./src/cli/oneuptime.js"
+    },
+    "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+        "build-dev": "npm run build && npm link",
+        "build-cli": "babel src/cli -d build --copy-files",
+        "build-sdk": "webpack --mode production",
+        "test": "mocha --require @babel/polyfill --require @babel/register \"test/**/*.test.js\" \"src/**/*.test.js\"",
+        "build": "npm run build-cli && npm run build-sdk",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='axios,webpack-cli,babel-loader,depcheck,mocha,webpack'"
+    },
+    "keywords": [
+        "oneuptime",
+        "logger",
+        "activities",
+        "logs",
+        "tracker"
+    ],
+    "author": "HackerBay, Inc.",
+    "license": "ISC",
+    "devDependencies": {
+        "@babel/cli": "^7.17.6",
+        "@babel/core": "^7.17.8",
+        "@babel/plugin-proposal-class-properties": "^7.16.7",
+        "@babel/plugin-proposal-private-methods": "^7.16.11",
+        "@babel/plugin-transform-runtime": "^7.17.0",
+        "@babel/preset-env": "^7.16.11",
+        "@babel/register": "^7.17.7",
+        "chai": "^4.3.6",
+        "chai-http": "^4.3.0",
+        "depcheck": "^1.4.3",
+        "jsdoc": "^3.6.10",
+        "mocha": "^9.2.2",
+        "npm-force-resolutions": "0.0.10",
+        "webpack": "^5.70.0",
+        "webpack-cli": "^4.9.2"
+    },
+    "resolutions": {},
+    "type": "module",
+    "dependencies": {
+        "@babel/polyfill": "^7.10.1",
+        "axios": "^0.26.1",
+        "babel-loader": "^8.2.3",
+        "commander": "^9.1.0",
+        "cron": "^1.8.2",
+        "dotenv": "^16.0.0",
+        "get-routes": "^2.1.5",
+        "inquirer": "^8.2.1",
+        "lru_map": "^0.4.1",
+        "node-cron": "^3.0.0",
+        "pino": "^7.9.1",
+        "pino-pretty": "^7.5.4",
+        "promise": "^8.1.0",
+        "semver": "^7.3.5",
+        "systeminformation": "^5.11.9",
+        "url-pattern": "^1.0.3",
+        "uuid": "^8.3.2"
+    },
+    "directories": {
+        "lib": "src",
+        "test": "test"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/OneUptime/JavaScriptSDK"
+    },
+    "optionalDependencies": {
+        "node-linux": "^0.1.12",
+        "node-mac": "^1.0.1",
+        "node-windows": "^1.0.0-beta.7",
+        "osx-temperature-sensor": "^1.0.7"
+    }
+}

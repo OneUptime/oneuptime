@@ -1,0 +1,51 @@
+{
+    "name": "oneuptime-homepage",
+    "version": "3.0.0",
+    "scripts": {
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+        "start": "ts-node index.ts",
+        "compile": "tsc",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "test": "echo 'no tests'",
+        "lighthouse-test": "jest --forceExit lighthouse-tests/test/index.test.js --env=node",
+        "lighthouse": "start-server-and-test http://localhost:1444",
+        "smoketest": "jest --forceExit smoketest/index.test.js --env=node",
+        "audit": "npm audit --audit-level=low",
+        "light-house": "node lighthouse.js --web",
+        "light-house-mobile": "node lighthouse.js --mobile",
+        "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,puppeteer'"
+    },
+    "type": "module",
+    "dependencies": {
+        "@types/body-parser": "^1.19.2",
+        "@types/cli-table": "^0.3.0",
+        "@types/compression": "^1.7.2",
+        "@types/minify": "^8.0.0",
+        "@types/try-to-catch": "^3.0.0",
+        "axios": "^0.26.1",
+        "body-parser": "^1.19.2",
+        "cli-table": "^0.3.11",
+        "CommonServer": "file:../CommonServer",
+        "Common": "file:../Common",
+        "compression": "^1.7.4",
+        "ejs": "^3.1.6",
+        "express": "^4.17.3",
+        "minify": "^8.0.4",
+        "try-to-catch": "^3.0.1",
+        "xmlbuilder2": "^3.0.2"
+    },
+    "resolutions": {},
+    "devDependencies": {
+        "@types/node": "^17.0.22",
+        "chrome-launcher": "^0.15.0",
+        "commander": "^9.1.0",
+        "depcheck": "^1.4.3",
+        "jest": "^27.5.1",
+        "lighthouse": "^9.5.0",
+        "npm-force-resolutions": "0.0.10",
+        "ora": "^6.1.0",
+        "puppeteer": "^13.5.1",
+        "start-server-and-test": "^1.14.0",
+        "ts-node-dev": "^1.1.8"
+    }
+}

@@ -1,0 +1,39 @@
+{
+    "name": "CommonServer",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.ts",
+    "scripts": {
+        "compile": "tsc",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "type": "module",
+    "dependencies": {
+        "@elastic/elasticsearch": "^8.1.0",
+        "@types/gridfs-stream": "^0.5.35",
+        "@types/json2csv": "^5.0.3",
+        "airtable": "^0.11.3",
+        "Common": "file:../Common",
+        "cors": "^2.8.5",
+        "dotenv": "^16.0.0",
+        "express": "^4.17.3",
+        "gridfs-stream": "^1.1.1",
+        "handlebars": "^4.7.7",
+        "jsonwebtoken": "^8.5.1",
+        "mongodb": "^4.4.1",
+        "mongoose": "^6.2.8",
+        "node-device-detector": "^2.0.0",
+        "nodemailer": "^6.7.3",
+        "nodemailer-express-handlebars": "^5.0.0",
+        "socket.io": "^4.4.1",
+        "winston": "^3.6.0"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.12",
+        "@types/express": "^4.17.13",
+        "@types/jsonwebtoken": "^8.5.8",
+        "@types/node": "^17.0.22"
+    }
+}
