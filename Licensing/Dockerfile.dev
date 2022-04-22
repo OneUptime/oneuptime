@@ -18,7 +18,7 @@ WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
-RUN npm compile
+RUN npm run compile
 
 #SET ENV Variables
 

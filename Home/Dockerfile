@@ -23,7 +23,7 @@ WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
 RUN npm install
 COPY ./Common /usr/src/Common
-RUN npm compile
+RUN npm run compile
 
 # Install CommonServer
 RUN mkdir /usr/src/CommonServer
@@ -31,7 +31,7 @@ WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
-RUN npm compile
+RUN npm run compile
 
 RUN mkdir /usr/src/app
 

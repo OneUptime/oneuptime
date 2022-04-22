@@ -19,7 +19,7 @@ WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
 RUN npm install
 COPY ./Common /usr/src/Common
-RUN npm compile
+RUN npm run compile
 
 # Install CommonServer
 RUN mkdir /usr/src/CommonServer
@@ -27,7 +27,7 @@ WORKDIR /usr/src/CommonServer
 COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
-RUN npm compile
+RUN npm run compile
 
 WORKDIR /usr/src/app
 
@@ -61,6 +61,6 @@ EXPOSE 3200
 EXPOSE 9229
 
 #Run the app
-RUN npm compile
+RUN npm run compile
 CMD [ "npm", "run", "dev"]
 
