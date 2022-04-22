@@ -54,12 +54,12 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
 
 
 # Install app dependencies
-COPY ./data-ingestor/package*.json /usr/src/app/
+COPY ./DataIngestor/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
 
 # Bundle app source
-COPY ./data-ingestor /usr/src/app
+COPY ./DataIngestor /usr/src/app
 
 # Expose ports.
 EXPOSE 3200
