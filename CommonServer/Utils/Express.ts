@@ -11,7 +11,7 @@ export const ExpressJson: Function = express.json;
 export const ExpressUrlEncoded: Function = express.urlencoded;
 
 export type ProbeRequest = {
-    id: String;
+    id: ObjectID;
 };
 
 export type ExpressRequest = express.Request;

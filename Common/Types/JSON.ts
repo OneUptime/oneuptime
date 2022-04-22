@@ -1,4 +1,5 @@
 import ObjectID from './ObjectID';
+import Version from './Version';
 
 export type JSONValue =
     | Array<string>
@@ -13,6 +14,7 @@ export type JSONValue =
     | Array<Date>
     | ObjectID
     | Array<ObjectID>
+    | Version
     | Buffer
     | null;
 

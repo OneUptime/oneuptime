@@ -48,7 +48,7 @@ const setDefaultHeaders: RequestHandler = (
         req.body = JSON.parse(req.body);
     }
     res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', req.headers['origin']);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header(
         'Access-Control-Allow-Headers',

@@ -1,4 +1,5 @@
 import OneUptimeDate from 'Common/Types/Date';
+import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import { Document } from '../Infrastructure/ORM';
 import Model, {
@@ -64,7 +65,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     public async getMonitorsNotPingedByProbeInLastMinute(
-        probeId: String,
+        probeId: ObjectID,
         limit: PositiveNumber
     ): Promise<Array<Document>> {
         let monitors: Array<Document> = [];

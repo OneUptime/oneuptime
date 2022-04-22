@@ -48,7 +48,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            const componentId: $TSFixMe = req.params.componentId;
+            const componentId: $TSFixMe = req.params['componentId'];
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -124,7 +124,7 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const componentId: $TSFixMe = req.params.componentId;
+            const componentId: $TSFixMe = req.params['componentId'];
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -183,7 +183,7 @@ router.post(
     isAuthorized,
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+        const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
         const select: $TSFixMe =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
         const populate: $TSFixMe = [
@@ -349,7 +349,7 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
             data.errorTrackerId = errorTrackerId;
 
             // Try to fetch the particular issue with the fingerprint of the error event and the error tracker id
@@ -417,7 +417,7 @@ router.post(
         try {
             const { skip, limit, startDate, endDate, filters }: $TSFixMe =
                 req.body;
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
             const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
             const populate: $TSFixMe = [
@@ -477,14 +477,14 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const errorEventId: $TSFixMe = req.params.errorEventId;
+            const errorEventId: $TSFixMe = req.params['errorEventId'];
             if (!errorEventId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Event ID is required',
                 });
             }
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
             const select: $TSFixMe =
                 'errorTrackerId issueId content type timeline tags sdk fingerprint fingerprintHash device createdAt';
             const populate: $TSFixMe = [
@@ -530,14 +530,14 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const issueId: $TSFixMe = req.params.issueId;
+            const issueId: $TSFixMe = req.params['issueId'];
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Event ID is required',
                 });
             }
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
 
             const populateIssue: $TSFixMe = [
                 { path: 'errorTrackerId', select: 'name' },
@@ -610,14 +610,14 @@ router.post(
                     message: 'Action is not allowed',
                 });
             }
-            const componentId: $TSFixMe = req.params.componentId;
+            const componentId: $TSFixMe = req.params['componentId'];
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -775,7 +775,7 @@ router.post(
                     message: 'Fingerprint Hash is required',
                 });
             }
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
             const select: $TSFixMe =
                 'componentId name slug key showQuickStart resourceCategory createdById createdAt';
             const populate: $TSFixMe = [
@@ -829,21 +829,21 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const componentId: $TSFixMe = req.params.componentId;
+            const componentId: $TSFixMe = req.params['componentId'];
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker ID is required',
                 });
             }
-            const issueId: $TSFixMe = req.params.issueId;
+            const issueId: $TSFixMe = req.params['issueId'];
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -928,22 +928,22 @@ router.post(
                 });
             }
 
-            const projectId: $TSFixMe = req.params.projectId;
-            const componentId: $TSFixMe = req.params.componentId;
+            const projectId: $TSFixMe = req.params['projectId'];
+            const componentId: $TSFixMe = req.params['componentId'];
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker ID is required',
                 });
             }
-            const issueId: $TSFixMe = req.params.issueId;
+            const issueId: $TSFixMe = req.params['issueId'];
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1078,22 +1078,22 @@ router.post(
                 });
             }
 
-            const projectId: $TSFixMe = req.params.projectId;
-            const componentId: $TSFixMe = req.params.componentId;
+            const projectId: $TSFixMe = req.params['projectId'];
+            const componentId: $TSFixMe = req.params['componentId'];
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker ID is required',
                 });
             }
-            const issueId: $TSFixMe = req.params.issueId;
+            const issueId: $TSFixMe = req.params['issueId'];
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1192,21 +1192,21 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const componentId: $TSFixMe = req.params.componentId;
+            const componentId: $TSFixMe = req.params['componentId'];
             if (!componentId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Component ID is required',
                 });
             }
-            const errorTrackerId: $TSFixMe = req.params.errorTrackerId;
+            const errorTrackerId: $TSFixMe = req.params['errorTrackerId'];
             if (!errorTrackerId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker ID is required',
                 });
             }
-            const issueId: $TSFixMe = req.params.issueId;
+            const issueId: $TSFixMe = req.params['issueId'];
             if (!issueId) {
                 return sendErrorResponse(req, res, {
                     code: 400,

@@ -253,7 +253,7 @@ import LighthouseLogModel from '../Models/lighthouseLog';
 import ObjectID from 'Common/Types/ObjectID';
 import MonitorService from './MonitorService.ts.temp';
 import RealTimeService from './realTimeService';
-import probeService from './ProbeService';
+import probeService from './ProbeService.ts.temp';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

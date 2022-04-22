@@ -21,7 +21,7 @@ export default {
                 : null || url.parse(req.url, true).query.userId;
 
             const projectId: $TSFixMe =
-                req.params.projectId ||
+                req.params['projectId'] ||
                 req.body.projectId ||
                 url.parse(req.url, true).query.projectId;
 

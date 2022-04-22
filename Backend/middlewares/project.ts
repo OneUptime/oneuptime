@@ -31,7 +31,7 @@ export default {
                 ? req.user.id
                 : null || url.parse(req.url, true).query.userId;
             const projectId: $TSFixMe =
-                req.params.projectId ||
+                req.params['projectId'] ||
                 req.body.projectId ||
                 url.parse(req.url, true).query.projectId;
             //Sanitize
@@ -151,7 +151,7 @@ export default {
             const project: $TSFixMe = await ProjectService.findOneBy({
                 query: {
                     'users.userId': userId,
-                    _id: req.params.projectId,
+                    _id: req.params['projectId'],
                 },
                 select: 'users',
             });
@@ -200,7 +200,7 @@ export default {
             const project: $TSFixMe = await ProjectService.findOneBy({
                 query: {
                     'users.userId': UserId,
-                    _id: req.params.projectId,
+                    _id: req.params['projectId'],
                 },
                 select: 'users',
             });
@@ -245,7 +245,7 @@ export default {
             const project: $TSFixMe = await ProjectService.findOneBy({
                 query: {
                     'users.userId': UserId,
-                    _id: req.params.projectId,
+                    _id: req.params['projectId'],
                 },
                 select: 'users',
             });

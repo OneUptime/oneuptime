@@ -22,16 +22,16 @@ export default {
             clusterKey: $TSFixMe,
             probeVersion: $TSFixMe;
 
-        if (req.params && req.params.probeKey) {
-            probeKey = req.params.probeKey;
-        } else if (req.query && req.query.probeKey) {
-            probeKey = req.query.probeKey;
+        if (req.params && req.params['probeKey']) {
+            probeKey = req.params['probeKey'];
+        } else if (req.query && req.query['probeKey']) {
+            probeKey = req.query['probeKey'];
         } else if (
             req.headers &&
-            (req.headers.probeKey || req.headers.probekey)
+            (req.headers['probeKey'] || req.headers['probekey'])
         ) {
             // Header keys are automatically transformed to lowercase
-            probeKey = req.headers.probeKey || req.headers.probekey;
+            probeKey = req.headers['probeKey'] || req.headers['probekey'];
         } else if (req.body && req.body.probeKey) {
             probeKey = req.body.probeKey;
         } else {
@@ -42,16 +42,16 @@ export default {
             );
         }
 
-        if (req.params && req.params.probeName) {
-            probeName = req.params.probeName;
-        } else if (req.query && req.query.probeName) {
-            probeName = req.query.probeName;
+        if (req.params && req.params['probeName']) {
+            probeName = req.params['probeName'];
+        } else if (req.query && req.query['probeName']) {
+            probeName = req.query['probeName'];
         } else if (
             req.headers &&
-            (req.headers.probeName || req.headers.probename)
+            (req.headers['probeName'] || req.headers['probename'])
         ) {
             // Header keys are automatically transformed to lowercase
-            probeName = req.headers.probeName || req.headers.probename;
+            probeName = req.headers['probeName'] || req.headers['probename'];
         } else if (req.body && req.body.probeName) {
             probeName = req.body.probeName;
         } else {
@@ -62,30 +62,31 @@ export default {
             );
         }
 
-        if (req.params && req.params.clusterKey) {
-            clusterKey = req.params.clusterKey;
-        } else if (req.query && req.query.clusterKey) {
-            clusterKey = req.query.clusterKey;
+        if (req.params && req.params['clusterKey']) {
+            clusterKey = req.params['clusterKey'];
+        } else if (req.query && req.query['clusterKey']) {
+            clusterKey = req.query['clusterKey'];
         } else if (
             req.headers &&
-            (req.headers.clusterkey || req.headers.clusterkey)
+            (req.headers['clusterkey'] || req.headers['clusterkey'])
         ) {
             // Header keys are automatically transformed to lowercase
-            clusterKey = req.headers.clusterkey || req.headers.clusterkey;
+            clusterKey = req.headers['clusterkey'] || req.headers['clusterkey'];
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
         }
 
-        if (req.params && req.params.probeVersion) {
-            probeVersion = req.params.probeVersion;
-        } else if (req.query && req.query.probeVersion) {
-            probeVersion = req.query.probeVersion;
+        if (req.params && req.params['probeVersion']) {
+            probeVersion = req.params['probeVersion'];
+        } else if (req.query && req.query['probeVersion']) {
+            probeVersion = req.query['probeVersion'];
         } else if (
             req.headers &&
-            (req.headers.probeversion || req.headers.probeVersion)
+            (req.headers['probeversion'] || req.headers['probeVersion'])
         ) {
             // Header keys are automatically transformed to lowercase
-            probeVersion = req.headers.probeversion || req.headers.probeVersion;
+            probeVersion =
+                req.headers['probeversion'] || req.headers['probeVersion'];
         } else if (req.body && req.body.probeVersion) {
             probeVersion = req.body.probeVersion;
         }

@@ -22,8 +22,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            data.projectId = req.params.projectId;
-            data.subscriberId = req.params.subscriberId;
+            data.projectId = req.params['projectId'];
+            data.subscriberId = req.params['subscriberId'];
 
             if (!data.incidentId) {
                 return sendErrorResponse(req, res, {
@@ -52,8 +52,8 @@ router.get(
     '/:projectId/:alertId/viewed',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const alertId: $TSFixMe = req.params.alertId;
-            const projectId: $TSFixMe = req.params.projectId;
+            const alertId: $TSFixMe = req.params['alertId'];
+            const projectId: $TSFixMe = req.params['projectId'];
 
             await SubscriberAlertService.updateOneBy(
                 { _id: alertId, projectId: projectId },
@@ -85,9 +85,9 @@ router.get(
  */
 router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const projectId: $TSFixMe = req.params.projectId;
-        const skip: $TSFixMe = req.query.skip || 0;
-        const limit: $TSFixMe = req.query.limit || 10;
+        const projectId: $TSFixMe = req.params['projectId'];
+        const skip: $TSFixMe = req.query['skip'] || 0;
+        const limit: $TSFixMe = req.query['limit'] || 10;
         const populate: $TSFixMe = [
             { path: 'incidentId', select: 'name' },
             { path: 'projectId', select: 'name' },
@@ -125,14 +125,14 @@ router.get(
     '/:projectId/incident/:incidentSlug',
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
-            const incidentSlug: $TSFixMe = req.params.incidentSlug;
+            const projectId: $TSFixMe = req.params['projectId'];
+            const incidentSlug: $TSFixMe = req.params['incidentSlug'];
             let incidentId: $TSFixMe = await IncidentService.findOneBy({
                 query: { slug: incidentSlug },
                 select: '_id',
             });
-            const skip: $TSFixMe = req.query.skip || 0;
-            const limit: $TSFixMe = req.query.limit || 10;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
 
             let subscriberAlerts: $TSFixMe = [],
                 count: $TSFixMe = 0;

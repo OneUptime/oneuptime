@@ -21,7 +21,7 @@ router.post(
     isUserAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const body: $TSFixMe = req.body;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
@@ -156,8 +156,8 @@ router.put(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const data: $TSFixMe = req.body;
-            const integrationId: $TSFixMe = req.params.integrationId;
-            data.projectId = req.params.projectId;
+            const integrationId: $TSFixMe = req.params['integrationId'];
+            data.projectId = req.params['projectId'];
 
             data.userId = req.user ? req.user.id : null;
             data._id = integrationId;
@@ -277,8 +277,8 @@ router.delete(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
-            const integrationId: $TSFixMe = req.params.integrationId;
+            const projectId: $TSFixMe = req.params['projectId'];
+            const integrationId: $TSFixMe = req.params['integrationId'];
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const data: $TSFixMe = await IntegrationService.deleteBy(
@@ -298,8 +298,8 @@ router.get(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
-            const integrationType: $TSFixMe = req.query.type || 'webhook';
+            const projectId: $TSFixMe = req.params['projectId'];
+            const integrationType: $TSFixMe = req.query['type'] || 'webhook';
             const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
             const populate: $TSFixMe = [
@@ -316,8 +316,8 @@ router.get(
                     projectId: projectId,
                     integrationType: integrationType,
                 },
-                skip: req.query.skip || 0,
-                limit: req.query.limit || 10,
+                skip: req.query['skip'] || 0,
+                limit: req.query['limit'] || 10,
                 select,
                 populate,
             });
@@ -339,7 +339,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             // Const projectId: $TSFixMe = req.params['projectId'];
-            const integrationType: $TSFixMe = req.query.type || 'webhook';
+            const integrationType: $TSFixMe = req.query['type'] || 'webhook';
             const select: $TSFixMe =
                 'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
             const populate: $TSFixMe = [
@@ -358,8 +358,8 @@ router.get(
                     'monitors.monitorId': { $in: [monitorId] },
                     integrationType: integrationType,
                 },
-                skip: req.query.skip || 0,
-                limit: req.query.limit || 10,
+                skip: req.query['skip'] || 0,
+                limit: req.query['limit'] || 10,
                 select,
                 populate,
             });
