@@ -44,8 +44,8 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
 RUN cd /usr/src/app
 
 # Copy package.json files
-COPY ./realtime/package.json /usr/src/app/package.json
-COPY ./realtime/package-lock.json /usr/src/app/package-lock.json
+COPY ./Realtime/package.json /usr/src/app/package.json
+COPY ./Realtime/package-lock.json /usr/src/app/package-lock.json
 
 
 RUN npm install

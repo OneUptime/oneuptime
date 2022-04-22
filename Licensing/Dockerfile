@@ -39,12 +39,12 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./licensing/package*.json /usr/src/app/
+COPY ./Licensing/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
 
 # Bundle app source
-COPY ./licensing /usr/src/app
+COPY ./Licensing /usr/src/app
 
 # Expose ports.
 #   - 3004: OneUptime-licensing

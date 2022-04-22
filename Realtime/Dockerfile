@@ -47,12 +47,12 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
   chown root: /usr/local/bin/kubectl
 
 # Install app dependencies
-COPY ./realtime/package*.json /usr/src/app/
+COPY ./Realtime/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
 
 # Bundle app source
-COPY ./realtime /usr/src/app
+COPY ./Realtime /usr/src/app
 
 # Expose ports.
 EXPOSE 3300

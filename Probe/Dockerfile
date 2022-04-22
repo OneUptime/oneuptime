@@ -54,7 +54,7 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
 
 
 # Install app dependencies
-COPY ./Porbe/package*.json /usr/src/app/
+COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
 
