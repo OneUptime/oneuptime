@@ -5,7 +5,7 @@ import Express, {
 } from 'CommonServer/utils/Express';
 const router: ExpressRouter = Express.getRouter();
 import ContainerSecurityService from '../services/containerSecurityService';
-import ContainerSecurityLogService from '../services//containerSecurityLogService';
+import ContainerSecurityLogService from '../services/containerSecurityLogService';
 const isAuthorizedContainerScanner: $TSFixMe =
     require('../middlewares/containerScannerAuthorization').isAuthorizedContainerScanner;
 import {

@@ -18,7 +18,7 @@ RUN apk upgrade --update && \
     g++ \
     gcc \
     make \
-    python2 && \
+    python3 && \
     addgroup -g 88 -S smtp && \
     adduser -u 88 -D -S -G smtp -h /data smtp && \
     # Install haraka and toobusy package

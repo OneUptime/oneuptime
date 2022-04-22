@@ -10,7 +10,7 @@ import UserService from '../Services/userService';
 import ProjectService from '../Services/projectService';
 import { sendErrorResponse } from 'CommonServer/Utils/Response';
 
-import apiMiddleware from '../middlewares/api';
+import apiMiddleware from './api';
 
 import { getPlanById } from '../config/plans';
 

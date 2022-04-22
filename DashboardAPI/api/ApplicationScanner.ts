@@ -4,7 +4,7 @@ import Express, {
     ExpressRouter,
 } from 'CommonServer/utils/Express';
 import ApplicationSecurityService from '../services/applicationSecurityService';
-import ApplicationSecurityLogService from '../services//applicationSecurityLogService';
+import ApplicationSecurityLogService from '../services/applicationSecurityLogService';
 const router: ExpressRouter = Express.getRouter();
 const isAuthorizedApplicationScanner: $TSFixMe =
     require('../middlewares/applicationScannerAuthorization').isAuthorizedApplicationScanner;

@@ -7,7 +7,7 @@ import {
     ExpressResponse,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import apiMiddleware from '../middlewares/api';
+import apiMiddleware from './api';
 
 export default {
     /*

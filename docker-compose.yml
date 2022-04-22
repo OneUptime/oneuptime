@@ -24,12 +24,12 @@ services:
             - '6379:6379'
         command: redis-server
         
-    backend:
+    dashboard-api:
         ports:
             - '3002:3002'
-        image: oneuptime/backend:latest
+        image: oneuptime/dashboard-api:latest
         env_file:
-            - ./backend/.env
+            - ./DashboardAPI/.env
         environment:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
@@ -47,27 +47,27 @@ services:
             - '3003:3003'
         image: oneuptime/accounts:latest
         env_file:
-            - ./accounts/.env
+            - ./Accounts/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
-            - backend
+            - dashboard-api
     dashboard:
         ports:
             - '3000:3000'
         image: oneuptime/dashboard:latest
         env_file:
-            - ./dashboard/.env
+            - ./Dashboard/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
-            - backend
+            - dashboard-api
             - accounts
     home:
         ports:
             - '1444:1444'
         env_file:
-            - ./home/.env
+            - ./Home/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         image: oneuptime/home:latest
@@ -80,7 +80,7 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
-            - backend
+            - dashboard-api
             - accounts
             - dashboard
     AdminDashboard:
@@ -92,7 +92,7 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
-            - backend
+            - dashboard-api
             - accounts
     HttpTestServer:
         ports:
@@ -115,9 +115,9 @@ services:
             - '3200:3200'
         image: oneuptime/data-ingestor:latest
         env_file:
-            - ./data-ingestor/.env
+            - ./DataIngestor/.env
         environment:
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
             - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
@@ -125,14 +125,14 @@ services:
         depends_on:
             - mongo
             - ScriptRunner
-            - backend
+            - dashboard-api
             - realtime
     realtime:
         ports:
             - '3300:3300'
         image: oneuptime/realtime:latest
         env_file:
-            - ./realtime/.env
+            - ./Realtime/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3300
@@ -150,10 +150,10 @@ services:
     probe1:
         image: oneuptime/probe:latest
         env_file:
-            - ./probe/.env
+            - ./Probe/.env
         environment:
             - PORT=3024
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - PROBE_NAME=Probe 1
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
@@ -161,22 +161,22 @@ services:
             - DATA_INGESTOR_URL=http://data-ingestor:3200
             - PROBE_API_URL=http://ProbeAPI:3400
         depends_on:
-            - backend
+            - dashboard-api
             - data-ingestor
     probe2:
         image: oneuptime/probe:latest
         env_file:
-            - ./probe/.env
+            - ./Probe/.env
         environment:
             - PORT=3025
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - PROBE_NAME=Probe 2
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
             - DATA_INGESTOR_URL=http://data-ingestor:3200
         depends_on:
-            - backend
+            - dashboard-api
             - data-ingestor
     ApiDocs:
         ports:
@@ -222,7 +222,7 @@ services:
             - ./ScriptRunner/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
     ApplicationScanner:
         ports:
@@ -232,11 +232,11 @@ services:
             - ./ApplicationScanner/.env
         environment:
             - PORT=3005
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
         depends_on:
-            - backend
+            - dashboard-api
             
     ContainerScanner:
         ports:
@@ -246,11 +246,11 @@ services:
             - ./ContainerScanner/.env
         environment:
             - PORT=3055
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
         depends_on:
-            - backend
+            - dashboard-api
     LighthouseRunner:
         ports:
             - '3015:3015'
@@ -259,16 +259,16 @@ services:
             - ./LighthouseRunner/.env
         environment:
             - PORT=3015
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
         depends_on:
-            - backend
+            - dashboard-api
             
     nginx:
         depends_on:
             - mongo
-            - backend
+            - dashboard-api
             - home
             - dashboard
             - accounts

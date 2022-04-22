@@ -52,7 +52,7 @@ services:
             context: .
             dockerfile: ./accounts/Dockerfile.dev
         env_file:
-            - ./accounts/.env
+            - ./Accounts/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         volumes:
@@ -70,9 +70,9 @@ services:
             context: .
             dockerfile: ./data-ingestor/Dockerfile.dev
         env_file:
-            - ./data-ingestor/.env
+            - ./DataIngestor/.env
         environment:
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
             - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
@@ -80,7 +80,7 @@ services:
         depends_on:
             - mongo
             - ScriptRunner
-            - backend
+            - dashboard-api
             - realtime
         volumes:
             - ./data-ingestor:/usr/src/app
@@ -97,7 +97,7 @@ services:
             context: .
             dockerfile: ./realtime/Dockerfile.dev
         env_file:
-            - ./realtime/.env
+            - ./Realtime/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3300
@@ -138,10 +138,10 @@ services:
             context: .
             dockerfile: ./probe/Dockerfile.dev
         env_file:
-            - ./probe/.env
+            - ./Probe/.env
         environment:
             - PORT=3008
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - DATA_INGESTOR_URL=http://data-ingestor:3200
             - PROBE_NAME=Probe 1
             - PROBE_KEY=test-key
@@ -209,7 +209,7 @@ services:
             - ./ScriptRunner/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
         volumes:
             - ./ScriptRunner:/usr/src/app
@@ -217,16 +217,16 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
 
-    backend:
+    dashboard-api:
         ports:
             - '3002:3002' # Service Port.
             - '9232:9229' # Debugging port.
         build:
             network: host
             context: .
-            dockerfile: ./backend/Dockerfile.dev
+            dockerfile: ./dashboard-api/Dockerfile.dev
         env_file:
-            - ./backend/.env
+            - ./DashboardAPI/.env
         environment:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
@@ -239,7 +239,7 @@ services:
             - mongo
             - redis
         volumes:
-            - ./backend:/usr/src/app
+            - ./dashboard-api:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -255,7 +255,7 @@ services:
             context: .
             dockerfile: ./dashboard/Dockerfile.dev
         env_file:
-            - ./dashboard/.env
+            - ./Dashboard/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         volumes:
@@ -269,7 +269,7 @@ services:
             - '1444:1444'
             - '9235:9229' # Debugging port.
         env_file:
-            - ./home/.env
+            - ./Home/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
@@ -363,7 +363,7 @@ services:
             - ./ApplicationScanner/.env
         environment:
             - PORT=3005
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - APPLICATION_SCANNER_NAME=US
             - APPPLICATION_SCANNER_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
@@ -385,7 +385,7 @@ services:
             - ./ContainerScanner/.env
         environment:
             - PORT=3055
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - CONTAINER_SCANNER_NAME=US
             - CONTAINER_SCANNER_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
@@ -407,7 +407,7 @@ services:
             - ./LighthouseRunner/.env
         environment:
             - PORT=3015
-            - SERVER_URL=http://backend:3002
+            - SERVER_URL=http://dashboard-api:3002
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
         volumes:
@@ -418,7 +418,7 @@ services:
     nginx:
         depends_on:
             - mongo
-            - backend
+            - dashboard-api
             - home
             - dashboard
             - accounts
