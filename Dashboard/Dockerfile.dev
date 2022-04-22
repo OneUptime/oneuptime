@@ -56,8 +56,8 @@ ENV NODE_OPTIONS=--openssl-legacy-provider
 WORKDIR /usr/src/app
 
 # Copy package.json files
-COPY ./dashboard/package.json /usr/src/app/package.json
-COPY ./dashboard/package-lock.json /usr/src/app/package-lock.json
+COPY ./Dashboard/package.json /usr/src/app/package.json
+COPY ./Dashboard/package-lock.json /usr/src/app/package-lock.json
 
 
 # Install app dependencies

@@ -57,12 +57,12 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./dashboard/package*.json /usr/src/app/
+COPY ./Dashboard/package*.json /usr/src/app/
 RUN npm install  
 RUN npm install -g ts-node
 
 # Copy app source
-COPY ./dashboard /usr/src/app
+COPY ./Dashboard /usr/src/app
 
 # Install purgecss to make CSS files smaller. 
 RUN npm install purgecss -g
