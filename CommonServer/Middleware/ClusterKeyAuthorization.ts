@@ -7,6 +7,7 @@ import {
 
 import { sendErrorResponse } from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class ClusterKeyAuthorization {
     public static async isAuthorizedService(
@@ -14,22 +15,17 @@ export default class ClusterKeyAuthorization {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-        let clusterKey: string;
+        let clusterKey: ObjectID;
 
-        if (req.params && req.params.clusterKey) {
-            clusterKey = req.params.clusterKey;
-        } else if (req.query && req.query.clusterKey) {
-            clusterKey = req.query.clusterKey as string;
-        } else if (
-            req.headers &&
-            (req.headers.clusterkey || req.headers.clusterkey)
-        ) {
+        if (req.params && req.params['clusterKey']) {
+            clusterKey = new ObjectID(req.params['clusterKey']);
+        } else if (req.query && req.query['clusterKey']) {
+            clusterKey = new ObjectID(req.query['clusterKey'] as string);
+        } else if (req.headers && req.headers['clusterkey']) {
             // Header keys are automatically transformed to lowercase
-            clusterKey =
-                (req.headers.clusterkey as string) ||
-                (req.headers.clusterkey as string);
+            clusterKey = new ObjectID(req.headers['clusterkey'] as string);
         } else if (req.body && req.body.clusterKey) {
-            clusterKey = req.body.clusterKey;
+            clusterKey = new ObjectID(req.body.clusterKey);
         } else {
             return sendErrorResponse(
                 req,

@@ -148,7 +148,7 @@ router.post(
                 statusText: resp.statusText,
             };
 
-            data.monitorId = req.params.monitorId || monitor._id;
+            data.monitorId = req.params['monitorId'] || monitor._id;
 
             data.reason =
                 data && data.reason && data.reason.length

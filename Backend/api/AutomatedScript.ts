@@ -107,7 +107,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            data.projectId = req.params.projectId;
+            data.projectId = req.params['projectId'];
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -174,9 +174,9 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const automatedScriptId: $TSFixMe = req.params.automatedScriptId;
+            const automatedScriptId: $TSFixMe = req.params['automatedScriptId'];
             const data: $TSFixMe = req.body;
-            data.projectId = req.params.projectId;
+            data.projectId = req.params['projectId'];
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,

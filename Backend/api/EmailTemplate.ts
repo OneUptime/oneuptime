@@ -29,7 +29,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            data.projectId = req.params.projectId;
+            data.projectId = req.params['projectId'];
             if (!data.subject) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -69,8 +69,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
-            const templateId: $TSFixMe = req.params.templateId;
+            const projectId: $TSFixMe = req.params['projectId'];
+            const templateId: $TSFixMe = req.params['templateId'];
             await EmailTemplateService.resetTemplate(projectId, templateId);
             const templates: $TSFixMe = await EmailTemplateService.getTemplates(
                 projectId
@@ -88,7 +88,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const templates: $TSFixMe = await EmailTemplateService.getTemplates(
                 projectId
             );
@@ -105,7 +105,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const emailTemplateId: $TSFixMe = req.params.emailTemplateId;
+            const emailTemplateId: $TSFixMe = req.params['emailTemplateId'];
             const select: string =
                 'projectId subject body emailType allowedVariables';
             const emailTemplates: $TSFixMe =
@@ -128,7 +128,7 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            const Id: $TSFixMe = req.params.emailTemplateId;
+            const Id: $TSFixMe = req.params['emailTemplateId'];
             // Call the EmailTemplateService
             const emailTemplate: $TSFixMe =
                 await EmailTemplateService.updateOneBy({ _id: Id }, data);
@@ -209,7 +209,7 @@ router.delete(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const emailTemplateId: $TSFixMe = req.params.emailTemplateId;
+            const emailTemplateId: $TSFixMe = req.params['emailTemplateId'];
 
             const userId: $TSFixMe = req.user.id;
             const emailTemplate: $TSFixMe = await EmailTemplateService.deleteBy(

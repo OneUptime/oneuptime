@@ -7,14 +7,16 @@ import mongoose, {
 
 const schema: Schema = new Schema({
     createdAt: { type: Date, default: Date.now },
-    probeKey: { type: String },
-    probeName: { type: String },
+    key: { type: String },
+    name: { type: String },
+    slug: { type: String },
     version: { type: String },
     lastAlive: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
-    probeImage: { type: String },
+    icon: { type: String },
 });
+
 export const requiredFields: RequiredFields = schema.requiredPaths();
 
 export const uniqueFields: UniqueFields = [];

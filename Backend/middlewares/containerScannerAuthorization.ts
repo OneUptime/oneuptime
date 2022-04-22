@@ -18,12 +18,12 @@ export default {
             clusterKey: $TSFixMe,
             containerScannerVersion: $TSFixMe;
 
-        if (req.params && req.params.containerscannerkey) {
-            containerScannerKey = req.params.containerscannerkey;
-        } else if (req.query && req.query.containerScannerKey) {
-            containerScannerKey = req.query.containerscannerkey;
-        } else if (req.headers && req.headers.containerscannerkey) {
-            containerScannerKey = req.headers.containerscannerkey;
+        if (req.params && req.params['containerscannerkey']) {
+            containerScannerKey = req.params['containerscannerkey'];
+        } else if (req.query && req.query['containerScannerKey']) {
+            containerScannerKey = req.query['containerscannerkey'];
+        } else if (req.headers && req.headers['containerscannerkey']) {
+            containerScannerKey = req.headers['containerscannerkey'];
         } else if (req.body && req.body.containerScannerKey) {
             containerScannerKey = req.body.containerScannerKey;
         } else {
@@ -34,12 +34,12 @@ export default {
             );
         }
 
-        if (req.params && req.params.containerscannername) {
-            containerScannerName = req.params.containerscannername;
-        } else if (req.query && req.query.containerscannername) {
-            containerScannerName = req.query.containerscannername;
-        } else if (req.headers && req.headers.containerscannername) {
-            containerScannerName = req.headers.containerscannername;
+        if (req.params && req.params['containerscannername']) {
+            containerScannerName = req.params['containerscannername'];
+        } else if (req.query && req.query['containerscannername']) {
+            containerScannerName = req.query['containerscannername'];
+        } else if (req.headers && req.headers['containerscannername']) {
+            containerScannerName = req.headers['containerscannername'];
         } else if (req.body && req.body.containerscannerName) {
             containerScannerName = req.body.containerscannername;
         } else {
@@ -50,25 +50,25 @@ export default {
             );
         }
 
-        if (req.params && req.params.clusterKey) {
-            clusterKey = req.params.clusterKey;
-        } else if (req.query && req.query.clusterKey) {
-            clusterKey = req.query.clusterKey;
+        if (req.params && req.params['clusterKey']) {
+            clusterKey = req.params['clusterKey'];
+        } else if (req.query && req.query['clusterKey']) {
+            clusterKey = req.query['clusterKey'];
         } else if (
             req.headers &&
-            (req.headers.clusterkey || req.headers.clusterkey)
+            (req.headers['clusterkey'] || req.headers['clusterkey'])
         ) {
-            clusterKey = req.headers.clusterkey || req.headers.clusterkey;
+            clusterKey = req.headers['clusterkey'] || req.headers['clusterkey'];
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
         }
 
-        if (req.params && req.params.containerscannerversion) {
-            containerScannerVersion = req.params.containerscannerversion;
-        } else if (req.query && req.query.containerscannerversion) {
-            containerScannerVersion = req.query.containerscannerversion;
-        } else if (req.headers && req.headers.containerscannerversion) {
-            containerScannerVersion = req.headers.containerscannerversion;
+        if (req.params && req.params['containerscannerversion']) {
+            containerScannerVersion = req.params['containerscannerversion'];
+        } else if (req.query && req.query['containerscannerversion']) {
+            containerScannerVersion = req.query['containerscannerversion'];
+        } else if (req.headers && req.headers['containerscannerversion']) {
+            containerScannerVersion = req.headers['containerscannerversion'];
         } else if (req.body && req.body.containerscannerversion) {
             containerScannerVersion = req.body.containerscannerversion;
         }

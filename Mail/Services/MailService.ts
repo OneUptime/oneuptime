@@ -137,8 +137,11 @@ export default class MailService {
         // Localcache templates, so we dont read from disk all the time.
 
         let templateData: string;
-        if (LocalCache.hasValue(emailTemplateType)) {
-            templateData = LocalCache.get(emailTemplateType);
+        if (LocalCache.hasValue('email-templates', emailTemplateType)) {
+            templateData = LocalCache.get(
+                'email-templates',
+                emailTemplateType
+            ) as string;
         } else {
             templateData = await fsp.readFile(
                 Path.resolve(
@@ -148,7 +151,11 @@ export default class MailService {
                 ),
                 { encoding: 'utf8', flag: 'r' }
             );
-            LocalCache.set(emailTemplateType, templateData);
+            LocalCache.set(
+                'email-templates',
+                emailTemplateType,
+                templateData as string
+            );
         }
 
         const emailBody: Handlebars.TemplateDelegate =

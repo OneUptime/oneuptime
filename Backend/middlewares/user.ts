@@ -43,7 +43,7 @@ const _this: $TSFixMe = {
         }
 
         const accessToken: $TSFixMe =
-            req.headers.authorization ||
+            req.headers['authorization'] ||
             url.parse(req.url, true).query.accessToken;
 
         if (!accessToken) {
@@ -118,7 +118,7 @@ const _this: $TSFixMe = {
         next: NextFunction
     ) {
         const accessToken: $TSFixMe =
-            req.headers.authorization ||
+            req.headers['authorization'] ||
             url.parse(req.url, true).query.accessToken;
 
         if (!accessToken) {
@@ -157,7 +157,7 @@ const _this: $TSFixMe = {
         next: NextFunction
     ) {
         const accessToken: $TSFixMe =
-            req.headers.authorization ||
+            req.headers['authorization'] ||
             url.parse(req.url, true).query.accessToken;
         if (!accessToken) {
             req.user = null;
@@ -187,7 +187,7 @@ const _this: $TSFixMe = {
                     ? req.user.id
                     : null || url.parse(req.url, true).query.userId;
                 const projectId: $TSFixMe =
-                    req.params.projectId ||
+                    req.params['projectId'] ||
                     req.body.projectId ||
                     url.parse(req.url, true).query.projectId;
                 if (!projectId) {

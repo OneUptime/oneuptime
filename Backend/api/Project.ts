@@ -294,8 +294,8 @@ router.get(
             const [response, count]: $TSFixMe = await Promise.all([
                 ProjectService.findBy({
                     query,
-                    limit: req.query.limit || 10,
-                    skip: req.query.skip || 0,
+                    limit: req.query['limit'] || 10,
+                    skip: req.query['skip'] || 0,
                     populate,
                     select,
                 }),
@@ -320,7 +320,7 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             if (!projectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -349,7 +349,7 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -380,7 +380,7 @@ router.put(
     isUserAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const projectName: $TSFixMe = req.body.projectName;
 
             if (!projectId) {
@@ -419,7 +419,7 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             if (!projectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -448,7 +448,7 @@ router.put(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
 
@@ -548,7 +548,7 @@ router.delete(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
 
             const userId: $TSFixMe = req.user.id;
             const feedback: $TSFixMe = req.body.feedback;
@@ -612,7 +612,7 @@ router.delete(
     ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             if (!projectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -661,7 +661,7 @@ router.post(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const projectName: $TSFixMe = req.body.projectName;
             const planId: $TSFixMe = req.body.planId;
 
@@ -732,7 +732,7 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const projectName: $TSFixMe = req.body.projectName;
             const planId: $TSFixMe = req.body.planId;
 
@@ -824,7 +824,7 @@ router.post(
     isUserOwner,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const projectName: $TSFixMe = req.body.projectName;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
@@ -889,7 +889,7 @@ router.delete(
         // Call the ProjectService
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
 
             const teamMember: $TSFixMe = await ProjectService.exitProject(
                 projectId,
@@ -915,7 +915,7 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            const parentProjectId: $TSFixMe = req.params.projectId;
+            const parentProjectId: $TSFixMe = req.params['projectId'];
             const subProjectName: $TSFixMe =
                 req.body && req.body.subProjectName
                     ? req.body.subProjectName
@@ -975,8 +975,8 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const parentProjectId: $TSFixMe = req.params.projectId;
-            const subProjectId: $TSFixMe = req.params.subProjectId;
+            const parentProjectId: $TSFixMe = req.params['projectId'];
+            const subProjectId: $TSFixMe = req.params['subProjectId'];
 
             const userId: $TSFixMe = req.user.id;
 
@@ -1010,11 +1010,11 @@ router.get(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         // Call the ProjectService
         try {
-            const parentProjectId: $TSFixMe = req.params.projectId;
+            const parentProjectId: $TSFixMe = req.params['projectId'];
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            const skip: $TSFixMe = req.query.skip || 0;
-            const limit: $TSFixMe = req.query.limit || 10;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
             const populate: $TSFixMe = [
                 { path: 'parentProjectId', select: 'name' },
             ];
@@ -1046,9 +1046,9 @@ router.get(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const userId: $TSFixMe = req.params.userId;
-            const skip: $TSFixMe = req.query.skip || 0;
-            const limit: $TSFixMe = req.query.limit || 10;
+            const userId: $TSFixMe = req.params['userId'];
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
             const { projects, count }: $TSFixMe =
                 await ProjectService.getUserProjects(userId, skip, limit);
             return sendListResponse(req, res, projects, count);
@@ -1064,8 +1064,8 @@ router.get(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const skip: $TSFixMe = req.query.skip || 0;
-            const limit: $TSFixMe = req.query.limit || 10;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
             const [projects, count]: $TSFixMe = await Promise.all([
                 ProjectService.getAllProjects(skip, limit),
                 ProjectService.countBy({
@@ -1086,7 +1086,7 @@ router.get(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const slug: $TSFixMe = req.params.slug;
+            const slug: $TSFixMe = req.params['slug'];
             const populate: $TSFixMe = [
                 { path: 'parentProjectId', select: 'name' },
             ];
@@ -1135,7 +1135,7 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const project: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 { isBlocked: true }
@@ -1153,7 +1153,7 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             let limit: $TSFixMe = req.body.alertLimit;
             if (!limit) {
                 return sendErrorResponse(req, res, {
@@ -1187,7 +1187,7 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const project: $TSFixMe = await ProjectService.updateOneBy(
                 { _id: projectId },
                 { isBlocked: false }
@@ -1205,7 +1205,7 @@ router.put(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const project: $TSFixMe = await ProjectService.restoreBy({
                 _id: projectId,
                 deleted: true,
@@ -1224,8 +1224,8 @@ router.put(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const parentProjectId: $TSFixMe = req.params.projectId;
-            const subProjectId: $TSFixMe = req.params.subProjectId;
+            const parentProjectId: $TSFixMe = req.params['projectId'];
+            const subProjectId: $TSFixMe = req.params['subProjectId'];
             const subProjectName: $TSFixMe =
                 req.body && req.body.subProjectName
                     ? req.body.subProjectName
@@ -1271,7 +1271,7 @@ router.post(
     isUserMasterAdmin,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             if (Array.isArray(req.body)) {
                 const data: $TSFixMe = [];
                 if (req.body.length > 0) {
@@ -1325,8 +1325,8 @@ router.post(
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
             const filter: $TSFixMe = req.body.filter;
-            const skip: $TSFixMe = req.query.skip || 0;
-            const limit: $TSFixMe = req.query.limit || 10;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 10;
             const [users, count]: $TSFixMe = await Promise.all([
                 ProjectService.searchProjects(
                     {

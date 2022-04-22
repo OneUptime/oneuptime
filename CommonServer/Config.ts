@@ -1,4 +1,5 @@
 import Protocol from 'Common/Types/API/Protocol';
+import ObjectID from 'Common/Types/ObjectID';
 
 export const DatabaseUrl: string =
     process.env.MONGO_URL || 'mongodb://localhost:27017/oneuptimedb';
@@ -15,7 +16,9 @@ export const AirtableApiKey: string = process.env.AIRTABLE_API_KEY || '';
 
 export const AirtableBaseId: string = process.env.AIRTABLE_BASE_ID || '';
 
-export const ClusterKey: string = process.env.CLUSTER_KEY || '';
+export const ClusterKey: ObjectID = new ObjectID(
+    process.env['CLUSTER_KEY'] || ''
+);
 
 export const RealtimeHostname: string = process.env.REALTIME_HOSTNAME || '';
 

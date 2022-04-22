@@ -24,16 +24,16 @@ export default {
         //Get project id
         let projectId: $TSFixMe, apiKey: $TSFixMe;
 
-        if (req.params && req.params.projectId) {
-            projectId = req.params.projectId;
-        } else if (req.query && req.query.projectId) {
-            projectId = req.query.projectId;
+        if (req.params && req.params['projectId']) {
+            projectId = req.params['projectId'];
+        } else if (req.query && req.query['projectId']) {
+            projectId = req.query['projectId'];
         } else if (
             req.headers &&
-            (req.headers.projectId || req.headers.projectid)
+            (req.headers['projectId'] || req.headers['projectid'])
         ) {
             // Header keys are automatically transformed to lowercase
-            projectId = req.headers.projectId;
+            projectId = req.headers['projectId'];
         } else if (req.body && req.body.projectId) {
             projectId = req.body.projectId;
         } else {
@@ -46,10 +46,13 @@ export default {
             return false;
         }
 
-        if (req.query && req.query.apiKey) {
-            apiKey = req.query.apiKey;
-        } else if (req.headers && (req.headers.apikey || req.headers.apiKey)) {
-            apiKey = req.headers.apikey || req.headers.apiKey;
+        if (req.query && req.query['apiKey']) {
+            apiKey = req.query['apiKey'];
+        } else if (
+            req.headers &&
+            (req.headers['apikey'] || req.headers['apiKey'])
+        ) {
+            apiKey = req.headers['apikey'] || req.headers['apiKey'];
         } else if (req.body && req.body.apiKey) {
             apiKey = req.body.apiKey;
         } else {
@@ -96,9 +99,12 @@ export default {
         return true;
     },
     hasAPIKey: function (req: $TSFixMe): void {
-        if (req.query && req.query.apiKey) {
+        if (req.query && req.query['apiKey']) {
             return true;
-        } else if (req.headers && (req.headers.apiKey || req.headers.apikey)) {
+        } else if (
+            req.headers &&
+            (req.headers['apiKey'] || req.headers['apikey'])
+        ) {
             return true;
         } else if (req.body && req.body.apiKey) {
             return true;
@@ -111,16 +117,16 @@ export default {
         // Get Project Id, If Available
         let projectId: $TSFixMe;
 
-        if (req.params && req.params.projectId) {
-            projectId = req.params.projectId;
-        } else if (req.query && req.query.projectId) {
-            projectId = req.query.projectId;
+        if (req.params && req.params['projectId']) {
+            projectId = req.params['projectId'];
+        } else if (req.query && req.query['projectId']) {
+            projectId = req.query['projectId'];
         } else if (
             req.headers &&
-            (req.headers.projectId || req.headers.projectid)
+            (req.headers['projectId'] || req.headers['projectid'])
         ) {
             // Header keys are automatically transformed to lowercase
-            projectId = req.headers.projectId || req.headers.projectid;
+            projectId = req.headers['projectId'] || req.headers['projectid'];
         } else if (req.body && req.body.projectId) {
             projectId = req.body.projectId;
         } else {
@@ -167,7 +173,7 @@ export default {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        const id: $TSFixMe = req.params.id;
+        const id: $TSFixMe = req.params['id'];
         let monitor: $TSFixMe = await MonitorService.findBy({
             query: {
                 type: 'incomingHttpRequest',

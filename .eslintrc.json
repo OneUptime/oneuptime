@@ -7,7 +7,9 @@
             "spread": true
         },
         "sourceType": "module",
-        "project": ["./tsconfig.json"]
+        "project": [
+            "./tsconfig.json"
+        ]
     },
     "env": {
         "browser": true,
@@ -17,7 +19,6 @@
         "jest": true
     },
     "plugins": [
-
         "react",
         "jsx-a11y",
         "progress",
@@ -31,16 +32,16 @@
         "prettier"
     ],
     "globals": {
-        "describe" :true,
-        "context" :true,
-        "before" :true,
-        "beforeEach" :true,
-        "after" :true,
-        "afterEach" :true,
-        "it" :true,
-        "expect" :true,
-        "workbox" :true,
-        "importScripts" :true,
+        "describe": true,
+        "context": true,
+        "before": true,
+        "beforeEach": true,
+        "after": true,
+        "afterEach": true,
+        "it": true,
+        "expect": true,
+        "workbox": true,
+        "importScripts": true,
         "$TSFixMe": true
     },
     "parser": "@typescript-eslint/parser",
@@ -67,25 +68,29 @@
         "no-lonely-if": "error",
         "no-floating-decimal": "error",
         "eqeqeq": "error",
-
         "dot-notation": "off", // Off because it messes up with typescript compiler.
-        "@typescript-eslint/dot-notation": "error", 
-        
+        "@typescript-eslint/dot-notation": "off", //temp off.
         "progress/activate": 1,
         "linebreak-style": [
             "error",
             "unix"
         ],
-
         // https://www.npmjs.com/package/eslint-plugin-unused-imports
         "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": "off",
         "unused-imports/no-unused-imports": "error",
-		"unused-imports/no-unused-vars": [
-			"error",
-			{ "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
-		],
-        "@typescript-eslint/explicit-member-accessibility": ["error"],
+        "unused-imports/no-unused-vars": [
+            "error",
+            {
+                "vars": "all",
+                "varsIgnorePattern": "^_",
+                "args": "after-used",
+                "argsIgnorePattern": "^_"
+            }
+        ],
+        "@typescript-eslint/explicit-member-accessibility": [
+            "error"
+        ],
         "no-console": "error",
         "no-undef": "error",
         "no-empty": "error",
@@ -111,20 +116,24 @@
         "react/no-find-dom-node": "error",
         "one-var-declaration-per-line": "error",
         "arrow-parens": "error",
-        "arrow-body-style": ["error", "always"],
+        "arrow-body-style": [
+            "error",
+            "always"
+        ],
         "@typescript-eslint/typedef": [
             "error",
             {
-              "arrowParameter": true,
-              "variableDeclaration": true
+                "arrowParameter": true,
+                "variableDeclaration": true
             }
-          ],
+        ],
+        "@typescript-eslint/strict-boolean-expressions": "off", //Need to enable this very soon
         "@typescript-eslint/explicit-function-return-type": [
             "error",
             {
-              "allowExpressions": true
+                "allowExpressions": true
             }
-          ],
+        ],
         "react/no-did-update-set-state": "error",
         "react/no-unknown-property": "error",
         "react/no-unused-prop-types": "error",

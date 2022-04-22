@@ -29,7 +29,7 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
+            const projectId: $TSFixMe = req.params['projectId'];
             const data: $TSFixMe = req.body;
 
             data.createdById = req.user ? req.user.id : null;
@@ -618,8 +618,8 @@ router.get(
     checkUserBelongToProject,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const projectId: $TSFixMe = req.params.projectId;
-            const monitorId: $TSFixMe = req.params.monitorId;
+            const projectId: $TSFixMe = req.params['projectId'];
+            const monitorId: $TSFixMe = req.params['monitorId'];
 
             const { limit, skip }: $TSFixMe = req.query;
 

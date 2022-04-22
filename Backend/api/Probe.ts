@@ -44,8 +44,8 @@ router.get(
     isAuthorizedAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const skip: $TSFixMe = req.query.skip || 0;
-            const limit: $TSFixMe = req.query.limit || 0;
+            const skip: $TSFixMe = req.query['skip'] || 0;
+            const limit: $TSFixMe = req.query['limit'] || 0;
             const selectProbe: $TSFixMe =
                 'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
             const [probe, count]: $TSFixMe = await Promise.all([
@@ -72,7 +72,7 @@ router.put(
         try {
             const data: $TSFixMe = req.body;
             const probe: $TSFixMe = await ProbeService.updateOneBy(
-                { _id: req.params.id },
+                { _id: req.params['id'] },
                 data
             );
             return sendItemResponse(req, res, probe);
@@ -89,7 +89,7 @@ router.delete(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const probe: $TSFixMe = await ProbeService.deleteBy({
-                _id: req.params.id,
+                _id: req.params['id'],
             });
             return sendItemResponse(req, res, probe);
         } catch (error) {
@@ -845,7 +845,7 @@ router.post(
             const data: $TSFixMe = req.body;
 
             data.probeId = req.probe.id;
-            data.monitorId = req.params.monitorId;
+            data.monitorId = req.params['monitorId'];
             const log: $TSFixMe = await ProbeService.saveMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
@@ -862,7 +862,7 @@ router.post(
             const data: $TSFixMe = req.body;
 
             data.probeId = req.probe.id;
-            data.monitorId = req.params.monitorId;
+            data.monitorId = req.params['monitorId'];
             const log: $TSFixMe = await ProbeService.getMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
@@ -877,8 +877,8 @@ router.get(
     isAuthorized,
     async (req: $TSFixMe, res: $TSFixMe): void => {
         try {
-            const limit: $TSFixMe = req.query.limit || null;
-            const skip: $TSFixMe = req.query.skip || null;
+            const limit: $TSFixMe = req.query['limit'] || null;
+            const skip: $TSFixMe = req.query['skip'] || null;
             const selectProbe: $TSFixMe =
                 'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
             const [probe, count]: $TSFixMe = await Promise.all([
