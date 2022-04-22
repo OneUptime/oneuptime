@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/ErrorEvent';
+} from '../Models/AutomationScriptsLog';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {
@@ -12,7 +12,7 @@ class Service extends DatabaseService<typeof Model> {
             model: Model,
             requiredFields: requiredFields,
             uniqueFields: uniqueFields,
-            friendlyName: 'Error Event',
+            friendlyName: 'Automated Script Log',
             publicListProps: {
                 populate: [],
                 select: [],

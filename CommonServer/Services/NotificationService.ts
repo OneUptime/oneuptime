@@ -1,97 +1,63 @@
-import NotificationModel from '../Models/notification';
-import ObjectID from 'Common/Types/ObjectID';
-import RealTimeService from './realTimeService';
-import Query from '../Types/DB/Query';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/Notification';
+import DatabaseService from './DatabaseService';
 
-export default class Service {
-    public async create(
-        projectId: ObjectID,
-        message: $TSFixMe,
-        userId: ObjectID,
-        icon: $TSFixMe,
-        meta: $TSFixMe
-    ): void {
-        if (!meta) {
-            meta = {};
-        }
-        const populateNotification: $TSFixMe = [
-            { path: 'projectId', select: 'name _id' },
-            {
-                path: 'meta.incidentId',
-                model: 'Incident',
-                select: '_id idNumber slug',
+class Service extends DatabaseService<typeof Model> {
+    public constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Notification',
+            publicListProps: {
+                populate: [],
+                select: [],
             },
-            {
-                path: 'meta.componentId',
-                model: 'Component',
-                select: '_id slug',
+            adminListProps: {
+                populate: [],
+                select: [],
             },
-        ];
-
-        const selectNotification: $TSFixMe =
-            'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
-        let notification: $TSFixMe = new NotificationModel();
-
-        notification.projectId = projectId;
-
-        notification.message = message;
-
-        notification.icon = icon;
-
-        notification.createdBy = userId;
-
-        notification.meta = meta;
-        notification = await notification.save();
-        const populatedNotification: $TSFixMe = await this.findOneBy({
-            query: { _id: notification._id },
-            select: selectNotification,
-            populate: populateNotification,
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
         });
-
-        // Run this in the background
-        RealTimeService.sendNotification(populatedNotification || notification);
-
-        return populatedNotification || notification;
-    }
-
-    public async updateOneBy(query: Query, data: $TSFixMe): void {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-        let notification: $TSFixMe = await this.findOneBy({
-            query,
-            select: 'read closed',
-        });
-
-        if (data.read) {
-            const read: $TSFixMe = notification.read;
-            for (const userId of data.read) {
-                read.push(userId);
-            }
-            data.read = read;
-        }
-        if (data.closed) {
-            const closed: $TSFixMe = notification.closed;
-            if (data.closed) {
-                for (const userId of data.closed) {
-                    closed.push(userId);
-                }
-            }
-            data.closed = closed;
-        }
-        notification = await NotificationModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            {
-                new: true,
-            }
-        );
-        return notification;
     }
 }
+
+export default new Service();

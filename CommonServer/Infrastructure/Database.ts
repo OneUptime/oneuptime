@@ -2,6 +2,9 @@ import MongoDB from 'mongodb';
 import { DatabaseUrl, DatabaseName } from '../Config';
 import Grid from 'gridfs-stream';
 
+export type Collection = MongoDB.Collection;
+export type Document = MongoDB.Document;
+
 export default class Database {
     private static databaseClient: MongoDB.MongoClient;
     private static databaseConnected: boolean = false;

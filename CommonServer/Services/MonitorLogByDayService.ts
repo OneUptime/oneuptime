@@ -12,7 +12,7 @@ class Service extends DatabaseService<typeof Model> {
             model: Model,
             requiredFields: requiredFields,
             uniqueFields: uniqueFields,
-            friendlyName: 'Monitor Log By Day',
+            friendlyName: 'Monitor Log by Day',
             publicListProps: {
                 populate: [],
                 select: [],
@@ -53,7 +53,7 @@ class Service extends DatabaseService<typeof Model> {
                 populate: [],
                 select: [],
             },
-            isResourceByProject: true,
+            isResourceByProject: false,
             slugifyField: slugifyField,
             encryptedFields: encryptedFields,
         });

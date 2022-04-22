@@ -29,4 +29,4 @@ export const encryptedFields: EncryptedFields = [];
 
 export const slugifyField: string = '';
 
-export default mongoose.model('LoginIPLog', schema);
+export default mongoose.model('LoginHistory', schema);

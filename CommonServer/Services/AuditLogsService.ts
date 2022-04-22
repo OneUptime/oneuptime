@@ -1,84 +1,63 @@
-export default class Service {
-    public async findBy({
-        query,
-        skip,
-        limit,
-        populate,
-        select,
-        sort,
-    }: FindBy): void {
-        const auditLogsQuery: $TSFixMe = AuditLogsModel.find(query)
-            .lean()
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/AuditLogs';
+import DatabaseService from './DatabaseService';
 
-        auditLogsQuery.select(select);
-        auditLogsQuery.populate(populate);
-
-        const auditLogs: $TSFixMe = await auditLogsQuery;
-
-        return auditLogs;
-    }
-
-    public async countBy({ query }: Query): void {
-        if (!query) {
-            query = {};
-        }
-
-        const count: $TSFixMe = await AuditLogsModel.countDocuments(query);
-        return count;
-    }
-
-    public async create(data: $TSFixMe): void {
-        const auditLogsModel: $TSFixMe = new AuditLogsModel({
-            userId: data.userId,
-            projectId: data.projectId,
-            request: data.request,
-            response: data.response,
-        });
-
-        const auditLog: $TSFixMe = await auditLogsModel.save();
-        return auditLog;
-    }
-
-    public async search({ filter, skip, limit }: $TSFixMe): void {
-        const query: $TSFixMe = {
-            'request.apiSection': {
-                $regex: new RegExp(filter),
-                $options: 'i',
+class Service extends DatabaseService<typeof Model> {
+    public constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Audit Log',
+            publicListProps: {
+                populate: [],
+                select: [],
             },
-        };
-
-        const populateAuditLog: $TSFixMe = [
-            { path: 'userId', select: 'name' },
-            { path: 'projectId', select: 'name' },
-        ];
-
-        const selectAuditLog: string =
-            'userId projectId request response createdAt';
-
-        const [searchedAuditLogs, totalSearchCount]: $TSFixMe =
-            await Promise.all([
-                this.findBy({
-                    query,
-                    skip,
-                    limit,
-                    populate: populateAuditLog,
-                    select: selectAuditLog,
-                }),
-                this.countBy({ query }),
-            ]);
-
-        return { searchedAuditLogs, totalSearchCount };
-    }
-
-    public async hardDeleteBy({ query }: $TSFixMe): void {
-        await AuditLogsModel.deleteMany(query);
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
+        });
     }
 }
 
-import AuditLogsModel from '../Models/auditLogs';
-
-import FindBy from '../Types/DB/FindBy';
-import Query from '../Types/DB/Query';
+export default new Service();

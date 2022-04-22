@@ -1,71 +1,63 @@
-import LeadsModel from '../Models/lead';
-import MailService from '../../MailService/Services/MailService';
-import AirtableService from './AirtableService';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/Lead';
+import DatabaseService from './DatabaseService';
 
-export default class Service {
-    /*
-     * Description: Create new project for user.
-     * Params:
-     * Param 1: projectName: Project name.
-     * Param 2: projectId: Project Id present in req.params.
-     * Param 3: userId: User Id.
-     * Returns: promise
-     */
-    public async create(data: $TSFixMe): void {
-        let lead: $TSFixMe = new LeadsModel();
-
-        lead.type = data.type;
-
-        lead.name = data.name;
-
-        lead.email = data.email;
-
-        lead.phone = data.phone;
-
-        lead.website = data.website;
-
-        lead.companySize = data.companySize;
-
-        lead.country = data.country;
-
-        lead.message = data.message;
-
-        lead.whitepaperName = data.whitepaperName;
-
-        lead.source = data.source;
-
-        lead.templateName = 'Request Demo';
-        if (data.whitepaperName) {
-            lead.templateName = 'Whitepaper Request';
-        }
-
-        lead = await lead.save();
-
-        MailService.sendLeadEmailToOneUptimeTeam(lead);
-        if (data.type) {
-            if (data.type === 'demo') {
-                MailService.sendRequestDemoEmail(data.email);
-            }
-
-            if (data.type === 'whitepaper') {
-                MailService.sendWhitepaperEmail(
-                    data.email,
-                    data.whitepaperName
-                ); //Whitepaper name should be stored in moreInfo.
-            }
-        }
-
-        AirtableService.logLeads({
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            country: data.country,
-            message: data.message,
-            website: data.website,
-            source: data.source,
-            volume: data.companySize,
-            type: data.type,
+class Service extends DatabaseService<typeof Model> {
+    public constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Lead',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
         });
-        return lead;
     }
 }
+
+export default new Service();

@@ -5,11 +5,11 @@ import Model, {
     encryptedFields,
 } from '../Models/ApplicationScanner';
 import DatabaseService from './DatabaseService';
-import UUID from 'Common/Utils/UUID';
 import CreateBy from '../Types/DB/CreateBy';
-import Document from '../Infrastructure/ORM';
+import { Document } from '../Infrastructure/ORM';
 import OneUptimeDate from 'Common/Types/Date';
 import ObjectID from 'Common/Types/ObjectID';
+import Query from '../Types/DB/Query';
 
 class Service extends DatabaseService<typeof Model> {
     public constructor() {
@@ -67,23 +67,28 @@ class Service extends DatabaseService<typeof Model> {
     protected override async onBeforeCreate({
         data,
     }: CreateBy): Promise<CreateBy> {
-        let applicationScannerKey: $TSFixMe;
-        if (data.get('applicationScannerKey')) {
-            applicationScannerKey = data.get('applicationScannerKey');
+        let applicationScannerKey: ObjectID;
+        if (data['applicationScannerKey']) {
+            applicationScannerKey = new ObjectID(
+                data['applicationScannerKey'] as string
+            );
         } else {
-            applicationScannerKey = UUID.generate();
+            applicationScannerKey = ObjectID.generate();
         }
 
-        data.set('applicationScannerKey', applicationScannerKey);
+        data['applicationScannerKey'] = applicationScannerKey;
 
         return Promise.resolve({ data } as CreateBy);
     }
 
-    public async updateStatus(applicationScannerId: ObjectID): void {
-        const data: $TSFixMe = new Document<typeof Model>();
+    public async updateStatus(applicationScannerId: ObjectID): Promise<void> {
+        const data: Document = new this.model();
         data.set('lastAlive', OneUptimeDate.getCurrentDate());
 
-        await this.updateOneBy({ query: { _id: applicationScannerId }, data });
+        await this.updateOneBy({
+            query: new Query().equalTo('_id', applicationScannerId),
+            data,
+        });
     }
 }
 

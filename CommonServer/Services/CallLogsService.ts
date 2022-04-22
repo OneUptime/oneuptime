@@ -1,105 +1,63 @@
-export default class Service {
-    public async findBy({
-        query,
-        limit,
-        skip,
-        sort,
-        select,
-        populate,
-    }: FindBy): void {
-        if (!query.deleted) {
-            query.deleted = false;
-        }
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/CallLogs';
+import DatabaseService from './DatabaseService';
 
-        const itemQuery: $TSFixMe = CallLogsModel.find(query)
-            .lean()
-            .limit(limit.toNumber())
-            .skip(skip.toNumber())
-            .sort(sort);
-        itemQuery.select(select);
-        itemQuery.populate(populate);
-
-        const items: $TSFixMe = await itemQuery;
-        return items;
-    }
-
-    public async create(
-        from: $TSFixMe,
-        to: $TSFixMe,
-        projectId: ObjectID,
-        content: $TSFixMe,
-        status: $TSFixMe,
-        error: $TSFixMe
-    ): void {
-        let item: $TSFixMe = new CallLogsModel();
-
-        item.from = from;
-
-        item.to = to;
-
-        item.projectId = projectId;
-
-        item.content = content;
-
-        item.status = status;
-
-        item.error = error;
-        item = await item.save();
-
-        return item;
-    }
-
-    public async countBy(query: Query): void {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-        const count: $TSFixMe = await CallLogsModel.countDocuments(query);
-        return count;
-    }
-
-    public async deleteBy(query: Query, userId: ObjectID): void {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-        const items: $TSFixMe = await CallLogsModel.findOneAndUpdate(query, {
-            $set: {
-                deleted: true,
-                deletedAt: Date.now(),
-                deletedById: userId,
+class Service extends DatabaseService<typeof Model> {
+    public constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Call Logs',
+            publicListProps: {
+                populate: [],
+                select: [],
             },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
         });
-        return items;
-    }
-
-    public async hardDeleteBy({ query }: $TSFixMe): void {
-        await CallLogsModel.deleteMany(query);
-    }
-
-    public async search({ filter, skip, limit }: $TSFixMe): void {
-        const query: $TSFixMe = {
-            to: { $regex: new RegExp(filter), $options: 'i' },
-        };
-
-        const populate: $TSFixMe = [{ path: 'projectId', select: 'name' }];
-        const select: string = 'from to projectId content status error';
-        const [searchedCallLogs, totalSearchCount]: $TSFixMe =
-            await Promise.all([
-                this.findBy({ query, skip, limit, select, populate }),
-                this.countBy({ query }),
-            ]);
-
-        return { searchedCallLogs, totalSearchCount };
     }
 }
 
-import CallLogsModel from '../Models/callLogs';
-import ObjectID from 'Common/Types/ObjectID';
-
-import FindBy from '../Types/DB/FindBy';
-import Query from '../Types/DB/Query';
+export default new Service();

@@ -1,70 +1,63 @@
-import ResourceCategoryModel from '../Models/resourceCategory';
-import ObjectID from 'Common/Types/ObjectID';
-import MonitorModel from '../Models/monitor';
-import ApplicationLogModel from '../Models/applicationLog';
-import ErrorTrackerModel from '../Models/errorTracker';
-import ApplicationSecurityModel from '../Models/applicationSecurity';
-import ContainerSecurityModel from '../Models/containerSecurity';
-import Query from '../Types/DB/Query';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/ResourceCategory';
+import DatabaseService from './DatabaseService';
 
-export default class Service {
-    public async deleteBy(query: Query, userId: ObjectID): void {
-        const resourceCategory: $TSFixMe =
-            await ResourceCategoryModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedAt: Date.now(),
-                        deletedById: userId,
-                    },
-                },
-                { new: true }
-            );
-
-        await Promise.all([
-            MonitorModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            ),
-            ApplicationLogModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            ),
-            ErrorTrackerModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            ),
-            ApplicationSecurityModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            ),
-            ContainerSecurityModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            ),
-        ]);
-
-        return resourceCategory;
+class Service extends DatabaseService<typeof Model> {
+    public constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Resource Category',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
+        });
     }
 }
+
+export default new Service();

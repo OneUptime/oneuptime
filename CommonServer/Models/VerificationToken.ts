@@ -5,8 +5,6 @@ import mongoose, {
     Schema,
 } from '../Infrastructure/ORM';
 
-const { EMAIL_VERIFY_TIME }: $TSFixMe = process.env;
-
 const schema: Schema = new Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -22,7 +20,7 @@ const schema: Schema = new Schema({
         type: Date,
         required: true,
         default: Date.now,
-        expires: Number(EMAIL_VERIFY_TIME) || 3600,
+        expires: 3600,
     },
 });
 export const requiredFields: RequiredFields = schema.requiredPaths();

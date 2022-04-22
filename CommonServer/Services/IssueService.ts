@@ -1,234 +1,63 @@
-import IssueModel from '../Models/issue';
-import ObjectID from 'Common/Types/ObjectID';
-import sha256 from 'crypto-js/sha256';
-import ComponentService from './ComponentService';
-import RealTimeService from './realTimeService';
-import NotificationService from './NotificationService';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/Issue';
+import DatabaseService from './DatabaseService';
 
-import FindOneBy from '../Types/DB/FindOneBy';
-import FindBy from '../Types/DB/FindBy';
-import Query from '../Types/DB/Query';
-
-export default class Service {
-    public async create(data: $TSFixMe): void {
-        // Prepare issue model
-        let issue: $TSFixMe = new IssueModel();
-
-        issue.name = data.exception ? data.exception.type : 'Unknown Error';
-
-        issue.description = data.exception ? data.exception.message : '';
-
-        // Generate hash from fingerprint
-        const hash: $TSFixMe = sha256(data.fingerprint.join('')).toString();
-
-        issue.fingerprintHash = hash;
-
-        issue.fingerprint = data.fingerprint;
-
-        issue.type = data.type;
-
-        issue.errorTrackerId = data.errorTrackerId;
-
-        const savedIssue: $TSFixMe = await issue.save();
-        const populateIssue: $TSFixMe = [
-            { path: 'errorTrackerId', select: 'name' },
-            { path: 'resolvedById', select: 'name' },
-            { path: 'ignoredById', select: 'name' },
-        ];
-
-        const selectIssue: $TSFixMe =
-            'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
-
-        issue = await this.findOneBy({
-            query: { _id: savedIssue._id },
-            select: selectIssue,
-            populate: populateIssue,
-        });
-        return issue;
-    }
-    // Find a list of Issues
-    public async findBy({
-        query,
-        limit,
-        skip,
-        select,
-        populate,
-        sort,
-    }: FindBy): void {
-        if (!skip) {
-            skip = 0;
-        }
-
-        if (!limit) {
-            limit = 0;
-        }
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-        const issuesQuery: $TSFixMe = IssueModel.find(query)
-            .lean()
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
-
-        issuesQuery.select(select);
-        issuesQuery.populate(populate);
-
-        const issues: $TSFixMe = await issuesQuery;
-
-        return issues;
-    }
-
-    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-        const issueQuery: $TSFixMe = IssueModel.findOne(query)
-            .sort(sort)
-            .lean();
-
-        issueQuery.select(select);
-        issueQuery.populate(populate);
-
-        const issue: $TSFixMe = await issueQuery;
-        return issue;
-    }
-
-    public async findOneByHashAndErrorTracker(
-        fingerprint: $TSFixMe,
-        errorTrackerId: $TSFixMe
-    ): void {
-        const query: $TSFixMe = {};
-        const hash: $TSFixMe = sha256(fingerprint.join('')).toString();
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-
-        query.fingerprintHash = hash;
-
-        query.errorTrackerId = errorTrackerId;
-        const issue: $TSFixMe = await IssueModel.findOne(query)
-            .lean()
-            .populate('resolvedById', 'name')
-            .populate('ignoredById', 'name');
-        return issue;
-    }
-
-    public async updateOneBy(
-        query: Query,
-        data: $TSFixMe,
-        unsetData = null
-    ): void {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-        let issue: $TSFixMe = await IssueModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            {
-                new: true,
-            }
-        );
-
-        if (unsetData) {
-            issue = await IssueModel.findOneAndUpdate(
-                query,
-                { $unset: unsetData },
-                {
-                    new: true,
-                }
-            );
-        }
-
-        const populateIssue: $TSFixMe = [
-            { path: 'errorTrackerId', select: 'name' },
-            { path: 'resolvedById', select: 'name' },
-            { path: 'ignoredById', select: 'name' },
-        ];
-
-        const selectIssue: $TSFixMe =
-            'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
-
-        issue = await this.findOneBy({
-            query,
-            select: selectIssue,
-            populate: populateIssue,
-        });
-
-        return issue;
-    }
-
-    public async deleteBy(
-        query: Query,
-        userId: ObjectID,
-        componentId: $TSFixMe
-    ): void {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-        const issue: $TSFixMe = await IssueModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId,
-                },
+class Service extends DatabaseService<typeof Model> {
+    public constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Issue',
+            publicListProps: {
+                populate: [],
+                select: [],
             },
-            { new: true }
-        ).populate('deletedById', 'name');
-        if (issue) {
-            const component: $TSFixMe = await ComponentService.findOneBy({
-                query: { _id: componentId },
-                select: 'projectId',
-            });
-
-            NotificationService.create(
-                component.projectId,
-                `An Issue under Error Tracker ${issue.errorTrackerId.name} was deleted under the component ${component.name} by ${issue.deletedById.name}`,
-                issue.deletedById._id,
-                'errorTrackerIssueaddremove'
-            );
-            // Run in the background
-            RealTimeService.sendErrorTrackerIssueDelete(issue);
-            return issue;
-        }
-        return null;
-    }
-
-    public async countBy(query: Query): void {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-        const count: $TSFixMe = await IssueModel.countDocuments(query);
-        return count;
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
+        });
     }
 }
+
+export default new Service();

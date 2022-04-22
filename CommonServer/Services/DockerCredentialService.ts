@@ -71,9 +71,9 @@ class Service extends DatabaseService<typeof Model> {
     }: {
         username: string;
         password: string;
-    }): void {
+    }): Promise<boolean> {
         try {
-            const response: $TSFixMe = await API.post(
+            await API.post(
                 new URL(
                     Protocol.HTTPS,
                     new Hostname('hub.docker.com'),
@@ -81,8 +81,8 @@ class Service extends DatabaseService<typeof Model> {
                 ),
                 { username, password }
             );
-            // Response.data should contain a token
-            return response.data;
+
+            return true;
         } catch (err) {
             // Username or password was incorrect
             throw new BadDataException('Invalid docker credential');

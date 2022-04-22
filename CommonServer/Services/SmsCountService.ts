@@ -8,6 +8,8 @@ import Model, {
 } from '../Models/SmsCount';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import Query from '../Types/DB/Query';
 
 class Service extends DatabaseService<typeof Model> {
     public constructor() {
@@ -62,14 +64,11 @@ class Service extends DatabaseService<typeof Model> {
         });
     }
 
-    public async validateResend(userId: ObjectID): void {
-        const smsCount: $TSFixMe = await this.countBy({
-            query: {
-                userId: userId,
-                createdAt: {
-                    $gt: OneUptimeDate.getOneDayAgo(),
-                },
-            },
+    public async validateResend(userId: ObjectID): Promise<boolean> {
+        const smsCount: PositiveNumber = await this.countBy({
+            query: new Query()
+                .equalTo('userId', userId)
+                .greaterThan('createdAt', OneUptimeDate.getOneDayAgo()),
         });
 
         if (smsCount.toNumber() > 3) {

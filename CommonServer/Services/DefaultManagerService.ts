@@ -1,100 +1,63 @@
-import DefaultManagerModel from '../Models/defaultManager';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/DefaultManager';
+import DatabaseService from './DatabaseService';
 
-import FindOneBy from '../Types/DB/FindOneBy';
-import FindBy from '../Types/DB/FindBy';
-import Query from '../Types/DB/Query';
-
-export default class Service {
-    public async create(data: $TSFixMe): void {
-        const defaultManager: $TSFixMe = await DefaultManagerModel.create(data);
-        return defaultManager;
-    }
-
-    public async findOneBy({ query, select, populate, sort }: FindOneBy): void {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-
-        const defaultManagerQuery: $TSFixMe =
-            DefaultManagerModel.findOne(query).sort(sort);
-
-        defaultManagerQuery.select(select);
-        defaultManagerQuery.populate(populate);
-
-        const defaultManager: $TSFixMe = await defaultManagerQuery;
-        return defaultManager;
-    }
-
-    public async findBy({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy): void {
-        if (!skip) {
-            skip = 0;
-        }
-
-        if (!limit) {
-            limit = 0;
-        }
-
-        if (typeof skip === 'string') {
-            skip = Number(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = Number(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-
-        const defaultManagerQuery: $TSFixMe = DefaultManagerModel.find(query)
-            .lean()
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
-
-        defaultManagerQuery.select(select);
-        defaultManagerQuery.populate(populate);
-
-        const defaultManagers: $TSFixMe = await defaultManagerQuery;
-        return defaultManagers;
-    }
-
-    public async updateOneBy(query: Query, data: $TSFixMe): void {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) {
-            query.deleted = false;
-        }
-        let defaultManager: $TSFixMe =
-            await DefaultManagerModel.findOneAndUpdate(
-                query,
-                {
-                    $set: data,
-                },
-                { new: true }
-            );
-
-        if (!defaultManager) {
-            defaultManager = await this.create(data);
-        }
-
-        return defaultManager;
+class Service extends DatabaseService<typeof Model> {
+    public constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Default Manager',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
+        });
     }
 }
+
+export default new Service();

@@ -1,11 +1,11 @@
-import {
+import mongoose, {
     RequiredFields,
     UniqueFields,
     EncryptedFields,
     Schema,
 } from '../Infrastructure/ORM';
 
-export default new Schema({
+const schema: Schema = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
@@ -151,5 +151,7 @@ export default new Schema({
 
 export const uniqueFields: UniqueFields = [];
 export const encryptedFields: EncryptedFields = [];
-
+export const slugifyField: string = '';
 export const requiredFields: RequiredFields = ['name', 'projectId'];
+
+export default mongoose.model('StatusPage', schema);

@@ -1,60 +1,63 @@
-import LoginHistoryModel from '../Models/loginIPLog';
-import DeviceDetector from 'node-device-detector';
-import MailService from '../../MailService/Services/MailService';
-import UserService from './UserService';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/LoginHistory';
+import DatabaseService from './DatabaseService';
 
-import FindBy from '../Types/DB/FindBy';
-
-export default class Service {
-    public async create(
-        user: $TSFixMe,
-        clientIP: $TSFixMe,
-        userAgent: $TSFixMe,
-        status: $TSFixMe
-    ): void {
-        const detector: $TSFixMe = new DeviceDetector();
-        const result: $TSFixMe = detector.detect(userAgent);
-        const ipLocation: $TSFixMe = await UserService.getUserIpLocation(
-            clientIP
-        );
-        await LoginHistoryModel.create({
-            userId: user._id,
-            ipLocation,
-            device: result,
-            status,
+class Service extends DatabaseService<typeof Model> {
+    public constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Login History',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
         });
-
-        MailService.sendLoginEmail(
-            user.email,
-            ipLocation,
-            result,
-            user.twoFactorEnabled,
-            status
-        );
-    }
-
-    public async findBy({
-        query,
-        skip,
-        limit,
-        select,
-        populate,
-        sort,
-    }: FindBy): void {
-        const logsQuery: $TSFixMe = LoginHistoryModel.find(query)
-            .lean()
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
-
-        logsQuery.select(select);
-        logsQuery.populate(populate);
-
-        const [logs, count]: $TSFixMe = await Promise.all([
-            logsQuery,
-            LoginHistoryModel.countDocuments(query),
-        ]);
-        const response: $TSFixMe = { logs, skip, limit, count };
-        return response;
     }
 }
+
+export default new Service();
