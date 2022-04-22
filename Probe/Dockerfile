@@ -10,6 +10,7 @@ RUN apk update && apk add bash && apk add curl
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
+RUN npm install typescript -g
 
 #SET ENV Variables
 ENV PRODUCTION=true

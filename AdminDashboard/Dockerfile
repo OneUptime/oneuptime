@@ -13,6 +13,7 @@ RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
+RUN npm install typescript -g
 
 #SET ENV Variables
 ENV PRODUCTION=true
