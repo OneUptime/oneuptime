@@ -36,6 +36,7 @@
         "fix-lint": "eslint '**/*.ts' -c .eslintrc.json --ignore-path .eslintignore --fix",
         "fix": "npm run fix-lint",
         "build": "docker-compose --env-file ./docker-enterprise.env build",
+        "build-ci": "docker-compose  --env-file ./docker-enterprise.env -f docker-compose.ci.yml build $npm_config_services",
         "build-dev": "docker-compose  --env-file ./docker-enterprise.env -f docker-compose.dev.yml build $npm_config_services",
         "ps-dev": "docker-compose -f docker-compose.dev.yml ps",
         "logs-dev": "docker-compose -f docker-compose.dev.yml logs --tail=100 -f $npm_config_services",
