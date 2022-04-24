@@ -167,7 +167,7 @@ services:
             context: .
             dockerfile: ./ProbeAPI/Dockerfile
         env_file:
-            - ./ProbeApi/.env
+            - ./ProbeAPI/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
