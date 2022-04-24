@@ -141,7 +141,7 @@ services:
             - '3400:3400'
         image: oneuptime/probe-api:latest
         env_file:
-            - ./ProbeApi/.env
+            - ./ProbeAPI/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
