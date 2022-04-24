@@ -1,0 +1,29 @@
+name: haraka docker-build
+
+on: 
+  push:
+   branches:
+     - feature/haraka-docker-build-workflow-#24
+     
+  pull_request:
+    branches-ignore:
+      - 'release'
+      - 'hotfix-*'
+      - 'staging-release'
+    types: [opened,synchronize,reopened]
+
+jobs:
+ # define job to build docker image
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # setup Docker buld action
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      # build image
+      - name: build docker images
+        run: npm run build-ci haraka
