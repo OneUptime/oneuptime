@@ -1,4 +1,4 @@
-# This docker file is for CI. 
+# This docker file is for CI.
 # It it builds and tests docker containers in the CI pipeline.
 
 version: '3.7'
@@ -241,7 +241,7 @@ services:
         ports:
             - '2525:2525'
         build:
-            context: ./haraka
+            context: ./Haraka
             args:
                 PORT: '2525'
         environment:
