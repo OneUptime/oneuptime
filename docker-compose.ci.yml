@@ -319,7 +319,7 @@ services:
         restart: always
         build:
             dockerfile: Dockerfile
-            context: ./nginx
+            context: ./Nginx
         ports:
             - '80:80'
             - '443:443'
