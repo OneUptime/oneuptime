@@ -18,7 +18,7 @@
         "moment": "^2.29.1",
         "winston": "^3.6.0",
         "CommonServer": "file:../CommonServer",
-        "common": "file:../common"
+        "Common": "file:../Common"
     },
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",

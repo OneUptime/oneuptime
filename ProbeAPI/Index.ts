@@ -1,4 +1,4 @@
-import app from 'CommonServer/utils/StartServer';
+import app from 'CommonServer/Utils/StartServer';
 
 // API
 import ProbeAPI from './API/Probe';
