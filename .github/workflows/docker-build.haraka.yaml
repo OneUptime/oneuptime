@@ -1,14 +1,9 @@
 name: haraka docker-build
 
 on: 
-  push:
-   branches:
-     - feature/haraka-docker-build-workflow-#24
-     
   pull_request:
     branches-ignore:
       - 'release'
-      - 'hotfix-*'
       - 'staging-release'
     types: [opened,synchronize,reopened]
 
@@ -20,6 +15,6 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v2
 
-      # build image
+      # build images
       - name: build docker images
         run: npm run build-ci haraka
