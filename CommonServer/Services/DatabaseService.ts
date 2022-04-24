@@ -1,4 +1,4 @@
-import Slug from 'Common/utils/Slug';
+import Slug from 'Common/Utils/Slug';
 import Populate from '../Types/DB/Populate';
 import Select from '../Types/DB/Select';
 import {

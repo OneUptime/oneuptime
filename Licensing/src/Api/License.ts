@@ -9,7 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'CommonServer/Utils/Response';
-import Email from 'Common/Types/email';
+import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 import LicenseService from '../Services/LicenseService';
@@ -20,7 +20,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data: JSONObject = req.body;
 
-        if (!data.license) {
+        if (!data['license']) {
             return sendErrorResponse(
                 req,
                 res,
@@ -28,7 +28,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
 
-        if (typeof data.license !== 'string') {
+        if (typeof data['license'] !== 'string') {
             return sendErrorResponse(
                 req,
                 res,
@@ -36,7 +36,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
 
-        if (!data.email) {
+        if (!data['email']) {
             return sendErrorResponse(
                 req,
                 res,
@@ -44,7 +44,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
 
-        if (typeof data.email !== 'string') {
+        if (typeof data['email'] !== 'string') {
             return sendErrorResponse(
                 req,
                 res,
@@ -57,8 +57,8 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
         );
 
         const item: string = await LicenseService.confirm(
-            data.license,
-            new Email(data.email),
+            data['license'],
+            new Email(data['email']),
             limit
         );
 

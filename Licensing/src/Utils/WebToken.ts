@@ -1,4 +1,4 @@
-import JWT from 'CommonServer/utils/JsonWebToken';
+import JWT from 'CommonServer/Utils/JsonWebToken';
 
 class WebToken {
     public static generateWebToken(

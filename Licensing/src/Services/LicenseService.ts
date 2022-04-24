@@ -1,6 +1,6 @@
 import WebToken from '../Utils/WebToken';
-import AirtableService, { AirtableRecords } from 'CommonServer/Utils/airtable';
-import Email from 'Common/Types/email';
+import AirtableService, { AirtableRecords } from 'CommonServer/Utils/Airtable';
+import Email from 'Common/Types/Email';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
