@@ -1,26 +1,24 @@
 {
-  "name": "mailservice",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "ts-node index.ts",
-    "compile": "tsc",
-    "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
-    "test": "echo 'no tests'"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@types/nodemailer": "^6.4.4",
-    "@types/nodemailer-express-handlebars": "^4.0.2",
-    "Common": "file:../Common",
-    "CommonServer": "file:../CommonServer",
-    "handlebars": "^4.7.7",
-    "nodemailer": "^6.7.3",
-    "nodemailer-express-handlebars": "^5.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "^17.0.26"
-  }
+    "name": "mailservice",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "ts-node index.ts",
+        "compile": "tsc",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "test": "echo 'no tests'"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@types/nodemailer": "^6.4.4",
+        "@types/nodemailer-express-handlebars": "^4.0.2",
+        "Common": "file:../Common",
+        "CommonServer": "file:../CommonServer",
+        "handlebars": "^4.7.7",
+        "nodemailer": "^6.7.3",
+        "nodemailer-express-handlebars": "^5.0.0"
+    },
+    "devDependencies": {}
 }
