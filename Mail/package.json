@@ -1,5 +1,5 @@
 {
-    "name": "mailservice",
+    "name": "mail",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
@@ -12,6 +12,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "@types/node": "^17.0.27",
         "@types/nodemailer": "^6.4.4",
         "@types/nodemailer-express-handlebars": "^4.0.2",
         "Common": "file:../Common",
@@ -20,5 +21,7 @@
         "nodemailer": "^6.7.3",
         "nodemailer-express-handlebars": "^5.0.0"
     },
-    "devDependencies": {}
+    "devDependencies": {
+        
+    }
 }
