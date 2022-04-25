@@ -1,0 +1,20 @@
+name: haraka docker-build workflow
+
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+      - 'staging-release'
+
+jobs:
+ # define job to build docker image
+  haraka-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build images
+      - name: build docker image
+        run: npm run build-ci haraka

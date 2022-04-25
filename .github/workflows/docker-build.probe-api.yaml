@@ -1,0 +1,20 @@
+name: Probe-api docker-build workflow
+
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+      - 'staging-release'
+
+jobs:
+ # define job to build docker image 
+  probe-api-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image probe api
+      - name: build docker image
+        run: npm run build-ci probe-api

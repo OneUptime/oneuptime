@@ -1,0 +1,20 @@
+name: Home docker-build workflow
+
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+      - 'staging-release'
+
+jobs:
+ # define jobs to build docker imag
+   home-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image for home
+      - name: build docker image
+        run: npm run build-ci home

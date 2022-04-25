@@ -40,7 +40,7 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./package*.json /usr/src/app/
+COPY ./Mail/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
 
