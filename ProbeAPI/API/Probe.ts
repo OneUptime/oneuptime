@@ -4,14 +4,14 @@ import Express, {
     OneUptimeRequest,
     ProbeRequest,
     ExpressRouter,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 
 import MonitorService from 'CommonServer/Services/MonitorService';
-import ProbeAuthorization from 'CommonServer/middleware/ProbeAuthorization';
+import ProbeAuthorization from 'CommonServer/Middleware/ProbeAuthorization';
 import {
     sendErrorResponse,
     sendListResponse,
-} from 'CommonServer/utils/Response';
+} from 'CommonServer/Utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import { Document } from 'CommonServer/Infrastructure/ORM';

@@ -1,4 +1,4 @@
-import API from 'Common/utils/API';
+import API from 'Common/Utils/API';
 import { RealtimeHostname, HttpProtocol, ClusterKey } from '../Config';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import Hostname from 'Common/Types/API/Hostname';
