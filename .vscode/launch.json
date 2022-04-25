@@ -36,6 +36,18 @@
         },
         {
             "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/Mail",
+            "name": "Mail: Debug with Docker",
+            "port": 9110,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
             "localRoot": "${workspaceFolder}/realtime",
             "name": "Realtime: Debug with Docker",
             "port": 9250,
