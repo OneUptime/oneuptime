@@ -21,6 +21,6 @@
     "nodemailer-express-handlebars": "^5.0.0"
   },
   "devDependencies": {
-    "@types/node": "^17.0.23"
+    "@types/node": "^17.0.26"
   }
 }
