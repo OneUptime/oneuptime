@@ -1,0 +1,60 @@
+name: docker-build workflow
+
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+      - 'staging-release'
+
+jobs:
+ # define jobs to build docker images
+  haraka-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build images
+      - name: build docker images
+        run: npm run build-ci haraka
+
+  probe-api-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image probe api
+      - name: build docker images
+        run: npm run build-ci probe-api
+
+  home-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image for home
+      - name: build docker images
+        run: npm run build-ci home
+
+  licensing-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image for licensing
+      - name: build docker images
+        run: npm run build-ci licensing
+
+  mail-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image for mail service
+      - name: build docker images
+        run: npm run build-ci mail
