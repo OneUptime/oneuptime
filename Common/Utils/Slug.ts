@@ -10,7 +10,7 @@ export default class Slug {
         }
 
         let slug: string = slugify(name, { remove: /[&*+~.,\\/()|'"!:@]+/g });
-        slug = `${slug}-${customAlphabet(numbers, 10)}`;
+        slug = `${slug}-${customAlphabet(numbers, 10)()}`;
         slug = slug.toLowerCase();
 
         return slug;
