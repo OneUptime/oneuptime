@@ -52,5 +52,6 @@ COPY ./Mail /usr/src/app
 EXPOSE 3190
 
 #Run the app
+RUN ls
 RUN npm run compile
 CMD [ "npm", "start"]
