@@ -34,20 +34,18 @@ RUN npm run compile
 ENV PRODUCTION=true
 ENV CHROME_PATH=/usr/bin/chromium
 
-# Install Chrome.
-RUN apk add curl chromium
 
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./MailService/package*.json /usr/src/app/
+COPY ./Mail/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
 
 # Bundle app source
-COPY ./MailService /usr/src/app
+COPY ./Mail /usr/src/app
 
 # Expose ports.
 #   - 3190: MailService Runner
