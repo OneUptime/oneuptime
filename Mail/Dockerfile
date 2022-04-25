@@ -34,8 +34,6 @@ RUN npm run compile
 ENV PRODUCTION=true
 ENV CHROME_PATH=/usr/bin/chromium
 
-# Install Chrome.
-RUN apk add curl chromium
 
 RUN mkdir /usr/src/app
 

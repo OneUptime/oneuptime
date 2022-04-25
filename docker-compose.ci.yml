@@ -278,6 +278,20 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - dashboard-api
+    mail:
+        ports:
+            - 3190:3190
+        build:
+            context: .
+            dockerfile: ./Mail/Dockerfile
+        env_file:
+            - ./Mail/.env
+        environment:
+            - PORT=3190
+            - SERVER_URL=http://mail:3190
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
+
     container-scanner:
         ports:
             - '3055:3055'
@@ -308,19 +322,6 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - dashboard-api
-    mail:
-        ports:
-            - '3190:3190'
-        build:
-            context: .
-            dockerfile: ./Mail/Dockerfile
-        env_file:
-            - ./Mail/.env
-        environment:
-            - PORT=3015
-            - SERVER_URL=http://dashboard-api:3002
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
     nginx:
         depends_on:
             - mongo
