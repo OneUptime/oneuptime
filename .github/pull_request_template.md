@@ -9,7 +9,7 @@
 - [ ] Put `closes #XXXX` in your comment to auto-close the issue that your PR fixes (if such).
 - [ ] Label it as "needs-review"
 - [ ] Have you lint your code locally before submission?
-- [ ] Does your submission pass tests?
+- [ ] Did you write tests where appropiate?
 
 ### Related Issue?
 
