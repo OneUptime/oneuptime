@@ -1,0 +1,20 @@
+name: haraka docker-build
+
+on: 
+  pull_request:
+    branches-ignore:
+      - 'release'
+      - 'staging-release'
+    types: [opened,synchronize,reopened]
+
+jobs:
+ # define job to build docker image
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build images
+      - name: build docker images
+        run: npm run build-ci haraka
