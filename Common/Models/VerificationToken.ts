@@ -1,11 +1,5 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     user: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
@@ -13,7 +7,7 @@ const schema: Schema = new Schema({
         index: true,
     },
     token: {
-        type: String,
+        type: string,
         required: true,
     },
     createdAt: {
@@ -22,12 +16,12 @@ const schema: Schema = new Schema({
         default: Date.now,
         expires: 3600,
     },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('VerificationToken', schema);
+
+
+
+
+

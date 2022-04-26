@@ -1,21 +1,10 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    webHookName: { type: String },
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    },
-    createdById: { type: Schema.Types.ObjectId, ref: 'User', alias: 'user' },
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    webHookName: string,
+    project: Project,
+    createdByUser: { type: Schema.Types.ObjectId, ref: 'User', alias: 'user' },
     integrationType: {
-        type: String,
+        type: string,
         enum: ['slack', 'webhook', 'msteams'],
         required: true,
     },
@@ -29,10 +18,7 @@ const schema: Schema = new Schema({
             },
         },
     ],
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+    ,
     notificationOptions: {
         incidentCreated: { type: Boolean, default: false },
         incidentAcknowledged: { type: Boolean, default: false },
@@ -40,20 +26,18 @@ const schema: Schema = new Schema({
         incidentNoteAdded: { type: Boolean, default: false },
     },
 
-    deleted: { type: Boolean, default: false },
-    deletedAt: {
-        type: Date,
-    },
-    deletedByUser: { type: String, ref: 'User', index: true },
-});
+    
 
-schema.index({ project: 1, teamId: -1 });
+    deletedByUser: User,
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
+schema.index({ project: 1, teamId: -1 }
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Integrations', schema);
+
+
+
+
+
+

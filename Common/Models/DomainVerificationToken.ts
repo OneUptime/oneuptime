@@ -1,23 +1,11 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    domain: String, // The main or base domain eg oneuptime.com
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    domain: string, // The main or base domain eg oneuptime.com
     createdAt: { type: Date, default: Date.now },
-    verificationToken: String,
-    verified: {
-        type: Boolean,
-        default: false,
-    },
+    verificationToken: string,
+    verified: boolean,
     verifiedAt: Date,
-    deleted: {
-        type: Boolean,
-        default: false,
-    },
+    deleted: boolean,
     deletedAt: Date,
     updatedAt: Date,
     project: {
@@ -25,13 +13,13 @@ const schema: Schema = new Schema({
         ref: 'Project',
         index: true,
     },
-});
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('DomainVerificationToken', schema);
+
+
+
+
+

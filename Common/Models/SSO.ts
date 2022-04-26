@@ -1,50 +1,32 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     'saml-enabled': {
         type: Boolean,
         required: true,
     },
     domain: {
-        type: String,
+        type: string,
         required: true,
     },
     entityId: {
-        type: String,
+        type: string,
         required: true,
     },
     remoteLoginUrl: {
-        type: String,
+        type: string,
         required: true,
     },
-    certificateFingerprint: {
-        type: String,
-    },
+    certificateFingerprint: string,
     remoteLogoutUrl: {
-        type: String,
+        type: string,
         required: true,
     },
-    ipRanges: {
-        type: String,
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: {
-        type: Boolean,
-        default: false,
-    },
-    deletedAt: {
-        type: Date,
-    },
+    ipRanges: string,
+    ,
+    deleted: boolean,
+
     deletedByUser: {
-        type: String,
+        type: string,
         ref: 'User',
         index: true,
     },
@@ -53,13 +35,13 @@ const schema: Schema = new Schema({
         ref: 'Project',
         index: true,
     },
-});
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Sso', schema);
+
+
+
+
+

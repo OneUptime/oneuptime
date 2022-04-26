@@ -1,43 +1,34 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
         statusPageId: {
-            type: String,
+            type: string,
             ref: 'StatusPage',
             index: true,
         },
-        name: String,
-        createdById: {
-            type: String,
+        name: string,
+        createdByUser: {
+            type: string,
             ref: 'User',
             index: true,
         },
-        deleted: {
-            type: Boolean,
-            default: false,
-        },
+        deleted: boolean,
         deletedAt: {
             type: Date,
         },
         deletedByUser: {
-            type: String,
+            type: string,
             ref: 'User',
             index: true,
         },
     },
     { timestamps: true }
 );
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('StatusPageCategory', schema);
+
+
+
+
+

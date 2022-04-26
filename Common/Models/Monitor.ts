@@ -1,20 +1,14 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
+import BaseModel from './BaseModel';
 const criteriaItem: Schema = new Schema({
-    criteriaType: String, 
+    criteriaType: string, 
     filter: 
-});
+}
 
 // A schema definition for a criterion event, i.e up, down, or degraded
 const criteriaSchema: Schema = new Schema({
-    condition: String, 
+    condition: string, 
     criteria: []
-});
+}
 
 // A schema definition for a criterion event, i.e up, down, or degraded
 const criterionEventSchema: Schema = new Schema({
@@ -22,12 +16,12 @@ const criterionEventSchema: Schema = new Schema({
     createAlert: { type: Boolean, default: false },
     autoAcknowledge: { type: Boolean, default: false },
     autoResolve: { type: Boolean, default: false },
-    title: { type: String, default: '' },
-    description: { type: String, default: '' },
+    title: { type: string, default: '' },
+    description: { type: string, default: '' },
     default: { type: Boolean, default: false },
-    name: String,
+    name: string,
     criteria: {
-        condition: String,
+        condition: string,
         criteria: [Schema.Types.Mixed],
     },
     scripts: [
@@ -39,7 +33,7 @@ const criterionEventSchema: Schema = new Schema({
             },
         },
     ],
-});
+}
 
 
 /**
@@ -84,24 +78,19 @@ const criterionEventSchema: Schema = new Schema({
  * }
  */
 
-const schema: Schema = new Schema({
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    }, //Which project this monitor belongs to.
+export default interface Model extends BaseModel{
+    project: Project, //Which project this monitor belongs to.
     componentId: {
         type: Schema.Types.ObjectId,
         ref: 'Component',
         index: true,
     },
-    name: String,
-    slug: { type: String, index: true },
+    name: string,
+    slug: string,
     config: {}, //Can be URL, IP address, or anything that depends on the type.
-    createdById: { type: String, ref: 'User' }, //user.
+    createdByUser: { type: string, ref: 'User' }, //user.
     type: {
-        type: String,
+        type: string,
         enum: [
             'url',
             'manual',
@@ -116,11 +105,8 @@ const schema: Schema = new Schema({
     }, //Type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
     agentlessConfig: Object,
     kubernetesConfig: Schema.Types.Mixed,
-    kubernetesNamespace: { type: String, default: 'default' },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+    kubernetesNamespace: { type: string, default: 'default' },
+    ,
     lastPingTime: {
         type: Date,
         default: Date.now,
@@ -137,25 +123,22 @@ const schema: Schema = new Schema({
         down: { type: [criterionEventSchema], default: [] },
     },
     lastMatchedCriterion: { type: criterionEventSchema, default: {} },
-    method: String,
-    bodyType: String,
+    method: string,
+    bodyType: string,
     formData: [Object],
-    text: String,
+    text: string,
     headers: [Object],
-    disabled: { type: Boolean, default: false },
-    deleted: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false }
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User' },
-    scriptRunStatus: String,
-    scriptRunBy: { type: String, ref: 'Probe', index: true },
+
+    deletedByUser: { type: string, ref: 'User' },
+    scriptRunStatus: string,
+    scriptRunBy: { type: string, ref: 'Probe', index: true },
 
     lighthouseScannedAt: { type: Date, index: true },
-    lighthouseScanStatus: String,
-    lighthouseScannedBy: { type: String, ref: 'Probe', index: true },
+    lighthouseScanStatus: string,
+    lighthouseScannedBy: { type: string, ref: 'Probe', index: true },
     siteUrls: [String],
     incidentCommunicationSla: {
         type: Schema.Types.ObjectId,
@@ -166,36 +149,33 @@ const schema: Schema = new Schema({
         ref: 'MonitorSla',
     },
     breachedMonitorSla: { type: Boolean, default: false },
-    breachClosedBy: [{ type: String, ref: 'User' }],
+    breachClosedBy: [{ type: string, ref: 'User' }],
     customFields: [
         {
-            fieldName: String,
+            fieldName: string,
             fieldValue: Schema.Types.Mixed,
             uniqueField: { type: Boolean, default: false },
-            fieldType: String,
+            fieldType: string,
         },
     ],
-    shouldNotMonitor: {
-        type: Boolean,
-        default: false,
-    },
+    shouldNotMonitor: boolean,
     scanning: { type: Boolean, default: false },
     probeScanning: [String],
-    monitorStatus: String,
-});
+    monitorStatus: string,
+}
 
 schema.virtual('project', {
     localField: '_id',
     foreignField: 'project',
     ref: 'Project',
     justOne: true,
-});
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Monitor', schema);
+
+
+
+
+

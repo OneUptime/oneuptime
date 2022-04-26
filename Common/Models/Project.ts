@@ -1,56 +1,34 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
+import BaseModel from './BaseModel';
 
-const schema: Schema = new Schema({
-    name: String,
-    slug: {
-        type: String,
-    },
+export default interface Model extends BaseModel{
+    name: string,
+    slug: string,
     users: [
         {
-            user: { type: String, ref: 'User', index: true },
+            user: User,
             role: {
-                type: String,
+                type: string,
                 enum: ['Owner', 'Administrator', 'Member', 'Viewer'],
             },
-            show: { type: Boolean, default: true },
+            show: boolean,
         },
     ],
 
-    stripePlanId: String,
-    stripeSubscriptionId: String, // This is for plans.
-    parentproject: { type: String, ref: 'Project', index: true },
-    seats: { type: String, default: '1' },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: { type: Boolean, default: false },
+    stripePlanId: string,
+    stripeSubscriptionId: string, // This is for plans.
+    parentproject: { type: string, ref: 'Project', index: true },
+    seats: { type: string, default: '1' },
+    
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
 
-    apiKey: String,
-    alertEnable: {
-        type: Boolean,
-        default: false,
-    },
-    alertLimit: String,
-    alertLimitReached: {
-        type: Boolean,
-        default: false,
-    },
-    balance: {
-        type: Number,
-        default: 0,
-    },
+    deletedByUser: User,
+
+    apiKey: string,
+    alertEnable: boolean,
+    alertLimit: string,
+    alertLimitReached: boolean,
+    balance: number,
     alertOptions: {
         minimumBalance: {
             type: Number,
@@ -60,88 +38,49 @@ const schema: Schema = new Schema({
             type: Number,
             enum: [40, 100, 200],
         },
-        billingUS: {
-            type: Boolean,
-            default: true,
-        },
-        billingNonUSCountries: {
-            type: Boolean,
-            default: false,
-        },
-        billingRiskCountries: {
-            type: Boolean,
-            default: false,
-        },
+        billingUS: boolean,
+        billingNonUSCountries: boolean,
+        billingRiskCountries: boolean,
     },
-    isBlocked: {
-        type: Boolean,
-        default: false,
-    },
+    isBlocked: boolean,
     adminNotes: [
         {
-            note: { type: String },
-            createdAt: { type: Date },
+            note: string,
+            createdAt: Date,
         },
     ],
-    sendCreatedIncidentNotificationSms: { type: Boolean, default: true },
-    sendAcknowledgedIncidentNotificationSms: { type: Boolean, default: true },
-    sendResolvedIncidentNotificationSms: { type: Boolean, default: true },
-    sendCreatedIncidentNotificationEmail: { type: Boolean, default: true },
-    sendAcknowledgedIncidentNotificationEmail: { type: Boolean, default: true },
-    sendResolvedIncidentNotificationEmail: { type: Boolean, default: true },
-    enableInvestigationNoteNotificationSMS: { type: Boolean, default: true },
-    enableInvestigationNoteNotificationEmail: { type: Boolean, default: true },
+    sendCreatedIncidentNotificationSms: boolean,
+    sendAcknowledgedIncidentNotificationSms: boolean,
+    sendResolvedIncidentNotificationSms: boolean,
+    sendCreatedIncidentNotificationEmail: boolean,
+    sendAcknowledgedIncidentNotificationEmail: boolean,
+    sendResolvedIncidentNotificationEmail: boolean,
+    enableInvestigationNoteNotificationSMS: boolean,
+    enableInvestigationNoteNotificationEmail: boolean,
 
-    sendAnnouncementNotificationSms: { type: Boolean, default: true },
-    sendAnnouncementNotificationEmail: { type: Boolean, default: true },
+    sendAnnouncementNotificationSms: boolean,
+    sendAnnouncementNotificationEmail: boolean,
 
-    sendCreatedScheduledEventNotificationSms: { type: Boolean, default: true },
-    sendCreatedScheduledEventNotificationEmail: {
-        type: Boolean,
-        default: true,
-    },
-    sendScheduledEventResolvedNotificationSms: { type: Boolean, default: true },
-    sendScheduledEventResolvedNotificationEmail: {
-        type: Boolean,
-        default: true,
-    },
-    sendNewScheduledEventInvestigationNoteNotificationSms: {
-        type: Boolean,
-        default: true,
-    },
-    sendNewScheduledEventInvestigationNoteNotificationEmail: {
-        type: Boolean,
-        default: true,
-    },
-    sendScheduledEventCancelledNotificationSms: {
-        type: Boolean,
-        default: true,
-    },
-    sendScheduledEventCancelledNotificationEmail: {
-        type: Boolean,
-        default: true,
-    },
+    sendCreatedScheduledEventNotificationSms: boolean,
+    sendCreatedScheduledEventNotificationEmail: boolean,
+    sendScheduledEventResolvedNotificationSms: boolean,
+    sendScheduledEventResolvedNotificationEmail: boolean,
+    sendNewScheduledEventInvestigationNoteNotificationSms: boolean,
+    sendNewScheduledEventInvestigationNoteNotificationEmail: boolean,
+    sendScheduledEventCancelledNotificationSms: boolean,
+    sendScheduledEventCancelledNotificationEmail: boolean,
 
-    enableInvestigationNoteNotificationWebhook: {
-        type: Boolean,
-        default: true,
-    },
-    replyAddress: String,
-    unpaidSubscriptionNotifications: { type: String, default: '0' },
-    paymentFailedDate: {
-        type: Date,
-        default: null,
-    },
-    paymentSuccessDate: {
-        type: Date,
-        default: null,
-    },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+    enableInvestigationNoteNotificationWebhook: boolean,
+    replyAddress: string,
+    unpaidSubscriptionNotifications: { type: string, default: '0' },
+    paymentFailedDate: Date,
+    paymentSuccessDate: Date,
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Project', schema);
+
+
+
+
+

@@ -1,38 +1,26 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     createdAt: { type: Date, default: Date.now },
-    applicationScannerKey: { type: String },
-    applicationScannerName: { type: String },
-    slug: { type: String },
-    version: { type: String },
-    lastAlive: { type: Date, default: Date.now },
-    deleted: { type: Boolean, default: false },
-    deletedAt: { type: Date },
-    applicationScannerImage: { type: String },
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    },
+    applicationScannerKey: string,
+    applicationScannerName: string,
+    slug: string,
+    version: string,
+    lastAlive: { type: Date, default: Date.now }
+    deletedAt: Date,
+    applicationScannerImage: string,
+    project: Project,
     componentId: {
         type: Schema.Types.ObjectId,
         ref: 'Component',
         alias: 'component',
         index: true,
     },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('applicationScanner', schema);
+
+
+
+
+

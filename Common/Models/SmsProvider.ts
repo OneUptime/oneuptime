@@ -1,53 +1,42 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    project: { type: String, ref: 'Project', index: true }, //Which project does this belong to.
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    project: { type: string, ref: 'Project', index: true }, //Which project does this belong to.
 
     enabled: { type: Boolean, default: false },
 
     iv: Schema.Types.Buffer,
 
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+    ,
 
-    deleted: { type: Boolean, default: false },
+    
 
-    deletedAt: {
-        type: Date,
-    },
+
 
     provider: {
-        type: String,
+        type: string,
         enum: ['twilio'],
         required: true,
     },
 
     providerCredentials: {
         twilio: {
-            accountSid: String,
-            authToken: String,
-            phoneNumber: String,
+            accountSid: string,
+            authToken: string,
+            phoneNumber: string,
         },
     },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
-});
+    deletedByUser: User,
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
+
+
 export const encryptedFields: EncryptedFields = [
     'providerCredentials.twilio.accountSid',
     'providerCredentials.twilio.authToken',
 ];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('SmsProvider', schema);
+
+

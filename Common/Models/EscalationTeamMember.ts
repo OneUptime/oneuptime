@@ -5,28 +5,28 @@ import {
     Schema,
 } from '../Infrastructure/ORM';
 
-const schema: Schema = new Schema({
+export default interface Model extends BaseModel{
     teamMembers: [
         {
             startTime: Date,
             endTime: Date,
-            timezone: String,
-            user: { type: String, ref: 'User', index: true, default: null },
+            timezone: string,
+            user: { type: string, ref: 'User', index: true, default: null },
             groupId: {
-                type: String,
+                type: string,
                 ref: 'Groups',
                 index: true,
                 default: null,
             },
         },
     ],
-});
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
+
+
+
+
 
 export default schema;

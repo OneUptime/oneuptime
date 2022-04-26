@@ -1,21 +1,10 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     idNumber: {
         type: Schema.Types.Number,
         index: true,
     },
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    }, //Which project this incident belongs to.
+    project: Project, //Which project this incident belongs to.
     title: {
         type: Schema.Types.String,
     },
@@ -38,110 +27,90 @@ const schema: Schema = new Schema({
     notifications: [
         {
             notificationId: {
-                type: String,
+                type: string,
                 ref: 'Notification',
                 index: true,
             },
         },
     ],
     incidentPriority: {
-        type: String,
+        type: string,
         ref: 'IncidentPriority',
         index: true,
     },
-    acknowledged: {
-        type: Boolean,
-        default: false,
-    },
-    acknowledgedBy: { type: String, ref: 'User', index: true }, // user
+    acknowledged: boolean,
+    acknowledgedBy: User, // user
     acknowledgedAt: {
         type: Date,
     },
-    acknowledgedByZapier: {
-        type: Boolean,
-        default: false,
-    }, // Is true when zapier acknowledges incident
+    acknowledgedByZapier: boolean, // Is true when zapier acknowledges incident
 
-    resolved: {
-        type: Boolean,
-        default: false,
-    },
+    resolved: boolean,
     incidentType: {
-        type: String,
+        type: string,
         enum: ['online', 'offline', 'degraded'],
         required: false,
     },
     probes: [
         {
-            probeId: { type: String, ref: 'Probe' },
-            updatedAt: { type: Date },
-            status: { type: Boolean, default: true },
+            probeId: { type: string, ref: 'Probe' },
+            updatedAt: Date,
+            status: boolean,
             reportedStatus: {
-                type: String,
+                type: string,
                 enum: ['online', 'offline', 'degraded'],
                 required: false,
             },
         },
     ],
-    resolvedBy: { type: String, ref: 'User', index: true }, // user
-    resolvedAt: { type: Date },
-    resolvedByZapier: {
-        type: Boolean,
-        default: false,
-    }, // Is true when zapier resolves incident
+    resolvedBy: User, // user
+    resolvedAt: Date,
+    resolvedByZapier: boolean, // Is true when zapier resolves incident
 
-    internalNote: { type: String, default: '' },
-    investigationNote: { type: String, default: '' },
+    internalNote: { type: string, default: '' },
+    investigationNote: { type: string, default: '' },
 
-    createdById: { type: String, ref: 'User', index: true }, // user
+    createdByUser: User, // user
     createdByApi: { type: Boolean, default: false },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+    ,
 
-    createdByZapier: {
-        type: Boolean,
-        default: false,
-    }, // Is true when zapier creates incident
+    createdByZapier: boolean, // Is true when zapier creates incident
 
     acknowledgedByApi: { type: Boolean, default: false },
     resolvedByApi: { type: Boolean, default: false },
 
-    notClosedBy: [{ type: String, ref: 'User', index: true }],
+    notClosedBy: [User],
     manuallyCreated: { type: Boolean, default: false },
     criterionCause: Object,
 
-    deleted: { type: Boolean, default: false },
+    
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
+
+    deletedByUser: User,
     // Has this incident breached communication sla
     breachedCommunicationSla: { type: Boolean, default: false },
     customFields: [
         {
-            fieldName: String,
+            fieldName: string,
             fieldValue: Schema.Types.Mixed,
             uniqueField: { type: Boolean, default: false },
-            fieldType: String,
+            fieldType: string,
         },
     ],
-    acknowledgedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
-    resolvedByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
-    createdByIncomingHttpRequest: { type: String, ref: 'IncomingRequest' },
+    acknowledgedByIncomingHttpRequest: { type: string, ref: 'IncomingRequest' },
+    resolvedByIncomingHttpRequest: { type: string, ref: 'IncomingRequest' },
+    createdByIncomingHttpRequest: { type: string, ref: 'IncomingRequest' },
     hideIncident: { type: Boolean, default: false },
 
-    slug: String,
-});
+    slug: string,
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Incident', schema);
+
+
+
+
+

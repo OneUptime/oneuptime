@@ -1,44 +1,32 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    project: { type: string, ref: 'Project', index: true },
+    callRoutingId: { type: string, ref: 'CallRouting', index: true },
+    
 
-const schema: Schema = new Schema({
-    project: { type: String, ref: 'Project', index: true },
-    callRoutingId: { type: String, ref: 'CallRouting', index: true },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: { type: Boolean, default: false },
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
-    callSid: String,
-    price: String,
-    calledFrom: String,
-    calledTo: String,
-    duration: String,
+    deletedByUser: User,
+    callSid: string,
+    price: string,
+    calledFrom: string,
+    calledTo: string,
+    duration: string,
     dialTo: [
         {
-            callSid: String,
-            user: { type: String, ref: 'User', index: true }, // User that call was forwarded to
-            scheduleId: { type: String, ref: 'Schedule', index: true }, // ScheduleId || ''
-            phoneNumber: String, // Phone number that call was forwarded to
-            status: String, // Completed/in progress/...
+            callSid: string,
+            user: User, // User that call was forwarded to
+            scheduleId: { type: string, ref: 'Schedule', index: true }, // ScheduleId || ''
+            phoneNumber: string, // Phone number that call was forwarded to
+            status: string, // Completed/in progress/...
         },
     ],
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('CallRoutingLog', schema);
+
+
+
+
+

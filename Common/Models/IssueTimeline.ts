@@ -1,35 +1,26 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    issueId: { type: string, ref: 'Issue', index: true },
+    createdByUser: User,
 
-const schema: Schema = new Schema({
-    issueId: { type: String, ref: 'Issue', index: true },
-    createdById: { type: String, ref: 'User', index: true },
-
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+    ,
 
     status: {
-        type: String,
+        type: string,
         enum: ['ignore', 'unresolve', 'resolve', 'unignore'],
         required: true,
     },
 
-    deleted: { type: Boolean, default: false },
-    deletedAt: { type: Date },
-    deletedByUser: { type: String, ref: 'User' },
-});
+    
+    deletedAt: Date,
+    deletedByUser: { type: string, ref: 'User' },
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('IssueTimeline', schema);
+
+
+
+
+

@@ -1,102 +1,87 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
-        name: { type: String, index: true },
-        email: String,
-        tempEmail: String,
-        password: String,
-        isVerified: {
-            type: Boolean,
-            default: false,
-        },
-        sso: { type: String, ref: 'Sso', index: true },
-        companyName: String,
-        companyRole: String,
-        companySize: String,
-        referral: String,
-        companyPhoneNumber: String,
+        name: string,
+        email: string,
+        tempEmail: string,
+        password: string,
+        isVerified: boolean,
+        sso: { type: string, ref: 'Sso', index: true },
+        companyName: string,
+        companyRole: string,
+        companySize: string,
+        referral: string,
+        companyPhoneNumber: string,
 
-        airtableId: String,
+        airtableId: string,
 
         onCallAlert: Array,
-        profilePic: String,
+        profilePic: string,
 
         twoFactorAuthEnabled: { type: Boolean, default: false },
-        twoFactorSecretCode: String,
+        twoFactorSecretCode: string,
         otpauth_url: URL,
         backupCodes: Array,
 
-        jwtRefreshToken: String,
-        stripeCustomerId: String,
-        resetPasswordToken: String,
-        resetPasswordExpires: String,
-        timezone: String,
+        jwtRefreshToken: string,
+        stripeCustomerId: string,
+        resetPasswordToken: string,
+        resetPasswordExpires: string,
+        timezone: string,
         lastActive: {
             type: Date,
             default: Date.now,
         },
-        coupon: String,
+        coupon: string,
 
-        disabled: {
-            type: Boolean,
-            default: false,
-        },
+        disabled: boolean,
         paymentFailedDate: {
             type: Date,
             default: null,
         },
         role: {
-            type: String,
+            type: string,
             enum: ['master-admin', 'user'],
         },
-        isBlocked: {
-            type: Boolean,
-            default: false,
-        },
+        isBlocked: boolean,
         adminNotes: [
             {
-                note: { type: String },
-                createdAt: { type: Date },
+                note: string,
+                createdAt: Date,
             },
         ],
 
-        deleted: { type: Boolean, default: false },
+        
 
         deletedAt: {
             type: Date,
         },
 
-        deletedByUser: { type: String, ref: 'User', index: true },
+        deletedByUser: User,
         alertPhoneNumber: {
-            type: String,
+            type: string,
             default: '',
         },
         alertPhoneVerificationCode: {
-            type: String,
+            type: string,
             default: '',
         },
         alertPhoneVerificationCodeRequestTime: {
             type: Date,
         },
-        tempAlertPhoneNumber: String,
+        tempAlertPhoneNumber: string,
         tutorial: Object,
-        createdBy: { type: String, ref: 'User' },
+        createdBy: { type: string, ref: 'User' },
         identification: [
             {
                 subscription: Object,
-                userAgent: String,
+                userAgent: string,
             },
         ],
         source: Object,
         cachedPassword: {
             // Store original password here in "admin mode"
-            type: String,
+            type: string,
             default: null,
         },
         isAdminMode: {
@@ -107,11 +92,11 @@ const schema: Schema = new Schema(
     { timestamps: true }
 );
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('User', schema);
+
+
+
+
+

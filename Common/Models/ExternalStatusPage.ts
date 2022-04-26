@@ -1,15 +1,9 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
-        name: String,
+        name: string,
         url: URL,
-        description: String,
+        description: string,
         statusPageId: {
             type: Schema.Types.ObjectId,
             ref: 'StatusPage',
@@ -20,10 +14,7 @@ const schema: Schema = new Schema(
             ref: 'Project',
             index: true,
         },
-        deleted: {
-            type: Boolean,
-            default: false,
-        },
+        deleted: boolean,
         deletedAt: {
             type: Date,
         },
@@ -32,7 +23,7 @@ const schema: Schema = new Schema(
             ref: 'User',
             index: true,
         },
-        createdById: {
+        createdByUser: {
             type: Schema.Types.ObjectId,
             ref: 'User',
             index: true,
@@ -41,11 +32,11 @@ const schema: Schema = new Schema(
     { timestamps: true }
 );
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('ExternalStatusPage', schema);
+
+
+
+
+

@@ -1,43 +1,28 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    incidentId: { type: string, ref: 'Incident', index: true },
+    createdByUser: User, // user
+    probeId: { type: string, ref: 'Probe', index: true }, // ProbeId
 
-const schema: Schema = new Schema({
-    incidentId: { type: String, ref: 'Incident', index: true },
-    createdById: { type: String, ref: 'User', index: true }, // user
-    probeId: { type: String, ref: 'Probe', index: true }, // ProbeId
+    createdByZapier: boolean, // Is true when zapier creates incident
 
-    createdByZapier: {
-        type: Boolean,
-        default: false,
-    }, // Is true when zapier creates incident
+    createdByApi: boolean,
 
-    createdByApi: {
-        type: Boolean,
-        default: false,
-    },
+    ,
 
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+    status: string,
+    incident_state: string,
 
-    status: { type: String },
-    incident_state: String,
+    
+    deletedAt: Date,
+    deletedByUser: { type: string, ref: 'User' },
+}
 
-    deleted: { type: Boolean, default: false },
-    deletedAt: { type: Date },
-    deletedByUser: { type: String, ref: 'User' },
-});
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('IncidentTimeline', schema);
+
+
+
+

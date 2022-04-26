@@ -1,23 +1,17 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    project: { type: String, ref: 'Project', index: true },
-    user: { type: String, ref: 'User', index: true },
-    alertVia: String,
-    alertStatus: String,
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    project: { type: string, ref: 'Project', index: true },
+    user: User,
+    alertVia: string,
+    alertStatus: string,
     eventType: {
-        type: String,
+        type: string,
         enum: ['identified', 'acknowledged', 'resolved'],
         required: true,
     },
-    monitorId: { type: String, ref: 'Monitor', index: true },
+    monitorId: { type: string, ref: 'Monitor', index: true },
     createdAt: { type: Date, default: Date.now, index: true },
-    incidentId: { type: String, ref: 'Incident' },
+    incidentId: { type: string, ref: 'Incident' },
     onCallScheduleStatus: {
         type: Schema.Types.ObjectId,
         ref: 'OnCallScheduleStatus',
@@ -26,21 +20,18 @@ const schema: Schema = new Schema({
     schedule: { type: Schema.Types.ObjectId, ref: 'Schedule', index: true },
     escalation: { type: Schema.Types.ObjectId, ref: 'Escalation', index: true },
     error: { type: Boolean, default: false },
-    errorMessage: String,
-    alertProgress: { type: String },
-    deleted: { type: Boolean, default: false },
+    errorMessage: string,
+    alertProgress: string
 
-    deletedAt: {
-        type: Date,
-    },
-    deletedByUser: { type: String, ref: 'User', index: true },
-});
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
+    deletedByUser: User,
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Alert', schema);
+
+
+
+
+
+

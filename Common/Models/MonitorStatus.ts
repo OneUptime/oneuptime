@@ -1,42 +1,26 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    monitorId: { type: String, ref: 'Monitor', index: true }, //Which monitor does this belong to.
-    probeId: { type: String, ref: 'Probe', index: true }, //Which probe does this belong to.
-    incidentId: { type: String, ref: 'Incident', index: true },
-    status: String,
-    manuallyCreated: {
-        type: Boolean,
-        default: false,
-    },
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    monitorId: { type: string, ref: 'Monitor', index: true }, //Which monitor does this belong to.
+    probeId: { type: string, ref: 'Probe', index: true }, //Which probe does this belong to.
+    incidentId: { type: string, ref: 'Incident', index: true },
+    status: string,
+    manuallyCreated: boolean,
     startTime: {
         type: Date,
         default: Date.now,
     },
-    endTime: {
-        type: Date,
-        default: null,
-    },
-    lastStatus: String,
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: { type: Boolean, default: false },
-    deletedAt: { type: Date },
-    deletedByUser: { type: String, ref: 'User', index: true },
-});
+    endTime: Date,
+    lastStatus: string,
+    
+    deletedAt: Date,
+    deletedByUser: User,
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('MonitorStatus', schema);
+
+
+
+
+

@@ -1,14 +1,8 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
-        name: String,
-        slug: { type: String, index: true },
+        name: string,
+        slug: string,
         gitRepositoryurl: URL,
         gitCredential: {
             type: Schema.Types.ObjectId,
@@ -25,10 +19,7 @@ const schema: Schema = new Schema(
             ref: 'ResourceCategory',
             index: true,
         },
-        deleted: {
-            type: Boolean,
-            default: false,
-        },
+        deleted: boolean,
         deletedAt: Date,
         lastScan: Date,
         scanned: { type: Boolean, default: false },
@@ -36,11 +27,11 @@ const schema: Schema = new Schema(
     },
     { timestamps: true } //Automatically adds createdAt and updatedAt to the schema
 );
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('ApplicationSecurity', schema);
+
+
+
+
+

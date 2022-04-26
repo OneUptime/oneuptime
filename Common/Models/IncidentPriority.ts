@@ -1,17 +1,6 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    },
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    project: Project,
     name: {
         type: Schema.Types.String,
         require: true,
@@ -20,21 +9,15 @@ const schema: Schema = new Schema({
         type: Object,
         require: true,
     },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: { type: Boolean, default: false },
-    deletedAt: {
-        type: Date,
-    },
-    deletedByUser: { type: String, ref: 'User', index: true },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+    
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
+    deletedByUser: User,
+}
 
-export const slugifyField: string = '';
 
-export default mongoose.model('IncidentPriority', schema);
+
+
+
+
+
+

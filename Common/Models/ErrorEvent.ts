@@ -1,11 +1,5 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     errorTrackerId: {
         type: Schema.Types.ObjectId,
         ref: 'ErrorTracker',
@@ -20,7 +14,7 @@ const schema: Schema = new Schema({
     }, //Which issue this error event belongs to.
     content: Object,
     type: {
-        type: String,
+        type: string,
         enum: ['exception', 'message', 'error'],
         required: true,
     },
@@ -37,28 +31,25 @@ const schema: Schema = new Schema({
     sdk: Object,
     fingerprint: [
         {
-            type: String,
+            type: string,
         },
     ],
-    fingerprintHash: String,
+    fingerprintHash: string,
     device: Object,
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-});
+    ,
+}
 
 schema.virtual('errorTracker', {
     localField: '_id',
     foreignField: 'errorTrackerId',
     ref: 'ErrorTracker',
     justOne: true,
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('ErrorEvent', schema);
+
+
+
+
+

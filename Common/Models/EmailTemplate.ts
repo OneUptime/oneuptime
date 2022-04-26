@@ -1,16 +1,10 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-    subject: { type: String },
-    body: { type: String },
+    subject: string,
+    body: string,
     emailType: {
-        type: String,
+        type: string,
         enum: [
             'Subscriber Incident Created',
             'Subscriber Incident Acknowledged',
@@ -24,20 +18,17 @@ const schema: Schema = new Schema({
         ],
         required: true,
     },
-    allowedVariables: [{ type: String, required: true }],
-    deleted: { type: Boolean, default: false },
+    allowedVariables: [{ type: string, required: true }]
 
-    deletedAt: {
-        type: Date,
-    },
+
 
     deletedByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('EmailTemplate', schema);
+
+
+
+
+

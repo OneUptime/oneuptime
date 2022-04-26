@@ -1,11 +1,5 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
         automationScriptId: {
             type: Schema.Types.ObjectId,
@@ -25,14 +19,11 @@ const schema: Schema = new Schema(
             ref: 'Incident',
         },
         status: {
-            type: String,
+            type: string,
             enum: ['success', 'running', 'failed'],
             default: 'running',
         },
-        deleted: {
-            type: Boolean,
-            default: false,
-        },
+        deleted: boolean,
         deletedAt: {
             type: Date,
         },
@@ -43,16 +34,16 @@ const schema: Schema = new Schema(
         },
         executionTime: Number,
         consoleLogs: [String],
-        error: String,
+        error: string,
     },
     { timestamps: true }
 );
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('AutomationSriptLog', schema);
+
+
+
+
+

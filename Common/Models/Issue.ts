@@ -1,13 +1,7 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    name: String,
-    description: String,
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    name: string,
+    description: string,
     errorTrackerId: {
         type: Schema.Types.ObjectId,
         ref: 'ErrorTracker',
@@ -15,53 +9,47 @@ const schema: Schema = new Schema({
         index: true,
     }, //Which error tracker this issue belongs to.
     type: {
-        type: String,
+        type: string,
         enum: ['exception', 'message', 'error'],
         required: true,
     },
     fingerprint: [
         {
-            type: String,
+            type: string,
         },
     ],
-    fingerprintHash: String,
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: { type: Boolean, default: false },
+    fingerprintHash: string,
+    
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
+
+    deletedByUser: User,
     resolved: { type: Boolean, default: false },
 
     resolvedAt: {
         type: Date,
     },
 
-    resolvedById: { type: String, ref: 'User', index: true },
+    resolvedById: User,
     ignored: { type: Boolean, default: false },
 
     ignoredAt: {
         type: Date,
     },
 
-    ignoredById: { type: String, ref: 'User', index: true },
-});
+    ignoredById: User,
+}
 schema.virtual('errorTracker', {
     localField: '_id',
     foreignField: 'errorTrackerId',
     ref: 'ErrorTracker',
     justOne: true,
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Issue', schema);
+
+
+
+
+

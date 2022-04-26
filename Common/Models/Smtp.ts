@@ -1,41 +1,30 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    project: { type: String, ref: 'Project', index: true }, //Which project does this belong to.
-    user: String,
-    pass: String,
-    host: String,
-    port: String,
-    from: String,
-    name: String,
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    project: { type: string, ref: 'Project', index: true }, //Which project does this belong to.
+    user: string,
+    pass: string,
+    host: string,
+    port: string,
+    from: string,
+    name: string,
     iv: Schema.Types.Buffer,
-    secure: { type: Boolean, default: true },
-    enabled: { type: Boolean, default: true },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+    secure: boolean,
+    enabled: boolean,
+    ,
 
-    deleted: { type: Boolean, default: false },
+    
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
-});
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
+    deletedByUser: User,
+}
 
-export const uniqueFields: UniqueFields = [];
+
+
+
 
 export const encryptedFields: EncryptedFields = ['pass'];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Smtp', schema);
+
+

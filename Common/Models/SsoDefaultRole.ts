@@ -1,13 +1,7 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
+import BaseModel from './BaseModel';
 import { RoleArray } from 'Common/Types/Role';
 
-const schema: Schema = new Schema({
+export default interface Model extends BaseModel{
     domain: {
         type: Schema.Types.ObjectId,
         required: true,
@@ -19,33 +13,25 @@ const schema: Schema = new Schema({
         required: true,
     },
     role: {
-        type: String,
+        type: string,
         required: true,
         enum: RoleArray.filter((item: string) => {
             return item !== 'Owner';
         }), // All roles except Owner
     },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: {
-        type: Boolean,
-        default: false,
-    },
-    deletedAt: {
-        type: Date,
-    },
+    ,
+    deleted: boolean,
+
     deletedByUser: {
-        type: String,
+        type: string,
         ref: 'User',
     },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('SsoDefaultRole', schema);
+
+
+
+
+

@@ -1,26 +1,20 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
-        token: String,
-        keyAuthorization: String,
+        token: string,
+        keyAuthorization: string,
         challengeurl: URL,
-        deleted: { type: Boolean, default: false },
+        
         deletedAt: Date,
     },
     { timestamps: true }
 );
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Ssl', schema);
+
+
+
+
+

@@ -1,46 +1,32 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     project: {
-        type: String,
+        type: string,
         ref: 'Project',
         alias: 'project',
         index: true,
     },
-    name: String,
-    teams: [{ type: String, ref: 'User', default: null }],
-    createdById: {
-        type: String,
+    name: string,
+    teams: [{ type: string, ref: 'User', default: null }],
+    createdByUser: {
+        type: string,
         ref: 'User',
         index: true,
     },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: {
-        type: Boolean,
-        default: false,
-    },
-    deletedAt: {
-        type: Date,
-    },
+    ,
+    deleted: boolean,
+
     deletedByUser: {
-        type: String,
+        type: string,
         ref: 'User',
         index: true,
     },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Groups', schema);
+
+
+
+
+

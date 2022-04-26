@@ -1,30 +1,21 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
         dockerRegistryurl: URL,
-        dockerUsername: String,
-        dockerPassword: String,
+        dockerUsername: string,
+        dockerPassword: string,
         iv: Schema.Types.Buffer,
         project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-        deleted: {
-            type: Boolean,
-            default: false,
-        },
+        deleted: boolean,
         deletedAt: Date,
     },
     { timestamps: true }
 );
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
+
+
 export const encryptedFields: EncryptedFields = ['dockerPassword'];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('DockerCredential', schema);
+
+

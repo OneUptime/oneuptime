@@ -1,22 +1,16 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    project: { type: String, ref: 'Project', index: true },
-    subscriberId: { type: String, ref: 'Subscriber', index: true },
-    incidentId: { type: String, ref: 'Incident', index: true },
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    project: { type: string, ref: 'Project', index: true },
+    subscriberId: { type: string, ref: 'Subscriber', index: true },
+    incidentId: { type: string, ref: 'Incident', index: true },
     alertVia: {
-        type: String,
+        type: string,
         enum: ['sms', 'email', 'webhook'],
         required: true,
     },
-    alertStatus: String,
+    alertStatus: string,
     eventType: {
-        type: String,
+        type: string,
         enum: [
             'identified',
             'acknowledged',
@@ -33,23 +27,20 @@ const schema: Schema = new Schema({
     },
     createdAt: { type: Date, default: Date.now },
     error: { type: Boolean, default: false },
-    errorMessage: String,
-    deleted: { type: Boolean, default: false },
+    errorMessage: string
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User' },
+
+    deletedByUser: { type: string, ref: 'User' },
     totalSubscribers: { type: Number },
     identification: { type: Number },
-});
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('SubscriberAlert', schema);
+
+
+
+
+

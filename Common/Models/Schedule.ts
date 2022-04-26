@@ -1,20 +1,9 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    name: String,
-    slug: String,
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    }, //Which project this schedule belongs to.
-    createdById: { type: String, ref: 'User', index: true },
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    name: string,
+    slug: string,
+    project: Project, //Which project this schedule belongs to.
+    createdByUser: User,
     monitorIds: [
         {
             type: Schema.Types.ObjectId,
@@ -25,29 +14,26 @@ const schema: Schema = new Schema({
     ],
     escalationIds: [
         {
-            type: String,
+            type: string,
             ref: 'Escalation',
             default: [],
             alias: 'escalations',
             index: true,
         },
     ],
-    createdAt: { type: Date, default: Date.now },
-    deleted: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
+
+    deletedByUser: User,
     isDefault: { type: Boolean, default: false },
-});
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Schedule', schema);
+
+
+
+
+

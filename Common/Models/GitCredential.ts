@@ -1,35 +1,26 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
-        gitUsername: String,
-        gitPassword: String,
-        sshTitle: String,
-        sshPrivateKey: String,
+        gitUsername: string,
+        gitPassword: string,
+        sshTitle: string,
+        sshPrivateKey: string,
         iv: Schema.Types.Buffer,
         project: {
             type: Schema.Types.ObjectId,
             ref: 'Project',
             index: true,
         },
-        deleted: {
-            type: Boolean,
-            default: false,
-        },
+        deleted: boolean,
         deletedAt: Date,
     },
     { timestamps: true }
 );
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('GitCredential', schema);
+
+
+
+
+

@@ -1,42 +1,28 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    fromEmail: string,
+    fromName: string,
 
-const schema: Schema = new Schema({
-    fromEmail: { type: String },
-    fromName: { type: String },
+    project: Project,
 
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    },
+    toEmail: string,
+    subject: string,
+    body: string,
+    templateType: string,
+    status: string,
+    errorDescription: string,
+    smtpHost: string,
 
-    toEmail: String,
-    subject: String,
-    body: String,
-    templateType: String,
-    status: String,
-    errorDescription: String,
-    smtpHost: String,
+    createdAt: { type: Date, default: Date.now }
 
-    createdAt: { type: Date, default: Date.now },
-    deleted: { type: Boolean, default: false },
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+    deletedByUser: User,
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('EmailSent', schema);
+
+
+
+
+

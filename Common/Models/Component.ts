@@ -1,46 +1,9 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
+import BaseModel from './BaseModel';
 
-const schema: Schema = new Schema({
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    },
-
-    name: String,
-    slug: { type: String, index: true },
-
-    createdById: { type: String, ref: 'User', index: true },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-
-    deleted: { type: Boolean, default: false },
-
-    deletedByUser: { type: String, ref: 'User', index: true },
-    deletedAt: {
-        type: Date,
-    },
-});
-
-schema.virtual('project', {
-    localField: '_id',
-    foreignField: 'project',
-    ref: 'Project',
-    justOne: true,
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
-
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
-
-export const slugifyField: string = '';
-
-export default mongoose.model('Component', schema);
+export default interface Model extends BaseModel{
+    project: Project,
+    name: string,
+    slug: string,
+    createdByUser: User,
+    deletedByUser: User,
+}

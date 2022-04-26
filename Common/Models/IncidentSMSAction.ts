@@ -1,43 +1,29 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    incidentId: { type: string, ref: 'Incident', index: true }, //Which project this incident belongs to.
+    user: User, // Which User will perfom this action.
+    number: string,
+    name: string,
 
-const schema: Schema = new Schema({
-    incidentId: { type: String, ref: 'Incident', index: true }, //Which project this incident belongs to.
-    user: { type: String, ref: 'User', index: true }, // Which User will perfom this action.
-    number: { type: String },
-    name: { type: String },
-
-    resolved: {
-        type: Boolean,
-        default: false,
-    },
-    acknowledged: {
-        type: Boolean,
-        default: false,
-    },
+    resolved: boolean,
+    acknowledged: boolean,
     createdAt: {
         type: Date,
         default: Date.now,
         expires: 86400,
     },
 
-    deleted: { type: Boolean, default: false },
+    
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
+    deletedByUser: User,
+}
 
-export const slugifyField: string = '';
 
-export default mongoose.model('IncidentSMSAction', schema);
+
+
+
+
+
+

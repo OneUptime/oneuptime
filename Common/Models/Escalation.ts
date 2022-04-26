@@ -1,15 +1,9 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
+import BaseModel from './BaseModel';
 import TeamMemberSchema from './EscalationTeamMember';
 
-const schema: Schema = new Schema({
+export default interface Model extends BaseModel{
     project: {
-        type: String,
+        type: string,
         ref: 'Project',
         alias: 'project',
         default: null,
@@ -19,45 +13,42 @@ const schema: Schema = new Schema({
     emailReminders: { type: Number, default: null },
     smsReminders: { type: Number, default: null },
     pushReminders: { type: Number, default: null },
-    rotateBy: { type: String, default: null },
+    rotateBy: { type: string, default: null },
     rotationInterval: { type: Number, default: null },
     firstRotationOn: Date,
-    rotationTimezone: String,
+    rotationTimezone: string,
     call: { type: Boolean, default: false },
     email: { type: Boolean, default: false },
     sms: { type: Boolean, default: false },
     push: { type: Boolean, default: false },
-    createdById: { type: String, ref: 'User', default: null, index: true },
-    scheduleId: { type: String, ref: 'Schedule', default: null },
+    createdByUser: { type: string, ref: 'User', default: null, index: true },
+    scheduleId: { type: string, ref: 'Schedule', default: null },
     teams: { type: [TeamMemberSchema], default: null },
-    createdAt: { type: Date, default: Date.now },
-    deleted: { type: Boolean, default: false },
-    deletedAt: {
-        type: Date,
-    },
+    createdAt: { type: Date, default: Date.now }
 
-    deletedByUser: { type: String, ref: 'User', index: true },
-});
+
+    deletedByUser: User,
+}
 
 schema.virtual('teams.teamMembers.user', {
     ref: 'User',
     localField: 'teams.teamMembers.user',
     foreignField: '_id',
     justOne: true,
-});
+}
 
 schema.virtual('teams.teamMembers.groups', {
     ref: 'Groups',
     localField: 'teams.teamMembers.groupId',
     foreignField: '_id',
     justOne: true,
-});
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Escalation', schema);
+
+
+
+
+

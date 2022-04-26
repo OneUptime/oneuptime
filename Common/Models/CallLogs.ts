@@ -1,31 +1,22 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    from: string,
+    to: string,
+    project: { type: string, ref: 'Project', index: true },
+    createdAt: { type: Date, default: Date.now }
 
-const schema: Schema = new Schema({
-    from: String,
-    to: String,
-    project: { type: String, ref: 'Project', index: true },
-    createdAt: { type: Date, default: Date.now },
-    deleted: { type: Boolean, default: false },
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
-    content: String,
-    status: String,
-    error: String,
-});
+    deletedByUser: User,
+    content: string,
+    status: string,
+    error: string,
+}
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('callLogs', schema);
+
+
+
+
+

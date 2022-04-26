@@ -1,14 +1,8 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
         project: {
-            type: String,
+            type: string,
             ref: 'Project',
             alias: 'project',
             index: true,
@@ -22,34 +16,28 @@ const schema: Schema = new Schema(
                 },
             },
         ],
-        name: String,
-        cancelled: {
-            type: Boolean,
-            default: false,
-        },
+        name: string,
+        cancelled: boolean,
         cancelledAt: Date,
 
         cancelledById: {
-            type: String,
+            type: string,
             ref: 'User',
             index: true,
         },
-        slug: String,
-        createdById: {
-            type: String,
+        slug: string,
+        createdByUser: {
+            type: string,
             ref: 'User',
             index: true,
         },
 
-        deleted: {
-            type: Boolean,
-            default: false,
-        },
+        deleted: boolean,
         deletedAt: {
             type: Date,
         },
         deletedByUser: {
-            type: String,
+            type: string,
             ref: 'User',
             index: true,
         },
@@ -60,43 +48,28 @@ const schema: Schema = new Schema(
             type: Date,
         },
         description: {
-            type: String,
+            type: string,
         },
-        showEventOnStatusPage: {
-            type: Boolean,
-            default: false,
-        },
-        callScheduleOnEvent: {
-            type: Boolean,
-            default: false,
-        },
-        monitorDuringEvent: {
-            type: Boolean,
-            default: false,
-        },
-        recurring: {
-            type: Boolean,
-            default: false,
-        },
+        showEventOnStatusPage: boolean,
+        callScheduleOnEvent: boolean,
+        monitorDuringEvent: boolean,
+        recurring: boolean,
         interval: {
-            type: String,
+            type: string,
             default: null,
         },
-        alertSubscriber: {
-            type: Boolean,
-            default: false,
-        },
+        alertSubscriber: boolean,
         resolved: { type: Boolean, default: false },
         resolvedBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
         resolvedAt: Date,
     },
     { timestamps: true }
 );
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('ScheduledEvent', schema);
+
+
+
+
+

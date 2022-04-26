@@ -1,11 +1,5 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     createdAt: { type: Date, default: Date.now },
 
     project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
@@ -32,18 +26,18 @@ const schema: Schema = new Schema({
 
     incident: { type: Schema.Types.ObjectId, ref: 'Incident', index: true },
     incidentAcknowledged: { type: Boolean, default: false }, //Incident attached to this schedule is acknowledged.
-    deleted: { type: Boolean, default: false },
-    deletedAt: { type: Date },
-    deletedByUser: { type: String, ref: 'User', index: true },
+    
+    deletedAt: Date,
+    deletedByUser: User,
     isOnDuty: { type: Boolean, default: false },
 
     alertedEveryone: { type: Boolean, default: false }, //This happens when everyone in the scheudle has been alerted and they still ignore the incident.
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('OnCallScheduleStatus', schema);
+
+
+
+
+

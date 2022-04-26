@@ -1,13 +1,7 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     user: {
-        type: String,
+        type: string,
         ref: 'User',
     },
     createdAt: {
@@ -20,13 +14,13 @@ const schema: Schema = new Schema({
     device: {
         type: Object,
     },
-    status: String,
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+    status: string,
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('LoginHistory', schema);
+
+
+
+
+

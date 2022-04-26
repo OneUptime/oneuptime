@@ -1,11 +1,5 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
         announcementId: {
             type: Schema.Types.ObjectId,
@@ -23,10 +17,7 @@ const schema: Schema = new Schema(
         endDate: {
             type: Date,
         },
-        deleted: {
-            type: Boolean,
-            default: false,
-        },
+        deleted: boolean,
         deletedAt: {
             type: Date,
         },
@@ -35,7 +26,7 @@ const schema: Schema = new Schema(
             ref: 'User',
             index: true,
         },
-        createdById: {
+        createdByUser: {
             type: Schema.Types.ObjectId,
             ref: 'User',
             index: true,
@@ -45,19 +36,16 @@ const schema: Schema = new Schema(
             ref: 'User',
             index: true,
         },
-        active: {
-            type: Boolean,
-            default: false,
-        },
+        active: boolean,
     },
     { timestamps: true }
 );
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('AnnouncementLog', schema);
+
+
+
+
+

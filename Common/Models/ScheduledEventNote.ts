@@ -1,37 +1,31 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
         scheduledEventId: {
             type: Schema.Types.ObjectId,
             ref: 'ScheduledEvent',
             index: true,
         },
-        content: String,
+        content: string,
         type: {
-            type: String,
+            type: string,
             enum: ['investigation', 'internal'],
             required: true,
         },
-        event_state: String,
-        createdById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+        event_state: string,
+        createdByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
         updated: { type: Boolean, default: false },
-        deleted: { type: Boolean, default: false },
+        
         deletedAt: Date,
         deletedByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     },
     { timestamps: true }
 );
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('ScheduledEventNote', schema);
+
+
+
+
+

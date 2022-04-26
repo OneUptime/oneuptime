@@ -1,22 +1,11 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema({
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    }, //Which project this statuspage belongs to.
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    project: Project, //Which project this statuspage belongs to.
     domains: [
         {
-            domain: String, // Complete domain eg status.oneuptime.com
-            cert: String, // Filename gridfs
-            privateKey: String, // Filename gridfs
+            domain: string, // Complete domain eg status.oneuptime.com
+            cert: string, // Filename gridfs
+            privateKey: string, // Filename gridfs
             enableHttps: { type: Boolean, default: false },
             autoProvisioning: { type: Boolean, default: false },
             domainVerificationToken: {
@@ -38,7 +27,7 @@ const schema: Schema = new Schema({
                 ref: 'StatusPageCategory',
                 index: true,
             },
-            description: String,
+            description: string,
             uptime: Boolean,
             memory: Boolean,
             cpu: Boolean,
@@ -49,109 +38,61 @@ const schema: Schema = new Schema({
         },
     ],
     links: Array,
-    slug: String,
-    title: { type: String, default: 'Status Page' },
-    name: String,
-    isPrivate: {
-        type: Boolean,
-        default: false,
-    },
-    isSubscriberEnabled: {
-        type: Boolean,
-        default: false,
-    },
-    isGroupedByMonitorCategory: {
-        type: Boolean,
-        default: false,
-    },
-    showScheduledEvents: {
-        type: Boolean,
-        default: true,
-    },
+    slug: string,
+    title: { type: string, default: 'Status Page' },
+    name: string,
+    isPrivate: boolean,
+    isSubscriberEnabled: boolean,
+    isGroupedByMonitorCategory: boolean,
+    showScheduledEvents: boolean,
     // Show incident to the top of status page
-    moveIncidentToTheTop: {
-        type: Boolean,
-        default: false,
-    },
+    moveIncidentToTheTop: boolean,
     // Show or hide the probe bar
-    hideProbeBar: {
-        type: Boolean,
-        default: true,
-    },
+    hideProbeBar: boolean,
     // Show or hide uptime (%) on the status page
-    hideUptime: {
-        type: Boolean,
-        default: false,
-    },
-    multipleNotificationTypes: {
-        type: Boolean,
-        default: false,
-    },
+    hideUptime: boolean,
+    multipleNotificationTypes: boolean,
     // Show or hide resolved incident on the status page
-    hideResolvedIncident: {
-        type: Boolean,
-        default: false,
-    },
-    description: String,
-    copyright: String,
-    faviconPath: String,
-    logoPath: String,
-    bannerPath: String,
+    hideResolvedIncident: boolean,
+    description: string,
+    copyright: string,
+    faviconPath: string,
+    logoPath: string,
+    bannerPath: string,
     colors: Object,
     layout: Object,
-    headerHTML: String,
-    footerHTML: String,
-    customCSS: String,
-    customJS: String,
-    statusBubbleId: String,
-    embeddedCss: String,
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    enableRSSFeed: {
-        type: Boolean,
-        default: true,
-    },
-    emailNotification: {
-        type: Boolean,
-        default: true,
-    },
-    smsNotification: {
-        type: Boolean,
-        default: true,
-    },
-    webhookNotification: {
-        type: Boolean,
-        default: true,
-    },
-    selectIndividualMonitors: {
-        type: Boolean,
-        default: false,
-    },
+    headerHTML: string,
+    footerHTML: string,
+    customCSS: string,
+    customJS: string,
+    statusBubbleId: string,
+    embeddedCss: string,
+    ,
+    enableRSSFeed: boolean,
+    emailNotification: boolean,
+    smsNotification: boolean,
+    webhookNotification: boolean,
+    selectIndividualMonitors: boolean,
     enableIpWhitelist: { type: Boolean, default: false },
-    ipWhitelist: { type: Array, default: [] },
-    deleted: { type: Boolean, default: false },
+    ipWhitelist: { type: Array, default: [] }
     incidentHistoryDays: { type: Number, default: 14 },
     scheduleHistoryDays: { type: Number, default: 14 },
     announcementLogsHistory: { type: Number, default: 14 },
-    onlineText: { type: String, default: 'Operational' },
-    offlineText: { type: String, default: 'Offline' },
-    degradedText: { type: String, default: 'Degraded' },
-    twitterHandle: { type: String },
+    onlineText: { type: string, default: 'Operational' },
+    offlineText: { type: string, default: 'Offline' },
+    degradedText: { type: string, default: 'Degraded' },
+    twitterHandle: string,
     enableMultipleLanguage: { type: Boolean, default: false },
     multipleLanguages: { type: Array, default: [] },
-    deletedAt: {
-        type: Date,
-    },
+
 
     deletedByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-    theme: { type: String, default: 'Clean Theme' },
-});
+    theme: { type: string, default: 'Clean Theme' },
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
-export const slugifyField: string = '';
+
+
+
 export const requiredFields: RequiredFields = ['name', 'project'];
 
-export default mongoose.model('StatusPage', schema);
+

@@ -1,13 +1,7 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
-        name: String,
+        name: string,
         project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
         monitors: [
             {
@@ -25,34 +19,34 @@ const schema: Schema = new Schema(
         resolveIncident: { type: Boolean, default: false },
         updateIncidentNote: { type: Boolean, default: false },
         updateInternalNote: { type: Boolean, default: false },
-        noteContent: String,
-        incidentState: String,
+        noteContent: string,
+        incidentState: string,
         url: URL,
-        enabled: { type: Boolean, default: true },
-        deleted: { type: Boolean, default: false },
+        enabled: boolean,
+        
         deletedAt: Date,
-        incidentTitle: String,
-        incidentType: { type: String },
+        incidentTitle: string,
+        incidentType: string,
         incidentPriority: {
             type: Schema.Types.Mixed,
             ref: 'IncidentPriority',
             index: true,
         },
-        incidentDescription: String,
+        incidentDescription: string,
         customFields: [
             {
-                fieldName: String,
+                fieldName: string,
                 fieldValue: Schema.Types.Mixed,
                 uniqueField: { type: Boolean, default: false },
-                fieldType: String,
+                fieldType: string,
             },
         ],
-        filterMatch: String,
+        filterMatch: string,
         filters: [
             {
-                filterCriteria: String,
+                filterCriteria: string,
                 filterCondition: {
-                    type: String,
+                    type: string,
                     enum: [
                         'equalTo',
                         'notEqualTo',
@@ -70,11 +64,11 @@ const schema: Schema = new Schema(
     },
     { timestamps: true }
 );
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('IncomingRequest', schema);
+
+
+
+
+

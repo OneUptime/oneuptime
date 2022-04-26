@@ -1,10 +1,4 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
+import BaseModel from './BaseModel';
 /**
  * Represents the Zapier Schema in the database.
  * @let {object} zapierSchema
@@ -14,21 +8,18 @@ import mongoose, {
  * @property {number} counter - The number of incidents send to the zapier `url`.
  *
  */
-const schema: Schema = new Schema({
-    project: String,
+export default interface Model extends BaseModel{
+    project: string,
     url: URL,
-    type: String,
+    type: string,
     monitors: [String],
-    deleted: {
-        type: Boolean,
-        default: false,
-    },
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+    deleted: boolean,
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('Zapier', schema);
+
+
+
+
+

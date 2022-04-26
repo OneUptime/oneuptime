@@ -1,25 +1,16 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
-
-const schema: Schema = new Schema(
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
     {
-        name: String,
-        script: String,
-        scriptType: String,
-        slug: String,
+        name: string,
+        script: string,
+        scriptType: string,
+        slug: string,
         project: {
             type: Schema.Types.ObjectId,
             ref: 'Project',
             index: true,
         },
-        deleted: {
-            type: Boolean,
-            default: false,
-        },
+        deleted: boolean,
         deletedAt: {
             type: Date,
         },
@@ -60,11 +51,11 @@ const schema: Schema = new Schema(
     { timestamps: true }
 );
 
-export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('AutomationSript', schema);
+
+
+
+
+

@@ -1,26 +1,14 @@
-import mongoose, {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
-} from '../Infrastructure/ORM';
+import BaseModel from './BaseModel';
+export default interface Model extends BaseModel{
+    project: { type: string, ref: 'Project', index: true },
+    
 
-const schema: Schema = new Schema({
-    project: { type: String, ref: 'Project', index: true },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    deleted: { type: Boolean, default: false },
 
-    deletedAt: {
-        type: Date,
-    },
 
-    deletedByUser: { type: String, ref: 'User', index: true },
-    phoneNumber: String,
-    locality: String,
-    region: String,
+    deletedByUser: User,
+    phoneNumber: string,
+    locality: string,
+    region: string,
     capabilities: {
         MMS: { type: Boolean, default: false },
         SMS: { type: Boolean, default: false },
@@ -36,18 +24,18 @@ const schema: Schema = new Schema({
         introAudioName: 'original audio name',
 
    } */,
-    sid: String,
-    price: String,
-    priceUnit: String,
-    countryCode: String,
-    numberType: String,
-    stripeSubscriptionId: String,
-});
-export const requiredFields: RequiredFields = schema.requiredPaths();
+    sid: string,
+    price: string,
+    priceUnit: string,
+    countryCode: string,
+    numberType: string,
+    stripeSubscriptionId: string,
+}
 
-export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
 
-export const slugifyField: string = '';
 
-export default mongoose.model('CallRouting', schema);
+
+
+
+
+
