@@ -2,12 +2,9 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import Path from 'path';
 import fetch from 'node-fetch-commonjs';
-
 import { v4 as uuidv4 } from 'uuid';
 import ApiService from '../Utils/apiService';
-
 import { serverUrl } from '../Config';
-
 import { deleteFile } from '../Utils/fsHandlers';
 
 export default {

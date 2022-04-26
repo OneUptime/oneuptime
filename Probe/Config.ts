@@ -1,6 +1,7 @@
-import packageJson from '../package.json';
+import ObjectID from 'Common/Types/ObjectID';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
-const COMMAND: $TSFixMe = {
+export const COMMAND: $TSFixMe = {
     linux: {
         load: "top -b -n 2 | egrep --color 'load average|%Cpu'",
         cpu: "egrep --color 'processor|cores' /proc/cpuinfo",
@@ -36,13 +37,10 @@ const COMMAND: $TSFixMe = {
     },
 };
 
-export default {
-    COMMAND,
-    serverUrl: process.env['SERVER_URL'],
-    probeName: process.env['PROBE_NAME'],
-    probeKey: process.env['PROBE_KEY'],
-    clusterKey: process.env['CLUSTER_KEY'],
-    probeVersion: packageJson.version,
-    dataIngestorUrl: process.env['DATA_INGESTOR_URL'],
-    probeApiUrl: process.env['PROBE_API_URL'],
-};
+export const ProbeName: string = process.env['PROBE_NAME'] || '';
+
+export const ProbeKey: ObjectID = new ObjectID(process.env['PROBE_KEY'] || '');
+
+export const ResourcesLimit: PositiveNumber = new PositiveNumber(
+    process.env['RESOURCES_LIMIT'] || ''
+);

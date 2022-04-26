@@ -1,6 +1,5 @@
 import logger from 'CommonServer/Utils/Logger';
 import fetch from 'node-fetch-commonjs';
-
 import sslCert from 'get-ssl-certificate';
 import https from 'https';
 import http from 'http';

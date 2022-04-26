@@ -1,19 +1,18 @@
 import logger from 'CommonServer/Utils/Logger';
 import ProbeAPI from '../Utils/api';
-import ApiMonitors from './apiMonitors';
-import UrlMonitors from './urlMonitors';
-import IPMonitors from './ipMonitors';
-import ServerMonitors from './serverMonitors';
-
+import ApiMonitors from './ApiMonitors';
+import UrlMonitors from './UrlMonitors';
+import IPMonitors from './IpMonitors';
+import ServerMonitors from './ServerMonitors';
+import asyncSleep from 'await-sleep';
 import IncomingHttpRequestMonitors from './incomingHttpRequestMonitors';
 import KubernetesMonitors from './kubernetesMonitors';
+
 let limit: $TSFixMe = process.env['RESOURCES_LIMIT'];
 
 if (limit && typeof limit === 'string') {
     limit = parseInt(limit);
 }
-
-import asyncSleep from 'await-sleep';
 
 const _this: $TSFixMe = {
     runJob: async function (): void {

@@ -22,7 +22,13 @@ export const ClusterKey: ObjectID = new ObjectID(
 
 export const RealtimeHostname: string = process.env['REALTIME_HOSTNAME'] || '';
 
-export const BackendHostname: string = process.env['BACKEND_HOSTNAME'] || '';
+export const DashboardApiHostname: string =
+    process.env['DASHBOARD_API_HOSTNAME'] || '';
+
+export const ProbeApiHostname: string = process.env['PROBE_API_HOSTNAME'] || '';
+
+export const DataIngestorHostname: string =
+    process.env['DATA_INGESTOR_HOSTNAME'] || '';
 
 export const Version: string = process.env['npm_package_version'] || '';
 

@@ -3,8 +3,8 @@ import 'CommonServer/utils/process';
 
 import asyncSleep from 'await-sleep';
 
-import Main from './workers/main';
-import config from './utils/config';
+import Main from './Workers/Index';
+import config from './Config';
 import logger from 'CommonServer/Utils/Logger';
 
 const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
