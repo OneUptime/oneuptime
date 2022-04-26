@@ -64,7 +64,7 @@ router.get(
             const projectId: $TSFixMe = req.params['projectId'];
             const populate: $TSFixMe = [{ path: 'projectId', select: 'name' }];
             const select: $TSFixMe =
-                'projectId accountSid authToken phoneNumber iv enabled createdAt deletedById';
+                'projectId accountSid authToken phoneNumber iv enabled createdAt deletedByUser';
             const smsSmtp: $TSFixMe = await SmsSmtpService.findOneBy({
                 query: { projectId },
                 select,

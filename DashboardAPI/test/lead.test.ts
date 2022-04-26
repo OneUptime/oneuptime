@@ -21,7 +21,7 @@ const leadData: $TSFixMe = {
     type: 'demo',
 };
 const selectEmailStatus: $TSFixMe =
-    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+    'from to subject body createdAt template status content error deleted deletedAt deletedByUser replyTo smtpServer';
 
 describe('Lead API', function (): void {
     this.timeout(20000);

@@ -621,7 +621,7 @@ router.post(
             ];
 
             const selectAlert: $TSFixMe =
-                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedByUser';
 
             const populate: $TSFixMe = [
                 { path: 'incidentId', select: 'name' },
@@ -634,7 +634,7 @@ router.post(
             const select: $TSFixMe =
                 'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
             const selectOnCallScheduleStatus: $TSFixMe =
-                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedByUser';
 
             const populateOnCallScheduleStatus: $TSFixMe = [
                 { path: 'incidentId', select: 'name slug' },
@@ -792,7 +792,7 @@ router.post(
             ];
 
             const selectAlert: $TSFixMe =
-                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedByUser';
 
             const populate: $TSFixMe = [
                 { path: 'incidentId', select: 'name' },
@@ -806,7 +806,7 @@ router.post(
                 'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
 
             const selectOnCallScheduleStatus: $TSFixMe =
-                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedByUser';
 
             const populateOnCallScheduleStatus: $TSFixMe = [
                 { path: 'incidentId', select: 'name slug' },
@@ -1211,7 +1211,7 @@ router.post(
                 ];
 
                 const selectAlert: $TSFixMe =
-                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedByUser';
 
                 const populate: $TSFixMe = [
                     { path: 'incidentId', select: 'name' },
@@ -1224,7 +1224,7 @@ router.post(
                 const select: $TSFixMe =
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
                 const selectOnCallScheduleStatus: $TSFixMe =
-                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedByUser';
 
                 const populateOnCallScheduleStatus: $TSFixMe = [
                     { path: 'incidentId', select: 'name slug' },
@@ -1454,7 +1454,7 @@ router.delete(
                 ];
 
                 const selectAlert: $TSFixMe =
-                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedByUser';
 
                 const populate: $TSFixMe = [
                     { path: 'incidentId', select: 'name' },
@@ -1468,7 +1468,7 @@ router.delete(
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
 
                 const selectOnCallScheduleStatus: $TSFixMe =
-                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedByUser';
 
                 const populateOnCallScheduleStatus: $TSFixMe = [
                     { path: 'incidentId', select: 'name slug' },
@@ -1629,7 +1629,7 @@ router.get(
                 ];
 
                 const selectAlert: $TSFixMe =
-                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedByUser';
 
                 const populate: $TSFixMe = [
                     { path: 'incidentId', select: 'name' },
@@ -1643,7 +1643,7 @@ router.get(
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
 
                 const selectOnCallScheduleStatus: $TSFixMe =
-                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedByUser';
 
                 const populateOnCallScheduleStatus: $TSFixMe = [
                     { path: 'incidentId', select: 'name slug' },

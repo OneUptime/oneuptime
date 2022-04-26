@@ -1,5 +1,6 @@
 import Protocol from 'Common/Types/API/Protocol';
 import ObjectID from 'Common/Types/ObjectID';
+import Hostname from 'Common/Types/API/Hostname';
 
 export const DatabaseUrl: string =
     process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
@@ -20,15 +21,15 @@ export const ClusterKey: ObjectID = new ObjectID(
     process.env['CLUSTER_KEY'] || ''
 );
 
-export const RealtimeHostname: string = process.env['REALTIME_HOSTNAME'] || '';
+export const RealtimeHostname: Hostname = new Hostname(process.env['REALTIME_HOSTNAME'] || '');
 
-export const DashboardApiHostname: string =
-    process.env['DASHBOARD_API_HOSTNAME'] || '';
+export const DashboardApiHostname: Hostname =
+    new Hostname(process.env['DASHBOARD_API_HOSTNAME'] || '');
 
-export const ProbeApiHostname: string = process.env['PROBE_API_HOSTNAME'] || '';
+export const ProbeApiHostname: Hostname = new Hostname(process.env['PROBE_API_HOSTNAME'] || '');
 
-export const DataIngestorHostname: string =
-    process.env['DATA_INGESTOR_HOSTNAME'] || '';
+export const DataIngestorHostname: Hostname =
+    new Hostname(process.env['DATA_INGESTOR_HOSTNAME'] || '');
 
 export const Version: string = process.env['npm_package_version'] || '';
 

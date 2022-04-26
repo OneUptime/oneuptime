@@ -546,7 +546,7 @@ router.post(
             ];
 
             const selectIssue: $TSFixMe =
-                'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+                'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedByUser resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
             const issue: $TSFixMe = await IssueService.findOneBy({
                 query: { _id: issueId, errorTrackerId },

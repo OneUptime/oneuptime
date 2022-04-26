@@ -407,7 +407,7 @@ class DatabaseService<ModelType> {
 
             const item: Document = new this.model();
             item.set('deleted', true);
-            item.set('deletedById', beforeDeleteBy.deletedByUserId);
+            item.set('deletedByUser', beforeDeleteBy.deletedByUserId);
             item.set('deletedAt', OneUptimeDate.getCurrentDate());
 
             if (multiple) {

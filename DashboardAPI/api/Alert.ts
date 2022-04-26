@@ -87,7 +87,7 @@ router.get(
             ];
 
             const selectColumns: $TSFixMe =
-                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedByUser';
 
             const [alerts, count]: $TSFixMe = await Promise.all([
                 alertService.findBy({
@@ -133,7 +133,7 @@ router.get(
                 ];
 
                 const selectColumns: $TSFixMe =
-                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedByUser';
 
                 const [allAlerts, allCount]: $TSFixMe = await Promise.all([
                     alertService.findBy({

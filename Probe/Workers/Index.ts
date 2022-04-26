@@ -1,24 +1,19 @@
 import logger from 'CommonServer/Utils/Logger';
-import ProbeAPI from '../Utils/api';
+import ProbeAPI from '../Utils/ProbeAPI';
 import ApiMonitors from './ApiMonitors';
 import UrlMonitors from './UrlMonitors';
 import IPMonitors from './IpMonitors';
 import ServerMonitors from './ServerMonitors';
-import asyncSleep from 'await-sleep';
+import sleep from 'sleep-promise';
 import IncomingHttpRequestMonitors from './incomingHttpRequestMonitors';
 import KubernetesMonitors from './kubernetesMonitors';
-
-let limit: $TSFixMe = process.env['RESOURCES_LIMIT'];
-
-if (limit && typeof limit === 'string') {
-    limit = parseInt(limit);
-}
+import { ResourcesLimit } from '../Config';
 
 const _this: $TSFixMe = {
     runJob: async function (): void {
-        logger.info(`Getting a list of ${limit} monitors`);
+        logger.info(`Getting a list of ${ResourcesLimit.toString()} monitors`);
 
-        let monitors: $TSFixMe = await ProbeAPI.get('probe/monitors', limit);
+        let monitors: $TSFixMe = await ProbeAPI.get('probe/monitors', ResourcesLimit.toNumber());
         monitors = JSON.parse(monitors.data); // Parse the stringified data
 
         logger.info(`Number of Monitors fetched - ${monitors.length} monitors`);
@@ -26,7 +21,7 @@ const _this: $TSFixMe = {
         if (monitors.length === 0) {
             // There are no monitors to monitor. Sleep for 30 seconds and then wake up.
             logger.info('No monitors to monitor. Sleeping for 30 seconds.');
-            await asyncSleep(30 * 1000);
+            await sleep(30 * 1000);
         }
 
         // Loop over the monitor

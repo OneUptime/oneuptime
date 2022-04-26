@@ -72,7 +72,7 @@ const schema: Schema = new Schema(
             type: Date,
         },
 
-        deletedById: { type: String, ref: 'User', index: true },
+        deletedByUser: { type: String, ref: 'User', index: true },
         alertPhoneNumber: {
             type: String,
             default: '',
