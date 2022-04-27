@@ -2,57 +2,39 @@ import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
+import ScheduledEvent, { ScheduledEventState } from './ScheduledEvent';
+
+export enum ScheduledEventNote {
+       Investogation = "Investigation",
+       Internam = "Internal"
+}
+
+
 @Entity({
-    name: "UserAlerts"
+       name: "UserAlerts"
 })
-export default class Model extends BaseModel{
- 
- @Column()
-        scheduledEventId!: {
- 
- @Column()
-            type!: Schema.Types.ObjectId;
- 
- @Column()
-            ref!: 'ScheduledEvent';
- 
- @Column()
-            index!: true;
-        };
- 
- @Column()
-        content!: string;
- 
- @Column()
-        type!: {
- 
- @Column()
-            type!: string;
- 
- @Column()
-            enum!: ['investigation', 'internal'];
- 
- @Column()
-            required!: true;
-        };
- 
- @Column()
-        event_state!: string;
- 
- @Column()
-        createdByUser: User;
- 
- @Column()
-        updated!: boolean;
-        
- 
+export default class Model extends BaseModel {
 
- 
- @Column()
-        deletedByUser: User;
-    };
- 
+       @Column()
+       scheduledEventId!: ScheduledEvent
 
+       @Column()
+       content!: string;
+
+       @Column()
+       type!: ScheduledEventNote
+
+       @Column()
+       eventState!: ScheduledEventState;
+
+       @Column()
+       createdByUser!: User;
+
+       @Column()
+       updated!: boolean;
+
+       @Column()
+       deletedByUser!: User;
 }
 
 

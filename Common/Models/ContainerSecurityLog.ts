@@ -1,46 +1,24 @@
 import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
+import ContainerSecurity from './ContainerSecurity';
+import Component from './Component';
+
 @Entity({
-    name: "UserAlerts"
+       name: "ContainerSecurityLog"
 })
-export default class Model extends BaseModel{
- 
- @Column()
-        securityId!: {
- 
- @Column()
-            type!: Schema.Types.ObjectId;
- 
- @Column()
-            ref!: 'ContainerSecurity';
- 
- @Column()
-            index!: true;
-        };
- 
- @Column()
-        componentId!: {
- 
- @Column()
-            type!: Schema.Types.ObjectId;
- 
- @Column()
-            ref!: 'Component';
- 
- @Column()
-            index!: true;
-        };
- 
- @Column()
-        data!: Object;
-        
- 
- @Column()
-        deleteAt!: Date;
-    };
- 
+export default class ContainerSecurityLog extends BaseModel {
+
+       @Column()
+       securityId!: ContainerSecurity
+
+       @Column()
+       componentId!: Component
+
+       @Column()
+       data!: Object;
+
+       @Column()
+       deleteAt!: Date;
 
 }
 

@@ -9,9 +9,9 @@ export enum IncidentMessageType{
 }
 
 @Entity({
-   name: "UserAlerts"
+   name: "IncidentNote"
 })
-export default class Model extends BaseModel {
+export default class IncidentNote extends BaseModel {
  
    @Column()
    incident!: Incident

@@ -5,10 +5,10 @@ export default class BaseModel extends BaseEntity {
     id!: string;
 
     @CreateDateColumn()
-    created!: Date;
+    createdAt!: Date;
   
     @UpdateDateColumn()
-    updated!: Date;
+    updatedAt!: Date;
   
     @DeleteDateColumn()
     deletedAt?: Date;

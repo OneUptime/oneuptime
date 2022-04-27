@@ -1,28 +1,30 @@
 import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
 import Project from './Project';
-@Entity({
-    name: "UserAlerts"
-})
-export default class Model extends BaseModel{
- 
- @Column()
-        fieldName!: string;
- 
- @Column()
-        fieldType: { type: string, enum!: ['text', 'number'] };
- 
- @Column()
-        project: Project;
- 
- @Column()
-        uniqueField!: boolean;
-        
- 
 
-    };
- 
+export enum CustomFieldType {
+       Text = 'text',
+       Number = 'number'
+}
+
+@Entity({
+       name: "CustomField"
+})
+export default class CustomField extends BaseModel {
+
+       @Column()
+       fieldName!: string;
+
+       @Column()
+       fieldType!: CustomFieldType;
+
+       @Column()
+       project!: Project;
+
+       @Column()
+       uniqueField!: boolean;
+
+
 
 }
 
