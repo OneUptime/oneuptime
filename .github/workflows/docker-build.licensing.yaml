@@ -1,4 +1,4 @@
-name: haraka docker-build workflow
+name: Licensing docker-build workflow
 
 on: 
   push:
@@ -9,12 +9,12 @@ on:
 
 jobs:
  # define job to build docker image
-  haraka-docker-build:
+  licensing-docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 
         uses: actions/checkout@v2
 
-      # build images
+      # build image for licensing
       - name: build docker image
-        run: npm run build-ci haraka
+        run: npm run build-ci licensing

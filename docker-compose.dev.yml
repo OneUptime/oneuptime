@@ -1,7 +1,5 @@
-# This docker file is for development. 
+# This docker file is for development.
 # It connects to debugging ports that help you debug the app.
-
-
 
 version: '3.7'
 services:
@@ -13,7 +11,7 @@ services:
             - '2525:2525'
         build:
             network: host
-            context: ./haraka
+            context: ./Haraka
             args:
                 PORT: '2525'
         environment:
@@ -452,7 +450,7 @@ services:
         build:
             dockerfile: Dockerfile
             network: host
-            context: ./nginx
+            context: ./Nginx
         ports:
             - '80:80'
             - '443:443'
