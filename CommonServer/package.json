@@ -22,12 +22,11 @@
         "gridfs-stream": "^1.1.1",
         "handlebars": "^4.7.7",
         "jsonwebtoken": "^8.5.1",
-        "mongodb": "^4.4.1",
-        "mongoose": "^6.2.8",
         "node-device-detector": "^2.0.0",
         "nodemailer": "^6.7.3",
         "nodemailer-express-handlebars": "^5.0.0",
         "socket.io": "^4.4.1",
+        "typeorm": "^0.3.6",
         "winston": "^3.6.0"
     },
     "devDependencies": {

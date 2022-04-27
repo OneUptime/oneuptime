@@ -1,38 +1,80 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    applicationLogId: {
-        type: Schema.Types.ObjectId,
-        ref: 'ApplicationLog',
-        alias: 'applicationLog',
-        index: true,
-    }, //Which application log this content log belongs to.
-    content: Object,
-    stringifiedContent: string,
-    type: {
-        type: string,
-        enum: ['info', 'warning', 'error'],
-        required: true,
-    },
-    tags: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    applicationLogId!: {
+ 
+ @Column()
+        type!: Schema.Types.ObjectId;
+ 
+ @Column()
+        ref!: 'ApplicationLog';
+ 
+ @Column()
+        alias!: 'applicationLog';
+ 
+ @Column()
+        index!: true;
+    }; //Which application log this content log belongs to.
+ 
+ @Column()
+    content!: Object;
+ 
+ @Column()
+    stringifiedContent!: string;
+ 
+ @Column()
+    type!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: ['info', 'warning', 'error'];
+ 
+ @Column()
+        required!: true;
+    };
+ 
+ @Column()
+    tags!: [
         {
-            type: string,
-        },
-    ],
-    createdByUser: User, //user.
+ 
+ @Column()
+            type!: string;
+        };
+    ];
+ 
+ @Column()
+    createdByUser!: User; 
     
 
 
 
-    deletedByUser: User,
+ 
+ @Column()
+    deletedByUser!: User;
 }
 
-schema.virtual('applicationLog', {
-    localField: '_id',
-    foreignField: 'applicationLogId',
-    ref: 'ApplicationLog',
-    justOne: true,
+schema.virtual('applicationLog'; {
+ 
+ @Column()
+    localField!: '_id';
+ 
+ @Column()
+    foreignField!: 'applicationLogId';
+ 
+ @Column()
+    ref!: 'ApplicationLog';
+ 
+ @Column()
+    justOne!: true;
 }
 
 

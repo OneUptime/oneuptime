@@ -1,19 +1,42 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    project: Project,
-    createdAt: { type: Date, default: Date.now },
-    createdBy: User,
-    message: string,
-    read: [User],
-    closed: [User],
-    icon: string
-    meta: {
-        type: Object,
-    },
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    project!: Project;
+ 
 
-    deletedByUser: User,
+ 
+ @Column()
+    createdBy!: User;
+ 
+ @Column()
+    message!: string;
+ 
+ @Column()
+    read!: [User];
+ 
+ @Column()
+    closed!: [User];
+ 
+ @Column()
+    icon!: string
+ 
+ @Column()
+    meta!: {
+ 
+ @Column()
+        type!: Object;
+    };
+
+ 
+ @Column()
+    deletedByUser!: User;
 }
 
 

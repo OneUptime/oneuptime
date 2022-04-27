@@ -1,28 +1,59 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        scheduledEventId: {
-            type: Schema.Types.ObjectId,
-            ref: 'ScheduledEvent',
-            index: true,
-        },
-        content: string,
-        type: {
-            type: string,
-            enum: ['investigation', 'internal'],
-            required: true,
-        },
-        event_state: string,
-        createdByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-        updated: boolean,
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+        scheduledEventId!: {
+ 
+ @Column()
+            type!: Schema.Types.ObjectId;
+ 
+ @Column()
+            ref!: 'ScheduledEvent';
+ 
+ @Column()
+            index!: true;
+        };
+ 
+ @Column()
+        content!: string;
+ 
+ @Column()
+        type!: {
+ 
+ @Column()
+            type!: string;
+ 
+ @Column()
+            enum!: ['investigation', 'internal'];
+ 
+ @Column()
+            required!: true;
+        };
+ 
+ @Column()
+        event_state!: string;
+ 
+ @Column()
+        createdByUser: User;
+ 
+ @Column()
+        updated!: boolean;
         
-        deletedAt: Date,
-        deletedByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-    },
-    { timestamps: true }
-);
+ 
+
+ 
+ @Column()
+        deletedByUser: User;
+    };
+ 
+
+}
 
 
 

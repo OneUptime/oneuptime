@@ -1,23 +1,48 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        id: Schema.Types.Mixed,
-        privateKeyPem: Schema.Types.Mixed,
-        privateKeyJwk: Schema.Types.Mixed,
-        cert: Schema.Types.Mixed,
-        chain: Schema.Types.Mixed,
-        privKey: Schema.Types.Mixed,
-        subject: Schema.Types.Mixed,
-        altnames: Schema.Types.Mixed,
-        issuedAt: Schema.Types.Mixed,
-        expiresAt: Schema.Types.Mixed,
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+        id!: Schema.Types.Mixed;
+ 
+ @Column()
+        privateKeyPem!: Schema.Types.Mixed;
+ 
+ @Column()
+        privateKeyJwk!: Schema.Types.Mixed;
+ 
+ @Column()
+        cert!: Schema.Types.Mixed;
+ 
+ @Column()
+        chain!: Schema.Types.Mixed;
+ 
+ @Column()
+        privKey!: Schema.Types.Mixed;
+ 
+ @Column()
+        subject!: Schema.Types.Mixed;
+ 
+ @Column()
+        altnames!: Schema.Types.Mixed;
+ 
+ @Column()
+        issuedAt!: Schema.Types.Mixed;
+ 
+ @Column()
+        expiresAt!: Schema.Types.Mixed;
         
-        deletedAt: Date,
-    },
-    { timestamps: true }
-);
+ 
+
+    };
+ 
+
+}
 
 
 

@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/Probe';
+} from 'Common/Models/Probe';
 
 import { Document } from '../Infrastructure/ORM';
 

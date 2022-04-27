@@ -1,82 +1,196 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
-export default interface Model extends BaseModel{
-    name: string,
-    slug: string,
-    users: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    name!: string;
+ 
+ @Column()
+    slug!: string;
+ 
+ @Column()
+    users!: [
         {
-            user: User,
-            role: {
-                type: string,
-                enum: ['Owner', 'Administrator', 'Member', 'Viewer'],
-            },
-            show: boolean,
-        },
-    ],
+ 
+ @Column()
+            user!: User;
+ 
+ @Column()
+            role!: {
+ 
+ @Column()
+                type!: string;
+ 
+ @Column()
+                enum!: ['Owner', 'Administrator', 'Member', 'Viewer'];
+            };
+ 
+ @Column()
+            show!: boolean;
+        };
+    ];
 
-    stripePlanId: string,
-    stripeSubscriptionId: string, // This is for plans.
-    parentproject: Project,
-    seats: { type: string, default: '1' },
+ 
+ @Column()
+    stripePlanId!: string;
+ 
+ @Column()
+    stripeSubscriptionId!: string; // This is for plans.
+ 
+ @Column()
+    parentproject!: Project;
+ 
+ @Column()
+    seats: { type: string, default!: '1' };
     
 
 
 
-    deletedByUser: User,
+ 
+ @Column()
+    deletedByUser!: User;
 
-    apiKey: string,
-    alertEnable: boolean,
-    alertLimit: string,
-    alertLimitReached: boolean,
-    balance: number,
-    alertOptions: {
-        minimumBalance: {
-            type: Number,
-            enum: [20, 50, 100],
-        },
-        rechargeToBalance: {
-            type: Number,
-            enum: [40, 100, 200],
-        },
-        billingUS: boolean,
-        billingNonUSCountries: boolean,
-        billingRiskCountries: boolean,
-    },
-    isBlocked: boolean,
-    adminNotes: [
+ 
+ @Column()
+    apiKey!: string;
+ 
+ @Column()
+    alertEnable!: boolean;
+ 
+ @Column()
+    alertLimit!: string;
+ 
+ @Column()
+    alertLimitReached!: boolean;
+ 
+ @Column()
+    balance!: number;
+ 
+ @Column()
+    alertOptions!: {
+ 
+ @Column()
+        minimumBalance!: {
+ 
+ @Column()
+            type!: Number;
+ 
+ @Column()
+            enum!: [20, 50, 100];
+        };
+ 
+ @Column()
+        rechargeToBalance!: {
+ 
+ @Column()
+            type!: Number;
+ 
+ @Column()
+            enum!: [40, 100, 200];
+        };
+ 
+ @Column()
+        billingUS!: boolean;
+ 
+ @Column()
+        billingNonUSCountries!: boolean;
+ 
+ @Column()
+        billingRiskCountries!: boolean;
+    };
+ 
+ @Column()
+    isBlocked!: boolean;
+ 
+ @Column()
+    adminNotes!: [
         {
-            note: string,
-            createdAt: Date,
-        },
-    ],
-    sendCreatedIncidentNotificationSms: boolean,
-    sendAcknowledgedIncidentNotificationSms: boolean,
-    sendResolvedIncidentNotificationSms: boolean,
-    sendCreatedIncidentNotificationEmail: boolean,
-    sendAcknowledgedIncidentNotificationEmail: boolean,
-    sendResolvedIncidentNotificationEmail: boolean,
-    enableInvestigationNoteNotificationSMS: boolean,
-    enableInvestigationNoteNotificationEmail: boolean,
+ 
+ @Column()
+            note!: string;
+ 
+ @Column()
+            createdAt!: Date;
+        };
+    ];
+ 
+ @Column()
+    sendCreatedIncidentNotificationSms!: boolean;
+ 
+ @Column()
+    sendAcknowledgedIncidentNotificationSms!: boolean;
+ 
+ @Column()
+    sendResolvedIncidentNotificationSms!: boolean;
+ 
+ @Column()
+    sendCreatedIncidentNotificationEmail!: boolean;
+ 
+ @Column()
+    sendAcknowledgedIncidentNotificationEmail!: boolean;
+ 
+ @Column()
+    sendResolvedIncidentNotificationEmail!: boolean;
+ 
+ @Column()
+    enableInvestigationNoteNotificationSMS!: boolean;
+ 
+ @Column()
+    enableInvestigationNoteNotificationEmail!: boolean;
 
-    sendAnnouncementNotificationSms: boolean,
-    sendAnnouncementNotificationEmail: boolean,
+ 
+ @Column()
+    sendAnnouncementNotificationSms!: boolean;
+ 
+ @Column()
+    sendAnnouncementNotificationEmail!: boolean;
 
-    sendCreatedScheduledEventNotificationSms: boolean,
-    sendCreatedScheduledEventNotificationEmail: boolean,
-    sendScheduledEventResolvedNotificationSms: boolean,
-    sendScheduledEventResolvedNotificationEmail: boolean,
-    sendNewScheduledEventInvestigationNoteNotificationSms: boolean,
-    sendNewScheduledEventInvestigationNoteNotificationEmail: boolean,
-    sendScheduledEventCancelledNotificationSms: boolean,
-    sendScheduledEventCancelledNotificationEmail: boolean,
+ 
+ @Column()
+    sendCreatedScheduledEventNotificationSms!: boolean;
+ 
+ @Column()
+    sendCreatedScheduledEventNotificationEmail!: boolean;
+ 
+ @Column()
+    sendScheduledEventResolvedNotificationSms!: boolean;
+ 
+ @Column()
+    sendScheduledEventResolvedNotificationEmail!: boolean;
+ 
+ @Column()
+    sendNewScheduledEventInvestigationNoteNotificationSms!: boolean;
+ 
+ @Column()
+    sendNewScheduledEventInvestigationNoteNotificationEmail!: boolean;
+ 
+ @Column()
+    sendScheduledEventCancelledNotificationSms!: boolean;
+ 
+ @Column()
+    sendScheduledEventCancelledNotificationEmail!: boolean;
 
-    enableInvestigationNoteNotificationWebhook: boolean,
-    replyAddress: string,
-    unpaidSubscriptionNotifications: { type: string, default: '0' },
-    paymentFailedDate: Date,
-    paymentSuccessDate: Date,
+ 
+ @Column()
+    enableInvestigationNoteNotificationWebhook!: boolean;
+ 
+ @Column()
+    replyAddress!: string;
+ 
+ @Column()
+    unpaidSubscriptionNotifications: { type: string, default!: '0' };
+ 
+ @Column()
+    paymentFailedDate!: Date;
+ 
+ @Column()
+    paymentSuccessDate!: Date;
 }
 
 

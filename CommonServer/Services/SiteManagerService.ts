@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/SiteManager';
+} from 'Common/Models/SiteManager';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {

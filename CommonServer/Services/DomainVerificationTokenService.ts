@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/DomainVerificationToken';
+} from 'Common/Models/DomainVerificationToken';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {

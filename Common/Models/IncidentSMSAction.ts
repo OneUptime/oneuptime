@@ -1,25 +1,51 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    incidentId: { type: string, ref: 'Incident', index: true }, //Which project this incident belongs to.
-    user: User, // Which User will perfom this action.
-    number: string,
-    name: string,
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    incidentId: { type: string, ref: 'Incident', index!: true }; //Which project this incident belongs to.
+ 
+ @Column()
+    user!: User; // Which User will perfom this action.
+ 
+ @Column()
+    number!: string;
+ 
+ @Column()
+    name!: string;
 
-    resolved: boolean,
-    acknowledged: boolean,
-    createdAt: {
-        type: Date,
-        default: Date.now,
-        expires: 86400,
-    },
+ 
+ @Column()
+    resolved!: boolean;
+ 
+ @Column()
+    acknowledged!: boolean;
+ 
+ @Column()
+    createdAt!: {
+ 
+ @Column()
+        type!: Date;
+ 
+ @Column()
+        default!: Date.now;
+ 
+ @Column()
+        expires!: 86400;
+    };
 
     
 
 
 
-    deletedByUser: User,
+ 
+ @Column()
+    deletedByUser!: User;
 }
 
 

@@ -1,100 +1,250 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    project: Project, //Which project this statuspage belongs to.
-    domains: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    project!: Project; //Which project this statuspage belongs to.
+ 
+ @Column()
+    domains!: [
         {
-            domain: string, // Complete domain eg status.oneuptime.com
-            cert: string, // Filename gridfs
-            privateKey: string, // Filename gridfs
-            enableHttps: boolean,
-            autoProvisioning: boolean,
-            domainVerificationToken: {
-                type: Schema.Types.ObjectId,
-                ref: 'DomainVerificationToken',
-                index: true,
-            },
-        },
-    ],
-    monitors: [
+ 
+ @Column()
+            domain!: string; // Complete domain eg status.oneuptime.com
+ 
+ @Column()
+            cert!: string; // Filename gridfs
+ 
+ @Column()
+            privateKey!: string; // Filename gridfs
+ 
+ @Column()
+            enableHttps!: boolean;
+ 
+ @Column()
+            autoProvisioning!: boolean;
+ 
+ @Column()
+            domainVerificationToken!: {
+ 
+ @Column()
+                type!: Schema.Types.ObjectId;
+ 
+ @Column()
+                ref!: 'DomainVerificationToken';
+ 
+ @Column()
+                index!: true;
+            };
+        };
+    ];
+ 
+ @Column()
+    monitors!: [
         {
-            monitor: {
-                type: Schema.Types.ObjectId,
-                ref: 'Monitor',
-                index: true,
-            },
-            statusPageCategory: {
-                type: Schema.Types.ObjectId,
-                ref: 'StatusPageCategory',
-                index: true,
-            },
-            description: string,
-            uptime: Boolean,
-            memory: Boolean,
-            cpu: Boolean,
-            storage: Boolean,
-            responseTime: Boolean,
-            temperature: Boolean,
-            runtime: Boolean,
-        },
-    ],
-    links: Array,
-    slug: string,
-    title: { type: string, default: 'Status Page' },
-    name: string,
-    isPrivate: boolean,
-    isSubscriberEnabled: boolean,
-    isGroupedByMonitorCategory: boolean,
-    showScheduledEvents: boolean,
+ 
+ @Column()
+            monitor!: {
+ 
+ @Column()
+                type!: Schema.Types.ObjectId;
+ 
+ @Column()
+                ref!: 'Monitor';
+ 
+ @Column()
+                index!: true;
+            };
+ 
+ @Column()
+            statusPageCategory!: {
+ 
+ @Column()
+                type!: Schema.Types.ObjectId;
+ 
+ @Column()
+                ref!: 'StatusPageCategory';
+ 
+ @Column()
+                index!: true;
+            };
+ 
+ @Column()
+            description!: string;
+ 
+ @Column()
+            uptime!: Boolean;
+ 
+ @Column()
+            memory!: Boolean;
+ 
+ @Column()
+            cpu!: Boolean;
+ 
+ @Column()
+            storage!: Boolean;
+ 
+ @Column()
+            responseTime!: Boolean;
+ 
+ @Column()
+            temperature!: Boolean;
+ 
+ @Column()
+            runtime!: Boolean;
+        };
+    ];
+ 
+ @Column()
+    links!: Array;
+ 
+ @Column()
+    slug!: string;
+ 
+ @Column()
+    title: { type: string, default!: 'Status Page' };
+ 
+ @Column()
+    name!: string;
+ 
+ @Column()
+    isPrivate!: boolean;
+ 
+ @Column()
+    isSubscriberEnabled!: boolean;
+ 
+ @Column()
+    isGroupedByMonitorCategory!: boolean;
+ 
+ @Column()
+    showScheduledEvents!: boolean;
     // Show incident to the top of status page
-    moveIncidentToTheTop: boolean,
+ 
+ @Column()
+    moveIncidentToTheTop!: boolean;
     // Show or hide the probe bar
-    hideProbeBar: boolean,
+ 
+ @Column()
+    hideProbeBar!: boolean;
     // Show or hide uptime (%) on the status page
-    hideUptime: boolean,
-    multipleNotificationTypes: boolean,
+ 
+ @Column()
+    hideUptime!: boolean;
+ 
+ @Column()
+    multipleNotificationTypes!: boolean;
     // Show or hide resolved incident on the status page
-    hideResolvedIncident: boolean,
-    description: string,
-    copyright: string,
-    faviconPath: string,
-    logoPath: string,
-    bannerPath: string,
-    colors: Object,
-    layout: Object,
-    headerHTML: string,
-    footerHTML: string,
-    customCSS: string,
-    customJS: string,
-    statusBubbleId: string,
-    embeddedCss: string,
-    ,
-    enableRSSFeed: boolean,
-    emailNotification: boolean,
-    smsNotification: boolean,
-    webhookNotification: boolean,
-    selectIndividualMonitors: boolean,
-    enableIpWhitelist: boolean,
-    ipWhitelist: { type: Array, default: [] }
-    incidentHistoryDays: { type: Number, default: 14 },
-    scheduleHistoryDays: { type: Number, default: 14 },
-    announcementLogsHistory: { type: Number, default: 14 },
-    onlineText: { type: string, default: 'Operational' },
-    offlineText: { type: string, default: 'Offline' },
-    degradedText: { type: string, default: 'Degraded' },
-    twitterHandle: string,
-    enableMultipleLanguage: boolean,
-    multipleLanguages: { type: Array, default: [] },
+ 
+ @Column()
+    hideResolvedIncident!: boolean;
+ 
+ @Column()
+    description!: string;
+ 
+ @Column()
+    copyright!: string;
+ 
+ @Column()
+    faviconPath!: string;
+ 
+ @Column()
+    logoPath!: string;
+ 
+ @Column()
+    bannerPath!: string;
+ 
+ @Column()
+    colors!: Object;
+ 
+ @Column()
+    layout!: Object;
+ 
+ @Column()
+    headerHTML!: string;
+ 
+ @Column()
+    footerHTML!: string;
+ 
+ @Column()
+    customCSS!: string;
+ 
+ @Column()
+    customJS!: string;
+ 
+ @Column()
+    statusBubbleId!: string;
+ 
+ @Column()
+    embeddedCss!: string;
+    ;
+ 
+ @Column()
+    enableRSSFeed!: boolean;
+ 
+ @Column()
+    emailNotification!: boolean;
+ 
+ @Column()
+    smsNotification!: boolean;
+ 
+ @Column()
+    webhookNotification!: boolean;
+ 
+ @Column()
+    selectIndividualMonitors!: boolean;
+ 
+ @Column()
+    enableIpWhitelist!: boolean;
+ 
+ @Column()
+    ipWhitelist: { type: Array; default!: [] }
+ 
+ @Column()
+    incidentHistoryDays: { type: Number, default!: 14 };
+ 
+ @Column()
+    scheduleHistoryDays: { type: Number, default!: 14 };
+ 
+ @Column()
+    announcementLogsHistory: { type: Number, default!: 14 };
+ 
+ @Column()
+    onlineText: { type: string, default!: 'Operational' };
+ 
+ @Column()
+    offlineText: { type: string, default!: 'Offline' };
+ 
+ @Column()
+    degradedText: { type: string, default!: 'Degraded' };
+ 
+ @Column()
+    twitterHandle!: string;
+ 
+ @Column()
+    enableMultipleLanguage!: boolean;
+ 
+ @Column()
+    multipleLanguages: { type: Array, default!: [] };
 
 
-    deletedByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-    theme: { type: string, default: 'Clean Theme' },
+ 
+ @Column()
+    deletedByUser: User;
+ 
+ @Column()
+    theme: { type: string, default!: 'Clean Theme' };
 }
 
 
 
 
-export const requiredFields: RequiredFields = ['name', 'project'];
+ 
+ @Column()
+export const requiredFields!: RequiredFields = ['name'; 'project'];
 
 

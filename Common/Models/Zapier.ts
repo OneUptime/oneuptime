@@ -1,3 +1,4 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -10,12 +11,23 @@ import Project from './Project';
  * @property {number} counter - The number of incidents send to the zapier `url`.
  *
  */
-export default interface Model extends BaseModel{
-    project: string,
-    url: URL,
-    type: string,
-    monitors: [String],
-    deleted: boolean,
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    project!: Project;
+ 
+ @Column()
+    url!: URL;
+ 
+ @Column()
+    type!: string;
+ 
+ @Column()
+    monitors!: [String];
+    
 }
 
 

@@ -14,7 +14,7 @@ export default class PositiveNumber {
             try {
                 positiveNumber = Number.parseInt(positiveNumber, 10);
             } catch (error) {
-                throw new BadDataException(`Invlaid number: ${positiveNumber}`);
+                throw new BadDataException(`Invalid number: ${positiveNumber}`);
             }
         }
 

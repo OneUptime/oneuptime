@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/Smtp';
+} from 'Common/Models/Smtp';
 import DatabaseService from './DatabaseService';
 
 class EmailSmtpService extends DatabaseService<typeof Model> {

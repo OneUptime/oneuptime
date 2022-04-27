@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/CallRoutingLog';
+} from 'Common/Models/CallRoutingLog';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {

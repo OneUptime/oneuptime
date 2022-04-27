@@ -1,34 +1,74 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    name: string,
-    slug: string,
-    project: Project, //Which project this schedule belongs to.
-    createdByUser: User,
-    monitorIds: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    name!: string;
+ 
+ @Column()
+    slug!: string;
+ 
+ @Column()
+    project!: Project; //Which project this schedule belongs to.
+ 
+ @Column()
+    createdByUser!: User;
+ 
+ @Column()
+    monitorIds!: [
         {
-            type: Schema.Types.ObjectId,
-            ref: 'Monitor',
-            default: [],
-            alias: 'monitors',
-        },
-    ],
-    escalationIds: [
+ 
+ @Column()
+            type!: Schema.Types.ObjectId;
+ 
+ @Column()
+            ref!: 'Monitor';
+ 
+ @Column()
+            default!: [];
+ 
+ @Column()
+            alias!: 'monitors';
+        };
+    ];
+ 
+ @Column()
+    escalationIds!: [
         {
-            type: string,
-            ref: 'Escalation',
-            default: [],
-            alias: 'escalations',
-            index: true,
-        },
-    ],
-    createdAt: { type: Date, default: Date.now }
+ 
+ @Column()
+            type!: string;
+ 
+ @Column()
+            ref!: 'Escalation';
+ 
+ @Column()
+            default!: [];
+ 
+ @Column()
+            alias!: 'escalations';
+ 
+ @Column()
+            index!: true;
+        };
+    ];
+ 
+ @Column()
+    createdAt: { type: Date; default!: Date.now }
 
 
 
-    deletedByUser: User,
-    isDefault: boolean,
+ 
+ @Column()
+    deletedByUser!: User;
+ 
+ @Column()
+    isDefault!: boolean;
 }
 
 

@@ -1,28 +1,22 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        project: {
-            type: Schema.Types.ObjectId,
-            ref: 'Project',
-            alias: 'project',
-            index: true,
-        },
-        incidentState: {
-            type: Schema.Types.String,
-        },
-        incidentNote: {
-            type: Schema.Types.String,
-        },
-        name: string,
-        
-        deletedAt: {
-            type: Date,
-        },
-    },
-    { timestamps: true }
-);
+import { IncidentState } from './Incident';
+@Entity({
+       name: "IncidentNoteTemplate"
+})
+export default class IncidentNoteTemplate extends BaseModel {
+
+       @Column()
+       project!: Project
+
+       @Column()
+       incidentState!: IncidentState
+
+       @Column()
+       incidentNote!: string
+
+}
 
 
 

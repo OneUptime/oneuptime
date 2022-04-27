@@ -1,45 +1,46 @@
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        automationScriptId: {
-            type: Schema.Types.ObjectId,
-            ref: 'AutomationSript',
-            index: true,
-        },
-        triggerByUser: {
-            type: Schema.Types.ObjectId,
-            ref: 'User',
-        },
-        triggerByScript: {
-            type: Schema.Types.ObjectId,
-            ref: 'AutomationSript',
-        },
-        triggerByIncident: {
-            type: Schema.Types.ObjectId,
-            ref: 'Incident',
-        },
-        status: {
-            type: string,
-            enum: ['success', 'running', 'failed'],
-            default: 'running',
-        },
-        deleted: boolean,
-        deletedAt: {
-            type: Date,
-        },
-        deletedByUser: {
-            type: Schema.Types.ObjectId,
-            ref: 'User',
-            index: true,
-        },
-        executionTime: Number,
-        consoleLogs: [String],
-        error: string,
-    },
-    { timestamps: true }
-);
+import AutomatedScript from './AutomationScript';
+import Incident from './Incident';
+import OperationStatus from '../Types/OperationStatus';
+
+@Entity({
+    name: "AutomationScriptLog"
+})
+export default class Model extends BaseModel{
+ 
+       @Column()
+       automationScript!: AutomatedScript
+
+       @Column()
+       project!: Project
+ 
+       @Column()
+       triggerByUser!: User
+ 
+       @Column()
+       triggerByScript!: AutomatedScript
+ 
+       @Column()
+       triggerByIncident!: Incident
+ 
+       @Column()
+       scriptStatus!: OperationStatus
+ 
+       @Column()
+       deletedByUser!: User
+ 
+       @Column()
+       executionTime!: Number;
+ 
+       @Column()
+       scriptConsoleLogs!: Array<string>;
+ 
+       @Column()
+       errorDescription!: string;
+}
 
 
 

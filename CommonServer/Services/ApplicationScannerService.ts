@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/ApplicationScanner';
+} from 'Common/Models/ApplicationScanner';
 import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/DB/CreateBy';
 import { Document } from '../Infrastructure/ORM';

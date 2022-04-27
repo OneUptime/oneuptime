@@ -1,15 +1,28 @@
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    project: Project,
-    createdByUser: User,
-    airtableId: string,
-    message: string,
-    page: string
-    createdAt: { type: Date, default: Date.now },
 
-    deletedByUser: User,
+
+@Entity({
+   name: "Feedback"
+})
+export default class Feedback extends BaseModel {
+
+   @Column()
+   project!: Project;
+
+   @Column()
+   createdByUser!: User;
+
+   @Column()
+   message!: string;
+
+   @Column()
+   pageUrl!: string
+
+   @Column()
+   deletedByUser!: User;
 }
 
 

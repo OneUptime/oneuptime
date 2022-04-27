@@ -1,34 +1,75 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        name: string,
-        slug: string,
-        gitRepositoryurl: URL,
-        gitCredential: {
-            type: Schema.Types.ObjectId,
-            ref: 'GitCredential',
-            index: true,
-        },
-        componentId: {
-            type: Schema.Types.ObjectId,
-            ref: 'Component',
-            index: true,
-        },
-        resourceCategory: {
-            type: Schema.Types.ObjectId,
-            ref: 'ResourceCategory',
-            index: true,
-        },
-        deleted: boolean,
-        deletedAt: Date,
-        lastScan: Date,
-        scanned: boolean,
-        scanning: boolean,
-    },
-    { timestamps: true } //Automatically adds createdAt and updatedAt to the schema
-);
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+        name!: string;
+ 
+ @Column()
+        slug!: string;
+ 
+ @Column()
+        gitRepositoryurl!: URL;
+ 
+ @Column()
+        gitCredential!: {
+ 
+ @Column()
+            type!: Schema.Types.ObjectId;
+ 
+ @Column()
+            ref!: 'GitCredential';
+ 
+ @Column()
+            index!: true;
+        };
+ 
+ @Column()
+        componentId!: {
+ 
+ @Column()
+            type!: Schema.Types.ObjectId;
+ 
+ @Column()
+            ref!: 'Component';
+ 
+ @Column()
+            index!: true;
+        };
+ 
+ @Column()
+        resourceCategory!: {
+ 
+ @Column()
+            type!: Schema.Types.ObjectId;
+ 
+ @Column()
+            ref!: 'ResourceCategory';
+ 
+ @Column()
+            index!: true;
+        };
+        
+ 
+
+ 
+ @Column()
+        lastScan!: Date;
+ 
+ @Column()
+        scanned!: boolean;
+ 
+ @Column()
+        scanning!: boolean;
+    };
+ 
+ //Automatically adds createdAt and updatedAt to the schema
+}
 
 
 

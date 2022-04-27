@@ -1,37 +1,87 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    project: Project,
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    project!: Project;
     
 
 
 
-    deletedByUser: User,
-    phoneNumber: string,
-    locality: string,
-    region: string,
-    capabilities: {
-        MMS: boolean,
-        SMS: boolean,
-        voice: boolean,
-    },
-    routingSchema: {
-        type: Object,
-    } /*RoutingSchema: {
-        type: ‘team-member’ || ‘schedule’
-        id: 'scheduleId' || 'teamMemberId'
-        introtext: 'string',
-        introAudio: 'tone mongo storage name',
-        introAudioName: 'original audio name',
+ 
+ @Column()
+    deletedByUser!: User;
+ 
+ @Column()
+    phoneNumber!: string;
+ 
+ @Column()
+    locality!: string;
+ 
+ @Column()
+    region!: string;
+ 
+ @Column()
+    capabilities!: {
+ 
+ @Column()
+        MMS!: boolean;
+ 
+ @Column()
+        SMS!: boolean;
+ 
+ @Column()
+        voice!: boolean;
+    };
+ 
+ @Column()
+    routingSchema!: {
+ 
+ @Column()
+        type!: Object;
+ 
+ @Column()
+    } /*RoutingSchema!: {
+ 
+ @Column()
+        type!: ‘team-member’ || ‘schedule’
+ 
+ @Column()
+        id!: 'scheduleId' || 'teamMemberId'
+ 
+ @Column()
+        introtext!: 'string';
+ 
+ @Column()
+        introAudio!: 'tone mongo storage name';
+ 
+ @Column()
+        introAudioName!: 'original audio name';
 
-   } */,
-    sid: string,
-    price: string,
-    priceUnit: string,
-    countryCode: string,
-    numberType: string,
-    stripeSubscriptionId: string,
+   } */;
+ 
+ @Column()
+    sid!: string;
+ 
+ @Column()
+    price!: string;
+ 
+ @Column()
+    priceUnit!: string;
+ 
+ @Column()
+    countryCode!: string;
+ 
+ @Column()
+    numberType!: string;
+ 
+ @Column()
+    stripeSubscriptionId!: string;
 }
 
 

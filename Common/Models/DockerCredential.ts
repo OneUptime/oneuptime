@@ -1,23 +1,37 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        dockerRegistryurl: URL,
-        dockerUsername: string,
-        dockerPassword: string,
-        iv: Schema.Types.Buffer,
-        project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-        deleted: boolean,
-        deletedAt: Date,
-    },
-    { timestamps: true }
-);
 
 
+@Entity({
+       name: "DockerCredential"
+})
+export default class DockerCredential extends BaseModel {
 
-export const encryptedFields: EncryptedFields = ['dockerPassword'];
+       @Column()
+       dockerRegistryUrl!: URL;
 
+       @Column()
+       dockerUsername!: string;
+
+       @Column()
+       dockerPassword!: string;
+
+       @Column()
+       iv!: Buffer;
+
+       @Index()
+       @Column()
+       project!: Project
+
+       @Column()
+       createdByUser!: User
+
+       @Column()
+       deletedByUser!: User
+
+};
 
 
 

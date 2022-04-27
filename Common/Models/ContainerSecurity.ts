@@ -1,35 +1,79 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        name: string,
-        slug: string,
-        dockerCredential: {
-            type: Schema.Types.ObjectId,
-            ref: 'DockerCredential',
-            index: true,
-        },
-        imagePath: string,
-        imageTags: string,
-        componentId: {
-            type: Schema.Types.ObjectId,
-            ref: 'Component',
-            index: true,
-        },
-        resourceCategory: {
-            type: Schema.Types.ObjectId,
-            ref: 'ResourceCategory',
-            index: true,
-        },
-        deleted: boolean,
-        deleteAt: Date,
-        lastScan: Date,
-        scanned: boolean,
-        scanning: boolean,
-    },
-    { timestamps: true } //Automatically adds createdAt and updatedAt to the schema
-);
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+        name!: string;
+ 
+ @Column()
+        slug!: string;
+ 
+ @Column()
+        dockerCredential!: {
+ 
+ @Column()
+            type!: Schema.Types.ObjectId;
+ 
+ @Column()
+            ref!: 'DockerCredential';
+ 
+ @Column()
+            index!: true;
+        };
+ 
+ @Column()
+        imagePath!: string;
+ 
+ @Column()
+        imageTags!: string;
+ 
+ @Column()
+        componentId!: {
+ 
+ @Column()
+            type!: Schema.Types.ObjectId;
+ 
+ @Column()
+            ref!: 'Component';
+ 
+ @Column()
+            index!: true;
+        };
+ 
+ @Column()
+        resourceCategory!: {
+ 
+ @Column()
+            type!: Schema.Types.ObjectId;
+ 
+ @Column()
+            ref!: 'ResourceCategory';
+ 
+ @Column()
+            index!: true;
+        };
+        
+ 
+ @Column()
+        deleteAt!: Date;
+ 
+ @Column()
+        lastScan!: Date;
+ 
+ @Column()
+        scanned!: boolean;
+ 
+ @Column()
+        scanning!: boolean;
+    };
+ 
+ //Automatically adds createdAt and updatedAt to the schema
+}
 
 
 

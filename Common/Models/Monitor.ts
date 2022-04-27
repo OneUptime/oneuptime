@@ -1,176 +1,390 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-const criteriaItem: Schema = new Schema({
-    criteriaType: string, 
-    filter: 
+ 
+ @Column()
+const criteriaItem!: Schema = new Schema({
+ 
+ @Column()
+    criteriaType!: string; 
+ 
+ @Column()
+    filter!: 
 }
 
-// A schema definition for a criterion event, i.e up, down, or degraded
-const criteriaSchema: Schema = new Schema({
-    condition: string, 
-    criteria: []
+// A schema definition for a criterion event, i.e up, down; or degraded
+ 
+ @Column()
+const criteriaSchema!: Schema = new Schema({
+ 
+ @Column()
+    condition!: string; 
+ 
+ @Column()
+    criteria!: []
 }
 
-// A schema definition for a criterion event, i.e up, down, or degraded
-const criterionEventSchema: Schema = new Schema({
-    scheduleIds: [String],
-    createAlert: boolean,
-    autoAcknowledge: boolean,
-    autoResolve: boolean,
-    title: { type: string, default: '' },
-    description: { type: string, default: '' },
-    default: boolean,
-    name: string,
-    criteria: {
-        condition: string,
-        criteria: [Schema.Types.Mixed],
-    },
-    scripts: [
+// A schema definition for a criterion event, i.e up, down; or degraded
+ 
+ @Column()
+const criterionEventSchema!: Schema = new Schema({
+ 
+ @Column()
+    scheduleIds!: [String];
+ 
+ @Column()
+    createAlert!: boolean;
+ 
+ @Column()
+    autoAcknowledge!: boolean;
+ 
+ @Column()
+    autoResolve!: boolean;
+ 
+ @Column()
+    title: { type: string, default!: '' };
+ 
+ @Column()
+    description: { type: string, default!: '' };
+ 
+ @Column()
+    default!: boolean;
+ 
+ @Column()
+    name!: string;
+ 
+ @Column()
+    criteria!: {
+ 
+ @Column()
+        condition!: string;
+ 
+ @Column()
+        criteria!: [Schema.Types.Mixed];
+    };
+ 
+ @Column()
+    scripts!: [
         {
-            scriptId: {
-                type: Schema.Types.ObjectId,
-                ref: 'AutomationSript',
-                index: true,
-            },
-        },
-    ],
+ 
+ @Column()
+            scriptId!: {
+ 
+ @Column()
+                type!: Schema.Types.ObjectId;
+ 
+ @Column()
+                ref!: 'AutomationSript';
+ 
+ @Column()
+                index!: true;
+            };
+        };
+    ];
 }
 
 
 /**
  * SAMPLE STRUCTURE OF HOW CRITERIA WILL BE STRUCTURED IN THE DB
- * Depending of on the level, criteria will house all the conditions,
+ * Depending of on the level, criteria will house all the conditions;
  * in addition to nested condition if present (the nested condition will follow the same structural pattern)
  *
- * criteria: {
- *  condition: 'and',
- *  criteria: [
+ 
+ @Column()
+ * criteria!: {
+ 
+ @Column()
+ *  condition!: 'and';
+ 
+ @Column()
+ *  criteria!: [
  *      {
- *         condition: 'or',
- *         criteria: [
+ 
+ @Column()
+ *         condition!: 'or';
+ 
+ @Column()
+ *         criteria!: [
  *            {
- *               "responseType": "requestBody",
- *               "filter": "equalTo",
- *                "field1": "ok"
- *            },
+ 
+ @Column()
+ *               "responseType"!: "requestBody";
+ 
+ @Column()
+ *               "filter"!: "equalTo";
+ 
+ @Column()
+ *                "field1"!: "ok"
+ *            };
  *            {
- *               "responseType": "requestBody",
- *               "filter": "equalTo",
- *                "field1": "healthy"
- *            },
+ 
+ @Column()
+ *               "responseType"!: "requestBody";
+ 
+ @Column()
+ *               "filter"!: "equalTo";
+ 
+ @Column()
+ *                "field1"!: "healthy"
+ *            };
  *            {
- *               condition: 'and',
- *               criteria: [{}, {}, ...]
+ 
+ @Column()
+ *               condition!: 'and';
+ 
+ @Column()
+ *               criteria!: [{}, {}; ...]
  *            }
  *         ]
- *      },
+ *      };
  *      {
- *          "responseType": "statusCode",
- *           "filter": "equalTo",
- *           "field1": "200"
- *      },
+ 
+ @Column()
+ *          "responseType"!: "statusCode";
+ 
+ @Column()
+ *           "filter"!: "equalTo";
+ 
+ @Column()
+ *           "field1"!: "200"
+ *      };
  *      {
- *           "responseType": "requestTime",
- *           "filter": "lessthan",
- *           "field1": "1000"
- *      },
+ 
+ @Column()
+ *           "responseType"!: "requestTime";
+ 
+ @Column()
+ *           "filter"!: "lessthan";
+ 
+ @Column()
+ *           "field1"!: "1000"
+ *      };
  *      ...
  *   ]
  * }
  */
 
-export default interface Model extends BaseModel{
-    project: Project, //Which project this monitor belongs to.
-    componentId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Component',
-        index: true,
-    },
-    name: string,
-    slug: string,
-    config: {}, //Can be URL, IP address, or anything that depends on the type.
-    createdByUser: { type: string, ref: 'User' }, //user.
-    type: {
-        type: string,
-        enum: [
-            'url',
-            'manual',
-            'api',
-            'server-monitor',
-            'script',
-            'incomingHttpRequest',
-            'kubernetes',
-            'ip',
-        ],
-        index: true,
-    }, //Type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
-    agentlessConfig: Object,
-    kubernetesConfig: Schema.Types.Mixed,
-    kubernetesNamespace: { type: string, default: 'default' },
-    ,
-    lastPingTime: {
-        type: Date,
-        default: Date.now,
-        index: true,
-    },
-    updateTime: {
-        type: Date,
-        default: Date.now,
-        index: true,
-    },
-    criteria: {
-        up: { type: [criterionEventSchema], default: [] },
-        degraded: { type: [criterionEventSchema], default: [] },
-        down: { type: [criterionEventSchema], default: [] },
-    },
-    lastMatchedCriterion: { type: criterionEventSchema, default: {} },
-    method: string,
-    bodyType: string,
-    formData: [Object],
-    text: string,
-    headers: [Object],
-    disabled: boolean
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    project!: Project; //Which project this monitor belongs to.
+ 
+ @Column()
+    componentId!: {
+ 
+ @Column()
+        type!: Schema.Types.ObjectId;
+ 
+ @Column()
+        ref!: 'Component';
+ 
+ @Column()
+        index!: true;
+    };
+ 
+ @Column()
+    name!: string;
+ 
+ @Column()
+    slug!: string;
+ 
+ @Column()
+    config!: {}, //Can be URL, IP address; or anything that depends on the type.
+ 
+ @Column()
+    createdByUser: { type: string, ref!: 'User' }; //user.
+ 
+ @Column()
+    type!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: [
+            'url';
+            'manual';
+            'api';
+            'server-monitor';
+            'script';
+            'incomingHttpRequest';
+            'kubernetes';
+            'ip';
+        ];
+ 
+ @Column()
+        index!: true;
+    }, //Type can be 'url', 'process', 'machine'. We can monitor URL; a process in a machine or a server itself.
+ 
+ @Column()
+    agentlessConfig!: Object;
+ 
+ @Column()
+    kubernetesConfig!: Schema.Types.Mixed;
+ 
+ @Column()
+    kubernetesNamespace: { type: string, default!: 'default' };
+    ;
+ 
+ @Column()
+    lastPingTime!: {
+ 
+ @Column()
+        type!: Date;
+ 
+ @Column()
+        default!: Date.now;
+ 
+ @Column()
+        index!: true;
+    };
+ 
+ @Column()
+    updateTime!: {
+ 
+ @Column()
+        type!: Date;
+ 
+ @Column()
+        default!: Date.now;
+ 
+ @Column()
+        index!: true;
+    };
+ 
+ @Column()
+    criteria!: {
+ 
+ @Column()
+        up: { type: [criterionEventSchema], default!: [] };
+ 
+ @Column()
+        degraded: { type: [criterionEventSchema], default!: [] };
+ 
+ @Column()
+        down: { type: [criterionEventSchema], default!: [] };
+    };
+ 
+ @Column()
+    lastMatchedCriterion: { type: criterionEventSchema, default!: {} };
+ 
+ @Column()
+    method!: string;
+ 
+ @Column()
+    bodyType!: string;
+ 
+ @Column()
+    formData!: [Object];
+ 
+ @Column()
+    text!: string;
+ 
+ @Column()
+    headers!: [Object];
+ 
+ @Column()
+    disabled!: boolean
 
 
 
-    deletedByUser: { type: string, ref: 'User' },
-    scriptRunStatus: string,
-    scriptRunBy: { type: string, ref: 'Probe', index: true },
+ 
+ @Column()
+    deletedByUser: { type: string, ref!: 'User' };
+ 
+ @Column()
+    scriptRunStatus!: string;
+ 
+ @Column()
+    scriptRunBy: { type: string, ref: 'Probe', index!: true };
 
-    lighthouseScannedAt: { type: Date, index: true },
-    lighthouseScanStatus: string,
-    lighthouseScannedBy: { type: string, ref: 'Probe', index: true },
-    siteUrls: [String],
-    incidentCommunicationSla: {
-        type: Schema.Types.ObjectId,
-        ref: 'IncidentCommunicationSla',
-    },
-    monitorSla: {
-        type: Schema.Types.ObjectId,
-        ref: 'MonitorSla',
-    },
-    breachedMonitorSla: boolean,
-    breachClosedBy: [{ type: string, ref: 'User' }],
-    customFields: [
+ 
+ @Column()
+    lighthouseScannedAt: { type: Date, index!: true };
+ 
+ @Column()
+    lighthouseScanStatus!: string;
+ 
+ @Column()
+    lighthouseScannedBy: { type: string, ref: 'Probe', index!: true };
+ 
+ @Column()
+    siteUrls!: [String];
+ 
+ @Column()
+    incidentCommunicationSla!: {
+ 
+ @Column()
+        type!: Schema.Types.ObjectId;
+ 
+ @Column()
+        ref!: 'IncidentCommunicationSla';
+    };
+ 
+ @Column()
+    monitorSla!: {
+ 
+ @Column()
+        type!: Schema.Types.ObjectId;
+ 
+ @Column()
+        ref!: 'MonitorSla';
+    };
+ 
+ @Column()
+    breachedMonitorSla!: boolean;
+ 
+ @Column()
+    breachClosedBy: [{ type: string, ref!: 'User' }];
+ 
+ @Column()
+    customFields!: [
         {
-            fieldName: string,
-            fieldValue: Schema.Types.Mixed,
-            uniqueField: boolean,
-            fieldType: string,
-        },
-    ],
-    shouldNotMonitor: boolean,
-    scanning: boolean,
-    probeScanning: [String],
-    monitorStatus: string,
+ 
+ @Column()
+            fieldName!: string;
+ 
+ @Column()
+            fieldValue!: Schema.Types.Mixed;
+ 
+ @Column()
+            uniqueField!: boolean;
+ 
+ @Column()
+            fieldType!: string;
+        };
+    ];
+ 
+ @Column()
+    shouldNotMonitor!: boolean;
+ 
+ @Column()
+    scanning!: boolean;
+ 
+ @Column()
+    probeScanning!: [String];
+ 
+ @Column()
+    monitorStatus!: string;
 }
 
-schema.virtual('project', {
-    localField: '_id',
-    foreignField: 'project',
-    ref: 'Project',
-    justOne: true,
+schema.virtual('project'; {
+ 
+ @Column()
+    localField!: '_id';
+ 
+ @Column()
+    foreignField!: 'project';
+ 
+ @Column()
+    ref!: 'Project';
+ 
+ @Column()
+    justOne!: true;
 }
 
 

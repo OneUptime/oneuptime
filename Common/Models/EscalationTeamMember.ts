@@ -1,25 +1,48 @@
 import {
-    RequiredFields,
-    UniqueFields,
-    EncryptedFields,
-    Schema,
+    RequiredFields;
+    UniqueFields;
+    EncryptedFields;
+    Schema;
 } from '../Infrastructure/ORM';
 
-export default interface Model extends BaseModel{
-    teamMembers: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    teamMembers!: [
         {
-            startTime: Date,
-            endTime: Date,
-            timezone: string,
-            user: { type: string, ref: 'User', index: true, default: null },
-            groupId: {
-                type: string,
-                ref: 'Groups',
-                index: true,
-                default: null,
-            },
-        },
-    ],
+ 
+ @Column()
+            startTime!: Date;
+ 
+ @Column()
+            endTime!: Date;
+ 
+ @Column()
+            timezone!: string;
+ 
+ @Column()
+            user: { type: string, ref: 'User', index: true, default!: null };
+ 
+ @Column()
+            groupId!: {
+ 
+ @Column()
+                type!: string;
+ 
+ @Column()
+                ref!: 'Groups';
+ 
+ @Column()
+                index!: true;
+ 
+ @Column()
+                default!: null;
+            };
+        };
+    ];
 }
 
 
@@ -29,4 +52,7 @@ export default interface Model extends BaseModel{
 
 
 
+@Entity({
+    name: "UserAlerts"
+})
 export default schema;

@@ -1,39 +1,83 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    webHookName: string,
-    project: Project,
-    createdByUser: { type: Schema.Types.ObjectId, ref: 'User', alias: 'user' },
-    integrationType: {
-        type: string,
-        enum: ['slack', 'webhook', 'msteams'],
-        required: true,
-    },
-    data: {},
-    monitors: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    webHookName!: string;
+ 
+ @Column()
+    project!: Project;
+ 
+ @Column()
+    createdByUser: { type: Schema.Types.ObjectId, ref: 'User', alias!: 'user' };
+ 
+ @Column()
+    integrationType!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: ['slack', 'webhook', 'msteams'];
+ 
+ @Column()
+        required!: true;
+    };
+ 
+ @Column()
+    data!: {};
+ 
+ @Column()
+    monitors!: [
         {
-            monitorId: {
-                type: Schema.Types.ObjectId,
-                ref: 'Monitor',
-                index: true,
-            },
-        },
-    ],
-    ,
-    notificationOptions: {
-        incidentCreated: boolean,
-        incidentAcknowledged: boolean,
-        incidentResolved: boolean,
-        incidentNoteAdded: boolean,
-    },
+ 
+ @Column()
+            monitorId!: {
+ 
+ @Column()
+                type!: Schema.Types.ObjectId;
+ 
+ @Column()
+                ref!: 'Monitor';
+ 
+ @Column()
+                index!: true;
+            };
+        };
+    ];
+    ;
+ 
+ @Column()
+    notificationOptions!: {
+ 
+ @Column()
+        incidentCreated!: boolean;
+ 
+ @Column()
+        incidentAcknowledged!: boolean;
+ 
+ @Column()
+        incidentResolved!: boolean;
+ 
+ @Column()
+        incidentNoteAdded!: boolean;
+    };
 
     
 
-    deletedByUser: User,
+ 
+ @Column()
+    deletedByUser!: User;
 }
 
-schema.index({ project: 1, teamId: -1 }
+ 
+ @Column()
+schema.index({ project: 1; teamId!: -1 }
 
 
 

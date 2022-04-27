@@ -1,30 +1,32 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-    subject: string,
-    body: string,
-    emailType: {
-        type: string,
-        enum: [
-            'Subscriber Incident Created',
-            'Subscriber Incident Acknowledged',
-            'Subscriber Incident Resolved',
-            'Investigation note is created',
-            'Subscriber Scheduled Maintenance Created',
-            'Subscriber Scheduled Maintenance Note',
-            'Subscriber Scheduled Maintenance Resolved',
-            'Subscriber Scheduled Maintenance Cancelled',
-            'Subscriber Announcement Notification Created',
-        ],
-        required: true,
-    },
-    allowedVariables: [{ type: string, required: true }]
+import EmailTemplateType from '../Types/Email/EmailTemplateType';
 
 
+@Entity({
+   name: "EmailTemplate"
+})
+export default class EmailTemplate extends BaseModel {
 
-    deletedByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+   @Column()
+   project!: Project;
+
+   @Column()
+   subject!: string;
+
+   @Column()
+   body!: string;
+
+   @Column()
+   emailType!: EmailTemplateType
+
+   @Column()
+   allowedVariables!: Array<string>
+
+   @Column()
+   deletedByUser!: User;
 }
 
 

@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/LighthouseLog';
+} from 'Common/Models/LighthouseLog';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {

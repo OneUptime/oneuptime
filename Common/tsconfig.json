@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "experimentalDecorators": true,
         /* Visit https://aka.ms/tsconfig.json to read more about this file */
 
         /* Projects */
@@ -11,10 +12,9 @@
         // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
 
         /* Language and Environment */
-        "target": "es2016" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+        "target": "es2016", /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
         // "lib": [],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */
-        "jsx": "react" /* Specify what JSX code is generated. */,
-        // "experimentalDecorators": true,                   /* Enable experimental support for TC39 stage 2 draft decorators. */
+        "jsx": "react", /* Specify what JSX code is generated. */                  /* Enable experimental support for TC39 stage 2 draft decorators. */
         // "emitDecoratorMetadata": true,                    /* Emit design-type metadata for decorated declarations in source files. */
         // "jsxFactory": "",                                 /* Specify the JSX factory function used when targeting React JSX emit, e.g. 'React.createElement' or 'h' */
         // "jsxFragmentFactory": "",                         /* Specify the JSX Fragment reference used for fragments when targeting React JSX emit e.g. 'React.Fragment' or 'Fragment'. */

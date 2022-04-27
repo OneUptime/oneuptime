@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/PerformanceTracker';
+} from 'Common/Models/PerformanceTracker';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {

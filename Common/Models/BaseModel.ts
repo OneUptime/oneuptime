@@ -1,8 +1,18 @@
-import ObjectID from "../Types/ObjectID";
+import { DeleteDateColumn, UpdateDateColumn, CreateDateColumn, VersionColumn, PrimaryGeneratedColumn, BaseEntity } from 'typeorm';
 
-export default interface BaseModel {
-    _id: ObjectID,
-    createdAt: Date,
-    deleted: boolean,
-    deletedAt: Date,
+export default class BaseModel extends BaseEntity {
+    @PrimaryGeneratedColumn("uuid")
+    id!: string;
+
+    @CreateDateColumn()
+    created!: Date;
+  
+    @UpdateDateColumn()
+    updated!: Date;
+  
+    @DeleteDateColumn()
+    deletedAt?: Date;
+
+    @VersionColumn()
+    version!: number; 
 }

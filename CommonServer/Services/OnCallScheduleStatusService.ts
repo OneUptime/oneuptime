@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/OnCallScheduleStatus';
+} from 'Common/Models/OnCallScheduleStatus';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {

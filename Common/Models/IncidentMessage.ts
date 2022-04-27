@@ -1,37 +1,39 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
-import Project from './Project';
-export default interface Model extends BaseModel{
-    incidentId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Incident',
-        alias: 'incident',
-        index: true,
-    },
-    content: string,
-    type: {
-        type: string,
-        enum: ['investigation', 'internal'],
-        required: true,
-    },
-    incident_state: string,
-    createdByUser: User, //user.
-    ,
-    updated: boolean
+import Incident, { IncidentState } from './Incident';
 
-
-
-    deletedByUser: User,
-    postOnStatusPage: boolean,
+export enum IncidentMessageType{
+   Investogation = "Investigation", 
+   Internam = "Internal"
 }
 
-schema.virtual('incident', {
-    localField: '_id',
-    foreignField: 'incidentId',
-    ref: 'Incident',
-    justOne: true,
+@Entity({
+   name: "UserAlerts"
+})
+export default class Model extends BaseModel {
+ 
+   @Column()
+   incident!: Incident
+ 
+   @Column()
+   content!: string;
+ 
+   @Column()
+   type!: IncidentMessageType
+ 
+   @Column()
+   incidentState!: IncidentState;
+ 
+   @Column()
+   createdByUser!: User;
+ 
+   @Column()
+   deletedByUser!: User;
+ 
+   @Column()
+   postOnStatusPage!: boolean;
 }
-
 
 
 

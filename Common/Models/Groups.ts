@@ -1,28 +1,42 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    project: {
-        type: string,
-        ref: 'Project',
-        alias: 'project',
-        index: true,
-    },
-    name: string,
-    teams: [{ type: string, ref: 'User', default: null }],
-    createdByUser: {
-        type: string,
-        ref: 'User',
-        index: true,
-    },
-    ,
-    deleted: boolean,
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    project!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        ref!: 'Project';
+ 
+ @Column()
+        alias!: 'project';
+ 
+ @Column()
+        index!: true;
+    };
+ 
+ @Column()
+    name!: string;
+ 
+ @Column()
+    teams: [{ type: string, ref: 'User', default!: null }];
+ 
+ @Column()
+    createdByUser!: User
+    ;
+    
 
-    deletedByUser: {
-        type: string,
-        ref: 'User',
-        index: true,
-    },
+ 
+   @Column()
+   deletedByUser!: User;
 }
 
 

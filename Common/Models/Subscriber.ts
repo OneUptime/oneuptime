@@ -1,37 +1,91 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor', index: true },
-    project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-    statusPageId: {
-        type: Schema.Types.ObjectId,
-        ref: 'StatusPage',
-        index: true,
-    },
-    alertVia: {
-        type: string,
-        enum: ['sms', 'email', 'webhook'],
-        required: true,
-    },
-    contactEmail: string,
-    contactPhone: string,
-    countryCode: string,
-    contactWebhook: string,
-    webhookMethod: {
-        type: string,
-        enum: ['get', 'post'],
-        required: true,
-    },
-    notificationType: {
-        incident: boolean,
-        announcement: boolean,
-        scheduledEvent: boolean,
-    },
-    createdAt: { type: Date, default: Date.now }
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    monitorId: Monitor;
+ 
+ @Column()
+    project: Project;
+ 
+ @Column()
+    statusPageId!: {
+ 
+ @Column()
+        type!: Schema.Types.ObjectId;
+ 
+ @Column()
+        ref!: 'StatusPage';
+ 
+ @Column()
+        index!: true;
+    };
+ 
+ @Column()
+    alertVia!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: ['sms', 'email', 'webhook'];
+ 
+ @Column()
+        required!: true;
+    };
+ 
+ @Column()
+    contactEmail!: string;
+ 
+ @Column()
+    contactPhone!: string;
+ 
+ @Column()
+    countryCode!: string;
+ 
+ @Column()
+    contactWebhook!: string;
+ 
+ @Column()
+    webhookMethod!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: ['get', 'post'];
+ 
+ @Column()
+        required!: true;
+    };
+ 
+ @Column()
+    notificationType!: {
+ 
+ @Column()
+        incident!: boolean;
+ 
+ @Column()
+        announcement!: boolean;
+ 
+ @Column()
+        scheduledEvent!: boolean;
+    };
+ 
+ @Column()
+    createdAt: { type: Date; default!: Date.now }
 
-    subscribed: boolean,
-    deletedByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+ 
+ @Column()
+    subscribed!: boolean;
+ 
+ @Column()
+    deletedByUser: User;
 }
 
 

@@ -1,42 +1,74 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    project: Project, //Which project does this belong to.
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    project!: Project; //Which project does this belong to.
 
-    enabled: boolean,
+ 
+ @Column()
+    enabled!: boolean;
 
-    iv: Schema.Types.Buffer,
+ 
+ @Column()
+    iv!: Buffer;
 
-    ,
+    ;
 
     
 
 
 
-    provider: {
-        type: string,
-        enum: ['twilio'],
-        required: true,
-    },
+ 
+ @Column()
+    provider!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: ['twilio'];
+ 
+ @Column()
+        required!: true;
+    };
 
-    providerCredentials: {
-        twilio: {
-            accountSid: string,
-            authToken: string,
-            phoneNumber: string,
-        },
-    },
+ 
+ @Column()
+    providerCredentials!: {
+ 
+ @Column()
+        twilio!: {
+ 
+ @Column()
+            accountSid!: string;
+ 
+ @Column()
+            authToken!: string;
+ 
+ @Column()
+            phoneNumber!: string;
+        };
+    };
 
-    deletedByUser: User,
+ 
+ @Column()
+    deletedByUser!: User;
 }
 
 
 
 
-export const encryptedFields: EncryptedFields = [
-    'providerCredentials.twilio.accountSid',
-    'providerCredentials.twilio.authToken',
+ 
+ @Column()
+export const encryptedFields!: EncryptedFields = [
+    'providerCredentials.twilio.accountSid';
+    'providerCredentials.twilio.authToken';
 ];
 
 

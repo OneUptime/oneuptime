@@ -1,16 +1,22 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
-export default interface Model extends BaseModel{
-    name: string,
-    value: Object,
-    iv: Schema.Types.Buffer,
-    createdAt: { type: Date, default: Date.now },
+
+
+@Entity({
+   name: "GlobalConfig"
+})
+export default class GlobalConfig extends BaseModel {
+
+   @Column()
+   name!: string;
+
+   @Column()
+   value!: Object;
+
+   @Column()
+   iv!: Buffer;
+
 }
-
-
-
-export const encryptedFields: EncryptedFields = ['value'];
 
 
 

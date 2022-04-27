@@ -1,98 +1,206 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
-export default interface Model extends BaseModel{
+import SSO from './SsoConfig';
+
+@Entity({
+       name: "User"
+})
+export default class Model extends BaseModel {
     {
-        name: string,
-        email: string,
-        tempEmail: string,
-        password: string,
-        isVerified: boolean,
-        sso: { type: string, ref: 'Sso', index: true },
-        companyName: string,
-        companyRole: string,
-        companySize: string,
-        referral: string,
-        companyPhoneNumber: string,
 
-        airtableId: string,
+       @Column({type: "text", length: 100})
+       name!: string;
 
-        onCallAlert: Array,
-        profilePic: string,
+       @Column({type: "text", length: 200, unique: true})
+       email!: string;
 
-        twoFactorAuthEnabled: boolean,
-        twoFactorSecretCode: string,
-        otpauth_url: URL,
-        backupCodes: Array,
+       @Column({type: "text", length: 200})
+       temporaryEmail!: string;
 
-        jwtRefreshToken: string,
-        stripeCustomerId: string,
-        resetPasswordToken: string,
-        resetPasswordExpires: string,
-        timezone: string,
-        lastActive: {
-            type: Date,
-            default: Date.now,
-        },
-        coupon: string,
+       @Column({type: "text", length: 200})
+       password!: string;
 
-        disabled: boolean,
-        paymentFailedDate: {
-            type: Date,
-            default: null,
-        },
-        role: {
-            type: string,
-            enum: ['master-admin', 'user'],
-        },
-        isBlocked: boolean,
-        adminNotes: [
-            {
-                note: string,
-                createdAt: Date,
-            },
-        ],
+       @Column({type: "boolean"})
+       isEmailVerified!: boolean;
 
-        
+       @Column()
+       sso: SSO
 
-        deletedAt: {
-            type: Date,
-        },
+       @Column({type: "text", length: 200})
+       companyName!: string;
 
-        deletedByUser: User,
-        alertPhoneNumber: {
-            type: string,
-            default: '',
-        },
-        alertPhoneVerificationCode: {
-            type: string,
-            default: '',
-        },
-        alertPhoneVerificationCodeRequestTime: {
-            type: Date,
-        },
-        tempAlertPhoneNumber: string,
-        tutorial: Object,
-        createdBy: { type: string, ref: 'User' },
-        identification: [
-            {
-                subscription: Object,
-                userAgent: string,
-            },
-        ],
-        source: Object,
-        cachedPassword: {
-            // Store original password here in "admin mode"
-            type: string,
-            default: null,
-        },
-        isAdminMode: {
-            type: Boolean, // Currently in admin mode
-            default: false,
-        },
-    },
-    { timestamps: true }
-);
+       @Column({type: "text", length: 100})
+       companyRole!: string;
+
+       @Column({type: "text", length: 100})
+       companySize!: string;
+
+       @Column({type: "text", length: 100})
+       referral!: string;
+
+       @Column({type: "text", length: 200})
+       companyPhoneNumber!: string;
+
+
+       @Column()
+       onCallAlert!: Array;
+
+       @Column({type: "text", length: 200})
+       profilePic!: string;
+
+
+       @Column()
+       twoFactorAuthEnabled!: boolean;
+
+       @Column()
+       twoFactorSecretCode!: string;
+
+       @Column()
+       otpauth_url!: URL;
+
+       @Column()
+       backupCodes!: Array;
+
+
+       @Column()
+       jwtRefreshToken!: string;
+
+       @Column()
+       stripeCustomerId!: string;
+
+       @Column()
+       resetPasswordToken!: string;
+
+       @Column()
+       resetPasswordExpires!: string;
+
+       @Column()
+       timezone!: string;
+
+       @Column()
+       lastActive!: {
+
+              @Column()
+                     type!: Date;
+
+              @Column()
+            default !: Date.now;
+       };
+
+       @Column()
+       coupon!: string;
+
+
+       @Column()
+       disabled!: boolean;
+
+       @Column()
+       paymentFailedDate!: {
+
+              @Column()
+                     type!: Date;
+
+              @Column()
+            default !: null;
+       };
+
+       @Column()
+       role!: {
+
+              @Column()
+                     type!: string;
+
+              @Column()
+                     enum!: ['master-admin', 'user'];
+       };
+
+       @Column()
+       isBlocked!: boolean;
+
+
+
+
+
+
+@Column()
+deletedByUser!: User;
+
+@Column()
+alertPhoneNumber!: {
+
+       @Column()
+              type!: string;
+
+       @Column()
+            default !: '';
+};
+
+@Column()
+alertPhoneVerificationCode!: {
+
+       @Column()
+              type!: string;
+
+       @Column()
+            default !: '';
+};
+
+@Column()
+alertPhoneVerificationCodeRequestTime!: {
+
+       @Column()
+              type!: Date;
+};
+
+@Column()
+tempAlertPhoneNumber!: string;
+
+@Column()
+tutorial!: Object;
+
+@Column()
+createdBy: { type: string, ref!: 'User' };
+
+@Column()
+identification!: [
+       {
+ 
+ @Column()
+subscription!: Object;
+
+@Column()
+userAgent!: string;
+            };
+        ];
+
+@Column()
+source!: Object;
+
+@Column()
+cachedPassword!: {
+       // Store original password here in "admin mode"
+
+       @Column()
+              type!: string;
+
+       @Column()
+            default !: null;
+};
+
+@Column()
+isAdminMode!: {
+
+       @Column()
+              type!: Boolean; // Currently in admin mode
+
+       @Column()
+            default !: false;
+};
+    };
+
+@Column()
+{ timestamps!: true }
+}
 
 
 

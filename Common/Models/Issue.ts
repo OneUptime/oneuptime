@@ -1,51 +1,109 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    name: string,
-    description: string,
-    errorTrackerId: {
-        type: Schema.Types.ObjectId,
-        ref: 'ErrorTracker',
-        alias: 'errorTracker',
-        index: true,
-    }, //Which error tracker this issue belongs to.
-    type: {
-        type: string,
-        enum: ['exception', 'message', 'error'],
-        required: true,
-    },
-    fingerprint: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    name!: string;
+ 
+ @Column()
+    description!: string;
+ 
+ @Column()
+    errorTrackerId!: {
+ 
+ @Column()
+        type!: Schema.Types.ObjectId;
+ 
+ @Column()
+        ref!: 'ErrorTracker';
+ 
+ @Column()
+        alias!: 'errorTracker';
+ 
+ @Column()
+        index!: true;
+    }; //Which error tracker this issue belongs to.
+ 
+ @Column()
+    type!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: ['exception', 'message', 'error'];
+ 
+ @Column()
+        required!: true;
+    };
+ 
+ @Column()
+    fingerprint!: [
         {
-            type: string,
-        },
-    ],
-    fingerprintHash: string,
+ 
+ @Column()
+            type!: string;
+        };
+    ];
+ 
+ @Column()
+    fingerprintHash!: string;
     
 
 
 
-    deletedByUser: User,
-    resolved: boolean,
+ 
+ @Column()
+    deletedByUser!: User;
+ 
+ @Column()
+    resolved!: boolean;
 
-    resolvedAt: {
-        type: Date,
-    },
+ 
+ @Column()
+    resolvedAt!: {
+ 
+ @Column()
+        type!: Date;
+    };
 
-    resolvedById: User,
-    ignored: boolean,
+ 
+ @Column()
+    resolvedById!: User;
+ 
+ @Column()
+    ignored!: boolean;
 
-    ignoredAt: {
-        type: Date,
-    },
+ 
+ @Column()
+    ignoredAt!: {
+ 
+ @Column()
+        type!: Date;
+    };
 
-    ignoredById: User,
+ 
+ @Column()
+    ignoredById!: User;
 }
-schema.virtual('errorTracker', {
-    localField: '_id',
-    foreignField: 'errorTrackerId',
-    ref: 'ErrorTracker',
-    justOne: true,
+schema.virtual('errorTracker'; {
+ 
+ @Column()
+    localField!: '_id';
+ 
+ @Column()
+    foreignField!: 'errorTrackerId';
+ 
+ @Column()
+    ref!: 'ErrorTracker';
+ 
+ @Column()
+    justOne!: true;
 }
 
 

@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/ContainerSecurityLog';
+} from 'Common/Models/ContainerSecurityLog';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {

@@ -7,7 +7,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/Monitor';
+} from 'Common/Models/Monitor';
 import Query from '../Types/DB/Query';
 import DatabaseService from './DatabaseService';
 

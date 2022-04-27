@@ -1,31 +1,37 @@
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
-export default interface Model extends BaseModel{
-    type: string,
-    name: string,
-    email: string,
-    website: string,
-    phone: string,
-    whitepaperName: string,
-    country: string,
-    companySize: string,
-    message: string,
-
-    createdAt: { type: Date, default: Date.now },
-
-    
 
 
-    source: Object,
-    deletedByUser: User,
+@Entity({
+   name: "Lead"
+})
+export default class Lead extends BaseModel {
+ 
+   @Column()
+   name!: string;
+ 
+   @Column()
+   email!: string;
+ 
+   @Column()
+   website!: string;
+ 
+   @Column()
+   phone!: string;
+ 
+   @Column()
+   nameOfInterestedResource!: string;
+ 
+   @Column()
+   country!: string;
+ 
+   @Column()
+   companySize!: string;
+ 
+   @Column()
+   message!: string;
+
+   @Column()
+   source!: string;
+
 }
-
-
-
-
-
-
-
-
-

@@ -1,45 +1,22 @@
-import mongoose from 'mongoose';
-import logger from '../Utils/Logger';
+import { DatabaseHost, DatabaseName, DatabasePassword, DatabasePort, DatabaseUsername } from '../Config';
 
-import { DatabaseUrl, IsMongoReplicaSet } from '../Config';
+import { DataSource, BaseEntity } from "typeorm"
 
-let options: mongoose.ConnectOptions = {};
+const AppDataSource = new DataSource({
+    type: "postgres",
+    host: DatabaseHost.toString(),
+    port: DatabasePort.toNumber(),
+    username: DatabaseUsername,
+    password: DatabasePassword,
+    database: DatabaseName,
+});
 
-if (IsMongoReplicaSet) {
-    options = {
-        /*
-         * Commented because this was having issues reading "latest" data that was saved on primary.
-         * ReadPreference: 'secondaryPreferred',
-         */
-        keepAlive: true,
-    };
-}
+export default AppDataSource;
 
-mongoose
-    .connect(DatabaseUrl, options)
-    .then(() => {
-        return logger.info('Mongo connected');
-    })
-    .catch((err: Error) => {
-        // Mongoose connection error will be handled here
-        logger.error(err);
-        process.exit(1);
-    });
+export interface Document extends BaseEntity { }
 
-export default mongoose;
+export interface RequiredFields extends Array<string> { }
 
-export interface Document extends mongoose.Document {}
+export interface UniqueFields extends Array<string> { }
 
-export interface Model<T> extends mongoose.Model<T> {}
-
-export interface RequiredFields extends Array<string> {}
-
-export interface UniqueFields extends Array<string> {}
-
-export interface EncryptedFields extends Array<string> {}
-
-export class Schema extends mongoose.Schema {}
-
-export type Query<T> = mongoose.FilterQuery<T>;
-
-export type Populate = mongoose.PopulateOptions;
+export interface EncryptedFields extends Array<string> { }

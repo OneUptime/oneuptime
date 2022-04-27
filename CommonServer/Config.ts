@@ -1,15 +1,21 @@
 import Protocol from 'Common/Types/API/Protocol';
 import ObjectID from 'Common/Types/ObjectID';
+import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 
-export const DatabaseUrl: string =
-    process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
+export const DatabaseHost: Hostname =
+    new Hostname(process.env['DATABASE_HOST'] || '');
 
-export const DatabaseName: string = process.env['DB_NAME'] || 'oneuptimedb';
+export const DatabasePort: Port =
+    new Port(process.env['DATABASE_Port'] || '');
 
-export const IsMongoReplicaSet: boolean = Boolean(
-    process.env['IS_MONGO_REPLICA_SET']
-);
+export const DatabaseUsername: string =
+    process.env['DATABASE_USERNAME'] || 'oneuptimedbuser'
+
+export const DatabasePassword: string =
+    process.env['DATABASE_PASSWORD'] || ''
+
+export const DatabaseName: string = process.env['DATABASE_NAME'] || 'oneuptimedb';
 
 export const EncryptionSecret: string = process.env['ENCRYPTIOJN_SECRET'] || '';
 

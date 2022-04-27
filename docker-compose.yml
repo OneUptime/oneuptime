@@ -1,5 +1,17 @@
 version: '3.7'
 services:
+    
+    postgres:
+        image: postgres:latest
+        restart: always
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+        ports:
+            - '5432:5432'
+        volumes: 
+            - postgres:/var/lib/postgresql/data
+
     mongo:
         image: mongo:4.2.3
         ports:
@@ -290,4 +302,4 @@ services:
             - '443:443'
 
 volumes:
-    mongodata:
+    postgres:

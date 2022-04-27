@@ -1,72 +1,161 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        project: {
-            type: string,
-            ref: 'Project',
-            alias: 'project',
-            index: true,
-        },
-        monitors: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+        project!: {
+ 
+ @Column()
+            type!: string;
+ 
+ @Column()
+            ref!: 'Project';
+ 
+ @Column()
+            alias!: 'project';
+ 
+ @Column()
+            index!: true;
+        };
+ 
+ @Column()
+        monitors!: [
             {
-                monitorId: {
-                    type: Schema.Types.ObjectId,
-                    ref: 'Monitor',
-                    index: true,
-                },
-            },
-        ],
-        name: string,
-        cancelled: boolean,
-        cancelledAt: Date,
+ 
+ @Column()
+                monitorId!: {
+ 
+ @Column()
+                    type!: Schema.Types.ObjectId;
+ 
+ @Column()
+                    ref!: 'Monitor';
+ 
+ @Column()
+                    index!: true;
+                };
+            };
+        ];
+ 
+ @Column()
+        name!: string;
+ 
+ @Column()
+        cancelled!: boolean;
+ 
+ @Column()
+        cancelledAt!: Date;
 
-        cancelledById: {
-            type: string,
-            ref: 'User',
-            index: true,
-        },
-        slug: string,
-        createdByUser: {
-            type: string,
-            ref: 'User',
-            index: true,
-        },
+ 
+ @Column()
+        cancelledById!: {
+ 
+ @Column()
+            type!: string;
+ 
+ @Column()
+            ref!: 'User';
+ 
+ @Column()
+            index!: true;
+        };
+ 
+ @Column()
+        slug!: string;
+ 
+ @Column()
+        createdByUser!: {
+ 
+ @Column()
+            type!: string;
+ 
+ @Column()
+            ref!: 'User';
+ 
+ @Column()
+            index!: true;
+        };
 
-        deleted: boolean,
-        deletedAt: {
-            type: Date,
-        },
-        deletedByUser: {
-            type: string,
-            ref: 'User',
-            index: true,
-        },
-        startDate: {
-            type: Date,
-        },
-        endDate: {
-            type: Date,
-        },
-        description: {
-            type: string,
-        },
-        showEventOnStatusPage: boolean,
-        callScheduleOnEvent: boolean,
-        monitorDuringEvent: boolean,
-        recurring: boolean,
-        interval: {
-            type: string,
-            default: null,
-        },
-        alertSubscriber: boolean,
-        resolved: boolean,
-        resolvedBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-        resolvedAt: Date,
-    },
-    { timestamps: true }
-);
+        
+ 
+ 
+ 
+ @Column()
+        deletedByUser!: {
+ 
+ @Column()
+            type!: string;
+ 
+ @Column()
+            ref!: 'User';
+ 
+ @Column()
+            index!: true;
+        };
+ 
+ @Column()
+        startDate!: {
+ 
+ @Column()
+            type!: Date;
+        };
+ 
+ @Column()
+        endDate!: {
+ 
+ @Column()
+            type!: Date;
+        };
+ 
+ @Column()
+        description!: {
+ 
+ @Column()
+            type!: string;
+        };
+ 
+ @Column()
+        showEventOnStatusPage!: boolean;
+ 
+ @Column()
+        callScheduleOnEvent!: boolean;
+ 
+ @Column()
+        monitorDuringEvent!: boolean;
+ 
+ @Column()
+        recurring!: boolean;
+ 
+ @Column()
+        interval!: {
+ 
+ @Column()
+            type!: string;
+ 
+ @Column()
+            default!: null;
+        };
+ 
+ @Column()
+        alertSubscriber!: boolean;
+ 
+ @Column()
+        resolved!: boolean;
+ 
+ @Column()
+        resolvedBy: User;
+ 
+ @Column()
+        resolvedAt!: Date;
+    };
+ 
+
+}
 
 
 

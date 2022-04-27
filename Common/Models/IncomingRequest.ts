@@ -1,71 +1,154 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        name: string,
-        project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-        monitors: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+        name!: string;
+ 
+ @Column()
+        project: Project;
+ 
+ @Column()
+        monitors!: [
             {
-                monitorId: {
-                    type: Schema.Types.ObjectId,
-                    ref: 'Monitor',
-                    index: true,
-                },
-            },
-        ],
-        isDefault: boolean,
-        selectAllMonitors: boolean,
-        createIncident: boolean,
-        acknowledgeIncident: boolean,
-        resolveIncident: boolean,
-        updateIncidentNote: boolean,
-        updateInternalNote: boolean,
-        noteContent: string,
-        incidentState: string,
-        url: URL,
-        enabled: boolean,
+ 
+ @Column()
+                monitorId!: {
+ 
+ @Column()
+                    type!: Schema.Types.ObjectId;
+ 
+ @Column()
+                    ref!: 'Monitor';
+ 
+ @Column()
+                    index!: true;
+                };
+            };
+        ];
+ 
+ @Column()
+        isDefault!: boolean;
+ 
+ @Column()
+        selectAllMonitors!: boolean;
+ 
+ @Column()
+        createIncident!: boolean;
+ 
+ @Column()
+        acknowledgeIncident!: boolean;
+ 
+ @Column()
+        resolveIncident!: boolean;
+ 
+ @Column()
+        updateIncidentNote!: boolean;
+ 
+ @Column()
+        updateInternalNote!: boolean;
+ 
+ @Column()
+        noteContent!: string;
+ 
+ @Column()
+        incidentState!: string;
+ 
+ @Column()
+        url!: URL;
+ 
+ @Column()
+        enabled!: boolean;
         
-        deletedAt: Date,
-        incidentTitle: string,
-        incidentType: string,
-        incidentPriority: {
-            type: Schema.Types.Mixed,
-            ref: 'IncidentPriority',
-            index: true,
-        },
-        incidentDescription: string,
-        customFields: [
+ 
+
+ 
+ @Column()
+        incidentTitle!: string;
+ 
+ @Column()
+        incidentType!: string;
+ 
+ @Column()
+        incidentPriority!: {
+ 
+ @Column()
+            type!: Schema.Types.Mixed;
+ 
+ @Column()
+            ref!: 'IncidentPriority';
+ 
+ @Column()
+            index!: true;
+        };
+ 
+ @Column()
+        incidentDescription!: string;
+ 
+ @Column()
+        customFields!: [
             {
-                fieldName: string,
-                fieldValue: Schema.Types.Mixed,
-                uniqueField: boolean,
-                fieldType: string,
-            },
-        ],
-        filterMatch: string,
-        filters: [
+ 
+ @Column()
+                fieldName!: string;
+ 
+ @Column()
+                fieldValue!: Schema.Types.Mixed;
+ 
+ @Column()
+                uniqueField!: boolean;
+ 
+ @Column()
+                fieldType!: string;
+            };
+        ];
+ 
+ @Column()
+        filterMatch!: string;
+ 
+ @Column()
+        filters!: [
             {
-                filterCriteria: string,
-                filterCondition: {
-                    type: string,
-                    enum: [
-                        'equalTo',
-                        'notEqualTo',
-                        'lessThan',
-                        'greaterThan',
-                        'greaterThanOrEqualTo',
-                        'lessThanOrEqualTo',
-                    ],
-                },
-                filterText: Schema.Types.Mixed,
-            },
-        ],
-        createSeparateIncident: boolean,
-        post_statuspage: boolean,
-    },
-    { timestamps: true }
-);
+ 
+ @Column()
+                filterCriteria!: string;
+ 
+ @Column()
+                filterCondition!: {
+ 
+ @Column()
+                    type!: string;
+ 
+ @Column()
+                    enum!: [
+                        'equalTo';
+                        'notEqualTo';
+                        'lessThan';
+                        'greaterThan';
+                        'greaterThanOrEqualTo';
+                        'lessThanOrEqualTo';
+                    ];
+                };
+ 
+ @Column()
+                filterText!: Schema.Types.Mixed;
+            };
+        ];
+ 
+ @Column()
+        createSeparateIncident!: boolean;
+ 
+ @Column()
+        post_statuspage!: boolean;
+    };
+ 
+
+}
 
 
 

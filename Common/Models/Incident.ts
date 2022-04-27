@@ -1,111 +1,258 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    idNumber: {
-        type: Schema.Types.Number,
-        index: true,
-    },
-    project: Project, //Which project this incident belongs to.
-    title: {
-        type: Schema.Types.String,
-    },
-    description: {
-        type: Schema.Types.String,
-    },
-    reason: {
-        type: Schema.Types.String,
-    },
-    response: Object,
-    monitors: [
+
+export enum IncidentState {
+   Identified = "Identified",
+   Acknowledged = "Acknowledged",
+   Resolved = "Resolved"
+}
+
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    idNumber!: {
+ 
+ @Column()
+        type!: Schema.Types.Number;
+ 
+ @Column()
+        index!: true;
+    };
+ 
+ @Column()
+    project!: Project; //Which project this incident belongs to.
+ 
+ @Column()
+    title!: {
+ 
+ @Column()
+        type!: Schema.Types.String;
+    };
+ 
+ @Column()
+    description!: {
+ 
+ @Column()
+        type!: Schema.Types.String;
+    };
+ 
+ @Column()
+    reason!: {
+ 
+ @Column()
+        type!: Schema.Types.String;
+    };
+ 
+ @Column()
+    response!: Object;
+ 
+ @Column()
+    monitors!: [
         {
-            monitorId: {
-                type: Schema.Types.ObjectId,
-                ref: 'Monitor',
-                index: true,
-            },
-        },
-    ],
-    notifications: [
+ 
+ @Column()
+            monitorId!: {
+ 
+ @Column()
+                type!: Schema.Types.ObjectId;
+ 
+ @Column()
+                ref!: 'Monitor';
+ 
+ @Column()
+                index!: true;
+            };
+        };
+    ];
+ 
+ @Column()
+    notifications!: [
         {
-            notificationId: {
-                type: string,
-                ref: 'Notification',
-                index: true,
-            },
-        },
-    ],
-    incidentPriority: {
-        type: string,
-        ref: 'IncidentPriority',
-        index: true,
-    },
-    acknowledged: boolean,
-    acknowledgedBy: User, // user
-    acknowledgedAt: {
-        type: Date,
-    },
-    acknowledgedByZapier: boolean, // Is true when zapier acknowledges incident
+ 
+ @Column()
+            notificationId!: {
+ 
+ @Column()
+                type!: string;
+ 
+ @Column()
+                ref!: 'Notification';
+ 
+ @Column()
+                index!: true;
+            };
+        };
+    ];
+ 
+ @Column()
+    incidentPriority!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        ref!: 'IncidentPriority';
+ 
+ @Column()
+        index!: true;
+    };
+ 
+ @Column()
+    acknowledged!: boolean;
+ 
+ @Column()
+    acknowledgedBy!: User; // user
+ 
+ @Column()
+    acknowledgedAt!: {
+ 
+ @Column()
+        type!: Date;
+    };
+ 
+ @Column()
+    acknowledgedByZapier!: boolean; // Is true when zapier acknowledges incident
 
-    resolved: boolean,
-    incidentType: {
-        type: string,
-        enum: ['online', 'offline', 'degraded'],
-        required: false,
-    },
-    probes: [
+ 
+ @Column()
+    resolved!: boolean;
+ 
+ @Column()
+    incidentType!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: ['online', 'offline', 'degraded'];
+ 
+ @Column()
+        required!: false;
+    };
+ 
+ @Column()
+    probes!: [
         {
-            probeId: { type: string, ref: 'Probe' },
-            updatedAt: Date,
-            status: boolean,
-            reportedStatus: {
-                type: string,
-                enum: ['online', 'offline', 'degraded'],
-                required: false,
-            },
-        },
-    ],
-    resolvedBy: User, // user
-    resolvedAt: Date,
-    resolvedByZapier: boolean, // Is true when zapier resolves incident
+ 
+ @Column()
+            probeId: { type: string, ref!: 'Probe' };
+ 
+ @Column()
+            updatedAt!: Date;
+ 
+ @Column()
+            status!: boolean;
+ 
+ @Column()
+            reportedStatus!: {
+ 
+ @Column()
+                type!: string;
+ 
+ @Column()
+                enum!: ['online', 'offline', 'degraded'];
+ 
+ @Column()
+                required!: false;
+            };
+        };
+    ];
+ 
+ @Column()
+    resolvedBy!: User; // user
+ 
+ @Column()
+    resolvedAt!: Date;
+ 
+ @Column()
+    resolvedByZapier!: boolean; // Is true when zapier resolves incident
 
-    internalNote: { type: string, default: '' },
-    investigationNote: { type: string, default: '' },
+ 
+ @Column()
+    internalNote: { type: string, default!: '' };
+ 
+ @Column()
+    investigationNote: { type: string, default!: '' };
 
-    createdByUser: User, // user
-    createdByApi: boolean,
-    ,
+ 
+ @Column()
+    createdByUser!: User; // user
+ 
+ @Column()
+    createdByApi!: boolean;
+    ;
 
-    createdByZapier: boolean, // Is true when zapier creates incident
+ 
+ @Column()
+    createdByZapier!: boolean; // Is true when zapier creates incident
 
-    acknowledgedByApi: boolean,
-    resolvedByApi: boolean,
+ 
+ @Column()
+    acknowledgedByApi!: boolean;
+ 
+ @Column()
+    resolvedByApi!: boolean;
 
-    notClosedBy: [User],
-    manuallyCreated: boolean,
-    criterionCause: Object,
+ 
+ @Column()
+    notClosedBy!: [User];
+ 
+ @Column()
+    manuallyCreated!: boolean;
+ 
+ @Column()
+    criterionCause!: Object;
 
     
 
 
 
-    deletedByUser: User,
+ 
+ @Column()
+    deletedByUser!: User;
     // Has this incident breached communication sla
-    breachedCommunicationSla: boolean,
-    customFields: [
+ 
+ @Column()
+    breachedCommunicationSla!: boolean;
+ 
+ @Column()
+    customFields!: [
         {
-            fieldName: string,
-            fieldValue: Schema.Types.Mixed,
-            uniqueField: boolean,
-            fieldType: string,
-        },
-    ],
-    acknowledgedByIncomingHttpRequest: { type: string, ref: 'IncomingRequest' },
-    resolvedByIncomingHttpRequest: { type: string, ref: 'IncomingRequest' },
-    createdByIncomingHttpRequest: { type: string, ref: 'IncomingRequest' },
-    hideIncident: boolean,
+ 
+ @Column()
+            fieldName!: string;
+ 
+ @Column()
+            fieldValue!: Schema.Types.Mixed;
+ 
+ @Column()
+            uniqueField!: boolean;
+ 
+ @Column()
+            fieldType!: string;
+        };
+    ];
+ 
+ @Column()
+    acknowledgedByIncomingHttpRequest: { type: string, ref!: 'IncomingRequest' };
+ 
+ @Column()
+    resolvedByIncomingHttpRequest: { type: string, ref!: 'IncomingRequest' };
+ 
+ @Column()
+    createdByIncomingHttpRequest: { type: string, ref!: 'IncomingRequest' };
+ 
+ @Column()
+    hideIncident!: boolean;
 
-    slug: string,
+ 
+ @Column()
+    slug!: string;
 }
 
 

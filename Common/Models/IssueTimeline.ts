@@ -1,21 +1,40 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    issueId: { type: string, ref: 'Issue', index: true },
-    createdByUser: User,
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    issueId: { type: string, ref: 'Issue', index!: true };
+ 
+ @Column()
+    createdByUser!: User;
 
-    ,
+    ;
 
-    status: {
-        type: string,
-        enum: ['ignore', 'unresolve', 'resolve', 'unignore'],
-        required: true,
-    },
+ 
+ @Column()
+    status!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: ['ignore', 'unresolve', 'resolve', 'unignore'];
+ 
+ @Column()
+        required!: true;
+    };
 
     
-    deletedAt: Date,
-    deletedByUser: { type: string, ref: 'User' },
+ 
+
+ 
+ @Column()
+    deletedByUser: { type: string, ref!: 'User' };
 }
 
 

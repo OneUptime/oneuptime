@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/GitCredential';
+} from 'Common/Models/GitCredential';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {

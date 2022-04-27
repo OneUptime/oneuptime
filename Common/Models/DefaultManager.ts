@@ -1,33 +1,68 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    {
-        store: {
-            type: Object,
-            default: {
-                module: 'oneuptime-le-store',
-            },
-        },
-        challenges: {
-            'http-01': {
-                type: Object,
-                default: {
-                    module: 'oneuptime-acme-http-01',
-                },
-            },
-        },
-        renewOffset: { type: string, default: '-45d' },
-        renewStagger: { type: string, default: '3d' },
-        accountKeyType: string,
-        serverKeyType: string,
-        subscriberEmail: string,
-        agreeToTerms: boolean,
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+        store!: {
+ 
+ @Column()
+            type!: Object;
+ 
+ @Column()
+            default!: {
+ 
+ @Column()
+                module!: 'oneuptime-le-store';
+            };
+        };
+ 
+ @Column()
+        challenges!: {
+ 
+ @Column()
+            'http-01'!: {
+ 
+ @Column()
+                type!: Object;
+ 
+ @Column()
+                default!: {
+ 
+ @Column()
+                    module!: 'oneuptime-acme-http-01';
+                };
+            };
+        };
+ 
+ @Column()
+        renewOffset: { type: string, default!: '-45d' };
+ 
+ @Column()
+        renewStagger: { type: string, default!: '3d' };
+ 
+ @Column()
+        accountKeyType!: string;
+ 
+ @Column()
+        serverKeyType!: string;
+ 
+ @Column()
+        subscriberEmail!: string;
+ 
+ @Column()
+        agreeToTerms!: boolean;
         
-        deletedAt: Date,
-    },
-    { timestamps: true }
-);
+ 
+
+    };
+ 
+
+}
 
 
 

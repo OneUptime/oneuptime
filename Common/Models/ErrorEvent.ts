@@ -1,51 +1,111 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-export default interface Model extends BaseModel{
-    errorTrackerId: {
-        type: Schema.Types.ObjectId,
-        ref: 'ErrorTracker',
-        alias: 'errorTracker',
-        index: true,
-    }, //Which error tracker this error event belongs to.
-    issueId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Issue',
-        alias: 'issue',
-        index: true,
-    }, //Which issue this error event belongs to.
-    content: Object,
-    type: {
-        type: string,
-        enum: ['exception', 'message', 'error'],
-        required: true,
-    },
-    timeline: [
+@Entity({
+    name: "UserAlerts"
+})
+export default class Model extends BaseModel{
+ 
+ @Column()
+    errorTrackerId!: {
+ 
+ @Column()
+        type!: Schema.Types.ObjectId;
+ 
+ @Column()
+        ref!: 'ErrorTracker';
+ 
+ @Column()
+        alias!: 'errorTracker';
+ 
+ @Column()
+        index!: true;
+    }; //Which error tracker this error event belongs to.
+ 
+ @Column()
+    issueId!: {
+ 
+ @Column()
+        type!: Schema.Types.ObjectId;
+ 
+ @Column()
+        ref!: 'Issue';
+ 
+ @Column()
+        alias!: 'issue';
+ 
+ @Column()
+        index!: true;
+    }; //Which issue this error event belongs to.
+ 
+ @Column()
+    content!: Object;
+ 
+ @Column()
+    type!: {
+ 
+ @Column()
+        type!: string;
+ 
+ @Column()
+        enum!: ['exception', 'message', 'error'];
+ 
+ @Column()
+        required!: true;
+    };
+ 
+ @Column()
+    timeline!: [
         {
-            type: Object,
-        },
-    ],
-    tags: [
+ 
+ @Column()
+            type!: Object;
+        };
+    ];
+ 
+ @Column()
+    tags!: [
         {
-            type: Object,
-        },
-    ],
-    sdk: Object,
-    fingerprint: [
+ 
+ @Column()
+            type!: Object;
+        };
+    ];
+ 
+ @Column()
+    sdk!: Object;
+ 
+ @Column()
+    fingerprint!: [
         {
-            type: string,
-        },
-    ],
-    fingerprintHash: string,
-    device: Object,
-    ,
+ 
+ @Column()
+            type!: string;
+        };
+    ];
+ 
+ @Column()
+    fingerprintHash!: string;
+ 
+ @Column()
+    device!: Object;
+    ;
 }
 
-schema.virtual('errorTracker', {
-    localField: '_id',
-    foreignField: 'errorTrackerId',
-    ref: 'ErrorTracker',
-    justOne: true,
+schema.virtual('errorTracker'; {
+ 
+ @Column()
+    localField!: '_id';
+ 
+ @Column()
+    foreignField!: 'errorTrackerId';
+ 
+ @Column()
+    ref!: 'ErrorTracker';
+ 
+ @Column()
+    justOne!: true;
 }
 
 

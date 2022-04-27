@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/Escalation';
+} from 'Common/Models/Escalation';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {

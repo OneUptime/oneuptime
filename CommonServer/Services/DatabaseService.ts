@@ -28,6 +28,7 @@ import Encryption from '../Utils/Encryption';
 import { JSONObject } from 'Common/Types/JSON';
 import SortOrder from '../Types/DB/SortOrder';
 import DbFunctions from '../Utils/DBFunctions';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ListProps {
     populate: Populate;
@@ -51,7 +52,7 @@ interface InternalUpdateBy extends UpdateBy {
     multiple: boolean;
 }
 
-class DatabaseService<ModelType> {
+class DatabaseService<BaseModel> {
     public adminItemProps: ItemProps;
     public adminListProps: ListProps;
     public ownerItemProps: ItemProps;
@@ -59,7 +60,7 @@ class DatabaseService<ModelType> {
     public friendlyName: string;
     public memberItemProps: ItemProps;
     public memberListProps: ListProps;
-    public model: Model<ModelType>;
+    public model: BaseModel;
     public publicItemProps: ItemProps;
     public publicListProps: ListProps;
     public requiredFields: RequiredFields;
@@ -95,7 +96,7 @@ class DatabaseService<ModelType> {
         friendlyName: string;
         memberItemProps: ItemProps;
         memberListProps: ListProps;
-        model: Model<ModelType>;
+        model: BaseModel;
         publicItemProps: ItemProps;
         publicListProps: ListProps;
         requiredFields: RequiredFields;

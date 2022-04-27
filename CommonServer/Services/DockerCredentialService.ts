@@ -3,7 +3,7 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/DockerCredential';
+} from 'Common/Models/DockerCredential';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DatabaseService from './DatabaseService';
 import API from 'Common/Utils/API';

@@ -1,33 +1,25 @@
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-import { RoleArray } from 'Common/Types/Role';
+import Role from '../Types/Role';
 
-export default interface Model extends BaseModel{
-    domain: {
-        type: Schema.Types.ObjectId,
-        required: true,
-        ref: 'Sso',
-    },
-    project: {
-        type: Schema.Types.ObjectId,
-        ref: 'Project',
-        required: true,
-    },
-    role: {
-        type: string,
-        required: true,
-        enum: RoleArray.filter((item: string) => {
-            return item !== 'Owner';
-        }), // All roles except Owner
-    },
-    ,
-    deleted: boolean,
+@Entity({
+       name: "SsoDefaultRole"
+})
+export default class SsoDefaultRole extends BaseModel {
 
-    deletedByUser: {
-        type: string,
-        ref: 'User',
-    },
+       @Column()
+       domain!: string
+
+       @Column()
+       project!: Project
+
+       @Column()
+       role!: Role
+
+       @Column()
+       deletedByUser!: User
 }
 
 
