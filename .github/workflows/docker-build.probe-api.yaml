@@ -1,4 +1,4 @@
-name: haraka docker-build workflow
+name: Probe-api docker-build workflow
 
 on: 
   push:
@@ -8,13 +8,13 @@ on:
       - 'staging-release'
 
 jobs:
- # define job to build docker image
-  haraka-docker-build:
+ # define job to build docker image 
+  probe-api-docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 
         uses: actions/checkout@v2
 
-      # build images
+      # build image probe api
       - name: build docker image
-        run: npm run build-ci haraka
+        run: npm run build-ci probe-api
