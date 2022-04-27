@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 const criteriaItem: Schema = new Schema({
     criteriaType: string, 
     filter: 
@@ -13,12 +15,12 @@ const criteriaSchema: Schema = new Schema({
 // A schema definition for a criterion event, i.e up, down, or degraded
 const criterionEventSchema: Schema = new Schema({
     scheduleIds: [String],
-    createAlert: { type: Boolean, default: false },
-    autoAcknowledge: { type: Boolean, default: false },
-    autoResolve: { type: Boolean, default: false },
+    createAlert: boolean,
+    autoAcknowledge: boolean,
+    autoResolve: boolean,
     title: { type: string, default: '' },
     description: { type: string, default: '' },
-    default: { type: Boolean, default: false },
+    default: boolean,
     name: string,
     criteria: {
         condition: string,
@@ -128,7 +130,7 @@ export default interface Model extends BaseModel{
     formData: [Object],
     text: string,
     headers: [Object],
-    disabled: { type: Boolean, default: false }
+    disabled: boolean
 
 
 
@@ -148,18 +150,18 @@ export default interface Model extends BaseModel{
         type: Schema.Types.ObjectId,
         ref: 'MonitorSla',
     },
-    breachedMonitorSla: { type: Boolean, default: false },
+    breachedMonitorSla: boolean,
     breachClosedBy: [{ type: string, ref: 'User' }],
     customFields: [
         {
             fieldName: string,
             fieldValue: Schema.Types.Mixed,
-            uniqueField: { type: Boolean, default: false },
+            uniqueField: boolean,
             fieldType: string,
         },
     ],
     shouldNotMonitor: boolean,
-    scanning: { type: Boolean, default: false },
+    scanning: boolean,
     probeScanning: [String],
     monitorStatus: string,
 }

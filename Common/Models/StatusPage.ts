@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     project: Project, //Which project this statuspage belongs to.
     domains: [
@@ -6,8 +8,8 @@ export default interface Model extends BaseModel{
             domain: string, // Complete domain eg status.oneuptime.com
             cert: string, // Filename gridfs
             privateKey: string, // Filename gridfs
-            enableHttps: { type: Boolean, default: false },
-            autoProvisioning: { type: Boolean, default: false },
+            enableHttps: boolean,
+            autoProvisioning: boolean,
             domainVerificationToken: {
                 type: Schema.Types.ObjectId,
                 ref: 'DomainVerificationToken',
@@ -73,7 +75,7 @@ export default interface Model extends BaseModel{
     smsNotification: boolean,
     webhookNotification: boolean,
     selectIndividualMonitors: boolean,
-    enableIpWhitelist: { type: Boolean, default: false },
+    enableIpWhitelist: boolean,
     ipWhitelist: { type: Array, default: [] }
     incidentHistoryDays: { type: Number, default: 14 },
     scheduleHistoryDays: { type: Number, default: 14 },
@@ -82,7 +84,7 @@ export default interface Model extends BaseModel{
     offlineText: { type: string, default: 'Offline' },
     degradedText: { type: string, default: 'Degraded' },
     twitterHandle: string,
-    enableMultipleLanguage: { type: Boolean, default: false },
+    enableMultipleLanguage: boolean,
     multipleLanguages: { type: Array, default: [] },
 
 

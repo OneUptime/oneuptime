@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     issueId: {
         type: Schema.Types.ObjectId,
@@ -14,7 +16,7 @@ export default interface Model extends BaseModel{
     }, // Which team member is this.
     ,
     createdByUser: User,
-    removed: { type: Boolean, default: false }, // This removed is the flag to be used to know if the member has been unassigned from the issue
+    removed: boolean, // This removed is the flag to be used to know if the member has been unassigned from the issue
 
     removedAt: {
         type: Date,

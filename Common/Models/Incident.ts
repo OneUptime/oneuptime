@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     idNumber: {
         type: Schema.Types.Number,
@@ -71,16 +73,16 @@ export default interface Model extends BaseModel{
     investigationNote: { type: string, default: '' },
 
     createdByUser: User, // user
-    createdByApi: { type: Boolean, default: false },
+    createdByApi: boolean,
     ,
 
     createdByZapier: boolean, // Is true when zapier creates incident
 
-    acknowledgedByApi: { type: Boolean, default: false },
-    resolvedByApi: { type: Boolean, default: false },
+    acknowledgedByApi: boolean,
+    resolvedByApi: boolean,
 
     notClosedBy: [User],
-    manuallyCreated: { type: Boolean, default: false },
+    manuallyCreated: boolean,
     criterionCause: Object,
 
     
@@ -89,19 +91,19 @@ export default interface Model extends BaseModel{
 
     deletedByUser: User,
     // Has this incident breached communication sla
-    breachedCommunicationSla: { type: Boolean, default: false },
+    breachedCommunicationSla: boolean,
     customFields: [
         {
             fieldName: string,
             fieldValue: Schema.Types.Mixed,
-            uniqueField: { type: Boolean, default: false },
+            uniqueField: boolean,
             fieldType: string,
         },
     ],
     acknowledgedByIncomingHttpRequest: { type: string, ref: 'IncomingRequest' },
     resolvedByIncomingHttpRequest: { type: string, ref: 'IncomingRequest' },
     createdByIncomingHttpRequest: { type: string, ref: 'IncomingRequest' },
-    hideIncident: { type: Boolean, default: false },
+    hideIncident: boolean,
 
     slug: string,
 }

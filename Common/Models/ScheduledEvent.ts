@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     {
         project: {
@@ -59,7 +61,7 @@ export default interface Model extends BaseModel{
             default: null,
         },
         alertSubscriber: boolean,
-        resolved: { type: Boolean, default: false },
+        resolved: boolean,
         resolvedBy: { type: Schema.Types.ObjectId, ref: 'User', index: true },
         resolvedAt: Date,
     },

@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     {
         scheduledEventId: {
@@ -14,7 +16,7 @@ export default interface Model extends BaseModel{
         },
         event_state: string,
         createdByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-        updated: { type: Boolean, default: false },
+        updated: boolean,
         
         deletedAt: Date,
         deletedByUser: { type: Schema.Types.ObjectId, ref: 'User', index: true },

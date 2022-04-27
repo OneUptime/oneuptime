@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     webHookName: string,
     project: Project,
@@ -20,10 +22,10 @@ export default interface Model extends BaseModel{
     ],
     ,
     notificationOptions: {
-        incidentCreated: { type: Boolean, default: false },
-        incidentAcknowledged: { type: Boolean, default: false },
-        incidentResolved: { type: Boolean, default: false },
-        incidentNoteAdded: { type: Boolean, default: false },
+        incidentCreated: boolean,
+        incidentAcknowledged: boolean,
+        incidentResolved: boolean,
+        incidentNoteAdded: boolean,
     },
 
     

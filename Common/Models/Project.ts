@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 
 export default interface Model extends BaseModel{
     name: string,
@@ -16,7 +18,7 @@ export default interface Model extends BaseModel{
 
     stripePlanId: string,
     stripeSubscriptionId: string, // This is for plans.
-    parentproject: { type: string, ref: 'Project', index: true },
+    parentproject: Project,
     seats: { type: string, default: '1' },
     
 

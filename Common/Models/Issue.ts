@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     name: string,
     description: string,
@@ -24,14 +26,14 @@ export default interface Model extends BaseModel{
 
 
     deletedByUser: User,
-    resolved: { type: Boolean, default: false },
+    resolved: boolean,
 
     resolvedAt: {
         type: Date,
     },
 
     resolvedById: User,
-    ignored: { type: Boolean, default: false },
+    ignored: boolean,
 
     ignoredAt: {
         type: Date,

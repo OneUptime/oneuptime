@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     incidentId: {
         type: Schema.Types.ObjectId,
@@ -15,12 +17,12 @@ export default interface Model extends BaseModel{
     incident_state: string,
     createdByUser: User, //user.
     ,
-    updated: { type: Boolean, default: false }
+    updated: boolean
 
 
 
     deletedByUser: User,
-    postOnStatusPage: { type: Boolean, default: false },
+    postOnStatusPage: boolean,
 }
 
 schema.virtual('incident', {

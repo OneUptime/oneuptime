@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
     subject: string,

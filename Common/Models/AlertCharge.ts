@@ -1,6 +1,8 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
-    project: { type: string, ref: 'Project', index: true },
+    project: Project,
     chargeAmount: { type: Number, default: 0 },
     closingAccountBalance: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now },

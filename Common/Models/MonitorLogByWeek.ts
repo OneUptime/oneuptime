@@ -1,6 +1,8 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
-    monitorId: { type: string, ref: 'Monitor', index: true }, // Which monitor does this belong to.
+    monitorId: Monitor, // Which monitor does this belong to.
     probeId: { type: string, ref: 'Probe' }, // Which probe does this belong to.
     status: string, // Current status based on criteria.
     responseTime: Number, // Current time taken for ping.

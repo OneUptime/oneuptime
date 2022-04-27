@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     {
         monitors: [
@@ -38,7 +40,7 @@ export default interface Model extends BaseModel{
         },
         name: string,
         description: string,
-        resolved: { type: Boolean, default: false },
+        resolved: boolean,
     },
     { timestamps: true }
 );

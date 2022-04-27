@@ -1,8 +1,10 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     from: string,
     to: string,
-    project: { type: string, ref: 'Project', index: true },
+    project: Project,
     createdAt: { type: Date, default: Date.now }
 
 

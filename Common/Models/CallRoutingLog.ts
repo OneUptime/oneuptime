@@ -1,6 +1,8 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
-    project: { type: string, ref: 'Project', index: true },
+    project: Project,
     callRoutingId: { type: string, ref: 'CallRouting', index: true },
     
 

@@ -1,6 +1,8 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
-    project: { type: string, ref: 'Project', index: true },
+    project: Project,
     
 
 
@@ -10,9 +12,9 @@ export default interface Model extends BaseModel{
     locality: string,
     region: string,
     capabilities: {
-        MMS: { type: Boolean, default: false },
-        SMS: { type: Boolean, default: false },
-        voice: { type: Boolean, default: false },
+        MMS: boolean,
+        SMS: boolean,
+        voice: boolean,
     },
     routingSchema: {
         type: Object,

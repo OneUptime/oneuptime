@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     {
         name: string,
@@ -18,7 +20,7 @@ export default interface Model extends BaseModel{
         onCallAlert: Array,
         profilePic: string,
 
-        twoFactorAuthEnabled: { type: Boolean, default: false },
+        twoFactorAuthEnabled: boolean,
         twoFactorSecretCode: string,
         otpauth_url: URL,
         backupCodes: Array,

@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 import { RoleArray } from 'Common/Types/Role';
 
 export default interface Model extends BaseModel{

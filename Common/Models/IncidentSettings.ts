@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     project: Project,
     title: {
@@ -13,7 +15,7 @@ export default interface Model extends BaseModel{
         index: true,
     },
     ,
-    isDefault: { type: Boolean, default: false },
+    isDefault: boolean,
     name: string
 
     deletedByUser: User,

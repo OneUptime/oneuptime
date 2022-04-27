@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     {
         name: string,
@@ -22,8 +24,8 @@ export default interface Model extends BaseModel{
         deleted: boolean,
         deletedAt: Date,
         lastScan: Date,
-        scanned: { type: Boolean, default: false },
-        scanning: { type: Boolean, default: false },
+        scanned: boolean,
+        scanning: boolean,
     },
     { timestamps: true } //Automatically adds createdAt and updatedAt to the schema
 );

@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 /**
  * Represents the Zapier Schema in the database.
  * @let {object} zapierSchema

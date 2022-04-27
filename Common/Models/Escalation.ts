@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 import TeamMemberSchema from './EscalationTeamMember';
 
 export default interface Model extends BaseModel{
@@ -17,10 +19,10 @@ export default interface Model extends BaseModel{
     rotationInterval: { type: Number, default: null },
     firstRotationOn: Date,
     rotationTimezone: string,
-    call: { type: Boolean, default: false },
-    email: { type: Boolean, default: false },
-    sms: { type: Boolean, default: false },
-    push: { type: Boolean, default: false },
+    call: boolean,
+    email: boolean,
+    sms: boolean,
+    push: boolean,
     createdByUser: { type: string, ref: 'User', default: null, index: true },
     scheduleId: { type: string, ref: 'Schedule', default: null },
     teams: { type: [TeamMemberSchema], default: null },

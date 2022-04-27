@@ -1,4 +1,6 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     {
         name: string,
@@ -12,13 +14,13 @@ export default interface Model extends BaseModel{
                 },
             },
         ],
-        isDefault: { type: Boolean, default: false },
-        selectAllMonitors: { type: Boolean, default: false },
-        createIncident: { type: Boolean, default: false },
-        acknowledgeIncident: { type: Boolean, default: false },
-        resolveIncident: { type: Boolean, default: false },
-        updateIncidentNote: { type: Boolean, default: false },
-        updateInternalNote: { type: Boolean, default: false },
+        isDefault: boolean,
+        selectAllMonitors: boolean,
+        createIncident: boolean,
+        acknowledgeIncident: boolean,
+        resolveIncident: boolean,
+        updateIncidentNote: boolean,
+        updateInternalNote: boolean,
         noteContent: string,
         incidentState: string,
         url: URL,
@@ -37,7 +39,7 @@ export default interface Model extends BaseModel{
             {
                 fieldName: string,
                 fieldValue: Schema.Types.Mixed,
-                uniqueField: { type: Boolean, default: false },
+                uniqueField: boolean,
                 fieldType: string,
             },
         ],
@@ -59,8 +61,8 @@ export default interface Model extends BaseModel{
                 filterText: Schema.Types.Mixed,
             },
         ],
-        createSeparateIncident: { type: Boolean, default: false },
-        post_statuspage: { type: Boolean, default: false },
+        createSeparateIncident: boolean,
+        post_statuspage: boolean,
     },
     { timestamps: true }
 );

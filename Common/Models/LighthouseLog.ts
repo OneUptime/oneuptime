@@ -1,6 +1,8 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
-    monitorId: { type: string, ref: 'Monitor', index: true }, // Which monitor does this belong to.
+    monitorId: Monitor, // Which monitor does this belong to.
     probeId: { type: string, ref: 'Probe', index: true }, // Which probe does this belong to.
     data: Object,
     url: URL,

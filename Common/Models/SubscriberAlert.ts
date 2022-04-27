@@ -1,6 +1,8 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
-    project: { type: string, ref: 'Project', index: true },
+    project: Project,
     subscriberId: { type: string, ref: 'Subscriber', index: true },
     incidentId: { type: string, ref: 'Incident', index: true },
     alertVia: {
@@ -26,7 +28,7 @@ export default interface Model extends BaseModel{
         required: true,
     },
     createdAt: { type: Date, default: Date.now },
-    error: { type: Boolean, default: false },
+    error: boolean,
     errorMessage: string
 
 

@@ -1,9 +1,11 @@
 import BaseModel from './BaseModel';
+import User from './User';
+import Project from './Project';
 export default interface Model extends BaseModel{
     createdAt: { type: Date, default: Date.now },
 
     project: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-    schedule: { type: Schema.Types.ObjectId, ref: 'Schedule', index: true },
+    schedule: Schedule,
     activeEscalation: {
         type: Schema.Types.ObjectId,
         ref: 'Escalation',
@@ -25,13 +27,13 @@ export default interface Model extends BaseModel{
     ],
 
     incident: { type: Schema.Types.ObjectId, ref: 'Incident', index: true },
-    incidentAcknowledged: { type: Boolean, default: false }, //Incident attached to this schedule is acknowledged.
+    incidentAcknowledged: boolean, //Incident attached to this schedule is acknowledged.
     
     deletedAt: Date,
     deletedByUser: User,
-    isOnDuty: { type: Boolean, default: false },
+    isOnDuty: boolean,
 
-    alertedEveryone: { type: Boolean, default: false }, //This happens when everyone in the scheudle has been alerted and they still ignore the incident.
+    alertedEveryone: boolean, //This happens when everyone in the scheudle has been alerted and they still ignore the incident.
 }
 
 
