@@ -11,10 +11,10 @@ export default class Model extends BaseModel{
     project!: Project;
  
  @Column()
-    subscriberId: { type: string, ref: 'Subscriber', index!: true };
+    subscriber: { type: string, ref: 'Subscriber', index!: true };
  
  @Column()
-    incidentId: { type: string, ref: 'Incident', index!: true };
+    incident: { type: string, ref: 'Incident', index!: true };
  
  @Column()
     alertVia!: {
@@ -68,7 +68,7 @@ export default class Model extends BaseModel{
 
  
  @Column()
-    deletedByUser: { type: string, ref!: 'User' };
+    deletedByUser!:User;
  
  @Column()
     totalSubscribers: { type!: Number };

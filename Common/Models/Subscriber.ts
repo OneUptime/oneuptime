@@ -8,16 +8,16 @@ import Project from './Project';
 export default class Model extends BaseModel{
  
  @Column()
-    monitorId: Monitor;
+    monitor: Monitor;
  
  @Column()
     project: Project;
  
  @Column()
-    statusPageId!: {
+    statusPage!: {
  
  @Column()
-        type!: Schema.Types.ObjectId;
+        type!: Schema.Types.Object;
  
  @Column()
         ref!: 'StatusPage';
@@ -85,7 +85,7 @@ export default class Model extends BaseModel{
     subscribed!: boolean;
  
  @Column()
-    deletedByUser: User;
+    deletedByUser!: User;
 }
 
 

@@ -16,7 +16,7 @@ export enum ScheduledEventNote {
 export default class Model extends BaseModel {
 
        @Column()
-       scheduledEventId!: ScheduledEvent
+       scheduledEvent!: ScheduledEvent
 
        @Column()
        content!: string;

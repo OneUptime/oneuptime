@@ -8,7 +8,7 @@ import Project from './Project';
 export default class Model extends BaseModel{
  
  @Column()
-    incidentId: { type: string, ref: 'Incident', index!: true }; //Which project this incident belongs to.
+    incident: { type: string, ref: 'Incident', index!: true }; //Which project this incident belongs to.
  
  @Column()
     user!: User; // Which User will perfom this action.

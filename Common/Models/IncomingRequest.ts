@@ -18,10 +18,10 @@ export default class Model extends BaseModel{
             {
  
  @Column()
-                monitorId!: {
+                monitor!: {
  
  @Column()
-                    type!: Schema.Types.ObjectId;
+                    type!: Schema.Types.Object;
  
  @Column()
                     ref!: 'Monitor';

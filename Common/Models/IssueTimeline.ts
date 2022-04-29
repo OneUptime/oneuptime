@@ -1,40 +1,32 @@
 import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
-import Project from './Project';
+import Issue from './Issue';
+
+export enum IssueStatus {
+   New = "New",
+   Ignore = "Ignore",
+   Unresolve = "Unreoslve",
+   Resolve = "Resolve",
+}
+
 @Entity({
-    name: "UserAlerts"
+   name: "IssueTimeline"
 })
-export default class Model extends BaseModel{
- 
- @Column()
-    issueId: { type: string, ref: 'Issue', index!: true };
- 
- @Column()
-    createdByUser!: User;
+export default class IssueTimeline extends BaseModel {
 
-    ;
+   @Column()
+   issue!: Issue;
 
- 
- @Column()
-    status!: {
- 
- @Column()
-        type!: string;
- 
- @Column()
-        enum!: ['ignore', 'unresolve', 'resolve', 'unignore'];
- 
- @Column()
-        required!: true;
-    };
+   @Column()
+   createdByUser!: User;
 
-    
- 
+   @Column()
+   status!: IssueStatus
 
- 
- @Column()
-    deletedByUser: { type: string, ref!: 'User' };
+   @Column()
+   deletedByUser!: User;
+   
 }
 
 

@@ -27,7 +27,7 @@ export default class Model extends BaseModel{
             user: { type: string, ref: 'User', index: true, default!: null };
  
  @Column()
-            groupId!: {
+            group!: {
  
  @Column()
                 type!: string;

@@ -2,37 +2,28 @@ import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
+
+
 @Entity({
     name: "UserAlerts"
 })
 export default class Model extends BaseModel{
  
  @Column()
-        subject!: string;
+    name!: string;
  
  @Column()
-        altnames!: Array;
+    slug!: string;
  
  @Column()
-        renewAt: { type: Number, default!: 1 };
+    project!: Project;
  
  @Column()
-        expiresAt: { type!: Number };
+    createdByUser!: User;
  
  @Column()
-        issuedAt: { type!: Number };
-        
- 
- @Column()
-        deletedAt: { type!: Number };
-    };
- 
-
+    deletedByUser!: User;
 }
-
-
-
-
 
 
 

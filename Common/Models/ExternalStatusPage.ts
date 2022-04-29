@@ -20,7 +20,7 @@ export default class ExternalStatusPage extends BaseModel {
        description!: string;
 
        @Column()
-       statusPageId!: StatusPage
+       statusPage!: StatusPage
        @Column()
        project!: Project
 

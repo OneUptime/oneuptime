@@ -3,11 +3,11 @@ import BaseModel from './BaseModel';
 import Incident from './Incident';
 import SubscriberAlert from './SubscriberAlert';
 import Monitor from './Monitor';
-import Alert from './Alert';
+import UserAlert from './UserAlert';
 import Project from './Project';
 
 @Entity({
-   name: "UserAlerts"
+   name: "AlertCharge"
 })
 export default class Model extends BaseModel {
 
@@ -21,16 +21,16 @@ export default class Model extends BaseModel {
    closingAccountBalance!: number;
 
    @Column()
-   alertId!: Alert;
+   userAlert!: UserAlert;
 
    @Column()
-   subscriberAlertId!: SubscriberAlert;
+   subscriberAlert!: SubscriberAlert;
 
    @Column()
-   monitorId!: Monitor;
+   monitor!: Monitor;
 
    @Column()
-   incidentId!: Incident
+   incident!: Incident
 
    @Column()
    sentTo!: string;

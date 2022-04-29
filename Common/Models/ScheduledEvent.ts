@@ -3,10 +3,6 @@ import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
-export enum ScheduledEventState { 
-       
-}
-
 @Entity({
        name: "UserAlerts"
 })
@@ -16,87 +12,61 @@ export default class Model extends BaseModel {
        project!: Project
 
        @Column()
-       monitors!: [
-              {
- 
- @Column()
-       monitorId!: {
- 
- @Column()
-       type!: Schema.Types.ObjectId;
+       name!: string;
 
        @Column()
-       ref!: 'Monitor';
+       cancelled!: boolean;
 
        @Column()
-       index!: true;
-};
-            };
-        ];
+       cancelledAt!: Date;
 
-@Column()
-name!: string;
+       @Column()
+       cancelledBy!: User
 
-@Column()
-cancelled!: boolean;
+       @Column()
+       slug!: string;
 
-@Column()
-cancelledAt!: Date;
+       @Column()
+       createdByUser!: User
 
+       @Column()
+       deletedByUser!: User
 
-@Column()
-cancelledById!: User
+       @Column()
+       startDate!: Date
 
-@Column()
-slug!: string;
+       @Column()
+       endDate!: Date
 
-@Column()
-createdByUser!: User
+       @Column()
+       description!: string
 
+       @Column()
+       showEventOnStatusPage!: boolean;
 
+       @Column()
+       callScheduleOnEvent!: boolean;
 
+       @Column()
+       monitorDuringEvent!: boolean;
 
+       @Column()
+       recurring!: boolean;
 
-@Column()
-deletedByUser!: User
+       @Column()
+       interval!: string
 
-@Column()
-startDate!: Date
+       @Column()
+       alertSubscriber!: boolean;
 
-@Column()
-endDate!: Date
+       @Column()
+       resolved!: boolean;
 
-@Column()
-description!: string
+       @Column()
+       resolvedBy!: User;
 
-@Column()
-showEventOnStatusPage!: boolean;
-
-@Column()
-callScheduleOnEvent!: boolean;
-
-@Column()
-monitorDuringEvent!: boolean;
-
-@Column()
-recurring!: boolean;
-
-@Column()
-interval!: string
-
-@Column()
-alertSubscriber!: boolean;
-
-@Column()
-resolved!: boolean;
-
-@Column()
-resolvedBy!: User;
-
-@Column()
-resolvedAt!: Date;
-    };
- 
+       @Column()
+       resolvedAt!: Date;
 
 }
 

@@ -2,41 +2,33 @@ import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
+
+
 @Entity({
-    name: "UserAlerts"
+   name: "UserAlerts"
 })
-export default class Model extends BaseModel{
- 
- @Column()
-    user: { type: string, ref: 'User', alias: 'users', index!: true };
- 
- @Column()
-    sentTo!: string;
- 
+export default class Model extends BaseModel {
 
- 
- @Column()
-    project!: Project;
- 
- @Column()
-    parentproject!: Project;
- 
- @Column()
-    deleted: { type: Boolean, default: false, index!: true };
+   @Column()
+   user!: User;
 
+   @Column()
+   sentTo!: string;
 
- 
- @Column()
-    deletedByUser!: User;
- 
- @Column()
-    content!: string;
- 
- @Column()
-    status!: string;
- 
- @Column()
-    error!: string;
+   @Column()
+   project!: Project;
+
+   @Column()
+   content!: string;
+
+   @Column()
+   deletedByUser!: User;
+
+   @Column()
+   status!: string;
+
+   @Column()
+   error!: string;
 }
 
 

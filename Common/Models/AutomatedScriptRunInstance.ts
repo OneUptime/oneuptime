@@ -2,14 +2,14 @@ import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-import AutomatedScript from './AutomationScript';
+import AutomatedScript from './AutomatedScript';
 import Incident from './Incident';
 import OperationStatus from '../Types/OperationStatus';
 
 @Entity({
-    name: "AutomationScriptLog"
+    name: "AutomationScriptRunInstance"
 })
-export default class Model extends BaseModel{
+export default class AutomationScriptRunInstance extends BaseModel{
  
        @Column()
        automationScript!: AutomatedScript
@@ -34,9 +34,7 @@ export default class Model extends BaseModel{
  
        @Column()
        executionTime!: Number;
- 
-       @Column()
-       scriptConsoleLogs!: Array<string>;
+
  
        @Column()
        errorDescription!: string;

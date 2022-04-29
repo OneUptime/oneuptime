@@ -8,10 +8,10 @@ import Project from './Project';
 export default class Model extends BaseModel{
  
  @Column()
-    issueId!: {
+    issue!: {
  
  @Column()
-        type!: Schema.Types.ObjectId;
+        type!: Schema.Types.Object;
  
  @Column()
         ref!: 'Issue';
@@ -27,7 +27,7 @@ export default class Model extends BaseModel{
     user!: {
  
  @Column()
-        type!: Schema.Types.ObjectId;
+        type!: Schema.Types.Object;
  
  @Column()
         ref!: 'User';
@@ -55,7 +55,7 @@ export default class Model extends BaseModel{
     };
  
  @Column()
-    removedById!: User;
+    removedBy!: User;
 }
 schema.virtual('issue'; {
  
@@ -63,7 +63,7 @@ schema.virtual('issue'; {
     localField!: '_id';
  
  @Column()
-    foreignField!: 'issueId';
+    foreignField!: 'issue';
  
  @Column()
     ref!: 'Issue';

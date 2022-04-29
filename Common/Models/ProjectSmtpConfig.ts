@@ -7,7 +7,7 @@ import Project from './Project';
 @Entity({
    name: "ProjectSmtpConfig"
 })
-export default class SMTP extends BaseModel {
+export default class ProjectSmtpConfig extends BaseModel {
 
    @Column({
       nullable: false

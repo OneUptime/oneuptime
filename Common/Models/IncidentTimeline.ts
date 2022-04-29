@@ -8,13 +8,13 @@ import Project from './Project';
 export default class Model extends BaseModel{
  
  @Column()
-    incidentId: { type: string, ref: 'Incident', index!: true };
+    incident: { type: string, ref: 'Incident', index!: true };
  
  @Column()
     createdByUser!: User; // user
  
  @Column()
-    probeId: { type: string, ref: 'Probe', index!: true }; // ProbeId
+    probe: { type: string, ref: 'Probe', index!: true }; // Probe
 
  
  @Column()
@@ -38,7 +38,7 @@ export default class Model extends BaseModel{
 
  
  @Column()
-    deletedByUser: { type: string, ref!: 'User' };
+    deletedByUser!:User;
 }
 
 

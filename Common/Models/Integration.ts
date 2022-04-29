@@ -14,7 +14,7 @@ export default class Model extends BaseModel{
     project!: Project;
  
  @Column()
-    createdByUser: { type: Schema.Types.ObjectId, ref: 'User', alias!: 'user' };
+    createdByUser!: { type: Schema.Types.Object, ref: 'User', alias!: 'user' };
  
  @Column()
     integrationType!: {
@@ -37,10 +37,10 @@ export default class Model extends BaseModel{
         {
  
  @Column()
-            monitorId!: {
+            monitor!: {
  
  @Column()
-                type!: Schema.Types.ObjectId;
+                type!: Schema.Types.Object;
  
  @Column()
                 ref!: 'Monitor';
@@ -77,7 +77,7 @@ export default class Model extends BaseModel{
 
  
  @Column()
-schema.index({ project: 1; teamId!: -1 }
+schema.index({ project: 1; team!: -1 }
 
 
 

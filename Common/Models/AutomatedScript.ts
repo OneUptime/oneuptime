@@ -11,7 +11,7 @@ export enum ScriptType {
 @Entity({
        name: "AutomatedScripts"
 })
-export default class AutomatedScripts extends BaseModel {
+export default class AutomatedScript extends BaseModel {
 
        @Column()
        name!: string;
@@ -39,7 +39,7 @@ export default class AutomatedScripts extends BaseModel {
        automatedScript!: {
 
               @Column()
-                     type!: Schema.Types.ObjectId;
+                     type!: Schema.Types.Object;
 
               @Column()
               ref!: 'AutomationSript';
@@ -52,7 +52,7 @@ export default class AutomatedScripts extends BaseModel {
        callSchedule!: {
 
               @Column()
-                     type!: Schema.Types.ObjectId;
+                     type!: Schema.Types.Object;
 
               @Column()
               ref!: 'Schedule';
@@ -71,7 +71,7 @@ failureEvent!: [
 automatedScript!: {
 
        @Column()
-              type!: Schema.Types.ObjectId;
+              type!: Schema.Types.Object;
 
        @Column()
        ref!: 'AutomationSript';
@@ -84,7 +84,7 @@ automatedScript!: {
 callSchedule!: {
 
        @Column()
-              type!: Schema.Types.ObjectId;
+              type!: Schema.Types.Object;
 
        @Column()
        ref!: 'Schedule';

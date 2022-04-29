@@ -1,77 +1,41 @@
 import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
+import Component from './Component';
+import ResourceLabel from './ResourceLabel';
+import GitCredential from './GitCredential';
 @Entity({
-    name: "UserAlerts"
+       name: "UserAlerts"
 })
-export default class Model extends BaseModel{
- 
- @Column()
-        name!: string;
- 
- @Column()
-        slug!: string;
- 
- @Column()
-        gitRepositoryurl!: URL;
- 
- @Column()
-        gitCredential!: {
- 
- @Column()
-            type!: Schema.Types.ObjectId;
- 
- @Column()
-            ref!: 'GitCredential';
- 
- @Column()
-            index!: true;
-        };
- 
- @Column()
-        componentId!: {
- 
- @Column()
-            type!: Schema.Types.ObjectId;
- 
- @Column()
-            ref!: 'Component';
- 
- @Column()
-            index!: true;
-        };
- 
- @Column()
-        resourceCategory!: {
- 
- @Column()
-            type!: Schema.Types.ObjectId;
- 
- @Column()
-            ref!: 'ResourceCategory';
- 
- @Column()
-            index!: true;
-        };
-        
- 
+export default class Model extends BaseModel {
 
- 
- @Column()
-        lastScan!: Date;
- 
- @Column()
-        scanned!: boolean;
- 
- @Column()
-        scanning!: boolean;
-    };
- 
- //Automatically adds createdAt and updatedAt to the schema
-}
+       @Column()
+       name!: string;
+
+       @Column()
+       slug!: string;
+
+       @Column()
+       gitRepositoryurl!: string;
+
+       @Column()
+       gitCredential!: GitCredential
+
+       @Column()
+       component!: Component
+
+       @Column()
+       resourceLabel!: ResourceLabel
 
 
+       @Column()
+       lastScan!: Date;
+
+       @Column()
+       scanned!: boolean;
+
+       @Column()
+       scanning!: boolean;
+};
 
 
 

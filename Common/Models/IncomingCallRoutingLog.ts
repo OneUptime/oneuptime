@@ -11,7 +11,7 @@ export default class Model extends BaseModel{
     project!: Project;
  
  @Column()
-    callRoutingId: { type: string, ref: 'CallRouting', index!: true };
+    callRouting: { type: string, ref: 'CallRouting', index!: true };
     
 
 
@@ -46,7 +46,7 @@ export default class Model extends BaseModel{
             user!: User; // User that call was forwarded to
  
  @Column()
-            scheduleId: { type: string, ref: 'Schedule', index!: true }; // ScheduleId || ''
+            schedule: { type: string, ref: 'Schedule', index!: true }; // Schedule || ''
  
  @Column()
             phoneNumber!: string; // Phone number that call was forwarded to

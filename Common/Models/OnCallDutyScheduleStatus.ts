@@ -17,20 +17,6 @@ export default class Model extends BaseModel{
     schedule!: Schedule;
  
  @Column()
-    activeEscalation!: {
- 
- @Column()
-        type!: Schema.Types.ObjectId;
- 
- @Column()
-        ref!: 'Escalation';
- 
- @Column()
-        index!: true;
-    };
-
- 
- @Column()
     escalations!: [
         {
  
@@ -38,7 +24,7 @@ export default class Model extends BaseModel{
             escalation!: {
  
  @Column()
-                type!: Schema.Types.ObjectId;
+                type!: Schema.Types.Object;
  
  @Column()
                 ref!: 'Escalation';

@@ -1,7 +1,8 @@
 import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
+import PerformanceTracker from './PerformanceTracker';
+
+
 @Entity({
     name: "UserAlerts"
 })
@@ -14,30 +15,13 @@ export default class Model extends BaseModel{
     metrics!: Object;
  
  @Column()
-    callIdentifier!: string;
+    callentifier!: string;
  
  @Column()
     method!: string;
  
  @Column()
-    performanceTrackerId!: {
- 
- @Column()
-        type!: Schema.Types.ObjectId;
- 
- @Column()
-        ref!: 'PerformanceTracker';
- 
- @Column()
-        index!: true;
-    }
-
- 
- @Column()
-    createdAt!: Date;
- 
- @Column()
-    updatedAt!: Date;
+    performanceTracker!: PerformanceTracker
 }
 
 

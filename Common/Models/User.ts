@@ -1,51 +1,47 @@
 import { Column, Entity, Index } from 'typeorm';
+import Role from '../Types/Role';
 import BaseModel from './BaseModel';
 import SSO from './SsoConfig';
 
 @Entity({
        name: "User"
 })
-export default class Model extends BaseModel {
-    {
+export default class User extends BaseModel {
 
-       @Column({type: "text", length: 100})
+       @Column({ type: "text", length: 100 })
        name!: string;
 
-       @Column({type: "text", length: 200, unique: true})
+       @Column({ type: "text", length: 200, unique: true })
        email!: string;
 
-       @Column({type: "text", length: 200})
+       @Column({ type: "text", length: 200 })
        temporaryEmail!: string;
 
-       @Column({type: "text", length: 200})
+       @Column({ type: "text", length: 200 })
        password!: string;
 
-       @Column({type: "boolean"})
+       @Column({ type: "boolean" })
        isEmailVerified!: boolean;
 
        @Column()
-       sso: SSO
+       sso!: SSO
 
-       @Column({type: "text", length: 200})
+       @Column({ type: "text", length: 200 })
        companyName!: string;
 
-       @Column({type: "text", length: 100})
+       @Column({ type: "text", length: 100 })
        companyRole!: string;
 
-       @Column({type: "text", length: 100})
+       @Column({ type: "text", length: 100 })
        companySize!: string;
 
-       @Column({type: "text", length: 100})
+       @Column({ type: "text", length: 100 })
        referral!: string;
 
-       @Column({type: "text", length: 200})
+       @Column({ type: "text", length: 200 })
        companyPhoneNumber!: string;
 
-
-       @Column()
-       onCallAlert!: Array;
-
-       @Column({type: "text", length: 200})
+       @Column({ type: "text", length: 200 })
        profilePic!: string;
 
 
@@ -59,14 +55,13 @@ export default class Model extends BaseModel {
        otpauth_url!: URL;
 
        @Column()
-       backupCodes!: Array;
-
+       backupCodes!: Array<string>;
 
        @Column()
        jwtRefreshToken!: string;
 
        @Column()
-       stripeCustomerId!: string;
+       stripeCustomer!: string;
 
        @Column()
        resetPasswordToken!: string;
@@ -78,41 +73,19 @@ export default class Model extends BaseModel {
        timezone!: string;
 
        @Column()
-       lastActive!: {
-
-              @Column()
-                     type!: Date;
-
-              @Column()
-            default !: Date.now;
-       };
+       lastActive!: Date;
 
        @Column()
        coupon!: string;
-
 
        @Column()
        disabled!: boolean;
 
        @Column()
-       paymentFailedDate!: {
-
-              @Column()
-                     type!: Date;
-
-              @Column()
-            default !: null;
-       };
+       paymentFailedDate!: Date
 
        @Column()
-       role!: {
-
-              @Column()
-                     type!: string;
-
-              @Column()
-                     enum!: ['master-admin', 'user'];
-       };
+       role!: Role
 
        @Column()
        isBlocked!: boolean;
@@ -122,84 +95,25 @@ export default class Model extends BaseModel {
 
 
 
-@Column()
-deletedByUser!: User;
-
-@Column()
-alertPhoneNumber!: {
+       @Column()
+       deletedByUser!: User;
 
        @Column()
-              type!: string;
+       alertPhoneNumber!: string
 
        @Column()
-            default !: '';
-};
-
-@Column()
-alertPhoneVerificationCode!: {
+       alertPhoneVerificationCode!: string
 
        @Column()
-              type!: string;
+       alertPhoneVerificationCodeRequestTime!: Date
 
        @Column()
-            default !: '';
-};
+       tempAlertPhoneNumber!: string;
 
-@Column()
-alertPhoneVerificationCodeRequestTime!: {
 
        @Column()
-              type!: Date;
-};
+       createdBy: User;
 
-@Column()
-tempAlertPhoneNumber!: string;
-
-@Column()
-tutorial!: Object;
-
-@Column()
-createdBy: { type: string, ref!: 'User' };
-
-@Column()
-identification!: [
-       {
- 
- @Column()
-subscription!: Object;
-
-@Column()
-userAgent!: string;
-            };
-        ];
-
-@Column()
-source!: Object;
-
-@Column()
-cachedPassword!: {
-       // Store original password here in "admin mode"
-
-       @Column()
-              type!: string;
-
-       @Column()
-            default !: null;
-};
-
-@Column()
-isAdminMode!: {
-
-       @Column()
-              type!: Boolean; // Currently in admin mode
-
-       @Column()
-            default !: false;
-};
-    };
-
-@Column()
-{ timestamps!: true }
 }
 
 

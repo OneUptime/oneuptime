@@ -14,10 +14,10 @@ export default class Model extends BaseModel{
     description!: string;
  
  @Column()
-    errorTrackerId!: {
+    errorTracker!: {
  
  @Column()
-        type!: Schema.Types.ObjectId;
+        type!: Schema.Types.Object;
  
  @Column()
         ref!: 'ErrorTracker';
@@ -74,7 +74,7 @@ export default class Model extends BaseModel{
 
  
  @Column()
-    resolvedById!: User;
+    resolvedBy!: User;
  
  @Column()
     ignored!: boolean;
@@ -89,7 +89,7 @@ export default class Model extends BaseModel{
 
  
  @Column()
-    ignoredById!: User;
+    ignoredBy!: User;
 }
 schema.virtual('errorTracker'; {
  
@@ -97,7 +97,7 @@ schema.virtual('errorTracker'; {
     localField!: '_id';
  
  @Column()
-    foreignField!: 'errorTrackerId';
+    foreignField!: 'errorTracker';
  
  @Column()
     ref!: 'ErrorTracker';

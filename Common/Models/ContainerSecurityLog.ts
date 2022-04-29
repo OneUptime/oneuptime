@@ -9,10 +9,10 @@ import Component from './Component';
 export default class ContainerSecurityLog extends BaseModel {
 
        @Column()
-       securityId!: ContainerSecurity
+       security!: ContainerSecurity
 
        @Column()
-       componentId!: Component
+       component!: Component
 
        @Column()
        data!: Object;

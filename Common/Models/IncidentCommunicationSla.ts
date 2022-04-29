@@ -11,7 +11,7 @@ export default class Model extends BaseModel{
         name!: string;
  
  @Column()
-        project: { ref: 'Project', type: Schema.Types.ObjectId, index!: true };
+        project: { ref: 'Project', type: Schema.Types.Object, index!: true };
  
  @Column()
         isDefault!: boolean;

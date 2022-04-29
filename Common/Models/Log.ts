@@ -8,10 +8,10 @@ import Project from './Project';
 export default class Model extends BaseModel{
  
  @Column()
-    applicationLogId!: {
+    applicationLog!: {
  
  @Column()
-        type!: Schema.Types.ObjectId;
+        type!: Schema.Types.Object;
  
  @Column()
         ref!: 'ApplicationLog';
@@ -68,7 +68,7 @@ schema.virtual('applicationLog'; {
     localField!: '_id';
  
  @Column()
-    foreignField!: 'applicationLogId';
+    foreignField!: 'applicationLog';
  
  @Column()
     ref!: 'ApplicationLog';

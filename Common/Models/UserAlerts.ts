@@ -4,11 +4,13 @@ import User from './User';
 import Project from './Project';
 import { IncidentState }, Incident from './Incident';
 import Escalation from './Escalation';
-import Schedule from './Schedule';
+import Schedule from './OnCallDutySchedule';
+import Incident from './Incident';
 
 @Entity({
     name: "UserAlerts"
 })
+
 export default class UserAlerts extends BaseModel {
 
     @Column({

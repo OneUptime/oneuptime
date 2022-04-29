@@ -10,33 +10,11 @@ export default class Model extends BaseModel{
  @Column()
     project!: Project;
  
-
- 
- @Column()
-    createdBy!: User;
- 
  @Column()
     message!: string;
- 
- @Column()
-    read!: [User];
- 
- @Column()
-    closed!: [User];
- 
+
  @Column()
     icon!: string
- 
- @Column()
-    meta!: {
- 
- @Column()
-        type!: Object;
-    };
-
- 
- @Column()
-    deletedByUser!: User;
 }
 
 

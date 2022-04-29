@@ -2,16 +2,14 @@ import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
+
 @Entity({
-    name: "UserAlerts"
+    name: "LighthouseLog"
 })
-export default class Model extends BaseModel{
+export default class LighthouseLog extends BaseModel{
  
  @Column()
-    monitorId!: Monitor; // Which monitor does this belong to.
- 
- @Column()
-    probeId: { type: string, ref: 'Probe', index!: true }; // Which probe does this belong to.
+    monitor!: Monitor;
  
  @Column()
     data!: Object;
@@ -33,7 +31,6 @@ export default class Model extends BaseModel{
  
  @Column()
     pwa!: Number;
-    ;
  
  @Column()
     scanning!: Boolean;

@@ -17,7 +17,7 @@ export default class Model extends BaseModel{
         dockerCredential!: {
  
  @Column()
-            type!: Schema.Types.ObjectId;
+            type!: Schema.Types.Object;
  
  @Column()
             ref!: 'DockerCredential';
@@ -33,23 +33,13 @@ export default class Model extends BaseModel{
         imageTags!: string;
  
  @Column()
-        componentId!: {
- 
- @Column()
-            type!: Schema.Types.ObjectId;
- 
- @Column()
-            ref!: 'Component';
- 
- @Column()
-            index!: true;
-        };
+        component!: Component
  
  @Column()
         resourceCategory!: {
  
  @Column()
-            type!: Schema.Types.ObjectId;
+            type!: Schema.Types.Object;
  
  @Column()
             ref!: 'ResourceCategory';

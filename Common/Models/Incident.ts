@@ -56,10 +56,10 @@ export default class Model extends BaseModel{
         {
  
  @Column()
-            monitorId!: {
+            monitor!: {
  
  @Column()
-                type!: Schema.Types.ObjectId;
+                type!: Schema.Types.Object;
  
  @Column()
                 ref!: 'Monitor';
@@ -75,7 +75,7 @@ export default class Model extends BaseModel{
         {
  
  @Column()
-            notificationId!: {
+            notification!: {
  
  @Column()
                 type!: string;
@@ -140,7 +140,7 @@ export default class Model extends BaseModel{
         {
  
  @Column()
-            probeId: { type: string, ref!: 'Probe' };
+            probe: { type: string, ref!: 'Probe' };
  
  @Column()
             updatedAt!: Date;

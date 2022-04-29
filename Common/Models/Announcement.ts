@@ -11,7 +11,7 @@ import StatusPage from './StatusPage';
 export default class Announcement extends BaseModel {
 
        @Column()
-       statusPageId!: StatusPage
+       statusPage!: StatusPage
 
        @Column()
        project!: Project

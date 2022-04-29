@@ -6,7 +6,7 @@ import Project from './Project';
 @Entity({
        name: "SslVerificationChallenge"
 })
-export default class Model extends BaseModel {    
+export default class SslVerificationChallenge extends BaseModel {    
 
        @Column()
        token!: string;

@@ -16,7 +16,7 @@ export default class SsoConfig extends BaseModel {
        domain!: string
 
        @Column({nullable: false})
-       entityId!: string
+       entity!: string
 
        @Column({nullable: false})
        loginUrl!: string

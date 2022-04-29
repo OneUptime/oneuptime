@@ -8,10 +8,10 @@ import Project from './Project';
 export default class Model extends BaseModel{
  
  @Column()
-    errorTrackerId!: {
+    errorTracker!: {
  
  @Column()
-        type!: Schema.Types.ObjectId;
+        type!: Schema.Types.Object;
  
  @Column()
         ref!: 'ErrorTracker';
@@ -24,10 +24,10 @@ export default class Model extends BaseModel{
     }; //Which error tracker this error event belongs to.
  
  @Column()
-    issueId!: {
+    issue!: {
  
  @Column()
-        type!: Schema.Types.ObjectId;
+        type!: Schema.Types.Object;
  
  @Column()
         ref!: 'Issue';
@@ -99,7 +99,7 @@ schema.virtual('errorTracker'; {
     localField!: '_id';
  
  @Column()
-    foreignField!: 'errorTrackerId';
+    foreignField!: 'errorTracker';
  
  @Column()
     ref!: 'ErrorTracker';

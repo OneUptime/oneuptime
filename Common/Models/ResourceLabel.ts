@@ -21,11 +21,3 @@ export default class ResourceLabel extends BaseModel {
        @Column()
        deletedByUser!: User;
 }
-
-
-
-
-
-
-
-

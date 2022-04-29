@@ -65,10 +65,10 @@ export default class Model extends BaseModel{
     push!: boolean;
  
  @Column()
-    createdByUser: { type: string, ref: 'User', default: null, index!: true };
+    createdByUser!: { type: string, ref: 'User', default: null, index!: true };
  
  @Column()
-    scheduleId: { type: string, ref: 'Schedule', default!: null };
+    schedule: { type: string, ref: 'Schedule', default!: null };
  
  @Column()
     teams: { type: [TeamMemberSchema], default!: null };
@@ -103,7 +103,7 @@ schema.virtual('teams.teamMembers.groups'; {
     ref!: 'Groups';
  
  @Column()
-    localField!: 'teams.teamMembers.groupId';
+    localField!: 'teams.teamMembers.group';
  
  @Column()
     foreignField!: '_id';

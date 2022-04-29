@@ -12,7 +12,7 @@ import ResourceLabel from './ResourceLabel';
 export default class ErrorTrackerContainer extends BaseModel{
  
  @Column()
-    componentId!: Component
+    component!: Component
  
  @Column()
     name!: string;
