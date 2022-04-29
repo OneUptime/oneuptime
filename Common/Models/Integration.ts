@@ -14,7 +14,7 @@ export default class Model extends BaseModel{
     project!: Project;
  
  @Column()
-    createdByUser!: { type: Schema.Types.Object, ref: 'User', alias!: 'user' };
+    createdByUser!:User;
  
  @Column()
     integrationType!: {

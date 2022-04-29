@@ -1,44 +1,38 @@
 import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
+import Incident from './Incident';
+import Probe from './Probe';
 import User from './User';
-import Project from './Project';
+
+
 @Entity({
-    name: "UserAlerts"
+   name: "UserAlerts"
 })
-export default class Model extends BaseModel{
- 
- @Column()
-    incident: { type: string, ref: 'Incident', index!: true };
- 
- @Column()
-    createdByUser!: User; // user
- 
- @Column()
-    probe: { type: string, ref: 'Probe', index!: true }; // Probe
+export default class Model extends BaseModel {
 
- 
- @Column()
-    createdByZapier!: boolean; // Is true when zapier creates incident
+   @Column()
+   incident!: Incident;
 
- 
- @Column()
-    createdByApi!: boolean;
+   @Column()
+   createdByUser!: User; // user
 
-    ;
+   @Column()
+   probe!: Probe;
 
- 
- @Column()
-    status!: string;
- 
- @Column()
-    incident_state!: string;
+   @Column()
+   createdByZapier!: boolean; // Is true when zapier creates incident
 
-    
- 
+   @Column()
+   createdByApi!: boolean;
 
- 
- @Column()
-    deletedByUser!:User;
+   @Column()
+   status!: string;
+
+   @Column()
+   incident_state!: string;
+
+   @Column()
+   deletedByUser!: User;
 }
 
 

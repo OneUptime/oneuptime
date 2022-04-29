@@ -2,10 +2,9 @@ import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-import { IncidentState }, Incident from './Incident';
+import Incident, { IncidentState } from './Incident';
 import Escalation from './Escalation';
 import Schedule from './OnCallDutySchedule';
-import Incident from './Incident';
 
 @Entity({
     name: "UserAlerts"

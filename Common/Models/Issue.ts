@@ -1,110 +1,56 @@
 import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
-import Project from './Project';
+import ErrorTrackerContainer from './ErrorTrackerContainer';
+
+export enum IssueType {
+   Exception = "Exception",
+   Message = "Message",
+   Error = "Error"
+}
+
 @Entity({
-    name: "UserAlerts"
+   name: "UserAlerts"
 })
-export default class Model extends BaseModel{
- 
- @Column()
-    name!: string;
- 
- @Column()
-    description!: string;
- 
- @Column()
-    errorTracker!: {
- 
- @Column()
-        type!: Schema.Types.Object;
- 
- @Column()
-        ref!: 'ErrorTracker';
- 
- @Column()
-        alias!: 'errorTracker';
- 
- @Column()
-        index!: true;
-    }; //Which error tracker this issue belongs to.
- 
- @Column()
-    type!: {
- 
- @Column()
-        type!: string;
- 
- @Column()
-        enum!: ['exception', 'message', 'error'];
- 
- @Column()
-        required!: true;
-    };
- 
- @Column()
-    fingerprint!: [
-        {
- 
- @Column()
-            type!: string;
-        };
-    ];
- 
- @Column()
-    fingerprintHash!: string;
-    
+export default class Model extends BaseModel {
 
+   @Column()
+   name!: string;
 
+   @Column()
+   description!: string;
 
- 
- @Column()
-    deletedByUser!: User;
- 
- @Column()
-    resolved!: boolean;
+   @Column()
+   errorTracker!: ErrorTrackerContainer
 
- 
- @Column()
-    resolvedAt!: {
- 
- @Column()
-        type!: Date;
-    };
+   @Column()
+   type!: IssueType
 
- 
- @Column()
-    resolvedBy!: User;
- 
- @Column()
-    ignored!: boolean;
+   @Column()
+   fingerprintHash!: string;
 
- 
- @Column()
-    ignoredAt!: {
- 
- @Column()
-        type!: Date;
-    };
+   @Column()
+   deletedByUser!: User;
 
- 
- @Column()
-    ignoredBy!: User;
+   @Column()
+   resolved!: boolean;
+
+   @Column()
+   resolvedAt!: Date
+
+   @Column()
+   resolvedBy!: User;
+
+   @Column()
+   ignored!: boolean;
+
+   @Column()
+   ignoredAt!: Date
+
+   @Column()
+   ignoredBy!: User;
 }
-schema.virtual('errorTracker'; {
- 
- @Column()
-    localField!: '_id';
- 
- @Column()
-    foreignField!: 'errorTracker';
- 
- @Column()
-    ref!: 'ErrorTracker';
- 
- @Column()
-    justOne!: true;
-}
+
 
 
 

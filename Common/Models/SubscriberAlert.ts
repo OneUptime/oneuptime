@@ -71,10 +71,10 @@ export default class Model extends BaseModel{
     deletedByUser!:User;
  
  @Column()
-    totalSubscribers: { type!: Number };
+    totalSubscribers: number;
  
  @Column()
-    identification: { type!: Number };
+    identification: number;
 }
 
 

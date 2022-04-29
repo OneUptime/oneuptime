@@ -6,170 +6,12 @@ import IncidentCommunicationSla from './IncidentCommunicationSla';
 import MonitorSla from './MonitorSla';
 import ResourceStatus from './ResourceStatus';
 import Probe from './Probe';
+import MonitorCustomFields from '../Types/Monitor/MonitorCustomFields';
+import MonitorCriteriaInstance from '../Types/Monitor/MonitorCriteriaInstance';
+import HTTPMethod from '../Types/API/HTTPMethod';
+import MonitorCriteria from '../Types/Monitor/MonitorCriteria';
+import Component from './Component';
 
-@Column({
-   type
-})
-const criteriaItem!: Schema = new Schema({
- 
- @Column()
-criteriaType!: string;
-
-@Column()
-filter!: 
-}
-
-// A schema definition for a criterion event, i.e up, down; or degraded
-
-@Column()
-const criteriaSchema!: Schema = new Schema({
- 
- @Column()
-condition!: string;
-
-@Column()
-criteria!: []
-}
-
-// A schema definition for a criterion event, i.e up, down; or degraded
-
-@Column()
-const criterionEventSchema!: Schema = new Schema({
- 
- @Column()
-schedules!: [String];
-
-@Column()
-createAlert!: boolean;
-
-@Column()
-autoAcknowledge!: boolean;
-
-@Column()
-autoResolve!: boolean;
-
-@Column()
-title: { type: string, default !: '' };
-
-@Column()
-description: { type: string, default !: '' };
-
-@Column()
-    default !: boolean;
-
-@Column()
-name!: string;
-
-@Column()
-criteria!: {
-
-   @Column()
-   condition!: string;
-
-   @Column()
-   criteria!: [Schema.Types.Mixed];
-};
-
-@Column()
-scripts!: [
-   {
- 
- @Column()
-script!: {
-
-   @Column()
-      type!: Schema.Types.Object;
-
-   @Column()
-   ref!: 'AutomationSript';
-
-   @Column()
-   index!: true;
-};
-        };
-    ];
-}
-
-
-/**
- * SAMPLE STRUCTURE OF HOW CRITERIA WILL BE STRUCTURED IN THE DB
- * Depending of on the level, criteria will house all the conditions;
- * in addition to nested condition if present (the nested condition will follow the same structural pattern)
- *
- 
- @Column()
- * criteria!: {
- 
- @Column()
- *  condition!: 'and';
- 
- @Column()
- *  criteria!: [
- *      {
- 
- @Column()
- *         condition!: 'or';
- 
- @Column()
- *         criteria!: [
- *            {
- 
- @Column()
- *               "responseType"!: "requestBody";
- 
- @Column()
- *               "filter"!: "equalTo";
- 
- @Column()
- *                "field1"!: "ok"
- *            };
- *            {
- 
- @Column()
- *               "responseType"!: "requestBody";
- 
- @Column()
- *               "filter"!: "equalTo";
- 
- @Column()
- *                "field1"!: "healthy"
- *            };
- *            {
- 
- @Column()
- *               condition!: 'and';
- 
- @Column()
- *               criteria!: [{}, {}; ...]
- *            }
- *         ]
- *      };
- *      {
- 
- @Column()
- *          "responseType"!: "statusCode";
- 
- @Column()
- *           "filter"!: "equalTo";
- 
- @Column()
- *           "field1"!: "200"
- *      };
- *      {
- 
- @Column()
- *           "responseType"!: "requestTime";
- 
- @Column()
- *           "filter"!: "lessthan";
- 
- @Column()
- *           "field1"!: "1000"
- *      };
- *      ...
- *   ]
- * }
- */
 
 @Entity({
    name: "UserAlerts"
@@ -180,167 +22,95 @@ export default class Model extends BaseModel {
    project!: Project; //Which project this monitor belongs to.
 
    @Column()
-   component!: {
- 
- @Column()
-   type!: Schema.Types.Object;
+   component!: Component
 
    @Column()
-   ref!: 'Component';
+   name!: string;
 
    @Column()
-   index!: true;
-};
+   slug!: string;
 
-@Column()
-name!: string;
+   @Column()
+   config!: Object
 
-@Column()
-slug!: string;
+   @Column()
+   createdByUser!: User; //user.
 
-@Column()
-config!: { }, //Can be URL, IP address; or anything that depends on the type.
-
-@Column()
-createdByUser!: User; //user.
-
-@Column()
+   @Column()
    type!: MonitorType
 
-@Column()
-index!: true;
-    }, //Type can be 'url', 'process', 'machine'. We can monitor URL; a process in a machine or a server itself.
-
-@Column()
-agentlessConfig!: Object;
-
-@Column()
-kubernetesConfig!: Schema.Types.Mixed;
-
-@Column()
-kubernetesNamespace: { type: string, default !: 'default' };
-;
-
-@Column()
-lastPingTime!: {
+   @Column()
+   agentlessConfig!: string;
 
    @Column()
-      type!: Date;
+   kubernetesConfig!: string;
 
    @Column()
-        default !: Date.now;
+   kubernetesNamespace!: string
 
    @Column()
-   index!: true;
-};
-
-@Column()
-updateTime!: {
+   lastPingTime!: Date
 
    @Column()
-      type!: Date;
+   updateTime!: Date
 
    @Column()
-        default !: Date.now;
+   criteria!: MonitorCriteria
 
    @Column()
-   index!: true;
-};
+   lastMatchedCriterion!: MonitorCriteriaInstance
 
-@Column()
-criteria!: {
 
    @Column()
-   up: { type: [criterionEventSchema], default !: [] };
+   method!: HTTPMethod;
 
    @Column()
-   degraded: { type: [criterionEventSchema], default !: [] };
+   bodyType!: string;
 
    @Column()
-   down: { type: [criterionEventSchema], default !: [] };
-};
+   formData!: FormData;
 
-@Column()
-lastMatchedCriterion: { type: criterionEventSchema, default !: { } };
+   @Column()
+   text!: string;
 
-@Column()
-method!: string;
+   @Column()
+   headers!: Headers;
 
-@Column()
-bodyType!: string;
+   @Column()
+   disabled!: boolean
 
-@Column()
-formData!: [Object];
+   @Column()
+   deletedByUser!: User;
 
-@Column()
-text!: string;
+   @Column()
+   scriptRunStatus!: string;
 
-@Column()
-headers!: [Object];
+   @Column()
+   scriptRunBy!: Probe
 
-@Column()
-disabled!: boolean
+   @Column()
+   lighthouseScannedAt!: Date;
 
-@Column()
-deletedByUser!: User;
+   @Column()
+   lighthouseScanStatus!: string;
 
-@Column()
-scriptRunStatus!: string;
+   @Column()
+   siteUrls!: Array<string>;
 
-@Column()
-scriptRunBy: Probe};
+   @Column()
+   incidentCommunicationSla!: IncidentCommunicationSla
 
-@Column()
-lighthouseScannedAt: Date;
+   @Column()
+   monitorSla!: MonitorSla
 
-@Column()
-lighthouseScanStatus!: string;
+   @Column()
+   customFields!: MonitorCustomFields
 
+   @Column()
+   disableMonitoring!: boolean;
 
-@Column()
-siteUrls!: Array<string>;
-
-@Column()
-incidentCommunicationSla!: IncidentCommunicationSla
-
-@Column()
-monitorSla!: MonitorSla
-
-@Column()
-breachedMonitorSla!: boolean;
-
-@Column()
-breachClosedBy: User;
-
-@Column()
-customFields!: [
-   {
- 
- @Column()
-fieldName!: string;
-
-@Column()
-fieldValue!: Schema.Types.Mixed;
-
-@Column()
-uniqueField!: boolean;
-
-@Column()
-fieldType!: string;
-        };
-    ];
-
-@Column()
-shouldNotMonitor!: boolean;
-
-@Column()
-scanning!: boolean;
-
-@Column()
-probeScanning!: [String];
-
-@Column()
-monitorStatus!: ResourceStatus;
+   @Column()
+   monitorStatus!: ResourceStatus;
 }
 
 

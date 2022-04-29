@@ -31,71 +31,7 @@ export default class AutomatedScript extends BaseModel {
        @Column()
        deletedByUser!: User
 
-       @Column()
-       successEvent!: [
-              {
- 
- @Column()
-       automatedScript!: {
-
-              @Column()
-                     type!: Schema.Types.Object;
-
-              @Column()
-              ref!: 'AutomationSript';
-
-              @Column()
-              index!: true;
-       };
-
-       @Column()
-       callSchedule!: {
-
-              @Column()
-                     type!: Schema.Types.Object;
-
-              @Column()
-              ref!: 'Schedule';
-
-              @Column()
-              index!: true;
-       };
-};
-        ];
-
-@Column()
-failureEvent!: [
-       {
- 
- @Column()
-automatedScript!: {
-
-       @Column()
-              type!: Schema.Types.Object;
-
-       @Column()
-       ref!: 'AutomationSript';
-
-       @Column()
-       index!: true;
-};
-
-@Column()
-callSchedule!: {
-
-       @Column()
-              type!: Schema.Types.Object;
-
-       @Column()
-       ref!: 'Schedule';
-
-       @Column()
-       index!: true;
-};
-            };
-        ];
-    };
-
+}
 
 
 
