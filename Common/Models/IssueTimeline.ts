@@ -1,39 +1,28 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Issue from './Issue';
 
 export enum IssueStatus {
-   New = "New",
-   Ignore = "Ignore",
-   Unresolve = "Unreoslve",
-   Resolve = "Resolve",
+    New = 'New',
+    Ignore = 'Ignore',
+    Unresolve = 'Unreoslve',
+    Resolve = 'Resolve',
 }
 
 @Entity({
-   name: "IssueTimeline"
+    name: 'IssueTimeline',
 })
 export default class IssueTimeline extends BaseModel {
+    @Column()
+    issue!: Issue;
 
-   @Column()
-   issue!: Issue;
+    @Column()
+    createdByUser!: User;
 
-   @Column()
-   createdByUser!: User;
+    @Column()
+    status!: IssueStatus;
 
-   @Column()
-   status!: IssueStatus
-
-   @Column()
-   deletedByUser!: User;
-   
+    @Column()
+    deletedByUser!: User;
 }
-
-
-
-
-
-
-
-
-

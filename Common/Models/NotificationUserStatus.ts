@@ -1,28 +1,17 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 
-
 @Entity({
-    name: "UserAlerts"
+    name: 'UserAlerts',
 })
-export default class NotificationUserStatus extends BaseModel{
- 
- @Column()
+export default class NotificationUserStatus extends BaseModel {
+    @Column()
     notification!: Notification;
- 
- @Column()
+
+    @Column()
     user!: User;
 
- @Column()
-    read!: boolean
+    @Column()
+    read!: boolean;
 }
-
-
-
-
-
-
-
-
-

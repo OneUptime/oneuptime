@@ -3,41 +3,32 @@ import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
-
 @Entity({
-       name: "GitCredential"
+    name: 'GitCredential',
 })
 export default class GitCredential extends BaseModel {
+    @Column()
+    gitUsername!: string;
 
-       @Column()
-       gitUsername!: string;
+    @Column()
+    gitPassword!: string;
 
-       @Column()
-       gitPassword!: string;
+    @Column()
+    sshTitle!: string;
 
-       @Column()
-       sshTitle!: string;
+    @Column()
+    sshPrivateKey!: string;
 
-       @Column()
-       sshPrivateKey!: string;
+    @Column()
+    iv!: Buffer;
 
-       @Column()
-       iv!: Buffer;
+    @Index()
+    @Column()
+    project!: Project;
 
-       @Index()
-       @Column()
-       project!: Project
+    @Column()
+    createdByUser!: User;
 
-       @Column()
-       createdByUser!: User
-
-       @Column()
-       deletedByUser!: User
-};
-
-
-
-
-
-
-
+    @Column()
+    deletedByUser!: User;
+}

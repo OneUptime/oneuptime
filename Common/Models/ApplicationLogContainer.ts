@@ -6,44 +6,35 @@ import ResourceLabel from './ResourceLabel';
 import Component from './Component';
 
 @Entity({
-   name: "ApplicationLogContainer"
+    name: 'ApplicationLogContainer',
 })
 export default class ApplicationLogContainer extends BaseModel {
+    @Index()
+    @Column()
+    project!: Project;
 
-   @Index()
-   @Column()
-   project!: Project;
-   
-   @Index()
-   @Column()
-   component!: Component;
+    @Index()
+    @Column()
+    component!: Component;
 
-   @Column()
-   name!: string;
+    @Column()
+    name!: string;
 
-   @Column()
-   slug!: string;
+    @Column()
+    slug!: string;
 
-   @Column()
-   key!: string;
+    @Column()
+    key!: string;
 
-   @Column()
-   resourceLabel!: ResourceLabel
+    @Column()
+    resourceLabel!: ResourceLabel;
 
-   @Column()
-   showQuickStart!: boolean;
+    @Column()
+    showQuickStart!: boolean;
 
-   @Column()
-   createdByUser!: User; 
+    @Column()
+    createdByUser!: User;
 
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    deletedByUser!: User;
 }
-
-
-
-
-
-
-
-

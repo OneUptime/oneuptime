@@ -1,34 +1,23 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import PerformanceTracker from './PerformanceTracker';
 
-
 @Entity({
-    name: "UserAlerts"
+    name: 'UserAlerts',
 })
-export default class Model extends BaseModel{
- 
- @Column()
+export default class Model extends BaseModel {
+    @Column()
     type!: string;
- 
- @Column()
+
+    @Column()
     metrics!: Object;
- 
- @Column()
+
+    @Column()
     callentifier!: string;
- 
- @Column()
+
+    @Column()
     method!: string;
- 
- @Column()
-    performanceTracker!: PerformanceTracker
+
+    @Column()
+    performanceTracker!: PerformanceTracker;
 }
-
-
-
-
-
-
-
-
-

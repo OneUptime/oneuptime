@@ -4,15 +4,15 @@ import Project from './Project';
 import User from './User';
 
 @Entity({
-    name: "ProjectAdminNote"
+    name: 'ProjectAdminNote',
 })
-export default class ProjectAdminNote extends BaseModel { 
+export default class ProjectAdminNote extends BaseModel {
     @Column({ nullable: false })
     project!: Project;
-    
-    @Column({ type: "text", nullable: false })
-    note!: string
+
+    @Column({ type: 'text', nullable: false })
+    note!: string;
 
     @Column({ nullable: false })
-    createdByUser!: User
+    createdByUser!: User;
 }

@@ -1,46 +1,37 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 
 @Entity({
-       name: "SslCertificate"
+    name: 'SslCertificate',
 })
 export default class SslCertificate extends BaseModel {
+    @Column()
+    certificateId!: string;
 
-       @Column()
-       certificateId!: string;
+    @Column()
+    privateKeyPem!: string;
 
-       @Column()
-       privateKeyPem!: string;
+    @Column()
+    privateKeyJwk!: string;
 
-       @Column()
-       privateKeyJwk!: string;
+    @Column()
+    cert!: string;
 
-       @Column()
-       cert!: string;
+    @Column()
+    chain!: string;
 
-       @Column()
-       chain!: string;
+    @Column()
+    privKey!: string;
 
-       @Column()
-       privKey!: string;
+    @Column()
+    subject!: string;
 
-       @Column()
-       subject!: string;
+    @Column()
+    altnames!: string;
 
-       @Column()
-       altnames!: string;
+    @Column()
+    issuedAt!: Date;
 
-       @Column()
-       issuedAt!: Date;
-
-       @Column()
-       expiresAt!: Date;
+    @Column()
+    expiresAt!: Date;
 }
-
-
-
-
-
-
-
-

@@ -1,30 +1,21 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
 @Entity({
-   name: "IncidentPriority"
+    name: 'IncidentPriority',
 })
 export default class IncidentPriority extends BaseModel {
+    @Column()
+    project!: Project;
 
-   @Column()
-   project!: Project;
+    @Column()
+    name!: string;
 
-   @Column()
-   name!: string
+    @Column()
+    color!: string;
 
-   @Column()
-   color!: string
-
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    deletedByUser!: User;
 }
-
-
-
-
-
-
-
-

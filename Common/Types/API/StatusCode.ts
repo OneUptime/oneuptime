@@ -1,4 +1,4 @@
-import PositiveNumber from "../PositiveNumber";
+import PositiveNumber from '../PositiveNumber';
 
 export default class StatusCode {
     private _statusCode: PositiveNumber = new PositiveNumber(200);

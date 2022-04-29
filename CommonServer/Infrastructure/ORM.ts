@@ -1,9 +1,15 @@
-import { DatabaseHost, DatabaseName, DatabasePassword, DatabasePort, DatabaseUsername } from '../Config';
+import {
+    DatabaseHost,
+    DatabaseName,
+    DatabasePassword,
+    DatabasePort,
+    DatabaseUsername,
+} from '../Config';
 
-import { DataSource, BaseEntity } from "typeorm"
+import { DataSource, BaseEntity } from 'typeorm';
 
 const AppDataSource = new DataSource({
-    type: "postgres",
+    type: 'postgres',
     host: DatabaseHost.toString(),
     port: DatabasePort.toNumber(),
     username: DatabaseUsername,
@@ -13,10 +19,10 @@ const AppDataSource = new DataSource({
 
 export default AppDataSource;
 
-export interface Document extends BaseEntity { }
+export interface Document extends BaseEntity {}
 
-export interface RequiredFields extends Array<string> { }
+export interface RequiredFields extends Array<string> {}
 
-export interface UniqueFields extends Array<string> { }
+export interface UniqueFields extends Array<string> {}
 
-export interface EncryptedFields extends Array<string> { }
+export interface EncryptedFields extends Array<string> {}

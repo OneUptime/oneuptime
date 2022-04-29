@@ -1,23 +1,16 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 
-
 @Entity({
-   name: "GlobalConfig"
+    name: 'GlobalConfig',
 })
 export default class GlobalConfig extends BaseModel {
+    @Column()
+    name!: string;
 
-   @Column()
-   name!: string;
+    @Column()
+    value!: Object;
 
-   @Column()
-   value!: Object;
-
-   @Column()
-   iv!: Buffer;
-
+    @Column()
+    iv!: Buffer;
 }
-
-
-
-

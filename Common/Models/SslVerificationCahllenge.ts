@@ -1,30 +1,16 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
 
 @Entity({
-       name: "SslVerificationChallenge"
+    name: 'SslVerificationChallenge',
 })
-export default class SslVerificationChallenge extends BaseModel {    
+export default class SslVerificationChallenge extends BaseModel {
+    @Column()
+    token!: string;
 
-       @Column()
-       token!: string;
+    @Column()
+    keyAuthorization!: string;
 
-       @Column()
-       keyAuthorization!: string;
-
-       @Column()
-       challengeUrl!: string;
-
-};
-
-
-
-
-
-
-
-
-
-
+    @Column()
+    challengeUrl!: string;
+}

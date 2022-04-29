@@ -1,83 +1,68 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
-import ProjectAlertBalance from './ProjectAlertBalance';
 import Monitor from './Monitor';
 import Probe from './Probe';
 import Incident from './Incident';
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    monitor!: Monitor;
 
-   @Column()
-   monitor!: Monitor;
+    @Column()
+    probe!: Probe;
 
-   @Column()
-   probe!: Probe;
+    @Column()
+    status!: string;
 
-   @Column()
-   status!: string;
+    @Column()
+    responseTime!: Number;
 
-   @Column()
-   responseTime!: Number;
+    @Column()
+    responseStatus!: Number;
 
-   @Column()
-   responseStatus!: Number;
+    @Column()
+    responseBody!: string;
 
-   @Column()
-   responseBody!: string;
+    @Column()
+    responseHeader!: Object;
 
-   @Column()
-   responseHeader!: Object;
+    @Column()
+    cpuLoad!: Number;
 
-   @Column()
-   cpuLoad!: Number;
+    @Column()
+    avgCpuLoad!: Number;
 
-   @Column()
-   avgCpuLoad!: Number;
+    @Column()
+    cpuCores!: Number;
 
-   @Column()
-   cpuCores!: Number;
+    @Column()
+    memoryUsed!: Number;
 
-   @Column()
-   memoryUsed!: Number;
+    @Column()
+    totalMemory!: Number;
+    @Column()
+    swapUsed!: Number;
+    @Column()
+    storageUsed!: Number;
+    @Column()
+    totalStorage!: Number;
 
-   @Column()
-   totalMemory!: Number;
-   @Column()
-   swapUsed!: Number;
-   @Column()
-   storageUsed!: Number;
-   @Column()
-   totalStorage!: Number;
+    @Column()
+    storageUsage!: Number;
+    @Column()
+    mainTemp!: Number;
 
-   @Column()
-   storageUsage!: Number;
-   @Column()
-   mainTemp!: Number;
+    @Column()
+    maxTemp!: Number;
 
-   @Column()
-   maxTemp!: Number;
+    @Column()
+    incident!: Incident;
 
-   @Column()
-   incident!: Incident;
+    @Column()
+    sslCertificate!: Object;
 
-
-   @Column()
-   sslCertificate!: Object;
-
-   @Column()
-   kubernetesLog!: Object;
-
+    @Column()
+    kubernetesLog!: Object;
 }
-
-
-
-
-
-
-
-
-

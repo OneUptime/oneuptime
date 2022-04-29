@@ -1,6 +1,6 @@
-enum OperationResult{
-    Success = "Success", 
-    Error = "Error"
+enum OperationResult {
+    Success = 'Success',
+    Error = 'Error',
 }
 
 export default OperationResult;

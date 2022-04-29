@@ -1,31 +1,24 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
-
 @Entity({
-    name: "UserAlerts"
+    name: 'UserAlerts',
 })
-export default class Model extends BaseModel{
- 
- @Column()
+export default class Model extends BaseModel {
+    @Column()
     name!: string;
- 
- @Column()
+
+    @Column()
     slug!: string;
- 
- @Column()
+
+    @Column()
     project!: Project;
- 
- @Column()
+
+    @Column()
     createdByUser!: User;
- 
- @Column()
+
+    @Column()
     deletedByUser!: User;
 }
-
-
-
-
-

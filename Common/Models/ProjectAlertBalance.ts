@@ -1,25 +1,22 @@
 import { Column, Entity } from 'typeorm';
-import Role from '../Types/Role';
 import BaseModel from './BaseModel';
-import Project from './Project';
-import User from './User';
 
 @Entity({
-    name: "ProjectAlertBalance"
+    name: 'ProjectAlertBalance',
 })
-export default class ProjectAlertBalance extends BaseModel { 
+export default class ProjectAlertBalance extends BaseModel {
     @Column({ nullable: false })
     minimumBalance!: number;
-    
-    @Column({ type: "text", nullable: false })
-    rechargeToBalance!: number
+
+    @Column({ type: 'text', nullable: false })
+    rechargeToBalance!: number;
 
     @Column({ nullable: false })
-    sendAlertsToUS!: boolean
+    sendAlertsToUS!: boolean;
 
     @Column({ nullable: false })
-    sendAlertsToNonUS!: boolean
+    sendAlertsToNonUS!: boolean;
 
     @Column({ nullable: false })
-    sendAlertsToHighRisk!: boolean
+    sendAlertsToHighRisk!: boolean;
 }

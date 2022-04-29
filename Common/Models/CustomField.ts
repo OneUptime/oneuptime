@@ -1,37 +1,25 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import Project from './Project';
 
 export enum CustomFieldType {
-       Text = 'text',
-       Number = 'number'
+    Text = 'text',
+    Number = 'number',
 }
 
 @Entity({
-       name: "CustomField"
+    name: 'CustomField',
 })
 export default class CustomField extends BaseModel {
+    @Column()
+    fieldName!: string;
 
-       @Column()
-       fieldName!: string;
+    @Column()
+    fieldType!: CustomFieldType;
 
-       @Column()
-       fieldType!: CustomFieldType;
+    @Column()
+    project!: Project;
 
-       @Column()
-       project!: Project;
-
-       @Column()
-       uniqueField!: boolean;
-
-
-
+    @Column()
+    uniqueField!: boolean;
 }
-
-
-
-
-
-
-
-

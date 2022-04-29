@@ -1,32 +1,22 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 
 @Entity({
-       name: "SslCertificateManager"
+    name: 'SslCertificateManager',
 })
 export default class Model extends BaseModel {
+    @Column()
+    subject!: string;
 
-       @Column()
-       subject!: string;
+    @Column()
+    altnames!: Array<string>;
 
-       @Column()
-       altnames!: Array<string>;
+    @Column()
+    renewAt!: Date;
 
-       @Column()
-       renewAt!: Date;
+    @Column()
+    expiresAt!: Date;
 
-       @Column()
-       expiresAt!: Date;
-
-       @Column()
-       issuedAt!: Date;
+    @Column()
+    issuedAt!: Date;
 }
-
-
-
-
-
-
-
-
-

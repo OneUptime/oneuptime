@@ -3,35 +3,29 @@ import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
-
 @Entity({
-       name: "DockerCredential"
+    name: 'DockerCredential',
 })
 export default class DockerCredential extends BaseModel {
+    @Column()
+    dockerRegistryUrl!: URL;
 
-       @Column()
-       dockerRegistryUrl!: URL;
+    @Column()
+    dockerUsername!: string;
 
-       @Column()
-       dockerUsername!: string;
+    @Column()
+    dockerPassword!: string;
 
-       @Column()
-       dockerPassword!: string;
+    @Column()
+    iv!: Buffer;
 
-       @Column()
-       iv!: Buffer;
+    @Index()
+    @Column()
+    project!: Project;
 
-       @Index()
-       @Column()
-       project!: Project
+    @Column()
+    createdByUser!: User;
 
-       @Column()
-       createdByUser!: User
-
-       @Column()
-       deletedByUser!: User
-
-};
-
-
-
+    @Column()
+    deletedByUser!: User;
+}

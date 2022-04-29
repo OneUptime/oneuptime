@@ -4,28 +4,18 @@ import Project from './Project';
 import { CustomFieldType } from './CustomField';
 
 @Entity({
-       name: "MonitorCustomField"
+    name: 'MonitorCustomField',
 })
 export default class MonitorCustomField extends BaseModel {
+    @Column()
+    fieldName!: string;
 
-       @Column()
-       fieldName!: string;
+    @Column()
+    fieldType!: CustomFieldType;
 
-       @Column()
-       fieldType!: CustomFieldType
+    @Column()
+    project!: Project;
 
-       @Column()
-       project!: Project;
-
-       @Column()
-       uniqueField!: boolean;
-
+    @Column()
+    uniqueField!: boolean;
 }
-
-
-
-
-
-
-
-

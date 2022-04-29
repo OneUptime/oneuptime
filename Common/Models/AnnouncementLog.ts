@@ -6,40 +6,31 @@ import StatusPage from './StatusPage';
 import Project from './Project';
 
 @Entity({
-       name: "AnnouncementLog"
+    name: 'AnnouncementLog',
 })
 export default class AnnouncementLog extends BaseModel {
+    @Column()
+    announcement!: Announcement;
 
-       @Column()
-       announcement!: Announcement;
+    @Index()
+    @Column()
+    project!: Project;
 
-       @Index()
-       @Column()
-       project!: Project;
+    @Column()
+    statusPage!: StatusPage;
 
-       @Column()
-       statusPage!: StatusPage
+    @Column()
+    startDate!: Date;
 
-       @Column()
-       startDate!: Date
+    @Column()
+    endDate!: Date;
 
-       @Column()
-       endDate!: Date
+    @Column()
+    deletedByUser!: User;
 
-       @Column()
-       deletedByUser!: User
+    @Column()
+    createdByUser!: User;
 
-       @Column()
-       createdByUser!: User
-
-       @Column()
-       active!: boolean;
+    @Column()
+    active!: boolean;
 }
-
-
-
-
-
-
-
-

@@ -1,25 +1,24 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
 @Entity({
-    name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class ComponentModel extends BaseModel {
- 
- @Column()
+    @Column()
     project!: Project;
- 
- @Column()
+
+    @Column()
     name!: string;
- 
- @Column()
+
+    @Column()
     slug!: string;
- 
- @Column()
+
+    @Column()
     createdByUser!: User;
- 
- @Column()
+
+    @Column()
     deletedByUser!: User;
 }

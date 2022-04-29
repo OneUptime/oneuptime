@@ -13,7 +13,10 @@ const _this: $TSFixMe = {
     runJob: async function (): void {
         logger.info(`Getting a list of ${ResourcesLimit.toString()} monitors`);
 
-        let monitors: $TSFixMe = await ProbeAPI.get('probe/monitors', ResourcesLimit.toNumber());
+        let monitors: $TSFixMe = await ProbeAPI.get(
+            'probe/monitors',
+            ResourcesLimit.toNumber()
+        );
         monitors = JSON.parse(monitors.data); // Parse the stringified data
 
         logger.info(`Number of Monitors fetched - ${monitors.length} monitors`);

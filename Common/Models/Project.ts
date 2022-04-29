@@ -1,129 +1,117 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    name!: string;
 
-   @Column()
-   name!: string;
+    @Column()
+    slug!: string;
 
-   @Column()
-   slug!: string;
+    @Column()
+    stripePlanId!: string;
 
-   @Column()
-   stripePlanId!: string;
+    @Column()
+    stripeSubscriptionId!: string;
 
-   @Column()
-   stripeSubscriptionId!: string;
+    @Column()
+    parentproject!: Project;
 
-   @Column()
-   parentproject!: Project;
+    @Column()
+    seats!: number;
 
-   @Column()
-   seats!: number;
+    @Column()
+    deletedByUser!: User;
 
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    apiKey!: string;
 
-   @Column()
-   apiKey!: string;
+    @Column()
+    alertEnable!: boolean;
 
-   @Column()
-   alertEnable!: boolean;
+    @Column()
+    alertLimit!: string;
 
-   @Column()
-   alertLimit!: string;
+    @Column()
+    alertLimitReached!: boolean;
 
-   @Column()
-   alertLimitReached!: boolean;
+    @Column()
+    balance!: number;
 
-   @Column()
-   balance!: number;
+    @Column()
+    isBlocked!: boolean;
 
-   @Column()
-   isBlocked!: boolean;
+    @Column()
+    sendCreatedIncidentNotificationSms!: boolean;
 
-   @Column()
-   sendCreatedIncidentNotificationSms!: boolean;
+    @Column()
+    sendAcknowledgedIncidentNotificationSms!: boolean;
 
-   @Column()
-   sendAcknowledgedIncidentNotificationSms!: boolean;
+    @Column()
+    sendResolvedIncidentNotificationSms!: boolean;
 
-   @Column()
-   sendResolvedIncidentNotificationSms!: boolean;
+    @Column()
+    sendCreatedIncidentNotificationEmail!: boolean;
 
-   @Column()
-   sendCreatedIncidentNotificationEmail!: boolean;
+    @Column()
+    sendAcknowledgedIncidentNotificationEmail!: boolean;
 
-   @Column()
-   sendAcknowledgedIncidentNotificationEmail!: boolean;
+    @Column()
+    sendResolvedIncidentNotificationEmail!: boolean;
 
-   @Column()
-   sendResolvedIncidentNotificationEmail!: boolean;
+    @Column()
+    enableInvestigationNoteNotificationSMS!: boolean;
 
-   @Column()
-   enableInvestigationNoteNotificationSMS!: boolean;
+    @Column()
+    enableInvestigationNoteNotificationEmail!: boolean;
 
-   @Column()
-   enableInvestigationNoteNotificationEmail!: boolean;
+    @Column()
+    sendAnnouncementNotificationSms!: boolean;
 
+    @Column()
+    sendAnnouncementNotificationEmail!: boolean;
 
-   @Column()
-   sendAnnouncementNotificationSms!: boolean;
+    @Column()
+    sendCreatedScheduledEventNotificationSms!: boolean;
 
-   @Column()
-   sendAnnouncementNotificationEmail!: boolean;
+    @Column()
+    sendCreatedScheduledEventNotificationEmail!: boolean;
 
+    @Column()
+    sendScheduledEventResolvedNotificationSms!: boolean;
 
-   @Column()
-   sendCreatedScheduledEventNotificationSms!: boolean;
+    @Column()
+    sendScheduledEventResolvedNotificationEmail!: boolean;
 
-   @Column()
-   sendCreatedScheduledEventNotificationEmail!: boolean;
+    @Column()
+    sendNewScheduledEventInvestigationNoteNotificationSms!: boolean;
 
-   @Column()
-   sendScheduledEventResolvedNotificationSms!: boolean;
+    @Column()
+    sendNewScheduledEventInvestigationNoteNotificationEmail!: boolean;
 
-   @Column()
-   sendScheduledEventResolvedNotificationEmail!: boolean;
+    @Column()
+    sendScheduledEventCancelledNotificationSms!: boolean;
 
-   @Column()
-   sendNewScheduledEventInvestigationNoteNotificationSms!: boolean;
+    @Column()
+    sendScheduledEventCancelledNotificationEmail!: boolean;
 
-   @Column()
-   sendNewScheduledEventInvestigationNoteNotificationEmail!: boolean;
+    @Column()
+    enableInvestigationNoteNotificationWebhook!: boolean;
 
-   @Column()
-   sendScheduledEventCancelledNotificationSms!: boolean;
+    @Column()
+    replyAddress!: string;
 
-   @Column()
-   sendScheduledEventCancelledNotificationEmail!: boolean;
+    @Column()
+    unpaidSubscriptionNotifications!: number;
 
+    @Column()
+    paymentFailedDate!: Date;
 
-   @Column()
-   enableInvestigationNoteNotificationWebhook!: boolean;
-
-   @Column()
-   replyAddress!: string;
-
-   @Column()
-   unpaidSubscriptionNotifications!: number;
-
-   @Column()
-   paymentFailedDate!: Date;
-
-   @Column()
-   paymentSuccessDate!: Date;
+    @Column()
+    paymentSuccessDate!: Date;
 }
-
-
-
-
-
-
-
-

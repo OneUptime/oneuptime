@@ -3,20 +3,19 @@ import BaseModel from './BaseModel';
 import User from './User';
 
 @Entity({
-       name: "TeamMember"
+    name: 'TeamMember',
 })
 export default class TeamMember extends BaseModel {
+    @Column()
+    @Index()
+    team!: Team;
 
-       @Column()
-       @Index()
-       team!: Team
+    @Column()
+    user!: User;
 
-       @Column()
-       user!: User;
+    @Column()
+    createdByUser!: User;
 
-       @Column()
-       createdByUser!: User
-
-       @Column()
-       deletedByUser!: User;
+    @Column()
+    deletedByUser!: User;
 }

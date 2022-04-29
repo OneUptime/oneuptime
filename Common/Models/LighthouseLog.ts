@@ -1,46 +1,34 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
 
 @Entity({
-    name: "LighthouseLog"
+    name: 'LighthouseLog',
 })
-export default class LighthouseLog extends BaseModel{
- 
- @Column()
+export default class LighthouseLog extends BaseModel {
+    @Column()
     monitor!: Monitor;
- 
- @Column()
+
+    @Column()
     data!: Object;
- 
- @Column()
+
+    @Column()
     url!: URL;
- 
- @Column()
+
+    @Column()
     performance!: Number;
- 
- @Column()
+
+    @Column()
     accessibility!: Number;
- 
- @Column()
+
+    @Column()
     bestPractices!: Number;
- 
- @Column()
+
+    @Column()
     seo!: Number;
- 
- @Column()
+
+    @Column()
     pwa!: Number;
- 
- @Column()
+
+    @Column()
     scanning!: Boolean;
 }
-
-
-
-
-
-
-
-
-

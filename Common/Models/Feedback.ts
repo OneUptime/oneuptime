@@ -3,33 +3,22 @@ import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
-
 @Entity({
-   name: "Feedback"
+    name: 'Feedback',
 })
 export default class Feedback extends BaseModel {
+    @Column()
+    project!: Project;
 
-   @Column()
-   project!: Project;
+    @Column()
+    createdByUser!: User;
 
-   @Column()
-   createdByUser!: User;
+    @Column()
+    message!: string;
 
-   @Column()
-   message!: string;
+    @Column()
+    pageUrl!: string;
 
-   @Column()
-   pageUrl!: string
-
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    deletedByUser!: User;
 }
-
-
-
-
-
-
-
-
-

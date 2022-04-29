@@ -1,14 +1,13 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import StatusPage from './StatusPage';
 import DomainVerificationToken from './DomainVerificationToken';
 
 @Entity({
-    name: "StatusPageDomains"
+    name: 'StatusPageDomains',
 })
 export default class StatusPageDomains extends BaseModel {
-
     @Column()
     statusPage!: StatusPage;
 
@@ -27,11 +26,3 @@ export default class StatusPageDomains extends BaseModel {
     @Column()
     domainVerificationToken!: DomainVerificationToken;
 }
-
-
-
-
-
-
-
-

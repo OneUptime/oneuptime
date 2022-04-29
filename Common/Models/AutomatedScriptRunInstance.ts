@@ -7,44 +7,33 @@ import Incident from './Incident';
 import OperationStatus from '../Types/OperationStatus';
 
 @Entity({
-    name: "AutomationScriptRunInstance"
+    name: 'AutomationScriptRunInstance',
 })
-export default class AutomationScriptRunInstance extends BaseModel{
- 
-       @Column()
-       automationScript!: AutomatedScript
+export default class AutomationScriptRunInstance extends BaseModel {
+    @Column()
+    automationScript!: AutomatedScript;
 
-       @Column()
-       project!: Project
- 
-       @Column()
-       triggerByUser!: User
- 
-       @Column()
-       triggerByScript!: AutomatedScript
- 
-       @Column()
-       triggerByIncident!: Incident
- 
-       @Column()
-       scriptStatus!: OperationStatus
- 
-       @Column()
-       deletedByUser!: User
- 
-       @Column()
-       executionTime!: Number;
+    @Column()
+    project!: Project;
 
- 
-       @Column()
-       errorDescription!: string;
+    @Column()
+    triggerByUser!: User;
+
+    @Column()
+    triggerByScript!: AutomatedScript;
+
+    @Column()
+    triggerByIncident!: Incident;
+
+    @Column()
+    scriptStatus!: OperationStatus;
+
+    @Column()
+    deletedByUser!: User;
+
+    @Column()
+    executionTime!: Number;
+
+    @Column()
+    errorDescription!: string;
 }
-
-
-
-
-
-
-
-
-

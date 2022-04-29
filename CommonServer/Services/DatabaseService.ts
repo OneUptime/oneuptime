@@ -3,7 +3,6 @@ import Populate from '../Types/DB/Populate';
 import Select from '../Types/DB/Select';
 import {
     EncryptedFields,
-    Model,
     RequiredFields,
     UniqueFields,
     Document,
@@ -28,7 +27,6 @@ import Encryption from '../Utils/Encryption';
 import { JSONObject } from 'Common/Types/JSON';
 import SortOrder from '../Types/DB/SortOrder';
 import DbFunctions from '../Utils/DBFunctions';
-import BaseModel from 'Common/Models/BaseModel';
 
 export interface ListProps {
     populate: Populate;

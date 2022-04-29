@@ -1,43 +1,34 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
-import Project from './Project';
 import Component from './Component';
 import ResourceLabel from './ResourceLabel';
 
-
 @Entity({
-    name: "ErrorTrackerContainer"
+    name: 'ErrorTrackerContainer',
 })
-export default class ErrorTrackerContainer extends BaseModel{
- 
- @Column()
-    component!: Component
- 
- @Column()
+export default class ErrorTrackerContainer extends BaseModel {
+    @Column()
+    component!: Component;
+
+    @Column()
     name!: string;
- 
- @Column()
+
+    @Column()
     slug!: string;
- 
- @Column()
+
+    @Column()
     key!: string;
- 
- @Column()
+
+    @Column()
     showQuickStart!: boolean;
- 
- @Column()
-    resourceLabel!: ResourceLabel
- 
- @Column()
+
+    @Column()
+    resourceLabel!: ResourceLabel;
+
+    @Column()
     createdByUser!: User;
 
- @Column()
+    @Column()
     deletedByUser!: User;
 }
-
-
-
-
-
-

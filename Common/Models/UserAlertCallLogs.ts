@@ -5,37 +5,27 @@ import Project from './Project';
 import OperationStatus from '../Types/OperationStatus';
 
 @Entity({
-   name: "CallLog"
+    name: 'CallLog',
 })
 export default class CallLog extends BaseModel {
+    @Column()
+    fromNumber!: string;
 
-   @Column()
-   fromNumber!: string;
+    @Column()
+    toNumber!: string;
 
-   @Column()
-   toNumber!: string;
+    @Column()
+    project!: Project;
 
-   @Column()
-   project!: Project;
+    @Column()
+    deletedByUser!: User;
 
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    content!: string;
 
-   @Column()
-   content!: string;
+    @Column()
+    status!: OperationStatus;
 
-   @Column()
-   status!: OperationStatus;
-
-   @Column()
-   errorDescription!: string;
+    @Column()
+    errorDescription!: string;
 }
-
-
-
-
-
-
-
-
-

@@ -1,15 +1,14 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import AutomatedScriptRunInstance from './AutomatedScriptRunInstance';
 
 @Entity({
-    name: "ApplicationSecurityRunInstanceLog"
+    name: 'ApplicationSecurityRunInstanceLog',
 })
 export default class ApplicationSecurityRunInstanceLog extends BaseModel {
+    @Column()
+    automatedScriptRunInstance!: AutomatedScriptRunInstance;
 
     @Column()
-    automatedScriptRunInstance!: AutomatedScriptRunInstance
-
-    @Column()
-    log!: string
+    log!: string;
 }

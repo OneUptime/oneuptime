@@ -1,61 +1,58 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 import OnCallDutySchedule from './OnCallDutySchedule';
 
 @Entity({
-    name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
- 
     @Column()
-    project!: Project
- 
+    project!: Project;
+
     @Column()
-    callReminders!: number
- 
+    callReminders!: number;
+
     @Column()
-    emailReminders!: number
- 
+    emailReminders!: number;
+
     @Column()
-    smsReminders!: number
- 
+    smsReminders!: number;
+
     @Column()
-    pushReminders!: number
- 
+    pushReminders!: number;
+
     @Column()
-    rotateBy!: string
- 
+    rotateBy!: string;
+
     @Column()
-    rotationInterval!: number
- 
+    rotationInterval!: number;
+
     @Column()
     firstRotationOn!: Date;
- 
+
     @Column()
     rotationTimezone!: string;
- 
+
     @Column()
     call!: boolean;
- 
+
     @Column()
     email!: boolean;
- 
+
     @Column()
     sms!: boolean;
- 
+
     @Column()
     push!: boolean;
- 
+
     @Column()
-    createdByUser!: User
- 
+    createdByUser!: User;
+
     @Column()
-    onCallDutySchedule!: OnCallDutySchedule
- 
+    onCallDutySchedule!: OnCallDutySchedule;
+
     @Column()
     deletedByUser!: User;
-
 }
-

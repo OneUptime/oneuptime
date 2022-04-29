@@ -1,4 +1,4 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import Incident from './Incident';
 import SubscriberAlert from './SubscriberAlert';
@@ -7,39 +7,30 @@ import UserAlert from './UserAlert';
 import Project from './Project';
 
 @Entity({
-   name: "AlertCharge"
+    name: 'AlertCharge',
 })
 export default class Model extends BaseModel {
+    @Column()
+    project!: Project;
 
-   @Column()
-   project!: Project;
+    @Column()
+    chargeAmount!: number;
 
-   @Column()
-   chargeAmount!: number;
+    @Column()
+    closingAccountBalance!: number;
 
-   @Column()
-   closingAccountBalance!: number;
+    @Column()
+    userAlert!: UserAlert;
 
-   @Column()
-   userAlert!: UserAlert;
+    @Column()
+    subscriberAlert!: SubscriberAlert;
 
-   @Column()
-   subscriberAlert!: SubscriberAlert;
+    @Column()
+    monitor!: Monitor;
 
-   @Column()
-   monitor!: Monitor;
+    @Column()
+    incident!: Incident;
 
-   @Column()
-   incident!: Incident
-
-   @Column()
-   sentTo!: string;
+    @Column()
+    sentTo!: string;
 }
-
-
-
-
-
-
-
-

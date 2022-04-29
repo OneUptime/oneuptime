@@ -7,19 +7,22 @@ import HTML from 'Common/Types/Html';
 import { SslResponse } from './SslMonitor';
 
 export interface WebsiteResponse {
-    url: URL, 
-    requestHeaders: Headers, 
-    isSecure: boolean, 
-    reponseTimeInMS: PositiveNumber,
-    statusCode: StatusCode,
-    responseBody: HTML,
-    responseHeaders: Headers,
-    isOnline: boolean, 
-    SSL: SslResponse
+    url: URL;
+    requestHeaders: Headers;
+    isSecure: boolean;
+    reponseTimeInMS: PositiveNumber;
+    statusCode: StatusCode;
+    responseBody: HTML;
+    responseHeaders: Headers;
+    isOnline: boolean;
+    SSL: SslResponse;
 }
 
 export default class Website {
-    public static async fetch(_url: URL, _requestHeaders: Headers): Promise<WebsiteResponse> {
+    public static async fetch(
+        _url: URL,
+        _requestHeaders: Headers
+    ): Promise<WebsiteResponse> {
         throw new NotImplementedException();
     }
 }

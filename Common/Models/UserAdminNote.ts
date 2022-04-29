@@ -3,15 +3,15 @@ import BaseModel from './BaseModel';
 import User from './User';
 
 @Entity({
-    name: "UserAdminNote"
+    name: 'UserAdminNote',
 })
-export default class UserAdminNotes extends BaseModel { 
+export default class UserAdminNotes extends BaseModel {
     @Column({ nullable: false })
     forUser!: User;
-    
-    @Column({ type: "text", nullable: false })
-    note!: string
+
+    @Column({ type: 'text', nullable: false })
+    note!: string;
 
     @Column({ nullable: false })
-    postedByUser!: User
+    postedByUser!: User;
 }

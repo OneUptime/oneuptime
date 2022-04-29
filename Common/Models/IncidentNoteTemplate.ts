@@ -1,28 +1,17 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import Project from './Project';
 import { IncidentState } from './Incident';
 @Entity({
-       name: "IncidentNoteTemplate"
+    name: 'IncidentNoteTemplate',
 })
 export default class IncidentNoteTemplate extends BaseModel {
+    @Column()
+    project!: Project;
 
-       @Column()
-       project!: Project
+    @Column()
+    incidentState!: IncidentState;
 
-       @Column()
-       incidentState!: IncidentState
-
-       @Column()
-       incidentNote!: string
-
+    @Column()
+    incidentNote!: string;
 }
-
-
-
-
-
-
-
-
-
