@@ -11,7 +11,7 @@ import { JSONObject, JSONArray, JSONObjectOrArray } from 'Common/Types/JSON';
 import { File } from 'Common/Types/File';
 import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
-import Database from '../Infrastructure/Database';
+import Database from '../Infrastructure/PostgresDatabase';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import URL from 'Common/Types/API/URL';
 

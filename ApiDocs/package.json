@@ -8,7 +8,7 @@
         "url": "git+https://github.com/OneUptime/ApiDocs.git"
     },
     "author": "HackerBay, Inc.",
-    "license": "ISC",
+    "license": "MIT",
     "bugs": {
         "url": "https://github.com/oneuptime/ApiDocs/issues"
     },

@@ -1,9 +1,4 @@
-import Model, {
-    requiredFields,
-    uniqueFields,
-    slugifyField,
-    encryptedFields,
-} from 'Common/Models/Probe';
+import Model from 'Common/Models/Probe';
 
 import { Document } from '../Infrastructure/ORM';
 
@@ -17,8 +12,7 @@ class Service extends DatabaseService<typeof Model> {
     public constructor() {
         super({
             model: Model,
-            requiredFields: requiredFields,
-            uniqueFields: uniqueFields,
+
             friendlyName: 'Probe',
             publicListProps: {
                 populate: [],
@@ -60,9 +54,6 @@ class Service extends DatabaseService<typeof Model> {
                 populate: [],
                 select: [],
             },
-            isResourceByProject: false,
-            slugifyField: slugifyField,
-            encryptedFields: encryptedFields,
         });
     }
 

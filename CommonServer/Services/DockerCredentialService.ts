@@ -1,9 +1,4 @@
-import Model, {
-    requiredFields,
-    uniqueFields,
-    slugifyField,
-    encryptedFields,
-} from 'Common/Models/DockerCredential';
+import Model from 'Common/Models/DockerCredential';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DatabaseService from './DatabaseService';
 import API from 'Common/Utils/API';
@@ -16,8 +11,7 @@ class Service extends DatabaseService<typeof Model> {
     public constructor() {
         super({
             model: Model,
-            requiredFields: requiredFields,
-            uniqueFields: uniqueFields,
+
             friendlyName: 'Docker Credential',
             publicListProps: {
                 populate: [],
@@ -59,9 +53,6 @@ class Service extends DatabaseService<typeof Model> {
                 populate: [],
                 select: [],
             },
-            isResourceByProject: false,
-            slugifyField: slugifyField,
-            encryptedFields: encryptedFields,
         });
     }
 

@@ -1,5 +1,8 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
+import EncryptedColumns from '../Types/Database/EncryptedColumns';
+import UniqueColumns from '../Types/Database/UniqueColumns';
+import RequiredColumns from '../Types/Database/RequiredColumns';
 import Incident from './Incident';
 import SubscriberAlert from './SubscriberAlert';
 import Monitor from './Monitor';
@@ -10,6 +13,15 @@ import Project from './Project';
     name: 'AlertCharge',
 })
 export default class Model extends BaseModel {
+    public constructor() {
+        super(
+            new EncryptedColumns([]),
+            new UniqueColumns([]),
+            new RequiredColumns([]),
+            null
+        );
+    }
+
     @Column()
     public project!: Project;
 

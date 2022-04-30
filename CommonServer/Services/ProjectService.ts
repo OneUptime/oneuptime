@@ -1,17 +1,11 @@
-import Model, {
-    requiredFields,
-    uniqueFields,
-    slugifyField,
-    encryptedFields,
-} from 'Common/Models/Project';
+import Model from 'Common/Models/Project';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<typeof Model> {
     public constructor() {
         super({
             model: Model,
-            requiredFields: requiredFields,
-            uniqueFields: uniqueFields,
+
             friendlyName: 'Project',
             publicListProps: {
                 populate: [],
@@ -53,9 +47,6 @@ class Service extends DatabaseService<typeof Model> {
                 populate: [],
                 select: [],
             },
-            isResourceByProject: false,
-            slugifyField: slugifyField,
-            encryptedFields: encryptedFields,
         });
     }
 }

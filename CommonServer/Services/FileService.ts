@@ -1,5 +1,8 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Database, { Collection, Document } from '../Infrastructure/Database';
+import Database, {
+    Collection,
+    Document,
+} from '../Infrastructure/PostgresDatabase';
 import ObjectID from 'Common/Types/ObjectID';
 class FileService {
     public async getFileById(fileId: ObjectID): Promise<Document> {

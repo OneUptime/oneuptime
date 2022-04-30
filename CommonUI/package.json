@@ -8,7 +8,7 @@
         "compile": "tsc"
     },
     "author": "",
-    "license": "ISC",
+    "license": "MIT",
     "type": "module",
     "dependencies": {
         "@fortawesome/fontawesome-svg-core": "^6.1.0",

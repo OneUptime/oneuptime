@@ -1,9 +1,4 @@
-import Model, {
-    requiredFields,
-    uniqueFields,
-    slugifyField,
-    encryptedFields,
-} from 'Common/Models/ApplicationScanner';
+import Model from 'Common/Models/ApplicationScanner';
 import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/DB/CreateBy';
 import { Document } from '../Infrastructure/ORM';
@@ -15,8 +10,7 @@ class Service extends DatabaseService<typeof Model> {
     public constructor() {
         super({
             model: Model,
-            requiredFields: requiredFields,
-            uniqueFields: uniqueFields,
+
             friendlyName: 'Application Scanner',
             publicListProps: {
                 populate: [],
@@ -58,9 +52,6 @@ class Service extends DatabaseService<typeof Model> {
                 populate: [],
                 select: [],
             },
-            isResourceByProject: true,
-            slugifyField: slugifyField,
-            encryptedFields: encryptedFields,
         });
     }
 

@@ -17,7 +17,7 @@
         "url": "git+https://gitlab.com/oneuptime/probe.git"
     },
     "author": "Nilanshu",
-    "license": "ISC",
+    "license": "MIT",
     "bugs": {
         "url": "https://gitlab.com/oneuptime/probe/issues"
     },

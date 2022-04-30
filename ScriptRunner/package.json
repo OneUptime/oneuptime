@@ -11,7 +11,7 @@
         "audit": "npm audit --audit-level=low"
     },
     "author": "Augustine",
-    "license": "ISC",
+    "license": "MIT",
     "type": "module",
     "dependencies": {
         "@types/node-cron": "^3.0.1",

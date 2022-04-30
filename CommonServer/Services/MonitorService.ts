@@ -2,12 +2,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import { Document } from '../Infrastructure/ORM';
-import Model, {
-    requiredFields,
-    uniqueFields,
-    slugifyField,
-    encryptedFields,
-} from 'Common/Models/Monitor';
+import Model from 'Common/Models/Monitor';
 import Query from '../Types/DB/Query';
 import DatabaseService from './DatabaseService';
 
@@ -15,8 +10,7 @@ class Service extends DatabaseService<typeof Model> {
     public constructor() {
         super({
             model: Model,
-            requiredFields: requiredFields,
-            uniqueFields: uniqueFields,
+
             friendlyName: 'Monitor',
             publicListProps: {
                 populate: [],
@@ -58,9 +52,6 @@ class Service extends DatabaseService<typeof Model> {
                 populate: [],
                 select: [],
             },
-            isResourceByProject: false,
-            slugifyField: slugifyField,
-            encryptedFields: encryptedFields,
         });
     }
 

@@ -1,5 +1,8 @@
 import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
+import EncryptedColumns from '../Types/Database/EncryptedColumns';
+import UniqueColumns from '../Types/Database/UniqueColumns';
+import RequiredColumns from '../Types/Database/RequiredColumns';
 import User from './User';
 import Project from './Project';
 import ResourceLabel from './ResourceLabel';
@@ -9,6 +12,14 @@ import Component from './Component';
     name: 'ApplicationLogContainer',
 })
 export default class ApplicationLogContainer extends BaseModel {
+    public constructor() {
+        super(
+            new EncryptedColumns([]),
+            new UniqueColumns([]),
+            new RequiredColumns([]),
+            null
+        );
+    }
     @Index()
     @Column()
     public project!: Project;

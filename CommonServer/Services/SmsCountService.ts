@@ -1,11 +1,6 @@
 import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Model, {
-    requiredFields,
-    uniqueFields,
-    slugifyField,
-    encryptedFields,
-} from 'Common/Models/SmsCount';
+import Model from 'Common/Models/SmsCount';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -15,8 +10,7 @@ class Service extends DatabaseService<typeof Model> {
     public constructor() {
         super({
             model: Model,
-            requiredFields: requiredFields,
-            uniqueFields: uniqueFields,
+
             friendlyName: 'SMS Count',
             publicListProps: {
                 populate: [],
@@ -58,9 +52,6 @@ class Service extends DatabaseService<typeof Model> {
                 populate: [],
                 select: [],
             },
-            isResourceByProject: false,
-            slugifyField: slugifyField,
-            encryptedFields: encryptedFields,
         });
     }
 

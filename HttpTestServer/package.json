@@ -14,7 +14,7 @@
     },
     "keywords": [],
     "author": "",
-    "license": "ISC",
+    "license": "MIT",
     "type": "module",
     "dependencies": {
         "CommonServer": "file:../CommonServer",

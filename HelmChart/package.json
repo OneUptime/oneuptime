@@ -13,7 +13,7 @@
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
     },
     "author": "",
-    "license": "ISC",
+    "license": "MIT",
     "type": "module",
     "dependencies": {
         "CommonServer": "file:../CommonServer",

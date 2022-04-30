@@ -1,13 +1,7 @@
 import Slug from 'Common/Utils/Slug';
 import Populate from '../Types/DB/Populate';
 import Select from '../Types/DB/Select';
-import {
-    EncryptedFields,
-    RequiredFields,
-    UniqueFields,
-    Document,
-    Query as DbQuery,
-} from '../Infrastructure/ORM';
+import { Document, Query as DbQuery } from '../Infrastructure/ORM';
 import FindOneBy from '../Types/DB/FindOneBy';
 import UpdateOneBy from '../Types/DB/UpdateOneBy';
 import CountBy from '../Types/DB/CountBy';
@@ -27,6 +21,7 @@ import Encryption from '../Utils/Encryption';
 import { JSONObject } from 'Common/Types/JSON';
 import SortOrder from '../Types/DB/SortOrder';
 import DbFunctions from '../Utils/DBFunctions';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ListProps {
     populate: Populate;
@@ -50,7 +45,7 @@ interface InternalUpdateBy extends UpdateBy {
     multiple: boolean;
 }
 
-class DatabaseService<BaseModel> {
+class DatabaseService {
     public adminItemProps: ItemProps;
     public adminListProps: ListProps;
     public ownerItemProps: ItemProps;
@@ -61,18 +56,11 @@ class DatabaseService<BaseModel> {
     public model: BaseModel;
     public publicItemProps: ItemProps;
     public publicListProps: ListProps;
-    public requiredFields: RequiredFields;
-    public uniqueFields: UniqueFields;
-    public encryptedFields: EncryptedFields;
     public viewerItemProps: ItemProps;
     public viewerListProps: ListProps;
-    public isResourceByProject: boolean;
-    public slugifyField: string;
 
     public constructor({
         model,
-        requiredFields,
-        uniqueFields,
         friendlyName = '',
         publicListProps,
         adminListProps,
@@ -84,11 +72,7 @@ class DatabaseService<BaseModel> {
         ownerListProps,
         memberItemProps,
         viewerItemProps,
-        isResourceByProject = true,
-        slugifyField = '',
-        encryptedFields,
     }: {
-        uniqueFields: UniqueFields;
         adminItemProps: ItemProps;
         adminListProps: ListProps;
         friendlyName: string;
@@ -97,18 +81,14 @@ class DatabaseService<BaseModel> {
         model: BaseModel;
         publicItemProps: ItemProps;
         publicListProps: ListProps;
-        requiredFields: RequiredFields;
         viewerItemProps: ItemProps;
         viewerListProps: ListProps;
         ownerItemProps: ItemProps;
         ownerListProps: ListProps;
         isResourceByProject: boolean;
-        slugifyField: string;
-        encryptedFields: EncryptedFields;
     }) {
         this.model = model;
         this.friendlyName = friendlyName;
-        this.requiredFields = requiredFields;
         this.publicListProps = publicListProps;
         this.adminListProps = adminListProps;
         this.memberItemProps = memberItemProps;
@@ -117,12 +97,8 @@ class DatabaseService<BaseModel> {
         this.viewerListProps = viewerListProps;
         this.publicItemProps = publicItemProps;
         this.viewerItemProps = viewerItemProps;
-        this.isResourceByProject = isResourceByProject;
-        this.uniqueFields = uniqueFields;
-        this.slugifyField = slugifyField;
         this.ownerItemProps = ownerItemProps;
         this.ownerListProps = ownerListProps;
-        this.encryptedFields = encryptedFields;
     }
 
     protected isValid(data: JSONObject): boolean {
@@ -135,7 +111,7 @@ class DatabaseService<BaseModel> {
 
     protected checkRequiredFields(data: JSONObject): void {
         // Check required fields.
-        for (const requiredField of this.requiredFields) {
+        for (const requiredField of this.model.getRequiredColumns().columns) {
             if (!data[requiredField]) {
                 throw new BadDataException(`${requiredField} is required`);
             }
@@ -151,7 +127,7 @@ class DatabaseService<BaseModel> {
         const iv: Buffer = Encryption.getIV();
         data['iv'] = iv;
 
-        for (const key of this.encryptedFields) {
+        for (const key of this.model.getEncryptedColumns().columns) {
             // If data is an object.
             if (typeof data[key] === 'object') {
                 const dataObj: JSONObject = data[key] as JSONObject;
@@ -176,7 +152,7 @@ class DatabaseService<BaseModel> {
     protected decrypt(data: Document): Document {
         const iv: Buffer = data.get('iv');
 
-        for (const key of this.encryptedFields) {
+        for (const key of this.model.getEncryptedColumns().columns) {
             // If data is an object.
             if (typeof data.get(key) === 'object') {
                 const dataObj: JSONObject = data.get(key);
@@ -335,10 +311,12 @@ class DatabaseService<BaseModel> {
                 item.set(key, data[key]);
             }
 
-            if (this.slugifyField) {
+            if (this.model.getSlugifyColumn()) {
                 item.set(
                     'slug',
-                    Slug.getSlug(data[this.slugifyField] as string)
+                    Slug.getSlug(
+                        data[this.model.getSlugifyColumn() as string] as string
+                    )
                 );
             }
 
@@ -687,7 +665,8 @@ class DatabaseService<BaseModel> {
             });
 
             // Check required fields.
-            for (const requiredField of this.requiredFields) {
+            for (const requiredField of this.model.getRequiredColumns()
+                .columns) {
                 if (beforeUpdateBy.data.get(requiredField) === null) {
                     throw new BadDataException(`${requiredField} is required.`);
                 }
