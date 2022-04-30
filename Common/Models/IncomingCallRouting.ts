@@ -23,61 +23,33 @@ export default class Model extends BaseModel {
    region!: string;
 
    @Column()
-   capabilities!: {
- 
- @Column()
-   MMS!: boolean;
+   mmsCapabilities!: boolean;
 
    @Column()
-   SMS!: boolean;
+   smsCapabilities!: boolean;
 
    @Column()
-   voice!: boolean;
-};
+   voiceCapabilities!: boolean;
 
-@Column()
-routingSchema!: {
+
 
    @Column()
-      type!: Object;
+   sid!: string;
 
    @Column()
-} /*RoutingSchema!: {
- 
- @Column()
-        type!: ‘team-member’ || ‘schedule’
- 
- @Column()
-        id!: 'schedule' || 'teamMember'
- 
- @Column()
-        introtext!: 'string';
- 
- @Column()
-        introAudio!: 'tone mongo storage name';
- 
- @Column()
-        introAudioName!: 'original audio name';
+   price!: string;
 
-   } */;
+   @Column()
+   priceUnit!: string;
 
-@Column()
-sid!: string;
+   @Column()
+   countryCode!: string;
 
-@Column()
-price!: string;
+   @Column()
+   numberType!: string;
 
-@Column()
-priceUnit!: string;
-
-@Column()
-countryCode!: string;
-
-@Column()
-numberType!: string;
-
-@Column()
-stripeSubscriptionId!: string;
+   @Column()
+   stripeSubscriptionId!: string;
 }
 
 

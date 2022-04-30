@@ -3,30 +3,25 @@ import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 @Entity({
-    name: "UserAlerts"
+       name: "UserAlerts"
 })
-export default class Model extends BaseModel{
- 
- @Column()
-        name!: string;
- 
- @Column()
-        project: { ref: 'Project', type: Schema.Types.Object, index!: true };
- 
- @Column()
-        isDefault!: boolean;
- 
- @Column()
-        duration: { type: string, default!: '60' };
- 
- @Column()
-        alertTime!: string;
-        
- 
+export default class Model extends BaseModel {
 
-    };
- 
- //Automatically adds createdAt and updatedAt to the collection
+       @Column()
+       name!: string;
+
+       @Column()
+       project!: Project;
+
+       @Column()
+       isDefault!: boolean;
+
+       @Column()
+       duration!: number;
+
+       @Column()
+       alertTime!: string;
+
 }
 
 

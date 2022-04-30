@@ -1,58 +1,26 @@
-import {
-    RequiredFields;
-    UniqueFields;
-    EncryptedFields;
-    Schema;
-} from '../Infrastructure/ORM';
+import { Column, Entity, Index } from 'typeorm';
+import BaseModel from './BaseModel';
+import Team from './Team';
+import User from './User';
 
 @Entity({
     name: "UserAlerts"
 })
-export default class Model extends BaseModel{
- 
- @Column()
-    teamMembers!: [
-        {
- 
- @Column()
-            startTime!: Date;
- 
- @Column()
-            endTime!: Date;
- 
- @Column()
-            timezone!: string;
- 
- @Column()
-            user: { type: string, ref: 'User', index: true, default!: null };
- 
- @Column()
-            group!: {
- 
- @Column()
-                type!: string;
- 
- @Column()
-                ref!: 'Groups';
- 
- @Column()
-                index!: true;
- 
- @Column()
-                default!: null;
-            };
-        };
-    ];
+export default class Model extends BaseModel {
+
+    @Column()
+    startTime!: Date;
+
+    @Column()
+    endTime!: Date;
+
+    @Column()
+    timezone!: string;
+
+    @Column()
+    user!: User;
+
+    @Column()
+    team!: Team
+
 }
-
-
-
-
-
-
-
-
-@Entity({
-    name: "UserAlerts"
-})
-export default schema;

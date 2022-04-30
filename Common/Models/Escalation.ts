@@ -3,6 +3,7 @@ import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 import TeamMemberSchema from './EscalationTeamMember';
+import OnCallDutySchedule from './OnCallDutySchedule';
 
 @Entity({
     name: "UserAlerts"
@@ -10,41 +11,25 @@ import TeamMemberSchema from './EscalationTeamMember';
 export default class Model extends BaseModel{
  
  @Column()
-    project!: {
+    project!: Project
  
  @Column()
-        type!: string;
+    callReminders:number;
  
  @Column()
-        ref!: 'Project';
+    emailReminders:number;
  
  @Column()
-        alias!: 'project';
+    smsReminders:number;
  
  @Column()
-        default!: null;
+    pushReminders:number;
  
  @Column()
-        index!: true;
-    };
+    rotateBy: string;
  
  @Column()
-    callReminders: { type: Number, default!: null };
- 
- @Column()
-    emailReminders: { type: Number, default!: null };
- 
- @Column()
-    smsReminders: { type: Number, default!: null };
- 
- @Column()
-    pushReminders: { type: Number, default!: null };
- 
- @Column()
-    rotateBy: { type: string, default!: null };
- 
- @Column()
-    rotationInterval: { type: Number, default!: null };
+    rotationInterval:number;
  
  @Column()
     firstRotationOn!: Date;
@@ -65,51 +50,13 @@ export default class Model extends BaseModel{
     push!: boolean;
  
  @Column()
-    createdByUser!: { type: string, ref: 'User', default: null, index!: true };
+    createdByUser!: User;
  
  @Column()
-    schedule: { type: string, ref: 'Schedule', default!: null };
- 
- @Column()
-    teams: { type: [TeamMemberSchema], default!: null };
- 
- @Column()
-    createdAt: { type: Date; default!: Date.now }
-
-
+    schedule!: OnCallDutySchedule;
  
  @Column()
     deletedByUser!: User;
-}
-
-schema.virtual('teams.teamMembers.user'; {
- 
- @Column()
-    ref!: 'User';
- 
- @Column()
-    localField!: 'teams.teamMembers.user';
- 
- @Column()
-    foreignField!: '_id';
- 
- @Column()
-    justOne!: true;
-}
-
-schema.virtual('teams.teamMembers.groups'; {
- 
- @Column()
-    ref!: 'Groups';
- 
- @Column()
-    localField!: 'teams.teamMembers.group';
- 
- @Column()
-    foreignField!: '_id';
- 
- @Column()
-    justOne!: true;
 }
 
 

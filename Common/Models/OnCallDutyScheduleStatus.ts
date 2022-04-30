@@ -2,70 +2,38 @@ import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
+import Incident from './Incident';
+import OnCallDutySchedule from './OnCallDutySchedule';
+
+
 @Entity({
-    name: "UserAlerts"
+   name: "UserAlerts"
 })
-export default class Model extends BaseModel{
- 
+export default class Model extends BaseModel {
 
 
- 
- @Column()
-    project: Project;
- 
- @Column()
-    schedule!: Schedule;
- 
- @Column()
-    escalations!: [
-        {
- 
- @Column()
-            escalation!: {
- 
- @Column()
-                type!: Schema.Types.Object;
- 
- @Column()
-                ref!: 'Escalation';
- 
- @Column()
-                index!: true;
-            };
- 
- @Column()
-            callRemindersSent: number;
- 
- @Column()
-            smsRemindersSent: number;
- 
- @Column()
-            emailRemindersSent: number;
- 
- @Column()
-            pushRemindersSent: number;
-        };
-    ];
+   @Column()
+   project!: Project;
 
- 
- @Column()
-    incident: Incident
- 
- @Column()
-    incidentAcknowledged!: boolean; //Incident attached to this schedule is acknowledged.
-    
- 
+   @Column()
+   onCallDutySchedule!: OnCallDutySchedule;
 
- 
- @Column()
-    deletedByUser!: User;
- 
- @Column()
-    isOnDuty!: boolean;
+   @Column()
+   incident!: Incident
 
- 
- @Column()
-    alertedEveryone!: boolean; //This happens when everyone in the scheudle has been alerted and they still ignore the incident.
+   @Column()
+   incidentAcknowledged!: boolean;
+
+
+   @Column()
+   deletedByUser!: User;
+
+   @Column()
+   isOnDuty!: boolean;
+
+
+   @Column()
+   alertedEveryone!: boolean;
 }
 
 
