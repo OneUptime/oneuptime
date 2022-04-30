@@ -2,6 +2,8 @@ import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
+import IncidentPriority from './IncidentPriority';
+import IncomingRequestCustomFields from '../Types/IncomingRequest/IncomingRequestCustomFields';
 @Entity({
     name: "UserAlerts"
 })
@@ -11,26 +13,7 @@ export default class Model extends BaseModel{
         name!: string;
  
  @Column()
-        project: Project;
- 
- @Column()
-        monitors!: [
-            {
- 
- @Column()
-                monitor!: {
- 
- @Column()
-                    type!: Schema.Types.Object;
- 
- @Column()
-                    ref!: 'Monitor';
- 
- @Column()
-                    index!: true;
-                };
-            };
-        ];
+        project!: Project;
  
  @Column()
         isDefault!: boolean;
@@ -66,8 +49,6 @@ export default class Model extends BaseModel{
         enabled!: boolean;
         
  
-
- 
  @Column()
         incidentTitle!: string;
  
@@ -75,38 +56,13 @@ export default class Model extends BaseModel{
         incidentType!: string;
  
  @Column()
-        incidentPriority!: {
- 
- @Column()
-            type!: Schema.Types.Mixed;
- 
- @Column()
-            ref!: 'IncidentPriority';
- 
- @Column()
-            index!: true;
-        };
+        incidentPriority!:IncidentPriority
  
  @Column()
         incidentDescription!: string;
  
  @Column()
-        customFields!: [
-            {
- 
- @Column()
-                fieldName!: string;
- 
- @Column()
-                fieldValue!: Schema.Types.Mixed;
- 
- @Column()
-                uniqueField!: boolean;
- 
- @Column()
-                fieldType!: string;
-            };
-        ];
+        customFields!: IncomingRequestCustomFields
  
  @Column()
         filterMatch!: string;
@@ -144,7 +100,7 @@ export default class Model extends BaseModel{
         createSeparateIncident!: boolean;
  
  @Column()
-        post_statuspage!: boolean;
+        postOnsStatusPage!: boolean;
     };
  
 
