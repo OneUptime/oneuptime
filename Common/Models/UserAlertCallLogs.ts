@@ -2,7 +2,7 @@ import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
-import OperationStatus from '../Types/OperationStatus';
+import OperationStatus from '../Types/Operation/OperationStatus';
 
 @Entity({
     name: 'CallLog',

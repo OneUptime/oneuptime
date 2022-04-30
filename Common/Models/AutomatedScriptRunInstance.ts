@@ -4,7 +4,7 @@ import User from './User';
 import Project from './Project';
 import AutomatedScript from './AutomatedScript';
 import Incident from './Incident';
-import OperationStatus from '../Types/OperationStatus';
+import OperationStatus from '../Types/Operation/OperationStatus';
 
 @Entity({
     name: 'AutomationScriptRunInstance',

@@ -104,5 +104,5 @@ export default class User extends BaseModel {
     public tempAlertPhoneNumber!: string;
 
     @Column()
-    public createdBy: User;
+    public createdBy!: User;
 }
