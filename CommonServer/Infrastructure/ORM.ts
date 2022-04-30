@@ -8,7 +8,7 @@ import {
 
 import { DataSource, BaseEntity } from 'typeorm';
 
-const AppDataSource = new DataSource({
+const AppDataSource: DataSource = new DataSource({
     type: 'postgres',
     host: DatabaseHost.toString(),
     port: DatabasePort.toNumber(),

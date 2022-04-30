@@ -27,7 +27,7 @@ export default class Model extends BaseModel {
     public status!: string;
 
     @Column()
-    incident_public state!: string;
+    public incidentState!: string;
 
     @Column()
     public deletedByUser!: User;

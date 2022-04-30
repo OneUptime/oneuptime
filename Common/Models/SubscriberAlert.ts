@@ -5,6 +5,7 @@ import Project from './Project';
 import Subscriber from './Subscriber';
 import Incident from './Incident';
 import AlertType from '../Types/Alerts/AlertType';
+import AlertEventType from '../Types/Alerts/AlertEventType';
 import OperationResult from '../Types/Operation/OperationResult';
 
 @Entity({

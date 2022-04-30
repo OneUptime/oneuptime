@@ -18,7 +18,7 @@ export default class BaseModel extends BaseEntity {
     public updatedAt!: Date;
 
     @DeleteDateColumn()
-    deletedAt?: Date;
+    public deletedAt?: Date;
 
     @VersionColumn()
     public version!: number;

@@ -50,7 +50,7 @@ export default class User extends BaseModel {
     public twoFactorSecretCode!: string;
 
     @Column()
-    otpauth_public url!: URL;
+    public otpAuthUrl!: URL;
 
     @Column()
     public backupCodes!: Array<string>;
@@ -104,5 +104,5 @@ export default class User extends BaseModel {
     public tempAlertPhoneNumber!: string;
 
     @Column()
-    createdBy: User;
+    public createdBy: User;
 }

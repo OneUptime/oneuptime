@@ -91,13 +91,13 @@ export default class MonitorCriteriaInstance {}
  * }
  */
 
-// /**
-//  * SAMPLE STRUCTURE OF HOW CRITERIA WILL BE STRUCTURED IN THE DB
-//  * Depending of on the level, criteria will house all the conditions;
-//  * in addition to nested condition if present (the nested condition will follow the same structural pattern)
-//  *
-
-/*
+/**
+ * SAMPLE STRUCTURE OF HOW CRITERIA WILL BE STRUCTURED IN THE DB
+ * Depending of on the level, criteria will house all the conditions;
+ * in addition to nested condition if present (the nested condition will follow the same structural pattern)
+ *
+ *
+ * /*
  *  @Column()
  *  * criteria!: {
  */

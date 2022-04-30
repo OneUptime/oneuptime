@@ -10,3 +10,5 @@ enum AlertEventType {
     ScheduledMaintenanceCancelled = 'Scheduled maintenance cancelled',
     AnnouncementNotificationCreated = 'Announcement notification created',
 }
+
+export default AlertEventType;

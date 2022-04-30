@@ -7,7 +7,7 @@ import Incident from './Incident';
 })
 export default class Model extends BaseModel {
     @Column()
-    incident: Incident;
+    public incident: Incident;
 
     @Column()
     public user!: User; // Which User will perfom this action.

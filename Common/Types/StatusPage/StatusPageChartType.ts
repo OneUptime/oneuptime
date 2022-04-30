@@ -6,3 +6,5 @@ enum StatusPageChartType {
     ResponseTime = 'ResponseTime',
     Temperature = 'Temperature',
 }
+
+export default StatusPageChartType;

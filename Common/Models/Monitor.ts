@@ -11,6 +11,7 @@ import MonitorCriteriaInstance from '../Types/Monitor/MonitorCriteriaInstance';
 import HTTPMethod from '../Types/API/HTTPMethod';
 import MonitorCriteria from '../Types/Monitor/MonitorCriteria';
 import Component from './Component';
+import MonitorType from '../Types/Monitor/MonitorType';
 
 @Entity({
     name: 'UserAlerts',

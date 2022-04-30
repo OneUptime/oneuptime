@@ -4,7 +4,6 @@ import User from './User';
 import Project from './Project';
 import Incident, { IncidentState } from './Incident';
 import Escalation from './Escalation';
-import Schedule from './OnCallDutySchedule';
 import OnCallDutySchedule from './OnCallDutySchedule';
 
 @Entity({
@@ -37,7 +36,7 @@ export default class UserAlerts extends BaseModel {
     public onCallScheduleStatus!: OnCallDutySchedule;
 
     @Column()
-    public schedule!: Schedule;
+    public onCallDutySchedule!: OnCallDutySchedule;
 
     @Column()
     public escalation!: Escalation;

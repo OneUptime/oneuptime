@@ -1,5 +1,6 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
+import Monitor from './Monitor';
 
 @Entity({
     name: 'LighthouseLog',

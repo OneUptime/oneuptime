@@ -6,3 +6,5 @@ enum MonitorType {
     IP = 'IP',
     IncomingRequest = 'IncomingRequest',
 }
+
+export default MonitorType;
