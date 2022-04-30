@@ -11,26 +11,26 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    chargeAmount!: number;
+    public chargeAmount!: number;
 
     @Column()
-    closingAccountBalance!: number;
+    public closingAccountBalance!: number;
 
     @Column()
-    userAlert!: UserAlert;
+    public userAlert!: UserAlert;
 
     @Column()
-    subscriberAlert!: SubscriberAlert;
+    public subscriberAlert!: SubscriberAlert;
 
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 
     @Column()
-    incident!: Incident;
+    public incident!: Incident;
 
     @Column()
-    sentTo!: string;
+    public sentTo!: string;
 }

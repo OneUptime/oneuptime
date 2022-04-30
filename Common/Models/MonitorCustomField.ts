@@ -8,14 +8,14 @@ import { CustomFieldType } from './CustomField';
 })
 export default class MonitorCustomField extends BaseModel {
     @Column()
-    fieldName!: string;
+    public fieldName!: string;
 
     @Column()
-    fieldType!: CustomFieldType;
+    public fieldType!: CustomFieldType;
 
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    uniqueField!: boolean;
+    public uniqueField!: boolean;
 }

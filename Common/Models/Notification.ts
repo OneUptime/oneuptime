@@ -6,11 +6,11 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    message!: string;
+    public message!: string;
 
     @Column()
-    icon!: string;
+    public icon!: string;
 }

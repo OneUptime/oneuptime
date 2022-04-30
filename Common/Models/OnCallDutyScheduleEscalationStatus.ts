@@ -1,32 +1,26 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
-import Incident from './Incident';
-import OnCallDutySchedule from './OnCallDutySchedule';
 import Escalation from './Escalation';
 import OnCallDutyScheduleStatus from './OnCallDutyScheduleStatus';
 
-
 @Entity({
-    name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public escalation!: Escalation;
 
     @Column()
-    escalation!: Escalation;
+    public callRemindersSent!: number;
 
     @Column()
-    callRemindersSent!: number;
+    public smsRemindersSent!: number;
 
     @Column()
-    smsRemindersSent!: number;
+    public emailRemindersSent!: number;
 
     @Column()
-    emailRemindersSent!: number;
+    public pushRemindersSent!: number;
 
-    @Column()
-    pushRemindersSent!: number;
-
-    onCallDutyScheduleStatus!: OnCallDutyScheduleStatus
+    public onCallDutyScheduleStatus!: OnCallDutyScheduleStatus;
 }

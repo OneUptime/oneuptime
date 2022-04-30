@@ -1,45 +1,32 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 import Incident from './Incident';
 import OnCallDutySchedule from './OnCallDutySchedule';
 
-
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public project!: Project;
 
+    @Column()
+    public onCallDutySchedule!: OnCallDutySchedule;
 
-   @Column()
-   project!: Project;
+    @Column()
+    public incident!: Incident;
 
-   @Column()
-   onCallDutySchedule!: OnCallDutySchedule;
+    @Column()
+    public incidentAcknowledged!: boolean;
 
-   @Column()
-   incident!: Incident
+    @Column()
+    public deletedByUser!: User;
 
-   @Column()
-   incidentAcknowledged!: boolean;
+    @Column()
+    public isOnDuty!: boolean;
 
-
-   @Column()
-   deletedByUser!: User;
-
-   @Column()
-   isOnDuty!: boolean;
-
-
-   @Column()
-   alertedEveryone!: boolean;
+    @Column()
+    public alertedEveryone!: boolean;
 }
-
-
-
-
-
-
-
-

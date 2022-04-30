@@ -1,7 +1,5 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import StatusPage from './StatusPage';
-import StatusPageCategory from './StatusPageCategory';
 import Monitor from './Monitor';
 import Incident from './Incident';
 
@@ -10,8 +8,8 @@ import Incident from './Incident';
 })
 export default class IncidentResource extends BaseModel {
     @Column()
-    incident!: Incident;
+    public incident!: Incident;
 
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 }

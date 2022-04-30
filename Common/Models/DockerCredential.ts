@@ -8,24 +8,24 @@ import Project from './Project';
 })
 export default class DockerCredential extends BaseModel {
     @Column()
-    dockerRegistryUrl!: URL;
+    public dockerRegistryUrl!: URL;
 
     @Column()
-    dockerUsername!: string;
+    public dockerUsername!: string;
 
     @Column()
-    dockerPassword!: string;
+    public dockerPassword!: string;
 
     @Column()
-    iv!: Buffer;
+    public iv!: Buffer;
 
     @Index()
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

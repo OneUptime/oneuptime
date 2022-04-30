@@ -8,14 +8,14 @@ import User from './User';
 export default class TeamMember extends BaseModel {
     @Column()
     @Index()
-    team!: Team;
+    public team!: Team;
 
     @Column()
-    user!: User;
+    public user!: User;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

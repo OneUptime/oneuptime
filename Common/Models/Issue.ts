@@ -1,61 +1,51 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import ErrorTrackerContainer from './ErrorTrackerContainer';
 
 export enum IssueType {
-   Exception = "Exception",
-   Message = "Message",
-   Error = "Error"
+    Exception = 'Exception',
+    Message = 'Message',
+    Error = 'Error',
 }
 
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public name!: string;
 
-   @Column()
-   name!: string;
+    @Column()
+    public description!: string;
 
-   @Column()
-   description!: string;
+    @Column()
+    public errorTracker!: ErrorTrackerContainer;
 
-   @Column()
-   errorTracker!: ErrorTrackerContainer
+    @Column()
+    public type!: IssueType;
 
-   @Column()
-   type!: IssueType
+    @Column()
+    public fingerprintHash!: string;
 
-   @Column()
-   fingerprintHash!: string;
+    @Column()
+    public deletedByUser!: User;
 
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    public resolved!: boolean;
 
-   @Column()
-   resolved!: boolean;
+    @Column()
+    public resolvedAt!: Date;
 
-   @Column()
-   resolvedAt!: Date
+    @Column()
+    public resolvedBy!: User;
 
-   @Column()
-   resolvedBy!: User;
+    @Column()
+    public ignored!: boolean;
 
-   @Column()
-   ignored!: boolean;
+    @Column()
+    public ignoredAt!: Date;
 
-   @Column()
-   ignoredAt!: Date
-
-   @Column()
-   ignoredBy!: User;
+    @Column()
+    public ignoredBy!: User;
 }
-
-
-
-
-
-
-
-
-

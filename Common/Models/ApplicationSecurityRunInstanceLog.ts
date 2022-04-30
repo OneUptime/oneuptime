@@ -8,11 +8,11 @@ import SecuritySeverity from '../Types/SecuritySeverity';
 })
 export default class ApplicationSecurityRunInstanceLog extends BaseModel {
     @Column()
-    applicationSeurityRunInstance!: ApplicationSecurityRunInstance;
+    public applicationSeurityRunInstance!: ApplicationSecurityRunInstance;
 
     @Column()
-    severity!: SecuritySeverity;
+    public severity!: SecuritySeverity;
 
     @Column()
-    log!: string;
+    public log!: string;
 }

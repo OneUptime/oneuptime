@@ -1,44 +1,31 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
-
 
 @Entity({
-       name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public store!: Object;
 
-       @Column()
-       store!: Object
+    @Column()
+    public challenges!: Object;
 
-       @Column()
-       challenges!: Object
+    @Column()
+    public renewOffset!: string;
 
-       @Column()
-       renewOffset!: string;
+    @Column()
+    public renewStagger!: string;
 
-       @Column()
-       renewStagger!: string;
+    @Column()
+    public accountKeyType!: string;
 
-       @Column()
-       accountKeyType!: string;
+    @Column()
+    public serverKeyType!: string;
 
-       @Column()
-       serverKeyType!: string;
+    @Column()
+    public subscriberEmail!: string;
 
-       @Column()
-       subscriberEmail!: string;
-
-       @Column()
-       agreeToTerms!: boolean;
+    @Column()
+    public agreeToTerms!: boolean;
 }
-
-
-
-
-
-
-
-
-

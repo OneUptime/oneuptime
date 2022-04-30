@@ -8,8 +8,8 @@ import OnCallDutySchedule from './OnCallDutySchedule';
 })
 export default class OnCallDutyScheduleResource extends BaseModel {
     @Column()
-    onCallDutySchedule!: OnCallDutySchedule;
+    public onCallDutySchedule!: OnCallDutySchedule;
 
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 }

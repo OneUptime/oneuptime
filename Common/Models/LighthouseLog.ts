@@ -6,29 +6,29 @@ import BaseModel from './BaseModel';
 })
 export default class LighthouseLog extends BaseModel {
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 
     @Column()
-    data!: Object;
+    public data!: Object;
 
     @Column()
-    url!: URL;
+    public url!: URL;
 
     @Column()
-    performance!: Number;
+    public performance!: Number;
 
     @Column()
-    accessibility!: Number;
+    public accessibility!: Number;
 
     @Column()
-    bestPractices!: Number;
+    public bestPractices!: Number;
 
     @Column()
-    seo!: Number;
+    public seo!: Number;
 
     @Column()
-    pwa!: Number;
+    public pwa!: Number;
 
     @Column()
-    scanning!: Boolean;
+    public scanning!: Boolean;
 }

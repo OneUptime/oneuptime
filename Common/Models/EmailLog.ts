@@ -8,35 +8,35 @@ import Project from './Project';
 })
 export default class EmailLog extends BaseModel {
     @Column()
-    fromEmail!: string;
+    public fromEmail!: string;
 
     @Column()
-    fromName!: string;
+    public fromName!: string;
 
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    toEmail!: string;
+    public toEmail!: string;
 
     @Column()
-    subject!: string;
+    public subject!: string;
 
     @Column()
-    body!: string;
+    public body!: string;
 
     @Column()
-    templateType!: string;
+    public templateType!: string;
 
     @Column()
-    status!: string;
+    public status!: string;
 
     @Column()
-    errorDescription!: string;
+    public errorDescription!: string;
 
     @Column()
-    smtpHost!: string;
+    public smtpHost!: string;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

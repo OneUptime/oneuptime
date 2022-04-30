@@ -1,4 +1,4 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -7,43 +7,31 @@ import Incident from './Incident';
 import AlertType from '../Types/Alerts/AlertType';
 import OperationResult from '../Types/Operation/OperationResult';
 
-
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public project!: Project;
 
-   @Column()
-   project!: Project;
+    @Column()
+    public subscriber!: Subscriber;
 
-   @Column()
-   subscriber!: Subscriber;
+    @Column()
+    public incident!: Incident;
 
-   @Column()
-   incident!: Incident;
+    @Column()
+    public alertVia!: AlertType;
 
-   @Column()
-   alertVia!: AlertType
+    @Column()
+    public status!: OperationResult;
 
-   @Column()
-   status!: OperationResult;
+    @Column()
+    public eventType!: AlertEventType;
 
-   @Column()
-   eventType!: AlertEventType
+    @Column()
+    public errorMessage!: string;
 
-   @Column()
-   errorMessage!: string
-
-   @Column()
-   deletedByUser!: User;
-
+    @Column()
+    public deletedByUser!: User;
 }
-
-
-
-
-
-
-
-
-

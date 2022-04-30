@@ -1,4 +1,4 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -6,52 +6,42 @@ import IncomingCallRouting from './IncomingCallRouting';
 import OnCallDutySchedule from './OnCallDutySchedule';
 import OperationStatus from '../Types/Operation/OperationStatus';
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public project!: Project;
 
-   @Column()
-   project!: Project;
+    @Column()
+    public callRouting!: IncomingCallRouting;
 
-   @Column()
-   callRouting!: IncomingCallRouting;
+    @Column()
+    public deletedByUser!: User;
 
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    public callSid!: string;
 
-   @Column()
-   callSid!: string;
+    @Column()
+    public price!: string;
 
-   @Column()
-   price!: string;
+    @Column()
+    public calledFrom!: string;
 
-   @Column()
-   calledFrom!: string;
+    @Column()
+    public calledTo!: string;
 
-   @Column()
-   calledTo!: string;
+    @Column()
+    public duration!: string;
 
-   @Column()
-   duration!: string;
+    @Column()
+    public user!: User; // User that call was forwarded to
 
-   @Column()
-   user!: User; // User that call was forwarded to
+    @Column()
+    public schedule!: OnCallDutySchedule;
 
-   @Column()
-   schedule!: OnCallDutySchedule
+    @Column()
+    public phoneNumber!: string; // Phone number that call was forwarded to
 
-   @Column()
-   phoneNumber!: string; // Phone number that call was forwarded to
-
-   @Column()
-   status!: OperationStatus
-
+    @Column()
+    public status!: OperationStatus;
 }
-
-
-
-
-
-
-
-

@@ -8,17 +8,17 @@ import StatusPage from './StatusPage';
 })
 export default class Model extends BaseModel {
     @Column()
-    statusPage!: StatusPage;
+    public statusPage!: StatusPage;
 
     @Column()
-    title!: string;
+    public title!: string;
 
     @Column()
-    url!: string;
+    public url!: string;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

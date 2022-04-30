@@ -9,29 +9,29 @@ import StatusPage from './StatusPage';
 })
 export default class Announcement extends BaseModel {
     @Column()
-    statusPage!: StatusPage;
+    public statusPage!: StatusPage;
 
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    slug!: string;
+    public slug!: string;
 
     @Column()
-    hideAnnouncement!: boolean;
+    public hideAnnouncement!: boolean;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    description!: string;
+    public description!: string;
 
     @Column()
-    resolved!: boolean;
+    public resolved!: boolean;
 }

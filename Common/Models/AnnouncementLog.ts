@@ -10,27 +10,27 @@ import Project from './Project';
 })
 export default class AnnouncementLog extends BaseModel {
     @Column()
-    announcement!: Announcement;
+    public announcement!: Announcement;
 
     @Index()
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    statusPage!: StatusPage;
+    public statusPage!: StatusPage;
 
     @Column()
-    startDate!: Date;
+    public startDate!: Date;
 
     @Column()
-    endDate!: Date;
+    public endDate!: Date;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    active!: boolean;
+    public active!: boolean;
 }

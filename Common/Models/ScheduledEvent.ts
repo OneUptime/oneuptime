@@ -8,62 +8,62 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    cancelled!: boolean;
+    public cancelled!: boolean;
 
     @Column()
-    cancelledAt!: Date;
+    public cancelledAt!: Date;
 
     @Column()
-    cancelledBy!: User;
+    public cancelledBy!: User;
 
     @Column()
-    slug!: string;
+    public slug!: string;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Column()
-    startDate!: Date;
+    public startDate!: Date;
 
     @Column()
-    endDate!: Date;
+    public endDate!: Date;
 
     @Column()
-    description!: string;
+    public description!: string;
 
     @Column()
-    showEventOnStatusPage!: boolean;
+    public showEventOnStatusPage!: boolean;
 
     @Column()
-    callScheduleOnEvent!: boolean;
+    public callScheduleOnEvent!: boolean;
 
     @Column()
-    monitorDuringEvent!: boolean;
+    public monitorDuringEvent!: boolean;
 
     @Column()
-    recurring!: boolean;
+    public recurring!: boolean;
 
     @Column()
-    interval!: string;
+    public interval!: string;
 
     @Column()
-    alertSubscriber!: boolean;
+    public alertSubscriber!: boolean;
 
     @Column()
-    resolved!: boolean;
+    public resolved!: boolean;
 
     @Column()
-    resolvedBy!: User;
+    public resolvedBy!: User;
 
     @Column()
-    resolvedAt!: Date;
+    public resolvedAt!: Date;
 }

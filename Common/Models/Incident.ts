@@ -1,4 +1,4 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -8,128 +8,114 @@ import ResourceStatus from './ResourceStatus';
 import IncidentPriority from './IncidentPriority';
 
 export enum IncidentState {
-   Identified = "Identified",
-   Acknowledged = "Acknowledged",
-   Resolved = "Resolved"
+    Identified = 'Identified',
+    Acknowledged = 'Acknowledged',
+    Resolved = 'Resolved',
 }
 
 @Entity({
-   name: "Incident"
+    name: 'Incident',
 })
 export default class Incident extends BaseModel {
+    @Column()
+    public idNumber!: number;
 
-   @Column()
-   idNumber!: number
+    @Column()
+    public project!: Project;
 
-   @Column()
-   project!: Project; 
+    @Column()
+    public title!: string;
 
-   @Column()
-   title!: string
+    @Column()
+    public description!: string;
 
-   @Column()
-   description!: string
+    @Column()
+    public reason!: string;
 
-   @Column()
-   reason!: string
+    @Column()
+    public response!: Object;
 
-   @Column()
-   response!: Object;
+    @Column()
+    public notifications!: Notification;
 
-   @Column()
-   notifications!: Notification
+    @Column()
+    public incidentPriority!: IncidentPriority;
 
-   @Column()
-   incidentPriority!: IncidentPriority
+    @Column()
+    public acknowledged!: boolean;
 
-   @Column()
-   acknowledged!: boolean;
+    @Column()
+    public acknowledgedBy!: User;
 
-   @Column()
-   acknowledgedBy!: User; 
+    @Column()
+    public acknowledgedAt!: Date;
 
-   @Column()
-   acknowledgedAt!: Date
+    @Column()
+    public acknowledgedByZapier!: boolean;
 
-   @Column()
-   acknowledgedByZapier!: boolean; 
+    @Column()
+    public resolved!: boolean;
 
-   @Column()
-   resolved!: boolean;
+    @Column()
+    public resourceStatus!: ResourceStatus;
 
-   @Column()
-   resourceStatus!: ResourceStatus
+    @Column()
+    public resolvedBy!: User;
 
-   @Column()
-   resolvedBy!: User; 
+    @Column()
+    public resolvedAt!: Date;
 
-   @Column()
-   resolvedAt!: Date;
+    @Column()
+    public resolvedByZapier!: boolean;
 
-   @Column()
-   resolvedByZapier!: boolean; 
+    @Column()
+    public internalNote!: string;
 
+    @Column()
+    public investigationNote!: string;
 
-   @Column()
-   internalNote!: string;
+    @Column()
+    public createdByUser!: User;
 
-   @Column()
-   investigationNote!: string;
+    @Column()
+    public createdByApi!: boolean;
 
-   @Column()
-   createdByUser!: User; 
+    @Column()
+    public createdByZapier!: boolean;
 
-   @Column()
-   createdByApi!: boolean;
+    @Column()
+    public acknowledgedByApi!: boolean;
 
+    @Column()
+    public resolvedByApi!: boolean;
 
-   @Column()
-   createdByZapier!: boolean; 
+    @Column()
+    public manuallyCreated!: boolean;
 
-   @Column()
-   acknowledgedByApi!: boolean;
+    @Column()
+    public criterionCause!: Object;
 
-   @Column()
-   resolvedByApi!: boolean;
+    @Column()
+    public deletedByUser!: User;
 
-   @Column()
-   manuallyCreated!: boolean;
+    @Column()
+    public breachedCommunicationSla!: boolean;
 
-   @Column()
-   criterionCause!: Object;
+    @Column()
+    public customFields!: IncidentCustomFields;
 
+    @Column()
+    public acknowledgedByIncomingHttpRequest!: IncomingRequest;
 
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    public resolvedByIncomingHttpRequest!: IncomingRequest;
 
-   @Column()
-   breachedCommunicationSla!: boolean;
+    @Column()
+    public createdByIncomingHttpRequest!: IncomingRequest;
 
-   @Column()
-   customFields!: IncidentCustomFields
+    @Column()
+    public hideIncident!: boolean;
 
-   @Column()
-   acknowledgedByIncomingHttpRequest!: IncomingRequest;
-
-   @Column()
-   resolvedByIncomingHttpRequest!: IncomingRequest;
-
-   @Column()
-   createdByIncomingHttpRequest!: IncomingRequest;
-
-   @Column()
-   hideIncident!: boolean;
-
-
-   @Column()
-   slug!: string;
+    @Column()
+    public slug!: string;
 }
-
-
-
-
-
-
-
-
-

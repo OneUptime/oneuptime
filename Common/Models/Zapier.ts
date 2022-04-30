@@ -7,14 +7,14 @@ import Project from './Project';
 })
 export default class Zapier extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    url!: URL;
+    public url!: URL;
 
     @Column()
-    type!: string;
+    public type!: string;
 
     @Column()
-    monitors!: [String];
+    public monitors!: [String];
 }

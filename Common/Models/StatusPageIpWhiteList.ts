@@ -8,14 +8,14 @@ import StatusPage from './StatusPage';
 })
 export default class Model extends BaseModel {
     @Column()
-    statusPage!: StatusPage;
+    public statusPage!: StatusPage;
 
     @Column()
-    ipWhitelist!: string;
+    public ipWhitelist!: string;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

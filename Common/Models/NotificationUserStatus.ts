@@ -7,11 +7,11 @@ import User from './User';
 })
 export default class NotificationUserStatus extends BaseModel {
     @Column()
-    notification!: Notification;
+    public notification!: Notification;
 
     @Column()
-    user!: User;
+    public user!: User;
 
     @Column()
-    read!: boolean;
+    public read!: boolean;
 }

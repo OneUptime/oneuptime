@@ -6,32 +6,32 @@ import BaseModel from './BaseModel';
 })
 export default class SslCertificate extends BaseModel {
     @Column()
-    certificateId!: string;
+    public certificateId!: string;
 
     @Column()
-    privateKeyPem!: string;
+    public privateKeyPem!: string;
 
     @Column()
-    privateKeyJwk!: string;
+    public privateKeyJwk!: string;
 
     @Column()
-    cert!: string;
+    public cert!: string;
 
     @Column()
-    chain!: string;
+    public chain!: string;
 
     @Column()
-    privKey!: string;
+    public privKey!: string;
 
     @Column()
-    subject!: string;
+    public subject!: string;
 
     @Column()
-    altnames!: string;
+    public altnames!: string;
 
     @Column()
-    issuedAt!: Date;
+    public issuedAt!: Date;
 
     @Column()
-    expiresAt!: Date;
+    public expiresAt!: Date;
 }

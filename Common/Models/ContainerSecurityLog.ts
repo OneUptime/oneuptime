@@ -8,14 +8,14 @@ import Component from './Component';
 })
 export default class ContainerSecurityLog extends BaseModel {
     @Column()
-    security!: ContainerSecurity;
+    public security!: ContainerSecurity;
 
     @Column()
-    component!: Component;
+    public component!: Component;
 
     @Column()
-    data!: Object;
+    public data!: Object;
 
     @Column()
-    deleteAt!: Date;
+    public deleteAt!: Date;
 }

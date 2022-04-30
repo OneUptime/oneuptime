@@ -8,8 +8,8 @@ import ScheduledEvent from './ScheduledEvent';
 })
 export default class StatusPageChartType extends BaseModel {
     @Column()
-    scheduledEvent!: ScheduledEvent;
+    public scheduledEvent!: ScheduledEvent;
 
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 }

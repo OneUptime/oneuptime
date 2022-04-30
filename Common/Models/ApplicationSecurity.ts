@@ -8,29 +8,29 @@ import GitCredential from './GitCredential';
 })
 export default class Model extends BaseModel {
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    slug!: string;
+    public slug!: string;
 
     @Column()
-    gitRepositoryurl!: string;
+    public gitRepositoryurl!: string;
 
     @Column()
-    gitCredential!: GitCredential;
+    public gitCredential!: GitCredential;
 
     @Column()
-    component!: Component;
+    public component!: Component;
 
     @Column()
-    resourceLabel!: ResourceLabel;
+    public resourceLabel!: ResourceLabel;
 
     @Column()
-    lastScan!: Date;
+    public lastScan!: Date;
 
     @Column()
-    scanned!: boolean;
+    public scanned!: boolean;
 
     @Column()
-    scanning!: boolean;
+    public scanning!: boolean;
 }

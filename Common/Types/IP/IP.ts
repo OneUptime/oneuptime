@@ -9,7 +9,7 @@ export default class IP {
         this._ip = v;
     }
 
-    private constructor(ip: string) {
+    public constructor(ip: string) {
         this.ip = ip;
     }
 

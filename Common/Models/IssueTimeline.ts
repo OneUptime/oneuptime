@@ -15,14 +15,14 @@ export enum IssueStatus {
 })
 export default class IssueTimeline extends BaseModel {
     @Column()
-    issue!: Issue;
+    public issue!: Issue;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    status!: IssueStatus;
+    public status!: IssueStatus;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

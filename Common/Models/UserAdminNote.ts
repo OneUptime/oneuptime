@@ -7,11 +7,11 @@ import User from './User';
 })
 export default class UserAdminNotes extends BaseModel {
     @Column({ nullable: false })
-    forUser!: User;
+    public forUser!: User;
 
     @Column({ type: 'text', nullable: false })
-    note!: string;
+    public note!: string;
 
     @Column({ nullable: false })
-    postedByUser!: User;
+    public postedByUser!: User;
 }

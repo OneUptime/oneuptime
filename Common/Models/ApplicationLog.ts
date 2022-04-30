@@ -1,40 +1,28 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
-import Project from './Project';
 import ApplicationLogContainer from './ApplicationLogContainer';
 import ApplicationLogType from '../Types/ApplicationLog/ApplicationLogType';
 import Tags from '../Types/Tags';
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public applicationLogContainer!: ApplicationLogContainer;
 
-   @Column()
-   applicationLogContainer!: ApplicationLogContainer
+    @Column()
+    public content!: string;
 
-   @Column()
-   content!: string;
+    @Column()
+    public type!: ApplicationLogType;
 
+    @Column()
+    public tags!: Tags;
 
-   @Column()
-   type!: ApplicationLogType
+    @Column()
+    public createdByUser!: User;
 
-   @Column()
-   tags!: Tags
-
-   @Column()
-   createdByUser!: User;
-
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    public deletedByUser!: User;
 }
-
-
-
-
-
-
-
-
-

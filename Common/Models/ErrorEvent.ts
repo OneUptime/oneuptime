@@ -1,42 +1,31 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import ErrorTrackerContainer from './ErrorTrackerContainer';
 import Issue from './Issue';
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public errorTracker!: ErrorTrackerContainer;
+    @Column()
+    public issue!: Issue;
 
-   @Column()
-   errorTracker!: ErrorTrackerContainer
-   @Column()
-   issue!: Issue
+    @Column()
+    public content!: Object;
 
-   @Column()
-   content!: Object;
+    @Column()
+    public timeline!: Object;
 
-   @Column()
-   timeline!: Object
+    @Column()
+    public tags!: Object;
 
-   @Column()
-   tags!: Object
+    @Column()
+    public sdk!: Object;
 
-   @Column()
-   sdk!: Object;
+    @Column()
+    public fingerprintHash!: string;
 
-   @Column()
-   fingerprintHash!: string;
-
-   @Column()
-   device!: Object;
+    @Column()
+    public device!: Object;
 }
-
-
-
-
-
-
-
-
-
-

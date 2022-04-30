@@ -7,12 +7,12 @@ import User from './User';
 })
 export default class UserVerificationToken extends BaseModel {
     @Column({ nullable: false })
-    user!: User;
+    public user!: User;
 
     @Index()
     @Column({ nullable: false })
-    token!: string;
+    public token!: string;
 
     @Column({ nullable: false })
-    expires!: Date;
+    public expires!: Date;
 }

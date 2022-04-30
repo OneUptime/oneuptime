@@ -9,20 +9,20 @@ import SmsTemplateType from '../Types/SMS/SmsTemplateType';
 })
 export default class SmsTemplate extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    content!: string;
+    public content!: string;
 
     @Column()
-    smsType!: SmsTemplateType;
+    public smsType!: SmsTemplateType;
 
     @Column({
         array: true,
         type: 'text',
     })
-    allowedVariables!: Array<string>;
+    public allowedVariables!: Array<string>;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

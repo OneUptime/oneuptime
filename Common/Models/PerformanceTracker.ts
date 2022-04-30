@@ -8,23 +8,23 @@ import Component from './Component';
 })
 export default class Model extends BaseModel {
     @Column()
-    component!: Component;
+    public component!: Component;
 
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    slug!: string;
+    public slug!: string;
 
     @Column()
-    key!: string;
+    public key!: string;
 
     @Column()
-    showQuickStart!: boolean;
+    public showQuickStart!: boolean;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

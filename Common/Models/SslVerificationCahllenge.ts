@@ -6,11 +6,11 @@ import BaseModel from './BaseModel';
 })
 export default class SslVerificationChallenge extends BaseModel {
     @Column()
-    token!: string;
+    public token!: string;
 
     @Column()
-    keyAuthorization!: string;
+    public keyAuthorization!: string;
 
     @Column()
-    challengeUrl!: string;
+    public challengeUrl!: string;
 }

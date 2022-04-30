@@ -8,14 +8,14 @@ import Project from './Project';
 })
 export default class IncidentPriority extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    color!: string;
+    public color!: string;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

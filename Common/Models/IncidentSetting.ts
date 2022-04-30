@@ -9,23 +9,23 @@ import IncidentPriority from './IncidentPriority';
 })
 export default class IncidentSetting extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    title!: string;
+    public title!: string;
 
     @Column()
-    description!: string;
+    public description!: string;
 
     @Column()
-    incidentPriority!: IncidentPriority;
+    public incidentPriority!: IncidentPriority;
 
     @Column()
-    isDefault!: boolean;
+    public isDefault!: boolean;
 
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

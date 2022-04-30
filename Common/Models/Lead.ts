@@ -6,29 +6,29 @@ import BaseModel from './BaseModel';
 })
 export default class Lead extends BaseModel {
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    email!: string;
+    public email!: string;
 
     @Column()
-    website!: string;
+    public website!: string;
 
     @Column()
-    phone!: string;
+    public phone!: string;
 
     @Column()
-    nameOfInterestedResource!: string;
+    public nameOfInterestedResource!: string;
 
     @Column()
-    country!: string;
+    public country!: string;
 
     @Column()
-    companySize!: string;
+    public companySize!: string;
 
     @Column()
-    message!: string;
+    public message!: string;
 
     @Column()
-    source!: string;
+    public source!: string;
 }

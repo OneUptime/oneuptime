@@ -10,29 +10,29 @@ import Monitor from './Monitor';
 })
 export default class Model extends BaseModel {
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 
     @Column()
-    probe!: Probe;
+    public probe!: Probe;
 
     @Column()
-    incident!: Incident;
+    public incident!: Incident;
 
     @Column()
-    status!: ResourceStatus;
+    public status!: ResourceStatus;
 
     @Column()
-    manuallyCreated!: boolean;
+    public manuallyCreated!: boolean;
 
     @Column()
-    startTime!: Date;
+    public startTime!: Date;
 
     @Column()
-    endTime!: Date;
+    public endTime!: Date;
 
     @Column()
-    lastStatus!: string;
+    public lastStatus!: string;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

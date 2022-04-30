@@ -8,61 +8,61 @@ import Incident from './Incident';
 })
 export default class Model extends BaseModel {
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 
     @Column()
-    probe!: Probe;
+    public probe!: Probe;
 
     @Column()
-    status!: string;
+    public status!: string;
 
     @Column()
-    responseTime!: Number;
+    public responseTime!: Number;
 
     @Column()
-    responseStatus!: Number;
+    public responseStatus!: Number;
 
     @Column()
-    responseBody!: string;
+    public responseBody!: string;
 
     @Column()
-    responseHeader!: Object;
+    public responseHeader!: Object;
 
     @Column()
-    cpuLoad!: Number;
+    public cpuLoad!: Number;
 
     @Column()
-    avgCpuLoad!: Number;
+    public avgCpuLoad!: Number;
 
     @Column()
-    cpuCores!: Number;
+    public cpuCores!: Number;
 
     @Column()
-    memoryUsed!: Number;
+    public memoryUsed!: Number;
 
     @Column()
-    totalMemory!: Number;
+    public totalMemory!: Number;
     @Column()
-    swapUsed!: Number;
+    public swapUsed!: Number;
     @Column()
-    storageUsed!: Number;
+    public storageUsed!: Number;
     @Column()
-    totalStorage!: Number;
+    public totalStorage!: Number;
 
     @Column()
-    storageUsage!: Number;
+    public storageUsage!: Number;
     @Column()
-    mainTemp!: Number;
+    public mainTemp!: Number;
 
     @Column()
-    maxTemp!: Number;
+    public maxTemp!: Number;
 
     @Column()
-    incident!: Incident;
+    public incident!: Incident;
 
     @Column()
-    sslCertificate!: Object;
+    public sslCertificate!: Object;
 
     @Column()
-    kubernetesLog!: Object;
+    public kubernetesLog!: Object;
 }

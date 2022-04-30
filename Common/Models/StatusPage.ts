@@ -7,132 +7,132 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    slug!: string;
+    public slug!: string;
 
     @Column()
-    title!: string;
+    public title!: string;
 
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    isPrivate!: boolean;
+    public isPrivate!: boolean;
 
     @Column()
-    isSubscriberEnabled!: boolean;
+    public isSubscriberEnabled!: boolean;
 
     @Column()
-    isGroupedByMonitorCategory!: boolean;
+    public isGroupedByMonitorCategory!: boolean;
 
     @Column()
-    showScheduledEvents!: boolean;
+    public showScheduledEvents!: boolean;
     // Show incident to the top of status page
 
     @Column()
-    moveIncidentToTheTop!: boolean;
+    public moveIncidentToTheTop!: boolean;
     // Show or hide the probe bar
 
     @Column()
-    hideProbeBar!: boolean;
+    public hideProbeBar!: boolean;
     // Show or hide uptime (%) on the status page
 
     @Column()
-    hideUptime!: boolean;
+    public hideUptime!: boolean;
 
     @Column()
-    multipleNotificationTypes!: boolean;
+    public multipleNotificationTypes!: boolean;
     // Show or hide resolved incident on the status page
 
     @Column()
-    hideResolvedIncident!: boolean;
+    public hideResolvedIncident!: boolean;
 
     @Column()
-    description!: string;
+    public description!: string;
 
     @Column()
-    copyright!: string;
+    public copyright!: string;
 
     @Column()
-    faviconPath!: string;
+    public faviconPath!: string;
 
     @Column()
-    logoPath!: string;
+    public logoPath!: string;
 
     @Column()
-    bannerPath!: string;
+    public bannerPath!: string;
 
     @Column()
-    colors!: Object;
+    public colors!: Object;
 
     @Column()
-    layout!: Object;
+    public layout!: Object;
 
     @Column()
-    headerHTML!: string;
+    public headerHTML!: string;
 
     @Column()
-    footerHTML!: string;
+    public footerHTML!: string;
 
     @Column()
-    customCSS!: string;
+    public customCSS!: string;
 
     @Column()
-    customJS!: string;
+    public customJS!: string;
 
     @Column()
-    statusBubble!: string;
+    public statusBubble!: string;
 
     @Column()
-    embeddedCss!: string;
+    public embeddedCss!: string;
 
     @Column()
-    enableRSSFeed!: boolean;
+    public enableRSSFeed!: boolean;
 
     @Column()
-    emailNotification!: boolean;
+    public emailNotification!: boolean;
 
     @Column()
-    smsNotification!: boolean;
+    public smsNotification!: boolean;
 
     @Column()
-    webhookNotification!: boolean;
+    public webhookNotification!: boolean;
 
     @Column()
-    selectIndividualMonitors!: boolean;
+    public selectIndividualMonitors!: boolean;
 
     @Column()
-    enableIpWhitelist!: boolean;
+    public enableIpWhitelist!: boolean;
 
     @Column()
-    incidentHistoryDays!: number;
+    public incidentHistoryDays!: number;
 
     @Column()
-    scheduleHistoryDays!: number;
+    public scheduleHistoryDays!: number;
 
     @Column()
-    announcementLogsHistory!: number;
+    public announcementLogsHistory!: number;
 
     @Column()
-    onlineText!: string;
+    public onlineText!: string;
 
     @Column()
-    offlineText!: string;
+    public offlineText!: string;
 
     @Column()
-    degradedText!: string;
+    public degradedText!: string;
 
     @Column()
-    twitterHandle!: string;
+    public twitterHandle!: string;
 
     @Column()
-    enableMultipleLanguage!: boolean;
+    public enableMultipleLanguage!: boolean;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Column()
-    theme!: string;
+    public theme!: string;
 }

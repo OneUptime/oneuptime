@@ -8,31 +8,31 @@ import Project from './Project';
 })
 export default class SsoConfig extends BaseModel {
     @Column({ nullable: false })
-    enabled!: boolean;
+    public enabled!: boolean;
 
     @Index()
     @Column({ nullable: false })
-    domain!: string;
+    public domain!: string;
 
     @Column({ nullable: false })
-    entity!: string;
+    public entity!: string;
 
     @Column({ nullable: false })
-    loginUrl!: string;
+    public loginUrl!: string;
 
     @Column()
-    certificateFingerprint!: string;
+    public certificateFingerprint!: string;
 
     @Column({ nullable: false })
-    logoutUrl!: string;
+    public logoutUrl!: string;
 
     @Column()
-    ipRanges!: string;
+    public ipRanges!: string;
 
     @Column({ nullable: false })
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Index()
     @Column({ nullable: false })
-    project!: Project;
+    public project!: Project;
 }

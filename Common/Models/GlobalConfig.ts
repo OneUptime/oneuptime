@@ -6,11 +6,11 @@ import BaseModel from './BaseModel';
 })
 export default class GlobalConfig extends BaseModel {
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    value!: Object;
+    public value!: Object;
 
     @Column()
-    iv!: Buffer;
+    public iv!: Buffer;
 }

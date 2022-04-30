@@ -8,100 +8,100 @@ import SSO from './SsoConfig';
 })
 export default class User extends BaseModel {
     @Column({ type: 'text', length: 100 })
-    name!: string;
+    public name!: string;
 
     @Column({ type: 'text', length: 200, unique: true })
-    email!: string;
+    public email!: string;
 
     @Column({ type: 'text', length: 200 })
-    temporaryEmail!: string;
+    public temporaryEmail!: string;
 
     @Column({ type: 'text', length: 200 })
-    password!: string;
+    public password!: string;
 
     @Column({ type: 'boolean' })
-    isEmailVerified!: boolean;
+    public isEmailVerified!: boolean;
 
     @Column()
-    sso!: SSO;
+    public sso!: SSO;
 
     @Column({ type: 'text', length: 200 })
-    companyName!: string;
+    public companyName!: string;
 
     @Column({ type: 'text', length: 100 })
-    companyRole!: string;
+    public companyRole!: string;
 
     @Column({ type: 'text', length: 100 })
-    companySize!: string;
+    public companySize!: string;
 
     @Column({ type: 'text', length: 100 })
-    referral!: string;
+    public referral!: string;
 
     @Column({ type: 'text', length: 200 })
-    companyPhoneNumber!: string;
+    public companyPhoneNumber!: string;
 
     @Column({ type: 'text', length: 200 })
-    profilePic!: string;
+    public profilePic!: string;
 
     @Column()
-    twoFactorAuthEnabled!: boolean;
+    public twoFactorAuthEnabled!: boolean;
 
     @Column()
-    twoFactorSecretCode!: string;
+    public twoFactorSecretCode!: string;
 
     @Column()
-    otpauth_url!: URL;
+    otpauth_public url!: URL;
 
     @Column()
-    backupCodes!: Array<string>;
+    public backupCodes!: Array<string>;
 
     @Column()
-    jwtRefreshToken!: string;
+    public jwtRefreshToken!: string;
 
     @Column()
-    stripeCustomer!: string;
+    public stripeCustomer!: string;
 
     @Column()
-    resetPasswordToken!: string;
+    public resetPasswordToken!: string;
 
     @Column()
-    resetPasswordExpires!: string;
+    public resetPasswordExpires!: string;
 
     @Column()
-    timezone!: string;
+    public timezone!: string;
 
     @Column()
-    lastActive!: Date;
+    public lastActive!: Date;
 
     @Column()
-    coupon!: string;
+    public coupon!: string;
 
     @Column()
-    disabled!: boolean;
+    public disabled!: boolean;
 
     @Column()
-    paymentFailedDate!: Date;
+    public paymentFailedDate!: Date;
 
     @Column()
-    role!: Role;
+    public role!: Role;
 
     @Column()
-    isBlocked!: boolean;
+    public isBlocked!: boolean;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Column()
-    alertPhoneNumber!: string;
+    public alertPhoneNumber!: string;
 
     @Column()
-    alertPhoneVerificationCode!: string;
+    public alertPhoneVerificationCode!: string;
 
     @Column()
-    alertPhoneVerificationCodeRequestTime!: Date;
+    public alertPhoneVerificationCodeRequestTime!: Date;
 
     @Column()
-    tempAlertPhoneNumber!: string;
+    public tempAlertPhoneNumber!: string;
 
     @Column()
     createdBy: User;

@@ -1,53 +1,43 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import DockerCredential from './DockerCredential';
 import Component from './Component';
 import ResourceLabel from './ResourceLabel';
 
-
 @Entity({
-       name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public name!: string;
 
-       @Column()
-       name!: string;
+    @Column()
+    public slug!: string;
 
-       @Column()
-       slug!: string;
+    @Column()
+    public dockerCredential!: DockerCredential;
 
-       @Column()
-       dockerCredential!: DockerCredential
+    @Column()
+    public imagePath!: string;
 
-       @Column()
-       imagePath!: string;
+    @Column()
+    public imageTags!: string;
 
-       @Column()
-       imageTags!: string;
+    @Column()
+    public component!: Component;
 
-       @Column()
-       component!: Component
+    @Column()
+    public resourceLabel!: ResourceLabel;
 
-       @Column()
-       resourceLabel!: ResourceLabel
+    @Column()
+    public deleteAt!: Date;
 
-       @Column()
-       deleteAt!: Date;
+    @Column()
+    public lastScan!: Date;
 
-       @Column()
-       lastScan!: Date;
+    @Column()
+    public scanned!: boolean;
 
-       @Column()
-       scanned!: boolean;
-
-       @Column()
-       scanning!: boolean;
+    @Column()
+    public scanning!: boolean;
 }
-
-
-
-
-
-
-
-

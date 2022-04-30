@@ -8,17 +8,17 @@ import Project from './Project';
 export default class Model extends BaseModel {
     @Index()
     @Column()
-    domain!: string; // The main or base domain eg oneuptime.com
+    public domain!: string; // The main or base domain eg oneuptime.com
 
     @Column()
-    verificationToken!: string;
+    public verificationToken!: string;
 
     @Column()
-    verified!: boolean;
+    public verified!: boolean;
 
     @Column()
-    verifiedAt!: Date;
+    public verifiedAt!: Date;
 
     @Column()
-    project!: Project;
+    public project!: Project;
 }

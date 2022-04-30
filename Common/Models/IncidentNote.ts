@@ -13,23 +13,23 @@ export enum IncidentMessageType {
 })
 export default class IncidentNote extends BaseModel {
     @Column()
-    incident!: Incident;
+    public incident!: Incident;
 
     @Column()
-    content!: string;
+    public content!: string;
 
     @Column()
-    type!: IncidentMessageType;
+    public type!: IncidentMessageType;
 
     @Column()
-    incidentState!: IncidentState;
+    public incidentState!: IncidentState;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Column()
-    postOnStatusPage!: boolean;
+    public postOnStatusPage!: boolean;
 }

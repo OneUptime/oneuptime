@@ -8,8 +8,8 @@ import Integration from './Integration';
 })
 export default class StatusPageChartType extends BaseModel {
     @Column()
-    integration!: Integration;
+    public integration!: Integration;
 
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 }

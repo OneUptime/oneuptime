@@ -9,17 +9,17 @@ import Monitor from './Monitor';
 })
 export default class StatusPageChartType extends BaseModel {
     @Column()
-    statusPage!: StatusPage;
+    public statusPage!: StatusPage;
 
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 
     @Column()
-    statusPageCategory!: StatusPageCategory;
+    public statusPageCategory!: StatusPageCategory;
 
     @Column()
-    resourceDescription!: string;
+    public resourceDescription!: string;
 
     @Column()
-    chartTypes!: Array<StatusPageChartType>;
+    public chartTypes!: Array<StatusPageChartType>;
 }

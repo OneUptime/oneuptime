@@ -1,4 +1,4 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -7,62 +7,49 @@ import Monitor from './Monitor';
 import AlertType from '../Types/Alerts/AlertType';
 import HTTPMethod from '../Types/API/HTTPMethod';
 
-
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public monitor!: Monitor;
 
-   @Column()
-   monitor!: Monitor;
+    @Column()
+    public project!: Project;
 
-   @Column()
-   project!: Project;
+    @Column()
+    public statusPage!: StatusPage;
 
-   @Column()
-   statusPage!: StatusPage
+    @Column()
+    public alertType!: AlertType;
 
-   @Column()
-   alertType!: AlertType
+    @Column()
+    public contactEmail!: string;
 
-   @Column()
-   contactEmail!: string;
+    @Column()
+    public contactPhone!: string;
 
-   @Column()
-   contactPhone!: string;
+    @Column()
+    public countryCode!: string;
 
-   @Column()
-   countryCode!: string;
+    @Column()
+    public contactWebhook!: string;
 
-   @Column()
-   contactWebhook!: string;
+    @Column()
+    public webhookMethod!: HTTPMethod;
 
-   @Column()
-   webhookMethod!: HTTPMethod
+    @Column()
+    public incidentNotification!: boolean;
 
+    @Column()
+    public announcementNotification!: boolean;
 
-   @Column()
-   incidentNotification!: boolean;
+    @Column()
+    public scheduledEventNotification!: boolean;
 
-   @Column()
-   announcementNotification!: boolean;
+    @Column()
+    public subscribed!: boolean;
 
-   @Column()
-   scheduledEventNotification!: boolean;
-
-
-   @Column()
-   subscribed!: boolean;
-
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    public deletedByUser!: User;
 }
-
-
-
-
-
-
-
-
-

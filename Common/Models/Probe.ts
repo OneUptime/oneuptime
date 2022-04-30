@@ -8,27 +8,27 @@ import Project from './Project';
 })
 export default class Probe extends BaseModel {
     @Column({ nullable: false })
-    key!: string;
+    public key!: string;
 
     @Column({ nullable: false })
-    name!: string;
+    public name!: string;
 
     @Column({ nullable: false })
-    slug!: string;
+    public slug!: string;
 
     @Column({ nullable: false })
-    probeVersion!: string;
+    public probeVersion!: string;
 
     @Column({ nullable: false, default: Date.now() })
-    lastAlive!: Date;
+    public lastAlive!: Date;
 
     @Column({ nullable: true })
-    icon!: string;
+    public icon!: string;
 
     // If this probe is custom to the project and only monitoring reosurces in this project.
     @Column({ nullable: true })
     project?: Project;
 
     @Column({ nullable: true })
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

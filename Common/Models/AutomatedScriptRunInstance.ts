@@ -11,29 +11,29 @@ import OperationStatus from '../Types/OperationStatus';
 })
 export default class AutomationScriptRunInstance extends BaseModel {
     @Column()
-    automationScript!: AutomatedScript;
+    public automationScript!: AutomatedScript;
 
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    triggerByUser!: User;
+    public triggerByUser!: User;
 
     @Column()
-    triggerByScript!: AutomatedScript;
+    public triggerByScript!: AutomatedScript;
 
     @Column()
-    triggerByIncident!: Incident;
+    public triggerByIncident!: Incident;
 
     @Column()
-    scriptStatus!: OperationStatus;
+    public scriptStatus!: OperationStatus;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Column()
-    executionTime!: Number;
+    public executionTime!: Number;
 
     @Column()
-    errorDescription!: string;
+    public errorDescription!: string;
 }

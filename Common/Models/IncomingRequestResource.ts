@@ -1,7 +1,5 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import StatusPage from './StatusPage';
-import StatusPageCategory from './StatusPageCategory';
 import Monitor from './Monitor';
 import IncomingRequest from './IncomingRequest';
 
@@ -10,8 +8,8 @@ import IncomingRequest from './IncomingRequest';
 })
 export default class StatusPageChartType extends BaseModel {
     @Column()
-    incomingRequest!: IncomingRequest;
+    public incomingRequest!: IncomingRequest;
 
     @Column()
-    monitor!: Monitor;
+    public monitor!: Monitor;
 }

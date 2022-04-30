@@ -7,17 +7,17 @@ import PerformanceTracker from './PerformanceTracker';
 })
 export default class Model extends BaseModel {
     @Column()
-    type!: string;
+    public type!: string;
 
     @Column()
-    metrics!: Object;
+    public metrics!: Object;
 
     @Column()
-    callentifier!: string;
+    public callentifier!: string;
 
     @Column()
-    method!: string;
+    public method!: string;
 
     @Column()
-    performanceTracker!: PerformanceTracker;
+    public performanceTracker!: PerformanceTracker;
 }

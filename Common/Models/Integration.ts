@@ -1,55 +1,45 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 
 export enum IntegrationType {
-   Slack = "Slack",
-   Webhook = "Webhook",
-   MicrosoftTeams = "MicrosoftTeams"
+    Slack = 'Slack',
+    Webhook = 'Webhook',
+    MicrosoftTeams = 'MicrosoftTeams',
 }
 
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public webHookName!: string;
 
-   @Column()
-   webHookName!: string;
+    @Column()
+    public project!: Project;
 
-   @Column()
-   project!: Project;
+    @Column()
+    public createdByUser!: User;
 
-   @Column()
-   createdByUser!: User;
+    @Column()
+    public integrationType!: IntegrationType;
 
-   @Column()
-   integrationType!: IntegrationType
+    @Column()
+    public data!: Object;
 
-   @Column()
-   data!: Object
+    @Column()
+    public incidentCreatedNotification!: boolean;
 
+    @Column()
+    public incidentAcknowledgedNotification!: boolean;
 
-   @Column()
-   incidentCreatedNotification!: boolean;
+    @Column()
+    public incidentResolvedNotification!: boolean;
 
-   @Column()
-   incidentAcknowledgedNotification!: boolean;
+    @Column()
+    public incidentNoteAddedNotification!: boolean;
 
-   @Column()
-   incidentResolvedNotification!: boolean;
-
-   @Column()
-   incidentNoteAddedNotification!: boolean;
-
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    public deletedByUser!: User;
 }
-
-
-
-
-
-
-
-

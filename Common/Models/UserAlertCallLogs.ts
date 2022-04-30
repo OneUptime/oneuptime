@@ -9,23 +9,23 @@ import OperationStatus from '../Types/OperationStatus';
 })
 export default class CallLog extends BaseModel {
     @Column()
-    fromNumber!: string;
+    public fromNumber!: string;
 
     @Column()
-    toNumber!: string;
+    public toNumber!: string;
 
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Column()
-    content!: string;
+    public content!: string;
 
     @Column()
-    status!: OperationStatus;
+    public status!: OperationStatus;
 
     @Column()
-    errorDescription!: string;
+    public errorDescription!: string;
 }

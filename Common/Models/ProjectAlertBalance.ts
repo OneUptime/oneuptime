@@ -6,17 +6,17 @@ import BaseModel from './BaseModel';
 })
 export default class ProjectAlertBalance extends BaseModel {
     @Column({ nullable: false })
-    minimumBalance!: number;
+    public minimumBalance!: number;
 
     @Column({ type: 'text', nullable: false })
-    rechargeToBalance!: number;
+    public rechargeToBalance!: number;
 
     @Column({ nullable: false })
-    sendAlertsToUS!: boolean;
+    public sendAlertsToUS!: boolean;
 
     @Column({ nullable: false })
-    sendAlertsToNonUS!: boolean;
+    public sendAlertsToNonUS!: boolean;
 
     @Column({ nullable: false })
-    sendAlertsToHighRisk!: boolean;
+    public sendAlertsToHighRisk!: boolean;
 }

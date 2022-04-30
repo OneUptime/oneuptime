@@ -9,14 +9,14 @@ import Project from './Project';
 export default class Team extends BaseModel {
     @Column()
     @Index()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

@@ -1,61 +1,50 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public project!: Project;
 
-   @Column()
-   project!: Project;
+    @Column()
+    public deletedByUser!: User;
 
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    public phoneNumber!: string;
 
-   @Column()
-   phoneNumber!: string;
+    @Column()
+    public locality!: string;
 
-   @Column()
-   locality!: string;
+    @Column()
+    public region!: string;
 
-   @Column()
-   region!: string;
+    @Column()
+    public mmsCapabilities!: boolean;
 
-   @Column()
-   mmsCapabilities!: boolean;
+    @Column()
+    public smsCapabilities!: boolean;
 
-   @Column()
-   smsCapabilities!: boolean;
+    @Column()
+    public voiceCapabilities!: boolean;
 
-   @Column()
-   voiceCapabilities!: boolean;
+    @Column()
+    public sid!: string;
 
+    @Column()
+    public price!: string;
 
+    @Column()
+    public priceUnit!: string;
 
-   @Column()
-   sid!: string;
+    @Column()
+    public countryCode!: string;
 
-   @Column()
-   price!: string;
+    @Column()
+    public numberType!: string;
 
-   @Column()
-   priceUnit!: string;
-
-   @Column()
-   countryCode!: string;
-
-   @Column()
-   numberType!: string;
-
-   @Column()
-   stripeSubscriptionId!: string;
+    @Column()
+    public stripeSubscriptionId!: string;
 }
-
-
-
-
-
-
-
-

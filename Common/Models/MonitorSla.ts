@@ -6,17 +6,17 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    isDefault!: boolean;
+    public isDefault!: boolean;
 
     @Column()
-    frequency!: string; // Measured in days
+    public frequency!: string; // Measured in days
 
     @Column()
-    monitorUptime!: string;
+    public monitorUptime!: string;
 }

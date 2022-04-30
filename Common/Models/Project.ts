@@ -8,110 +8,110 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    slug!: string;
+    public slug!: string;
 
     @Column()
-    stripePlanId!: string;
+    public stripePlanId!: string;
 
     @Column()
-    stripeSubscriptionId!: string;
+    public stripeSubscriptionId!: string;
 
     @Column()
-    parentproject!: Project;
+    public parentproject!: Project;
 
     @Column()
-    seats!: number;
+    public seats!: number;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 
     @Column()
-    apiKey!: string;
+    public apiKey!: string;
 
     @Column()
-    alertEnable!: boolean;
+    public alertEnable!: boolean;
 
     @Column()
-    alertLimit!: string;
+    public alertLimit!: string;
 
     @Column()
-    alertLimitReached!: boolean;
+    public alertLimitReached!: boolean;
 
     @Column()
-    balance!: number;
+    public balance!: number;
 
     @Column()
-    isBlocked!: boolean;
+    public isBlocked!: boolean;
 
     @Column()
-    sendCreatedIncidentNotificationSms!: boolean;
+    public sendCreatedIncidentNotificationSms!: boolean;
 
     @Column()
-    sendAcknowledgedIncidentNotificationSms!: boolean;
+    public sendAcknowledgedIncidentNotificationSms!: boolean;
 
     @Column()
-    sendResolvedIncidentNotificationSms!: boolean;
+    public sendResolvedIncidentNotificationSms!: boolean;
 
     @Column()
-    sendCreatedIncidentNotificationEmail!: boolean;
+    public sendCreatedIncidentNotificationEmail!: boolean;
 
     @Column()
-    sendAcknowledgedIncidentNotificationEmail!: boolean;
+    public sendAcknowledgedIncidentNotificationEmail!: boolean;
 
     @Column()
-    sendResolvedIncidentNotificationEmail!: boolean;
+    public sendResolvedIncidentNotificationEmail!: boolean;
 
     @Column()
-    enableInvestigationNoteNotificationSMS!: boolean;
+    public enableInvestigationNoteNotificationSMS!: boolean;
 
     @Column()
-    enableInvestigationNoteNotificationEmail!: boolean;
+    public enableInvestigationNoteNotificationEmail!: boolean;
 
     @Column()
-    sendAnnouncementNotificationSms!: boolean;
+    public sendAnnouncementNotificationSms!: boolean;
 
     @Column()
-    sendAnnouncementNotificationEmail!: boolean;
+    public sendAnnouncementNotificationEmail!: boolean;
 
     @Column()
-    sendCreatedScheduledEventNotificationSms!: boolean;
+    public sendCreatedScheduledEventNotificationSms!: boolean;
 
     @Column()
-    sendCreatedScheduledEventNotificationEmail!: boolean;
+    public sendCreatedScheduledEventNotificationEmail!: boolean;
 
     @Column()
-    sendScheduledEventResolvedNotificationSms!: boolean;
+    public sendScheduledEventResolvedNotificationSms!: boolean;
 
     @Column()
-    sendScheduledEventResolvedNotificationEmail!: boolean;
+    public sendScheduledEventResolvedNotificationEmail!: boolean;
 
     @Column()
-    sendNewScheduledEventInvestigationNoteNotificationSms!: boolean;
+    public sendNewScheduledEventInvestigationNoteNotificationSms!: boolean;
 
     @Column()
-    sendNewScheduledEventInvestigationNoteNotificationEmail!: boolean;
+    public sendNewScheduledEventInvestigationNoteNotificationEmail!: boolean;
 
     @Column()
-    sendScheduledEventCancelledNotificationSms!: boolean;
+    public sendScheduledEventCancelledNotificationSms!: boolean;
 
     @Column()
-    sendScheduledEventCancelledNotificationEmail!: boolean;
+    public sendScheduledEventCancelledNotificationEmail!: boolean;
 
     @Column()
-    enableInvestigationNoteNotificationWebhook!: boolean;
+    public enableInvestigationNoteNotificationWebhook!: boolean;
 
     @Column()
-    replyAddress!: string;
+    public replyAddress!: string;
 
     @Column()
-    unpaidSubscriptionNotifications!: number;
+    public unpaidSubscriptionNotifications!: number;
 
     @Column()
-    paymentFailedDate!: Date;
+    public paymentFailedDate!: Date;
 
     @Column()
-    paymentSuccessDate!: Date;
+    public paymentSuccessDate!: Date;
 }

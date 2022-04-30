@@ -9,17 +9,17 @@ import {
 
 export default class BaseModel extends BaseEntity {
     @PrimaryGeneratedColumn('uuid')
-    id!: string;
+    public id!: string;
 
     @CreateDateColumn()
-    createdAt!: Date;
+    public createdAt!: Date;
 
     @UpdateDateColumn()
-    updatedAt!: Date;
+    public updatedAt!: Date;
 
     @DeleteDateColumn()
     deletedAt?: Date;
 
     @VersionColumn()
-    version!: number;
+    public version!: number;
 }

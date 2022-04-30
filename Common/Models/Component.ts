@@ -8,17 +8,17 @@ import Project from './Project';
 })
 export default class ComponentModel extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    name!: string;
+    public name!: string;
 
     @Column()
-    slug!: string;
+    public slug!: string;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

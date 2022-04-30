@@ -1,35 +1,25 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 
 @Entity({
-       name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public certificateId!: string;
 
-       @Column()
-       certificateId!: string;
+    @Column()
+    public privateKeyPem!: string;
 
-       @Column()
-       privateKeyPem!: string;
+    @Column()
+    public privateKeyJwk!: string;
 
-       @Column()
-       privateKeyJwk!: string;
+    @Column()
+    public publicKeyPem!: string;
 
-       @Column()
-       publicKeyPem!: string;
+    @Column()
+    public publicKeyJwk!: string;
 
-       @Column()
-       publicKeyJwk!: string;
-
-       @Column()
-       key!: string;
+    @Column()
+    public key!: string;
 }
-
-
-
-
-
-
-
-
-

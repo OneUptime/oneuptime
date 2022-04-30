@@ -1,41 +1,29 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
-import Project from './Project';
 import Incident from './Incident';
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    incident: Incident;
 
-   @Column()
-   incident: Incident
+    @Column()
+    public user!: User; // Which User will perfom this action.
 
-   @Column()
-   user!: User; // Which User will perfom this action.
+    @Column()
+    public number!: string;
 
-   @Column()
-   number!: string;
+    @Column()
+    public name!: string;
 
-   @Column()
-   name!: string;
+    @Column()
+    public resolved!: boolean;
 
+    @Column()
+    public acknowledged!: boolean;
 
-   @Column()
-   resolved!: boolean;
-
-   @Column()
-   acknowledged!: boolean;
-
-
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    public deletedByUser!: User;
 }
-
-
-
-
-
-
-
-

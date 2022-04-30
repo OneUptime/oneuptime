@@ -1,4 +1,4 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -12,110 +12,100 @@ import HTTPMethod from '../Types/API/HTTPMethod';
 import MonitorCriteria from '../Types/Monitor/MonitorCriteria';
 import Component from './Component';
 
-
 @Entity({
-   name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public project!: Project; //Which project this monitor belongs to.
 
-   @Column()
-   project!: Project; //Which project this monitor belongs to.
+    @Column()
+    public component!: Component;
 
-   @Column()
-   component!: Component
+    @Column()
+    public name!: string;
 
-   @Column()
-   name!: string;
+    @Column()
+    public slug!: string;
 
-   @Column()
-   slug!: string;
+    @Column()
+    public config!: Object;
 
-   @Column()
-   config!: Object
+    @Column()
+    public createdByUser!: User; //user.
 
-   @Column()
-   createdByUser!: User; //user.
+    @Column()
+    public type!: MonitorType;
 
-   @Column()
-   type!: MonitorType
+    @Column()
+    public agentlessConfig!: string;
 
-   @Column()
-   agentlessConfig!: string;
+    @Column()
+    public kubernetesConfig!: string;
 
-   @Column()
-   kubernetesConfig!: string;
+    @Column()
+    public kubernetesNamespace!: string;
 
-   @Column()
-   kubernetesNamespace!: string
+    @Column()
+    public lastPingTime!: Date;
 
-   @Column()
-   lastPingTime!: Date
+    @Column()
+    public updateTime!: Date;
 
-   @Column()
-   updateTime!: Date
+    @Column()
+    public criteria!: MonitorCriteria;
 
-   @Column()
-   criteria!: MonitorCriteria
+    @Column()
+    public lastMatchedCriterion!: MonitorCriteriaInstance;
 
-   @Column()
-   lastMatchedCriterion!: MonitorCriteriaInstance
+    @Column()
+    public method!: HTTPMethod;
 
+    @Column()
+    public bodyType!: string;
 
-   @Column()
-   method!: HTTPMethod;
+    @Column()
+    public formData!: FormData;
 
-   @Column()
-   bodyType!: string;
+    @Column()
+    public text!: string;
 
-   @Column()
-   formData!: FormData;
+    @Column()
+    public headers!: Headers;
 
-   @Column()
-   text!: string;
+    @Column()
+    public disabled!: boolean;
 
-   @Column()
-   headers!: Headers;
+    @Column()
+    public deletedByUser!: User;
 
-   @Column()
-   disabled!: boolean
+    @Column()
+    public scriptRunStatus!: string;
 
-   @Column()
-   deletedByUser!: User;
+    @Column()
+    public scriptRunBy!: Probe;
 
-   @Column()
-   scriptRunStatus!: string;
+    @Column()
+    public lighthouseScannedAt!: Date;
 
-   @Column()
-   scriptRunBy!: Probe
+    @Column()
+    public lighthouseScanStatus!: string;
 
-   @Column()
-   lighthouseScannedAt!: Date;
+    @Column()
+    public siteUrls!: Array<string>;
 
-   @Column()
-   lighthouseScanStatus!: string;
+    @Column()
+    public incidentCommunicationSla!: IncidentCommunicationSla;
 
-   @Column()
-   siteUrls!: Array<string>;
+    @Column()
+    public monitorSla!: MonitorSla;
 
-   @Column()
-   incidentCommunicationSla!: IncidentCommunicationSla
+    @Column()
+    public customFields!: MonitorCustomFields;
 
-   @Column()
-   monitorSla!: MonitorSla
+    @Column()
+    public disableMonitoring!: boolean;
 
-   @Column()
-   customFields!: MonitorCustomFields
-
-   @Column()
-   disableMonitoring!: boolean;
-
-   @Column()
-   monitorStatus!: ResourceStatus;
+    @Column()
+    public monitorStatus!: ResourceStatus;
 }
-
-
-
-
-
-
-

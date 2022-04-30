@@ -13,23 +13,23 @@ export enum ScheduledEventNote {
 })
 export default class Model extends BaseModel {
     @Column()
-    scheduledEvent!: ScheduledEvent;
+    public scheduledEvent!: ScheduledEvent;
 
     @Column()
-    content!: string;
+    public content!: string;
 
     @Column()
-    type!: ScheduledEventNote;
+    public type!: ScheduledEventNote;
 
     @Column()
-    eventState!: ScheduledEventState;
+    public eventState!: ScheduledEventState;
 
     @Column()
-    createdByUser!: User;
+    public createdByUser!: User;
 
     @Column()
-    updated!: boolean;
+    public updated!: boolean;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

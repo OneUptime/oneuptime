@@ -8,11 +8,11 @@ import User from './User';
 })
 export default class ProjectAdminNote extends BaseModel {
     @Column({ nullable: false })
-    project!: Project;
+    public project!: Project;
 
     @Column({ type: 'text', nullable: false })
-    note!: string;
+    public note!: string;
 
     @Column({ nullable: false })
-    createdByUser!: User;
+    public createdByUser!: User;
 }

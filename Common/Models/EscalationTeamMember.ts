@@ -1,26 +1,24 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import Team from './Team';
 import User from './User';
 
 @Entity({
-    name: "UserAlerts"
+    name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
+    @Column()
+    public startTime!: Date;
 
     @Column()
-    startTime!: Date;
+    public endTime!: Date;
 
     @Column()
-    endTime!: Date;
+    public timezone!: string;
 
     @Column()
-    timezone!: string;
+    public user!: User;
 
     @Column()
-    user!: User;
-
-    @Column()
-    team!: Team
-
+    public team!: Team;
 }

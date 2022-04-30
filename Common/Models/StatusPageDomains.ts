@@ -9,20 +9,20 @@ import DomainVerificationToken from './DomainVerificationToken';
 })
 export default class StatusPageDomains extends BaseModel {
     @Column()
-    statusPage!: StatusPage;
+    public statusPage!: StatusPage;
 
     @Column()
-    domain!: string;
+    public domain!: string;
 
     @Column()
-    certificate!: User;
+    public certificate!: User;
 
     @Column()
-    privateKey!: User;
+    public privateKey!: User;
 
     @Column()
-    autoProvisioning!: boolean;
+    public autoProvisioning!: boolean;
 
     @Column()
-    domainVerificationToken!: DomainVerificationToken;
+    public domainVerificationToken!: DomainVerificationToken;
 }

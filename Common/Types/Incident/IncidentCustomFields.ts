@@ -1,3 +1,1 @@
-export default class MonitorCustomFields {
-
-}
+export default class MonitorCustomFields {}

@@ -1,3 +1,1 @@
-export default class Tags {
-    
-}
+export default class Tags {}

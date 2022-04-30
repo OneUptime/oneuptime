@@ -9,20 +9,20 @@ import EmailTemplateType from '../Types/Email/EmailTemplateType';
 })
 export default class EmailTemplate extends BaseModel {
     @Column()
-    project!: Project;
+    public project!: Project;
 
     @Column()
-    subject!: string;
+    public subject!: string;
 
     @Column()
-    body!: string;
+    public body!: string;
 
     @Column()
-    emailType!: EmailTemplateType;
+    public emailType!: EmailTemplateType;
 
     @Column()
-    allowedVariables!: Array<string>;
+    public allowedVariables!: Array<string>;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }

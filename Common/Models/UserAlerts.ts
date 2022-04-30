@@ -1,66 +1,56 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
 import Incident, { IncidentState } from './Incident';
 import Escalation from './Escalation';
 import Schedule from './OnCallDutySchedule';
+import OnCallDutySchedule from './OnCallDutySchedule';
 
 @Entity({
-    name: "UserAlerts"
+    name: 'UserAlerts',
 })
-
 export default class UserAlerts extends BaseModel {
+    @Column({
+        nullable: false,
+    })
+    public project!: Project;
 
     @Column({
-        nullable: false, 
+        nullable: false,
     })
-    project!: Project;
-
-    @Column({
-        nullable: false, 
-    })
-    user!: User;
+    public user!: User;
 
     @Column()
-    alertType!: string;
+    public alertType!: string;
 
     @Column()
-    alertStatus!: string;
+    public alertStatus!: string;
 
     @Column()
-    eventType!: IncidentState
+    public eventType!: IncidentState;
 
     @Column()
-    incident!: Incident;
+    public incident!: Incident;
 
     @Column()
-    onCallScheduleStatus!: OnCallSchedule;
+    public onCallScheduleStatus!: OnCallDutySchedule;
 
     @Column()
-    schedule!: Schedule;
+    public schedule!: Schedule;
 
     @Column()
-    escalation!: Escalation;
+    public escalation!: Escalation;
 
     @Column()
-    error!: boolean;
+    public error!: boolean;
 
     @Column()
-    errorMessage!: string;
+    public errorMessage!: string;
 
     @Column()
-    alertProgress!: string
+    public alertProgress!: string;
 
     @Column()
-    deletedByUser!: User;
+    public deletedByUser!: User;
 }
-
-
-
-
-
-
-
-
-

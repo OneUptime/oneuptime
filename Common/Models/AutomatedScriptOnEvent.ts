@@ -8,9 +8,9 @@ import AutomatedScript from './AutomatedScript';
 })
 export default class AutomatedScriptOnEvent extends BaseModel {
     @Column()
-    automatedScript!: AutomatedScript;
+    public automatedScript!: AutomatedScript;
     @Column()
-    executeAutomatedScript!: AutomatedScript;
+    public executeAutomatedScript!: AutomatedScript;
     @Column()
-    eventType!: OperationResult;
+    public eventType!: OperationResult;
 }
