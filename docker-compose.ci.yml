@@ -12,7 +12,7 @@ services:
             - POSTGRES_PASSWORD=postgres
         ports:
             - '5432:5432'
-        volumes: 
+        volumes:
             - postgres:/var/lib/postgresql/data
     saml:
         image: kenchan0130/simplesamlphp
@@ -41,14 +41,13 @@ services:
         env_file:
             - ./DashboardAPI/.env
         environment:
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SCRIPT_RUNNER_URL=http://script-runner:3009
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
-            - mongo
+
             - redis
             - haraka
             - script-runner
@@ -146,10 +145,10 @@ services:
             - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
             - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
+
             - REALTIME_URL=http://realtime:3300
         depends_on:
-            - mongo
+
             - script-runner
             - dashboard-api
             - realtime
@@ -175,7 +174,7 @@ services:
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
+
             - REALTIME_URL=http://realtime:3300
     probe1:
         build:
@@ -231,12 +230,12 @@ services:
         env_file:
             - ./InitScript/.env
         environment:
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
+
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - NODE_ENV=${NODE_ENV}
         depends_on:
-            - mongo
+
             - redis
     ##IMPORTANT:
     ## This container is an SMTP server used to send emails.
@@ -328,7 +327,7 @@ services:
             - dashboard-api
     nginx:
         depends_on:
-            - mongo
+
             - dashboard-api
             - home
             - dashboard
