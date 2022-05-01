@@ -1,7 +1,7 @@
 import Slug from 'Common/Utils/Slug';
 import Populate from '../Types/DB/Populate';
 import Select from '../Types/DB/Select';
-import { Document, Query as DbQuery } from '../Infrastructure/ORM';
+import { Query as DbQuery } from '../Infrastructure/ORM';
 import FindOneBy from '../Types/DB/FindOneBy';
 import UpdateOneBy from '../Types/DB/UpdateOneBy';
 import CountBy from '../Types/DB/CountBy';
@@ -22,6 +22,25 @@ import { JSONObject } from 'Common/Types/JSON';
 import SortOrder from '../Types/DB/SortOrder';
 import DbFunctions from '../Utils/DBFunctions';
 import BaseModel from 'Common/Models/BaseModel';
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import { DataSource, Repository, EntityTarget, EntitySchema, BaseEntity } from 'typeorm';
+
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm"
+
+@Entity()
+export class User {
+    @PrimaryGeneratedColumn()
+    id!: number
+
+    @Column()
+    firstName!: string
+
+    @Column()
+    lastName!: string
+
+    @Column()
+    age!: number
+}
 
 export interface ListProps {
     populate: Populate;
@@ -45,7 +64,7 @@ interface InternalUpdateBy extends UpdateBy {
     multiple: boolean;
 }
 
-class DatabaseService {
+class DatabaseService<T extends BaseModel> {
     public adminItemProps: ItemProps;
     public adminListProps: ListProps;
     public ownerItemProps: ItemProps;
@@ -101,6 +120,12 @@ class DatabaseService {
         this.ownerListProps = ownerListProps;
     }
 
+    public async getTable(data: T): Promise<Repository<T>> {
+        const datasource: DataSource = await PostgresDatabase.getDataSource();
+        const userRepository = datasource.getRepository(T)
+        return datasource.getRepository(new T());
+    }
+
     protected isValid(data: JSONObject): boolean {
         if (!data) {
             throw new BadDataException('Data cannot be null');
@@ -109,21 +134,22 @@ class DatabaseService {
         return true;
     }
 
-    protected checkRequiredFields(data: JSONObject): void {
+    protected checkRequiredFields(data: T): void {
         // Check required fields.
         for (const requiredField of this.model.getRequiredColumns().columns) {
+        
             if (!data[requiredField]) {
                 throw new BadDataException(`${requiredField} is required`);
             }
         }
     }
 
-    protected async onBeforeCreate({ data }: CreateBy): Promise<CreateBy> {
+    protected async onBeforeCreate({ data }: CreateBy<T>): Promise<CreateBy<T>> {
         // A place holder method used for overriding.
-        return Promise.resolve({ data } as CreateBy);
+        return Promise.resolve({ data } as CreateBy<T>);
     }
 
-    protected encrypt(data: JSONObject): JSONObject {
+    protected encrypt(data: T): T {
         const iv: Buffer = Encryption.getIV();
         data['iv'] = iv;
 
@@ -149,7 +175,7 @@ class DatabaseService {
         return data;
     }
 
-    protected decrypt(data: Document): Document {
+    protected decrypt(data: T): T {
         const iv: Buffer = data.get('iv');
 
         for (const key of this.model.getEncryptedColumns().columns) {
@@ -189,7 +215,7 @@ class DatabaseService {
         return Promise.resolve(findBy);
     }
 
-    protected async onCreateSuccess(createdItem: Document): Promise<Document> {
+    protected async onCreateSuccess(createdItem: T): Promise<T> {
         // A place holder method used for overriding.
         return Promise.resolve(createdItem);
     }
@@ -218,10 +244,11 @@ class DatabaseService {
         // A place holder method used for overriding.
         return Promise.resolve(error);
     }
+    
 
     protected async onFindSuccess(
-        items: Array<Document>
-    ): Promise<Array<Document>> {
+        items: Array<T>
+    ): Promise<Array<T>> {
         // A place holder method used for overriding.
         return Promise.resolve(items);
     }
@@ -247,12 +274,12 @@ class DatabaseService {
         throw error;
     }
 
-    public async create(createBy: CreateBy): Promise<Document> {
-        const _createdBy: CreateBy = await this.onBeforeCreate({
+    public async create(createBy: CreateBy<T>): Promise<T> {
+        const _createdBy: CreateBy<T> = await this.onBeforeCreate({
             data: createBy.data,
         });
 
-        let data: JSONObject = _createdBy.data;
+        let data: T = _createdBy.data;
 
         this.checkRequiredFields(data);
 
@@ -264,48 +291,7 @@ class DatabaseService {
         data = this.encrypt(data);
 
         try {
-            const item: Document = new this.model();
-
-            if (this.uniqueFields && this.uniqueFields.length > 0) {
-                const countQuery: Query = new Query();
-
-                if (this.isResourceByProject) {
-                    countQuery.equalTo(
-                        'projectId',
-                        data['projectId'] as string
-                    );
-                }
-
-                for (const duplicateValueIn of this.uniqueFields) {
-                    if (typeof data[duplicateValueIn] === 'number') {
-                        countQuery.equalTo(
-                            duplicateValueIn,
-                            data[duplicateValueIn] as number
-                        );
-                    }
-
-                    if (typeof data[duplicateValueIn] === 'string') {
-                        countQuery.equalTo(
-                            duplicateValueIn,
-                            data[duplicateValueIn] as string
-                        );
-                    }
-                }
-
-                const existingItemCount: PositiveNumber = await this.countBy({
-                    query: countQuery,
-                });
-
-                if (existingItemCount.toNumber() > 0) {
-                    throw new BadDataException(
-                        `${
-                            this.friendlyName || `Item`
-                        } with the same ${this.uniqueFields.join(
-                            ','
-                        )} already exists.`
-                    );
-                }
-            }
+            const item: T = new T();
 
             for (const key in data) {
                 item.set(key, data[key]);
@@ -382,7 +368,7 @@ class DatabaseService {
 
             query.equalTo('deleted', false);
 
-            const item: Document = new this.model();
+            const item: T = new this.model();
             item.set('deleted', true);
             item.set('deletedByUser', beforeDeleteBy.deletedByUserId);
             item.set('deletedAt', OneUptimeDate.getCurrentDate());
@@ -411,7 +397,7 @@ class DatabaseService {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Promise<Array<Document>> {
+    }: FindBy): Promise<Array<T>> {
         return await this.findBy({
             query,
             skip,
@@ -427,7 +413,7 @@ class DatabaseService {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Promise<Array<Document>> {
+    }: FindBy): Promise<Array<T>> {
         return await this.findBy({
             query,
             skip,
@@ -443,7 +429,7 @@ class DatabaseService {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Promise<Array<Document>> {
+    }: FindBy): Promise<Array<T>> {
         return await this.findBy({
             query,
             skip,
@@ -459,7 +445,7 @@ class DatabaseService {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Promise<Array<Document>> {
+    }: FindBy): Promise<Array<T>> {
         return await this.findBy({
             query,
             skip,
@@ -475,7 +461,7 @@ class DatabaseService {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy): Promise<Array<Document>> {
+    }: FindBy): Promise<Array<T>> {
         return await this.findBy({
             query,
             skip,
@@ -489,7 +475,7 @@ class DatabaseService {
     public async getItemForViewer({
         query,
         sort,
-    }: FindOneBy): Promise<Document | null> {
+    }: FindOneBy): Promise<T | null> {
         return await this.findOneBy({
             query,
             populate: this.viewerItemProps.populate,
@@ -501,7 +487,7 @@ class DatabaseService {
     public async getItemForAdmin({
         query,
         sort,
-    }: FindOneBy): Promise<Document | null> {
+    }: FindOneBy): Promise<T | null> {
         return await this.findOneBy({
             query,
             populate: this.adminItemProps.populate,
@@ -513,7 +499,7 @@ class DatabaseService {
     public async getItemForMember({
         query,
         sort,
-    }: FindOneBy): Promise<Document | null> {
+    }: FindOneBy): Promise<T | null> {
         return await this.findOneBy({
             query,
             populate: this.memberItemProps.populate,
@@ -525,7 +511,7 @@ class DatabaseService {
     public async getItemForOwner({
         query,
         sort,
-    }: FindOneBy): Promise<Document | null> {
+    }: FindOneBy): Promise<T | null> {
         return await this.findOneBy({
             query,
             populate: this.ownerItemProps.populate,
@@ -537,7 +523,7 @@ class DatabaseService {
     public async getItemForPublic({
         query,
         sort,
-    }: FindOneBy): Promise<Document | null> {
+    }: FindOneBy): Promise<T | null> {
         return await this.findOneBy({
             query,
             populate: this.publicItemProps.populate,
@@ -553,7 +539,7 @@ class DatabaseService {
         populate,
         select,
         sort,
-    }: FindBy): Promise<Array<Document>> {
+    }: FindBy): Promise<Array<T>> {
         return await this._findBy({
             query,
             skip,
@@ -573,7 +559,7 @@ class DatabaseService {
         select,
         sort,
         multiple = false,
-    }: InternalFindBy): Promise<Array<Document>> {
+    }: InternalFindBy): Promise<Array<T>> {
         try {
             const onBeforeFind: FindBy = await this.onBeforeFind({
                 query,
@@ -603,16 +589,16 @@ class DatabaseService {
 
             //convert populate to dbpopulate
 
-            const items: Array<Document> = (await this.model
+            const items: Array<T> = (await this.model
                 .find(dbQuery)
                 .sort(onBeforeFind.sort)
                 .limit(onBeforeFind.limit.toNumber())
                 .skip(onBeforeFind.skip.toNumber())
                 .select(onBeforeFind.select)
                 .populate(DbFunctions.toDbPopulate(onBeforeFind.populate))
-                .lean()) as Array<Document>;
+                .lean()) as Array<T>;
 
-            const decryptedItems: Array<Document> = [];
+            const decryptedItems: Array<T> = [];
 
             for (const item of items) {
                 decryptedItems.push(this.decrypt(item));
@@ -632,8 +618,8 @@ class DatabaseService {
         populate = [],
         select = ['_id'],
         sort = [],
-    }: FindOneBy): Promise<Document | null> {
-        const documents: Array<Document> = await this._findBy({
+    }: FindOneBy): Promise<T | null> {
+        const documents: Array<T> = await this._findBy({
             query,
             skip: new PositiveNumber(0),
             limit: new PositiveNumber(1),
@@ -707,7 +693,7 @@ class DatabaseService {
     }: SearchBy): Promise<SearchResult> {
         const query: Query = new Query().regexp(column, text, 'i');
 
-        const [items, count]: [Array<Document>, PositiveNumber] =
+        const [items, count]: [Array<T>, PositiveNumber] =
             await Promise.all([
                 this.findBy({
                     query,

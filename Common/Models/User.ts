@@ -1,23 +1,14 @@
 import { Column, Entity } from 'typeorm';
 import Role from '../Types/Role';
 import BaseModel from './BaseModel';
-import EncryptedColumns from '../Types/Database/EncryptedColumns';
-import UniqueColumns from '../Types/Database/UniqueColumns';
-import RequiredColumns from '../Types/Database/RequiredColumns';
 import SSO from './SsoConfig';
+import EncryptedColumn from '../Types/Database/EncryptedColumnDecorator';
 
 @Entity({
     name: 'User',
 })
-export default class User extends BaseModel {
-    public constructor() {
-        super(
-            new EncryptedColumns([]),
-            new UniqueColumns([]),
-            new RequiredColumns([]),
-            null
-        );
-    }
+class User extends BaseModel {
+
     @Column({ type: 'text', length: 100 })
     public name!: string;
 
@@ -27,6 +18,7 @@ export default class User extends BaseModel {
     @Column({ type: 'text', length: 200 })
     public temporaryEmail!: string;
 
+    @EncryptedColumn()
     @Column({ type: 'text', length: 200 })
     public password!: string;
 
@@ -117,3 +109,5 @@ export default class User extends BaseModel {
     @Column()
     public createdBy!: User;
 }
+
+export default User;

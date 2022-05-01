@@ -1,8 +1,6 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import EncryptedColumns from '../Types/Database/EncryptedColumns';
-import UniqueColumns from '../Types/Database/UniqueColumns';
-import RequiredColumns from '../Types/Database/RequiredColumns';
+
 import Project from './Project';
 
 export enum CustomFieldType {
@@ -14,14 +12,7 @@ export enum CustomFieldType {
     name: 'CustomField',
 })
 export default class CustomField extends BaseModel {
-    public constructor() {
-        super(
-            new EncryptedColumns([]),
-            new UniqueColumns([]),
-            new RequiredColumns([]),
-            null
-        );
-    }
+    
     @Column()
     public fieldName!: string;
 

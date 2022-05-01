@@ -10,4 +10,8 @@ export default class Columns {
     public constructor(columns: Array<string>) {
         this.columns = columns;
     }
+
+    public addColumn(columnName: string) {
+        this.columns.push(columnName);
+    }
 }

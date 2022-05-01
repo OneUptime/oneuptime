@@ -1,7 +1,7 @@
 import Model from 'Common/Models/ContainerSecurity';
 import DatabaseService from './DatabaseService';
 
-class Service extends DatabaseService<typeof Model> {
+class Service extends DatabaseService {
     public constructor() {
         super({
             model: Model,

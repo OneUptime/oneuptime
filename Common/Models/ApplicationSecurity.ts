@@ -1,8 +1,6 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import EncryptedColumns from '../Types/Database/EncryptedColumns';
-import UniqueColumns from '../Types/Database/UniqueColumns';
-import RequiredColumns from '../Types/Database/RequiredColumns';
+
 import Component from './Component';
 import ResourceLabel from './ResourceLabel';
 import GitCredential from './GitCredential';
@@ -10,14 +8,7 @@ import GitCredential from './GitCredential';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    public constructor() {
-        super(
-            new EncryptedColumns([]),
-            new UniqueColumns([]),
-            new RequiredColumns([]),
-            null
-        );
-    }
+    
     @Column()
     public name!: string;
 
