@@ -1,6 +1,5 @@
 import JsonToCsv from './JsonToCsv';
 import logger from './Logger';
-import { GridFSBucket, GridFSBucketReadStream } from 'mongodb';
 import {
     OneUptimeRequest,
     ExpressResponse,
@@ -11,7 +10,6 @@ import { JSONObject, JSONArray, JSONObjectOrArray } from 'Common/Types/JSON';
 import { File } from 'Common/Types/File';
 import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
-import Database from '../Infrastructure/PostgresDatabase';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import URL from 'Common/Types/API/URL';
 
@@ -74,19 +72,19 @@ export const sendFileResponse: Function = async (
 
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    const gfs: GridFSBucket = new GridFSBucket(await Database.getDatabase(), {
-        bucketName: 'uploads',
-    });
+    // const gfs: GridFSBucket = new GridFSBucket(await Database.getDatabase(), {
+    //     bucketName: 'uploads',
+    // });
 
-    const readstream: GridFSBucketReadStream = gfs.openDownloadStreamByName(
-        file.name
-    );
+    // const readstream: GridFSBucketReadStream = gfs.openDownloadStreamByName(
+    //     file.name
+    // );
 
     /** Set the proper content type */
     oneUptimeResponse.set('Content-Type', file.contentType);
     oneUptimeResponse.status(200);
     /** Return response */
-    readstream.pipe(res);
+    // readstream.pipe(res);
 
     logResponse(req, res);
 };

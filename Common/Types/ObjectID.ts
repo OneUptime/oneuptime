@@ -1,4 +1,5 @@
 // This is for Object ID for all the things in our database.
+import { ValueTransformer } from 'typeorm';
 import UUID from '../Utils/UUID';
 
 export default class ObjectID {
@@ -20,5 +21,16 @@ export default class ObjectID {
 
     public static generate(): ObjectID {
         return new this(UUID.generate());
+    }
+
+    public static getDatabaseTransformer(): ValueTransformer {
+        return {
+            to(value: ObjectID): string {
+                return value.toString();
+            },
+            from(value: string): ObjectID {
+                return new ObjectID(value);
+            }
+        };
     }
 }

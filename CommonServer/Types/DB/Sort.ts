@@ -1,7 +1,6 @@
-import SortOrder from './SortOrder';
+import BaseModel from 'Common/Models/BaseModel';
+import { FindOptionsOrder } from 'typeorm';
 
-export interface SortItem {
-    [field: string]: SortOrder;
-}
+type Sort<TBaseModel extends BaseModel> = FindOptionsOrder<TBaseModel>
 
-export default interface Sort extends Array<SortItem> {}
+export default Sort

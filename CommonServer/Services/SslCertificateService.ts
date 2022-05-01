@@ -1,4 +1,4 @@
-import Model from 'Common/Models/IncidentSMSAction';
+import Model from 'Common/Models/SslCertificate';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<Model> {

@@ -7,53 +7,9 @@ import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 
-class Service extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<Model> {
     public constructor() {
-        super({
-            model: Model,
-
-            friendlyName: 'Docker Credential',
-            publicListProps: {
-                populate: [],
-                select: [],
-            },
-            adminListProps: {
-                populate: [],
-                select: [],
-            },
-            ownerListProps: {
-                populate: [],
-                select: [],
-            },
-            memberListProps: {
-                populate: [],
-                select: [],
-            },
-            viewerListProps: {
-                populate: [],
-                select: [],
-            },
-            publicItemProps: {
-                populate: [],
-                select: [],
-            },
-            adminItemProps: {
-                populate: [],
-                select: [],
-            },
-            memberItemProps: {
-                populate: [],
-                select: [],
-            },
-            viewerItemProps: {
-                populate: [],
-                select: [],
-            },
-            ownerItemProps: {
-                populate: [],
-                select: [],
-            },
-        });
+        super(Model);
     }
 
     public async validateDockerCredential({

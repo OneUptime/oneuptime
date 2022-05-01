@@ -1,5 +1,5 @@
 import BaseModel from "Common/Models/BaseModel";
 
-export default interface CreateBy<T extends BaseModel> {
-    data: T;
+export default interface CreateBy<TBaseModel extends BaseModel> {
+    data: TBaseModel;
 }

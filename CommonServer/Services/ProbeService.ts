@@ -1,71 +1,25 @@
 import Model from 'Common/Models/Probe';
-
-import { Document } from '../Infrastructure/ORM';
-
 import DatabaseService from './DatabaseService';
-import Query from '../Types/DB/Query';
 import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import OneUptimeDate from 'Common/Types/Date';
 
-class Service extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<Model> {
     public constructor() {
-        super({
-            model: Model,
-
-            friendlyName: 'Probe',
-            publicListProps: {
-                populate: [],
-                select: [],
-            },
-            adminListProps: {
-                populate: [],
-                select: [],
-            },
-            ownerListProps: {
-                populate: [],
-                select: [],
-            },
-            memberListProps: {
-                populate: [],
-                select: [],
-            },
-            viewerListProps: {
-                populate: [],
-                select: [],
-            },
-            publicItemProps: {
-                populate: [],
-                select: [],
-            },
-            adminItemProps: {
-                populate: [],
-                select: [],
-            },
-            memberItemProps: {
-                populate: [],
-                select: [],
-            },
-            viewerItemProps: {
-                populate: [],
-                select: [],
-            },
-            ownerItemProps: {
-                populate: [],
-                select: [],
-            },
-        });
+        super(Model);
     }
 
     public async updateProbeKeyByName(
         name: string,
         key: ObjectID
     ): Promise<void> {
-        const updatedProbe: Document = new this.model();
-        updatedProbe.set('key', key);
         await this.updateOneBy({
-            query: new Query().equalTo('name', name),
-            data: updatedProbe,
+            query: {
+                name: name
+            },
+            data: {
+                key
+            },
         });
     }
 
@@ -73,20 +27,19 @@ class Service extends DatabaseService<typeof Model> {
         name: string,
         version: Version
     ): Promise<void> {
-        const updatedProbe: Document = new this.model();
-        updatedProbe.set('version', version.toString());
+
         await this.updateOneBy({
-            query: new Query().equalTo('name', name),
-            data: updatedProbe,
+            query: { name },
+            data: { probeVersion: version },
         });
     }
 
     public async updateLastAlive(name: string): Promise<void> {
-        const updatedProbe: Document = new this.model();
-        updatedProbe.set('lastAlive', OneUptimeDate.getCurrentDate());
         await this.updateOneBy({
-            query: new Query().equalTo('name', name),
-            data: updatedProbe,
+            query: { name },
+            data: {
+                lastAlive: OneUptimeDate.getCurrentDate()
+            },
         });
     }
 }

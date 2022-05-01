@@ -1,12 +1,11 @@
 import Model from 'Common/Models/MonitorCustomField';
 import DatabaseService from './DatabaseService';
 
-class Service extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<Model> {
     public constructor() {
         super({
-            model: Model,
 
-            friendlyName: 'Monitor Custom Field',
+            friendlyName,
             publicListProps: {
                 populate: [],
                 select: [],
@@ -46,7 +45,7 @@ class Service extends DatabaseService<typeof Model> {
             ownerItemProps: {
                 populate: [],
                 select: [],
-            },
+            }
         });
     }
 }

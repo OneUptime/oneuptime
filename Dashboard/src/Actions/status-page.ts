@@ -19,7 +19,7 @@ export default class StatusPageActions extends Actions {
                 isRequestAllowed: true,
             },
             apiPath: 'StatusPage',
-            friendlyName: 'Status Page',
+            friendlyName,
             isResourceInProject: true,
         });
     }

@@ -5,22 +5,26 @@ import {
     VersionColumn,
     PrimaryGeneratedColumn,
     BaseEntity,
-    Entity,
 } from 'typeorm';
-import EncryptedColumns from '../Types/Database/EncryptedColumns';
-import RequiredColumns from '../Types/Database/RequiredColumns';
-import UniqueColumns from '../Types/Database/UniqueColumns';
+import Columns from '../Types/Database/Columns';
 import ObjectID from '../Types/ObjectID';
 
-@Entity()
-export default class BaseModel {
-    private encryptedColumns!: EncryptedColumns;
-    private uniqueColumns!: UniqueColumns;
-    private requiredColumns!: RequiredColumns;
+export default class BaseModel extends BaseEntity{
+
+
+    private encryptedColumns!: Columns;
+    private uniqueColumns!: Columns;
+    private requiredColumns!: Columns;
+
+    private ownerAccessibleColumns!: Columns;
+    private adminAccessibleColumns!: Columns;
+    private memberAccessibleColumns!: Columns;
+    private viewerAccessibleColumns!: Columns;
+    private publicAccessibleColumns!: Columns;
 
     private slugifyColumn: string | null = null;
 
-    public getEncryptedColumns(): EncryptedColumns {
+    public getEncryptedColumns(): Columns {
         return this.encryptedColumns;
     }
 
@@ -28,8 +32,48 @@ export default class BaseModel {
         this.encryptedColumns.addColumn(columnName);
     }
 
-    public getUniqueColumns(): UniqueColumns {
+    public getUniqueColumns(): Columns {
         return this.uniqueColumns;
+    }
+
+    public getOwnerAccessibleColumns(): Columns {
+        return this.ownerAccessibleColumns;
+    }
+
+    public addOwnerAccessibleColumn(columnName: string): void {
+        this.ownerAccessibleColumns.addColumn(columnName);
+    }
+
+    public getPublicAccessibleColumns(): Columns {
+        return this.publicAccessibleColumns;
+    }
+
+    public addPublicAccessibleColumn(columnName: string): void {
+        this.publicAccessibleColumns.addColumn(columnName);
+    }
+
+    public addAdminAccessibleColumn(columnName: string): void {
+        this.adminAccessibleColumns.addColumn(columnName);
+    }
+
+    public getAdminAccessibleColumns(): Columns {
+        return this.adminAccessibleColumns;
+    }
+
+    public addMemberAccessibleColumn(columnName: string): void {
+        this.memberAccessibleColumns.addColumn(columnName);
+    }
+
+    public getMemberAccessibleColumns(): Columns {
+        return this.memberAccessibleColumns;
+    }
+
+    public addViewerAccessibleColumn(columnName: string): void {
+        this.viewerAccessibleColumns.addColumn(columnName);
+    }
+
+    public getViewerAccessibleColumns(): Columns {
+        return this.viewerAccessibleColumns;
     }
 
     public setSlugifyColumn(columnName: string) {
@@ -40,11 +84,11 @@ export default class BaseModel {
         this.uniqueColumns.addColumn(columnName);
     }
 
-    public getRequiredColumn(): RequiredColumns {
+    public getRequiredColumns(): Columns {
         return this.requiredColumns;
     }
 
-    public addRequiredColumns(columnName: string): void {
+    public addRequiredColumn(columnName: string): void {
         this.requiredColumns.addColumn(columnName);
     }
 
@@ -61,7 +105,7 @@ export default class BaseModel {
     }
     
     @PrimaryGeneratedColumn('uuid')
-    private _id!: string;
+    public _id!: string;
 
     @CreateDateColumn()
     public createdAt!: Date;

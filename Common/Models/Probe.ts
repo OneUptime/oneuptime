@@ -3,14 +3,20 @@ import BaseModel from './BaseModel';
 
 import User from './User';
 import Project from './Project';
+import ObjectID from '../Types/ObjectID';
+import Version from '../Types/Version';
 
 @Entity({
     name: 'Probe',
 })
 export default class Probe extends BaseModel {
-    
-    @Column({ nullable: false })
-    public key!: string;
+
+    @Column({
+        type: 'text',
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer()
+    })
+    public key!: ObjectID;
 
     @Column({ nullable: false })
     public name!: string;
@@ -19,7 +25,7 @@ export default class Probe extends BaseModel {
     public slug!: string;
 
     @Column({ nullable: false })
-    public probeVersion!: string;
+    public probeVersion!: Version;
 
     @Column({ nullable: false, default: Date.now() })
     public lastAlive!: Date;

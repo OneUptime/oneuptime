@@ -1,7 +1,7 @@
+import BaseModel from 'Common/Models/BaseModel';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import { Document } from '../../Infrastructure/ORM';
 
-export default interface SearchResult {
-    items: Array<Document>;
+export default interface SearchResult<TBaseModel extends BaseModel> {
+    items: Array<TBaseModel>;
     count: PositiveNumber;
 }

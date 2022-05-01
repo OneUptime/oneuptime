@@ -4,62 +4,20 @@ import Model from 'Common/Models/SmsCount';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import Query from '../Types/DB/Query';
+import User from 'Common/Models/User';
+import { MoreThan } from 'typeorm';
 
-class Service extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<Model> {
     public constructor() {
-        super({
-            model: Model,
-
-            friendlyName: 'SMS Count',
-            publicListProps: {
-                populate: [],
-                select: [],
-            },
-            adminListProps: {
-                populate: [],
-                select: [],
-            },
-            ownerListProps: {
-                populate: [],
-                select: [],
-            },
-            memberListProps: {
-                populate: [],
-                select: [],
-            },
-            viewerListProps: {
-                populate: [],
-                select: [],
-            },
-            publicItemProps: {
-                populate: [],
-                select: [],
-            },
-            adminItemProps: {
-                populate: [],
-                select: [],
-            },
-            memberItemProps: {
-                populate: [],
-                select: [],
-            },
-            viewerItemProps: {
-                populate: [],
-                select: [],
-            },
-            ownerItemProps: {
-                populate: [],
-                select: [],
-            },
-        });
+        super(Model);
     }
 
-    public async validateResend(userId: ObjectID): Promise<boolean> {
+    public async validateResend(user: User): Promise<boolean> {
         const smsCount: PositiveNumber = await this.countBy({
-            query: new Query()
-                .equalTo('userId', userId)
-                .greaterThan('createdAt', OneUptimeDate.getOneDayAgo()),
+            query: {
+                user: user,
+                createdAt: MoreThan(OneUptimeDate.getOneDayAgo())
+            }
         });
 
         if (smsCount.toNumber() > 3) {
