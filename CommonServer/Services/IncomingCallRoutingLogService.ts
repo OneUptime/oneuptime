@@ -1,4 +1,4 @@
-import Model from 'Common/Models/IncidentSettings';
+import Model from 'Common/Models/IncomingCallRoutingLog';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<Model> {

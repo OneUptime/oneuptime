@@ -1,4 +1,4 @@
-import Model from 'Common/Models/AutomatedScripts';
+import Model from 'Common/Models/AutomatedScript';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<Model> {

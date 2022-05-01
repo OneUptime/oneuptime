@@ -1,24 +1,19 @@
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import Database, {
-    Collection,
-    Document,
-} from '../Infrastructure/PostgresDatabase';
 import ObjectID from 'Common/Types/ObjectID';
 class FileService {
-    public async getFileById(fileId: ObjectID): Promise<Document> {
-        const gfs: Collection = await Database.getFileClient();
-        const file: Document | null = await gfs.findOne({ _id: fileId });
+    public async getFileById(_fileId: ObjectID): Promise<void> {
+        // const gfs: Collection = await Database.getFileClient();
+        // const file: Document | null = await gfs.findOne({ _id: fileId });
 
-        if (!file) {
-            throw new BadDataException('File not found');
-        }
+        // if (!file) {
+        //     throw new BadDataException('File not found');
+        // }
 
-        return file;
+        // return file;
     }
 
-    public async deleteFileById(fileId: ObjectID): Promise<void> {
-        const gfs: Collection = await Database.getFileClient();
-        await gfs.deleteOne({ _id: fileId });
+    public async deleteFileById(_fileId: ObjectID): Promise<void> {
+        // const gfs: Collection = await Database.getFileClient();
+        // await gfs.deleteOne({ _id: fileId });
     }
 }
 

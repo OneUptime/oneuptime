@@ -1,4 +1,4 @@
-import Model from 'Common/Models/Certificate';
+import Model from 'Common/Models/IncomingCallRouting';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<Model> {

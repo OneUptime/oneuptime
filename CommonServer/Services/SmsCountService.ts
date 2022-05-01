@@ -2,7 +2,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Model from 'Common/Models/SmsCount';
 import DatabaseService from './DatabaseService';
-import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import User from 'Common/Models/User';
 import { MoreThan } from 'typeorm';

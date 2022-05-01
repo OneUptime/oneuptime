@@ -1,4 +1,4 @@
-import Model from 'Common/Models/MonitorLogByDay';
+import Model from 'Common/Models/IncidentSetting';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<Model> {

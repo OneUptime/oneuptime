@@ -1,4 +1,4 @@
-import Model from 'Common/Models/ApplicationSecurityLog';
+import Model from 'Common/Models/OnCallDutyScheduleStatus';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<Model> {

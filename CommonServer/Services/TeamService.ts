@@ -1,4 +1,4 @@
-import Model from 'Common/Models/MonitorLogByWeek';
+import Model from 'Common/Models/Team';
 import DatabaseService from './DatabaseService';
 
 class Service extends DatabaseService<Model> {
