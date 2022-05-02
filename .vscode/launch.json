@@ -141,6 +141,18 @@
                 "<node_internals>/**"
             ],
             "type": "pwa-node"
+        },
+        {
+            "name": "CommonServer: Debug Tests",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceRoot}/CommonServer",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run-script",
+                "debug:test"
+            ],
+            "port": 9229
         }
     ]
 }
