@@ -1,8 +1,8 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 
-import User from './User';
-import Project from './Project';
+// import User from './User';
+// import Project from './Project';
 import ObjectID from '../Types/ObjectID';
 import Version from '../Types/Version';
 import RequiredColumn from '../Types/Database/RequiredColumnDecorator';
@@ -43,10 +43,10 @@ export default class Probe extends BaseModel {
     @Column({ nullable: true })
     public icon?: string;
 
-    // If this probe is custom to the project and only monitoring reosurces in this project.
-    @Column({ nullable: true })
-    public project?: Project;
+    // // If this probe is custom to the project and only monitoring reosurces in this project.
+    // @Column({ nullable: true })
+    // public project?: Project;
 
-    @Column({ nullable: true })
-    public deletedByUser?: User;
+    // @Column({ nullable: true })
+    // public deletedByUser?: User;
 }

@@ -9,18 +9,18 @@ import {
 import Columns from '../Types/Database/Columns';
 import ObjectID from '../Types/ObjectID';
 
-export default class BaseModel extends BaseEntity{
+export default class BaseModel extends BaseEntity {
 
 
-    private encryptedColumns!: Columns;
-    private uniqueColumns!: Columns;
-    private requiredColumns!: Columns;
+    private encryptedColumns: Columns = new Columns([]);
+    private uniqueColumns: Columns = new Columns([]);
+    private requiredColumns: Columns = new Columns([]);
 
-    private ownerAccessibleColumns!: Columns;
-    private adminAccessibleColumns!: Columns;
-    private memberAccessibleColumns!: Columns;
-    private viewerAccessibleColumns!: Columns;
-    private publicAccessibleColumns!: Columns;
+    private ownerAccessibleColumns: Columns = new Columns([]);
+    private adminAccessibleColumns: Columns = new Columns([]);
+    private memberAccessibleColumns: Columns = new Columns([]);
+    private viewerAccessibleColumns: Columns = new Columns([]);
+    private publicAccessibleColumns: Columns = new Columns([]);
 
     private slugifyColumn: string | null = null;
 
@@ -95,15 +95,15 @@ export default class BaseModel extends BaseEntity{
     public getSlugifyColumn(): string | null {
         return this.slugifyColumn;
     }
-    
-    public get id() : ObjectID {
+
+    public get id(): ObjectID {
         return new ObjectID(this._id);
     }
 
     public set id(value: ObjectID) {
         this._id = value.toString();
     }
-    
+
     @PrimaryGeneratedColumn('uuid')
     public _id!: string;
 

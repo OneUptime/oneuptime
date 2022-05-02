@@ -5,7 +5,7 @@
     "main": "index.ts",
     "scripts": {
         "compile": "tsc",
-        "test": "jest"
+        "test": "jest ./Tests"
     },
     "author": "",
     "license": "MIT",
