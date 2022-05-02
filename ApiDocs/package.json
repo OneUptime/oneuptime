@@ -21,7 +21,7 @@
         "Common": "file:../Common",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
-        "ejs": "^3.1.6",
+        "ejs": "^3.1.7",
         "express": "^4.17.3",
         "mocha": "^9.2.2",
         "path": "^0.12.7"
