@@ -21,7 +21,7 @@ export default class Email extends DatabaseProperty {
         this.email = email;
     }
 
-    public toString(): string {
+    public override toString(): string {
         return this.email;
     }
 }
