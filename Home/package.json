@@ -28,7 +28,7 @@
         "CommonServer": "file:../CommonServer",
         "Common": "file:../Common",
         "compression": "^1.7.4",
-        "ejs": "^3.1.6",
+        "ejs": "^3.1.7",
         "express": "^4.17.3",
         "minify": "^8.0.4",
         "try-to-catch": "^3.0.1",
