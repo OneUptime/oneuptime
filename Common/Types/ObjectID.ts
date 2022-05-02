@@ -1,8 +1,9 @@
 // This is for Object ID for all the things in our database.
-import { ValueTransformer } from 'typeorm';
+import { FindOperator, ValueTransformer } from 'typeorm';
 import UUID from '../Utils/UUID';
+import DatabaseProperty from './DatabaseProperty';
 
-export default class ObjectID {
+export default class ObjectID extends DatabaseProperty {
     private _id: string = '';
     public get id(): string {
         return this._id;
@@ -12,10 +13,11 @@ export default class ObjectID {
     }
 
     public constructor(id: string) {
+        super()
         this.id = id;
     }
 
-    public toString(): string {
+    public override toString(): string {
         return this.id;
     }
 
@@ -23,9 +25,12 @@ export default class ObjectID {
         return new this(UUID.generate());
     }
 
-    public static getDatabaseTransformer(): ValueTransformer {
+    public static override getDatabaseTransformer(): ValueTransformer {
         return {
-            to(value: ObjectID): string {
+            to(value: ObjectID | FindOperator<ObjectID>): string {
+                if (value instanceof FindOperator) {
+                    return value.value.toString();
+                }
                 return value.toString();
             },
             from(value: string): ObjectID {

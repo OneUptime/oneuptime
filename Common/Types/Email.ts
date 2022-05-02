@@ -1,6 +1,7 @@
+import DatabaseProperty from './DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 
-export default class Email {
+export default class Email extends DatabaseProperty {
     private _email: string = '';
     public get email(): string {
         return this._email;
@@ -10,6 +11,7 @@ export default class Email {
     }
 
     public constructor(email: string) {
+        super()
         const re: RegExp =
             /^(([^<>()[\].,;:\s@"]+(.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+.)+[^<>()[\].,;:\s@"]{2,})$/i;
         const isValid: boolean = re.test(email);

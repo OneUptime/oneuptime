@@ -15,10 +15,10 @@ import Exception from 'Common/Types/Exception/Exception';
 import SearchResult from '../Types/DB/SearchResult';
 import Encryption from '../Utils/Encryption';
 import { JSONObject } from 'Common/Types/JSON';
-import SortOrder from '../Types/DB/SortOrder';
 import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import { DataSource, Repository } from 'typeorm';
+import SortOrder from '../Types/DB/SortOrder';
 
 class DatabaseService<TBaseModel extends BaseModel> {
 
@@ -60,6 +60,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     protected encrypt(data: TBaseModel): TBaseModel {
+        
         const iv: Buffer = Encryption.getIV();
         (data as any)['iv'] = iv;
 
@@ -223,9 +224,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async countBy({ query, skip, limit }: CountBy<TBaseModel>): Promise<PositiveNumber> {
+
         try {
+            if (!skip) {
+                skip = new PositiveNumber(0);
+            }
+
+            if (!limit) {
+                limit = new PositiveNumber(Infinity);
+            }
+
             const count: number = await this.getRepository().count({
-                where: query,
+                where: query as any,
                 skip: skip.toNumber(),
                 take: limit.toNumber()
             })
@@ -260,7 +270,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     private async _hardDeleteBy(query: Query<TBaseModel>): Promise<number> {
-        return (await this.getRepository().delete(query)).affected || 0;
+        return (await this.getRepository().delete(query as any)).affected || 0;
     }
 
     private async _deleteBy({
@@ -273,7 +283,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 deletedByUserId,
             });
 
-            let numberOfDocsAffected: number = (await this.getRepository().softDelete(beforeDeleteBy.query)).affected || 0;
+            let numberOfDocsAffected: number = (await this.getRepository().softDelete(beforeDeleteBy.query as any)).affected || 0;
 
             await this.onDeleteSuccess();
             return numberOfDocsAffected;
@@ -283,212 +293,66 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public async getListForViewer({
-        query,
-        skip = new PositiveNumber(0),
-        limit = new PositiveNumber(10),
-        sort,
-        populate,
-        select
-    }: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
-
-        return await this.findBy({
-            query,
-            skip,
-            limit,
-            populate,
-            select,
-            sort,
-        });
+    public async getListForViewer(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+        return await this.findBy(findBy);
     }
 
-    public async getListForAdmin({
-        query,
-        skip = new PositiveNumber(0),
-        limit = new PositiveNumber(10),
-        sort,
-    }: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
-        return await this.findBy({
-            query,
-            skip,
-            limit,
-            populate: this.adminListProps.populate,
-            select: this.adminListProps.select,
-            sort,
-        });
+    public async getListForAdmin(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+        return await this.findBy(findBy);
     }
 
-    public async getListForOwner({
-        query,
-        skip = new PositiveNumber(0),
-        limit = new PositiveNumber(10),
-        sort,
-    }: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
-        return await this.findBy({
-            query,
-            skip,
-            limit,
-            populate: this.ownerListProps.populate,
-            select: this.ownerListProps.select,
-            sort,
-        });
+    public async getListForOwner(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+        return await this.findBy(findBy);
     }
 
-    public async getListForMember({
-        query,
-        skip = new PositiveNumber(0),
-        limit = new PositiveNumber(10),
-        sort,
-    }: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
-        return await this.findBy({
-            query,
-            skip,
-            limit,
-            populate: this.memberListProps.populate,
-            select: this.memberListProps.select,
-            sort,
-        });
+    public async getListForMember(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+        return await this.findBy(findBy);
     }
 
-    public async getListForPublic({
-        query,
-        skip = new PositiveNumber(0),
-        limit = new PositiveNumber(10),
-        sort,
-    }: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
-        return await this.findBy({
-            query,
-            skip,
-            limit,
-            populate: this.publicListProps.populate,
-            select: this.publicListProps.select,
-            sort,
-        });
+    public async getListForPublic(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+        return await this.findBy(findBy);
     }
 
-    public async getItemForViewer({
-        query,
-        sort,
-        populate,
-        select
-    }: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
-        return await this.findOneBy({
-            query,
-            populate,
-            select,
-            sort,
-        });
+    public async getItemForViewer(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+        return await this.findOneBy(findOneBy);
     }
 
-    public async getItemForAdmin({
-        query,
-        sort,
-        populate,
-        select,
-    }: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
-        return await this.findOneBy({
-            query,
-            populate,
-            select,
-            sort,
-        });
+    public async getItemForAdmin(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+        return await this.findOneBy(findOneBy);
     }
 
-    public async getItemForMember({
-        query,
-        sort,
-        populate,
-        select,
-    }: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
-        return await this.findOneBy({
-            query,
-            populate,
-            select,
-            sort,
-        });
+    public async getItemForMember(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+        return await this.findOneBy(findOneBy);
     }
 
-    public async getItemForOwner({
-        query,
-        sort,
-        populate,
-        select,
-    }: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
-        return await this.findOneBy({
-            query,
-            populate,
-            select,
-            sort,
-        });
+    public async getItemForOwner(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+        return await this.findOneBy(findOneBy);
     }
 
-    public async getItemForPublic({
-        query,
-        sort,
-        populate,
-        select,
-    }: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
-        return await this.findOneBy({
-            query,
-            populate,
-            select,
-            sort,
-        });
+    public async getItemForPublic(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+        return await this.findOneBy(findOneBy);
     }
 
-    public async findBy({
-        query,
-        skip = new PositiveNumber(0),
-        limit = new PositiveNumber(10),
-        populate,
-        select,
-        sort,
-    }: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
-        return await this._findBy({
-            query,
-            skip,
-            limit,
-            populate,
-            select,
-            sort,
-        });
+    public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+        return await this._findBy(findBy);
     }
 
-    private async _findBy({
-        query,
-        skip = new PositiveNumber(0),
-        limit = new PositiveNumber(10),
-        populate,
-        select,
-        sort,
-    }: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+    private async _findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
         try {
-            const onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind({
-                query,
-                skip,
-                limit,
-                populate,
-                select,
-                sort,
-            });
+            const onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(findBy);
 
             if (!onBeforeFind.sort) {
-                onBeforeFind.sort = [
-                    {
-                        createdAt: SortOrder.Descending,
-                    },
-                ];
+                onBeforeFind.sort = {
+                    createdAt: SortOrder.Ascending
+                }
             }
 
-            //convert populate to dbpopulate
-
             const items: Array<TBaseModel> = await this.getRepository().find({
-                skip: skip.toNumber(),
-                take: limit.toNumber(),
-                where: query,
-                order: sort,
-                relations: populate,
-                select: select
+                skip: onBeforeFind.skip.toNumber(),
+                take: onBeforeFind.limit.toNumber(),
+                where: onBeforeFind.query as any,
+                order: onBeforeFind.sort as any, 
+                relations: onBeforeFind.populate as any
             });
 
             const decryptedItems: Array<TBaseModel> = [];
@@ -506,24 +370,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public async findOneBy({
-        query,
-        populate,
-        select = {
-            _id: true
-        },
-        sort = {
-            createdAt: SortOrder.Ascending
-        },
-    }: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
-        const documents: Array<TBaseModel> = await this._findBy({
-            query,
-            skip: new PositiveNumber(0),
-            limit: new PositiveNumber(1),
-            populate,
-            select,
-            sort
-        });
+    public async findOneBy(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+
+        const findBy: FindBy<TBaseModel> = findOneBy as FindBy<TBaseModel>;
+        findBy.limit = new PositiveNumber(1);
+        findBy.skip = new PositiveNumber(0);
+
+        const documents: Array<TBaseModel> = await this._findBy(findBy);
 
         if (documents && documents[0]) {
             return documents[0];
@@ -542,7 +395,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data,
             });
 
-            let numberOfDocsAffected: number = (await this.getRepository().update(beforeUpdateBy.query, beforeUpdateBy.data)).affected || 0;
+            let numberOfDocsAffected: number = (await this.getRepository().update(beforeUpdateBy.query as any, beforeUpdateBy.data)).affected || 0;
 
             await this.onUpdateSuccess();
 

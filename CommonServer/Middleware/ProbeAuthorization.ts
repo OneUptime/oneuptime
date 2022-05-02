@@ -123,6 +123,7 @@ export default {
                     LocalCache.getModel<Probe>('probe', probeName)
                 ).id
         } else {
+
             const probe: Probe | null = await ProbeService.findOneBy({
                 query: {
                     name: probeName,
@@ -153,14 +154,13 @@ export default {
 
         if (!probeId) {
             //Create a new probe.
-            const probe: Probe = await ProbeService.create({
-                data: {
-                    key: probeKey
-                        ? probeKey
-                        : ObjectID.generate(),
-                    name: probeName,
-                    probeVersion: probeVersion,
-                },
+            let probe: Probe = new Probe();
+            probe.name = probeName; 
+            probe.probeVersion = probeVersion; 
+            probe.key = probeKey;
+            
+            probe = await ProbeService.create({
+                data: probe
             });
 
             probeId = probe.id;

@@ -19,7 +19,7 @@ export default class Probe extends BaseModel {
         type: 'text',
         nullable: false,
         unique: true, 
-        transformer: ObjectID.getDatabaseTransformer()
+        // transformer: ObjectID.getDatabaseTransformer()
     })
     public key!: ObjectID;
 
@@ -41,12 +41,12 @@ export default class Probe extends BaseModel {
     public lastAlive!: Date;
 
     @Column({ nullable: true })
-    public icon!: string;
+    public icon?: string;
 
     // If this probe is custom to the project and only monitoring reosurces in this project.
     @Column({ nullable: true })
     public project?: Project;
 
     @Column({ nullable: true })
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }
