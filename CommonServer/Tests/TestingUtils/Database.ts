@@ -1,5 +1,5 @@
 import PostgresDatabase, { DataSourceOptions} from '../../Infrastructure/PostgresDatabase';
-import { dropDatabase, createDatabase } from 'typeorm-extension';
+import { createDatabase, dropDatabase } from 'typeorm-extension';
 
 export default class DatabaseConnect {
     public static async createAndConnect() {
@@ -27,6 +27,9 @@ export default class DatabaseConnect {
     }
 
     public static async dropDatabase() {
-        await PostgresDatabase.getDataSource()?.dropDatabase();
+        await dropDatabase({
+            options: DataSourceOptions,
+            ifExist: true
+        });
     }
 }

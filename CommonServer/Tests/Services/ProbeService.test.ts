@@ -29,6 +29,6 @@ describe('ProbeService', () => {
     });
 
     afterAll(async () => {
-        await Database.disconnectAndDropDatabase(); 
+        await Database.disconnectAndDropDatabase();
     });
 });

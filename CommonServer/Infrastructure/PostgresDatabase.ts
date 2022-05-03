@@ -42,7 +42,7 @@ export default class Database {
     }
 
     public static async disconnect(): Promise<void> {
-        if (!this.getDataSource()) {
+        if (this.getDataSource()) {
             await this.getDataSource()?.destroy();
             this.dataSource = null;
         }
