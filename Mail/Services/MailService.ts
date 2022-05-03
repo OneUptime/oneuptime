@@ -5,8 +5,8 @@ import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
 import Mail from '../Types/Mail';
 import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
-import EmailSmtpService from 'CommonServer/Services/SmtpService';
-import EmailStatusService from 'CommonServer/Services/EmailStatusService';
+import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
+import EmailLogService from 'CommonServer/Services/EmailLogService';
 import Path from 'path';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -19,9 +19,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import TaskStatus from 'Common/Types/TaskStatus';
 import Hostname from 'Common/Types/API/Hostname';
 import Exception from 'Common/Types/Exception/Exception';
-import { Document } from 'CommonServer/Infrastructure/ORM';
 import Select from 'CommonServer/Types/DB/Select';
-import Query from 'CommonServer/Types/DB/Query';
 
 export default class MailService {
     private static async getGlobalSmtpSettings(): Promise<MailServer> {
@@ -106,7 +104,7 @@ export default class MailService {
             'secure',
         ];
 
-        const projectSmtp: Document | null = await EmailSmtpService.findOneBy({
+        const projectSmtp: Document | null = await ProjectSmtpConfigService.findOneBy({
             query: new Query()
                 .equalTo('projectId', projectId)
                 .equalTo('enabled', true),
@@ -138,10 +136,10 @@ export default class MailService {
 
         let templateData: string;
         if (LocalCache.hasValue('email-templates', emailTemplateType)) {
-            templateData = LocalCache.get(
+            templateData = LocalCache.getString(
                 'email-templates',
                 emailTemplateType
-            ) as string;
+            );
         } else {
             templateData = await fsp.readFile(
                 Path.resolve(
@@ -151,7 +149,7 @@ export default class MailService {
                 ),
                 { encoding: 'utf8', flag: 'r' }
             );
-            LocalCache.set(
+            LocalCache.setString(
                 'email-templates',
                 emailTemplateType,
                 templateData as string
@@ -216,7 +214,7 @@ export default class MailService {
         projectId?: ObjectID;
         errorDescription?: string;
     }): Promise<void> {
-        await EmailStatusService.create({
+        await EmailLogService.create({
             data: {
                 fromEmail: data.fromEmail?.toString() || null,
                 fromName: data.fromName || null,

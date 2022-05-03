@@ -9,6 +9,10 @@ export default abstract class LocalCache {
         this.cache[namespace + '.' + key] = value;
     }
 
+    public static setString(namespace: string, key: string, value: string): void {
+        this.cache[namespace + '.' + key] = value;
+    }
+
     public static setModel(namespace: string, key: string, value: BaseModel): void {
         this.cache[namespace + '.' + key] = value;
     }
@@ -19,6 +23,10 @@ export default abstract class LocalCache {
 
     public static getJSON(namespace: string, key: string): JSONValue {
         return this.cache[namespace + '.' + key] as JSONValue;
+    }
+
+    public static getString(namespace: string, key: string): string {
+        return this.cache[namespace + '.' + key] as string;
     }
 
     public static hasValue(namespace: string, key: string): boolean {
