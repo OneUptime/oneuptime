@@ -29,6 +29,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public addEncryptedColumn(columnName: string): void {
+        if (!this.encryptedColumns) {
+            this.encryptedColumns = new Columns([]);
+        }
         this.encryptedColumns.addColumn(columnName);
     }
 
@@ -41,6 +44,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public addOwnerAccessibleColumn(columnName: string): void {
+        if (!this.ownerAccessibleColumns) {
+            this.ownerAccessibleColumns = new Columns([]);
+        }
         this.ownerAccessibleColumns.addColumn(columnName);
     }
 
@@ -49,10 +55,16 @@ export default class BaseModel extends BaseEntity {
     }
 
     public addPublicAccessibleColumn(columnName: string): void {
+        if (!this.publicAccessibleColumns) {
+            this.publicAccessibleColumns = new Columns([]);
+        }
         this.publicAccessibleColumns.addColumn(columnName);
     }
 
     public addAdminAccessibleColumn(columnName: string): void {
+        if (!this.adminAccessibleColumns) {
+            this.adminAccessibleColumns = new Columns([]);
+        }
         this.adminAccessibleColumns.addColumn(columnName);
     }
 
@@ -61,6 +73,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public addMemberAccessibleColumn(columnName: string): void {
+        if (!this.memberAccessibleColumns) {
+            this.memberAccessibleColumns = new Columns([]);
+        }
         this.memberAccessibleColumns.addColumn(columnName);
     }
 
@@ -69,6 +84,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public addViewerAccessibleColumn(columnName: string): void {
+        if (!this.viewerAccessibleColumns) {
+            this.viewerAccessibleColumns = new Columns([]);
+        }
         this.viewerAccessibleColumns.addColumn(columnName);
     }
 
@@ -81,6 +99,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public addUniqueColumn(columnName: string): void {
+        if (!this.uniqueColumns) {
+            this.uniqueColumns = new Columns([]);
+        }
         this.uniqueColumns.addColumn(columnName);
     }
 
@@ -89,6 +110,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public addRequiredColumn(columnName: string): void {
+        if (!this.requiredColumns) {
+            this.requiredColumns = new Columns([]);
+        }
         this.requiredColumns.addColumn(columnName);
     }
 

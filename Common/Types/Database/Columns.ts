@@ -1,5 +1,5 @@
 export default class Columns {
-    private _columns!: Array<string>;
+    private _columns: Array<string> = [];
     public get columns(): Array<string> {
         return this._columns;
     }
