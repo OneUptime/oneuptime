@@ -1,3 +1,4 @@
+import '../TestingUtils/Init';
 import ProbeService from '../../Services/ProbeService';
 import Probe from 'Common/Models/Probe';
 import Database from '../TestingUtils/Database';
@@ -5,9 +6,11 @@ import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 
 describe('ProbeService', () => {
+
     beforeAll(async () => {
-        await Database.connect();
-    })
+        await Database.createAndConnect();
+    });
+
     test('create a new probe', async () => {
 
         const probe: Probe = new Probe();
@@ -18,8 +21,14 @@ describe('ProbeService', () => {
 
         expect(savedProbe.name).toEqual(probe.name);
         expect(savedProbe.probeVersion.toString()).toEqual(probe.probeVersion.toString());
-        expect(probe.id).toBeTruthy();
+        expect(probe.createdAt).toBeTruthy();
+        expect(probe.version).toBeTruthy();
+        expect(probe._id).toBeTruthy();
         expect(probe.key.toString()).toEqual(probe.key.toString());
 
+    });
+
+    afterAll(async () => {
+        await Database.disconnectAndDropDatabase(); 
     });
 });

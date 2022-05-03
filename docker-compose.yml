@@ -188,21 +188,7 @@ services:
             - ./ApiDocs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-    init-script:
-        image: oneuptime/init-script:latest
-        ports:
-            - '1447:1447'
-        env_file:
-            - ./InitScript/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - NODE_ENV=${NODE_ENV}
-        depends_on:
-            - redis
-    ##IMPORTANT:
-    ## This container is an SMTP server used to send emails.
-    ## Setup private, tls_cert and tls_key keys before running this part
+   
     haraka:
         ports:
             - '2525:2525'

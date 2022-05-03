@@ -29,7 +29,7 @@ services:
             - POSTGRES_USER=postgres
             - POSTGRES_PASSWORD=postgres
         ports:
-            - '5432:5432'
+            - '5400:5432'
         volumes: 
             - postgres:/var/lib/postgresql/data
     
@@ -195,31 +195,7 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
 
-    init-script:
-        build:
-            network: host
-            context: .
-            dockerfile: ./InitScript/Dockerfile.dev
-        ports:
-            - '1447:1447'
-            - '9237:9229' # Debugging port.
-        env_file:
-            - ./InitScript/.env
-        environment:
-
-            - REDIS_HOST=redis
-            - REDIS_PORT=6379
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - NODE_ENV=development
-        depends_on:
-
-            - redis
-        volumes:
-            - ./init-script:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-
+   
     script-runner:
         ports:
             - '3009:3009'

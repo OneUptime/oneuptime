@@ -7,7 +7,7 @@ export const DatabaseHost: Hostname = new Hostname(
     process.env['DATABASE_HOST'] || ''
 );
 
-export const DatabasePort: Port = new Port(process.env['DATABASE_Port'] || '');
+export const DatabasePort: Port = new Port(process.env['DATABASE_PORT'] || '');
 
 export const DatabaseUsername: string =
     process.env['DATABASE_USERNAME'] || 'oneuptimedbuser';
@@ -43,9 +43,10 @@ export const DataIngestorHostname: Hostname = new Hostname(
     process.env['DATA_INGESTOR_HOSTNAME'] || ''
 );
 
-export const Version: string = process.env['npm_package_version'] || '';
+export const Env: string = 
+    process.env['NODE_ENV'] || ''
 
-export const Env: string = process.env['NODE_ENV'] || '';
+export const Version: string = process.env['npm_package_version'] || '';
 
 export const HttpProtocol: Protocol = (
     process.env['HTTP_PROTOCOL'] || ''

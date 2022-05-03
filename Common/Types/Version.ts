@@ -1,3 +1,4 @@
+import { FindOperator } from 'typeorm';
 import DatabaseProperty from './DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 
@@ -23,5 +24,13 @@ export default class Version extends DatabaseProperty {
 
     public override toString(): string {
         return this.version;
+    }
+
+    protected static override toDatabase(_value: Version | FindOperator<Version>): string {
+        return _value.toString();
+    }
+
+    protected static override fromDatabase(_value: string): Version {
+        return new Version(_value);
     }
 }

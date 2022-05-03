@@ -19,7 +19,7 @@ export default class Probe extends BaseModel {
         type: 'text',
         nullable: false,
         unique: true, 
-        // transformer: ObjectID.getDatabaseTransformer()
+        transformer: ObjectID.getDatabaseTransformer()
     })
     public key!: ObjectID;
 
@@ -33,7 +33,11 @@ export default class Probe extends BaseModel {
     public slug!: string;
 
     @RequiredColumn()
-    @Column({ nullable: false })
+    @Column({
+        nullable: false,
+        type: "text",
+        transformer: Version.getDatabaseTransformer()
+    })
     public probeVersion!: Version;
 
     @RequiredColumn()

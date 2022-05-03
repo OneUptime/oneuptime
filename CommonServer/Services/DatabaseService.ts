@@ -11,6 +11,7 @@ import UpdateBy from '../Types/DB/UpdateBy';
 import Query from '../Types/DB/Query';
 import CreateBy from '../Types/DB/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 import Exception from 'Common/Types/Exception/Exception';
 import SearchResult from '../Types/DB/SearchResult';
 import Encryption from '../Utils/Encryption';
@@ -31,8 +32,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public getRepository(): Repository<TBaseModel> {
-        const dataSource: DataSource = PostgresDatabase.getDataSource();
-        return dataSource.getRepository<TBaseModel>(this.entityName);
+        const dataSource: DataSource | null = PostgresDatabase.getDataSource();
+        if (dataSource) {
+            return dataSource.getRepository<TBaseModel>(this.entityName);
+        } else {
+            throw new DatabaseNotConnectedException()
+        }
     }
 
     protected isValid(data: TBaseModel): boolean {
@@ -60,7 +65,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     protected encrypt(data: TBaseModel): TBaseModel {
-        
+
         const iv: Buffer = Encryption.getIV();
         (data as any)['iv'] = iv;
 
@@ -203,20 +208,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         try {
 
-            for (const key in data) {
-                (data as any)(key, data[key]);
-            }
-
             if (data.getSlugifyColumn()) {
                 (data as any)['slug'] =
                     Slug.getSlug(
                         (data as any)[data.getSlugifyColumn() as string] as string
                     )
             }
+            const savedData = await this.getRepository().create(data);
+            await this.onCreateSuccess(savedData);
+            return savedData;
 
-            await this.onCreateSuccess(data);
-
-            return await data.save();
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
@@ -351,7 +352,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
                 where: onBeforeFind.query as any,
-                order: onBeforeFind.sort as any, 
+                order: onBeforeFind.sort as any,
                 relations: onBeforeFind.populate as any
             });
 

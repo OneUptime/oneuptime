@@ -1,5 +1,5 @@
 // This is for Object ID for all the things in our database.
-import { FindOperator, ValueTransformer } from 'typeorm';
+import { FindOperator } from 'typeorm';
 import UUID from '../Utils/UUID';
 import DatabaseProperty from './DatabaseProperty';
 
@@ -25,17 +25,11 @@ export default class ObjectID extends DatabaseProperty {
         return new this(UUID.generate());
     }
 
-    public static override getDatabaseTransformer(): ValueTransformer {
-        return {
-            to(value: ObjectID | FindOperator<ObjectID>): string {
-                if (value instanceof FindOperator) {
-                    return value.value.toString();
-                }
-                return value.toString();
-            },
-            from(value: string): ObjectID {
-                return new ObjectID(value);
-            }
-        };
+    protected static override toDatabase(_value: ObjectID | FindOperator<ObjectID>): string {
+        return _value.toString();
+    }
+
+    protected static override fromDatabase(_value: string): ObjectID {
+        return new ObjectID(_value);
     }
 }
