@@ -12,7 +12,6 @@ import Project from './Project';
     name: 'ResourceStatus',
 })
 export default class ResourceStatus extends BaseModel {
-    
     @Column()
     public project!: Project;
 

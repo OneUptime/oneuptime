@@ -8,7 +8,6 @@ import StatusPage from './StatusPage';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public statusPage!: StatusPage;
 

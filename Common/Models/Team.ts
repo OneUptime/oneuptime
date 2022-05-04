@@ -8,7 +8,6 @@ import Project from './Project';
     name: 'Team',
 })
 export default class Team extends BaseModel {
-    
     @Column()
     @Index()
     public project!: Project;

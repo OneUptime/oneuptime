@@ -8,7 +8,6 @@ import Component from './Component';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public component!: Component;
 

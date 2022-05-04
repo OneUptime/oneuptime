@@ -7,7 +7,6 @@ import Project from './Project';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public project!: Project;
 

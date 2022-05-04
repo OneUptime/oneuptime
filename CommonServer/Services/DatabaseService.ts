@@ -20,14 +20,12 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import { DataSource, Repository } from 'typeorm';
 import SortOrder from '../Types/DB/SortOrder';
+import HardDeleteBy from '../Types/DB/HardDeleteBy';
 
 class DatabaseService<TBaseModel extends BaseModel> {
-
     public entityName!: string;
 
-    public constructor(
-        type: { new(): TBaseModel; },
-    ) {
+    public constructor(type: { new (): TBaseModel }) {
         this.entityName = type.name;
     }
 
@@ -35,9 +33,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         const dataSource: DataSource | null = PostgresDatabase.getDataSource();
         if (dataSource) {
             return dataSource.getRepository<TBaseModel>(this.entityName);
-        } else {
-            throw new DatabaseNotConnectedException()
         }
+        throw new DatabaseNotConnectedException();
     }
 
     protected isValid(data: TBaseModel): boolean {
@@ -52,20 +49,20 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // Check required fields.
 
         for (const requiredField of data.getRequiredColumns().columns) {
-
             if (!(data as any)[requiredField]) {
                 throw new BadDataException(`${requiredField} is required`);
             }
         }
     }
 
-    protected async onBeforeCreate({ data }: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
+    protected async onBeforeCreate({
+        data,
+    }: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
         // A place holder method used for overriding.
         return Promise.resolve({ data } as CreateBy<TBaseModel>);
     }
 
     protected encrypt(data: TBaseModel): TBaseModel {
-
         const iv: Buffer = Encryption.getIV();
         (data as any)['iv'] = iv;
 
@@ -84,7 +81,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (data as any)[key] = dataObj;
             } else {
                 //If its string or other type.
-                (data as any)[key] = Encryption.encrypt((data as any)[key] as string, iv);
+                (data as any)[key] = Encryption.encrypt(
+                    (data as any)[key] as string,
+                    iv
+                );
             }
         }
 
@@ -92,7 +92,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     protected decrypt(data: TBaseModel): TBaseModel {
-
         const iv: Buffer = (data as any)['iv'];
 
         for (const key of data.getEncryptedColumns().columns) {
@@ -117,22 +116,30 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return data;
     }
 
-    protected async onBeforeDelete(deleteBy: DeleteBy<TBaseModel>): Promise<DeleteBy<TBaseModel>> {
+    protected async onBeforeDelete(
+        deleteBy: DeleteBy<TBaseModel>
+    ): Promise<DeleteBy<TBaseModel>> {
         // A place holder method used for overriding.
         return Promise.resolve(deleteBy);
     }
 
-    protected async onBeforeUpdate(updateBy: UpdateBy<TBaseModel>): Promise<UpdateBy<TBaseModel>> {
+    protected async onBeforeUpdate(
+        updateBy: UpdateBy<TBaseModel>
+    ): Promise<UpdateBy<TBaseModel>> {
         // A place holder method used for overriding.
         return Promise.resolve(updateBy);
     }
 
-    protected async onBeforeFind(findBy: FindBy<TBaseModel>): Promise<FindBy<TBaseModel>> {
+    protected async onBeforeFind(
+        findBy: FindBy<TBaseModel>
+    ): Promise<FindBy<TBaseModel>> {
         // A place holder method used for overriding.
         return Promise.resolve(findBy);
     }
 
-    protected async onCreateSuccess(createdItem: TBaseModel): Promise<TBaseModel> {
+    protected async onCreateSuccess(
+        createdItem: TBaseModel
+    ): Promise<TBaseModel> {
         // A place holder method used for overriding.
         return Promise.resolve(createdItem);
     }
@@ -207,25 +214,29 @@ class DatabaseService<TBaseModel extends BaseModel> {
         data = this.encrypt(data);
 
         try {
-
             if (data.getSlugifyColumn()) {
-                (data as any)['slug'] =
+                (data as any)[data.getSaveSlugToColumn() as string] =
                     Slug.getSlug(
-                        (data as any)[data.getSlugifyColumn() as string] as string
-                    )
+                        (data as any)[
+                            data.getSlugifyColumn() as string
+                        ] as string
+                    );
             }
-            const savedData = await this.getRepository().create(data);
+
+            const savedData = await this.getRepository().save(data);
             await this.onCreateSuccess(savedData);
             return savedData;
-
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
     }
 
-    public async countBy({ query, skip, limit }: CountBy<TBaseModel>): Promise<PositiveNumber> {
-
+    public async countBy({
+        query,
+        skip,
+        limit,
+    }: CountBy<TBaseModel>): Promise<PositiveNumber> {
         try {
             if (!skip) {
                 skip = new PositiveNumber(0);
@@ -238,8 +249,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const count: number = await this.getRepository().count({
                 where: query as any,
                 skip: skip.toNumber(),
-                take: limit.toNumber()
-            })
+                take: limit.toNumber(),
+            });
             let countPositive: PositiveNumber = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
             return countPositive;
@@ -249,42 +260,48 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public async deleteOneBy({
-        query,
-        deletedByUserId,
-    }: DeleteOneBy<TBaseModel>): Promise<number> {
-        return await this._deleteBy({
-            query,
-            deletedByUserId,
-        });
+    public async deleteOneBy(
+        deleteOneBy: DeleteOneBy<TBaseModel>
+    ): Promise<number> {
+        return await this._deleteBy(deleteOneBy);
     }
 
-    public async deleteBy({ query, deletedByUserId }: DeleteBy<TBaseModel>): Promise<number> {
-        return await this._deleteBy({
-            query,
-            deletedByUserId,
-        });
+    public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
+        return await this._deleteBy(deleteBy);
     }
 
-    public async hardDeleteBy(query: Query<TBaseModel>): Promise<number> {
-        return await this._hardDeleteBy(query);
+    public async hardDeleteBy(
+        hardDeleteBy: HardDeleteBy<TBaseModel>
+    ): Promise<number> {
+        return await this._hardDeleteBy(hardDeleteBy);
     }
 
-    private async _hardDeleteBy(query: Query<TBaseModel>): Promise<number> {
-        return (await this.getRepository().delete(query as any)).affected || 0;
+    private async _hardDeleteBy(
+        hardDeleteBy: HardDeleteBy<TBaseModel>
+    ): Promise<number> {
+        return (
+            (await this.getRepository().delete(hardDeleteBy.query as any))
+                .affected || 0
+        );
     }
 
-    private async _deleteBy({
-        query,
-        deletedByUserId,
-    }: DeleteBy<TBaseModel>): Promise<number> {
+    private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
-            const beforeDeleteBy: DeleteBy<TBaseModel> = await this.onBeforeDelete({
-                query,
-                deletedByUserId,
-            });
+            const beforeDeleteBy: DeleteBy<TBaseModel> =
+                await this.onBeforeDelete(deleteBy);
 
-            let numberOfDocsAffected: number = (await this.getRepository().softDelete(beforeDeleteBy.query as any)).affected || 0;
+            this._updateBy({
+                query: deleteBy.query,
+                data: {
+                    deletedByUser: deleteBy.deletedByUser,
+                } as any,
+            });
+            const numberOfDocsAffected: number =
+                (
+                    await this.getRepository().softDelete(
+                        beforeDeleteBy.query as any
+                    )
+                ).affected || 0;
 
             await this.onDeleteSuccess();
             return numberOfDocsAffected;
@@ -294,66 +311,92 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public async getListForViewer(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+    public async getListForViewer(
+        findBy: FindBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
         return await this.findBy(findBy);
     }
 
-    public async getListForAdmin(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+    public async getListForAdmin(
+        findBy: FindBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
         return await this.findBy(findBy);
     }
 
-    public async getListForOwner(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+    public async getListForOwner(
+        findBy: FindBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
         return await this.findBy(findBy);
     }
 
-    public async getListForMember(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+    public async getListForMember(
+        findBy: FindBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
         return await this.findBy(findBy);
     }
 
-    public async getListForPublic(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+    public async getListForPublic(
+        findBy: FindBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
         return await this.findBy(findBy);
     }
 
-    public async getItemForViewer(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+    public async getItemForViewer(
+        findOneBy: FindOneBy<TBaseModel>
+    ): Promise<TBaseModel | null> {
         return await this.findOneBy(findOneBy);
     }
 
-    public async getItemForAdmin(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+    public async getItemForAdmin(
+        findOneBy: FindOneBy<TBaseModel>
+    ): Promise<TBaseModel | null> {
         return await this.findOneBy(findOneBy);
     }
 
-    public async getItemForMember(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+    public async getItemForMember(
+        findOneBy: FindOneBy<TBaseModel>
+    ): Promise<TBaseModel | null> {
         return await this.findOneBy(findOneBy);
     }
 
-    public async getItemForOwner(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+    public async getItemForOwner(
+        findOneBy: FindOneBy<TBaseModel>
+    ): Promise<TBaseModel | null> {
         return await this.findOneBy(findOneBy);
     }
 
-    public async getItemForPublic(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
+    public async getItemForPublic(
+        findOneBy: FindOneBy<TBaseModel>
+    ): Promise<TBaseModel | null> {
         return await this.findOneBy(findOneBy);
     }
 
-    public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+    public async findBy(
+        findBy: FindBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
         return await this._findBy(findBy);
     }
 
-    private async _findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
+    private async _findBy(
+        findBy: FindBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
         try {
-            const onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(findBy);
-
-            if (!onBeforeFind.sort) {
-                onBeforeFind.sort = {
-                    createdAt: SortOrder.Ascending
-                }
+            if (!findBy.sort) {
+                findBy.sort = {
+                    createdAt: SortOrder.Descending,
+                };
             }
+
+            const onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
+                findBy
+            );
 
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
                 where: onBeforeFind.query as any,
                 order: onBeforeFind.sort as any,
-                relations: onBeforeFind.populate as any
+                relations: onBeforeFind.populate as any,
             });
 
             const decryptedItems: Array<TBaseModel> = [];
@@ -371,8 +414,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public async findOneBy(findOneBy: FindOneBy<TBaseModel>): Promise<TBaseModel | null> {
-
+    public async findOneBy(
+        findOneBy: FindOneBy<TBaseModel>
+    ): Promise<TBaseModel | null> {
         const findBy: FindBy<TBaseModel> = findOneBy as FindBy<TBaseModel>;
         findBy.limit = new PositiveNumber(1);
         findBy.skip = new PositiveNumber(0);
@@ -387,16 +431,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _updateBy({
         query,
-        data
+        data,
     }: UpdateBy<TBaseModel>): Promise<number> {
         try {
+            const beforeUpdateBy: UpdateBy<TBaseModel> =
+                await this.onBeforeUpdate({
+                    query,
+                    data,
+                });
 
-            const beforeUpdateBy: UpdateBy<TBaseModel> = await this.onBeforeUpdate({
-                query,
-                data,
-            });
-
-            let numberOfDocsAffected: number = (await this.getRepository().update(beforeUpdateBy.query as any, beforeUpdateBy.data)).affected || 0;
+            const numberOfDocsAffected: number =
+                (
+                    await this.getRepository().update(
+                        beforeUpdateBy.query as any,
+                        beforeUpdateBy.data
+                    )
+                ).affected || 0;
 
             await this.onUpdateSuccess();
 
@@ -407,11 +457,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public async updateOneBy({ query, data }: UpdateOneBy<TBaseModel>): Promise<number> {
+    public async updateOneBy({
+        query,
+        data,
+    }: UpdateOneBy<TBaseModel>): Promise<number> {
         return await this._updateBy({ query, data });
     }
 
-    public async updateBy({ query, data }: UpdateBy<TBaseModel>): Promise<number> {
+    public async updateBy({
+        query,
+        data,
+    }: UpdateBy<TBaseModel>): Promise<number> {
         return await this._updateBy({ query, data });
     }
 
@@ -421,9 +477,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         select,
         populate,
     }: SearchBy<TBaseModel>): Promise<SearchResult<TBaseModel>> {
-        const query: Query<TBaseModel> = {
-
-        }
+        const query: Query<TBaseModel> = {};
 
         // query[column] = RegExp(`^${text}`, 'i');
 
@@ -436,7 +490,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     select,
                     populate,
                 }),
-                this.countBy({ query, skip: new PositiveNumber(0), limit: new PositiveNumber(Infinity) }),
+                this.countBy({
+                    query,
+                    skip: new PositiveNumber(0),
+                    limit: new PositiveNumber(Infinity),
+                }),
             ]);
 
         return { items, count };

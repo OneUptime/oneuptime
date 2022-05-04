@@ -10,7 +10,6 @@ import OnCallDutySchedule from './OnCallDutySchedule';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public project!: Project;
 

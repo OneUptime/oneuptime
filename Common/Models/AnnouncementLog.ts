@@ -10,7 +10,6 @@ import Project from './Project';
     name: 'AnnouncementLog',
 })
 export default class AnnouncementLog extends BaseModel {
-    
     @Column()
     public announcement!: Announcement;
 

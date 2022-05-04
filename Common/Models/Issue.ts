@@ -14,7 +14,6 @@ export enum IssueType {
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public name!: string;
 

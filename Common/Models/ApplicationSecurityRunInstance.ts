@@ -8,7 +8,6 @@ import ApplicationSecurity from './ApplicationSecurity';
     name: 'ApplicationSecurityRunInstance',
 })
 export default class ApplicationSecurityRunInstance extends BaseModel {
-    
     @Column()
     public security!: ApplicationSecurity;
 

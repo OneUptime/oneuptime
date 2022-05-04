@@ -1,4 +1,4 @@
-import DatabaseProperty from './DatabaseProperty';
+import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 
 export default class Email extends DatabaseProperty {
@@ -11,7 +11,7 @@ export default class Email extends DatabaseProperty {
     }
 
     public constructor(email: string) {
-        super()
+        super();
         const re: RegExp =
             /^(([^<>()[\].,;:\s@"]+(.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+.)+[^<>()[\].,;:\s@"]{2,})$/i;
         const isValid: boolean = re.test(email);

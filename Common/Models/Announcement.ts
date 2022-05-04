@@ -9,7 +9,6 @@ import StatusPage from './StatusPage';
     name: 'Announcement',
 })
 export default class Announcement extends BaseModel {
-    
     @Column()
     public statusPage!: StatusPage;
 

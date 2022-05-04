@@ -8,7 +8,6 @@ import User from './User';
     name: 'TeamMember',
 })
 export default class TeamMember extends BaseModel {
-    
     @Column()
     @Index()
     public team!: Team;

@@ -11,7 +11,6 @@ import OnCallDutySchedule from './OnCallDutySchedule';
     name: 'UserAlerts',
 })
 export default class UserAlerts extends BaseModel {
-    
     @Column({
         nullable: false,
     })

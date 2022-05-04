@@ -13,7 +13,6 @@ export enum SMSProviderType {
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public project!: Project;
 

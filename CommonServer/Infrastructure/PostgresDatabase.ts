@@ -8,7 +8,6 @@ import {
     Env,
 } from '../Config';
 
-
 import Entities from 'Common/Models/Index';
 import AppEnvironment from 'Common/Types/AppEnvironment';
 import DatabaseType from 'Common/Types/DatabaseType';
@@ -21,7 +20,8 @@ export const DataSourceOptions = {
     password: DatabasePassword,
     database: DatabaseName,
     entities: Entities,
-    synchronize: Env === AppEnvironment.Test || Env === AppEnvironment.Development
+    synchronize:
+        Env === AppEnvironment.Test || Env === AppEnvironment.Development,
 };
 
 const PostgresDataSource: DataSource = new DataSource(DataSourceOptions);

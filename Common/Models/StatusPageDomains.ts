@@ -9,7 +9,6 @@ import DomainVerificationToken from './DomainVerificationToken';
     name: 'StatusPageDomains',
 })
 export default class StatusPageDomains extends BaseModel {
-    
     @Column()
     public statusPage!: StatusPage;
 

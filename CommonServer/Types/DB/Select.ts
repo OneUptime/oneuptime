@@ -1,8 +1,10 @@
-import BaseModel from "Common/Models/BaseModel";
-import DatabaseProperty from "Common/Types/DatabaseProperty";
-import { FindOptionsSelectProperty } from "typeorm";
+import BaseModel from 'Common/Models/BaseModel';
+import DatabaseProperty from 'Common/Types/DatabaseProperty';
+import { FindOptionsSelectProperty } from 'typeorm';
 
-export type SelectPropertyOptions<Property> = Property extends DatabaseProperty ? boolean : FindOptionsSelectProperty<Property>;
+export type SelectPropertyOptions<Property> = Property extends DatabaseProperty
+    ? boolean
+    : FindOptionsSelectProperty<Property>;
 
 /**
  * Select find options.

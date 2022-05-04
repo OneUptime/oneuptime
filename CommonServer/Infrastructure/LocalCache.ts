@@ -5,19 +5,34 @@ import { JSONValue } from 'Common/Types/JSON';
 export default abstract class LocalCache {
     private static cache: Dictionary<JSONValue | BaseModel> = {};
 
-    public static setJSON(namespace: string, key: string, value: JSONValue): void {
+    public static setJSON(
+        namespace: string,
+        key: string,
+        value: JSONValue
+    ): void {
         this.cache[namespace + '.' + key] = value;
     }
 
-    public static setString(namespace: string, key: string, value: string): void {
+    public static setString(
+        namespace: string,
+        key: string,
+        value: string
+    ): void {
         this.cache[namespace + '.' + key] = value;
     }
 
-    public static setModel(namespace: string, key: string, value: BaseModel): void {
+    public static setModel(
+        namespace: string,
+        key: string,
+        value: BaseModel
+    ): void {
         this.cache[namespace + '.' + key] = value;
     }
 
-    public static getModel<TBaseModel extends BaseModel>(namespace: string, key: string): TBaseModel {
+    public static getModel<TBaseModel extends BaseModel>(
+        namespace: string,
+        key: string
+    ): TBaseModel {
         return this.cache[namespace + '.' + key] as TBaseModel;
     }
 

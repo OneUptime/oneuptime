@@ -8,7 +8,6 @@ import Incident from './Incident';
     name: 'IncidentResource',
 })
 export default class IncidentResource extends BaseModel {
-    
     @Column()
     public incident!: Incident;
 

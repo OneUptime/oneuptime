@@ -10,8 +10,6 @@ import Columns from '../Types/Database/Columns';
 import ObjectID from '../Types/ObjectID';
 
 export default class BaseModel extends BaseEntity {
-
-
     private encryptedColumns: Columns = new Columns([]);
     private uniqueColumns: Columns = new Columns([]);
     private requiredColumns: Columns = new Columns([]);
@@ -22,7 +20,8 @@ export default class BaseModel extends BaseEntity {
     private viewerAccessibleColumns: Columns = new Columns([]);
     private publicAccessibleColumns: Columns = new Columns([]);
 
-    private slugifyColumn: string | null = null;
+    private slugifyColumn!: string | null;
+    private saveSlugToColumn!: string | null;
 
     public getEncryptedColumns(): Columns {
         return this.encryptedColumns;
@@ -118,6 +117,10 @@ export default class BaseModel extends BaseEntity {
 
     public getSlugifyColumn(): string | null {
         return this.slugifyColumn;
+    }
+
+    public getSaveSlugToColumn(): string | null {
+        return this.saveSlugToColumn;
     }
 
     public get id(): ObjectID {

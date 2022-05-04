@@ -10,7 +10,6 @@ import Monitor from './Monitor';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public monitor!: Monitor;
 

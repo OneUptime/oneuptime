@@ -9,7 +9,6 @@ import Monitor from './Monitor';
     name: 'StatusPageChartType',
 })
 export default class StatusPageChartType extends BaseModel {
-    
     @Column()
     public statusPage!: StatusPage;
 

@@ -11,8 +11,6 @@ import Project from './Project';
     name: 'AlertCharge',
 })
 export default class Model extends BaseModel {
-    
-
     @Column()
     public project!: Project;
 

@@ -18,7 +18,6 @@ import MonitorType from '../Types/Monitor/MonitorType';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public project!: Project; //Which project this monitor belongs to.
 

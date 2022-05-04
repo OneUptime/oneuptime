@@ -1,12 +1,10 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 
-
 @Entity({
     name: 'Lead',
 })
 export default class Lead extends BaseModel {
-    
     @Column()
     public name!: string;
 

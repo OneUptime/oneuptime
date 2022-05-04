@@ -5,8 +5,8 @@
     "main": "index.ts",
     "scripts": {
         "compile": "tsc",
-        "test": "jest",
-        "debug:test": "node --inspect node_modules/.bin/jest --runInBand ./Tests"
+        "test": "jest --detectOpenHandles",
+        "debug:test": "node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
     },
     "author": "",
     "license": "MIT",
@@ -33,6 +33,7 @@
         "winston": "^3.6.0"
     },
     "devDependencies": {
+        "@faker-js/faker": "^6.3.1",
         "@types/cors": "^2.8.12",
         "@types/express": "^4.17.13",
         "@types/jest": "^27.4.1",

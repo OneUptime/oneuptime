@@ -14,7 +14,6 @@ export enum ScheduledEventNote {
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public scheduledEvent!: ScheduledEvent;
 

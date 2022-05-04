@@ -7,7 +7,6 @@ import { IncidentState } from './Incident';
     name: 'IncidentNoteTemplate',
 })
 export default class IncidentNoteTemplate extends BaseModel {
-    
     @Column()
     public project!: Project;
 

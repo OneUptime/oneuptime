@@ -1,113 +1,290 @@
 import { Column, Entity } from 'typeorm';
-import Role from '../Types/Role';
 import BaseModel from './BaseModel';
-import SSO from './SsoConfig';
 import EncryptedColumn from '../Types/Database/EncryptedColumnDecorator';
+import ColumnType from '../Types/Database/ColumnType';
+import ColumnLength from '../Types/Database/ColumnLength';
+import RequiredColumn from '../Types/Database/RequiredColumnDecorator';
+import UniqueColumn from '../Types/Database/UniqueColumnDecorator';
+import SlugifyColumn from '../Types/Database/SlugifyColumnDecorator';
+import Phone from '../Types/Phone';
+import Email from '../Types/Email';
+import Name from '../Types/Name';
+import URL from '../Types/API/URL';
+import Timezone from '../Types/Timezone';
 
+@SlugifyColumn('name', 'slug')
 @Entity({
     name: 'User',
 })
 class User extends BaseModel {
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Name,
+        length: ColumnLength.Name,
+        nullable: false,
+    })
+    public name!: Name;
 
-    @Column({ type: 'text', length: 100 })
-    public name!: string;
+    @UniqueColumn()
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Email,
+        length: ColumnLength.Email,
+        unique: true,
+        nullable: false,
+    })
+    public email!: Email;
 
-    @Column({ type: 'text', length: 200, unique: true })
-    public email!: string;
-
-    @Column({ type: 'text', length: 200 })
-    public temporaryEmail!: string;
+    @Column({
+        type: ColumnType.Email,
+        length: ColumnLength.Email,
+        unique: false,
+        nullable: true,
+    })
+    public newUnverifiedTemporaryEmail?: string;
 
     @EncryptedColumn()
-    @Column({ type: 'text', length: 200 })
-    public password!: string;
+    @Column({
+        type: ColumnType.Password,
+        length: ColumnLength.Password,
+        unique: false,
+        nullable: true,
+    })
+    public password?: string;
 
-    @Column({ type: 'boolean' })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
     public isEmailVerified!: boolean;
 
-    @Column()
-    public sso!: SSO;
-
-    @Column({ type: 'text', length: 200 })
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Name,
+        length: ColumnLength.Name,
+        nullable: false,
+        unique: false,
+    })
     public companyName!: string;
 
-    @Column({ type: 'text', length: 100 })
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: false,
+        unique: false,
+    })
     public companyRole!: string;
 
-    @Column({ type: 'text', length: 100 })
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: false,
+        unique: false,
+    })
     public companySize!: string;
 
-    @Column({ type: 'text', length: 100 })
-    public referral!: string;
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public referral?: string;
 
-    @Column({ type: 'text', length: 200 })
-    public companyPhoneNumber!: string;
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Phone,
+        length: ColumnLength.Phone,
+        nullable: false,
+        unique: false,
+    })
+    public companyPhoneNumber!: Phone;
 
-    @Column({ type: 'text', length: 200 })
-    public profilePic!: string;
+    @Column({
+        type: ColumnType.ShortURL,
+        length: ColumnLength.ShortURL,
+        nullable: true,
+        unique: false,
+        transformer: URL.getDatabaseTransformer(),
+    })
+    public profilePicImageUrl?: URL;
 
-    @Column()
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+        nullable: false,
+        unique: false,
+    })
     public twoFactorAuthEnabled!: boolean;
 
-    @Column()
-    public twoFactorSecretCode!: string;
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public twoFactorSecretCode?: string;
 
-    @Column()
-    public otpAuthUrl!: URL;
+    @Column({
+        type: ColumnType.LongURL,
+        length: ColumnLength.LongURL,
+        nullable: true,
+        unique: false,
+        transformer: URL.getDatabaseTransformer(),
+    })
+    public otpAuthUrl?: URL;
 
-    @Column()
-    public backupCodes!: Array<string>;
+    @Column({
+        type: ColumnType.Array,
+        nullable: true,
+        unique: false,
+    })
+    public backupCodes?: Array<string>;
 
-    @Column()
-    public jwtRefreshToken!: string;
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public jwtRefreshToken?: string;
 
-    @Column()
-    public stripeCustomer!: string;
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderCustomerId?: string;
 
-    @Column()
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
     public resetPasswordToken!: string;
 
-    @Column()
-    public resetPasswordExpires!: string;
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public resetPasswordExpires?: Date;
 
-    @Column()
-    public timezone!: string;
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public timezone?: Timezone;
 
-    @Column()
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Date,
+        nullable: false,
+        unique: false,
+    })
     public lastActive!: Date;
 
-    @Column()
-    public coupon!: string;
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public promotionName!: string;
 
-    @Column()
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
     public disabled!: boolean;
 
-    @Column()
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
     public paymentFailedDate!: Date;
 
-    @Column()
-    public role!: Role;
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isMasterAdmin!: boolean;
 
-    @Column()
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
     public isBlocked!: boolean;
 
-    @Column()
-    public deletedByUser!: User;
+    @Column({
+        type: ColumnType.Phone,
+        length: ColumnLength.Phone,
+        nullable: true,
+        unique: false,
+    })
+    public alertPhoneNumber?: Phone;
 
-    @Column()
-    public alertPhoneNumber!: string;
+    @Column({
+        type: ColumnType.OTP,
+        length: ColumnLength.OTP,
+        nullable: true,
+        unique: false,
+    })
+    public alertPhoneVerificationCode?: string;
 
-    @Column()
-    public alertPhoneVerificationCode!: string;
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public alertPhoneVerificationCodeRequestTime?: Date;
 
-    @Column()
-    public alertPhoneVerificationCodeRequestTime!: Date;
+    @Column({
+        type: ColumnType.Phone,
+        length: ColumnLength.Phone,
+        nullable: true,
+        unique: false,
+    })
+    public tempAlertPhoneNumber!: Phone;
 
-    @Column()
-    public tempAlertPhoneNumber!: string;
+    /*
+     * @Column()
+     * public sso!: SSO;
+     */
 
-    @Column()
-    public createdBy!: User;
+    /*
+     * @Column({
+     *     nullable: true,
+     * })
+     * public createdBy!: User;
+     */
+
+    /*
+     * @Column()
+     * public isBlockedByUser!: User;
+     */
+
+    /*
+     * @Column()
+     * public deletedByUser!: User;
+     */
 }
 
 export default User;

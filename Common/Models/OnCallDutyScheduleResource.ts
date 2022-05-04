@@ -8,7 +8,6 @@ import OnCallDutySchedule from './OnCallDutySchedule';
     name: 'OnCallDutyScheduleResource',
 })
 export default class OnCallDutyScheduleResource extends BaseModel {
-    
     @Column()
     public onCallDutySchedule!: OnCallDutySchedule;
 

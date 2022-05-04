@@ -72,13 +72,17 @@ export const sendFileResponse: Function = async (
 
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    // const gfs: GridFSBucket = new GridFSBucket(await Database.getDatabase(), {
-    //     bucketName: 'uploads',
-    // });
+    /*
+     * const gfs: GridFSBucket = new GridFSBucket(await Database.getDatabase(), {
+     *     bucketName: 'uploads',
+     * });
+     */
 
-    // const readstream: GridFSBucketReadStream = gfs.openDownloadStreamByName(
-    //     file.name
-    // );
+    /*
+     * const readstream: GridFSBucketReadStream = gfs.openDownloadStreamByName(
+     *     file.name
+     * );
+     */
 
     /** Set the proper content type */
     oneUptimeResponse.set('Content-Type', file.contentType);

@@ -8,7 +8,6 @@ import Issue from './Issue';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public issue!: Issue;
 

@@ -1,8 +1,10 @@
 import Protocol from './Protocol';
 import Route from './Route';
 import Hostname from './Hostname';
+import DatabaseProperty from '../Database/DatabaseProperty';
+import { FindOperator } from 'typeorm';
 
-export default class URL {
+export default class URL extends DatabaseProperty {
     private _route: Route = new Route();
     public get route(): Route {
         return this._route;
@@ -11,7 +13,7 @@ export default class URL {
         this._route = v;
     }
 
-    private _hostname: Hostname = new Hostname('localhost');
+    private _hostname!: Hostname;
     public get hostname(): Hostname {
         return this._hostname;
     }
@@ -28,6 +30,7 @@ export default class URL {
     }
 
     public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
+        super();
         this.hostname = hostname;
 
         this.protocol = protocol;
@@ -41,7 +44,7 @@ export default class URL {
         return this.protocol === Protocol.HTTPS;
     }
 
-    public toString(): string {
+    public override toString(): string {
         return `${this.protocol}${this.hostname}${this.route}`;
     }
 
@@ -84,5 +87,15 @@ export default class URL {
         }
 
         return new URL(protocol, hostname, route);
+    }
+
+    protected static override toDatabase(
+        _value: URL | FindOperator<URL>
+    ): string {
+        return _value.toString();
+    }
+
+    protected static override fromDatabase(_value: string): URL {
+        return URL.fromString(_value);
     }
 }

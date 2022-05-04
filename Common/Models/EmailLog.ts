@@ -8,7 +8,6 @@ import Project from './Project';
     name: 'EmailLog',
 })
 export default class EmailLog extends BaseModel {
-    
     @Column()
     public fromEmail!: string;
 

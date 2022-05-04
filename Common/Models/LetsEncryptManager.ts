@@ -1,12 +1,10 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 
-
 @Entity({
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public store!: Object;
 

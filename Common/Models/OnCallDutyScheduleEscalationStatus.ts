@@ -8,7 +8,6 @@ import OnCallDutyScheduleStatus from './OnCallDutyScheduleStatus';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public escalation!: Escalation;
 

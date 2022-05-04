@@ -15,7 +15,6 @@ export enum IssueStatus {
     name: 'IssueTimeline',
 })
 export default class IssueTimeline extends BaseModel {
-    
     @Column()
     public issue!: Issue;
 

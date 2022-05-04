@@ -9,7 +9,6 @@ import EmailTemplateType from '../Types/Email/EmailTemplateType';
     name: 'EmailTemplate',
 })
 export default class EmailTemplate extends BaseModel {
-    
     @Column()
     public project!: Project;
 

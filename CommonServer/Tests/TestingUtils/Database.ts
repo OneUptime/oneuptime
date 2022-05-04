@@ -1,4 +1,6 @@
-import PostgresDatabase, { DataSourceOptions} from '../../Infrastructure/PostgresDatabase';
+import PostgresDatabase, {
+    DataSourceOptions,
+} from '../../Infrastructure/PostgresDatabase';
 import { createDatabase, dropDatabase } from 'typeorm-extension';
 
 export default class DatabaseConnect {
@@ -15,11 +17,16 @@ export default class DatabaseConnect {
     public static async createDatabase() {
         await createDatabase({
             options: DataSourceOptions,
-            ifNotExist: true
+            ifNotExist: true,
         });
     }
     public static async connectDatabase() {
-        await PostgresDatabase.connect();
+        try {
+            const connection = await PostgresDatabase.connect();
+            await connection.synchronize();
+        } catch (err) {
+            console.log(err);
+        }
     }
 
     public static async disconnectDatabase() {
@@ -29,7 +36,7 @@ export default class DatabaseConnect {
     public static async dropDatabase() {
         await dropDatabase({
             options: DataSourceOptions,
-            ifExist: true
+            ifExist: true,
         });
     }
 }

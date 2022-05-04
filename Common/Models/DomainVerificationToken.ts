@@ -7,7 +7,6 @@ import Project from './Project';
     name: 'DomainVerificationToken',
 })
 export default class Model extends BaseModel {
-    
     @Index()
     @Column()
     public domain!: string; // The main or base domain eg oneuptime.com

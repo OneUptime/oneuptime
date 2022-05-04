@@ -107,8 +107,8 @@ export default {
             } else {
                 const probe: Probe | null = await ProbeService.findOneBy({
                     query: {
-                        name: probeName
-                    }
+                        name: probeName,
+                    },
                 });
 
                 if (probe && probe.id) {
@@ -118,22 +118,18 @@ export default {
                 }
             }
         } else if (LocalCache.hasValue('probe', probeName)) {
-            probeId =
-                (
-                    LocalCache.getModel<Probe>('probe', probeName)
-                ).id
+            probeId = LocalCache.getModel<Probe>('probe', probeName).id;
         } else {
-
             const probe: Probe | null = await ProbeService.findOneBy({
                 query: {
                     name: probeName,
-                    key: probeKey
+                    key: probeKey,
                 },
                 select: {
                     _id: true,
                     name: true,
                     key: true,
-                    probeVersion: true
+                    probeVersion: true,
                 },
             });
 
@@ -155,12 +151,12 @@ export default {
         if (!probeId) {
             //Create a new probe.
             let probe: Probe = new Probe();
-            probe.name = probeName; 
-            probe.probeVersion = probeVersion; 
+            probe.name = probeName;
+            probe.probeVersion = probeVersion;
             probe.key = probeKey;
-            
+
             probe = await ProbeService.create({
-                data: probe
+                data: probe,
             });
 
             probeId = probe.id;
@@ -168,9 +164,7 @@ export default {
             LocalCache.setModel('probe', probeName, probe);
         }
 
-        if (
-            (LocalCache.getModel<Probe>('probe', probeName)).key !== probeKey
-        ) {
+        if (LocalCache.getModel<Probe>('probe', probeName).key !== probeKey) {
             //Update probe key becasue it does not match.
 
             await ProbeService.updateProbeKeyByName(probeName, probeKey);
@@ -181,7 +175,7 @@ export default {
                     _id: true,
                     name: true,
                     key: true,
-                    probeVersion: true
+                    probeVersion: true,
                 },
             });
 
@@ -211,9 +205,10 @@ export default {
 
         if (
             probeVersion &&
-            (!(LocalCache.getModel<Probe>('probe', probeName)).version ||
-                (
-                    LocalCache.getModel<Probe>('probe', probeName)
+            (!LocalCache.getModel<Probe>('probe', probeName).version ||
+                LocalCache.getModel<Probe>(
+                    'probe',
+                    probeName
                 ).version.toString() !== probeVersion.toString())
         ) {
             ProbeService.updateProbeVersionByName(probeName, probeVersion);

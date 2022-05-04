@@ -43,8 +43,7 @@ export const DataIngestorHostname: Hostname = new Hostname(
     process.env['DATA_INGESTOR_HOSTNAME'] || ''
 );
 
-export const Env: string = 
-    process.env['NODE_ENV'] || ''
+export const Env: string = process.env['NODE_ENV'] || '';
 
 export const Version: string = process.env['npm_package_version'] || '';
 

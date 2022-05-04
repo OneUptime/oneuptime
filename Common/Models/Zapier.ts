@@ -7,7 +7,6 @@ import Project from './Project';
     name: 'Zapier',
 })
 export default class Zapier extends BaseModel {
-    
     @Column()
     public project!: Project;
 

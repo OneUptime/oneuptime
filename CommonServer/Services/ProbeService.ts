@@ -9,16 +9,37 @@ class Service extends DatabaseService<Model> {
         super(Model);
     }
 
+    public async createProbe(
+        name: string,
+        key?: ObjectID,
+        version?: Version
+    ): Promise<Model> {
+        if (!key) {
+            key = ObjectID.generate();
+        }
+
+        if (!version) {
+            version = new Version('1.0.0');
+        }
+
+        const probe: Model = new Model();
+        probe.name = name;
+        probe.key = key;
+        probe.probeVersion = version;
+        const savedProbe: Model = await this.create({ data: probe });
+        return savedProbe;
+    }
+
     public async updateProbeKeyByName(
         name: string,
         key: ObjectID
     ): Promise<void> {
         await this.updateOneBy({
             query: {
-                name: name
+                name: name,
             },
             data: {
-                key
+                key,
             },
         });
     }
@@ -27,7 +48,6 @@ class Service extends DatabaseService<Model> {
         name: string,
         version: Version
     ): Promise<void> {
-
         await this.updateOneBy({
             query: { name },
             data: { probeVersion: version },
@@ -38,7 +58,7 @@ class Service extends DatabaseService<Model> {
         await this.updateOneBy({
             query: { name },
             data: {
-                lastAlive: OneUptimeDate.getCurrentDate()
+                lastAlive: OneUptimeDate.getCurrentDate(),
             },
         });
     }

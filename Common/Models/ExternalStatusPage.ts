@@ -9,7 +9,6 @@ import StatusPage from './StatusPage';
     name: 'ExternalStatusPage',
 })
 export default class ExternalStatusPage extends BaseModel {
-    
     @Column()
     public name!: string;
 

@@ -8,7 +8,6 @@ import Project from './Project';
     name: 'ResourceLabel',
 })
 export default class ResourceLabel extends BaseModel {
-    
     @Column()
     @Index()
     public project!: Project;

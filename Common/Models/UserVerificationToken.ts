@@ -7,7 +7,6 @@ import User from './User';
     name: 'UserVerificationToken',
 })
 export default class UserVerificationToken extends BaseModel {
-    
     @Column({ nullable: false })
     public user!: User;
 

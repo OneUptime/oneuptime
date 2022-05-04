@@ -1,8 +1,6 @@
-import BaseModel from '../../Models/BaseModel';
-
-export default () => {
-    return (target: Object, propertyKey: string) => {
-        const baseModel = target as BaseModel;
-        baseModel.setSlugifyColumn(propertyKey);
-    }
-}
+export default (columnName: string, saveSlugToColumnName: string) => {
+    return (ctr: Function) => {
+        ctr.prototype.slugifyColumn = columnName;
+        ctr.prototype.saveSlugToColumn = saveSlugToColumnName;
+    };
+};

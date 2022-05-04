@@ -1,6 +1,5 @@
-enum DatabaseType { 
-    Postgres = "postgres"
+enum DatabaseType {
+    Postgres = 'postgres',
 }
-
 
 export default DatabaseType;

@@ -14,7 +14,6 @@ export enum IntegrationType {
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public webHookName!: string;
 

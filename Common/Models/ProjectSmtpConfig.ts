@@ -8,7 +8,6 @@ import Project from './Project';
     name: 'ProjectSmtpConfig',
 })
 export default class ProjectSmtpConfig extends BaseModel {
-    
     @Column({
         nullable: false,
     })

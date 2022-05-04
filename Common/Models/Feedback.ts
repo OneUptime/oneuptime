@@ -8,7 +8,6 @@ import Project from './Project';
     name: 'Feedback',
 })
 export default class Feedback extends BaseModel {
-    
     @Column()
     public project!: Project;
 

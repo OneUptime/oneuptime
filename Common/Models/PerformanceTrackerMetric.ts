@@ -7,7 +7,6 @@ import PerformanceTracker from './PerformanceTracker';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public type!: string;
 

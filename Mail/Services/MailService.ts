@@ -104,14 +104,15 @@ export default class MailService {
             'secure',
         ];
 
-        const projectSmtp: Document | null = await ProjectSmtpConfigService.findOneBy({
-            query: new Query()
-                .equalTo('projectId', projectId)
-                .equalTo('enabled', true),
-            select,
-            populate: [],
-            sort: [],
-        });
+        const projectSmtp: Document | null =
+            await ProjectSmtpConfigService.findOneBy({
+                query: new Query()
+                    .equalTo('projectId', projectId)
+                    .equalTo('enabled', true),
+                select,
+                populate: [],
+                sort: [],
+            });
 
         if (projectSmtp) {
             return {

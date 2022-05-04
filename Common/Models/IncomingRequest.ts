@@ -9,7 +9,6 @@ import Filter from '../Types/Filter/Filter';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public name!: string;
 

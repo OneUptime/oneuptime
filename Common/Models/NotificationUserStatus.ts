@@ -7,7 +7,6 @@ import User from './User';
     name: 'UserAlerts',
 })
 export default class NotificationUserStatus extends BaseModel {
-    
     @Column()
     public notification!: Notification;
 

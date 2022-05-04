@@ -12,7 +12,6 @@ export enum CustomFieldType {
     name: 'CustomField',
 })
 export default class CustomField extends BaseModel {
-    
     @Column()
     public fieldName!: string;
 

@@ -9,7 +9,6 @@ import Role from '../Types/Role';
     name: 'SsoDefaultRole',
 })
 export default class SsoDefaultRole extends BaseModel {
-    
     @Column()
     public domain!: string;
 

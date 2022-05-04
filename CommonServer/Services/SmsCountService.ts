@@ -15,8 +15,8 @@ class Service extends DatabaseService<Model> {
         const smsCount: PositiveNumber = await this.countBy({
             query: {
                 user: user,
-                createdAt: MoreThan(OneUptimeDate.getOneDayAgo())
-            }
+                createdAt: MoreThan(OneUptimeDate.getOneDayAgo()),
+            },
         });
 
         if (smsCount.toNumber() > 3) {

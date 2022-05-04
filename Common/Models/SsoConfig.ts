@@ -8,7 +8,6 @@ import Project from './Project';
     name: 'SsoConfig',
 })
 export default class SsoConfig extends BaseModel {
-    
     @Column({ nullable: false })
     public enabled!: boolean;
 

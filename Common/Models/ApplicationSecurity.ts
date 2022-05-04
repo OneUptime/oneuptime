@@ -8,7 +8,6 @@ import GitCredential from './GitCredential';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public name!: string;
 

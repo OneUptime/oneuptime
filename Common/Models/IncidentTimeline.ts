@@ -9,7 +9,6 @@ import User from './User';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public incident!: Incident;
 

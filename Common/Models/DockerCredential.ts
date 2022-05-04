@@ -8,7 +8,6 @@ import Project from './Project';
     name: 'DockerCredential',
 })
 export default class DockerCredential extends BaseModel {
-    
     @Column()
     public dockerRegistryUrl!: URL;
 

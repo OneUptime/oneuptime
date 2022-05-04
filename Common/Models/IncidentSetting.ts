@@ -9,7 +9,6 @@ import IncidentPriority from './IncidentPriority';
     name: 'IncidentSetting',
 })
 export default class IncidentSetting extends BaseModel {
-    
     @Column()
     public project!: Project;
 

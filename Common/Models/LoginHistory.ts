@@ -6,7 +6,6 @@ import User from './User';
     name: 'LoginHistory',
 })
 export default class LoginHistory extends BaseModel {
-    
     @Column()
     public user!: User;
 

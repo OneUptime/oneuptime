@@ -8,7 +8,6 @@ import Project from './Project';
     name: 'GitCredential',
 })
 export default class GitCredential extends BaseModel {
-    
     @Column()
     public gitUsername!: string;
 

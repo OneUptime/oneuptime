@@ -11,7 +11,6 @@ import OperationStatus from '../Types/Operation/OperationStatus';
     name: 'AutomationScriptRunInstance',
 })
 export default class AutomationScriptRunInstance extends BaseModel {
-    
     @Column()
     public automationScript!: AutomatedScript;
 

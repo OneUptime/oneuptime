@@ -8,7 +8,6 @@ import AutomatedScript from './AutomatedScript';
     name: 'AutomatedScriptOnEvent',
 })
 export default class AutomatedScriptOnEvent extends BaseModel {
-    
     @Column()
     public automatedScript!: AutomatedScript;
     @Column()

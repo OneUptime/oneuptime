@@ -13,7 +13,6 @@ import OperationResult from '../Types/Operation/OperationResult';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public project!: Project;
 

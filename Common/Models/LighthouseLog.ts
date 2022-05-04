@@ -7,7 +7,6 @@ import Monitor from './Monitor';
     name: 'LighthouseLog',
 })
 export default class LighthouseLog extends BaseModel {
-    
     @Column()
     public monitor!: Monitor;
 

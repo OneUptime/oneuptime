@@ -9,7 +9,6 @@ import Tags from '../Types/Tags';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public applicationLogContainer!: ApplicationLogContainer;
 

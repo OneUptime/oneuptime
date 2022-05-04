@@ -9,7 +9,6 @@ import OperationStatus from '../Types/Operation/OperationStatus';
     name: 'CallLog',
 })
 export default class CallLog extends BaseModel {
-    
     @Column()
     public fromNumber!: string;
 

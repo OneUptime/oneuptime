@@ -8,7 +8,6 @@ import ScheduledEvent from './ScheduledEvent';
     name: 'StatusPageChartType',
 })
 export default class StatusPageChartType extends BaseModel {
-    
     @Column()
     public scheduledEvent!: ScheduledEvent;
 

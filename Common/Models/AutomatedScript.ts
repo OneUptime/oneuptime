@@ -13,7 +13,6 @@ export enum ScriptType {
     name: 'AutomatedScripts',
 })
 export default class AutomatedScript extends BaseModel {
-    
     @Column()
     public name!: string;
 

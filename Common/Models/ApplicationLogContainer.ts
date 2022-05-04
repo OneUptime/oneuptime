@@ -10,7 +10,6 @@ import Component from './Component';
     name: 'ApplicationLogContainer',
 })
 export default class ApplicationLogContainer extends BaseModel {
-    
     @Index()
     @Column()
     public project!: Project;

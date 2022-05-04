@@ -8,7 +8,6 @@ import Project from './Project';
     name: 'IncidentPriority',
 })
 export default class IncidentPriority extends BaseModel {
-    
     @Column()
     public project!: Project;
 

@@ -10,7 +10,6 @@ import OperationStatus from '../Types/Operation/OperationStatus';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public project!: Project;
 

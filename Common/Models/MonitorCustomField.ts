@@ -8,7 +8,6 @@ import { CustomFieldType } from './CustomField';
     name: 'MonitorCustomField',
 })
 export default class MonitorCustomField extends BaseModel {
-    
     @Column()
     public fieldName!: string;
 

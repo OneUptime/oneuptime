@@ -3,9 +3,6 @@ import ExceptionCode from './ExceptionCode';
 
 export default class DatabaseNotConnectedException extends Exception {
     public constructor() {
-        super(
-            ExceptionCode.DatabaseNotConnected,
-            'Database not connected'
-        );
+        super(ExceptionCode.DatabaseNotConnected, 'Database not connected');
     }
 }

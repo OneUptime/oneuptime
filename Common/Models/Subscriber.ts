@@ -12,7 +12,6 @@ import HTTPMethod from '../Types/API/HTTPMethod';
     name: 'UserAlerts',
 })
 export default class Model extends BaseModel {
-    
     @Column()
     public monitor!: Monitor;
 

@@ -13,7 +13,6 @@ export enum IncidentMessageType {
     name: 'IncidentNote',
 })
 export default class IncidentNote extends BaseModel {
-    
     @Column()
     public incident!: Incident;
 

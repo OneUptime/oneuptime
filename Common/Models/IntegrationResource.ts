@@ -8,7 +8,6 @@ import Integration from './Integration';
     name: 'StatusPageChartType',
 })
 export default class StatusPageChartType extends BaseModel {
-    
     @Column()
     public integration!: Integration;
 

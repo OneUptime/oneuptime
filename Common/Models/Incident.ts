@@ -18,7 +18,6 @@ export enum IncidentState {
     name: 'Incident',
 })
 export default class Incident extends BaseModel {
-    
     @Column()
     public idNumber!: number;
 

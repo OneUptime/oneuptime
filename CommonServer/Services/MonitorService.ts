@@ -23,24 +23,25 @@ class Service extends DatabaseService<Model> {
         const key: string = `probe.${probeId}.pingtime`;
 
         /// get monitors that have never been pinged by this probe
-        const emptyQuery: Query<Model> ={
-            disabled: false, 
+        const emptyQuery: Query<Model> = {
+            disabled: false,
             type: In([MonitorType.API, MonitorType.Website]),
-            [key]: IsNull()
-        }
+            [key]: IsNull(),
+        };
 
         const nonEmptyQuery: Query<Model> = {
-            disabled: false, 
+            disabled: false,
             type: In([MonitorType.API, MonitorType.Website]),
-            [key]: LessThan(date)
-        }
-    
-        const monitorsThatHaveNeverBeenPinged: Array<Model> =
-            await this.findBy({
+            [key]: LessThan(date),
+        };
+
+        const monitorsThatHaveNeverBeenPinged: Array<Model> = await this.findBy(
+            {
                 query: emptyQuery,
                 limit: limit,
                 skip: new PositiveNumber(0),
-            });
+            }
+        );
 
         monitors = monitors.concat(monitorsThatHaveNeverBeenPinged);
 
@@ -60,12 +61,14 @@ class Service extends DatabaseService<Model> {
         if (monitors && monitors.length > 0) {
             await this.updateBy({
                 query: {
-                    _id: In(monitors.map((monitor: Model) => {
-                        return monitor._id;
-                    }))
+                    _id: In(
+                        monitors.map((monitor: Model) => {
+                            return monitor._id;
+                        })
+                    ),
                 },
                 data: {
-                    [key]: OneUptimeDate.getCurrentDate()
+                    [key]: OneUptimeDate.getCurrentDate(),
                 },
             });
 

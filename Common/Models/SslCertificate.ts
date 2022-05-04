@@ -1,12 +1,10 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 
-
 @Entity({
     name: 'SslCertificate',
 })
 export default class SslCertificate extends BaseModel {
-    
     @Column()
     public certificateId!: string;
 

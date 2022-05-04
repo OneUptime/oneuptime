@@ -1,7 +1,7 @@
 // This is for Object ID for all the things in our database.
 import { FindOperator } from 'typeorm';
 import UUID from '../Utils/UUID';
-import DatabaseProperty from './DatabaseProperty';
+import DatabaseProperty from './Database/DatabaseProperty';
 
 export default class ObjectID extends DatabaseProperty {
     private _id: string = '';
@@ -13,7 +13,7 @@ export default class ObjectID extends DatabaseProperty {
     }
 
     public constructor(id: string) {
-        super()
+        super();
         this.id = id;
     }
 
@@ -25,7 +25,9 @@ export default class ObjectID extends DatabaseProperty {
         return new this(UUID.generate());
     }
 
-    protected static override toDatabase(_value: ObjectID | FindOperator<ObjectID>): string {
+    protected static override toDatabase(
+        _value: ObjectID | FindOperator<ObjectID>
+    ): string {
         return _value.toString();
     }
 

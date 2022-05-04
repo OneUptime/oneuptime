@@ -9,7 +9,6 @@ import SmsTemplateType from '../Types/SMS/SmsTemplateType';
     name: 'SmsTemplate',
 })
 export default class SmsTemplate extends BaseModel {
-    
     @Column()
     public project!: Project;
 
@@ -21,7 +20,7 @@ export default class SmsTemplate extends BaseModel {
 
     @Column({
         array: true,
-        type: 'text',
+        type: 'varchar',
     })
     public allowedVariables!: Array<string>;
 

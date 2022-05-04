@@ -8,7 +8,6 @@ import Component from './Component';
     name: 'ContainerSecurityLog',
 })
 export default class ContainerSecurityLog extends BaseModel {
-    
     @Column()
     public security!: ContainerSecurity;
 
