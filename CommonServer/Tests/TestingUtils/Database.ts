@@ -4,23 +4,23 @@ import PostgresDatabase, {
 import { createDatabase, dropDatabase } from 'typeorm-extension';
 
 export default class DatabaseConnect {
-    public static async createAndConnect() {
+    public static async createAndConnect(): Promise<void> {
         await this.createDatabase();
         await this.connectDatabase();
     }
 
-    public static async disconnectAndDropDatabase() {
+    public static async disconnectAndDropDatabase(): Promise<void> {
         await this.disconnectDatabase();
         await this.dropDatabase();
     }
 
-    public static async createDatabase() {
+    public static async createDatabase(): Promise<void> {
         await createDatabase({
             options: DataSourceOptions,
             ifNotExist: true,
         });
     }
-    public static async connectDatabase() {
+    public static async connectDatabase(): Promise<void> {
         try {
             const connection = await PostgresDatabase.connect();
             await connection.synchronize();
@@ -29,11 +29,11 @@ export default class DatabaseConnect {
         }
     }
 
-    public static async disconnectDatabase() {
+    public static async disconnectDatabase(): Promise<void> {
         await PostgresDatabase.disconnect();
     }
 
-    public static async dropDatabase() {
+    public static async dropDatabase(): Promise<void> {
         await dropDatabase({
             options: DataSourceOptions,
             ifExist: true,

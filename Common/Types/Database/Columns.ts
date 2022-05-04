@@ -11,7 +11,7 @@ export default class Columns {
         this.columns = columns;
     }
 
-    public addColumn(columnName: string) {
+    public addColumn(columnName: string): void {
         this.columns.push(columnName);
     }
 }

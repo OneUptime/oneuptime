@@ -3,7 +3,7 @@ import { ValueTransformer } from 'typeorm/decorator/options/ValueTransformer';
 import NotImplementedException from '../Exception/NotImplementedException';
 
 export default class DatabaseProperty {
-    constructor() {}
+    public constructor() {}
 
     protected static fromDatabase(_value: string | number): DatabaseProperty {
         throw new NotImplementedException();

@@ -14,7 +14,7 @@ describe('ProbeService', () => {
 
     test('create a new probe', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.1');
+        const probeVersion: Version = new Version('1.0.1');
         const key: ObjectID = ObjectID.generate();
         const savedProbe = await ProbeService.createProbe(
             name,
@@ -34,7 +34,7 @@ describe('ProbeService', () => {
 
     test('findOneBy probe by name', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.1');
+        const probeVersion: Version = new Version('1.0.1');
         const key: ObjectID = ObjectID.generate();
         const savedProbe = await ProbeService.createProbe(
             name,
@@ -66,7 +66,7 @@ describe('ProbeService', () => {
 
     test('findOneBy by probeVersion', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.2');
+        const probeVersion: Version = new Version('1.0.2');
         const key: ObjectID = ObjectID.generate();
         const savedProbe: Probe = await ProbeService.createProbe(
             name,
@@ -98,7 +98,7 @@ describe('ProbeService', () => {
 
     test('findOneBy by invalid name', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.2');
+        const probeVersion: Version = new Version('1.0.2');
         const key: ObjectID = ObjectID.generate();
         await ProbeService.createProbe(name, key, probeVersion);
 
@@ -113,7 +113,7 @@ describe('ProbeService', () => {
 
     test('findOneBy by key', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.2');
+        const probeVersion: Version = new Version('1.0.2');
         const key: ObjectID = ObjectID.generate();
         const savedProbe: Probe = await ProbeService.createProbe(
             name,
@@ -199,7 +199,7 @@ describe('ProbeService', () => {
 
         for (let i = 0; i < 20; i++) {
             const name: string = Faker.generateName();
-            const probeVersion: Version =  new Version('1.0.2');
+            const probeVersion: Version = new Version('1.0.2');
             const key: ObjectID = ObjectID.generate();
             savedProbes.push(
                 await ProbeService.createProbe(name, key, probeVersion)
@@ -242,7 +242,7 @@ describe('ProbeService', () => {
 
         for (let i = 0; i < 20; i++) {
             const name: string = Faker.generateName();
-            const probeVersion: Version =  new Version('1.0.2');
+            const probeVersion: Version = new Version('1.0.2');
             const key: ObjectID = ObjectID.generate();
             savedProbes.push(
                 await ProbeService.createProbe(name, key, probeVersion)
@@ -282,7 +282,7 @@ describe('ProbeService', () => {
 
     test('delete probe by query', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.2');
+        const probeVersion: Version = new Version('1.0.2');
         const key: ObjectID = ObjectID.generate();
         const savedProbe: Probe = await ProbeService.createProbe(
             name,
@@ -309,7 +309,7 @@ describe('ProbeService', () => {
 
     test('hard delete probe by query', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.2');
+        const probeVersion: Version = new Version('1.0.2');
         const key: ObjectID = ObjectID.generate();
         const savedProbe: Probe = await ProbeService.createProbe(
             name,
@@ -336,7 +336,7 @@ describe('ProbeService', () => {
 
     test('update probe by query', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.2');
+        const probeVersion: Version = new Version('1.0.2');
         const key: ObjectID = ObjectID.generate();
         const savedProbe: Probe = await ProbeService.createProbe(
             name,
@@ -368,7 +368,7 @@ describe('ProbeService', () => {
 
     test('update probe by query', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.2');
+        const probeVersion: Version = new Version('1.0.2');
         const key: ObjectID = ObjectID.generate();
         const savedProbe: Probe = await ProbeService.createProbe(
             name,
@@ -400,7 +400,7 @@ describe('ProbeService', () => {
 
     test('slugify column', async () => {
         const name: string = Faker.generateName();
-        const probeVersion: Version =  new Version('1.0.2');
+        const probeVersion: Version = new Version('1.0.2');
         const key: ObjectID = ObjectID.generate();
         const savedProbe: Probe = await ProbeService.createProbe(
             name,

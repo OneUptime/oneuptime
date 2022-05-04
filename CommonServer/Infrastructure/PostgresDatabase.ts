@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { DataSource, DataSourceOptions as Options } from 'typeorm';
 import {
     DatabaseHost,
     DatabaseName,
@@ -12,7 +12,7 @@ import Entities from 'Common/Models/Index';
 import AppEnvironment from 'Common/Types/AppEnvironment';
 import DatabaseType from 'Common/Types/DatabaseType';
 
-export const DataSourceOptions = {
+export const DataSourceOptions: Options = {
     type: DatabaseType.Postgres,
     host: DatabaseHost.toString(),
     port: DatabasePort.toNumber(),

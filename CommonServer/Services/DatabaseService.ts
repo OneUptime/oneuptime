@@ -223,7 +223,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     );
             }
 
-            const savedData = await this.getRepository().save(data);
+            const savedData: TBaseModel = await this.getRepository().save(data);
             await this.onCreateSuccess(savedData);
             return savedData;
         } catch (error) {
