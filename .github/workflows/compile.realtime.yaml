@@ -18,3 +18,4 @@ jobs:
       - run: cd Common && npm install
       - run: cd CommonServer && npm install
       - run: cd Realtime && npm install && npm run compile
+  
