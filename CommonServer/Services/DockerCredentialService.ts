@@ -1,9 +1,4 @@
-import Model, {
-    requiredFields,
-    uniqueFields,
-    slugifyField,
-    encryptedFields,
-} from '../Models/DockerCredential';
+import Model from 'Common/Models/DockerCredential';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DatabaseService from './DatabaseService';
 import API from 'Common/Utils/API';
@@ -12,57 +7,9 @@ import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 
-class Service extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<Model> {
     public constructor() {
-        super({
-            model: Model,
-            requiredFields: requiredFields,
-            uniqueFields: uniqueFields,
-            friendlyName: 'Docker Credential',
-            publicListProps: {
-                populate: [],
-                select: [],
-            },
-            adminListProps: {
-                populate: [],
-                select: [],
-            },
-            ownerListProps: {
-                populate: [],
-                select: [],
-            },
-            memberListProps: {
-                populate: [],
-                select: [],
-            },
-            viewerListProps: {
-                populate: [],
-                select: [],
-            },
-            publicItemProps: {
-                populate: [],
-                select: [],
-            },
-            adminItemProps: {
-                populate: [],
-                select: [],
-            },
-            memberItemProps: {
-                populate: [],
-                select: [],
-            },
-            viewerItemProps: {
-                populate: [],
-                select: [],
-            },
-            ownerItemProps: {
-                populate: [],
-                select: [],
-            },
-            isResourceByProject: false,
-            slugifyField: slugifyField,
-            encryptedFields: encryptedFields,
-        });
+        super(Model);
     }
 
     public async validateDockerCredential({

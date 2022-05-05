@@ -22,13 +22,17 @@ services:
             - TLS_CERT="${TLS_CERT}"
             - TLS_KEY="${TLS_KEY}"
 
-    mongo:
-        image: mongo:4.2.3
+    postgres:
+        image: postgres:latest
+        restart: always
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
         ports:
-            - '27017:27017'
-        volumes:
-            - mongodata:/data/db
-
+            - '5400:5432'
+        volumes: 
+            - postgres:/var/lib/postgresql/data
+    
     mail:
         ports:
             - 9110:9229 # Debugging port.
@@ -94,10 +98,10 @@ services:
             - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
             - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
+
             - REALTIME_URL=http://realtime:3300
         depends_on:
-            - mongo
+
             - script-runner
             - dashboard-api
             - realtime
@@ -139,7 +143,7 @@ services:
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
+
             - REALTIME_URL=http://realtime:3300
         volumes:
             - ./probe-api:/usr/src/app
@@ -191,31 +195,7 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
 
-    init-script:
-        build:
-            network: host
-            context: .
-            dockerfile: ./InitScript/Dockerfile.dev
-        ports:
-            - '1447:1447'
-            - '9237:9229' # Debugging port.
-        env_file:
-            - ./InitScript/.env
-        environment:
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
-            - REDIS_HOST=redis
-            - REDIS_PORT=6379
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - NODE_ENV=development
-        depends_on:
-            - mongo
-            - redis
-        volumes:
-            - ./init-script:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-
+   
     script-runner:
         ports:
             - '3009:3009'
@@ -247,7 +227,7 @@ services:
         env_file:
             - ./DashboardAPI/.env
         environment:
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
+
             - REDIS_HOST=redis
             - REDIS_PORT=6379
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
@@ -255,7 +235,7 @@ services:
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
-            - mongo
+
             - redis
         volumes:
             - ./dashboard-api:/usr/src/app
@@ -436,7 +416,7 @@ services:
             - /usr/src/app/node_modules/
     nginx:
         depends_on:
-            - mongo
+
             - dashboard-api
             - home
             - dashboard
@@ -451,4 +431,4 @@ services:
             - '80:80'
             - '443:443'
 volumes:
-    mongodata:
+    postgres:

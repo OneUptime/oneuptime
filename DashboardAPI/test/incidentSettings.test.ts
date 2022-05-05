@@ -177,7 +177,7 @@ describe('Incident Settings API', function (): void {
                     projectId,
                     name: 'High',
                 },
-                select: 'projectId name color createdAt deletedAt deleted deletedById',
+                select: 'projectId name color createdAt deletedAt deleted deletedByUser',
             });
         expect(incidentPriorityObject).to.not.equal(null);
         const { _id: incidentPriority } = incidentPriorityObject;

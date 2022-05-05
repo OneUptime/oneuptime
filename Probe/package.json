@@ -17,7 +17,7 @@
         "url": "git+https://gitlab.com/oneuptime/probe.git"
     },
     "author": "Nilanshu",
-    "license": "ISC",
+    "license": "MIT",
     "bugs": {
         "url": "https://gitlab.com/oneuptime/probe/issues"
     },
@@ -27,8 +27,8 @@
         "await-sleep": "^0.0.1",
         "axios": "^0.26.1",
         "chrome-launcher": "^0.15.0",
+        "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
-"Common": "file:../Common",
         "dotenv": "^16.0.0",
         "get-ssl-certificate": "^2.3.3",
         "moment": "^2.29.1",
@@ -36,6 +36,7 @@
         "node-ssh": "^12.0.4",
         "ping": "^0.4.1",
         "request": "^2.88.2",
+        "sleep-promise": "^9.1.0",
         "uuid": "^8.3.2",
         "vm2": "^3.9.9",
         "winston": "^3.6.0",

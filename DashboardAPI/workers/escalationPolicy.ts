@@ -22,7 +22,7 @@ export default {
         //#1
 
         const selectOnCallScheduleStatus: $TSFixMe =
-            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedByUser';
 
         const populateOnCallScheduleStatus: $TSFixMe = [
             { path: 'incidentId', select: 'name slug' },

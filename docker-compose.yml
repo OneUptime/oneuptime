@@ -1,11 +1,17 @@
 version: '3.7'
 services:
-    mongo:
-        image: mongo:4.2.3
+    
+    postgres:
+        image: postgres:latest
+        restart: always
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
         ports:
-            - '27017:27017'
-        volumes:
-            - mongodata:/data/db
+            - '5400:5432'
+        volumes: 
+            - postgres:/var/lib/postgresql/data
+
     saml:
         image: kenchan0130/simplesamlphp
         ports:
@@ -31,14 +37,13 @@ services:
         env_file:
             - ./DashboardAPI/.env
         environment:
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SCRIPT_RUNNER_URL=http://script-runner:3009
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
-            - mongo
+            
             - redis
             - haraka
             - script-runner
@@ -120,10 +125,8 @@ services:
             - SERVER_URL=http://dashboard-api:3002
             - CLUSTER_KEY=test
             - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         depends_on:
-            - mongo
             - script-runner
             - dashboard-api
             - realtime
@@ -145,7 +148,6 @@ services:
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
     probe1:
         image: oneuptime/probe:latest
@@ -186,23 +188,7 @@ services:
             - ./ApiDocs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-    init-script:
-        image: oneuptime/init-script:latest
-        ports:
-            - '1447:1447'
-        env_file:
-            - ./InitScript/.env
-        environment:
-            - MONGO_URL=mongodb://mongo:27017/oneuptimedb
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - NODE_ENV=${NODE_ENV}
-        depends_on:
-            - mongo
-            - redis
-    ##IMPORTANT:
-    ## This container is an SMTP server used to send emails.
-    ## Setup private, tls_cert and tls_key keys before running this part
+   
     haraka:
         ports:
             - '2525:2525'
@@ -277,7 +263,6 @@ services:
             
     nginx:
         depends_on:
-            - mongo
             - dashboard-api
             - home
             - dashboard
@@ -290,4 +275,4 @@ services:
             - '443:443'
 
 volumes:
-    mongodata:
+    postgres:

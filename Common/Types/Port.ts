@@ -10,7 +10,15 @@ export default class Port {
         this._port = v;
     }
 
-    public constructor(port: number) {
+    public constructor(port: number | string) {
+        if (typeof port === 'string') {
+            try {
+                port = Number.parseInt(port, 10);
+            } catch (error) {
+                throw new BadDataException(`Invalid port: ${port}`);
+            }
+        }
+
         if (port >= 0 && port <= 65535) {
             this.port = new PositiveNumber(port);
         } else {

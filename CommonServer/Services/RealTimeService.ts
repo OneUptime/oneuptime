@@ -1,7 +1,6 @@
 import API from 'Common/Utils/API';
 import { RealtimeHostname, HttpProtocol, ClusterKey } from '../Config';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
-import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import Headers from 'Common/Types/API/Headers';
 import ObjectID from 'Common/Types/ObjectID';
@@ -12,7 +11,7 @@ export default class Service {
     private headers: Headers;
 
     public constructor() {
-        this.api = new API(HttpProtocol, new Hostname(RealtimeHostname));
+        this.api = new API(HttpProtocol, RealtimeHostname);
         this.headers = {
             CLUSTER_KEY: ClusterKey.toString(),
         };

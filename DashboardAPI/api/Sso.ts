@@ -28,7 +28,7 @@ router.get(
         const limit: $TSFixMe = req.query['limit'] || 10;
 
         const selectSso: $TSFixMe =
-            '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
+            '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedByUser samlSsoUrl projectId';
         try {
             const [ssos, count]: $TSFixMe = await Promise.all([
                 SsoService.findBy({
@@ -84,7 +84,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const selectSso: $TSFixMe =
-                '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
+                '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedByUser samlSsoUrl projectId';
 
             const sso: $TSFixMe = await SsoService.findOneBy({
                 query: { _id: req.params['id'] },
@@ -126,7 +126,7 @@ router.get(
             const { projectId }: $TSFixMe = req.params;
 
             const selectSso: $TSFixMe =
-                '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
+                '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedByUser samlSsoUrl projectId';
             const [ssos, count]: $TSFixMe = await Promise.all([
                 SsoService.findBy({
                     query: { projectId },

@@ -13,16 +13,7 @@ import {
 import { ClusterKey as CLUSTER_KEY } from '../Config';
 import ObjectID from 'Common/Types/ObjectID';
 import LocalCache from '../Infrastructure/LocalCache';
-import { JSONObject } from 'Common/Types/JSON';
-import Query from '../Types/DB/Query';
-import { Document } from '../Infrastructure/ORM';
-
-interface ProbeCache extends JSONObject {
-    _id: ObjectID;
-    key: ObjectID;
-    name: string;
-    version: Version;
-}
+import Probe from 'Common/Models/Probe';
 
 export default {
     async isAuthorizedProbe(
@@ -112,55 +103,40 @@ export default {
              */
 
             if (LocalCache.hasValue('probe', probeName)) {
-                probeId = new ObjectID(
-                    (
-                        LocalCache.get('probe', probeName) as ProbeCache
-                    )._id.toString()
-                );
+                probeId = (LocalCache.getModel('probe', probeName) as Probe).id;
             } else {
-                const probe: Document | null = await ProbeService.findOneBy({
-                    query: new Query().equalTo('name', probeName),
-                    populate: [],
-                    select: ['name', 'key', 'version', '_id'],
-                    sort: [],
+                const probe: Probe | null = await ProbeService.findOneBy({
+                    query: {
+                        name: probeName,
+                    },
                 });
 
-                if (probe && probe._id) {
-                    probeId = probe._id;
+                if (probe && probe.id) {
+                    probeId = probe.id;
 
-                    LocalCache.set('probe', probeName, {
-                        _id: probe._id,
-                        name: probe.get('name'),
-                        key: probe.get('key'),
-                        version: probe.get('version'),
-                    });
+                    LocalCache.setModel('probe', probeName, probe);
                 }
             }
         } else if (LocalCache.hasValue('probe', probeName)) {
-            probeId = new ObjectID(
-                (
-                    LocalCache.get('probe', probeName) as ProbeCache
-                )._id.toString()
-            );
+            probeId = LocalCache.getModel<Probe>('probe', probeName).id;
         } else {
-            const probe: Document | null = await ProbeService.findOneBy({
-                query: new Query()
-                    .equalTo('name', probeName)
-                    .equalTo('key', probeKey),
-                populate: [],
-                select: ['name', 'key', 'version', '_id'],
-                sort: [],
+            const probe: Probe | null = await ProbeService.findOneBy({
+                query: {
+                    name: probeName,
+                    key: probeKey,
+                },
+                select: {
+                    _id: true,
+                    name: true,
+                    key: true,
+                    probeVersion: true,
+                },
             });
 
-            if (probe && probe._id) {
-                probeId = probe._id;
+            if (probe && probe.id) {
+                probeId = probe.id;
 
-                LocalCache.set('probe', probeName, {
-                    _id: probe._id,
-                    name: probe.get('name'),
-                    key: probe.get('key'),
-                    version: probe.get('version'),
-                });
+                LocalCache.setModel('probe', probeName, probe);
             }
         }
 
@@ -174,51 +150,39 @@ export default {
 
         if (!probeId) {
             //Create a new probe.
-            const probe: Document = await ProbeService.create({
-                data: {
-                    key: probeKey
-                        ? probeKey.toString()
-                        : ObjectID.generate().toString(),
-                    name: probeName,
-                    version: probeVersion,
-                },
+            let probe: Probe = new Probe();
+            probe.name = probeName;
+            probe.probeVersion = probeVersion;
+            probe.key = probeKey;
+
+            probe = await ProbeService.create({
+                data: probe,
             });
 
-            probeId = probe._id;
+            probeId = probe.id;
 
-            LocalCache.set('probe', probeName, {
-                _id: probe._id,
-                name: probe.get('name'),
-                key: probe.get('key'),
-                version: probe.get('version'),
-            });
+            LocalCache.setModel('probe', probeName, probe);
         }
 
-        if (
-            (LocalCache.get('probe', probeName) as ProbeCache).key !== probeKey
-        ) {
+        if (LocalCache.getModel<Probe>('probe', probeName).key !== probeKey) {
             //Update probe key becasue it does not match.
 
             await ProbeService.updateProbeKeyByName(probeName, probeKey);
 
-            const probe: Document | null = await ProbeService.findOneBy({
-                query: new Query()
-                    .equalTo('name', probeName)
-                    .equalTo('key', probeKey),
-                populate: [],
-                select: ['name', 'key', 'version', '_id'],
-                sort: [],
+            const probe: Probe | null = await ProbeService.findOneBy({
+                query: { name: probeName, key: probeKey },
+                select: {
+                    _id: true,
+                    name: true,
+                    key: true,
+                    probeVersion: true,
+                },
             });
 
             if (probe) {
-                probeId = probe._id;
+                probeId = probe.id;
 
-                LocalCache.set('probe', probeName, {
-                    _id: probe._id,
-                    name: probe.get('name'),
-                    key: probe.get('key'),
-                    version: probe.get('version'),
-                });
+                LocalCache.setModel('probe', probeName, probe);
             }
         }
 
@@ -241,9 +205,10 @@ export default {
 
         if (
             probeVersion &&
-            (!(LocalCache.get('probe', probeName) as ProbeCache).version ||
-                (
-                    LocalCache.get('probe', probeName) as ProbeCache
+            (!LocalCache.getModel<Probe>('probe', probeName).version ||
+                LocalCache.getModel<Probe>(
+                    'probe',
+                    probeName
                 ).version.toString() !== probeVersion.toString())
         ) {
             ProbeService.updateProbeVersionByName(probeName, probeVersion);
