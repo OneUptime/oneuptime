@@ -71,9 +71,11 @@ export default class Probe extends BaseModel {
     })
     public iconUrl?: URL;
 
-    // // If this probe is custom to the project and only monitoring reosurces in this project.
-    // @Column({ nullable: true })
-    // public project?: Project;
+    /*
+     * If this probe is custom to the project and only monitoring reosurces in this project.
+     * @Column({ nullable: true })
+     * public project?: Project;
+     */
 
     @Column({ nullable: true })
     public deletedByUser?: User;

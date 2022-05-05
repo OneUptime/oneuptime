@@ -28,7 +28,8 @@ router.get(
                 parseInt((req.query['limit'] as string) || '10')
             );
 
-            const monitors: Array<Monitor> = await MonitorService.getMonitorsNotPingedByProbeInLastMinute(
+            const monitors: Array<Monitor> =
+                await MonitorService.getMonitorsNotPingedByProbeInLastMinute(
                     (oneUptimeRequest.probe as ProbeRequest).id,
                     limit
                 );

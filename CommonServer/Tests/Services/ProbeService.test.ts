@@ -16,7 +16,7 @@ describe('ProbeService', () => {
         const name: string = Faker.generateName();
         const probeVersion: Version = new Version('1.0.1');
         const key: ObjectID = ObjectID.generate();
-        const savedProbe = await ProbeService.createProbe(
+        const savedProbe: Probe = await ProbeService.createProbe(
             name,
             key,
             probeVersion
@@ -36,7 +36,7 @@ describe('ProbeService', () => {
         const name: string = Faker.generateName();
         const probeVersion: Version = new Version('1.0.1');
         const key: ObjectID = ObjectID.generate();
-        const savedProbe = await ProbeService.createProbe(
+        const savedProbe: Probe = await ProbeService.createProbe(
             name,
             key,
             probeVersion
@@ -145,8 +145,8 @@ describe('ProbeService', () => {
 
     test('findBy all entities', async () => {
         const name1: string = Faker.generateName();
-        const probeVersion1 = new Version('1.0.2');
-        const key1 = ObjectID.generate();
+        const probeVersion1: Version = new Version('1.0.2');
+        const key1: ObjectID = ObjectID.generate();
         const savedProbe1: Probe = await ProbeService.createProbe(
             name1,
             key1,
@@ -154,8 +154,8 @@ describe('ProbeService', () => {
         );
 
         const name2: string = Faker.generateName();
-        const probeVersion2 = new Version('1.0.1');
-        const key2 = ObjectID.generate();
+        const probeVersion2: Version = new Version('1.0.1');
+        const key2: ObjectID = ObjectID.generate();
         const savedProbe2: Probe = await ProbeService.createProbe(
             name2,
             key2,
@@ -197,7 +197,7 @@ describe('ProbeService', () => {
     test('findBy limit', async () => {
         const savedProbes: Array<Probe> = [];
 
-        for (let i = 0; i < 20; i++) {
+        for (let i: number = 0; i < 20; i++) {
             const name: string = Faker.generateName();
             const probeVersion: Version = new Version('1.0.2');
             const key: ObjectID = ObjectID.generate();
@@ -222,7 +222,7 @@ describe('ProbeService', () => {
             fail('Probe fetch limit breached');
         }
 
-        for (let i = 0; i < fetchedProbes.length; i++) {
+        for (let i: number = 0; i < fetchedProbes.length; i++) {
             expect(fetchedProbes[i]?._id).toEqual(savedProbes[19 - i]?._id);
             expect(fetchedProbes[i]?.name).toEqual(savedProbes[19 - i]?.name);
             expect(fetchedProbes[i]?.probeVersion.toString()).toEqual(
@@ -240,7 +240,7 @@ describe('ProbeService', () => {
     test('findBy skip', async () => {
         const savedProbes: Array<Probe> = [];
 
-        for (let i = 0; i < 20; i++) {
+        for (let i: number = 0; i < 20; i++) {
             const name: string = Faker.generateName();
             const probeVersion: Version = new Version('1.0.2');
             const key: ObjectID = ObjectID.generate();
@@ -265,7 +265,7 @@ describe('ProbeService', () => {
             fail('Probe fetch limit breached');
         }
 
-        for (let i = 0; i < fetchedProbes.length; i++) {
+        for (let i: number = 0; i < fetchedProbes.length; i++) {
             expect(fetchedProbes[i]?._id).toEqual(savedProbes[9 - i]?._id);
             expect(fetchedProbes[i]?.name).toEqual(savedProbes[9 - i]?.name);
             expect(fetchedProbes[i]?.probeVersion.toString()).toEqual(

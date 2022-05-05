@@ -16,7 +16,8 @@
         "node": true,
         "jquery": true,
         "es6": true,
-        "jest": true
+        "jest": true,
+        "jasmine": true
     },
     "plugins": [
         "react",

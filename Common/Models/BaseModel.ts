@@ -26,7 +26,7 @@ export default class BaseModel extends BaseEntity {
     public constructor(id?: ObjectID) {
         super();
         if (id) {
-            this.id = id; 
+            this.id = id;
         }
     }
 
@@ -100,7 +100,7 @@ export default class BaseModel extends BaseEntity {
         return this.viewerAccessibleColumns;
     }
 
-    public setSlugifyColumn(columnName: string) {
+    public setSlugifyColumn(columnName: string): void {
         this.slugifyColumn = columnName;
     }
 

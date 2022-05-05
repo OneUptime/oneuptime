@@ -1,4 +1,4 @@
-name: Common Test
+name: Common Server Test
 
 on: 
   push:

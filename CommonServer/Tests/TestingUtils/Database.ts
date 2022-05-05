@@ -2,6 +2,7 @@ import PostgresDatabase, {
     DataSourceOptions,
 } from '../../Infrastructure/PostgresDatabase';
 import { createDatabase, dropDatabase } from 'typeorm-extension';
+import { DataSource } from 'typeorm';
 
 export default class DatabaseConnect {
     public static async createAndConnect(): Promise<void> {
@@ -22,7 +23,7 @@ export default class DatabaseConnect {
     }
     public static async connectDatabase(): Promise<void> {
         try {
-            const connection = await PostgresDatabase.connect();
+            const connection: DataSource = await PostgresDatabase.connect();
             await connection.synchronize();
         } catch (err) {
             console.log(err);

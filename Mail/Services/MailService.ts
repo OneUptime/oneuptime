@@ -27,30 +27,27 @@ import Project from 'Common/Models/Project';
 
 export default class MailService {
     private static async getGlobalSmtpSettings(): Promise<MailServer> {
-        const document: GlobalConfig | null = await GlobalConfigService.findOneBy({
-            query: {
-                name: "smtp"
-            },
-            select: {
-                value: true
-            }
-        });
+        const document: GlobalConfig | null =
+            await GlobalConfigService.findOneBy({
+                query: {
+                    name: 'smtp',
+                },
+                select: {
+                    value: true,
+                },
+            });
 
-
-        if (
-            document &&
-            document.value &&
-            !document.value['internalSmtp']
-        ) {
+        if (document && document.value && !document.value['internalSmtp']) {
             return {
                 username: document.value['email'] as string,
                 password: document.value['password'] as string,
                 host: new Hostname(document.value['smtp-server'] as string),
                 port: new Port(document.value['smtp-port'] as string),
                 fromEmail: new Email(document.value['from'] as string),
-                fromName: document.value['from-name'] as string || 'OneUptime',
-                secure: !!document.value['smtp-secure'],
-                enabled: !!document.value['email-enabled'],
+                fromName:
+                    (document.value['from-name'] as string) || 'OneUptime',
+                secure: Boolean(document.value['smtp-secure']),
+                enabled: Boolean(document.value['email-enabled']),
             };
         } else if (
             document &&
@@ -65,7 +62,7 @@ export default class MailService {
                 port: Config.InternalSmtpPort,
                 fromEmail: Config.InternalSmtpFromEmail,
                 fromName: Config.InternalSmtpFromName,
-                enabled: !!document.value['email-enabled'],
+                enabled: Boolean(document.value['email-enabled']),
                 secure: Config.InternalSmtpSecure,
                 backupMailServer: {
                     username: document.value['email'] as string,
@@ -73,9 +70,10 @@ export default class MailService {
                     host: new Hostname(document.value['smtp-server'] as string),
                     port: new Port(document.value['smtp-port'] as string),
                     fromEmail: new Email(document.value['from'] as string),
-                    fromName: document.value['from-name'] as string || 'OneUptime',
-                    secure: !!document.value['smtp-secure'],
-                    enabled: !!document.value['email-enabled'],
+                    fromName:
+                        (document.value['from-name'] as string) || 'OneUptime',
+                    secure: Boolean(document.value['smtp-secure']),
+                    enabled: Boolean(document.value['email-enabled']),
                 },
             };
         } else if (
@@ -90,7 +88,7 @@ export default class MailService {
                 port: Config.InternalSmtpPort,
                 fromEmail: Config.InternalSmtpFromEmail,
                 fromName: Config.InternalSmtpFromName,
-                enabled: !!document.value['email-enabled'],
+                enabled: Boolean(document.value['email-enabled']),
                 secure: Config.InternalSmtpSecure,
             };
         }
@@ -101,12 +99,11 @@ export default class MailService {
     private static async getProjectSmtpSettings(
         projectId: ObjectID
     ): Promise<MailServer> {
-
         const projectSmtp: ProjectSmtpConfig | null =
             await ProjectSmtpConfigService.findOneBy({
                 query: {
                     project: new Project(projectId),
-                    enabled: true
+                    enabled: true,
                 },
                 select: {
                     useranme: true,
@@ -115,8 +112,8 @@ export default class MailService {
                     port: true,
                     fromName: true,
                     fromEmail: true,
-                    secure: true
-                }
+                    secure: true,
+                },
             });
 
         if (projectSmtp) {
@@ -224,38 +221,35 @@ export default class MailService {
         if (data.fromEmail) {
             log.fromEmail = data.fromEmail;
         }
-        
+
         if (data.fromName) {
             log.fromName = data.fromName;
         }
-        
+
         log.toEmail = data.toEmail;
         log.subject = data.subject;
 
         if (data.body) {
-            log.body = data.body; 
+            log.body = data.body;
         }
-        
-        
+
         if (data.templateType) {
             log.templateType = data.templateType;
         }
-        
+
         log.status = data.status;
         if (data.smtpHost) {
             log.smtpHost = data.smtpHost;
         }
-        
 
         if (data.errorDescription) {
             log.errorDescription = data.errorDescription;
         }
-        
 
         if (data.projectId) {
             log.project = new Project(data.projectId);
         }
-        
+
         await EmailLogService.create({ data: log });
     }
 
