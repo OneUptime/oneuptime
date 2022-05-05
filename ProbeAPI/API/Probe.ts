@@ -14,7 +14,7 @@ import {
 } from 'CommonServer/Utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import { Document } from 'CommonServer/Infrastructure/ORM';
+import Monitor from 'Common/Models/Monitor';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -28,8 +28,7 @@ router.get(
                 parseInt((req.query['limit'] as string) || '10')
             );
 
-            const monitors: Array<Document> =
-                await MonitorService.getMonitorsNotPingedByProbeInLastMinute(
+            const monitors: Array<Monitor> = await MonitorService.getMonitorsNotPingedByProbeInLastMinute(
                     (oneUptimeRequest.probe as ProbeRequest).id,
                     limit
                 );
