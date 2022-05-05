@@ -27,11 +27,19 @@ export default class ObjectID extends DatabaseProperty {
 
     protected static override toDatabase(
         _value: ObjectID | FindOperator<ObjectID>
-    ): string {
-        return _value.toString();
+    ): string | null {
+        if (_value) {
+            return _value.toString();
+        }
+
+        return null;
     }
 
-    protected static override fromDatabase(_value: string): ObjectID {
-        return new ObjectID(_value);
+    protected static override fromDatabase(_value: string): ObjectID | null {
+        if (_value) {
+            return new ObjectID(_value);
+        }
+
+        return null;
     }
 }

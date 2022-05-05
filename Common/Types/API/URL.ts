@@ -91,11 +91,19 @@ export default class URL extends DatabaseProperty {
 
     protected static override toDatabase(
         _value: URL | FindOperator<URL>
-    ): string {
-        return _value.toString();
+    ): string | null {
+        if (_value) {
+            return _value.toString();
+        }
+
+        return null;
     }
 
-    protected static override fromDatabase(_value: string): URL {
-        return URL.fromString(_value);
+    protected static override fromDatabase(_value: string): URL | null {
+        if (_value) {
+            return URL.fromString(_value);
+        }
+
+        return null;
     }
 }

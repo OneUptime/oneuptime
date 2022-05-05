@@ -28,11 +28,19 @@ export default class Version extends DatabaseProperty {
 
     protected static override toDatabase(
         _value: Version | FindOperator<Version>
-    ): string {
-        return _value.toString();
+    ): string | null {
+        if (_value) {
+            return _value.toString();
+        }
+
+        return null;
     }
 
-    protected static override fromDatabase(_value: string): Version {
-        return new Version(_value);
+    protected static override fromDatabase(_value: string): Version | null {
+        if (_value) {
+            return new Version(_value);
+        }
+
+        return null;
     }
 }

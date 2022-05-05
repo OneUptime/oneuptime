@@ -30,11 +30,19 @@ export default class Phone extends DatabaseProperty {
 
     protected static override toDatabase(
         _value: Phone | FindOperator<Phone>
-    ): string {
-        return _value.toString();
+    ): string | null {
+        if (_value) {
+            return _value.toString();
+        }
+
+        return null;
     }
 
-    protected static override fromDatabase(_value: string): Phone {
-        return new Phone(_value);
+    protected static override fromDatabase(_value: string): Phone | null {
+        if (_value) {
+            return new Phone(_value);
+        }
+
+        return null;
     }
 }

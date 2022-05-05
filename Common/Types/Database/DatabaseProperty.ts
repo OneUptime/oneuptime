@@ -5,13 +5,15 @@ import NotImplementedException from '../Exception/NotImplementedException';
 export default class DatabaseProperty {
     public constructor() {}
 
-    protected static fromDatabase(_value: string | number): DatabaseProperty {
+    protected static fromDatabase(
+        _value: string | number
+    ): DatabaseProperty | null {
         throw new NotImplementedException();
     }
 
     protected static toDatabase(
         _value: DatabaseProperty | FindOperator<DatabaseProperty>
-    ): string | number {
+    ): string | number | null {
         throw new NotImplementedException();
     }
 

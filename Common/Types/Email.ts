@@ -1,3 +1,4 @@
+import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 
@@ -23,5 +24,23 @@ export default class Email extends DatabaseProperty {
 
     public override toString(): string {
         return this.email;
+    }
+
+    protected static override toDatabase(
+        _value: Email | FindOperator<Email>
+    ): string | null {
+        if (_value) {
+            return _value.toString();
+        }
+
+        return null;
+    }
+
+    protected static override fromDatabase(_value: string): Email | null {
+        if (_value) {
+            return new Email(_value);
+        }
+
+        return null;
     }
 }
