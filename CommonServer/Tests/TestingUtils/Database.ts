@@ -22,12 +22,8 @@ export default class DatabaseConnect {
         });
     }
     public static async connectDatabase(): Promise<void> {
-        try {
             const connection: DataSource = await PostgresDatabase.connect();
             await connection.synchronize();
-        } catch (err) {
-            console.log(err);
-        }
     }
 
     public static async disconnectDatabase(): Promise<void> {
