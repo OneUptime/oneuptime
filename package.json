@@ -46,6 +46,7 @@
         "dev": "npm run start-enterprise-dev $npm_config_services",
         "saas-dev": "export IS_SAAS_SERVICE=true && npm run dev $npm_config_services",
         "start-enterprise-dev": "export DOCKER_CLIENT_TIMEOUT=1000 && export COMPOSE_HTTP_TIMEOUT=1000 && docker-compose -f docker-compose.dev.yml up -d $npm_config_services",
+        "start-enterprise-ci": "export DOCKER_CLIENT_TIMEOUT=1000 && export COMPOSE_HTTP_TIMEOUT=1000 && docker-compose -f docker-compose.ci.yml up -d $npm_config_services",
         "stop-dev": "docker-compose -f docker-compose.dev.yml down --remove-orphans",
         "staging-test": "cd tests && npm run-script staging-test",
         "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
