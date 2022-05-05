@@ -1,5 +1,5 @@
 import BaseModel from 'Common/Models/BaseModel';
-import DatabaseProperty from 'Common/Types/DatabaseProperty';
+import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
 import { FindOperator, FindOptionsWhereProperty } from 'typeorm';
 
 export declare type FindWhereProperty<Property> =

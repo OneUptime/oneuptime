@@ -1,24 +1,27 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-
 import User from './User';
 import Project from './Project';
+import Email from '../Types/Email';
+import EmailTemplateType from '../Types/Email/EmailTemplateType';
+import OperationResult from '../Types/Operation/OperationResult';
+import Hostname from '../Types/API/Hostname';
 
 @Entity({
     name: 'EmailLog',
 })
 export default class EmailLog extends BaseModel {
     @Column()
-    public fromEmail!: string;
+    public fromEmail?: Email;
 
     @Column()
-    public fromName!: string;
+    public fromName?: string;
 
     @Column()
     public project!: Project;
 
     @Column()
-    public toEmail!: string;
+    public toEmail!: Email;
 
     @Column()
     public subject!: string;
@@ -27,16 +30,16 @@ export default class EmailLog extends BaseModel {
     public body!: string;
 
     @Column()
-    public templateType!: string;
+    public templateType!: EmailTemplateType;
 
     @Column()
-    public status!: string;
+    public status!: OperationResult;
 
     @Column()
     public errorDescription!: string;
 
     @Column()
-    public smtpHost!: string;
+    public smtpHost!: Hostname;
 
     @Column()
     public deletedByUser!: User;

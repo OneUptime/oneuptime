@@ -1,5 +1,5 @@
 import BaseModel from 'Common/Models/BaseModel';
-import DatabaseProperty from 'Common/Types/DatabaseProperty';
+import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
 import { FindOptionsSelectProperty } from 'typeorm';
 
 export type SelectPropertyOptions<Property> = Property extends DatabaseProperty

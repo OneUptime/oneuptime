@@ -23,6 +23,13 @@ export default class BaseModel extends BaseEntity {
     private slugifyColumn!: string | null;
     private saveSlugToColumn!: string | null;
 
+    public constructor(id?: ObjectID) {
+        super();
+        if (id) {
+            this.id = id; 
+        }
+    }
+
     public getEncryptedColumns(): Columns {
         return this.encryptedColumns;
     }

@@ -3,6 +3,9 @@ import BaseModel from './BaseModel';
 
 import User from './User';
 import Project from './Project';
+import Hostname from '../Types/API/Hostname';
+import Email from '../Types/Email';
+import Port from '../Types/Port';
 
 @Entity({
     name: 'ProjectSmtpConfig',
@@ -27,17 +30,17 @@ export default class ProjectSmtpConfig extends BaseModel {
     @Column({
         nullable: false,
     })
-    public host!: string;
+    public host!: Hostname;
 
     @Column({
         nullable: false,
     })
-    public port!: number;
+    public port!: Port;
 
     @Column({
         nullable: false,
     })
-    public fromEmail!: string;
+    public fromEmail!: Email;
 
     @Column({
         nullable: false,
