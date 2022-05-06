@@ -3,38 +3,50 @@ import { createDatabase, dropDatabase } from 'typeorm-extension';
 import { DataSource, DataSourceOptions } from 'typeorm';
 
 export default class DatabaseConnect {
-    public static async createAndConnect(): Promise<DataSourceOptions> {
+    private database!: PostgresDatabase;
+    private dataSourceOptions!: DataSourceOptions;
+
+    constructor() {
+        this.database = new PostgresDatabase();
+    }
+
+    public getDatabase(): PostgresDatabase {
+        return this.database;
+    }
+
+    public async createAndConnect(): Promise<DataSource> {
         const dataSourceOptions: DataSourceOptions = await this.createDatabase();
-        await this.connectDatabase(dataSourceOptions);
-        return dataSourceOptions;
+        return await this.connectDatabase(dataSourceOptions);
     }
 
-    public static async disconnectAndDropDatabase(dataSourceOptions: DataSourceOptions): Promise<void> {
+    public async disconnectAndDropDatabase(): Promise<void> {
         await this.disconnectDatabase();
-        await this.dropDatabase(dataSourceOptions);
+        await this.dropDatabase();
     }
 
-    public static async createDatabase(): Promise<DataSourceOptions> {
-        const dataSourceOptions: DataSourceOptions = PostgresDatabase.getTestDatasourceOptions();
+    public async createDatabase(): Promise<DataSourceOptions> {
+        const dataSourceOptions: DataSourceOptions = this.database.getTestDatasourceOptions();
+        this.dataSourceOptions = dataSourceOptions;
         await createDatabase({
-            options: PostgresDatabase.getTestDatasourceOptions(),
+            options: this.database.getTestDatasourceOptions(),
             ifNotExist: true,
         });
 
         return dataSourceOptions;
     }
-    public static async connectDatabase(dataSourceOptions: DataSourceOptions): Promise<void> {
-        const connection: DataSource = await PostgresDatabase.connect(dataSourceOptions);
+    public async connectDatabase(dataSourceOptions: DataSourceOptions): Promise<DataSource> {
+        const connection: DataSource = await this.database.connect(dataSourceOptions);
         await connection.synchronize();
+        return connection;
     }
 
-    public static async disconnectDatabase(): Promise<void> {
-        await PostgresDatabase.disconnect();
+    public async disconnectDatabase(): Promise<void> {
+        await this.database.disconnect();
     }
 
-    public static async dropDatabase(dataSourceOptions: DataSourceOptions): Promise<void> {
+    public async dropDatabase(): Promise<void> {
         await dropDatabase({
-            options: dataSourceOptions,
+            options: this.dataSourceOptions,
             ifExist: true,
         });
     }
