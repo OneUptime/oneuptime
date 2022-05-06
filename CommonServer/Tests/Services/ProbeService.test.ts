@@ -6,10 +6,18 @@ import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import Faker from 'Common/Tests/TestingUtils/Faker';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import User from 'Common/Models/User';
+import UserTestService from '../TestingUtils/Services/UserTestService';
+import { DataSourceOptions } from 'typeorm';
 
 describe('ProbeService', () => {
+    let dataSourceOptions!: DataSourceOptions;  
     beforeEach(async () => {
-        await Database.createAndConnect();
+        dataSourceOptions = await Database.createAndConnect();
+    });
+
+    afterEach(async () => {
+        await Database.disconnectAndDropDatabase(dataSourceOptions);
     });
 
     test('create a new probe', async () => {
@@ -412,7 +420,66 @@ describe('ProbeService', () => {
         expect(savedProbe.slug).toContain(name.toLowerCase() + '-');
     });
 
-    afterEach(async () => {
-        await Database.disconnectAndDropDatabase();
+    test('add user to createdBy column', async () => {
+
+        const user: User = await UserTestService.generateRandomUser();
+
+        const name: string = Faker.generateName();
+        const probeVersion: Version = new Version('1.0.2');
+        const key: ObjectID = ObjectID.generate();
+
+        const savedProbe: Probe = await ProbeService.createProbe(
+            name,
+            key,
+            probeVersion
+        );
+
+        savedProbe.createdByUser = user;
+        const updatedProbe: Probe = await savedProbe.save();
+
+        const findProbe = await ProbeService.findOneBy(
+            {
+                query: {
+                    _id: updatedProbe._id
+                }
+            })
+
+        expect(findProbe).toBeTruthy();
+        expect(findProbe?.createdByUser?._id).toContain(user._id);
     });
+
+
+    test('include user in relation', async () => {
+
+        const user: User = await UserTestService.generateRandomUser();
+
+        const name: string = Faker.generateName();
+        const probeVersion: Version = new Version('1.0.2');
+        const key: ObjectID = ObjectID.generate();
+
+        const savedProbe: Probe = await ProbeService.createProbe(
+            name,
+            key,
+            probeVersion
+        );
+
+        savedProbe.createdByUser = user;
+        const updatedProbe: Probe = await savedProbe.save();
+
+        const findProbe = await ProbeService.findOneBy(
+            {
+                query: {
+                    _id: updatedProbe._id
+                },
+                populate: {
+                    deletedByUser: true
+                }
+            })
+
+        expect(findProbe).toBeTruthy();
+        expect(findProbe?.createdByUser?._id).toContain(user._id);
+    });
+
+
+   
 });

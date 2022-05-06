@@ -9,7 +9,7 @@ enum ColumnLength {
     ObjectID = 'varchar',
     ShortURL = 'varchar',
     LongURL = 'text',
-    ShortText = 'text',
+    ShortText = 'varchar',
     OTP = 'varchar',
     LongText = 'text',
     Date = 'timestamptz',

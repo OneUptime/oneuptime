@@ -9,10 +9,4 @@ if (Env === AppEnvironment.Development || Env === AppEnvironment.Test) {
      * Production values are supplied by Kubernetes Helm charts or docker compose files.
      */
     dotenv.config();
-
-    if (Env === AppEnvironment.Test) {
-        dotenv.config({
-            path: '../test.env',
-        });
-    }
 }

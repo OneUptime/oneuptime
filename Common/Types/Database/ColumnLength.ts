@@ -1,5 +1,5 @@
 enum ColumnLength {
-    Version = 20,
+    Version = 30,
     Slug = 100,
     Email = 100,
     Name = 50,
@@ -7,9 +7,8 @@ enum ColumnLength {
     Password = 500,
     ObjectID = 50,
     ShortURL = 100,
-    LongURL = 500,
     ShortText = 100,
-    Phone = 20,
+    Phone = 30,
     OTP = 8,
 }
 

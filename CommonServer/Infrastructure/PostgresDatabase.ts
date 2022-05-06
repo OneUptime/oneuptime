@@ -1,4 +1,4 @@
-import { DataSource, DataSourceOptions as Options } from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
 import {
     DatabaseHost,
     DatabaseName,
@@ -11,20 +11,7 @@ import {
 import Entities from 'Common/Models/Index';
 import AppEnvironment from 'Common/Types/AppEnvironment';
 import DatabaseType from 'Common/Types/DatabaseType';
-
-export const DataSourceOptions: Options = {
-    type: DatabaseType.Postgres,
-    host: DatabaseHost.toString(),
-    port: DatabasePort.toNumber(),
-    username: DatabaseUsername,
-    password: DatabasePassword,
-    database: DatabaseName,
-    entities: Entities,
-    synchronize:
-        Env === AppEnvironment.Test || Env === AppEnvironment.Development,
-};
-
-const PostgresDataSource: DataSource = new DataSource(DataSourceOptions);
+import Faker from 'Common/Tests/TestingUtils/Faker';
 
 export default class Database {
     private static dataSource: DataSource | null;
@@ -33,10 +20,37 @@ export default class Database {
         return this.dataSource;
     }
 
-    public static async connect(): Promise<DataSource> {
-        if (!this.dataSource) {
-            await this.getDataSource();
-        }
+    public static getDatasourceOptions(): DataSourceOptions{
+        return {
+            type: DatabaseType.Postgres,
+            host: DatabaseHost.toString(),
+            port: DatabasePort.toNumber(),
+            username: DatabaseUsername,
+            password: DatabasePassword,
+            database: DatabaseName,
+            entities: Entities,
+            synchronize:
+                Env === AppEnvironment.Test || Env === AppEnvironment.Development,
+        };
+    }
+
+    public static getTestDatasourceOptions(): DataSourceOptions{
+        return {
+            type: DatabaseType.Postgres,
+            host: DatabaseHost.toString(),
+            port: DatabasePort.toNumber(),
+            username: DatabaseUsername,
+            password: DatabasePassword,
+            database: DatabaseName+Faker.generateName(),
+            entities: Entities,
+            synchronize:
+                Env === AppEnvironment.Test || Env === AppEnvironment.Development,
+        };
+    }
+
+    public static async connect(dataSourceOptions: DataSourceOptions): Promise<DataSource> {
+        const PostgresDataSource: DataSource = new DataSource(dataSourceOptions);
+        this.dataSource = PostgresDataSource;
         this.dataSource = await PostgresDataSource.initialize();
         return this.dataSource;
     }

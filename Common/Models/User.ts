@@ -11,6 +11,8 @@ import Email from '../Types/Email';
 import Name from '../Types/Name';
 import URL from '../Types/API/URL';
 import Timezone from '../Types/Timezone';
+import CompanySize from '../Types/Company/CompanySize';
+import JobRole from '../Types/Company/JobRole';
 
 @SlugifyColumn('name', 'slug')
 @Entity({
@@ -74,7 +76,7 @@ class User extends BaseModel {
         nullable: false,
         unique: false,
     })
-    public companyRole!: string;
+    public jobRole!: JobRole;
 
     @RequiredColumn()
     @Column({
@@ -83,7 +85,7 @@ class User extends BaseModel {
         nullable: false,
         unique: false,
     })
-    public companySize!: string;
+    public companySize!: CompanySize;
 
     @Column({
         type: ColumnType.ShortText,
@@ -99,6 +101,7 @@ class User extends BaseModel {
         length: ColumnLength.Phone,
         nullable: false,
         unique: false,
+        transformer: Phone.getDatabaseTransformer()
     })
     public companyPhoneNumber!: Phone;
 
@@ -129,8 +132,8 @@ class User extends BaseModel {
     public twoFactorSecretCode?: string;
 
     @Column({
-        type: ColumnType.LongURL,
-        length: ColumnLength.LongURL,
+        type: ColumnType.ShortURL,
+        length: ColumnLength.ShortURL,
         nullable: true,
         unique: false,
         transformer: URL.getDatabaseTransformer(),
@@ -206,7 +209,7 @@ class User extends BaseModel {
         unique: false,
         default: false,
     })
-    public disabled!: boolean;
+    public isDisabled!: boolean;
 
     @Column({
         type: ColumnType.Date,
