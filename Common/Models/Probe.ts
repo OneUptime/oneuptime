@@ -96,7 +96,6 @@ export default class Probe extends BaseModel {
 
 
     @ManyToOne(_type => User, {
-        cascade: false, 
         eager: false,
         nullable: true, 
         onDelete: "CASCADE",

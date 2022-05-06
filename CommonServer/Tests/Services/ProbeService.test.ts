@@ -495,5 +495,40 @@ describe('probeService', () => {
         expect(findProbe?.createdByUser?._id).toContain(user._id);
         expect(findProbe?.createdByUser?.name.toString()).toContain(user.name.toString());
     });
+
+    test('find a probe by user relation', async () => {
+        const probeService: ProbeService = new ProbeService(database.getDatabase())
+        const userTestService: UserTestService = new UserTestService(database.getDatabase());
+        const user: User = await userTestService.generateRandomUser();
+
+        const name: string = Faker.generateName();
+        const probeVersion: Version = new Version('1.0.2');
+        const key: ObjectID = ObjectID.generate();
+
+        const savedProbe: Probe = await probeService.createProbe(
+            name,
+            key,
+            probeVersion
+        );
+
+        savedProbe.createdByUser = user;
+        const updatedProbe: Probe = await savedProbe.save();
+
+        expect(updatedProbe).toBeTruthy();
+
+        const findProbe = await probeService.findOneBy(
+            {
+                query: {
+                    createdByUserId: user.id
+                },
+                populate: {
+                    createdByUser: true
+                }
+            })
+
+        expect(findProbe).toBeTruthy();
+        expect(findProbe?.createdByUser?._id).toContain(user._id);
+        expect(findProbe?.createdByUser?.name.toString()).toContain(user.name.toString());
+    });
    
 });
