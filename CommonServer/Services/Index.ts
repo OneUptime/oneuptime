@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import ProbeService from "./ProbeService";
+import ProbeService from './ProbeService';
 import UserService from './UserService';
 import GlobalConfigService from './GlobalConfigService';
 import ProjectSmtpConfigService from './ProjectSmtpConfigService';
@@ -15,5 +15,5 @@ export default {
     GlobalConfigService: new GlobalConfigService(postgresDatabase),
     ProjectSmtpConfigService: new ProjectSmtpConfigService(postgresDatabase),
     EmailLogService: new EmailLogService(postgresDatabase),
-    MonitorService: new MonitorService(postgresDatabase)
-}
+    MonitorService: new MonitorService(postgresDatabase),
+};

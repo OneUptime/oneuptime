@@ -4,7 +4,6 @@ import Name from '../../Types/Name';
 import Phone from '../../Types/Phone';
 
 export default class Faker {
-    
     public static generateName(): string {
         return faker.name.firstName();
     }
@@ -18,7 +17,7 @@ export default class Faker {
     }
 
     public static generateUserFullName(): Name {
-        return new Name(faker.name.firstName() + " " + faker.name.lastName());
+        return new Name(faker.name.firstName() + ' ' + faker.name.lastName());
     }
 
     public static generateEmail(): Email {

@@ -1,4 +1,5 @@
 import Services from '../Services/Index';
+import ProbeServiceClass from '../Services/ProbeService';
 import { sendErrorResponse } from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Version from 'Common/Types/Version';
@@ -15,7 +16,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import LocalCache from '../Infrastructure/LocalCache';
 import Probe from 'Common/Models/Probe';
 
-const ProbeService = Services.ProbeService;
+const ProbeService: ProbeServiceClass = Services.ProbeService;
 
 export default {
     async isAuthorizedProbe(

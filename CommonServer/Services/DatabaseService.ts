@@ -24,9 +24,12 @@ import HardDeleteBy from '../Types/DB/HardDeleteBy';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     public entityName!: string;
-    private database!: PostgresDatabase; 
+    private database!: PostgresDatabase;
 
-    public constructor(type: { new (): TBaseModel }, database: PostgresDatabase) {
+    public constructor(
+        type: { new (): TBaseModel },
+        database: PostgresDatabase
+    ) {
         this.entityName = type.name;
         this.database = database;
     }

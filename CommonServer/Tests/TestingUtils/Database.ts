@@ -6,7 +6,7 @@ export default class DatabaseConnect {
     private database!: PostgresDatabase;
     private dataSourceOptions!: DataSourceOptions;
 
-    constructor() {
+    public constructor() {
         this.database = new PostgresDatabase();
     }
 
@@ -15,7 +15,8 @@ export default class DatabaseConnect {
     }
 
     public async createAndConnect(): Promise<DataSource> {
-        const dataSourceOptions: DataSourceOptions = await this.createDatabase();
+        const dataSourceOptions: DataSourceOptions =
+            await this.createDatabase();
         return await this.connectDatabase(dataSourceOptions);
     }
 
@@ -25,18 +26,22 @@ export default class DatabaseConnect {
     }
 
     public async createDatabase(): Promise<DataSourceOptions> {
-        const dataSourceOptions: DataSourceOptions = this.database.getTestDatasourceOptions();
+        const dataSourceOptions: DataSourceOptions =
+            this.database.getTestDatasourceOptions();
         this.dataSourceOptions = dataSourceOptions;
         await createDatabase({
             options: dataSourceOptions,
             ifNotExist: true,
         });
 
-
         return dataSourceOptions;
     }
-    public async connectDatabase(dataSourceOptions: DataSourceOptions): Promise<DataSource> {
-        const connection: DataSource = await this.database.connect(dataSourceOptions);
+    public async connectDatabase(
+        dataSourceOptions: DataSourceOptions
+    ): Promise<DataSource> {
+        const connection: DataSource = await this.database.connect(
+            dataSourceOptions
+        );
         await connection.synchronize();
         return connection;
     }

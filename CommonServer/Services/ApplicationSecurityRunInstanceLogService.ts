@@ -7,5 +7,3 @@ export default class Service extends DatabaseService<Model> {
         super(Model, database);
     }
 }
-
-

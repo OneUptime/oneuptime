@@ -5,6 +5,9 @@ import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
 import Mail from '../Types/Mail';
 import Services from 'CommonServer/Services/Index';
+import GlobalConfigServiceClass from 'CommonServer/Services/GlobalConfigService';
+import ProjectSmtpServiceClass from 'CommonServer/Services/ProjectSmtpConfig';
+import EmailLogServiceClass from 'CommonServer/Services/EmailLogService';
 import Path from 'path';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -23,10 +26,11 @@ import ProjectSmtpConfig from 'Common/Models/ProjectSmtpConfig';
 import EmailLog from 'Common/Models/EmailLog';
 import Project from 'Common/Models/Project';
 
-const GlobalConfigService = Services.GlobalConfigService;
-const EmailLogService = Services.EmailLogService;
-const ProjectSmtpConfigService = Services.ProjectSmtpConfigService;
-
+const GlobalConfigService: GlobalConfigServiceClass =
+    Services.GlobalConfigService;
+const EmailLogService: EmailLogServiceClass = Services.EmailLogService;
+const ProjectSmtpConfigService: ProjectSmtpServiceClass =
+    Services.ProjectSmtpConfigService;
 
 export default class MailService {
     private static async getGlobalSmtpSettings(): Promise<MailServer> {

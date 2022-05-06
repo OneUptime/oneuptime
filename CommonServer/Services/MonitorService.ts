@@ -78,5 +78,3 @@ export default class Service extends DatabaseService<Model> {
         return [];
     }
 }
-
-

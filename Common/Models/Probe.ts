@@ -77,14 +77,19 @@ export default class Probe extends BaseModel {
      * public project?: Project;
      */
 
-    @ManyToOne(_type => User, {
-        cascade: false, 
-        eager: false,
-        nullable: true, 
-        onDelete: "CASCADE",
-        orphanedRowAction: "nullify"
-    })
-    @JoinColumn({name: "deletedByUserId"})
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            cascade: false,
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
     @Column({
@@ -94,14 +99,18 @@ export default class Probe extends BaseModel {
     })
     public deletedByUserId?: ObjectID;
 
-
-    @ManyToOne(_type => User, {
-        eager: false,
-        nullable: true, 
-        onDelete: "CASCADE",
-        orphanedRowAction: "nullify"
-    })
-    @JoinColumn({name: "createdByUserId"})
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User;
 
     @Column({
@@ -110,5 +119,4 @@ export default class Probe extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public createdByUserId?: ObjectID;
-     
 }

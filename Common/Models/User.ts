@@ -101,7 +101,7 @@ class User extends BaseModel {
         length: ColumnLength.Phone,
         nullable: false,
         unique: false,
-        transformer: Phone.getDatabaseTransformer()
+        transformer: Phone.getDatabaseTransformer(),
     })
     public companyPhoneNumber!: Phone;
 
