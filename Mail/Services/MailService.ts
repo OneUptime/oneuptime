@@ -6,7 +6,7 @@ import fsp from 'fs/promises';
 import Mail from '../Types/Mail';
 import Services from 'CommonServer/Services/Index';
 import GlobalConfigServiceClass from 'CommonServer/Services/GlobalConfigService';
-import ProjectSmtpServiceClass from 'CommonServer/Services/ProjectSmtpConfig';
+import ProjectSmtpServiceClass from 'CommonServer/Services/ProjectSmtpConfigService';
 import EmailLogServiceClass from 'CommonServer/Services/EmailLogService';
 import Path from 'path';
 import Email from 'Common/Types/Email';
