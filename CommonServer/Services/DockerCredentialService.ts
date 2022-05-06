@@ -1,3 +1,4 @@
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/DockerCredential';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DatabaseService from './DatabaseService';
@@ -7,9 +8,9 @@ import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 
-class Service extends DatabaseService<Model> {
-    public constructor() {
-        super(Model);
+export default class Service extends DatabaseService<Model> {
+    public constructor(database: PostgresDatabase) {
+        super(Model, database);
     }
 
     public async validateDockerCredential({
@@ -36,5 +37,3 @@ class Service extends DatabaseService<Model> {
         }
     }
 }
-
-export default Service;

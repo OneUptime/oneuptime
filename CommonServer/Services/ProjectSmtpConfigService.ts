@@ -1,10 +1,9 @@
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/ProjectSmtpConfig';
 import DatabaseService from './DatabaseService';
 
-class EmailSmtpService extends DatabaseService<Model> {
-    public constructor() {
-        super(Model);
+export default class Service extends DatabaseService<Model> {
+    public constructor(database: PostgresDatabase) {
+        super(Model, database);
     }
 }
-
-export default new EmailSmtpService();

@@ -24,13 +24,18 @@ import HardDeleteBy from '../Types/DB/HardDeleteBy';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     public entityName!: string;
+    private database!: PostgresDatabase;
 
-    public constructor(type: { new (): TBaseModel }) {
+    public constructor(
+        type: { new (): TBaseModel },
+        database: PostgresDatabase
+    ) {
         this.entityName = type.name;
+        this.database = database;
     }
 
     public getRepository(): Repository<TBaseModel> {
-        const dataSource: DataSource | null = PostgresDatabase.getDataSource();
+        const dataSource: DataSource | null = this.database.getDataSource();
         if (dataSource) {
             return dataSource.getRepository<TBaseModel>(this.entityName);
         }
