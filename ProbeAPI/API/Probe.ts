@@ -6,7 +6,7 @@ import Express, {
     ExpressRouter,
 } from 'CommonServer/Utils/Express';
 
-import MonitorService from 'CommonServer/Services/MonitorService';
+import Service from 'CommonServer/Services/Index'
 import ProbeAuthorization from 'CommonServer/Middleware/ProbeAuthorization';
 import {
     sendErrorResponse,
@@ -16,6 +16,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Monitor from 'Common/Models/Monitor';
 
+const MonitorService = Service.MonitorService;
 const router: ExpressRouter = Express.getRouter();
 
 router.get(

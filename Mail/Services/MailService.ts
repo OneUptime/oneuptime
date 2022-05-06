@@ -4,9 +4,7 @@ import hbs from 'nodemailer-express-handlebars';
 import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
 import Mail from '../Types/Mail';
-import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
-import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import EmailLogService from 'CommonServer/Services/EmailLogService';
+import Services from 'CommonServer/Services/Index';
 import Path from 'path';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -24,6 +22,11 @@ import Port from 'Common/Types/Port';
 import ProjectSmtpConfig from 'Common/Models/ProjectSmtpConfig';
 import EmailLog from 'Common/Models/EmailLog';
 import Project from 'Common/Models/Project';
+
+const GlobalConfigService = Services.GlobalConfigService;
+const EmailLogService = Services.EmailLogService;
+const ProjectSmtpConfigService = Services.ProjectSmtpConfigService;
+
 
 export default class MailService {
     private static async getGlobalSmtpSettings(): Promise<MailServer> {
