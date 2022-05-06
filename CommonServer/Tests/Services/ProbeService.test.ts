@@ -459,7 +459,7 @@ describe('probeService', () => {
             })
 
         expect(findProbe).toBeTruthy();
-        expect(findProbe?.createdByUser?._id).toContain(user._id);
+        expect(findProbe?.createdByUserId?.toString()).toContain(user._id);
     });
 
 
@@ -487,12 +487,13 @@ describe('probeService', () => {
                     _id: updatedProbe._id
                 },
                 populate: {
-                    deletedByUser: true
+                    createdByUser: true
                 }
             })
 
         expect(findProbe).toBeTruthy();
         expect(findProbe?.createdByUser?._id).toContain(user._id);
+        expect(findProbe?.createdByUser?.name.toString()).toContain(user.name.toString());
     });
    
 });

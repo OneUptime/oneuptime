@@ -38,7 +38,7 @@ export default class Database {
             port: DatabasePort.toNumber(),
             username: DatabaseUsername,
             password: DatabasePassword,
-            database: DatabaseName + Faker.generateName(),
+            database: DatabaseName + Faker.random16Numbers(),
             entities: Entities,
             synchronize:
                 Env === AppEnvironment.Test || Env === AppEnvironment.Development,

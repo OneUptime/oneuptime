@@ -13,6 +13,10 @@ export default class Faker {
         return faker.company.companyName();
     }
 
+    public static random16Numbers(): string {
+        return faker.random.numeric(16);
+    }
+
     public static generateUserFullName(): Name {
         return new Name(faker.name.firstName() + " " + faker.name.lastName());
     }

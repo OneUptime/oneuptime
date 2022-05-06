@@ -28,9 +28,10 @@ export default class DatabaseConnect {
         const dataSourceOptions: DataSourceOptions = this.database.getTestDatasourceOptions();
         this.dataSourceOptions = dataSourceOptions;
         await createDatabase({
-            options: this.database.getTestDatasourceOptions(),
+            options: dataSourceOptions,
             ifNotExist: true,
         });
+
 
         return dataSourceOptions;
     }

@@ -84,8 +84,15 @@ export default class Probe extends BaseModel {
         onDelete: "CASCADE",
         orphanedRowAction: "nullify"
     })
-    @JoinColumn({name: "createdByUserId"})
+    @JoinColumn({name: "deletedByUserId"})
     public deletedByUser?: User;
+
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public deletedByUserId?: ObjectID;
 
 
     @ManyToOne(_type => User, {
@@ -97,5 +104,12 @@ export default class Probe extends BaseModel {
     })
     @JoinColumn({name: "createdByUserId"})
     public createdByUser?: User;
+
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public createdByUserId?: ObjectID;
      
 }
