@@ -54,3 +54,5 @@ tests/coverage
 settings.json
 
 GoSDK/tester/
+
+.gitconfig

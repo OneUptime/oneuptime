@@ -6,7 +6,8 @@ import Express, {
     ExpressRouter,
 } from 'CommonServer/Utils/Express';
 
-import MonitorService from 'CommonServer/Services/MonitorService';
+import Service from 'CommonServer/Services/Index';
+import MonitorServiceClass from 'CommonServer/Services/MonitorService';
 import ProbeAuthorization from 'CommonServer/Middleware/ProbeAuthorization';
 import {
     sendErrorResponse,
@@ -14,8 +15,9 @@ import {
 } from 'CommonServer/Utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import { Document } from 'CommonServer/Infrastructure/ORM';
+import Monitor from 'Common/Models/Monitor';
 
+const MonitorService: MonitorServiceClass = Service.MonitorService;
 const router: ExpressRouter = Express.getRouter();
 
 router.get(
@@ -28,7 +30,7 @@ router.get(
                 parseInt((req.query['limit'] as string) || '10')
             );
 
-            const monitors: Array<Document> =
+            const monitors: Array<Monitor> =
                 await MonitorService.getMonitorsNotPingedByProbeInLastMinute(
                     (oneUptimeRequest.probe as ProbeRequest).id,
                     limit

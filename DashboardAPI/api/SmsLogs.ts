@@ -24,7 +24,7 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const selectSmsCount: $TSFixMe =
-                'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
+                'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedByUser content status error';
             const query: $TSFixMe = {};
             const skip: $TSFixMe = req.query['skip'];
             const limit: $TSFixMe = req.query['limit'];

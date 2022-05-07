@@ -1550,7 +1550,7 @@ router.get(
         try {
             const userId: $TSFixMe = req.params['userId'];
             const select: $TSFixMe =
-                'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
+                'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedByUser alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
             const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: userId, deleted: { $ne: null } },
                 select,

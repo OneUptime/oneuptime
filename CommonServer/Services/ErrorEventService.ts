@@ -1,63 +1,9 @@
-import Model, {
-    requiredFields,
-    uniqueFields,
-    slugifyField,
-    encryptedFields,
-} from '../Models/ErrorEvent';
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import Model from 'Common/Models/ErrorEvent';
 import DatabaseService from './DatabaseService';
 
-class Service extends DatabaseService<typeof Model> {
-    public constructor() {
-        super({
-            model: Model,
-            requiredFields: requiredFields,
-            uniqueFields: uniqueFields,
-            friendlyName: 'Error Event',
-            publicListProps: {
-                populate: [],
-                select: [],
-            },
-            adminListProps: {
-                populate: [],
-                select: [],
-            },
-            ownerListProps: {
-                populate: [],
-                select: [],
-            },
-            memberListProps: {
-                populate: [],
-                select: [],
-            },
-            viewerListProps: {
-                populate: [],
-                select: [],
-            },
-            publicItemProps: {
-                populate: [],
-                select: [],
-            },
-            adminItemProps: {
-                populate: [],
-                select: [],
-            },
-            memberItemProps: {
-                populate: [],
-                select: [],
-            },
-            viewerItemProps: {
-                populate: [],
-                select: [],
-            },
-            ownerItemProps: {
-                populate: [],
-                select: [],
-            },
-            isResourceByProject: false,
-            slugifyField: slugifyField,
-            encryptedFields: encryptedFields,
-        });
+export default class Service extends DatabaseService<Model> {
+    public constructor(database: PostgresDatabase) {
+        super(Model, database);
     }
 }
-
-export default new Service();

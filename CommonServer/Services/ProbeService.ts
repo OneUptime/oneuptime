@@ -1,80 +1,47 @@
-import Model, {
-    requiredFields,
-    uniqueFields,
-    slugifyField,
-    encryptedFields,
-} from '../Models/Probe';
-
-import { Document } from '../Infrastructure/ORM';
-
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import Model from 'Common/Models/Probe';
 import DatabaseService from './DatabaseService';
-import Query from '../Types/DB/Query';
 import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import OneUptimeDate from 'Common/Types/Date';
 
-class Service extends DatabaseService<typeof Model> {
-    public constructor() {
-        super({
-            model: Model,
-            requiredFields: requiredFields,
-            uniqueFields: uniqueFields,
-            friendlyName: 'Probe',
-            publicListProps: {
-                populate: [],
-                select: [],
-            },
-            adminListProps: {
-                populate: [],
-                select: [],
-            },
-            ownerListProps: {
-                populate: [],
-                select: [],
-            },
-            memberListProps: {
-                populate: [],
-                select: [],
-            },
-            viewerListProps: {
-                populate: [],
-                select: [],
-            },
-            publicItemProps: {
-                populate: [],
-                select: [],
-            },
-            adminItemProps: {
-                populate: [],
-                select: [],
-            },
-            memberItemProps: {
-                populate: [],
-                select: [],
-            },
-            viewerItemProps: {
-                populate: [],
-                select: [],
-            },
-            ownerItemProps: {
-                populate: [],
-                select: [],
-            },
-            isResourceByProject: false,
-            slugifyField: slugifyField,
-            encryptedFields: encryptedFields,
-        });
+export default class Service extends DatabaseService<Model> {
+    public constructor(database: PostgresDatabase) {
+        super(Model, database);
+    }
+
+    public async createProbe(
+        name: string,
+        key?: ObjectID,
+        version?: Version
+    ): Promise<Model> {
+        if (!key) {
+            key = ObjectID.generate();
+        }
+
+        if (!version) {
+            version = new Version('1.0.0');
+        }
+
+        const probe: Model = new Model();
+        probe.name = name;
+        probe.key = key;
+        probe.probeVersion = version;
+        const savedProbe: Model = await this.create({ data: probe });
+        return savedProbe;
     }
 
     public async updateProbeKeyByName(
         name: string,
         key: ObjectID
     ): Promise<void> {
-        const updatedProbe: Document = new this.model();
-        updatedProbe.set('key', key);
         await this.updateOneBy({
-            query: new Query().equalTo('name', name),
-            data: updatedProbe,
+            query: {
+                name: name,
+            },
+            data: {
+                key,
+            },
         });
     }
 
@@ -82,22 +49,18 @@ class Service extends DatabaseService<typeof Model> {
         name: string,
         version: Version
     ): Promise<void> {
-        const updatedProbe: Document = new this.model();
-        updatedProbe.set('version', version.toString());
         await this.updateOneBy({
-            query: new Query().equalTo('name', name),
-            data: updatedProbe,
+            query: { name },
+            data: { probeVersion: version },
         });
     }
 
     public async updateLastAlive(name: string): Promise<void> {
-        const updatedProbe: Document = new this.model();
-        updatedProbe.set('lastAlive', OneUptimeDate.getCurrentDate());
         await this.updateOneBy({
-            query: new Query().equalTo('name', name),
-            data: updatedProbe,
+            query: { name },
+            data: {
+                lastAlive: OneUptimeDate.getCurrentDate(),
+            },
         });
     }
 }
-
-export default new Service();

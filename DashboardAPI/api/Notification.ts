@@ -46,7 +46,7 @@ router.get(
             ];
 
             const selectNotification: $TSFixMe =
-                'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
+                'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedByUser';
 
             const [notifications, count]: $TSFixMe = await Promise.all([
                 NotificationService.findBy({

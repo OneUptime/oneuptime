@@ -1,7 +1,21 @@
+import BaseModel from 'Common/Models/BaseModel';
+import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
+import { FindOptionsOrderProperty, FindOptionsOrderValue } from 'typeorm';
 import SortOrder from './SortOrder';
 
-export interface SortItem {
-    [field: string]: SortOrder;
-}
+export declare type FindOrderProperty<Property> =
+    Property extends DatabaseProperty
+        ? SortOrder
+        : FindOptionsOrderProperty<Property> extends FindOptionsOrderValue
+        ? SortOrder
+        : never;
+/**
+ * Order by find options.
+ */
+export declare type FindOrder<Entity> = {
+    [P in keyof Entity]?: SortOrder;
+};
 
-export default interface Sort extends Array<SortItem> {}
+type Sort<TBaseModel extends BaseModel> = FindOrder<TBaseModel>;
+
+export default Sort;

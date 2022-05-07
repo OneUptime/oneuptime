@@ -41,7 +41,7 @@ import {
     markSubprojectIncidentAsResolved,
 } from './utils/test-utils';
 const selectEmailStatus: $TSFixMe =
-    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+    'from to subject body createdAt template status content error deleted deletedAt deletedByUser replyTo smtpServer';
 
 const sleep: Function = (waitTimeInMs: $TSFixMe): void => {
     return new Promise((resolve: $TSFixMe) => {

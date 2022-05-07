@@ -25,7 +25,7 @@ const sleep: Function = (waitTimeInMs: $TSFixMe): void => {
 let userId: ObjectID, projectId: ObjectID;
 
 const selectEmailStatus: $TSFixMe =
-    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+    'from to subject body createdAt template status content error deleted deletedAt deletedByUser replyTo smtpServer';
 
 describe('Email verification API', function (): void {
     this.timeout(20000);
