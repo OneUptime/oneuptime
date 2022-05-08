@@ -1,5 +1,5 @@
-import Hostname from 'Common/Types/api/hostname';
-import Protocol from 'Common/Types/api/protocol';
+import Hostname from 'Common/Types/API/Hostname';
+import Protocol from 'Common/Types/API/Protocol';
 import Version from 'Common/Types/Version';
 
 export const env: Function = (key: string): string => {

@@ -1,10 +1,10 @@
 import { BACKEND_HOSTNAME, API_PROTOCOL } from '../../Config';
 import User from '../User';
 import history from '../History';
-import Headers from 'Common/Types/api/headers';
+import Headers from 'Common/Types/API/Headers';
 import API from 'Common/Utils/API';
-import APIException from 'Common/Types/Exception/apiException';
-import HTTPErrorResponse from 'Common/Types/api/errorResponse';
+import APIException from 'Common/Types/Exception/ApiException';
+import HTTPErrorResponse from 'Common/Types/API/ErrorResponse';
 import Cookies from 'universal-cookie';
 
 class BackendAPI extends API {

@@ -1,5 +1,5 @@
-import URL from 'Common/Types/api/url';
-import Email from 'Common/Types/email';
+import URL from 'Common/Types/API/URL';
+import Email from 'Common/Types/Email';
 import { JSONValue } from 'Common/Types/JSON';
 
 export default class LocalStorage {
