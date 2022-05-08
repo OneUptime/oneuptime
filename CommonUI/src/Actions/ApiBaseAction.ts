@@ -1,8 +1,13 @@
 import Action from '../Types/Action';
-import { ApiRequest, ApiError, ApiReset, ApiSuccess } from '../PayloadTypes/ApiBasePayloadType';
+import {
+    ApiRequest,
+    ApiError,
+    ApiReset,
+    ApiSuccess,
+} from '../PayloadTypes/ApiBasePayloadType';
 import ApiBaseConstants from '../Constants/ApiBaseConstants';
 
-export default class ActionBase { 
+export default class ActionBase {
     public request(apiRequestPayload: ApiRequest): Action {
         return new Action({
             type: ApiBaseConstants.REQUEST,
@@ -14,22 +19,21 @@ export default class ActionBase {
         return new Action({
             type: ApiBaseConstants.ERROR,
             payload: apiError,
-        })
+        });
     }
 
     public success(apiSuccess: ApiSuccess): Action {
         return new Action({
             type: ApiBaseConstants.SUCCESS,
             payload: apiSuccess,
-        })
+        });
     }
 
-    public reset(): Action { 
+    public reset(): Action {
         const apiReset: ApiReset = {};
         return new Action({
             type: ApiBaseConstants.RESET,
-            payload: apiReset
+            payload: apiReset,
         });
     }
 }
-

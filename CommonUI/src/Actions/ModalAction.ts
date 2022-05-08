@@ -1,4 +1,4 @@
-import ModalConstants from '../Constants/ModalConstants'
+import ModalConstants from '../Constants/ModalConstants';
 import {
     OpenModalActionPayload,
     CloseModalActionPayload,
