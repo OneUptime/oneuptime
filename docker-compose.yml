@@ -60,6 +60,21 @@ services:
         depends_on:
             - redis
             - postgres
+            
+    alert:
+        ports:
+            - '3088:3088'
+        image: oneuptime/alert:latest
+        env_file:
+            - ./Alert/.env
+        environment:
+            - REDIS_HOST=redis
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - DATABASE_HOST=postgres
+            - CLUSTER_KEY=test
+        depends_on:
+            - redis
+            - postgres
 
     accounts:
         ports:
