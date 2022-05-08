@@ -1,9 +1,9 @@
-import { HELM_HOSTNAME, API_PROTOCOL } from '../config';
+import { API_DOCS_HOSTANME, API_PROTOCOL } from '../../Config';
 import API from 'Common/Utils/API';
 
 class HelmAPI extends API {
     public constructor() {
-        super(API_PROTOCOL, HELM_HOSTNAME);
+        super(API_PROTOCOL, API_DOCS_HOSTANME);
     }
 }
 

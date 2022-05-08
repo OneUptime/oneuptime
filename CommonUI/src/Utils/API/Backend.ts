@@ -1,6 +1,6 @@
-import { BACKEND_HOSTNAME, API_PROTOCOL } from '../config';
-import User from '../user';
-import history from '../history';
+import { BACKEND_HOSTNAME, API_PROTOCOL } from '../../Config';
+import User from '../User';
+import history from '../History';
 import Headers from 'Common/Types/api/headers';
 import API from 'Common/Utils/API';
 import APIException from 'Common/Types/Exception/apiException';

@@ -1,4 +1,4 @@
-import { DASHBOARD_HOSTNAME, API_PROTOCOL } from '../config';
+import { DASHBOARD_HOSTNAME, API_PROTOCOL } from '../../Config';
 import API from 'Common/Utils/API';
 
 class DashboardAPI extends API {
