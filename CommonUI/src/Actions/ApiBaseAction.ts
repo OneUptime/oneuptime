@@ -1,6 +1,6 @@
 import Action from '../Types/Action';
-import { ApiRequest, ApiError, ApiReset, ApiSuccess } from '../PayloadTypes/ApiBase';
-import ApiBaseConstants from '../Constants/ApiBase';
+import { ApiRequest, ApiError, ApiReset, ApiSuccess } from '../PayloadTypes/ApiBasePayloadType';
+import ApiBaseConstants from '../Constants/ApiBaseConstants';
 
 export default class ActionBase { 
     public request(apiRequestPayload: ApiRequest): Action {

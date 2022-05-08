@@ -1,8 +1,8 @@
-import ApiBaseConstants from '../Constants/ApiBase';
+import ApiBaseConstants from '../Constants/ApiBaseConstants';
 import Action from '../Types/Action';
 import {
     ApiRequest, ApiError, ApiSuccess
-} from '../PayloadTypes/ApiBase'
+} from '../PayloadTypes/ApiBasePayloadType'
 import HTTPResponse from 'Common/Types/API/Response';
 import HTTPErrorResponse from 'Common/Types/API/ErrorResponse';
 

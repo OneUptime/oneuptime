@@ -1,6 +1,7 @@
-import React, { Component } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { MouseOnClick, KeyboardEventProp } from '../../Types/HtmlEvents';
+import BaseComponent from '../BaseComponent';
 
 export enum ShortcutKey {
     Enter = "Enter",
@@ -17,9 +18,7 @@ export interface ComponentProps {
     shortcutKey?: ShortcutKey;
 }
 
-export default class Button extends Component<ComponentProps>{
-    public static displayName = '';
-    public static propTypes = {};
+export default class Button extends BaseComponent<ComponentProps>{
 
     constructor(props: ComponentProps) {
         super(props);
@@ -90,3 +89,5 @@ Button.propTypes = {
     id: PropTypes.string,
     shortcutKey: PropTypes.string,
 };
+
+Button.displayName = 'Button';

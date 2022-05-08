@@ -1,8 +1,8 @@
-import ModalConstants from '../Constants/Modal';
+import ModalConstants from '../Constants/ModalConstants'
 import {
     OpenModalActionPayload,
     CloseModalActionPayload,
-} from '../PayloadTypes/Modal';
+} from '../PayloadTypes/ModalPayloadType';
 import Action from '../Types/Action';
 
 export default class ModalAction {
