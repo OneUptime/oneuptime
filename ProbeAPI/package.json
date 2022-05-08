@@ -17,7 +17,7 @@
     "dependencies": {
         "axios": "^0.26.1",
         "CommonServer": "file:../CommonServer",
-"Common": "file:../Common",
+        "Common": "file:../Common",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
         "dotenv": "^16.0.0",

@@ -8,7 +8,7 @@ import moment from 'moment';
 import { history, RootState } from '../../store';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import {
     teamDelete,
     resetTeamDelete,

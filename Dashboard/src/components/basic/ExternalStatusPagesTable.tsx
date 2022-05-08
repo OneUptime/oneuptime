@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';
-import EditExternalStatusPageModal from '../modals/EditExternalStatusPageModal';
-import RemoveExternalStatusPage from '../modals/RemoveExternalStatusPage';
-import { openModal } from 'CommonUI/actions/modal';
+import EditExternalStatusPageModal from '../Modals/EditExternalStatusPageModal';
+import RemoveExternalStatusPage from '../Modals/RemoveExternalStatusPage';
+import { openModal } from 'CommonUI/actions/Modal';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 

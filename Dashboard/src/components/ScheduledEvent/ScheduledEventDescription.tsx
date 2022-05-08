@@ -6,10 +6,10 @@ import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import Markdown from 'markdown-to-jsx';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { capitalize } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
-import EditSchedule from '../modals/EditSchedule';
+import EditSchedule from '../Modals/EditSchedule';
 import { Spinner } from '../basic/Loader';
 import { resolveScheduledEvent } from '../../actions/scheduledEvent';
 

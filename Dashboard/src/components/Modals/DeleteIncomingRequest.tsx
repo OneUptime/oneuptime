@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { deleteIncomingRequest } from '../../actions/incomingRequest';
 
 interface DeleteIncomingRequestProps {

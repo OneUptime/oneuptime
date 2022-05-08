@@ -13,7 +13,7 @@ import { history, RootState } from '../../store';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { editApplicationSecurity } from '../../actions/security';
 
 interface EditApplicationSecurityProps {

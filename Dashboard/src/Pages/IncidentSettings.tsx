@@ -9,10 +9,10 @@ import { connect } from 'react-redux';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../Utils/getParentRoute';
 import { IncidentPrioritiesList } from '../components/incident/IncidentPrioritiesList';
-import { openModal, closeModal } from '../actions/modal';
-import CreateIncidentPriorityForm from '../components/modals/CreateIncidentPriority';
-import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority';
-import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPriority';
+import { openModal, closeModal } from '../actions/Modal';
+import CreateIncidentPriorityForm from '../components/Modals/CreateIncidentPriority';
+import EditIncidentPriorityForm from '../components/Modals/EditIncidentPriority';
+import RemoveIncidentPriorityForm from '../components/Modals/RemoveIncidentPriority';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import {
     fetchIncidentTemplates,

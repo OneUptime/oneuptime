@@ -6,10 +6,10 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import { PricingPlan, IS_SAAS_SERVICE } from '../../config';
 import PricingPlanModal from './PricingPlanModal';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import { User } from '../../config';
-import Unauthorised from '../modals/Unauthorised';
+import Unauthorised from '../Modals/Unauthorised';
 
 interface PricingPlanComponentProps {
     plan: string;

@@ -12,7 +12,7 @@ import {
 import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from '../actions/modal';
+import { openModal, closeModal } from '../actions/Modal';
 import ScheduleProjectBox from '../components/schedule/ScheduleProjectBox';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';
 import ShouldRender from '../components/basic/ShouldRender';

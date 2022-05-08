@@ -15,10 +15,10 @@
         "@fortawesome/free-regular-svg-icons": "^6.1.0",
         "@fortawesome/free-solid-svg-icons": "^6.1.0",
         "@fortawesome/react-fontawesome": "^0.1.18",
-        "@types/react": "^17.0.43",
+        "@types/react": "^18.0.9",
         "Common": "file:../Common",
         "prop-types": "^15.8.1",
-        "react": "^17.0.2",
+        "react": "^18.1.0",
         "react-router": "^6.2.2",
         "universal-cookie": "^4.0.4"
     },

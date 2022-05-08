@@ -12,8 +12,8 @@ import { PricingPlan } from '../../config';
 import { User } from '../../config';
 import ChangePlanField from './ChangePlanField';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-import Unauthorised from '../modals/Unauthorised';
-import { openModal } from 'CommonUI/actions/modal';
+import Unauthorised from '../Modals/Unauthorised';
+import { openModal } from 'CommonUI/actions/Modal';
 import moment from 'moment';
 
 function Validate(values: $TSFixMe) {

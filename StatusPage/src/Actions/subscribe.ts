@@ -1,7 +1,7 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 export const OPEN_SUBSCRIBE_MENU: string = 'OPEN_SUBSCRIBE_MENU';
 export const SELECTED_MENU: string = 'SELECTED_MENU';
 export const USER_DATA: string = 'USER_DATA';

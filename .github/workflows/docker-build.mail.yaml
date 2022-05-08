@@ -1,4 +1,4 @@
-name: Mail docker-build workflow
+name: Mail Docker Build
 
 on: 
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
  # define job to build docker image
-   mail-docker-build:
+  docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 

@@ -8,11 +8,11 @@ import GroupForm from './GroupForm';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { getProjectGroups } from '../../actions/group';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import { User } from '../../config';
-import Unauthorised from '../modals/Unauthorised';
+import Unauthorised from '../Modals/Unauthorised';
 import Badge from '../common/Badge';
 
 interface GroupListProps {

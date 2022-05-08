@@ -16,7 +16,7 @@ import {
     DELETE_STATUS_PAGE_CATEGORY_SUCCESS,
 } from '../constants/statusPageCategory';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const INITIAL_STATE: $TSFixMe = {
     fetchStatusPageCategories: {

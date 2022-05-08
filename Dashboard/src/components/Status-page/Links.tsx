@@ -17,9 +17,9 @@ import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import CreateFooterLink from '../modals/FooterLink';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import MessageBox from '../modals/MessageBox';
+import CreateFooterLink from '../Modals/FooterLink';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import MessageBox from '../Modals/MessageBox';
 
 //Client side validation
 function validate(values: $TSFixMe) {

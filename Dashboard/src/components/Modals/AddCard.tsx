@@ -12,7 +12,7 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { bindActionCreators, Dispatch } from 'redux';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import {
     addCardFailed,
     addCardSuccess,

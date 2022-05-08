@@ -9,7 +9,7 @@ import { FormLoader } from '../basic/Loader';
 import { switchProject, getProjects, exitProject } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import ExitProjectModal from './ExitProjectModal';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 import { history, RootState } from '../../store';
 

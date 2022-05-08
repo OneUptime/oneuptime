@@ -4,14 +4,14 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { openModal } from 'CommonUI/actions/modal';
-import ConfirmScanModal from '../modals/ConfirmScanModal';
+import { openModal } from 'CommonUI/actions/Modal';
+import ConfirmScanModal from '../Modals/ConfirmScanModal';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
 import IssueIndicator from './IssueIndicator';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import EditContainerSecurity from '../modals/EditContainerSecurity';
+import EditContainerSecurity from '../Modals/EditContainerSecurity';
 import threatLevel from '../../utils/threatLevel';
 
 interface ContainerSecurityViewProps {

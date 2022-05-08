@@ -1,7 +1,7 @@
 {
     "name": "HttpTestServer",
     "version": "1.0.0",
-    "private": true,
+    "private": false,
     "main": "server.js",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",

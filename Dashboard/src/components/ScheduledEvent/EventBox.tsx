@@ -8,8 +8,8 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'CommonUI/actions/modal';
-import CreateSchedule from '../modals/CreateSchedule';
+import { openModal } from 'CommonUI/actions/Modal';
+import CreateSchedule from '../Modals/CreateSchedule';
 import DataPathHoC from '../DataPathHoC';
 import { history, RootState } from '../../store';
 import { capitalize } from '../../config';
@@ -17,7 +17,7 @@ import { ListLoader } from '../basic/Loader';
 
 import { Link } from 'react-router-dom';
 import Badge from '../common/Badge';
-import MessageBox from '../modals/MessageBox';
+import MessageBox from '../Modals/MessageBox';
 
 interface EventBoxProps {
     openModal: Function;

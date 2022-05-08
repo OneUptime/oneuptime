@@ -24,7 +24,7 @@ import { User } from '../config';
 import BreadCrumbItem from './breadCrumb/BreadCrumbItem';
 import BreadCrumbs from './breadCrumb/BreadCrumbs';
 import IncidentCreated from './incident/IncidentCreated';
-import { closeModal } from '../actions/modal';
+import { closeModal } from '../actions/Modal';
 import LoadingBar from 'react-top-loading-bar';
 
 interface DashboardAppProps {

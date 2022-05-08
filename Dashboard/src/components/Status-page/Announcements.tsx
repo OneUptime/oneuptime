@@ -2,18 +2,18 @@ import React, { Component } from 'react';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import CreateAnnouncement from '../modals/CreateAnnouncement';
+import CreateAnnouncement from '../Modals/CreateAnnouncement';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { bindActionCreators, Dispatch } from 'redux';
 import { fetchAnnouncements } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import Badge from '../common/Badge';
-import DeleteAnnouncement from '../modals/DeleteAnnouncement';
-import EditAnnouncement from '../modals/EditAnnouncement';
-import HideAnnouncement from '../modals/HideAnnouncement';
+import DeleteAnnouncement from '../Modals/DeleteAnnouncement';
+import EditAnnouncement from '../Modals/EditAnnouncement';
+import HideAnnouncement from '../Modals/HideAnnouncement';
 import AnnouncementLog from './AnnouncementLog';
 
 interface AnnouncementsProps {

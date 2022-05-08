@@ -10,7 +10,7 @@ import { ValidateField } from '../../config';
 import Color from '../basic/Color';
 import { RenderField } from '../basic/RenderField';
 import { createIncidentPriority } from '../../actions/incidentPriorities';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 

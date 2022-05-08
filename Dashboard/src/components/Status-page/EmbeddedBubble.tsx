@@ -17,9 +17,9 @@ import { FormLoader } from '../basic/Loader';
 import { Field, reduxForm, formValueSelector, change } from 'redux-form';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { API_URL } from '../../config';
-import ResetStatusBubbleIdModal from '../modals/ResetStatusBubbleIdModal';
-import ResetCssModal from '../modals/ResetCssModal';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import ResetStatusBubbleIdModal from '../Modals/ResetStatusBubbleIdModal';
+import ResetCssModal from '../Modals/ResetCssModal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 const selector: $TSFixMe = formValueSelector('EmbeddedBubble');
 

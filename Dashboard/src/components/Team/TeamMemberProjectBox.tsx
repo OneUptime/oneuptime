@@ -4,7 +4,7 @@ import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import DataPathHoC from '../DataPathHoC';
 import TeamMember from '../team/TeamMember';
 
-import InviteTeamMemberModal from '../modals/inviteTeamMember.js';
+import InviteTeamMemberModal from '../Modals/inviteTeamMember.js';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 

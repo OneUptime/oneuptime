@@ -5,7 +5,7 @@ import * as types from '../constants/register';
 import Route from 'Common/Types/api/route';
 import { IS_SAAS_SERVICE } from '../config';
 import Cookies from 'universal-cookie';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 
 /*
  * There are three possible states for our login

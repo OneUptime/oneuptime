@@ -9,9 +9,9 @@ import { FormLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { createNewIncident } from '../../actions/incident';
-import CreateManualIncident from '../modals/CreateManualIncident';
+import CreateManualIncident from '../Modals/CreateManualIncident';
 
 import DropDownMenu from '../basic/DropDownMenu';
 

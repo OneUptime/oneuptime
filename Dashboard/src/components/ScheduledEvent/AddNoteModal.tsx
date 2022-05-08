@@ -8,7 +8,7 @@ import { ValidateField } from '../../config';
 
 import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import { RenderField } from '../basic/RenderField';

@@ -1,9 +1,9 @@
 import { combineReducers } from 'redux';
 import { RootState } from '../store';
 import { routerReducer } from 'react-router-redux';
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 import { reducer as formReducer } from 'redux-form';
-import modal from './modal';
+import modal from './Modal';
 import profileSettings from './profile';
 import notifications from './notifications';
 import user from './user';

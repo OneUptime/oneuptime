@@ -7,7 +7,7 @@ import { getQueryVar } from '../config';
 import { resendToken } from './resendToken';
 import Cookies from 'universal-cookie';
 import store from '../store';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 /*
  * There are three possible states for our login
  * Process and we need actions for each of them

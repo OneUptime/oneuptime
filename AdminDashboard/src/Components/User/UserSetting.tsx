@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { updateTwoFactorAuthToken, setTwoFactorAuth } from '../../actions/user';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import MessageModal from './MessageModal';
 
 export class UserSetting extends Component<ComponentProps>{

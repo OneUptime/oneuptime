@@ -56,7 +56,7 @@ import {
     DISABLE_ADMIN_MODE_RESET,
 } from '../constants/user';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const INITIAL_STATE: $TSFixMe = {
     users: {

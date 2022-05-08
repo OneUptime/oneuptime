@@ -6,13 +6,13 @@ import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { fetchCustomFields } from '../../actions/monitorCustomField';
-import DeleteMonitorCustomField from '../modals/DeleteMonitorCustomField';
-import CreateMonitorCustomField from '../modals/CreateMonitorCustomField';
+import DeleteMonitorCustomField from '../Modals/DeleteMonitorCustomField';
+import CreateMonitorCustomField from '../Modals/CreateMonitorCustomField';
 
 import DataPathHoC from '../DataPathHoC';
-import EditMonitorCustomField from '../modals/EditMonitorCustomField';
+import EditMonitorCustomField from '../Modals/EditMonitorCustomField';
 
 interface MonitorCustomFieldsProps {
     currentProject?: object;

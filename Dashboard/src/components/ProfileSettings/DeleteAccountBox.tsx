@@ -6,9 +6,9 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import DataPathHoC from '../DataPathHoC';
-import DeleteAccount from '../modals/DeleteAccount';
+import DeleteAccount from '../Modals/DeleteAccount';
 
 interface DeleteAccountBoxProps {
     closeModal?: Function;

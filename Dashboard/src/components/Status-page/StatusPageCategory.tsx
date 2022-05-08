@@ -5,10 +5,10 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { fetchStatusPageCategories } from '../../actions/statusPageCategory';
-import CreateStatusPageCategory from '../modals/CreateStatusPageCategory';
-import RemoveStatusPageCategory from '../modals/RemoveStatusPageCategory';
-import EditStatusPageCategory from '../modals/EditStatusPageCategory';
-import { openModal } from 'CommonUI/actions/modal';
+import CreateStatusPageCategory from '../Modals/CreateStatusPageCategory';
+import RemoveStatusPageCategory from '../Modals/RemoveStatusPageCategory';
+import EditStatusPageCategory from '../Modals/EditStatusPageCategory';
+import { openModal } from 'CommonUI/actions/Modal';
 import DataPathHoC from '../DataPathHoC';
 
 interface StatusPageCategoryProps {

@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { fetchSsos, deleteSso, fetchSso } from '../../actions/sso';
 import { fetchSsoDefaultRoles } from '../../actions/ssoDefaultRoles';
 import moment from 'moment';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import SsoDeleteModal from './sso/SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './sso/SsoModal';
 import ShouldRender from '../basic/ShouldRender';

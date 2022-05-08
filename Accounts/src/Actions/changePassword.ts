@@ -2,7 +2,7 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import Route from 'Common/Types/api/route';
 import * as types from '../constants/changePassword';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 
 export const changePasswordRequest: Function = (promise: $TSFixMe): void => {
     return {

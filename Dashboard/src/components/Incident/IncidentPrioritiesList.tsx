@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 
 interface IncidentPrioritiesListClassProps {
     incidentPrioritiesList: unknown[];

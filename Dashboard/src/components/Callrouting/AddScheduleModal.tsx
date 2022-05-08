@@ -15,7 +15,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import ScheduleComponent from './ScheduleComponent';
 import PropTypes from 'prop-types';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 interface AddScheduleModalProps {
     addCallRoutingSchedule?: Function;

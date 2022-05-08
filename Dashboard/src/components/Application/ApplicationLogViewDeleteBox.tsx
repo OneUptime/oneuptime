@@ -6,12 +6,12 @@ import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { deleteApplicationLog } from '../../actions/applicationLog';
 import { history, RootState } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 
-import DeleteApplicationLog from '../modals/DeleteApplicationLog';
+import DeleteApplicationLog from '../Modals/DeleteApplicationLog';
 
 interface ApplicationLogViewDeleteBoxProps {
     currentProject?: object;

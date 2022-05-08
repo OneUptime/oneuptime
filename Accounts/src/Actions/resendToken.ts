@@ -2,7 +2,7 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/resendToken';
 import Route from 'Common/Types/api/route';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 
 export const resendTokenRequest: Function = (promise: $TSFixMe): void => {
     return {

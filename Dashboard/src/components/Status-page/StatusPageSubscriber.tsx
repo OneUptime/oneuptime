@@ -10,12 +10,12 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader2, ListLoader } from '../basic/Loader';
 
 import { v4 as uuidv4 } from 'uuid';
-import DeleteSubscriber from '../../components/modals/DeleteSubscriber';
+import DeleteSubscriber from '../../components/Modals/DeleteSubscriber';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { deleteSubscriber } from '../../actions/subscriber';
-import CreateSubscriber from '../modals/CreateSubscriber';
-import NoMonitorSubscriber from '../modals/NoMonitorSubscriber';
+import CreateSubscriber from '../Modals/CreateSubscriber';
+import NoMonitorSubscriber from '../Modals/NoMonitorSubscriber';
 
 interface StatusPageSubscriberProps {
     fetchStatusPageSubscribers?: Function;
