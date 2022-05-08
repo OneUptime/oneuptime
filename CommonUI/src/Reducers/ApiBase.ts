@@ -15,35 +15,51 @@ export interface InitialStateType {
     success: boolean;
 }
 
-export const initialState: InitialStateType = {
-    requesting: false,
-    data: null,
-    error: null,
-    success: false,
-};
+export default class ApiBaseReducer {
 
-const reducer: Function = (
-    state: InitialStateType = initialState,
-    action: Action
-): InitialStateType => {
-    switch (action.type) {
-        case ApiBaseConstants.REQUEST:
-            return Object.assign({}, state, {
-                requesting: (action.payload as ApiRequest).requesting,
-            });
-        case ApiBaseConstants.ERROR:
-            return Object.assign({}, state, {
-                error: (action.payload as ApiError).error,
-            });
-        case ApiBaseConstants.RESET:
-            return Object.assign({}, state, initialState);
-        case ApiBaseConstants.SUCCESS:
-            return Object.assign({}, state, {
-                success: (action.payload as ApiSuccess).data,
-            });
-        default:
-            return state;
+    private _name: string;
+    public get name(): string {
+        return this._name;
     }
-};
 
-export default reducer;
+    constructor(name: string) {
+        this._name = name;
+    }
+
+    private initialState: InitialStateType = {
+        requesting: false,
+        data: null,
+        error: null,
+        success: false,
+    };
+
+    public getInitialState(): InitialStateType {
+        return this.initialState;
+    }
+
+    public getReducer(): Function {
+        return (
+            state: InitialStateType = this.initialState,
+            action: Action
+        ): InitialStateType => {
+            switch (action.type) {
+                case ApiBaseConstants.REQUEST + this.name:
+                    return Object.assign({}, state, {
+                        requesting: (action.payload as ApiRequest).requesting,
+                    });
+                case ApiBaseConstants.ERROR + this.name:
+                    return Object.assign({}, state, {
+                        error: (action.payload as ApiError).error,
+                    });
+                case ApiBaseConstants.RESET + this.name:
+                    return Object.assign({}, state, this.initialState);
+                case ApiBaseConstants.SUCCESS + this.name:
+                    return Object.assign({}, state, {
+                        success: (action.payload as ApiSuccess).data,
+                    });
+                default:
+                    return state;
+            }
+        };
+    }
+}

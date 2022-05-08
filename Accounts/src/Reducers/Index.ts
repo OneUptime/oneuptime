@@ -1,29 +1,26 @@
 import { combineReducers } from 'redux';
 import Action from 'CommonUI/src/Types/Action';
 import { routerReducer } from 'react-router-redux';
-import login from './login';
-import register from './register';
+import Login from './Login';
+import Register from './Register';
 import { RootState } from '../store';
-import { reducer as formReducer } from 'redux-form';
-import modal from 'CommonUI/src/reducers/Modal';
-import resetPassword from './resetPassword';
-import changePassword from './changePassword';
-import resendToken from './resendToken';
+import Modal from 'CommonUI/src/Reducers/Modal';
+import ResetPassword from './ResetPassword';
+import ChangePassword from './ChangePassword';
+import ResendToken from './ResendVerifyEmail';
 
-const appReducer: $TSFixMe = combineReducers({
-    routing: routerReducer,
-    login,
-    register,
-    form: formReducer,
-    modal,
-    resetPassword,
-    changePassword,
-    resendToken,
-});
 
 export default (state: RootState, action: Action): void => {
     if (action.type === 'CLEAR_STORE') {
         state = undefined;
     }
-    return appReducer(state, action);
+    return combineReducers({
+        routing: routerReducer,
+        Modal,
+        new Login().getReducer(),
+        new Register().getReducer(),
+        new ResetPassword().getReducer(),
+        new ChangePassword().getReducer(),
+        new ResendToken().getReducer,
+    })(state, action)
 };
