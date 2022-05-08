@@ -21,6 +21,6 @@ export default (state: RootState, action: Action): void => {
         new Register().getReducer(),
         new ResetPassword().getReducer(),
         new ChangePassword().getReducer(),
-        new ResendToken().getReducer,
+        new ResendToken().getReducer(),
     })(state, action)
 };
