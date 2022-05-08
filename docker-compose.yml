@@ -55,7 +55,7 @@ services:
         environment:
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST = postgres
+            - DATABASE_HOST=postgres
             - CLUSTER_KEY=test
         depends_on:
             - redis
