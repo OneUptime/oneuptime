@@ -1,4 +1,4 @@
-import ActionPayload from './action-payload';
+import ActionPayload from './ActionPayload';
 
 export default class Action {
     private _type: string = '';
