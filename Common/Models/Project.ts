@@ -1,118 +1,174 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
-
+import RequiredColumn from '../Types/Database/RequiredColumnDecorator';
+import UniqueColumn from '../Types/Database/UniqueColumnDecorator';
 import User from './User';
 import Project from './Project';
+import ColumnType from '../Types/Database/ColumnType';
+import PositiveNumber from '../Types/PositiveNumber';
+import ObjectID from '../Types/ObjectID';
+import ColumnLength from '../Types/Database/ColumnLength';
 
 @Entity({
-    name: 'UserAlerts',
+name: 'Project',
 })
 export default class Model extends BaseModel {
-    @Column()
+    @RequiredColumn()
+    @Column({
+        nullable: false,
+        type: ColumnType.Name,
+        length: ColumnLength.Name,
+    })
     public name!: string;
 
-    @Column()
+    @RequiredColumn()
+    @UniqueColumn()
+    @Column({
+        nullable: false,
+        type: ColumnType.Slug,
+        length: ColumnLength.Slug,
+    })
     public slug!: string;
 
-    @Column()
-    public stripePlanId!: string;
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderPlanId?: string;
 
-    @Column()
-    public stripeSubscriptionId!: string;
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderSubscriptionId?: string;
 
-    @Column()
-    public parentproject!: Project;
+    @ManyToOne(
+        (_type: string) => {
+            return Project;
+        },
+        {
+            cascade: false,
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'parentProjectId' })
+    public parentProject?: Project;
+    
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public parentProjectId?: ObjectID;
 
-    @Column()
-    public seats!: number;
 
-    @Column()
-    public deletedByUser!: User;
+    @Column({
+        type: ColumnType.SmallPositiveNumber,
+        nullable: false,
+        unique: false,
+        default: new PositiveNumber(1)
+    })
+    public numberOfLicensesIssued!: PositiveNumber;
 
-    @Column()
-    public apiKey!: string;
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'createdByUserId' })
+    public createdByUser?: User;
 
-    @Column()
-    public alertEnable!: boolean;
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public createdByUserId?: ObjectID;
 
-    @Column()
-    public alertLimit!: string;
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            cascade: false,
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'deletedByUserId' })
+    public deletedByUser?: User;
 
-    @Column()
-    public alertLimitReached!: boolean;
 
-    @Column()
-    public balance!: number;
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+        default: ObjectID.generate()
+    })
+    public apiKey!: ObjectID;
 
-    @Column()
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public alertsEnabled!: boolean;
+
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.SmallPositiveNumber,
+        nullable: false,
+        unique: false,
+        default: 0
+    })
+    public alertAccountBalance!: number;
+
+    @RequiredColumn()
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
     public isBlocked!: boolean;
 
-    @Column()
-    public sendCreatedIncidentNotificationSms!: boolean;
+    @Column({
+        type: ColumnType.SmallPositiveNumber,
+        nullable: true,
+        unique: false,
+    })
+    public unpaidSubscriptionNotificationCount!: PositiveNumber;
 
-    @Column()
-    public sendAcknowledgedIncidentNotificationSms!: boolean;
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public paymentFailedDate?: Date;
 
-    @Column()
-    public sendResolvedIncidentNotificationSms!: boolean;
-
-    @Column()
-    public sendCreatedIncidentNotificationEmail!: boolean;
-
-    @Column()
-    public sendAcknowledgedIncidentNotificationEmail!: boolean;
-
-    @Column()
-    public sendResolvedIncidentNotificationEmail!: boolean;
-
-    @Column()
-    public enableInvestigationNoteNotificationSMS!: boolean;
-
-    @Column()
-    public enableInvestigationNoteNotificationEmail!: boolean;
-
-    @Column()
-    public sendAnnouncementNotificationSms!: boolean;
-
-    @Column()
-    public sendAnnouncementNotificationEmail!: boolean;
-
-    @Column()
-    public sendCreatedScheduledEventNotificationSms!: boolean;
-
-    @Column()
-    public sendCreatedScheduledEventNotificationEmail!: boolean;
-
-    @Column()
-    public sendScheduledEventResolvedNotificationSms!: boolean;
-
-    @Column()
-    public sendScheduledEventResolvedNotificationEmail!: boolean;
-
-    @Column()
-    public sendNewScheduledEventInvestigationNoteNotificationSms!: boolean;
-
-    @Column()
-    public sendNewScheduledEventInvestigationNoteNotificationEmail!: boolean;
-
-    @Column()
-    public sendScheduledEventCancelledNotificationSms!: boolean;
-
-    @Column()
-    public sendScheduledEventCancelledNotificationEmail!: boolean;
-
-    @Column()
-    public enableInvestigationNoteNotificationWebhook!: boolean;
-
-    @Column()
-    public replyAddress!: string;
-
-    @Column()
-    public unpaidSubscriptionNotifications!: number;
-
-    @Column()
-    public paymentFailedDate!: Date;
-
-    @Column()
-    public paymentSuccessDate!: Date;
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public paymentSuccessDate?: Date;
 }
+
+
