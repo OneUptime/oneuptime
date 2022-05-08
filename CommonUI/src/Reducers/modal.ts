@@ -1,9 +1,9 @@
 import ModalConstant from '../constants/modal';
-import ModalAction from '../ActionTypes/modal';
+import ModalAction from '../action-types/modal';
 import {
     CloseModalActionPayload,
     OpenModalActionPayload,
-} from '../PayloadTypes/modal';
+} from '../payload-types/modal';
 
 export interface InitialStateType {
     modals: Array<OpenModalActionPayload>;
