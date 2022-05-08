@@ -1,4 +1,4 @@
-name: Home docker-build workflow
+name: Home Docker Build
 
 on: 
   push:

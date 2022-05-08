@@ -14,6 +14,7 @@ services:
             - '5400:5432'
         volumes:
             - postgres:/var/lib/postgresql/data
+            
     saml:
         image: kenchan0130/simplesamlphp
         ports:
@@ -47,10 +48,27 @@ services:
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
-
             - redis
             - haraka
             - script-runner
+            
+    identity:
+        ports:
+            - '3087:3087'
+        build:
+            context: .
+            dockerfile: ./Identity/Dockerfile
+        env_file:
+            - ./Identity/.env
+        environment:
+            - REDIS_HOST=redis
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - DATABASE_HOST = postgres
+            - CLUSTER_KEY=test
+        depends_on:
+            - redis
+            - postgres
+            
     accounts:
         ports:
             - '3003:3003'

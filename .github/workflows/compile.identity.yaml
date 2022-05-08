@@ -1,4 +1,4 @@
-name: Compile Home
+name: Compile Identity
 
 on: 
   push:
@@ -17,5 +17,5 @@ jobs:
           check-latest: true
       - run: cd Common && npm install
       - run: cd CommonServer && npm install
-      - run: cd Home && npm install && npm run compile
+      - run: cd Identity && npm install && npm run compile
   

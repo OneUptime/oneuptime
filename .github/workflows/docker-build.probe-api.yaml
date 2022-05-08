@@ -1,4 +1,4 @@
-name: Probe-api docker-build workflow
+name: Probe-api Docker Build
 
 on: 
   push:

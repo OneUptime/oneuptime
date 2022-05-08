@@ -1,4 +1,4 @@
-name: haraka docker-build workflow
+name: haraka Docker Build
 
 on: 
   push:

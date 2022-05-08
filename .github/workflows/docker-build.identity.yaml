@@ -1,4 +1,4 @@
-name: Licensing Docker Build
+name: Identity Docker Build
 
 on: 
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
  # define job to build docker image
-  licensing-docker-build:
+  identity-docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 
@@ -17,4 +17,4 @@ jobs:
 
       # build image for licensing
       - name: build docker image
-        run: npm run build-ci licensing
+        run: npm run build-ci identity

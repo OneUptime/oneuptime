@@ -43,10 +43,24 @@ services:
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
-            
             - redis
             - haraka
             - script-runner
+    identity:
+        ports:
+            - '3087:3087'
+        image: oneuptime/identity:latest
+        env_file:
+            - ./Identity/.env
+        environment:
+            - REDIS_HOST=redis
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - DATABASE_HOST = postgres
+            - CLUSTER_KEY=test
+        depends_on:
+            - redis
+            - postgres
+
     accounts:
         ports:
             - '3003:3003'

@@ -1,4 +1,4 @@
-name: Mail docker-build workflow
+name: Mail Docker Build
 
 on: 
   push:

@@ -227,7 +227,6 @@ services:
         env_file:
             - ./DashboardAPI/.env
         environment:
-
             - REDIS_HOST=redis
             - REDIS_PORT=6379
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
@@ -235,7 +234,6 @@ services:
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
-
             - redis
         volumes:
             - ./dashboard-api:/usr/src/app
@@ -245,6 +243,30 @@ services:
 
             # Exclude greenlock as well.
             - /usr/src/app/greenlock.d/
+
+    identity:
+        ports:
+            - '3087:3087'
+            - '9132:9229' # Debugging port.
+        build:
+            network: host
+            context: .
+            dockerfile: ./Identity/Dockerfile.dev
+        env_file:
+            - ./Identity/.env
+        environment:
+            - REDIS_HOST=redis
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - DATABASE_HOST = postgres
+            - CLUSTER_KEY=test
+        depends_on:
+            - redis
+            - postgres
+        volumes:
+            - ./Identity:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
 
     dashboard:
         ports:
