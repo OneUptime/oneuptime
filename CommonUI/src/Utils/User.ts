@@ -1,4 +1,4 @@
-import LocalStorage from './aLocalStorage';
+import LocalStorage from './LocalStorage';
 import Email from 'Common/Types/Email';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
