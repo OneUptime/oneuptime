@@ -1,7 +1,7 @@
 {
     "name": "oneuptime-dashboard",
     "version": "3.0.0",
-    "private": true,
+    "private": false,
     "type": "module",
     "dependencies": {
         "CommonServer": "file:../CommonServer",
@@ -44,7 +44,7 @@
         "prismjs": "^1.27.0",
         "prop-types": "^15.8.1",
         "qrcode.react": "^2.0.0",
-        "react": "^17.0.2",
+        "react": "^18.1.0",
         "react-ace": "^9.5.0",
         "react-beautiful-dnd": "^13.1.0",
         "react-big-calendar": "^0.39.5",

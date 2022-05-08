@@ -1,7 +1,7 @@
 {
     "name": "oneuptime-AdminDashboard",
     "version": "3.0.0",
-    "private": true,
+    "private": false,
     "type": "module",
     "dependencies": {
         "CommonServer": "file:../CommonServer",
@@ -18,7 +18,7 @@
         "jest": "^27.5.1",
         "moment": "^2.29.1",
         "prop-types": "^15.8.1",
-        "react": "^17.0.2",
+        "react": "^18.1.0",
         "react-click-outside": "github:tj/react-click-outside",
         "react-dom": "^17.0.2",
         "react-json-view": "^1.21.3",

@@ -1,7 +1,7 @@
 {
         "name": "oneuptime-backend",
         "version": "3.0.0",
-        "private": true,
+        "private": false,
         "type": "module",
         "dependencies": {
                 "airtable": "^0.11.2",

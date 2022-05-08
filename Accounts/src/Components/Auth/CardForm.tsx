@@ -21,7 +21,6 @@ import {
     injectStripe,
     StripeProvider,
     Elements,
-
 } from '@stripe/react-stripe-js';
 import {
     addCard,
