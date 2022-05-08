@@ -6,7 +6,7 @@ import * as types from '../constants/changePassword';
  * We would also want a util to check if the token is expired.
  */
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     requesting: false,

@@ -1,4 +1,4 @@
-import { env } from './config';
+import { env } from '../Config';
 import PricingPlanType from 'Common/Types/PricingPlan';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
@@ -100,14 +100,15 @@ export default class PricingPlan {
     }
 
     public static getPlanById(id: string): PricingPlanType {
-        const plans: $TSFixMe = this.getPlans();
-        const plan: $TSFixMe = plans.find((plan: $TSFixMe) => {
+        const plans: Array<PricingPlanType> = this.getPlans();
+        const plan: PricingPlanType | undefined = plans.find((plan:PricingPlanType) => {
             return plan.planId === id;
         });
 
         if (plan) {
             return plan;
         }
+
         throw new BadDataException(`Plan with id ${id} not found`);
     }
 }

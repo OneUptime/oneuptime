@@ -9,8 +9,8 @@ import { Fade } from 'react-awesome-reveal';
 import { RenderField } from '../basic/RenderField';
 import { PricingPlan, Validate, env } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import ExtraCharge from '../modals/ExtraCharge';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import ExtraCharge from '../Modals/ExtraCharge';
 
 
 import { v4 as uuidv4 } from 'uuid';

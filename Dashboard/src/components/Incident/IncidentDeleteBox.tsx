@@ -6,8 +6,8 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import DeleteIncident from '../modals/DeleteIncident';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import DeleteIncident from '../Modals/DeleteIncident';
 import { deleteIncident } from '../../actions/incident';
 import DataPathHoC from '../DataPathHoC';
 

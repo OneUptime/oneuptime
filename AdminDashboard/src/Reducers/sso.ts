@@ -16,7 +16,7 @@ import {
     UPDATE_SSO_FAILURE,
 } from '../constants/sso';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const INITIAL_STATE: $TSFixMe = {
     ssos: {

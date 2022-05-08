@@ -7,7 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 import { Validate } from '../../config';
 import { bindActionCreators, Dispatch } from 'redux';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { connect } from 'react-redux';
 import { editComponent } from '../../actions/component';
 

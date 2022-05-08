@@ -1,6 +1,6 @@
-import { OPEN_MODAL, CLOSE_MODAL } from '../constants/modal';
+import { OPEN_MODAL, CLOSE_MODAL } from '../constants/Modal';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     modals: [],

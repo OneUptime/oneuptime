@@ -11,7 +11,7 @@ import {
     RESET_PROJECT_NOTIFICATIONS,
 } from '../constants/notification';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     notifications: {

@@ -9,11 +9,11 @@ import ShouldRender from '../basic/ShouldRender';
 import { updateBalance } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
-import { openModal } from 'CommonUI/actions/modal';
-import MessageBox from '../modals/MessageBox';
+import { openModal } from 'CommonUI/actions/Modal';
+import MessageBox from '../Modals/MessageBox';
 
 import { v4 as uuidv4 } from 'uuid';
-import ConfirmBalanceTopUp from '../modals/ConfirmBalanceTopUp';
+import ConfirmBalanceTopUp from '../Modals/ConfirmBalanceTopUp';
 import DataPathHoC from '../DataPathHoC';
 
 function validate(value: $TSFixMe) {

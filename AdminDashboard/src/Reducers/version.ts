@@ -5,7 +5,7 @@ import {
     GET_VERSION_SUCCESS,
 } from '../constants/version';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     versions: {

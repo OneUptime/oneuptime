@@ -1,9 +1,9 @@
-import ModalConstant from '../constants/modal';
-import ModalAction from '../action-types/modal';
+import ModalConstant from '../Constants/Modal';
+import ModalAction from '../ActionTypes/Modal';
 import {
     CloseModalActionPayload,
     OpenModalActionPayload,
-} from '../payload-types/modal';
+} from '../PayloadTypes/Modal';
 
 export interface InitialStateType {
     modals: Array<OpenModalActionPayload>;
@@ -14,7 +14,7 @@ const initialState: InitialStateType = {
 };
 
 export default (
-    state: $TSFixMe = initialState,
+    state: InitialStateType = initialState,
     action: ModalAction
 ): InitialStateType => {
     switch (action.type) {
@@ -28,7 +28,7 @@ export default (
 
         case ModalConstant.CLOSE_MODAL: {
             return Object.assign({}, state, {
-                modals: state.modals.filter((item: $TSFixMe) => {
+                modals: state.modals.filter((item: OpenModalActionPayload) => {
                     return (
                         item.id !==
                         (action.payload as CloseModalActionPayload).id

@@ -7,7 +7,7 @@ import {
     CREATE_FEEDBACK_RESET,
 } from '../constants/feedback';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     feedback: {

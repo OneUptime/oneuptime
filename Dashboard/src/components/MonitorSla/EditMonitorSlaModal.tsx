@@ -7,7 +7,7 @@ import ClickOutside from 'react-click-outside';
 
 import { reduxForm, Field } from 'redux-form';
 import { updateMonitorSla } from '../../actions/monitorSla';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';

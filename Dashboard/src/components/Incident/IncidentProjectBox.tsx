@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import CreateIncident from '../modals/CreateIncident';
+import CreateIncident from '../Modals/CreateIncident';
 import { FormLoader } from '../basic/Loader';
 import IncidentList from '../incident/IncidentList';
 import DataPathHoC from '../DataPathHoC';

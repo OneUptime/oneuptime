@@ -4,7 +4,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import {

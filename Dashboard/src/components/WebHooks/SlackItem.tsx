@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { deleteSlack, updateSlack } from '../../actions/slackWebhook';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import EditSlack from '../modals/EditSlackWebhook';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import EditSlack from '../Modals/EditSlackWebhook';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import DataPathHoC from '../DataPathHoC';
-import DeleteSlack from '../modals/DeleteSlackWebhook';
+import DeleteSlack from '../Modals/DeleteSlackWebhook';
 
 interface SlackItemProps {
     currentProject: object;

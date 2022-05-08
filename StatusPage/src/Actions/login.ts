@@ -3,7 +3,7 @@ import { Dispatch } from 'redux';
 import Route from 'Common/Types/api/route';
 import * as types from '../constants/login';
 import { User } from '../config';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 export const loginRequired: Function = (): void => {
     return {
         type: types.LOGIN_REQUIRED,

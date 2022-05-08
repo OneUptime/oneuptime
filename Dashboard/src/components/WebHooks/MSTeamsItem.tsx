@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { deleteMsTeams, updateMsTeams } from '../../actions/msteamsWebhook';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import DeleteMsTeams from '../modals/DeleteMsTeamsWebhook';
-import EditMsTeams from '../modals/EditMsTeamsWebhook';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import DeleteMsTeams from '../Modals/DeleteMsTeamsWebhook';
+import EditMsTeams from '../Modals/EditMsTeamsWebhook';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import DataPathHoC from '../DataPathHoC';
 

@@ -6,7 +6,7 @@ import {
 } from '../../../actions/ssoDefaultRoles';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
-import { openModal } from '../../../actions/modal';
+import { openModal } from '../../../actions/Modal';
 import RoleDeleteModal from './RoleDeleteModal';
 import { UpdateDefaultRoleModal } from './DefaultRoleModal';
 import PropTypes from 'prop-types';

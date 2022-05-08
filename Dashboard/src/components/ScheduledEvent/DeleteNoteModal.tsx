@@ -6,7 +6,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { deleteScheduledEventNote } from '../../actions/scheduledEvent';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 
 interface DeleteNoteModalProps {
     closeThisDialog: Function;

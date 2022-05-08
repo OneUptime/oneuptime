@@ -14,11 +14,11 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { setRevealVariable } from '../../actions/smsTemplates';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import ResetSmsTemplate from '../modals/ResetSmsTemplate';
+import ResetSmsTemplate from '../Modals/ResetSmsTemplate';
 
 const style: $TSFixMe = {
     backgroundColor: '#fff',

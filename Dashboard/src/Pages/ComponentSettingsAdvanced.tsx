@@ -9,8 +9,8 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import { withRouter } from 'react-router-dom';
-import { openModal } from '../actions/modal';
-import DeleteComponent from '../components/modals/DeleteComponent';
+import { openModal } from '../actions/Modal';
+import DeleteComponent from '../components/Modals/DeleteComponent';
 import { deleteComponent } from '../actions/component';
 import { history } from '../store';
 import DataPathHoC from '../components/DataPathHoC';

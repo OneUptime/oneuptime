@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { MouseOnClick, KeyboardEventProp } from '../../types/htmlEvents';
+import { MouseOnClick, KeyboardEventProp } from '../../Types/HtmlEvents';
 
 export enum ShortcutKey {
     Enter = "Enter",
@@ -40,14 +40,13 @@ export default class Button extends Component<ComponentProps>{
     }
 
     handleKeyboard(event: KeyboardEventProp) {
+            
 
-        const { shortcutKey, onClick }: $TSFixMe = this.props;
-
-        if (event.target instanceof HTMLBodyElement && event.key && shortcutKey) {
+        if (event.target instanceof HTMLBodyElement && event.key && this.props.shortcutKey) {
             switch (event.key) {
-                case shortcutKey.toUpperCase():
-                case shortcutKey.toLowerCase():
-                    onClick && onClick();
+                case this.props.shortcutKey.toUpperCase():
+                case this.props.shortcutKey.toLowerCase():
+                    this.props.onClick && this.props.onClick();
                     return;
                 default:
                     return;
@@ -57,25 +56,24 @@ export default class Button extends Component<ComponentProps>{
 
     override render() {
 
-        const { title, shortcutKey, id, onClick, disabled }: $TSFixMe = this.props;
 
         return (<button
-            id={id}
-            onClick={onClick}
-            className={`${'Button bs-ButtonLegacy ActionIconParent'} ${disabled ? 'Is--disabled' : ''
+            id={this.props.id}
+            onClick={this.props.onClick}
+            className={`${'Button bs-ButtonLegacy ActionIconParent'} ${this.props.disabled ? 'Is--disabled' : ''
                 }`}
             type="button"
-            disabled={disabled}
+            disabled={this.props.disabled}
         >
             <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                 <div className="Box-root Margin-right--8">
                     <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                 </div>
                 <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                    <span>{title}</span>
-                    {shortcutKey && (
+                    <span>{this.props.title}</span>
+                    {this.props.shortcutKey && (
                         <span className="new-btn__keycode">
-                            {shortcutKey}
+                            {this.props.shortcutKey}
                         </span>
                     )}
                 </span>

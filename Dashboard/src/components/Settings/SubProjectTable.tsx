@@ -7,12 +7,12 @@ import SubProjectForm from './SubProjectForm';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import RemoveSubProject from '../modals/RemoveSubProject';
-import SubProjectApiKey from '../modals/SubProjectApiKey';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import RemoveSubProject from '../Modals/RemoveSubProject';
+import SubProjectApiKey from '../Modals/SubProjectApiKey';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-import Unauthorised from '../modals/Unauthorised';
+import Unauthorised from '../Modals/Unauthorised';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
 
 interface SubProjectTableProps {

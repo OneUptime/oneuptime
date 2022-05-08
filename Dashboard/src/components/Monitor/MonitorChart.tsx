@@ -10,12 +10,12 @@ import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import { Spinner } from '../basic/Loader';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { bindActionCreators, Dispatch } from 'redux';
-import KubePods from '../modals/KubePods';
-import KubeJobs from '../modals/KubeJobs';
-import KubeStatefulset from '../modals/KubeStatefulset';
-import KubeDeployment from '../modals/KubeDeployment';
+import KubePods from '../Modals/KubePods';
+import KubeJobs from '../Modals/KubeJobs';
+import KubeStatefulset from '../Modals/KubeStatefulset';
+import KubeDeployment from '../Modals/KubeDeployment';
 import DataPathHoC from '../DataPathHoC';
 
 const calculateTime: Function = (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) => {

@@ -16,7 +16,7 @@ import {
     FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_FAILURE,
 } from '../constants/resourceCategories';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const INITIAL_STATE: $TSFixMe = {
     resourceCategoryListForNewResource: {

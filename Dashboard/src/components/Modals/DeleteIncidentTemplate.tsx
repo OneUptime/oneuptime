@@ -9,7 +9,7 @@ import {
     deleteIncidentTemplateFailure,
     fetchIncidentTemplates,
 } from '../../actions/incidentBasicsSettings';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 

@@ -19,7 +19,7 @@ import { fetchLicense } from '../actions/license';
 import { IS_SAAS_SERVICE, IS_THIRD_PARTY_BILLING } from '../config';
 import { fetchSettings } from '../actions/settings';
 import AlertPanel from './basic/AlertPanel';
-import { closeModal } from '../actions/modal';
+import { closeModal } from '../actions/Modal';
 import { loadDashboard } from '../actions/dashboard';
 
 export class DashboardApp extends Component<ComponentProps>{
