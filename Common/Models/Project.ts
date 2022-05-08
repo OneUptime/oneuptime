@@ -10,7 +10,7 @@ import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
 
 @Entity({
-name: 'Project',
+    name: 'Project',
 })
 export default class Model extends BaseModel {
     @RequiredColumn()
@@ -60,7 +60,7 @@ export default class Model extends BaseModel {
     )
     @JoinColumn({ name: 'parentProjectId' })
     public parentProject?: Project;
-    
+
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -68,12 +68,11 @@ export default class Model extends BaseModel {
     })
     public parentProjectId?: ObjectID;
 
-
     @Column({
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
         unique: false,
-        default: new PositiveNumber(1)
+        default: new PositiveNumber(1),
     })
     public numberOfLicensesIssued!: PositiveNumber;
 
@@ -113,12 +112,11 @@ export default class Model extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
-
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
-        default: ObjectID.generate()
+        default: ObjectID.generate(),
     })
     public apiKey!: ObjectID;
 
@@ -136,7 +134,7 @@ export default class Model extends BaseModel {
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
         unique: false,
-        default: 0
+        default: 0,
     })
     public alertAccountBalance!: number;
 
@@ -170,5 +168,3 @@ export default class Model extends BaseModel {
     })
     public paymentSuccessDate?: Date;
 }
-
-

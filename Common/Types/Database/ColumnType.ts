@@ -20,7 +20,7 @@ enum ColumnType {
     BigPositiveNumber = 'bigint',
     SmallNumber = 'smallint',
     Number = 'integer',
-    BigNumber = 'bigint'
+    BigNumber = 'bigint',
 }
 
 export default ColumnType;

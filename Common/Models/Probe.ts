@@ -71,9 +71,8 @@ export default class Probe extends BaseModel {
     })
     public iconUrl?: URL;
 
-    
-     // If this probe is custom to the project and only monitoring reosurces in this project.
-     @ManyToOne(
+    // If this probe is custom to the project and only monitoring reosurces in this project.
+    @ManyToOne(
         (_type: string) => {
             return Project;
         },
@@ -87,14 +86,13 @@ export default class Probe extends BaseModel {
     )
     @JoinColumn({ name: 'projectId' })
     public project?: Project;
-    
+
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public projectId?: ObjectID;
-     
 
     @ManyToOne(
         (_type: string) => {
