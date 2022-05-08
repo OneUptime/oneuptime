@@ -72,7 +72,7 @@ export default class Model extends BaseModel {
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
         unique: false,
-        default: new PositiveNumber(1),
+        default: 1,
     })
     public numberOfLicensesIssued!: PositiveNumber;
 

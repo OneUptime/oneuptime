@@ -101,9 +101,11 @@ export default class PricingPlan {
 
     public static getPlanById(id: string): PricingPlanType {
         const plans: Array<PricingPlanType> = this.getPlans();
-        const plan: PricingPlanType | undefined = plans.find((plan:PricingPlanType) => {
-            return plan.planId === id;
-        });
+        const plan: PricingPlanType | undefined = plans.find(
+            (plan: PricingPlanType) => {
+                return plan.planId === id;
+            }
+        );
 
         if (plan) {
             return plan;

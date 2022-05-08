@@ -6,23 +6,17 @@ import {
 import Action from '../Types/Action';
 
 export default class ModalAction {
-    openModalAction(
-        payload: OpenModalActionPayload
-    ): Action {
+    public openModalAction(payload: OpenModalActionPayload): Action {
         return new Action({
             type: ModalConstants.OPEN_MODAL,
             payload: payload,
         });
-    };
+    }
 
-    closeModalAction(
-        payload: CloseModalActionPayload
-    ): Action {
+    public closeModalAction(payload: CloseModalActionPayload): Action {
         return new Action({
             type: ModalConstants.CLOSE_MODAL,
             payload: payload,
         });
-    };
-
+    }
 }
-

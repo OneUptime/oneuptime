@@ -1,6 +1,6 @@
-import Action from "./Action";
-import ActionPayload from "./ActionPayload";
+import Action from './Action';
+import ActionPayload from './ActionPayload';
 
-declare type ActionFunction = (payload: ActionPayload) => Action
+declare type ActionFunction = (payload: ActionPayload) => Action;
 
-export default ActionFunction
+export default ActionFunction;

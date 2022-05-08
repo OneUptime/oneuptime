@@ -7,7 +7,7 @@ export const env: Function = (key: string): string => {
 };
 
 export const IS_SAAS_SERVICE: boolean = env('IS_SAAS_SERVICE') === 'true';
-export const DISABLE_SIGNUP: boolean= env('DISABLE_SIGNUP') === 'true';
+export const DISABLE_SIGNUP: boolean = env('DISABLE_SIGNUP') === 'true';
 export const VERSION: Version = new Version(env('VERSION') || '');
 
 export const BACKEND_HOSTNAME: Hostname = new Hostname(
