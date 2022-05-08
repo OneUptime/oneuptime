@@ -1,5 +1,5 @@
 import { DASHBOARD_HOSTNAME, API_PROTOCOL } from '../config';
-import API from 'Common/utils/api';
+import API from 'Common/Utils/API';
 
 class DashboardAPI extends API {
     public constructor() {
