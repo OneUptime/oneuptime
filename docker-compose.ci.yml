@@ -85,6 +85,23 @@ services:
         depends_on:
             - redis
             - postgres
+    
+    integration:
+        ports:
+            - '3089:3089'
+        build:
+            context: .
+            dockerfile: ./Integration/Dockerfile
+        env_file:
+            - ./Integration/.env
+        environment:
+            - REDIS_HOST=redis
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - DATABASE_HOST=postgres
+            - CLUSTER_KEY=test
+        depends_on:
+            - redis
+            - postgres
             
     accounts:
         ports:

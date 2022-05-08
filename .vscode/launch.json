@@ -96,6 +96,18 @@
         },
         {
             "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/Alert",
+            "name": "Integration: Debug with Docker",
+            "port": 9134,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
             "localRoot": "${workspaceFolder}/licensing",
             "name": "Licensing: Debug with Docker",
             "port": 9233,
