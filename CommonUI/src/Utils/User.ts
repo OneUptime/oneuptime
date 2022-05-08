@@ -1,6 +1,6 @@
-import LocalStorage from './LocalStorage';
+import LocalStorage from './aLocalStorage';
 import Email from 'Common/Types/Email';
-import URL from 'Common/Types/api/URL';
+import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
