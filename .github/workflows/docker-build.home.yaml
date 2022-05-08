@@ -9,7 +9,7 @@ on:
 
 jobs:
  # define jobs to build docker imag
-   home-docker-build:
+  docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 

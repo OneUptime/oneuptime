@@ -9,7 +9,7 @@ on:
 
 jobs:
  # define job to build docker image
-  licensing-docker-build:
+  docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 
