@@ -4,7 +4,7 @@ import { JSONValue } from 'Common/Types/JSON';
 
 export default class LocalStorage {
     public static setItem(key: string, value: JSONValue | Email | URL): void {
-        localStorage.setItem(key, value.toString());
+        localStorage.setItem(key, value as string);
     }
 
     public static getItem(key: string): JSONValue {
