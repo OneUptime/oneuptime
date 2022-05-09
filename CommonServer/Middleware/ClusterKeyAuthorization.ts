@@ -10,7 +10,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 
 export default class ClusterKeyAuthorization {
-    public static async isAuthorizedService(
+    public static async isAuthorizedServiceMiddleware(
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction

@@ -1,6 +1,4 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import BaseComponent from '../BaseComponent';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     onConfirm?: Function;
@@ -10,72 +8,40 @@ export interface ComponentProps {
     body: object;
 }
 
-class Modal extends BaseComponent<ComponentProps> {
+const Modal: FunctionComponent<ComponentProps> = (_props: ComponentProps): ReactElement => {
 
-    constructor(props: ComponentProps) {
-        super(props);
-        this.onClose = this.onClose.bind(this);
-        this.onConfirm = this.onConfirm.bind(this);
-    }
+    const mainClass: string = `modal-dialog-view`;
 
-    onClose = () => {
-        this.props.onClose();
-    }
-
-    onConfirm = () => {
-        if (this.props.onConfirm) {
-            this.props.onConfirm();
-        }
-    };
-
-    override render() {
-
-        const mainClass: string = `modal-dialog-view`;
-
-        return (
+    return (
+        <div
+            className={mainClass}
+        >
             <div
-                className={mainClass}
+                className="modal_overlay"
+                style={{
+                    top: 0,
+                    opacity: 1,
+                    transform: 'none',
+                    display: 'block',
+                    pointerEvents: 'auto',
+                    zIndex: 20,
+                }}
             >
                 <div
-                    className="modal_overlay"
+                    className="modal_container"
                     style={{
-                        top: 0,
-                        opacity: 1,
-                        transform: 'none',
+                        overflowX: 'auto',
+                        overflowY: 'scroll',
                         display: 'block',
-                        pointerEvents: 'auto',
-                        zIndex: 20,
+                        top: '0px',
                     }}
                 >
-                    <div
-                        className="modal_container"
-                        style={{
-                            overflowX: 'auto',
-                            overflowY: 'scroll',
-                            display: 'block',
-                            top: '0px',
-                        }}
-                    >
 
-                    </div>
                 </div>
             </div>
-        );
-    }
+        </div>
+    );
 }
 
-Modal.propTypes = {
-    onConfirm: PropTypes.func,
-    item: PropTypes.object.isRequired,
-    onClose: PropTypes.func.isRequired,
-    extraClasses: PropTypes.string,
-    zIndex: PropTypes.number.isRequired,
-    title: PropTypes.string,
-    body: PropTypes.object,
-};
-
-
-Modal.displayName = 'Modal';
 
 export default Modal;
-

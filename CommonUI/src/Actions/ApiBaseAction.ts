@@ -7,7 +7,6 @@ import {
 } from '../PayloadTypes/ApiBasePayloadType';
 import ApiBaseConstants from '../Constants/ApiBaseConstants';
 import HTTPResponse from 'Common/Types/API/Response';
-import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
 import { Dispatch } from 'redux';
 import HTTPErrorResponse from 'Common/Types/API/ErrorResponse';
 

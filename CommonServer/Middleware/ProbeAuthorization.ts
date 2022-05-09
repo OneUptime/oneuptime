@@ -18,8 +18,8 @@ import Probe from 'Common/Models/Probe';
 
 const ProbeService: ProbeServiceClass = Services.ProbeService;
 
-export default {
-    async isAuthorizedProbe(
+export default class ProbeMiddleware {
+    public async isAuthorizedProbeMiddleware(
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
@@ -218,5 +218,5 @@ export default {
         }
 
         return next();
-    },
-};
+    }
+}

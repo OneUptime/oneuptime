@@ -5,6 +5,7 @@ import GlobalConfigService from './GlobalConfigService';
 import ProjectSmtpConfigService from './ProjectSmtpConfigService';
 import EmailLogService from './EmailLogService';
 import MonitorService from './MonitorService';
+import ProjectService from './ProjectService';
 
 const postgresDatabase: PostgresDatabase = new PostgresDatabase();
 await postgresDatabase.connect(postgresDatabase.getDatasourceOptions());
@@ -16,4 +17,5 @@ export default {
     ProjectSmtpConfigService: new ProjectSmtpConfigService(postgresDatabase),
     EmailLogService: new EmailLogService(postgresDatabase),
     MonitorService: new MonitorService(postgresDatabase),
+    ProjectService: new ProjectService(postgresDatabase)
 };

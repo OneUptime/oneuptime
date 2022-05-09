@@ -16,14 +16,17 @@ export interface InitialStateType {
 }
 
 export default class ApiBaseReducer {
-
+    private constants: ApiBaseConstants;
     private _name: string;
+   
+
     public get name(): string {
         return this._name;
     }
 
     constructor(name: string) {
         this._name = name;
+        this.constants = new ApiBaseConstants(this.name);
     }
 
     private initialState: InitialStateType = {
@@ -43,19 +46,19 @@ export default class ApiBaseReducer {
             action: Action
         ): InitialStateType => {
             switch (action.type) {
-                case ApiBaseConstants.REQUEST + this.name:
+                case this.constants.REQUEST + this.name:
                     return Object.assign({}, state, {
                         requesting: (action.payload as ApiRequest).requesting,
                     });
-                case ApiBaseConstants.ERROR + this.name:
+                case this.constants.ERROR + this.name:
                     return Object.assign({}, state, {
-                        error: (action.payload as ApiError).error,
+                        error: (action.payload as ApiError).errorResponse,
                     });
-                case ApiBaseConstants.RESET + this.name:
+                case this.constants.RESET + this.name:
                     return Object.assign({}, state, this.initialState);
-                case ApiBaseConstants.SUCCESS + this.name:
+                case this.constants.SUCCESS + this.name:
                     return Object.assign({}, state, {
-                        success: (action.payload as ApiSuccess).data,
+                        success: (action.payload as ApiSuccess).response,
                     });
                 default:
                     return state;

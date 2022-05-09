@@ -2,7 +2,7 @@ import express from 'express';
 import logger from './Logger';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-
+import { JSONWebTokenData } from '../Utils/JsonWebToken';
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
 
@@ -19,11 +19,19 @@ export type ExpressResponse = express.Response;
 export type ExpressApplication = express.Application;
 export type ExpressRouter = express.Router;
 
+export enum AuthorizationType { 
+    API = "API", 
+    User = "User",
+    MasterAdmin = "MasterAdmin"
+}
+
 export interface OneUptimeRequest extends express.Request {
     probe?: ProbeRequest;
     id: ObjectID;
-    requestStartedAt: Date;
-    requestEndedAt: Date;
+    requestStartedAt?: Date;
+    requestEndedAt?: Date;
+    authorizationType?: string;
+    userAuthorization?: JSONWebTokenData;
 }
 
 export interface OneUptimeResponse extends express.Response {

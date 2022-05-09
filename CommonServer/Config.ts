@@ -3,6 +3,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 
+export const DisableSignup: boolean = !!process.env['DISABLE_SIGNUP'];
+
 export const DatabaseHost: Hostname = new Hostname(
     process.env['DATABASE_HOST'] || ''
 );
