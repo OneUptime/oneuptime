@@ -1,133 +1,45 @@
-import { DisableSignup } from 'CommonServer/Config';
+import { DisableSignup, IsSaaSService } from 'CommonServer/Config';
 import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
 } from 'CommonServer/utils/Express';
+import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import { JSONObject } from 'Common/Types/JSON';
+import User from 'Common/Models/User';
+import Service from 'CommonServer/Services/Index';
 
+const UserService = Service.UserService;
 
 const router: ExpressRouter = Express.getRouter();
 
 router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
+
         if (
             DisableSignup
         ) {
-            // Res,and next is skipped in isUserMasterAdmin because we don't want to reject the request.
-            if (!(await isUserMasterAdmin(req))) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Sign up is disabled.',
-                });
-            }
+            throw new BadRequestException("Sign up is disabled.");
         }
 
-        const data: $TSFixMe = req.body;
-        data.email = data.email.toLowerCase();
-        if (IS_SAAS_SERVICE) {
+        const data: JSONObject = req.body;
+        const user: User = User.fromJSON(data);
+
+        if (IsSaaSService) {
             //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
-            delete data.role;
-        } else {
-            const users: $TSFixMe = await UserService.findBy({
-                query: {},
-                select: '_id',
-            });
-
-            if (!users || users.length === 0) {
-                data.role = 'master-admin';
-            } else {
-                delete data.role;
-            }
+            user.isMasterAdmin = false;
         }
 
-        if (!data.email) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Email must be present.')
-            );
-        }
-
-        if (typeof data.email !== 'string') {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Email is not in string format.')
-            );
-        }
-
-        if (!emaildomains.test(data.email)) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Business email address is required.')
-            );
-        }
-
-        if (!data.password) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Password must be present.')
-            );
-        }
-
-        if (typeof data.password !== 'string') {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Password is not in string format.')
-            );
-        }
-
-        if (!data.confirmPassword) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Confirm password must be present.')
-            );
-        }
-
-        if (typeof data.confirmPassword !== 'string') {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException(
-                    'Confirm password is not in string format.'
-                )
-            );
-        }
-
-        if (data.confirmPassword !== data.confirmPassword) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException(
-                    'Password and Confirm password are not same.'
-                )
-            );
-        }
-
-        if (!data.name) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Name must be present.')
-            );
-        }
-
-        if (typeof data.name !== 'string') {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Name is not in string format.')
-            );
-        }
+       
         const [userData, token]: $TSFixMe = await Promise.all([
             UserService.findOneBy({
-                query: { email: data.email },
-                select: '_id password',
+                query: { email: user.email },
+                select: {
+                    _id: true,
+                    password: true
+                },
             }),
+            
             VerificationTokenModel.findOne({
                 token: req.query['token'],
             }),

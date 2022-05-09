@@ -5,6 +5,8 @@ import Hostname from 'Common/Types/API/Hostname';
 
 export const DisableSignup: boolean = !!process.env['DISABLE_SIGNUP'];
 
+export const IsSaaSService: boolean = !!process.env['IS_SAAS_SERVICE'];
+
 export const DatabaseHost: Hostname = new Hostname(
     process.env['DATABASE_HOST'] || ''
 );

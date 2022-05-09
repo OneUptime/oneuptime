@@ -4,6 +4,7 @@ enum ExceptionCode {
     APIException = 2,
     DatabaseNotConnected = 3,
     BadDataException = 400,
+    BadRequestException = 400,
 }
 
 export default ExceptionCode;

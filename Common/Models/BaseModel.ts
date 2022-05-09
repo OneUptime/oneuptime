@@ -7,6 +7,7 @@ import {
     BaseEntity,
 } from 'typeorm';
 import Columns from '../Types/Database/Columns';
+import { JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 
 export default class BaseModel extends BaseEntity {
@@ -136,6 +137,16 @@ export default class BaseModel extends BaseEntity {
 
     public set id(value: ObjectID) {
         this._id = value.toString();
+    }
+
+    public static fromJSON(json: JSONObject): BaseModel {
+        const baseModel = new BaseModel();
+
+        for (let key of Object.keys(json)) {
+            (baseModel as any)[key] = json[key];
+        }
+
+        return baseModel;
     }
 
     @PrimaryGeneratedColumn('uuid')
