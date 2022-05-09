@@ -1,4 +1,4 @@
-import BackendAPI from 'CommonUI/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/Utils/API/Backend';
 import { Dispatch } from 'redux';
 import Route from 'Common/Types/api/route';
 import * as types from '../constants/changePassword';

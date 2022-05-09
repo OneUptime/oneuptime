@@ -14,8 +14,16 @@ export const BACKEND_HOSTNAME: Hostname = new Hostname(
     `${window.location.hostname}/api`
 );
 
+export const IDENTITY_HOSTNAME: Hostname = new Hostname(
+    `${window.location.hostname}/identity`
+);
+
 export const DASHBOARD_HOSTNAME: Hostname = new Hostname(
     `${window.location.hostname}/dashboard`
+);
+
+export const INTEGRATION_HOSTNAME: Hostname = new Hostname(
+    `${window.location.hostname}/integration`
 );
 
 export const HELM_HOSTNAME: Hostname = new Hostname(

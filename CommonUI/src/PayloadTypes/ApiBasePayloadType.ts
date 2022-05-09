@@ -4,13 +4,14 @@ import ActionPayload from '../Types/ActionPayload';
 
 export interface ApiRequest extends ActionPayload {
     requesting: boolean;
+    httpResponsePromise: Promise<HTTPResponse>;
 }
 export interface ApiError extends ActionPayload {
-    error: HTTPErrorResponse;
+    errorResponse: HTTPErrorResponse;
 }
 
 export interface ApiSuccess extends ActionPayload {
-    data: HTTPResponse;
+    response: HTTPResponse;
 }
 
 export interface ApiReset extends ActionPayload {}

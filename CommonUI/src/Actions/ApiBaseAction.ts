@@ -6,25 +6,41 @@ import {
     ApiSuccess,
 } from '../PayloadTypes/ApiBasePayloadType';
 import ApiBaseConstants from '../Constants/ApiBaseConstants';
+import HTTPResponse from 'Common/Types/API/Response';
+import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
+import { Dispatch } from 'redux';
+import HTTPErrorResponse from 'Common/Types/API/ErrorResponse';
 
 export default class ActionBase {
+
+    private _name: string;
+    private apiBaseConstants: ApiBaseConstants;
+    public get name(): string {
+        return this._name;
+    }
+
+    constructor(name: string) {
+        this._name = name;
+        this.apiBaseConstants = new ApiBaseConstants(name);
+    }
+
     public request(apiRequestPayload: ApiRequest): Action {
         return new Action({
-            type: ApiBaseConstants.REQUEST,
+            type: this.apiBaseConstants.REQUEST,
             payload: apiRequestPayload,
         });
     }
 
     public error(apiError: ApiError): Action {
         return new Action({
-            type: ApiBaseConstants.ERROR,
+            type: this.apiBaseConstants.ERROR,
             payload: apiError,
         });
     }
 
     public success(apiSuccess: ApiSuccess): Action {
         return new Action({
-            type: ApiBaseConstants.SUCCESS,
+            type: this.apiBaseConstants.SUCCESS,
             payload: apiSuccess,
         });
     }
@@ -32,8 +48,32 @@ export default class ActionBase {
     public reset(): Action {
         const apiReset: ApiReset = {};
         return new Action({
-            type: ApiBaseConstants.RESET,
+            type: this.apiBaseConstants.RESET,
             payload: apiReset,
         });
+    }
+
+    public requestData(apiRequest: Promise<HTTPResponse>): Function {
+        return async (dispatch: Dispatch): Promise<void> => {
+        
+            dispatch(this.request({
+                requesting: true, 
+                httpResponsePromise: apiRequest
+            }));
+
+            try {
+
+                const response: HTTPResponse = await apiRequest;
+
+                dispatch(this.success({
+                    response: response
+                }));
+            } catch (e) {
+                const errorResponse = e as HTTPErrorResponse;
+                this.error({
+                    errorResponse: errorResponse
+                })
+            }
+        };
     }
 }

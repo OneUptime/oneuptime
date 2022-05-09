@@ -1,4 +1,3 @@
-import { BACKEND_HOSTNAME, API_PROTOCOL } from '../../Config';
 import User from '../User';
 import history from '../History';
 import Headers from 'Common/Types/API/Headers';
@@ -6,10 +5,12 @@ import API from 'Common/Utils/API';
 import APIException from 'Common/Types/Exception/ApiException';
 import HTTPErrorResponse from 'Common/Types/API/ErrorResponse';
 import Cookies from 'universal-cookie';
+import Protocol from 'Common/Types/API/Protocol';
+import Hostname from 'Common/Types/API/Hostname';
 
-class BackendAPI extends API {
-    public constructor() {
-        super(API_PROTOCOL, BACKEND_HOSTNAME);
+class BaseAPI extends API {
+    public constructor(protocol: Protocol, hostname: Hostname) {
+        super(protocol, hostname);
     }
 
     protected static override getHeaders(): Headers {
@@ -43,4 +44,4 @@ class BackendAPI extends API {
     }
 }
 
-export default new BackendAPI();
+export default BaseAPI;
