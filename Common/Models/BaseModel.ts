@@ -105,6 +105,14 @@ export default class BaseModel extends BaseEntity {
         this.ownerReadableColumns.addColumn(columnName);
     }
 
+    public getOwnerCreateableColumns(): Columns {
+        return this.ownerCreateableColumns;
+    }
+
+    public getOwnerDeleteableColumns(): Columns {
+        return this.ownerDeleteableColumns;
+    }
+
     public getPublicReadableColumns(): Columns {
         return this.publicReadableColumns;
     }
@@ -346,15 +354,223 @@ export default class BaseModel extends BaseEntity {
         this._id = value.toString();
     }
 
-    public static fromJSON<T extends BaseModel>(json: JSONObject): T {
+    private static _fromJSON<T extends BaseModel>(json: JSONObject): T {
         const baseModel = new BaseModel();
 
         for (let key of Object.keys(json)) {
+
             (baseModel as any)[key] = json[key];
+           
         }
 
         return baseModel as T;
     }
 
-    public static fromJSONAsCreateableByPublic()
+
+
+    public static fromJSON<T extends BaseModel>(json: JSONObject): T {
+        return this._fromJSON<T>(json);
+    }
+
+    private static keepColumns<T extends BaseModel>(data: T, columnsToKeep: Columns): T {
+        const baseModel = new BaseModel();
+
+        for (let key of Object.keys(data)) {
+
+            if (!columnsToKeep) {
+                (baseModel as any)[key] = (data as any)[key];
+            }
+
+            if (columnsToKeep && columnsToKeep.columns.length > 0 && columnsToKeep.columns.includes(key)) {
+                (baseModel as any)[key] = (data as any)[key];
+            }
+           
+        }
+
+        return baseModel as T;
+    }
+
+    public static asPublicCreateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getPublicCreateableColumns()); 
+    }
+
+    public static asPublicUpdateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getPublicUpdateableColumns()); 
+    }
+
+    public static asPublicReadable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getPublicReadableColumns()); 
+    }
+
+    public static asPublicDeleteable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getPublicDeleteableColumns()); 
+    }
+
+    public static asOwnerCreateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getOwnerCreateableColumns()); 
+    }
+
+    public static asOwnerUpdateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getOwnerUpdateableColumns()); 
+    }
+
+    public static asOwnerReadable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getOwnerReadableColumns()); 
+    }
+
+    public static asOwnerDeleteable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getOwnerDeleteableColumns()); 
+    }
+
+
+
+    public static asViewerCreateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getViewerCreateableColumns()); 
+    }
+
+    public static asViewerUpdateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getViewerUpdateableColumns()); 
+    }
+
+    public static asViewerReadable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getViewerReadableColumns()); 
+    }
+
+    public static asViewerDeleteable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getViewerDeleteableColumns()); 
+    }
+
+
+    public static asMemberCreateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getMemberCreateableColumns()); 
+    }
+
+    public static asMemberUpdateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getMemberUpdateableColumns()); 
+    }
+
+    public static asMemberReadable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getMemberReadableColumns()); 
+    }
+
+    public static asMemberDeleteable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getMemberDeleteableColumns()); 
+    }
+
+
+    public static asAdminCreateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getAdminCreateableColumns()); 
+    }
+
+    public static asAdminUpdateable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getAdminUpdateableColumns()); 
+    }
+
+    public static asAdminReadable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getAdminReadableColumns()); 
+    }
+
+    public static asAdminDeleteable<T extends BaseModel>(data: JSONObject | T) {
+        
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        return this.keepColumns(data, data.getAdminDeleteableColumns()); 
+    }
 }
