@@ -1,5 +1,5 @@
 {
-    "name": "HttpTestServer",
+    "name": "http-test-server",
     "version": "1.0.0",
     "private": false,
     "main": "server.js",
