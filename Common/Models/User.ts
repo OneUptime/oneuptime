@@ -1,6 +1,5 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import EncryptedColumn from '../Types/Database/EncryptedColumnDecorator';
 import ColumnType from '../Types/Database/ColumnType';
 import ColumnLength from '../Types/Database/ColumnLength';
 import RequiredColumn from '../Types/Database/RequiredColumnDecorator';
@@ -13,6 +12,8 @@ import URL from '../Types/API/URL';
 import Timezone from '../Types/Timezone';
 import CompanySize from '../Types/Company/CompanySize';
 import JobRole from '../Types/Company/JobRole';
+import HashedColumn from '../Types/Database/HashedColumnDecorator';
+import HashedString from '../Types/HashedString';
 
 @SlugifyColumn('name', 'slug')
 @Entity({
@@ -45,14 +46,14 @@ class User extends BaseModel {
     })
     public newUnverifiedTemporaryEmail?: string;
 
-    @EncryptedColumn()
+    @HashedColumn()
     @Column({
-        type: ColumnType.Password,
-        length: ColumnLength.Password,
+        type: ColumnType.HashedString,
+        length: ColumnLength.HashedString,
         unique: false,
         nullable: true,
     })
-    public password?: string;
+    public password?: HashedString;
 
     @Column({
         type: ColumnType.Boolean,
@@ -138,7 +139,7 @@ class User extends BaseModel {
         unique: false,
         transformer: URL.getDatabaseTransformer(),
     })
-    public otpAuthUrl?: URL;
+    public twoFactorAuthUrl?: URL;
 
     @Column({
         type: ColumnType.Array,

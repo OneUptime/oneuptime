@@ -4,11 +4,7 @@ import Express, {
     ExpressRouter,
 } from 'CommonServer/Utils/Express';
 const router: ExpressRouter = Express.getRouter();
-import {
-    sendErrorResponse,
-    sendEmptyResponse,
-} from 'CommonServer/Utils/Response';
-import Exception from 'Common/Types/Exception/Exception';
+import Response from 'CommonServer/Utils/Response';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
 import MailService from '../Services/MailService';
 import Mail from '../Types/Mail';
@@ -20,29 +16,26 @@ import ObjectID from 'Common/Types/ObjectID';
 
 router.post(
     '/:template-name',
-    ClusterKeyAuthorization.isAuthorizedService,
+    ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-            const body: JSONObject = req.body;
 
-            const mail: Mail = {
-                templateType: req.params['template-name'] as EmailTemplateType,
-                toEmail: new Email(body['toEmail'] as string),
-                subject: body['subject'] as string,
-                vars: body['vars'] as Dictionary<string>,
-                body: '',
-            };
+        const body: JSONObject = req.body;
 
-            await MailService.send(
-                mail,
-                new ObjectID(body['projectId'] as string),
-                body['forceSendFromGlobalMailServer'] as boolean
-            );
+        const mail: Mail = {
+            templateType: req.params['template-name'] as EmailTemplateType,
+            toEmail: new Email(body['toEmail'] as string),
+            subject: body['subject'] as string,
+            vars: body['vars'] as Dictionary<string>,
+            body: '',
+        };
 
-            return sendEmptyResponse(req, res);
-        } catch (error) {
-            return sendErrorResponse(req, res, error as Exception);
-        }
+        await MailService.send(
+            mail,
+            new ObjectID(body['projectId'] as string),
+            body['forceSendFromGlobalMailServer'] as boolean
+        );
+
+        return Response.sendEmptyResponse(req, res);
     }
 );
 

@@ -4,6 +4,6 @@ import app from 'CommonServer/Utils/StartServer';
 
 import MailAPI from './API/Mail';
 
-app.use(['/mail/email', '/email'], MailAPI);
+app.use('/mail/email', MailAPI);
 
 export default app;

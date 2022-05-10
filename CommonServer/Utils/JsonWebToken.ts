@@ -21,7 +21,7 @@ class JSONWebToken {
             email: data.email.toString(),
             roles: data.roles.map((role: UserRole): JSONObject => role.toJSON()),
             isMasterAdmin: data.isMasterAdmin
-        }, EncryptionSecret, {
+        }, EncryptionSecret.toString(), {
             expiresIn: String(expiresIn),
         });
     }
@@ -29,7 +29,7 @@ class JSONWebToken {
     public static decode(token: string): JSONWebTokenData {
         try {
         
-            const decoded: JSONObject = JSON.parse(jwt.verify(token, EncryptionSecret) as string);
+            const decoded: JSONObject = JSON.parse(jwt.verify(token, EncryptionSecret.toString()) as string);
 
             return {
                 userId: new ObjectID(decoded["userId"] as string),

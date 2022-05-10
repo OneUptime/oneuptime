@@ -1,6 +1,7 @@
 enum ColumnType {
     Version = 'varchar',
     Phone = 'varchar',
+    HashedString = 'varchar',
     Password = 'varchar',
     Email = 'varchar',
     Slug = 'varchar',

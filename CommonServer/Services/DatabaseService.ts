@@ -21,13 +21,17 @@ import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import { DataSource, Repository } from 'typeorm';
 import SortOrder from '../Types/DB/SortOrder';
 import HardDeleteBy from '../Types/DB/HardDeleteBy';
+import { EncryptionSecret } from '../Config';
+import HashedString from 'Common/Types/HashedString';
+import UpdateByID from '../Types/DB/UpdateByID';
+import ObjectID from 'Common/Types/ObjectID';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     public entityName!: string;
     private database!: PostgresDatabase;
 
     public constructor(
-        type: { new (): TBaseModel },
+        type: { new(): TBaseModel },
         database: PostgresDatabase
     ) {
         this.entityName = type.name;
@@ -91,6 +95,19 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     iv
                 );
             }
+        }
+
+        return data;
+    }
+
+    protected async hash(data: TBaseModel): Promise<TBaseModel> {
+
+        for (const key of data.getHashedColumns().columns) {
+
+            if (!((data as any)[key] as HashedString).isValueHashed) {
+                await ((data as any)[key] as HashedString).hashValue(EncryptionSecret);
+            }
+
         }
 
         return data;
@@ -218,12 +235,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // Encrypt data
         data = this.encrypt(data);
 
+        // hash data
+        data = await this.hash(data);
+
         try {
             if (data.getSlugifyColumn()) {
                 (data as any)[data.getSaveSlugToColumn() as string] =
                     Slug.getSlug(
                         (data as any)[
-                            data.getSlugifyColumn() as string
+                        data.getSlugifyColumn() as string
                         ] as string
                     );
             }
@@ -434,6 +454,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return null;
     }
 
+
+    public async findOneById(
+       id: ObjectID
+    ): Promise<TBaseModel | null> {
+        return await this.findOneBy({
+            query: {
+                _id: id.toString()
+            }
+        })
+    }
+
     private async _updateBy({
         query,
         data,
@@ -475,6 +506,21 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }: UpdateBy<TBaseModel>): Promise<number> {
         return await this._updateBy({ query, data });
     }
+
+    public async updateOneById(updateById: UpdateByID<TBaseModel>): Promise<void> {
+        await this.updateOneBy({
+            query: {
+                _id: updateById.id.toString()
+            },
+            data: updateById.data
+        });
+    }
+
+    public async updateOneByIdAndFetch(updateById: UpdateByID<TBaseModel>): Promise<TBaseModel | null> {
+        await this.updateOneById(updateById);
+        return this.findOneById(updateById.id);
+    }
+
 
     public async searchBy({
         skip,
