@@ -1,7 +1,7 @@
 import ApiBase from 'CommonUI/src/Reducers/ApiBase';
 
 export default class ResendVerifyEmail extends ApiBase {
-    constructor() {
+    public constructor() {
         super('ResendVerifyEmail');
     }
 }

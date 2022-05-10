@@ -4,7 +4,6 @@ import DatabaseProperty from './Database/DatabaseProperty';
 import BadOperationException from './Exception/BadOperationException';
 import EncryptionAlgorithm from './EncryptionAlgorithm';
 import ObjectID from './ObjectID';
-import { arrayBuffer } from 'stream/consumers';
 
 export default class HashedString extends DatabaseProperty {
     private isHashed: boolean = false;
@@ -65,7 +64,7 @@ export default class HashedString extends DatabaseProperty {
             EncryptionAlgorithm.SHA256,
             msgBuffer
         );
-            
+
         // convert ArrayBuffer to Array
         const hashArray: Uint8Array = Array.from(new Uint8Array(hashBuffer));
 

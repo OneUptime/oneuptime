@@ -15,12 +15,12 @@ export default (state: RootState, action: Action): void => {
         state = undefined;
     }
     return combineReducers({
-        routing: routerReducer,
-        Modal,
-        new Login().getReducer(),
-        new Register().getReducer(),
-        new ResetPassword().getReducer(),
-        new ChangePassword().getReducer(),
-        new ResendToken().getReducer(),
+        Routing: routerReducer,
+        Modal: Modal,
+        Login: new Login().getReducer(),
+        Register: new Register().getReducer(),
+        ResetPassword: new ResetPassword().getReducer(),
+        ChangePassword: new ChangePassword().getReducer(),
+        ResendToken: new ResendToken().getReducer(),
     })(state, action)
 };
