@@ -1,15 +1,25 @@
 import Dictionary from '../Types/Dictionary';
 describe('Dictionary', () => {
     test('should allow basic types   compile', () => {
-        const user: Dictionary<string> = {
-            user: 'test',
+        const dictionary: Dictionary<string> = {
+            property: 'string',
         };
-        expect(user).toBeTruthy();
+        const numberDictionary: Dictionary<number> = {
+            property: 1,
+        };
+
+        expect(dictionary['property']).toEqual('string');
+        expect(numberDictionary['property']).toEqual(1);
     });
-    test('should compile', () => {
-        const user: Dictionary<{ [x: string]: string }> = {
-            user: { use: 'welcome' },
+    test('should allow the complex type', () => {
+        const nestedDictionary: Dictionary<{ nested: string }> = {
+            property: { nested: 'stringValue' },
         };
-        expect(user).toBeTruthy();
+        const nestedArrayDictionary: Dictionary<{ nested: Array<string> }> = {
+            property: { nested: ['stringValue'] },
+        };
+
+        expect(nestedDictionary['property']?.nested).toEqual('stringValue');
+        expect(nestedArrayDictionary['property']?.nested.length).toEqual(1);
     });
 });

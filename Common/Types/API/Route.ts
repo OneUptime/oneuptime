@@ -1,3 +1,4 @@
+import BadDataException from '../Exception/BadDataException';
 export default class Route {
     private _route: string = '';
     public get route(): string {
@@ -8,6 +9,10 @@ export default class Route {
     }
 
     public constructor(route?: string) {
+        const matchRouteCharacters: RegExp = /^[a-zA-Z\d!#$&'()*+,/:;=?@[\]]*$/;
+        if (route && !matchRouteCharacters.test(route)) {
+            throw new BadDataException(`Invalid route: ${route}`);
+        }
         if (route) {
             this.route = route;
         }

@@ -1,12 +1,20 @@
 import Route from '../Types/API/Route';
+import BadDataException from '../Types/Exception/BadDataException';
 describe('Route', () => {
-    test('new Route should return a create object', () => {
-        const route: Route = new Route('/api/test');
-        expect(route.route).toBe('/api/test');
-        expect(new Route('api test')).toThrow();
+    type createRouteType = (route: string) => () => Route;
+    const createRoute: createRouteType = (route: string) => {
+        return () => {
+            return new Route(route);
+        };
+    };
+    test('new Route() should throw an error if invalid route is passed', () => {
+        expect(createRoute('api test')).toThrowError(BadDataException);
+        expect(createRoute('api\test')).toThrowError(BadDataException);
+        expect(createRoute('api`test')).toThrowError(BadDataException);
+        expect(createRoute('/api|test')).toThrowError(BadDataException);
     });
     test('Route.toString() should return valid string', () => {
-        const route: Route = new Route('/api/test');
-        expect(route.toString()).toBe('/api/test');
+        expect(createRoute('/api/test')().toString()).toBe('/api/test');
+        expect(createRoute('/api#test')().toString()).toBe('/api#test');
     });
 });

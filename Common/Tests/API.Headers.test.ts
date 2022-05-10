@@ -1,13 +1,14 @@
 import Headers from '../Types/API/Headers';
+import Faker from './TestingUtils/Faker';
 describe('Headers', () => {
     test('should compile', () => {
+        const apiKey: string = Faker.random16Numbers();
         const headers: Headers = {
             accept: 'application/json',
-            'x-api-limit': '2',
+            'x-api-key': apiKey,
         };
-        expect(headers).toBeTruthy();
         expect(headers['accept']).toBe('application/json');
-        expect(headers['x-api-limit']).toBe('2');
+        expect(headers['x-api-key']).toEqual(apiKey);
         expect(headers['undefined']).toBe(undefined);
     });
 });

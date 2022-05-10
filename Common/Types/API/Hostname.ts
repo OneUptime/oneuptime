@@ -1,3 +1,5 @@
+import BadDataException from '../Exception/BadDataException';
+
 export default class Hostname {
     private _route: string = '';
     public get hostname(): string {
@@ -8,6 +10,11 @@ export default class Hostname {
     }
 
     public constructor(hostname: string) {
+        const matchHostnameCharacters: RegExp =
+            /^[a-zA-Z\d!#$&'*+,/:;=?@[\]]*$/;
+        if (hostname && !matchHostnameCharacters.test(hostname)) {
+            throw new BadDataException(`Invalid hostname: ${hostname}`);
+        }
         if (hostname) {
             this.hostname = hostname;
         }
