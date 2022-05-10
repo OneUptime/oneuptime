@@ -9,7 +9,6 @@ import ResetPassword from './ResetPassword';
 import ChangePassword from './ChangePassword';
 import ResendToken from './ResendVerifyEmail';
 
-
 export default (state: RootState, action: Action): void => {
     if (action.type === 'CLEAR_STORE') {
         state = undefined;
@@ -22,5 +21,5 @@ export default (state: RootState, action: Action): void => {
         ResetPassword: new ResetPassword().getReducer(),
         ChangePassword: new ChangePassword().getReducer(),
         ResendToken: new ResendToken().getReducer(),
-    })(state, action)
+    })(state, action);
 };

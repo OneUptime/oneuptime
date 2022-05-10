@@ -376,7 +376,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     private static _fromJSON<T extends BaseModel>(json: JSONObject): T {
-        const baseModel = new BaseModel();
+        const baseModel: BaseModel = new BaseModel();
 
         for (const key of Object.keys(json)) {
             (baseModel as any)[key] = json[key];
@@ -393,7 +393,7 @@ export default class BaseModel extends BaseEntity {
         data: T,
         columnsToKeep: Columns
     ): T {
-        const baseModel = new BaseModel();
+        const baseModel: BaseModel = new BaseModel();
 
         for (const key of Object.keys(data)) {
             if (!columnsToKeep) {

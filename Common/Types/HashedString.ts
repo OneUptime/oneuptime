@@ -66,11 +66,11 @@ export default class HashedString extends DatabaseProperty {
         );
 
         // convert ArrayBuffer to Array
-        const hashArray: Uint8Array = Array.from(new Uint8Array(hashBuffer));
+        const hashArray: Array<number> = Array.from(new Uint8Array(hashBuffer));
 
         // convert bytes to hex string
         const hashHex: string = hashArray
-            .map((b) => {
+            .map((b: number) => {
                 return b.toString(16).padStart(2, '0');
             })
             .join('');
