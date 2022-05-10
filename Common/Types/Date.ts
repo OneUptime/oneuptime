@@ -42,7 +42,6 @@ export default class OneUptimeDate {
             .toDate();
     }
 
-
     public static getOneMinAfter(): Date {
         return this.getSomeMinutesAfter(new PositiveNumber(1));
     }
@@ -53,28 +52,27 @@ export default class OneUptimeDate {
 
     public static getSomeMinutesAfter(minutes: PositiveNumber): Date {
         return this.getCurrentMomentDate()
-            .add( minutes.toNumber(), 'minutes')
+            .add(minutes.toNumber(), 'minutes')
             .toDate();
     }
 
     public static getSomeHoursAfter(hours: PositiveNumber): Date {
         return this.getCurrentMomentDate()
-            .add( hours.toNumber(), 'hours')
+            .add(hours.toNumber(), 'hours')
             .toDate();
     }
 
     public static getSomeDaysAfter(days: PositiveNumber): Date {
         return this.getCurrentMomentDate()
-            .add( days.toNumber(), 'days')
+            .add(days.toNumber(), 'days')
             .toDate();
     }
 
     public static getSomeSecondsAfter(seconds: PositiveNumber): Date {
         return this.getCurrentMomentDate()
-            .add( seconds.toNumber(), 'days')
+            .add(seconds.toNumber(), 'days')
             .toDate();
     }
-
 
     public static momentToDate(moment: moment.Moment): Date {
         return moment.toDate();

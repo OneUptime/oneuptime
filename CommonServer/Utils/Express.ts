@@ -19,10 +19,10 @@ export type ExpressResponse = express.Response;
 export type ExpressApplication = express.Application;
 export type ExpressRouter = express.Router;
 
-export enum AuthorizationType { 
-    API = "API", 
-    User = "User",
-    MasterAdmin = "MasterAdmin"
+export enum AuthorizationType {
+    API = 'API',
+    User = 'User',
+    MasterAdmin = 'MasterAdmin',
 }
 
 export interface OneUptimeRequest extends express.Request {

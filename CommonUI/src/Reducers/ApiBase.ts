@@ -18,13 +18,12 @@ export interface InitialStateType {
 export default class ApiBaseReducer {
     private constants: ApiBaseConstants;
     private _name: string;
-   
 
     public get name(): string {
         return this._name;
     }
 
-    constructor(name: string) {
+    public constructor(name: string) {
         this._name = name;
         this.constants = new ApiBaseConstants(this.name);
     }

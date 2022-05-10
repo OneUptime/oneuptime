@@ -1,9 +1,8 @@
-import { JSONObject } from "./JSON";
-import ObjectID from "./ObjectID";
-import Role from "./Role";
+import { JSONObject } from './JSON';
+import ObjectID from './ObjectID';
+import Role from './Role';
 
 export default class UserRole {
-    
     public projectId!: ObjectID;
     public userId!: ObjectID;
     public role!: Role;
@@ -16,17 +15,17 @@ export default class UserRole {
 
     public toJSON(): JSONObject {
         return {
-            "userId": this.userId.toString(),
-            "projectId": this.projectId.toString(),
-            "role": this.role
-        }
+            userId: this.userId.toString(),
+            projectId: this.projectId.toString(),
+            role: this.role,
+        };
     }
 
-    public static fromJSON(data: JSONObject): UserRole{
+    public static fromJSON(data: JSONObject): UserRole {
         return new UserRole(
-            new ObjectID(data["projectId"] as string),
-            new ObjectID(data["userId"] as string),
-            data["role"] as Role
-        )
+            new ObjectID(data['projectId'] as string),
+            new ObjectID(data['userId'] as string),
+            data['role'] as Role
+        );
     }
 }

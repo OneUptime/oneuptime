@@ -18,7 +18,6 @@ router.post(
     '/:template-name',
     ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
     async (req: ExpressRequest, res: ExpressResponse) => {
-
         const body: JSONObject = req.body;
 
         const mail: Mail = {

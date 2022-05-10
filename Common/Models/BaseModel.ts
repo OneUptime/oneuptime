@@ -12,8 +12,6 @@ import { JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 
 export default class BaseModel extends BaseEntity {
-
-
     @PrimaryGeneratedColumn('uuid')
     public _id!: string;
 
@@ -29,7 +27,6 @@ export default class BaseModel extends BaseEntity {
     @VersionColumn()
     public version!: number;
 
-    
     private encryptedColumns: Columns = new Columns([]);
     private uniqueColumns: Columns = new Columns([]);
     private requiredColumns: Columns = new Columns([]);
@@ -59,31 +56,30 @@ export default class BaseModel extends BaseEntity {
     private viewerDeleteableColumns: Columns = new Columns([]);
     private publicDeleteableColumns: Columns = new Columns([]);
 
-    private canAdminCreateRecord = false; 
-    private canAdminDeleteRecord = false; 
-    private canAdminUpdateRecord = false; 
-    private canAdminReadRecord = false; 
+    private canAdminCreateRecord = false;
+    private canAdminDeleteRecord = false;
+    private canAdminUpdateRecord = false;
+    private canAdminReadRecord = false;
 
-    private canPublicCreateRecord = false; 
-    private canPublicDeleteRecord = false; 
-    private canPublicUpdateRecord = false; 
-    private canPublicReadRecord = false; 
+    private canPublicCreateRecord = false;
+    private canPublicDeleteRecord = false;
+    private canPublicUpdateRecord = false;
+    private canPublicReadRecord = false;
 
-    private canOwnerCreateRecord = false; 
-    private canOwnerDeleteRecord = false; 
-    private canOwnerUpdateRecord = false; 
-    private canOwnerReadRecord = false; 
+    private canOwnerCreateRecord = false;
+    private canOwnerDeleteRecord = false;
+    private canOwnerUpdateRecord = false;
+    private canOwnerReadRecord = false;
 
-    private canMemberCreateRecord = false; 
-    private canMemberDeleteRecord = false; 
-    private canMemberUpdateRecord = false; 
-    private canMemberReadRecord = false; 
+    private canMemberCreateRecord = false;
+    private canMemberDeleteRecord = false;
+    private canMemberUpdateRecord = false;
+    private canMemberReadRecord = false;
 
-    private canViewerCreateRecord = false; 
-    private canViewerDeleteRecord = false; 
-    private canViewerUpdateRecord = false; 
-    private canViewerReadRecord = false; 
-
+    private canViewerCreateRecord = false;
+    private canViewerDeleteRecord = false;
+    private canViewerUpdateRecord = false;
+    private canViewerReadRecord = false;
 
     private slugifyColumn!: string | null;
     private saveSlugToColumn!: string | null;
@@ -341,8 +337,6 @@ export default class BaseModel extends BaseEntity {
         return this.viewerDeleteableColumns;
     }
 
-    
-
     public setSlugifyColumn(columnName: string): void {
         this.slugifyColumn = columnName;
     }
@@ -384,300 +378,335 @@ export default class BaseModel extends BaseEntity {
     private static _fromJSON<T extends BaseModel>(json: JSONObject): T {
         const baseModel = new BaseModel();
 
-        for (let key of Object.keys(json)) {
-
+        for (const key of Object.keys(json)) {
             (baseModel as any)[key] = json[key];
-           
         }
 
         return baseModel as T;
     }
-
-
 
     public static fromJSON<T extends BaseModel>(json: JSONObject): T {
         return this._fromJSON<T>(json);
     }
 
-    private static keepColumns<T extends BaseModel>(data: T, columnsToKeep: Columns): T {
+    private static keepColumns<T extends BaseModel>(
+        data: T,
+        columnsToKeep: Columns
+    ): T {
         const baseModel = new BaseModel();
 
-        for (let key of Object.keys(data)) {
-
+        for (const key of Object.keys(data)) {
             if (!columnsToKeep) {
                 (baseModel as any)[key] = (data as any)[key];
             }
 
-            if (columnsToKeep && columnsToKeep.columns.length > 0 && columnsToKeep.columns.includes(key)) {
+            if (
+                columnsToKeep &&
+                columnsToKeep.columns.length > 0 &&
+                columnsToKeep.columns.includes(key)
+            ) {
                 (baseModel as any)[key] = (data as any)[key];
             }
-           
         }
 
         return baseModel as T;
     }
 
-    public static asPublicCreateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asPublicCreateable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canPublicCreateRecord) {
-            throw new BadRequestException("A user of role public cannot create this record.")
+            throw new BadRequestException(
+                'A user of role public cannot create this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getPublicCreateableColumns()); 
+        return this.keepColumns(data, data.getPublicCreateableColumns());
     }
 
-    public static asPublicUpdateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asPublicUpdateable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canPublicUpdateRecord) {
-            throw new BadRequestException("A user of role public cannot update this record.")
+            throw new BadRequestException(
+                'A user of role public cannot update this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getPublicUpdateableColumns()); 
+        return this.keepColumns(data, data.getPublicUpdateableColumns());
     }
 
-    public static asPublicReadable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asPublicReadable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canPublicReadRecord) {
-            throw new BadRequestException("A user of role public cannot read this record.")
+            throw new BadRequestException(
+                'A user of role public cannot read this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getPublicReadableColumns()); 
+        return this.keepColumns(data, data.getPublicReadableColumns());
     }
 
-    public static asPublicDeleteable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asPublicDeleteable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canPublicDeleteRecord) {
-            throw new BadRequestException("A user of role public cannot delete this record.")
+            throw new BadRequestException(
+                'A user of role public cannot delete this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getPublicDeleteableColumns()); 
+        return this.keepColumns(data, data.getPublicDeleteableColumns());
     }
 
-    public static asOwnerCreateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asOwnerCreateable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canOwnerCreateRecord) {
-            throw new BadRequestException("A user of role owner cannot create this record.")
+            throw new BadRequestException(
+                'A user of role owner cannot create this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getOwnerCreateableColumns()); 
+        return this.keepColumns(data, data.getOwnerCreateableColumns());
     }
 
-    public static asOwnerUpdateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asOwnerUpdateable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canOwnerUpdateRecord) {
-            throw new BadRequestException("A user of role owner cannot update this record.")
+            throw new BadRequestException(
+                'A user of role owner cannot update this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getOwnerUpdateableColumns()); 
+        return this.keepColumns(data, data.getOwnerUpdateableColumns());
     }
 
-    public static asOwnerReadable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asOwnerReadable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canOwnerReadRecord) {
-            throw new BadRequestException("A user of role owner cannot delete this record.")
+            throw new BadRequestException(
+                'A user of role owner cannot delete this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getOwnerReadableColumns()); 
+        return this.keepColumns(data, data.getOwnerReadableColumns());
     }
 
-    public static asOwnerDeleteable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asOwnerDeleteable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canOwnerDeleteRecord) {
-            throw new BadRequestException("A user of role owner cannot delete this record.")
+            throw new BadRequestException(
+                'A user of role owner cannot delete this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getOwnerDeleteableColumns()); 
+        return this.keepColumns(data, data.getOwnerDeleteableColumns());
     }
 
-
-
-    public static asViewerCreateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asViewerCreateable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canViewerCreateRecord) {
-            throw new BadRequestException("A user of role viewer cannot create this record.")
+            throw new BadRequestException(
+                'A user of role viewer cannot create this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getViewerCreateableColumns()); 
+        return this.keepColumns(data, data.getViewerCreateableColumns());
     }
 
-    public static asViewerUpdateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asViewerUpdateable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canViewerUpdateRecord) {
-            throw new BadRequestException("A user of role viewer cannot update this record.")
+            throw new BadRequestException(
+                'A user of role viewer cannot update this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getViewerUpdateableColumns()); 
+        return this.keepColumns(data, data.getViewerUpdateableColumns());
     }
 
-    public static asViewerReadable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asViewerReadable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canViewerReadRecord) {
-            throw new BadRequestException("A user of role viewer cannot read this record.")
+            throw new BadRequestException(
+                'A user of role viewer cannot read this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getViewerReadableColumns()); 
+        return this.keepColumns(data, data.getViewerReadableColumns());
     }
 
-    public static asViewerDeleteable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asViewerDeleteable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canViewerDeleteRecord) {
-            throw new BadRequestException("A user of role viewer cannot delete this record.")
+            throw new BadRequestException(
+                'A user of role viewer cannot delete this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getViewerDeleteableColumns()); 
+        return this.keepColumns(data, data.getViewerDeleteableColumns());
     }
 
-
-    public static asMemberCreateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asMemberCreateable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canMemberCreateRecord) {
-            throw new BadRequestException("A user of role member cannot create this record.")
+            throw new BadRequestException(
+                'A user of role member cannot create this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getMemberCreateableColumns()); 
+        return this.keepColumns(data, data.getMemberCreateableColumns());
     }
 
-    public static asMemberUpdateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asMemberUpdateable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canMemberUpdateRecord) {
-            throw new BadRequestException("A user of role member cannot update this record.")
+            throw new BadRequestException(
+                'A user of role member cannot update this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getMemberUpdateableColumns()); 
+        return this.keepColumns(data, data.getMemberUpdateableColumns());
     }
 
-    public static asMemberReadable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asMemberReadable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canMemberReadRecord) {
-            throw new BadRequestException("A user of role member cannot read this record.")
+            throw new BadRequestException(
+                'A user of role member cannot read this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getMemberReadableColumns()); 
+        return this.keepColumns(data, data.getMemberReadableColumns());
     }
 
-    public static asMemberDeleteable<T extends BaseModel>(data: JSONObject | T) {
-
+    public static asMemberDeleteable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canMemberDeleteRecord) {
-            throw new BadRequestException("A user of role member cannot delete this record.")
+            throw new BadRequestException(
+                'A user of role member cannot delete this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getMemberDeleteableColumns()); 
+        return this.keepColumns(data, data.getMemberDeleteableColumns());
     }
 
-
-    public static asAdminCreateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asAdminCreateable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canAdminCreateRecord) {
-            throw new BadRequestException("A user of role admin cannot create this record.")
+            throw new BadRequestException(
+                'A user of role admin cannot create this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getAdminCreateableColumns()); 
+        return this.keepColumns(data, data.getAdminCreateableColumns());
     }
 
-    public static asAdminUpdateable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asAdminUpdateable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canAdminUpdateRecord) {
-            throw new BadRequestException("A user of role admin cannot update this record.")
+            throw new BadRequestException(
+                'A user of role admin cannot update this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getAdminUpdateableColumns()); 
+        return this.keepColumns(data, data.getAdminUpdateableColumns());
     }
 
-    public static asAdminReadable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asAdminReadable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canAdminReadRecord) {
-            throw new BadRequestException("A user of role admin cannot read this record.")
+            throw new BadRequestException(
+                'A user of role admin cannot read this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getAdminReadableColumns()); 
+        return this.keepColumns(data, data.getAdminReadableColumns());
     }
 
-    public static asAdminDeleteable<T extends BaseModel>(data: JSONObject | T) {
-        
+    public static asAdminDeleteable<T extends BaseModel>(data: JSONObject | T): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data);
         }
 
         if (!data.canAdminDeleteRecord) {
-            throw new BadRequestException("A user of role admin cannot delete this record.")
+            throw new BadRequestException(
+                'A user of role admin cannot delete this record.'
+            );
         }
 
-        return this.keepColumns(data, data.getAdminDeleteableColumns()); 
+        return this.keepColumns(data, data.getAdminDeleteableColumns());
     }
 }

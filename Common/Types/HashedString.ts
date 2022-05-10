@@ -4,9 +4,9 @@ import DatabaseProperty from './Database/DatabaseProperty';
 import BadOperationException from './Exception/BadOperationException';
 import EncryptionAlgorithm from './EncryptionAlgorithm';
 import ObjectID from './ObjectID';
+import { arrayBuffer } from 'stream/consumers';
 
 export default class HashedString extends DatabaseProperty {
-
     private isHashed: boolean = false;
 
     private _value: string = '';
@@ -41,45 +41,55 @@ export default class HashedString extends DatabaseProperty {
         return null;
     }
 
-    public isValueHashed(): boolean { 
+    public isValueHashed(): boolean {
         return this.isHashed;
     }
 
     public async hashValue(encryptionSecret: ObjectID | null): Promise<string> {
-
         if (!this.value) {
             return '';
         }
 
         if (this.isHashed) {
-            throw new BadOperationException("Value is alredy hashed");
+            throw new BadOperationException('Value is alredy hashed');
         }
 
         const valueToHash: string = (encryptionSecret || '') + this.value;
         this.isHashed = true;
 
         // encode as UTF-8
-        const msgBuffer = new TextEncoder().encode(valueToHash);
+        const msgBuffer: Uint8Array = new TextEncoder().encode(valueToHash);
 
         // hash the message
-        const hashBuffer = await crypto.subtle.digest(EncryptionAlgorithm.SHA256, msgBuffer);
-
+        const hashBuffer: ArrayBuffer = await crypto.subtle.digest(
+            EncryptionAlgorithm.SHA256,
+            msgBuffer
+        );
+            
         // convert ArrayBuffer to Array
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashArray: Uint8Array = Array.from(new Uint8Array(hashBuffer));
 
-        // convert bytes to hex string                  
-        const hashHex: string = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+        // convert bytes to hex string
+        const hashHex: string = hashArray
+            .map((b) => {
+                return b.toString(16).padStart(2, '0');
+            })
+            .join('');
         this.value = hashHex;
         return hashHex;
-
     }
 
-    public static async hashValue(value: string, encryptionSecret: ObjectID | null): Promise<string>  {
+    public static async hashValue(
+        value: string,
+        encryptionSecret: ObjectID | null
+    ): Promise<string> {
         const hashstring: HashedString = new HashedString(value, false);
         return await hashstring.hashValue(encryptionSecret);
     }
 
-    protected static override fromDatabase(_value: string): HashedString | null {
+    protected static override fromDatabase(
+        _value: string
+    ): HashedString | null {
         if (_value) {
             return new HashedString(_value, true);
         }

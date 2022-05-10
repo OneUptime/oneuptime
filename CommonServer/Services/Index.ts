@@ -13,7 +13,7 @@ const postgresDatabase: PostgresDatabase = new PostgresDatabase();
 await postgresDatabase.connect(postgresDatabase.getDatasourceOptions());
 
 export default {
-    //Database Services 
+    //Database Services
     ProbeService: new ProbeService(postgresDatabase),
     UserService: new UserService(postgresDatabase),
     GlobalConfigService: new GlobalConfigService(postgresDatabase),
@@ -21,7 +21,9 @@ export default {
     EmailLogService: new EmailLogService(postgresDatabase),
     MonitorService: new MonitorService(postgresDatabase),
     ProjectService: new ProjectService(postgresDatabase),
-    EmailVerificationTokenService: new EmailVerificationTokenService(postgresDatabase),
+    EmailVerificationTokenService: new EmailVerificationTokenService(
+        postgresDatabase
+    ),
 
     // Other Services.
     MailService: new MailService(),

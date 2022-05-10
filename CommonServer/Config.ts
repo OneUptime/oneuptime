@@ -3,9 +3,9 @@ import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 
-export const DisableSignup: boolean = !!process.env['DISABLE_SIGNUP'];
+export const DisableSignup: boolean = Boolean(process.env['DISABLE_SIGNUP']);
 
-export const IsSaaSService: boolean = !!process.env['IS_SAAS_SERVICE'];
+export const IsSaaSService: boolean = Boolean(process.env['IS_SAAS_SERVICE']);
 
 export const DatabaseHost: Hostname = new Hostname(
     process.env['DATABASE_HOST'] || ''
@@ -21,7 +21,9 @@ export const DatabasePassword: string = process.env['DATABASE_PASSWORD'] || '';
 export const DatabaseName: string =
     process.env['DATABASE_NAME'] || 'oneuptimedb';
 
-export const EncryptionSecret: ObjectID = new ObjectID(process.env['ENCRYPTIOJN_SECRET'] || '');
+export const EncryptionSecret: ObjectID = new ObjectID(
+    process.env['ENCRYPTIOJN_SECRET'] || ''
+);
 
 export const AirtableApiKey: string = process.env['AIRTABLE_API_KEY'] || '';
 

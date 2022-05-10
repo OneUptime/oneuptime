@@ -15,7 +15,6 @@ import JSONWebToken from '../Utils/JsonWebToken';
 const UserService: UserServiceType = Service.UserService;
 
 export default class UserMiddleware {
-
     /*
      * Description: Checking if user is authorized to access the page and decode jwt to get user data.
      * Params:
@@ -24,7 +23,6 @@ export default class UserMiddleware {
      */
 
     public static getAccessToken(req: ExpressRequest): string | null {
-
         let accessToken: string | null = null;
 
         if (req.headers['authorization']) {
@@ -35,7 +33,7 @@ export default class UserMiddleware {
             accessToken = req.query['accessToken'] as string;
         }
 
-        if (accessToken?.includes(" ")) {
+        if (accessToken?.includes(' ')) {
             accessToken = accessToken.split(' ')[1] || '';
         }
 
@@ -51,19 +49,22 @@ export default class UserMiddleware {
 
         if (projectId) {
             if (ProjectMiddleware.hasApiKey(req)) {
-                return await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(req, res, next);
+                return await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
+                    req,
+                    res,
+                    next
+                );
             }
         }
 
         const accessToken: string | null = this.getAccessToken(req);
 
         if (!accessToken) {
-            throw new BadDataException("AccessToken not found in request");
+            throw new BadDataException('AccessToken not found in request');
         }
 
-        const oneuptimeRequest = (req as OneUptimeRequest);
+        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
-
 
         if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
             oneuptimeRequest.authorizationType = AuthorizationType.MasterAdmin;
@@ -72,11 +73,12 @@ export default class UserMiddleware {
         }
 
         UserService.updateOneBy({
-            query: { _id: oneuptimeRequest.userAuthorization.userId.toString() },
-            data: { lastActive: Date.now() }
+            query: {
+                _id: oneuptimeRequest.userAuthorization.userId.toString(),
+            },
+            data: { lastActive: Date.now() },
         });
 
         return next();
-
     }
 }
