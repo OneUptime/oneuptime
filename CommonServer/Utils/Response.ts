@@ -191,8 +191,13 @@ export default class Response {
     public static sendItemResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        item: JSONObject
+        item: JSONObject | BaseModel
     ): void {
+        
+        if (item instanceof BaseModel) {
+            item = item.toJSON();
+        }
+
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 

@@ -11,6 +11,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends DatabaseService<TBaseModel>> {
 
@@ -102,8 +103,15 @@ export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends 
     }
 
 
-    public createItem(req: ExpressRequest, res: ExpressResponse) {
+    public async createItem(req: ExpressRequest, res: ExpressResponse) {
+        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+        const body: JSONObject = req.body;
 
+        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(body['data'] as JSONObject);
+
+        const savedItem: TBaseModel = await this.service.createByRole(oneuptimeRequest.role, { data: item });
+
+        return Response.sendItemResponse(req, res, savedItem);
     }
 
     public getRouter(): ExpressRouter {

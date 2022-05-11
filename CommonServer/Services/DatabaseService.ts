@@ -317,6 +317,42 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     }
 
+    public async createByRole(role: Role, createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+
+        if (role === Role.Administrator) {
+            return await this.create({
+                data: BaseModel.asAdminCreateable<TBaseModel>(createBy.data)
+            });
+        }
+
+        if (role === Role.Member) {
+            return await this.create({
+                data: BaseModel.asMemberCreateable<TBaseModel>(createBy.data)
+            });
+        }
+
+        if (role === Role.Public) {
+            return await this.create({
+                data: BaseModel.asPublicCreateable<TBaseModel>(createBy.data)
+            });
+        }
+
+        if (role === Role.Viewer) {
+            return await this.create({
+                data: BaseModel.asViewerCreateable<TBaseModel>(createBy.data)
+            });
+        }
+
+        if (role === Role.Owner) {
+            return await this.create({
+                data: BaseModel.asOwnerCreateable<TBaseModel>(createBy.data)
+            });
+        }
+
+        throw new BadDataException(`Invalid role - ${role}`)
+
+    }
+
     public deleteByForOwner(deleteBy: DeleteBy<TBaseModel>): PromiseLike<number> {
         return this.deleteBy(deleteBy);
     }
