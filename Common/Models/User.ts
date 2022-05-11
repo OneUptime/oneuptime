@@ -14,17 +14,25 @@ import CompanySize from '../Types/Company/CompanySize';
 import JobRole from '../Types/Company/JobRole';
 import HashedColumn from '../Types/Database/HashedColumnDecorator';
 import HashedString from '../Types/HashedString';
+import PublicRecordPermissions from '../Types/Database/AccessControls/Public/PublicRecordPermissions';
 
+
+@PublicRecordPermissions({
+    create: true, 
+    read: false, 
+    update: false, 
+    delete: false
+})
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'User',
 })
 class User extends BaseModel {
-    @RequiredColumn()
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
-        nullable: false,
+        nullable: true,
+        unique: false
     })
     public name!: Name;
 
@@ -61,29 +69,26 @@ class User extends BaseModel {
     })
     public isEmailVerified!: boolean;
 
-    @RequiredColumn()
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
-        nullable: false,
+        nullable: true,
         unique: false,
     })
     public companyName!: string;
 
-    @RequiredColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
-        nullable: false,
+        nullable: true,
         unique: false,
     })
     public jobRole!: JobRole;
 
-    @RequiredColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
-        nullable: false,
+        nullable: true,
         unique: false,
     })
     public companySize!: CompanySize;
@@ -96,11 +101,10 @@ class User extends BaseModel {
     })
     public referral?: string;
 
-    @RequiredColumn()
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
-        nullable: false,
+        nullable: true,
         unique: false,
         transformer: Phone.getDatabaseTransformer(),
     })
@@ -187,10 +191,9 @@ class User extends BaseModel {
     })
     public timezone?: Timezone;
 
-    @RequiredColumn()
     @Column({
         type: ColumnType.Date,
-        nullable: false,
+        nullable: true,
         unique: false,
     })
     public lastActive!: Date;

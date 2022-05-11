@@ -33,24 +33,28 @@ export default class BaseModel extends BaseEntity {
     private hashedColumns: Columns = new Columns([]);
 
     private ownerReadableColumns: Columns = new Columns([]);
+    private userReadableColumns: Columns = new Columns([]);
     private adminReadableColumns: Columns = new Columns([]);
     private memberReadableColumns: Columns = new Columns([]);
     private viewerReadableColumns: Columns = new Columns([]);
     private publicReadableColumns: Columns = new Columns([]);
 
     private ownerUpdateableColumns: Columns = new Columns([]);
+    private userUpdateableColumns: Columns = new Columns([]);
     private adminUpdateableColumns: Columns = new Columns([]);
     private memberUpdateableColumns: Columns = new Columns([]);
     private viewerUpdateableColumns: Columns = new Columns([]);
     private publicUpdateableColumns: Columns = new Columns([]);
 
     private ownerCreateableColumns: Columns = new Columns([]);
+    private userCreateableColumns: Columns = new Columns([]);
     private adminCreateableColumns: Columns = new Columns([]);
     private memberCreateableColumns: Columns = new Columns([]);
     private viewerCreateableColumns: Columns = new Columns([]);
     private publicCreateableColumns: Columns = new Columns([]);
 
     private ownerDeleteableColumns: Columns = new Columns([]);
+    private userDeleteableColumns: Columns = new Columns([]);
     private adminDeleteableColumns: Columns = new Columns([]);
     private memberDeleteableColumns: Columns = new Columns([]);
     private viewerDeleteableColumns: Columns = new Columns([]);
@@ -80,6 +84,11 @@ export default class BaseModel extends BaseEntity {
     private canViewerDeleteRecord = false;
     private canViewerUpdateRecord = false;
     private canViewerReadRecord = false;
+
+    private canUserCreateRecord = false;
+    private canUserDeleteRecord = false;
+    private canUserUpdateRecord = false;
+    private canUserReadRecord = false;
 
     private slugifyColumn!: string | null;
     private saveSlugToColumn!: string | null;
@@ -126,6 +135,50 @@ export default class BaseModel extends BaseEntity {
             this.ownerReadableColumns = new Columns([]);
         }
         this.ownerReadableColumns.addColumn(columnName);
+    }
+
+    public getUserReadableColumns(): Columns {
+        return this.userReadableColumns;
+    }
+
+    public addUserReadableColumn(columnName: string): void {
+        if (!this.ownerReadableColumns) {
+            this.ownerReadableColumns = new Columns([]);
+        }
+        this.userReadableColumns.addColumn(columnName);
+    }
+
+    public getUserCreateableColumns(): Columns {
+        return this.userCreateableColumns;
+    }
+
+    public addUserCreateableColumn(columnName: string): void {
+        if (!this.ownerReadableColumns) {
+            this.ownerReadableColumns = new Columns([]);
+        }
+        this.userCreateableColumns.addColumn(columnName);
+    }
+
+    public getUserDeleteableColumns(): Columns {
+        return this.userDeleteableColumns;
+    }
+
+    public addUserDeleteableColumn(columnName: string): void {
+        if (!this.ownerReadableColumns) {
+            this.ownerReadableColumns = new Columns([]);
+        }
+        this.userDeleteableColumns.addColumn(columnName);
+    }
+
+    public getUserUpdateableColumns(): Columns {
+        return this.userUpdateableColumns;
+    }
+
+    public addUserUpdateableColumn(columnName: string): void {
+        if (!this.ownerReadableColumns) {
+            this.ownerReadableColumns = new Columns([]);
+        }
+        this.userUpdateableColumns.addColumn(columnName);
     }
 
     public getOwnerCreateableColumns(): Columns {
@@ -539,6 +592,74 @@ export default class BaseModel extends BaseEntity {
 
         return this.keepColumns(data, data.getOwnerDeleteableColumns());
     }
+
+
+    public static asUserCreateable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        if (!data.canUserCreateRecord) {
+            throw new BadRequestException(
+                'A user of role viewer cannot create this record.'
+            );
+        }
+
+        return this.keepColumns(data, data.getUserCreateableColumns());
+    }
+
+    public static asUserUpdateable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        if (!data.canUserUpdateRecord) {
+            throw new BadRequestException(
+                'A user of role viewer cannot update this record.'
+            );
+        }
+
+        return this.keepColumns(data, data.getUserUpdateableColumns());
+    }
+
+    public static asUserReadable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        if (!data.canUserReadRecord) {
+            throw new BadRequestException(
+                'A user of role viewer cannot read this record.'
+            );
+        }
+
+        return this.keepColumns(data, data.getUserReadableColumns());
+    }
+
+    public static asUserDeleteable<T extends BaseModel>(
+        data: JSONObject | T
+    ): T {
+        if (!(data instanceof BaseModel)) {
+            data = this._fromJSON<T>(data);
+        }
+
+        if (!data.canUserDeleteRecord) {
+            throw new BadRequestException(
+                'A user of role viewer cannot delete this record.'
+            );
+        }
+
+        return this.keepColumns(data, data.getUserDeleteableColumns());
+    }
+
+
+
 
     public static asViewerCreateable<T extends BaseModel>(
         data: JSONObject | T
