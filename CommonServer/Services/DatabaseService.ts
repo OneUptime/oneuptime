@@ -317,6 +317,33 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     }
 
+    public async updateByRole(role: Role, updateBy: UpdateBy<TBaseModel>): Promise<void> {
+
+        if (role === Role.Administrator) {
+
+            await this.updateBy(updateBy);
+        }
+
+        if (role === Role.Member) {
+            await this.updateBy(updateBy);
+        }
+
+        if (role === Role.Public) {
+            await this.updateBy(updateBy);
+        }
+
+        if (role === Role.Viewer) {
+            await this.updateBy(updateBy);
+        }
+
+        if (role === Role.Owner) {
+            await this.updateBy(updateBy);
+        }
+
+        throw new BadDataException(`Invalid role - ${role}`)
+
+    }
+
     public async createByRole(role: Role, createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
 
         if (role === Role.Administrator) {

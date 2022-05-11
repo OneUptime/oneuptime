@@ -6,8 +6,12 @@ export default (accessControl: AccessControl) => {
             ctr.prototype.canViewerCreateRecord = true;
         }
 
-        if (accessControl.read) {
-            ctr.prototype.canViewerReadRecord = true;
+        if (accessControl.readAsItem) {
+            ctr.prototype.canViewerReadItemRecord = true;
+        }
+
+        if (accessControl.readAsList) {
+            ctr.prototype.canViewerReadListRecord = true;
         }
 
         if (accessControl.update) {

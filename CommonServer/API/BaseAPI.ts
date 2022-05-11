@@ -98,8 +98,21 @@ export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends 
         return Response.sendEmptyResponse(req, res);
     }
 
-    public updateItem(req: ExpressRequest, res: ExpressResponse) {
+    public async updateItem(req: ExpressRequest, res: ExpressResponse) {
+        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+        const objectId: ObjectID = new ObjectID(req.params["id"] as string);
+        const body: JSONObject = req.body;
 
+        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(body['data'] as JSONObject);
+
+        await this.service.updateByRole(oneuptimeRequest.role, {
+            query: {
+                _id: objectId.toString()
+            },
+            data: item
+        });
+
+        return Response.sendEmptyResponse(req, res);
     }
 
 
