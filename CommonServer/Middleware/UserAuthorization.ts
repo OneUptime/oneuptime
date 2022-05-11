@@ -8,9 +8,9 @@ import {
 import Service from '../Services/Index';
 import UserServiceType from '../Services/UserService';
 import ProjectMiddleware from './ProjectAuthorization';
-import { ObjectID } from 'typeorm';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import JSONWebToken from '../Utils/JsonWebToken';
+import ObjectID from 'Common/Types/ObjectID';
+import UserRole from 'Common/Types/UserRole';
 
 const UserService: UserServiceType = Service.UserService;
 
@@ -46,8 +46,12 @@ export default class UserMiddleware {
         next: NextFunction
     ): Promise<void> {
         const projectId: ObjectID | null = ProjectMiddleware.getProjectId(req);
+        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
         if (projectId) {
+            
+            oneuptimeRequest.projectId = projectId;
+            
             if (ProjectMiddleware.hasApiKey(req)) {
                 return await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
                     req,
@@ -59,11 +63,13 @@ export default class UserMiddleware {
 
         const accessToken: string | null = this.getAccessToken(req);
 
+        
         if (!accessToken) {
-            throw new BadDataException('AccessToken not found in request');
+            oneuptimeRequest.authorizationType = AuthorizationType.Public;
+            return next();
         }
 
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+
         oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
 
         if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
@@ -78,6 +84,13 @@ export default class UserMiddleware {
             },
             data: { lastActive: Date.now() },
         });
+
+
+        const userRole: UserRole | undefined | null = projectId && oneuptimeRequest.userAuthorization.roles.find((role: UserRole) => role.projectId.toString() === role.projectId.toString());
+
+        if (userRole) {
+            oneuptimeRequest.role = userRole.role;
+        }
 
         return next();
     }

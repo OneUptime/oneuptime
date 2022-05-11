@@ -6,8 +6,12 @@ export default (accessControl: AccessControl) => {
             ctr.prototype.canPublicCreateRecord = true;
         }
 
-        if (accessControl.read) {
-            ctr.prototype.canPublicReadRecord = true;
+        if (accessControl.readAsItem) {
+            ctr.prototype.canPublicReadItemRecord = true;
+        }
+
+        if (accessControl.readAsList) {
+            ctr.prototype.canPublicReadListRecord = true;
         }
 
         if (accessControl.update) {

@@ -12,8 +12,12 @@ export default (accessControl: AccessControl) => {
             baseModel.addPublicDeleteableColumn(propertyKey);
         }
 
-        if (accessControl.read) {
-            baseModel.addPublicReadableColumn(propertyKey);
+        if (accessControl.readAsItem) {
+            baseModel.addPublicReadableAsItemColumn(propertyKey);
+        }
+
+        if (accessControl.readAsList) {
+            baseModel.addPublicReadableAsListColumn(propertyKey);
         }
 
         if (accessControl.update) {

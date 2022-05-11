@@ -12,8 +12,12 @@ export default (accessControl: AccessControl) => {
             baseModel.addViewerDeleteableColumn(propertyKey);
         }
 
-        if (accessControl.read) {
-            baseModel.addViewerReadableColumn(propertyKey);
+        if (accessControl.readAsItem) {
+            baseModel.addViewerReadableAsItemColumn(propertyKey);
+        }
+
+        if (accessControl.readAsList) {
+            baseModel.addViewerReadableAsListColumn(propertyKey);
         }
 
         if (accessControl.update) {

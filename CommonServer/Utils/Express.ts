@@ -3,6 +3,7 @@ import logger from './Logger';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONWebTokenData } from '../Utils/JsonWebToken';
+import Role from 'Common/Types/Role';
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
 
@@ -23,6 +24,7 @@ export enum AuthorizationType {
     API = 'API',
     User = 'User',
     MasterAdmin = 'MasterAdmin',
+    Public = 'Public'
 }
 
 export interface OneUptimeRequest extends express.Request {
@@ -32,6 +34,8 @@ export interface OneUptimeRequest extends express.Request {
     requestEndedAt?: Date;
     authorizationType?: string;
     userAuthorization?: JSONWebTokenData;
+    projectId?: ObjectID,
+    role: Role
 }
 
 export interface OneUptimeResponse extends express.Response {

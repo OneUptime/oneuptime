@@ -5,9 +5,9 @@ import ColumnType from '../Types/Database/ColumnType';
 import Project from './Project';
 import ObjectID from '../Types/ObjectID';
 import Version from '../Types/Version';
-import RequiredColumn from '../Types/Database/RequiredColumnDecorator';
-import UniqueColumn from '../Types/Database/UniqueColumnDecorator';
-import SlugifyColumn from '../Types/Database/SlugifyColumnDecorator';
+import RequiredColumn from '../Types/Database/RequiredColumn';
+import UniqueColumn from '../Types/Database/UniqueColumn';
+import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import URL from '../Types/API/URL';
 import User from './User';
 

@@ -10,6 +10,7 @@ import {
 } from '../Utils/Express';
 import Services from '../Services/Index';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import Role from 'Common/Types/Role';
 
 const ProjectService: ProjectServiceType = Services.ProjectService;
 
@@ -77,6 +78,8 @@ export default class ProjectMiddleware {
 
         if (projectCount.toNumber() > 0) {
             (req as OneUptimeRequest).authorizationType = AuthorizationType.API;
+            (req as OneUptimeRequest).role = Role.Administrator;
+            (req as OneUptimeRequest).projectId = projectId;
             return next();
         }
 

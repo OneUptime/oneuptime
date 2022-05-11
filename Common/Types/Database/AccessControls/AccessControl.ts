@@ -1,6 +1,7 @@
 export default interface AccessControl { 
     create: boolean, 
-    read: boolean, 
+    readAsItem: boolean, 
+    readAsList: boolean, 
     update: boolean, 
     delete: boolean
 }

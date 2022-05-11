@@ -12,8 +12,12 @@ export default (accessControl: AccessControl) => {
             baseModel.addMemberDeleteableColumn(propertyKey);
         }
 
-        if (accessControl.read) {
-            baseModel.addMemberReadableColumn(propertyKey);
+        if (accessControl.readAsItem) {
+            baseModel.addMemberReadableAsItemColumn(propertyKey);
+        }
+
+        if (accessControl.readAsList) {
+            baseModel.addMemberReadableAsListColumn(propertyKey);
         }
 
         if (accessControl.update) {

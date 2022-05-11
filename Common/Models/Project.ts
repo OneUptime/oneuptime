@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
-import RequiredColumn from '../Types/Database/RequiredColumnDecorator';
-import UniqueColumn from '../Types/Database/UniqueColumnDecorator';
+import RequiredColumn from '../Types/Database/RequiredColumn';
+import UniqueColumn from '../Types/Database/UniqueColumn';
 import User from './User';
 import Project from './Project';
 import ColumnType from '../Types/Database/ColumnType';

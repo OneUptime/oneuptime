@@ -6,8 +6,12 @@ export default (accessControl: AccessControl) => {
             ctr.prototype.canMemberCreateRecord = true;
         }
 
-        if (accessControl.read) {
-            ctr.prototype.canMemberReadRecord = true;
+        if (accessControl.readAsItem) {
+            ctr.prototype.canMemberReadItemRecord = true;
+        }
+
+        if (accessControl.readAsList) {
+            ctr.prototype.canMemberReadListRecord = true;
         }
 
         if (accessControl.update) {
