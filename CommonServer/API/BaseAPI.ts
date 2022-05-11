@@ -7,12 +7,16 @@ import Express, {
     OneUptimeRequest,
 } from '../Utils/Express';
 import UserMiddleware from '../Middleware/UserAuthorization';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import Response from '../Utils/Response';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends DatabaseService<TBaseModel>> {
 
     private entityName: string;
-    public router: ExpressRouter;
 
+    public router: ExpressRouter;
     private service: TBaseService;
 
     public constructor(type: { new(): TBaseModel }, service: TBaseService) {
@@ -24,32 +28,73 @@ export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends 
         router.post(`${this.entityName}/`, UserMiddleware.getUserMiddleware, this.createItem);
 
         // List
-        router.get(`${this.entityName}/`, UserMiddleware.getUserMiddleware,this.getList);
+        router.get(`${this.entityName}/list`, UserMiddleware.getUserMiddleware, this.getList);
 
         // Get Item
-        router.get(`${this.entityName}/:id`, UserMiddleware.getUserMiddleware, this.getItem);
+        router.get(`${this.entityName}/id/:id`, UserMiddleware.getUserMiddleware, this.getItem);
 
         // Update
-        router.put(`${this.entityName}/:id`, UserMiddleware.getUserMiddleware, this.updateItem);
+        router.put(`${this.entityName}/id/:id`, UserMiddleware.getUserMiddleware, this.updateItem);
 
         // Delete 
-        router.delete(`${this.entityName}/:id`, UserMiddleware.getUserMiddleware, this.deleteItem);
+        router.delete(`${this.entityName}/id/:id`, UserMiddleware.getUserMiddleware, this.deleteItem);
 
         this.router = router;
         this.service = service;
     }
 
-    public getList(req: ExpressRequest, res: ExpressResponse) {
+    public async getList(req: ExpressRequest, res: ExpressResponse) {
+
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-        
+
+        const skip: PositiveNumber = req.query["skip"] ? new PositiveNumber(req.query["skip"] as string) : new PositiveNumber(0)
+
+        const limit: PositiveNumber = req.query["limit"] ? new PositiveNumber(req.query["limit"] as string) : new PositiveNumber(10)
+
+        if (limit.toNumber() > 50) {
+            throw new BadRequestException("Limit should be less than 50")
+        }
+
+        const list: Array<TBaseModel> = await this.service.getListByRole(oneuptimeRequest.role, {
+            query: {},
+            skip: skip,
+            limit: limit
+        })
+
+        const count: PositiveNumber = await this.service.countBy({
+            query: {},
+        })
+
+        return Response.sendListResponse(req, res, list, count);
+
     }
 
-    public getItem(req: ExpressRequest, res: ExpressResponse) {
+    public async getItem(req: ExpressRequest, res: ExpressResponse) {
+        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
+        const objectId: ObjectID = new ObjectID(req.params["id"] as string);
+
+        const item: TBaseModel | null = await this.service.getItemByRole(oneuptimeRequest.role, {
+            query: {
+                _id: objectId.toString()
+            }
+        })
+
+        return Response.sendItemResponse(req, res, item?.toJSON() || {});
     }
 
-    public deleteItem(req: ExpressRequest, res: ExpressResponse) {
+    public async deleteItem(req: ExpressRequest, res: ExpressResponse) {
+        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
+        const objectId: ObjectID = new ObjectID(req.params["id"] as string);
+
+        await this.service.deleteByRole(oneuptimeRequest.role, {
+            query: {
+                _id: objectId.toString()
+            }
+        })
+
+        return Response.sendEmptyResponse(req, res);
     }
 
     public updateItem(req: ExpressRequest, res: ExpressResponse) {
@@ -62,10 +107,10 @@ export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends 
     }
 
     public getRouter(): ExpressRouter {
-        return this.router; 
+        return this.router;
     }
 
     public getEntityName(): string {
-        return this.entityName; 
+        return this.entityName;
     }
 }

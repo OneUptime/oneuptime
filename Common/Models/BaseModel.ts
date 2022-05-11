@@ -7,23 +7,30 @@ import {
     BaseEntity,
 } from 'typeorm';
 import Columns from '../Types/Database/Columns';
+import TableColumn from '../Types/Database/TableColumn';
 import BadRequestException from '../Types/Exception/BadRequestException';
-import { JSONObject } from '../Types/JSON';
+import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 
 export default class BaseModel extends BaseEntity {
+
+    @TableColumn()
     @PrimaryGeneratedColumn('uuid')
     public _id!: string;
 
+    @TableColumn()
     @CreateDateColumn()
     public createdAt!: Date;
 
+    @TableColumn()
     @UpdateDateColumn()
     public updatedAt!: Date;
 
+    @TableColumn()
     @DeleteDateColumn()
     public deletedAt?: Date;
 
+    @TableColumn()
     @VersionColumn()
     public version!: number;
 
@@ -31,6 +38,7 @@ export default class BaseModel extends BaseEntity {
     private uniqueColumns: Columns = new Columns([]);
     private requiredColumns: Columns = new Columns([]);
     private hashedColumns: Columns = new Columns([]);
+    private tableColumns: Columns = new Columns([]);
 
     private ownerReadableAsItemColumns: Columns = new Columns([]);
     private userReadableAsItemColumns: Columns = new Columns([]);
@@ -137,6 +145,17 @@ export default class BaseModel extends BaseEntity {
             this.encryptedColumns = new Columns([]);
         }
         this.encryptedColumns.addColumn(columnName);
+    }
+
+    public getTableColumns(): Columns {
+        return this.tableColumns;
+    }
+
+    public addTableColumn(columnName: string): void {
+        if (!this.tableColumns) {
+            this.tableColumns = new Columns([]);
+        }
+        this.tableColumns.addColumn(columnName);
     }
 
     public getUniqueColumns(): Columns {
@@ -1046,5 +1065,27 @@ export default class BaseModel extends BaseEntity {
         }
 
         return this.keepColumns(data, data.getAdminDeleteableColumns());
+    }
+
+
+    public toJSON(): JSONObject {
+        const json: JSONObject = {}
+        for (let column of this.tableColumns.columns) {
+            if ((this as any)[column]) {
+                json[column] = (this as any)[column]
+            }
+        }
+
+        return json;
+    }
+
+    public static toJSONArray(list: Array<BaseModel>): JSONArray {
+        const array: JSONArray = [];
+        
+        for (let item of list) {
+            array.push(item.toJSON());
+        }
+
+        return array;
     }
 }

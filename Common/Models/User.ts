@@ -15,12 +15,14 @@ import JobRole from '../Types/Company/JobRole';
 import HashedColumn from '../Types/Database/HashedColumn';
 import HashedString from '../Types/HashedString';
 import PublicRecordPermissions from '../Types/Database/AccessControls/Public/PublicRecordPermissions';
+import TableColumn from '../Types/Database/TableColumn';
 
 
 @PublicRecordPermissions({
-    create: true, 
-    read: false, 
-    update: false, 
+    create: true,
+    readAsList: false,
+    readAsItem: false,
+    update: false,
     delete: false
 })
 @SlugifyColumn('name', 'slug')
@@ -28,6 +30,8 @@ import PublicRecordPermissions from '../Types/Database/AccessControls/Public/Pub
     name: 'User',
 })
 class User extends BaseModel {
+
+    @TableColumn()
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
@@ -36,6 +40,7 @@ class User extends BaseModel {
     })
     public name!: Name;
 
+    @TableColumn()
     @UniqueColumn()
     @RequiredColumn()
     @Column({
@@ -46,6 +51,7 @@ class User extends BaseModel {
     })
     public email!: Email;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
@@ -54,6 +60,7 @@ class User extends BaseModel {
     })
     public newUnverifiedTemporaryEmail?: string;
 
+    @TableColumn()
     @HashedColumn()
     @Column({
         type: ColumnType.HashedString,
@@ -63,12 +70,14 @@ class User extends BaseModel {
     })
     public password?: HashedString;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public isEmailVerified!: boolean;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
@@ -77,6 +86,8 @@ class User extends BaseModel {
     })
     public companyName!: string;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -85,6 +96,8 @@ class User extends BaseModel {
     })
     public jobRole!: JobRole;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -93,6 +106,8 @@ class User extends BaseModel {
     })
     public companySize!: CompanySize;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -101,6 +116,8 @@ class User extends BaseModel {
     })
     public referral?: string;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
@@ -110,6 +127,8 @@ class User extends BaseModel {
     })
     public companyPhoneNumber!: Phone;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortURL,
         length: ColumnLength.ShortURL,
@@ -120,6 +139,7 @@ class User extends BaseModel {
     public profilePicImageUrl?: URL;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -128,6 +148,8 @@ class User extends BaseModel {
     })
     public twoFactorAuthEnabled!: boolean;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -136,6 +158,8 @@ class User extends BaseModel {
     })
     public twoFactorSecretCode?: string;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortURL,
         length: ColumnLength.ShortURL,
@@ -145,6 +169,8 @@ class User extends BaseModel {
     })
     public twoFactorAuthUrl?: URL;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.Array,
         nullable: true,
@@ -152,6 +178,8 @@ class User extends BaseModel {
     })
     public backupCodes?: Array<string>;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -160,6 +188,8 @@ class User extends BaseModel {
     })
     public jwtRefreshToken?: string;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -168,6 +198,8 @@ class User extends BaseModel {
     })
     public paymentProviderCustomerId?: string;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -176,6 +208,8 @@ class User extends BaseModel {
     })
     public resetPasswordToken!: string;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -183,6 +217,8 @@ class User extends BaseModel {
     })
     public resetPasswordExpires?: Date;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -191,6 +227,8 @@ class User extends BaseModel {
     })
     public timezone?: Timezone;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -198,6 +236,8 @@ class User extends BaseModel {
     })
     public lastActive!: Date;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -207,6 +247,7 @@ class User extends BaseModel {
     public promotionName!: string;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -215,6 +256,8 @@ class User extends BaseModel {
     })
     public isDisabled!: boolean;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -223,6 +266,7 @@ class User extends BaseModel {
     public paymentFailedDate!: Date;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -232,6 +276,7 @@ class User extends BaseModel {
     public isMasterAdmin!: boolean;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -240,6 +285,8 @@ class User extends BaseModel {
     })
     public isBlocked!: boolean;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
@@ -248,6 +295,8 @@ class User extends BaseModel {
     })
     public alertPhoneNumber?: Phone;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.OTP,
         length: ColumnLength.OTP,
@@ -256,6 +305,8 @@ class User extends BaseModel {
     })
     public alertPhoneVerificationCode?: string;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -263,6 +314,8 @@ class User extends BaseModel {
     })
     public alertPhoneVerificationCodeRequestTime?: Date;
 
+
+    @TableColumn()
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,

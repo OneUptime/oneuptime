@@ -12,6 +12,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import URL from 'Common/Types/API/URL';
+import BaseModel from 'Common/Models/BaseModel';
 
 export default class Response {
     private static logResponse(
@@ -32,7 +33,7 @@ export default class Response {
             process.env['POD_NAME'] || 'NONE'
         } -- METHOD: ${method} -- URL: ${url.toString()} -- DURATION: ${(
             requestEndedAt.getTime() -
-            oneUptimeRequest.requestStartedAt.getTime()
+            (oneUptimeRequest.requestStartedAt as Date).getTime()
         ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
 
         const body_info: string = `OUTGOING RESPONSE ID: ${
@@ -125,7 +126,7 @@ export default class Response {
     public static sendListResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        list: JSONArray,
+        list: JSONArray | Array<BaseModel>,
         count: PositiveNumber
     ): void {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -148,8 +149,14 @@ export default class Response {
             list = [];
         }
 
+        if (list.length > 0 && list[0] instanceof BaseModel){
+            listData.data = BaseModel.toJSONArray(list as Array<BaseModel>);
+        } else {
+            listData.data = list as JSONArray;
+        }
+
         if (list) {
-            listData.data = list;
+           
         }
 
         if (count) {
