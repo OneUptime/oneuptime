@@ -1,5 +1,5 @@
 export default () => {
     return (ctr: Function) => {
-        ctr.prototype.canPublicReadRecord = true;
+        ctr.prototype.canOwnerReadListRecord = true;
     };
 };

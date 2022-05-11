@@ -1,5 +1,5 @@
 export default () => {
     return (ctr: Function) => {
-        ctr.prototype.canMemberReadRecord = true;
+        ctr.prototype.canOwnerReadItemRecord = true;
     };
 };

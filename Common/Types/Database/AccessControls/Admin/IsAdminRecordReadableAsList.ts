@@ -1,5 +1,5 @@
 export default () => {
     return (ctr: Function) => {
-        ctr.prototype.canAdminReadRecord = true;
+        ctr.prototype.canAdminReadListRecord = true;
     };
 };
