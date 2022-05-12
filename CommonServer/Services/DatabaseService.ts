@@ -617,7 +617,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async findOneById(id: ObjectID): Promise<TBaseModel | null> {
         return await this.findOneBy({
             query: {
-                _id: id.toString(),
+                _id: id.toString() as any,
             },
         });
     }
@@ -669,7 +669,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     ): Promise<void> {
         await this.updateOneBy({
             query: {
-                _id: updateById.id.toString(),
+                _id: updateById.id.toString() as any,
             },
             data: updateById.data,
         });

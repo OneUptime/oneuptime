@@ -13,7 +13,7 @@ import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
 
-export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends DatabaseService<TBaseModel>> {
+export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends DatabaseService<BaseModel>> {
 
     private entityName: string;
 
@@ -56,7 +56,7 @@ export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends 
             throw new BadRequestException("Limit should be less than 50")
         }
 
-        const list: Array<TBaseModel> = await this.service.getListByRole(oneuptimeRequest.role, {
+        const list: Array<BaseModel> = await this.service.getListByRole(oneuptimeRequest.role, {
             query: {},
             skip: skip,
             limit: limit
@@ -75,7 +75,7 @@ export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends 
 
         const objectId: ObjectID = new ObjectID(req.params["id"] as string);
 
-        const item: TBaseModel | null = await this.service.getItemByRole(oneuptimeRequest.role, {
+        const item: BaseModel | null = await this.service.getItemByRole(oneuptimeRequest.role, {
             query: {
                 _id: objectId.toString()
             }
@@ -122,7 +122,7 @@ export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends 
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(body['data'] as JSONObject);
 
-        const savedItem: TBaseModel = await this.service.createByRole(oneuptimeRequest.role, { data: item });
+        const savedItem: BaseModel = await this.service.createByRole(oneuptimeRequest.role, { data: item });
 
         return Response.sendItemResponse(req, res, savedItem);
     }
