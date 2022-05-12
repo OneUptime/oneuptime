@@ -4,10 +4,7 @@ import Express, {
     ExpressRouter,
 } from 'CommonServer/Utils/Express';
 const router: ExpressRouter = Express.getRouter();
-import {
-    sendErrorResponse,
-    sendEmptyResponse,
-} from 'CommonServer/Utils/Response';
+import Response from 'CommonServer/Utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
 import RealtimeService from '../Services/RealtimeService';
@@ -16,7 +13,7 @@ import { JSONObject } from 'Common/Types/JSON';
 
 router.post(
     ':project-id/:event-type',
-    ClusterKeyAuthorization.isAuthorizedService,
+    ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const body: JSONObject = req.body;
@@ -25,9 +22,9 @@ router.post(
                 req.params['eventType'] as string,
                 body
             );
-            return sendEmptyResponse(req, res);
+            return Response.sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error as Exception);
+            return Response.sendErrorResponse(req, res, error as Exception);
         }
     }
 );

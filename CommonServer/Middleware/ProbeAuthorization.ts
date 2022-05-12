@@ -18,7 +18,7 @@ import Probe from 'Common/Models/Probe';
 const ProbeService: ProbeServiceClass = Services.ProbeService;
 
 export default class ProbeMiddleware {
-    public async isAuthorizedProbeMiddleware(
+    public static async isAuthorizedProbeMiddleware(
         req: ExpressRequest,
         _res: ExpressResponse,
         next: NextFunction
