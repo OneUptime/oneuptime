@@ -10,7 +10,7 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import { JSONObject } from 'Common/Types/JSON';
 import User from 'Common/Models/User';
