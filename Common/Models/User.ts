@@ -30,12 +30,12 @@ import PublicColumnPermissions from '../Types/Database/AccessControls/Public/Pub
     name: 'User',
 })
 class User extends BaseModel {
-
     @PublicColumnPermissions({
-        create: true, readAsList: false,
+        create: true,
+        readAsList: false,
         readAsItem: false,
         update: false,
-        delete: false
+        delete: false,
     })
     @TableColumn()
     @Column({
@@ -47,10 +47,11 @@ class User extends BaseModel {
     public name!: Name;
 
     @PublicColumnPermissions({
-        create: true, readAsList: false,
+        create: true,
+        readAsList: false,
         readAsItem: false,
         update: false,
-        delete: false
+        delete: false,
     })
     @TableColumn()
     @UniqueColumn()
@@ -77,7 +78,7 @@ class User extends BaseModel {
         readAsList: false,
         readAsItem: false,
         update: false,
-        delete: false
+        delete: false,
     })
     @TableColumn()
     @HashedColumn()
@@ -101,7 +102,7 @@ class User extends BaseModel {
         readAsList: false,
         readAsItem: false,
         update: false,
-        delete: false
+        delete: false,
     })
     @TableColumn()
     @Column({
@@ -117,7 +118,7 @@ class User extends BaseModel {
         readAsList: false,
         readAsItem: false,
         update: false,
-        delete: false
+        delete: false,
     })
     @TableColumn()
     @Column({
@@ -133,7 +134,7 @@ class User extends BaseModel {
         readAsList: false,
         readAsItem: false,
         update: false,
-        delete: false
+        delete: false,
     })
     @TableColumn()
     @Column({
@@ -149,7 +150,7 @@ class User extends BaseModel {
         readAsList: false,
         readAsItem: false,
         update: false,
-        delete: false
+        delete: false,
     })
     @TableColumn()
     @Column({
@@ -165,7 +166,7 @@ class User extends BaseModel {
         readAsList: false,
         readAsItem: false,
         update: false,
-        delete: false
+        delete: false,
     })
     @TableColumn()
     @Column({
@@ -281,7 +282,7 @@ class User extends BaseModel {
         readAsList: false,
         readAsItem: false,
         update: false,
-        delete: false
+        delete: false,
     })
     @TableColumn()
     @Column({

@@ -33,7 +33,12 @@ router.get(
                     limit
                 );
 
-            return Response.sendListResponse(req, res, monitors, new PositiveNumber(monitors.length));
+            return Response.sendListResponse(
+                req,
+                res,
+                monitors,
+                new PositiveNumber(monitors.length)
+            );
         } catch (error) {
             return Response.sendErrorResponse(req, res, error as Exception);
         }
