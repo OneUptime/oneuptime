@@ -13,116 +13,166 @@ import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
 
-export default class BaseAPI<TBaseModel extends BaseModel, TBaseService extends DatabaseService<BaseModel>> {
-
+export default class BaseAPI<
+    TBaseModel extends BaseModel,
+    TBaseService extends DatabaseService<BaseModel>
+> {
     private entityName: string;
 
     public router: ExpressRouter;
     private service: TBaseService;
 
-    public constructor(type: { new(): TBaseModel }, service: TBaseService) {
-
+    public constructor(type: { new (): TBaseModel }, service: TBaseService) {
         this.entityName = type.name;
         const router: ExpressRouter = Express.getRouter();
 
         // Create
-        router.post(`${this.entityName}/`, UserMiddleware.getUserMiddleware, this.createItem);
+        router.post(
+            `${this.entityName}/`,
+            UserMiddleware.getUserMiddleware,
+            this.createItem
+        );
 
         // List
-        router.get(`${this.entityName}/list`, UserMiddleware.getUserMiddleware, this.getList);
+        router.get(
+            `${this.entityName}/list`,
+            UserMiddleware.getUserMiddleware,
+            this.getList
+        );
 
         // Get Item
-        router.get(`${this.entityName}/id/:id`, UserMiddleware.getUserMiddleware, this.getItem);
+        router.get(
+            `${this.entityName}/id/:id`,
+            UserMiddleware.getUserMiddleware,
+            this.getItem
+        );
 
         // Update
-        router.put(`${this.entityName}/id/:id`, UserMiddleware.getUserMiddleware, this.updateItem);
+        router.put(
+            `${this.entityName}/id/:id`,
+            UserMiddleware.getUserMiddleware,
+            this.updateItem
+        );
 
-        // Delete 
-        router.delete(`${this.entityName}/id/:id`, UserMiddleware.getUserMiddleware, this.deleteItem);
+        // Delete
+        router.delete(
+            `${this.entityName}/id/:id`,
+            UserMiddleware.getUserMiddleware,
+            this.deleteItem
+        );
 
         this.router = router;
         this.service = service;
     }
 
-    public async getList(req: ExpressRequest, res: ExpressResponse) {
-
+    public async getList(
+        req: ExpressRequest,
+        res: ExpressResponse
+    ): Promise<void> {
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-        const skip: PositiveNumber = req.query["skip"] ? new PositiveNumber(req.query["skip"] as string) : new PositiveNumber(0)
+        const skip: PositiveNumber = req.query['skip']
+            ? new PositiveNumber(req.query['skip'] as string)
+            : new PositiveNumber(0);
 
-        const limit: PositiveNumber = req.query["limit"] ? new PositiveNumber(req.query["limit"] as string) : new PositiveNumber(10)
+        const limit: PositiveNumber = req.query['limit']
+            ? new PositiveNumber(req.query['limit'] as string)
+            : new PositiveNumber(10);
 
         if (limit.toNumber() > 50) {
-            throw new BadRequestException("Limit should be less than 50")
+            throw new BadRequestException('Limit should be less than 50');
         }
 
-        const list: Array<BaseModel> = await this.service.getListByRole(oneuptimeRequest.role, {
-            query: {},
-            skip: skip,
-            limit: limit
-        })
+        const list: Array<BaseModel> = await this.service.getListByRole(
+            oneuptimeRequest.role,
+            {
+                query: {},
+                skip: skip,
+                limit: limit,
+            }
+        );
 
         const count: PositiveNumber = await this.service.countBy({
             query: {},
-        })
+        });
 
         return Response.sendListResponse(req, res, list, count);
-
     }
 
-    public async getItem(req: ExpressRequest, res: ExpressResponse) {
+    public async getItem(
+        req: ExpressRequest,
+        res: ExpressResponse
+    ): Promise<void> {
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-        const objectId: ObjectID = new ObjectID(req.params["id"] as string);
+        const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-        const item: BaseModel | null = await this.service.getItemByRole(oneuptimeRequest.role, {
-            query: {
-                _id: objectId.toString()
+        const item: BaseModel | null = await this.service.getItemByRole(
+            oneuptimeRequest.role,
+            {
+                query: {
+                    _id: objectId.toString(),
+                },
             }
-        })
+        );
 
         return Response.sendItemResponse(req, res, item?.toJSON() || {});
     }
 
-    public async deleteItem(req: ExpressRequest, res: ExpressResponse) {
+    public async deleteItem(
+        req: ExpressRequest,
+        res: ExpressResponse
+    ): Promise<void> {
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-        const objectId: ObjectID = new ObjectID(req.params["id"] as string);
+        const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
         await this.service.deleteByRole(oneuptimeRequest.role, {
             query: {
-                _id: objectId.toString()
-            }
-        })
-
-        return Response.sendEmptyResponse(req, res);
-    }
-
-    public async updateItem(req: ExpressRequest, res: ExpressResponse) {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-        const objectId: ObjectID = new ObjectID(req.params["id"] as string);
-        const body: JSONObject = req.body;
-
-        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(body['data'] as JSONObject);
-
-        await this.service.updateByRole(oneuptimeRequest.role, {
-            query: {
-                _id: objectId.toString()
+                _id: objectId.toString(),
             },
-            data: item
         });
 
         return Response.sendEmptyResponse(req, res);
     }
 
+    public async updateItem(
+        req: ExpressRequest,
+        res: ExpressResponse
+    ): Promise<void> {
+        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+        const objectId: ObjectID = new ObjectID(req.params['id'] as string);
+        const body: JSONObject = req.body;
 
-    public async createItem(req: ExpressRequest, res: ExpressResponse) {
+        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
+            body['data'] as JSONObject
+        );
+
+        await this.service.updateByRole(oneuptimeRequest.role, {
+            query: {
+                _id: objectId.toString(),
+            },
+            data: item,
+        });
+
+        return Response.sendEmptyResponse(req, res);
+    }
+
+    public async createItem(
+        req: ExpressRequest,
+        res: ExpressResponse
+    ): Promise<void> {
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const body: JSONObject = req.body;
 
-        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(body['data'] as JSONObject);
+        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
+            body['data'] as JSONObject
+        );
 
-        const savedItem: BaseModel = await this.service.createByRole(oneuptimeRequest.role, { data: item });
+        const savedItem: BaseModel = await this.service.createByRole(
+            oneuptimeRequest.role,
+            { data: item }
+        );
 
         return Response.sendItemResponse(req, res, savedItem);
     }

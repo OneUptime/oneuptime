@@ -17,26 +17,24 @@ import HashedString from '../Types/HashedString';
 import PublicRecordPermissions from '../Types/Database/AccessControls/Public/PublicRecordPermissions';
 import TableColumn from '../Types/Database/TableColumn';
 
-
 @PublicRecordPermissions({
     create: true,
     readAsList: false,
     readAsItem: false,
     update: false,
-    delete: false
+    delete: false,
 })
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'User',
 })
 class User extends BaseModel {
-
     @TableColumn()
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
         nullable: true,
-        unique: false
+        unique: false,
     })
     public name!: Name;
 
@@ -86,7 +84,6 @@ class User extends BaseModel {
     })
     public companyName!: string;
 
-
     @TableColumn()
     @Column({
         type: ColumnType.ShortText,
@@ -95,7 +92,6 @@ class User extends BaseModel {
         unique: false,
     })
     public jobRole!: JobRole;
-
 
     @TableColumn()
     @Column({
@@ -106,7 +102,6 @@ class User extends BaseModel {
     })
     public companySize!: CompanySize;
 
-
     @TableColumn()
     @Column({
         type: ColumnType.ShortText,
@@ -115,7 +110,6 @@ class User extends BaseModel {
         unique: false,
     })
     public referral?: string;
-
 
     @TableColumn()
     @Column({
@@ -126,7 +120,6 @@ class User extends BaseModel {
         transformer: Phone.getDatabaseTransformer(),
     })
     public companyPhoneNumber!: Phone;
-
 
     @TableColumn()
     @Column({
@@ -148,7 +141,6 @@ class User extends BaseModel {
     })
     public twoFactorAuthEnabled!: boolean;
 
-
     @TableColumn()
     @Column({
         type: ColumnType.ShortText,
@@ -157,7 +149,6 @@ class User extends BaseModel {
         unique: false,
     })
     public twoFactorSecretCode?: string;
-
 
     @TableColumn()
     @Column({
@@ -169,7 +160,6 @@ class User extends BaseModel {
     })
     public twoFactorAuthUrl?: URL;
 
-
     @TableColumn()
     @Column({
         type: ColumnType.Array,
@@ -177,7 +167,6 @@ class User extends BaseModel {
         unique: false,
     })
     public backupCodes?: Array<string>;
-
 
     @TableColumn()
     @Column({
@@ -188,7 +177,6 @@ class User extends BaseModel {
     })
     public jwtRefreshToken?: string;
 
-
     @TableColumn()
     @Column({
         type: ColumnType.ShortText,
@@ -197,7 +185,6 @@ class User extends BaseModel {
         unique: false,
     })
     public paymentProviderCustomerId?: string;
-
 
     @TableColumn()
     @Column({
@@ -208,7 +195,6 @@ class User extends BaseModel {
     })
     public resetPasswordToken!: string;
 
-
     @TableColumn()
     @Column({
         type: ColumnType.Date,
@@ -216,7 +202,6 @@ class User extends BaseModel {
         unique: false,
     })
     public resetPasswordExpires?: Date;
-
 
     @TableColumn()
     @Column({
@@ -227,7 +212,6 @@ class User extends BaseModel {
     })
     public timezone?: Timezone;
 
-
     @TableColumn()
     @Column({
         type: ColumnType.Date,
@@ -235,7 +219,6 @@ class User extends BaseModel {
         unique: false,
     })
     public lastActive!: Date;
-
 
     @TableColumn()
     @Column({
@@ -255,7 +238,6 @@ class User extends BaseModel {
         default: false,
     })
     public isDisabled!: boolean;
-
 
     @TableColumn()
     @Column({
@@ -285,7 +267,6 @@ class User extends BaseModel {
     })
     public isBlocked!: boolean;
 
-
     @TableColumn()
     @Column({
         type: ColumnType.Phone,
@@ -294,7 +275,6 @@ class User extends BaseModel {
         unique: false,
     })
     public alertPhoneNumber?: Phone;
-
 
     @TableColumn()
     @Column({
@@ -305,7 +285,6 @@ class User extends BaseModel {
     })
     public alertPhoneVerificationCode?: string;
 
-
     @TableColumn()
     @Column({
         type: ColumnType.Date,
@@ -313,7 +292,6 @@ class User extends BaseModel {
         unique: false,
     })
     public alertPhoneVerificationCodeRequestTime?: Date;
-
 
     @TableColumn()
     @Column({

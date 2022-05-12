@@ -131,7 +131,9 @@ export default class ProbeMiddleware {
         }
 
         if (!probeId && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
-            throw new BadDataException('Probe key and probe name do not match.');
+            throw new BadDataException(
+                'Probe key and probe name do not match.'
+            );
         }
 
         if (!probeId) {

@@ -29,7 +29,6 @@ export default class Service extends DatabaseService<Model> {
         probe.probeVersion = version;
         const savedProbe: Model = await this.create({ data: probe });
         return savedProbe;
-
     }
 
     public async updateProbeKeyByName(

@@ -13,7 +13,6 @@ import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 
 export default class BaseModel extends BaseEntity {
-
     @TableColumn()
     @PrimaryGeneratedColumn('uuid')
     public _id!: string;
@@ -46,7 +45,6 @@ export default class BaseModel extends BaseEntity {
     private memberReadableAsItemColumns: Columns = new Columns([]);
     private viewerReadableAsItemColumns: Columns = new Columns([]);
     private publicReadableAsItemColumns: Columns = new Columns([]);
-
 
     private ownerReadableAsListColumns: Columns = new Columns([]);
     private userReadableAsListColumns: Columns = new Columns([]);
@@ -162,8 +160,6 @@ export default class BaseModel extends BaseEntity {
         return this.uniqueColumns;
     }
 
-   
-
     public getUserCreateableColumns(): Columns {
         return this.userCreateableColumns;
     }
@@ -271,8 +267,6 @@ export default class BaseModel extends BaseEntity {
         return this.viewerReadableAsItemColumns;
     }
 
-
-
     public getOwnerReadableAsListColumns(): Columns {
         return this.ownerReadableAsListColumns;
     }
@@ -338,11 +332,6 @@ export default class BaseModel extends BaseEntity {
     public getViewerReadableAsListColumns(): Columns {
         return this.viewerReadableAsListColumns;
     }
-
-
-
-
-
 
     public getOwnerUpdateableColumns(): Columns {
         return this.ownerUpdateableColumns;
@@ -531,7 +520,6 @@ export default class BaseModel extends BaseEntity {
         return this.saveSlugToColumn;
     }
 
-
     public getProjectIdColumn(): string | null {
         return this.projectIdColumn;
     }
@@ -709,7 +697,6 @@ export default class BaseModel extends BaseEntity {
         return this.keepColumns(data, data.getOwnerReadableAsItemColumns());
     }
 
-
     public static asOwnerReadableList<T extends BaseModel>(
         data: JSONObject | T
     ): T {
@@ -741,7 +728,6 @@ export default class BaseModel extends BaseEntity {
 
         return this.keepColumns(data, data.getOwnerDeleteableColumns());
     }
-
 
     public static asUserCreateable<T extends BaseModel>(
         data: JSONObject | T
@@ -791,7 +777,6 @@ export default class BaseModel extends BaseEntity {
         return this.keepColumns(data, data.getUserReadableAsItemColumns());
     }
 
-
     public static asUserReadableList<T extends BaseModel>(
         data: JSONObject | T
     ): T {
@@ -823,9 +808,6 @@ export default class BaseModel extends BaseEntity {
 
         return this.keepColumns(data, data.getUserDeleteableColumns());
     }
-
-
-
 
     public static asViewerCreateable<T extends BaseModel>(
         data: JSONObject | T
@@ -1067,12 +1049,11 @@ export default class BaseModel extends BaseEntity {
         return this.keepColumns(data, data.getAdminDeleteableColumns());
     }
 
-
     public toJSON(): JSONObject {
-        const json: JSONObject = {}
-        for (let column of this.tableColumns.columns) {
+        const json: JSONObject = {};
+        for (const column of this.tableColumns.columns) {
             if ((this as any)[column]) {
-                json[column] = (this as any)[column]
+                json[column] = (this as any)[column];
             }
         }
 
@@ -1081,8 +1062,8 @@ export default class BaseModel extends BaseEntity {
 
     public static toJSONArray(list: Array<BaseModel>): JSONArray {
         const array: JSONArray = [];
-        
-        for (let item of list) {
+
+        for (const item of list) {
             array.push(item.toJSON());
         }
 

@@ -23,6 +23,5 @@ export default (accessControl: AccessControl) => {
         if (accessControl.update) {
             baseModel.addViewerUpdateableColumn(propertyKey);
         }
-        
     };
 };

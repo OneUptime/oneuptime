@@ -49,9 +49,8 @@ export default class UserMiddleware {
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
         if (projectId) {
-            
             oneuptimeRequest.projectId = projectId;
-            
+
             if (ProjectMiddleware.hasApiKey(req)) {
                 return await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
                     req,
@@ -63,12 +62,10 @@ export default class UserMiddleware {
 
         const accessToken: string | null = this.getAccessToken(req);
 
-        
         if (!accessToken) {
             oneuptimeRequest.authorizationType = AuthorizationType.Public;
             return next();
         }
-
 
         oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
 
@@ -85,8 +82,11 @@ export default class UserMiddleware {
             data: { lastActive: Date.now() },
         });
 
-
-        const userRole: UserRole | undefined | null = projectId && oneuptimeRequest.userAuthorization.roles.find((role: UserRole) => role.projectId.toString() === role.projectId.toString());
+        const userRole: UserRole | undefined | null =
+            projectId &&
+            oneuptimeRequest.userAuthorization.roles.find((role: UserRole) => {
+                return role.projectId.toString() === role.projectId.toString();
+            });
 
         if (userRole) {
             oneuptimeRequest.role = userRole.role;

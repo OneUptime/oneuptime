@@ -3,7 +3,7 @@ enum Role {
     Administrator = 'Administrator',
     Member = 'Member',
     Viewer = 'Viewer',
-    Public = 'Public'
+    Public = 'Public',
 }
 
 export const RoleArray: Array<string> = [...new Set(Object.keys(Role))]; // Returns ["Owner", "Administrator"...]

@@ -24,7 +24,7 @@ export enum AuthorizationType {
     API = 'API',
     User = 'User',
     MasterAdmin = 'MasterAdmin',
-    Public = 'Public'
+    Public = 'Public',
 }
 
 export interface OneUptimeRequest extends express.Request {
@@ -34,8 +34,8 @@ export interface OneUptimeRequest extends express.Request {
     requestEndedAt?: Date;
     authorizationType?: string;
     userAuthorization?: JSONWebTokenData;
-    projectId?: ObjectID,
-    role: Role
+    projectId?: ObjectID;
+    role: Role;
 }
 
 export interface OneUptimeResponse extends express.Response {

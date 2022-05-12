@@ -1,4 +1,4 @@
-import AccessControl from "../AccessControl";
+import AccessControl from '../AccessControl';
 
 export default (accessControl: AccessControl) => {
     return (ctr: Function) => {

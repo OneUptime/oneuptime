@@ -149,14 +149,10 @@ export default class Response {
             list = [];
         }
 
-        if (list.length > 0 && list[0] instanceof BaseModel){
+        if (list.length > 0 && list[0] instanceof BaseModel) {
             listData.data = BaseModel.toJSONArray(list as Array<BaseModel>);
         } else {
             listData.data = list as JSONArray;
-        }
-
-        if (list) {
-           
         }
 
         if (count) {
@@ -193,7 +189,6 @@ export default class Response {
         res: ExpressResponse,
         item: JSONObject | BaseModel
     ): void {
-        
         if (item instanceof BaseModel) {
             item = item.toJSON();
         }
