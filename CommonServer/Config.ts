@@ -3,6 +3,10 @@ import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 
+export const DisableSignup: boolean = Boolean(process.env['DISABLE_SIGNUP']);
+
+export const IsSaaSService: boolean = Boolean(process.env['IS_SAAS_SERVICE']);
+
 export const DatabaseHost: Hostname = new Hostname(
     process.env['DATABASE_HOST'] || ''
 );
@@ -17,7 +21,9 @@ export const DatabasePassword: string = process.env['DATABASE_PASSWORD'] || '';
 export const DatabaseName: string =
     process.env['DATABASE_NAME'] || 'oneuptimedb';
 
-export const EncryptionSecret: string = process.env['ENCRYPTIOJN_SECRET'] || '';
+export const EncryptionSecret: ObjectID = new ObjectID(
+    process.env['ENCRYPTIOJN_SECRET'] || ''
+);
 
 export const AirtableApiKey: string = process.env['AIRTABLE_API_KEY'] || '';
 
@@ -31,6 +37,10 @@ export const RealtimeHostname: Hostname = new Hostname(
     process.env['REALTIME_HOSTNAME'] || ''
 );
 
+export const MailHostname: Hostname = new Hostname(
+    process.env['MAIL_HOSTNAME'] || ''
+);
+
 export const DashboardApiHostname: Hostname = new Hostname(
     process.env['DASHBOARD_API_HOSTNAME'] || ''
 );
@@ -41,6 +51,18 @@ export const ProbeApiHostname: Hostname = new Hostname(
 
 export const DataIngestorHostname: Hostname = new Hostname(
     process.env['DATA_INGESTOR_HOSTNAME'] || ''
+);
+
+export const AccountsHostname: Hostname = new Hostname(
+    process.env['ACCOUNTS_HOSTNAME'] || ''
+);
+
+export const HomeHostname: Hostname = new Hostname(
+    process.env['HOME_HOSTNAME'] || ''
+);
+
+export const DashboardHostname: Hostname = new Hostname(
+    process.env['DASHBOARD_HOSTNAME'] || ''
 );
 
 export const Env: string = process.env['NODE_ENV'] || '';

@@ -1,19 +1,21 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
-import RequiredColumn from '../Types/Database/RequiredColumnDecorator';
-import UniqueColumn from '../Types/Database/UniqueColumnDecorator';
+import RequiredColumn from '../Types/Database/RequiredColumn';
+import UniqueColumn from '../Types/Database/UniqueColumn';
 import User from './User';
 import Project from './Project';
 import ColumnType from '../Types/Database/ColumnType';
 import PositiveNumber from '../Types/PositiveNumber';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
+import TableColumn from '../Types/Database/TableColumn';
 
 @Entity({
     name: 'Project',
 })
 export default class Model extends BaseModel {
     @RequiredColumn()
+    @TableColumn()
     @Column({
         nullable: false,
         type: ColumnType.Name,
@@ -23,6 +25,7 @@ export default class Model extends BaseModel {
 
     @RequiredColumn()
     @UniqueColumn()
+    @TableColumn()
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -30,6 +33,7 @@ export default class Model extends BaseModel {
     })
     public slug!: string;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -38,6 +42,7 @@ export default class Model extends BaseModel {
     })
     public paymentProviderPlanId?: string;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -46,6 +51,7 @@ export default class Model extends BaseModel {
     })
     public paymentProviderSubscriptionId?: string;
 
+    @TableColumn()
     @ManyToOne(
         (_type: string) => {
             return Project;
@@ -61,6 +67,7 @@ export default class Model extends BaseModel {
     @JoinColumn({ name: 'parentProjectId' })
     public parentProject?: Project;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -68,6 +75,7 @@ export default class Model extends BaseModel {
     })
     public parentProjectId?: ObjectID;
 
+    @TableColumn()
     @Column({
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
@@ -76,6 +84,7 @@ export default class Model extends BaseModel {
     })
     public numberOfLicensesIssued!: PositiveNumber;
 
+    @TableColumn()
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -90,6 +99,7 @@ export default class Model extends BaseModel {
     @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -97,6 +107,7 @@ export default class Model extends BaseModel {
     })
     public createdByUserId?: ObjectID;
 
+    @TableColumn()
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -112,6 +123,7 @@ export default class Model extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -121,6 +133,7 @@ export default class Model extends BaseModel {
     public apiKey!: ObjectID;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -130,6 +143,7 @@ export default class Model extends BaseModel {
     public alertsEnabled!: boolean;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
@@ -139,6 +153,7 @@ export default class Model extends BaseModel {
     public alertAccountBalance!: number;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -147,6 +162,7 @@ export default class Model extends BaseModel {
     })
     public isBlocked!: boolean;
 
+    @TableColumn()
     @Column({
         type: ColumnType.SmallPositiveNumber,
         nullable: true,
@@ -154,6 +170,7 @@ export default class Model extends BaseModel {
     })
     public unpaidSubscriptionNotificationCount!: PositiveNumber;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -161,6 +178,7 @@ export default class Model extends BaseModel {
     })
     public paymentFailedDate?: Date;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
         nullable: true,

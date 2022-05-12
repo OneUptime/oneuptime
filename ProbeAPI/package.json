@@ -1,5 +1,5 @@
 {
-    "name": "ProbeAPI",
+    "name": "probe-api",
     "version": "3.0.0",
     "description": "A project to handle all resource fetching or update for probes",
     "main": "index.ts",

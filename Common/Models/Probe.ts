@@ -5,17 +5,19 @@ import ColumnType from '../Types/Database/ColumnType';
 import Project from './Project';
 import ObjectID from '../Types/ObjectID';
 import Version from '../Types/Version';
-import RequiredColumn from '../Types/Database/RequiredColumnDecorator';
-import UniqueColumn from '../Types/Database/UniqueColumnDecorator';
-import SlugifyColumn from '../Types/Database/SlugifyColumnDecorator';
+import RequiredColumn from '../Types/Database/RequiredColumn';
+import UniqueColumn from '../Types/Database/UniqueColumn';
+import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import URL from '../Types/API/URL';
 import User from './User';
+import TableColumn from '../Types/Database/TableColumn';
 
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Probe',
 })
 export default class Probe extends BaseModel {
+    @TableColumn()
     @RequiredColumn()
     @UniqueColumn()
     @Column({
@@ -27,6 +29,7 @@ export default class Probe extends BaseModel {
     })
     public key!: ObjectID;
 
+    @TableColumn()
     @RequiredColumn()
     @Column({
         nullable: false,
@@ -35,6 +38,7 @@ export default class Probe extends BaseModel {
     })
     public name!: string;
 
+    @TableColumn()
     @RequiredColumn()
     @UniqueColumn()
     @Column({
@@ -44,6 +48,7 @@ export default class Probe extends BaseModel {
     })
     public slug!: string;
 
+    @TableColumn()
     @RequiredColumn()
     @Column({
         nullable: false,
@@ -53,6 +58,7 @@ export default class Probe extends BaseModel {
     })
     public probeVersion!: Version;
 
+    @TableColumn()
     @RequiredColumn()
     @Column({
         nullable: false,
@@ -63,6 +69,7 @@ export default class Probe extends BaseModel {
     })
     public lastAlive!: Date;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortURL,
         nullable: true,
@@ -72,6 +79,7 @@ export default class Probe extends BaseModel {
     public iconUrl?: URL;
 
     // If this probe is custom to the project and only monitoring reosurces in this project.
+    @TableColumn()
     @ManyToOne(
         (_type: string) => {
             return Project;
@@ -87,6 +95,7 @@ export default class Probe extends BaseModel {
     @JoinColumn({ name: 'projectId' })
     public project?: Project;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -94,6 +103,7 @@ export default class Probe extends BaseModel {
     })
     public projectId?: ObjectID;
 
+    @TableColumn()
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -109,6 +119,7 @@ export default class Probe extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -116,6 +127,7 @@ export default class Probe extends BaseModel {
     })
     public deletedByUserId?: ObjectID;
 
+    @TableColumn()
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -130,6 +142,7 @@ export default class Probe extends BaseModel {
     @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

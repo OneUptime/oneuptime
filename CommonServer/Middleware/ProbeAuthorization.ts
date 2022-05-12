@@ -1,6 +1,5 @@
 import Services from '../Services/Index';
 import ProbeServiceClass from '../Services/ProbeService';
-import { sendErrorResponse } from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Version from 'Common/Types/Version';
 
@@ -18,10 +17,10 @@ import Probe from 'Common/Models/Probe';
 
 const ProbeService: ProbeServiceClass = Services.ProbeService;
 
-export default {
-    async isAuthorizedProbe(
+export default class ProbeMiddleware {
+    public static async isAuthorizedProbeMiddleware(
         req: ExpressRequest,
-        res: ExpressResponse,
+        _res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
         let probeKey: ObjectID | undefined,
@@ -42,11 +41,7 @@ export default {
         }
 
         if (!probeKey) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe key not found.')
-            );
+            throw new BadDataException('Probe key not found.');
         }
 
         if (req.params && req.params['probeName']) {
@@ -61,11 +56,7 @@ export default {
         }
 
         if (!probeName) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe Name not found.')
-            );
+            throw new BadDataException('Probe Name not found.');
         }
 
         if (req.params && req.params['clusterKey']) {
@@ -91,11 +82,7 @@ export default {
         }
 
         if (!probeVersion) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe version not found.')
-            );
+            throw new BadDataException('Probe version not found.');
         }
 
         if (clusterKey && clusterKey === CLUSTER_KEY) {
@@ -144,10 +131,8 @@ export default {
         }
 
         if (!probeId && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe key and probe name do not match.')
+            throw new BadDataException(
+                'Probe key and probe name do not match.'
             );
         }
 
@@ -192,11 +177,7 @@ export default {
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
         if (!probeId) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe ID not found')
-            );
+            throw new BadDataException('Probe ID not found');
         }
 
         oneuptimeRequest.probe = {
@@ -218,5 +199,5 @@ export default {
         }
 
         return next();
-    },
-};
+    }
+}

@@ -1,5 +1,4 @@
-import React from 'react'
-
+import React, { FunctionComponent, ReactElement } from 'react'
 import {
     FontAwesomeIcon,
 } from '@fortawesome/react-fontawesome'
@@ -16,16 +15,15 @@ export enum IconProp {
     File = "file",
 }
 
-
 export interface ComponentProps {
     icon: IconProp;
     size: SizeProp;
 }
 
-const Icon: Function = ({
+const Icon: FunctionComponent<ComponentProps> = ({
     icon,
     size
-}: ComponentProps) => {
+}: ComponentProps): ReactElement => {
     return (
         <span>
             <FontAwesomeIcon icon={icon} size={size} />

@@ -1,5 +1,5 @@
 {
-    "name": "LighthouseRunner",
+    "name": "lighthouse-runner",
     "version": "3.0.0",
     "description": "Lighthouse Runner for Url Monitor",
     "main": "index.ts",

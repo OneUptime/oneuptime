@@ -5,12 +5,12 @@ import {
     NextFunction,
 } from '../Utils/Express';
 
-import { sendErrorResponse } from '../Utils/Response';
+import Response from '../Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 
 export default class ClusterKeyAuthorization {
-    public static async isAuthorizedService(
+    public static async isAuthorizedServiceMiddleware(
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
@@ -27,7 +27,7 @@ export default class ClusterKeyAuthorization {
         } else if (req.body && req.body.clusterKey) {
             clusterKey = new ObjectID(req.body.clusterKey);
         } else {
-            return sendErrorResponse(
+            return Response.sendErrorResponse(
                 req,
                 res,
                 new BadDataException('Cluster key not found.')
@@ -37,7 +37,7 @@ export default class ClusterKeyAuthorization {
         const isAuthorized: boolean = clusterKey === CLUSTER_KEY;
 
         if (!isAuthorized) {
-            return sendErrorResponse(
+            return Response.sendErrorResponse(
                 req,
                 res,
                 new BadDataException('Invalid cluster key provided')

@@ -1,5 +1,5 @@
-import version from './Version';
-import status from './Status';
+import version from './VersionAPI';
+import status from './StatusAPI';
 import Express, { ExpressApplication } from '../Utils/Express';
 
 const app: ExpressApplication = Express.getExpressApp();

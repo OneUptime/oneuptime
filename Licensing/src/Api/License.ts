@@ -5,10 +5,7 @@ import Express, {
 } from 'CommonServer/Utils/Express';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 const router: ExpressRouter = Express.getRouter();
-import {
-    sendErrorResponse,
-    sendItemResponse,
-} from 'CommonServer/Utils/Response';
+import Response from 'CommonServer/Utils/Response';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
@@ -21,7 +18,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
         const data: JSONObject = req.body;
 
         if (!data['license']) {
-            return sendErrorResponse(
+            return Response.sendErrorResponse(
                 req,
                 res,
                 new BadDataException('License must be present.')
@@ -29,7 +26,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
         }
 
         if (typeof data['license'] !== 'string') {
-            return sendErrorResponse(
+            return Response.sendErrorResponse(
                 req,
                 res,
                 new BadDataException('License is not in string format.')
@@ -37,7 +34,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
         }
 
         if (!data['email']) {
-            return sendErrorResponse(
+            return Response.sendErrorResponse(
                 req,
                 res,
                 new BadDataException('Email must be present.')
@@ -45,7 +42,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
         }
 
         if (typeof data['email'] !== 'string') {
-            return sendErrorResponse(
+            return Response.sendErrorResponse(
                 req,
                 res,
                 new BadDataException('Email is not in string format.')
@@ -62,9 +59,9 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             limit
         );
 
-        return sendItemResponse(req, res, item);
+        return Response.sendItemResponse(req, res, { license: item });
     } catch (error) {
-        return sendErrorResponse(req, res, error as Exception);
+        return Response.sendErrorResponse(req, res, error as Exception);
     }
 });
 
