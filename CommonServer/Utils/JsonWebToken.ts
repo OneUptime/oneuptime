@@ -14,16 +14,17 @@ export interface JSONWebTokenData {
 }
 
 class JSONWebToken {
-    public static sign(data: JSONWebTokenData, expiresIn: Date): string {
+    public static sign(data: JSONWebTokenData | string, expiresIn: Date): string {
+
         return jwt.sign(
-            {
+            typeof data !== "string" ? {
                 userId: data.userId.toString(),
                 email: data.email.toString(),
                 roles: data.roles.map((role: UserRole): JSONObject => {
                     return role.toJSON();
                 }),
                 isMasterAdmin: data.isMasterAdmin,
-            },
+            } : data,
             EncryptionSecret.toString(),
             {
                 expiresIn: String(expiresIn),
