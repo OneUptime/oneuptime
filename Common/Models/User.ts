@@ -16,6 +16,7 @@ import HashedColumn from '../Types/Database/HashedColumn';
 import HashedString from '../Types/HashedString';
 import PublicRecordPermissions from '../Types/Database/AccessControls/Public/PublicRecordPermissions';
 import TableColumn from '../Types/Database/TableColumn';
+import PublicColumnPermissions from '../Types/Database/AccessControls/Public/PublicColumnPermissions';
 
 @PublicRecordPermissions({
     create: true,
@@ -29,6 +30,13 @@ import TableColumn from '../Types/Database/TableColumn';
     name: 'User',
 })
 class User extends BaseModel {
+
+    @PublicColumnPermissions({
+        create: true, readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false
+    })
     @TableColumn()
     @Column({
         type: ColumnType.Name,
@@ -38,6 +46,12 @@ class User extends BaseModel {
     })
     public name!: Name;
 
+    @PublicColumnPermissions({
+        create: true, readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false
+    })
     @TableColumn()
     @UniqueColumn()
     @RequiredColumn()
@@ -58,6 +72,13 @@ class User extends BaseModel {
     })
     public newUnverifiedTemporaryEmail?: string;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false
+    })
     @TableColumn()
     @HashedColumn()
     @Column({
@@ -75,6 +96,13 @@ class User extends BaseModel {
     })
     public isEmailVerified!: boolean;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false
+    })
     @TableColumn()
     @Column({
         type: ColumnType.Name,
@@ -84,6 +112,13 @@ class User extends BaseModel {
     })
     public companyName!: string;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false
+    })
     @TableColumn()
     @Column({
         type: ColumnType.ShortText,
@@ -93,6 +128,13 @@ class User extends BaseModel {
     })
     public jobRole!: JobRole;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false
+    })
     @TableColumn()
     @Column({
         type: ColumnType.ShortText,
@@ -102,6 +144,13 @@ class User extends BaseModel {
     })
     public companySize!: CompanySize;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false
+    })
     @TableColumn()
     @Column({
         type: ColumnType.ShortText,
@@ -111,6 +160,13 @@ class User extends BaseModel {
     })
     public referral?: string;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false
+    })
     @TableColumn()
     @Column({
         type: ColumnType.Phone,
@@ -220,6 +276,13 @@ class User extends BaseModel {
     })
     public lastActive!: Date;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false
+    })
     @TableColumn()
     @Column({
         type: ColumnType.ShortText,
