@@ -6,7 +6,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import {
     deleteProjectDomain,
     fetchProjectDomains,

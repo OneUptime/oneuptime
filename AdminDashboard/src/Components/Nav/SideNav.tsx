@@ -4,7 +4,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import NavItem from './SideNavItem';
 import { allRoutes, groups } from '../../routes';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { closeSideNav } from '../../actions/page';
 
 import ClickOutside from 'react-click-outside';

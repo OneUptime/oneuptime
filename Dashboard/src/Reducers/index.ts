@@ -1,14 +1,14 @@
 import { combineReducers } from 'redux';
 import component from './component';
 import monitor from './monitor';
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 import { routerReducer } from 'react-router-redux';
 import { RootState } from '../store';
 
 import { reducer as formReducer } from 'redux-form';
 import alert from './alert';
 import team from './team';
-import modal from './modal';
+import modal from './Modal';
 import project from './project';
 import schedule from './schedule';
 import changePassword from './changePassword';

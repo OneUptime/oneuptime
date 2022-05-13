@@ -12,8 +12,8 @@ import PropTypes from 'prop-types';
 import { history, RootState } from '../../store';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import Unauthorised from '../modals/Unauthorised';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import Unauthorised from '../Modals/Unauthorised';
 
 function validate(value: $TSFixMe) {
     const errors: $TSFixMe = {};

@@ -1,7 +1,7 @@
 {
-    "name": "StatusPage",
+    "name": "status-page",
     "version": "3.0.0",
-    "private": true,
+    "private": false,
     "type": "module",
     "dependencies": {
         "CommonServer": "file:../CommonServer",
@@ -23,7 +23,7 @@
         "prop-types": "^15.8.1",
         "puppeteer": "^13.5.1",
         "query-string": "^7.1.1",
-        "react": "^17.0.2",
+        "react": "^18.1.0",
         "react-auto-translate": "^0.0.6",
         "react-dom": "^17.0.2",
         "react-helmet": "^6.1.0",

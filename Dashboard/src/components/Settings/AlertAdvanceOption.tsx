@@ -10,15 +10,15 @@ import PropTypes from 'prop-types';
 import { RenderSelect } from '../basic/RenderSelect';
 
 import { StripeProvider, injectStripe, Elements } from '@stripe/react-stripe-js';
-import { openModal } from 'CommonUI/actions/modal';
-import MessageBox from '../modals/MessageBox';
+import { openModal } from 'CommonUI/actions/Modal';
+import MessageBox from '../Modals/MessageBox';
 
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../../config';
 import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-import Unauthorised from '../modals/Unauthorised';
-import AlertBilling from '../modals/AlertBilling';
+import Unauthorised from '../Modals/Unauthorised';
+import AlertBilling from '../Modals/AlertBilling';
 import Tooltip from '../basic/Tooltip';
 import { FormLoader } from '../basic/Loader';
 

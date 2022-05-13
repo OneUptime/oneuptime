@@ -3,7 +3,7 @@ import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/tutorial';
 import Route from 'Common/Types/api/route';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 export const fetchTutorialRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_TUTORIAL_REQUEST,

@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import CreateWebHook from '../modals/CreateWebHook';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import CreateWebHook from '../Modals/CreateWebHook';
 import DataPathHoC from '../DataPathHoC';
 
 interface WebHookButtonProps {

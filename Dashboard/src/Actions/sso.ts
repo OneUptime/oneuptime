@@ -1,7 +1,7 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/sso';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 export const createSsoRequest: Function = (): void => {
     return {
         type: types.CREATE_SSO_REQUEST,

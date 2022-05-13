@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { fetchProjectDomains } from '../../actions/project';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import DeleteDomain from './DeleteDomain';
 import DataPathHoC from '../DataPathHoC';
 

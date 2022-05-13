@@ -9,7 +9,7 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { updateStatusPageCategory } from '../../actions/statusPageCategory';
 
 function validate(values: $TSFixMe) {

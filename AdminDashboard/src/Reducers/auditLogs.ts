@@ -18,7 +18,7 @@ import {
     CHANGE_AUDITLOG_STATUS_SUCCESS,
 } from '../constants/auditLogs';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const INITIAL_STATE: $TSFixMe = {
     auditLogs: {

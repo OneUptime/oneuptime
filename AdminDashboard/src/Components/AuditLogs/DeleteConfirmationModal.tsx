@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { deleteAuditLogs } from '../../actions/auditLogs';
 import { FormLoader } from '../basic/Loader';
 

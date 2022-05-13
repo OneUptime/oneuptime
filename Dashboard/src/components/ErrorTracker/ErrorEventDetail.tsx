@@ -19,8 +19,8 @@ import ErrorTrackerIssueTimeline from './ErrorTrackerIssueTimeline';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from 'CommonUI/actions/modal';
-import DeleteErrorTrackerIssue from '../modals/DeleteErrorTrackerIssue';
+import { openModal } from 'CommonUI/actions/Modal';
+import DeleteErrorTrackerIssue from '../Modals/DeleteErrorTrackerIssue';
 import { history, RootState } from '../../store';
 
 interface ErrorEventDetailProps {

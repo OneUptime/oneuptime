@@ -3,7 +3,7 @@ import {
     CLOSE_ONCALLSCHEDULE_MODAL,
 } from '../constants/OnCallSchedule';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     onCallScheduleModalVisble: false,

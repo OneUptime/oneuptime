@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
-import DeleteSchedule from '../modals/DeleteSchedule';
-import CancelSchedule from '../modals/CancelSchedule';
+import DeleteSchedule from '../Modals/DeleteSchedule';
+import CancelSchedule from '../Modals/CancelSchedule';
 import DataPathHoC from '../DataPathHoC';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';

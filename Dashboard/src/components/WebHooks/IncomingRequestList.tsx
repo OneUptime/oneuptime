@@ -9,13 +9,13 @@ import {
     fetchAllIncomingRequest,
     setActiveIncomingRequest,
 } from '../../actions/incomingRequest';
-import { openModal } from 'CommonUI/actions/modal';
-import EditIncomingRequest from '../modals/EditIncomingRequest';
-import DeleteIncomingRequest from '../modals/DeleteIncomingRequest';
+import { openModal } from 'CommonUI/actions/Modal';
+import EditIncomingRequest from '../Modals/EditIncomingRequest';
+import DeleteIncomingRequest from '../Modals/DeleteIncomingRequest';
 import copyToClipboard from '../../utils/copyToClipboard';
 import { fetchIncidentPriorities } from '../../actions/incidentPriorities';
 import { fetchDefaultTemplate } from '../../actions/incidentBasicsSettings';
-import IncomingRequestEnabled from '../modals/IncomingRequestEnabled';
+import IncomingRequestEnabled from '../Modals/IncomingRequestEnabled';
 
 interface IncomingRequestListProps {
     projectId?: string;

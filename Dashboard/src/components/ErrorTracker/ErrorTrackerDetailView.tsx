@@ -4,10 +4,10 @@ import { connect } from 'react-redux';
 import { ListLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
-import ConfirmErrorTrackerIssueAction from '../modals/ConfirmErrorTrackerIssueAction';
+import ConfirmErrorTrackerIssueAction from '../Modals/ConfirmErrorTrackerIssueAction';
 
 import { v4 as uuidv4 } from 'uuid';
-import ErrorEventIssueMember from '../modals/ErrorEventIssueMember';
+import ErrorEventIssueMember from '../Modals/ErrorEventIssueMember';
 import ShouldRender from '../basic/ShouldRender';
 import AlertPanel from '../basic/AlertPanel';
 

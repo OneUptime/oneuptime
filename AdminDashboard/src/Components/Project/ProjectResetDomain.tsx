@@ -5,7 +5,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { connect } from 'react-redux';
 import {
     resetProjectDomain,

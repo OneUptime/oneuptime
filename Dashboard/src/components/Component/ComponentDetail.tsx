@@ -6,7 +6,7 @@ import {
     fetchComponentResources,
     addCurrentComponent,
 } from '../../actions/component';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { deleteComponent } from '../../actions/component';
 import ShouldRender from '../basic/ShouldRender';
 import Badge from '../common/Badge';

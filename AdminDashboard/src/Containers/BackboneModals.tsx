@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import Modal from '../components/Modal';
-import { closeModal } from '../actions/modal';
+import { closeModal } from '../actions/Modal';
 
 export class Modals extends Component<ComponentProps>{
     public static displayName = '';

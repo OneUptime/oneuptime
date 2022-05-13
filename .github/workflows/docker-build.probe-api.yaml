@@ -1,4 +1,4 @@
-name: Probe-api docker-build workflow
+name: Probe-api Docker Build
 
 on: 
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
  # define job to build docker image 
-  probe-api-docker-build:
+  docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 

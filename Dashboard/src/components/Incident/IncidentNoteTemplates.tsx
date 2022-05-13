@@ -3,12 +3,12 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import DataPathHoC from '../DataPathHoC';
 import { ListLoader } from '../basic/Loader';
-import CreateIncidentNoteTemplate from '../modals/CreateIncidentNoteTemplate';
-import EditIncidentNoteTemplate from '../modals/EditIncidentNoteTemplate';
-import DeleteIncidentNoteTemplate from '../modals/DeleteIncidentNoteTemplate';
+import CreateIncidentNoteTemplate from '../Modals/CreateIncidentNoteTemplate';
+import EditIncidentNoteTemplate from '../Modals/EditIncidentNoteTemplate';
+import DeleteIncidentNoteTemplate from '../Modals/DeleteIncidentNoteTemplate';
 import { fetchIncidentNoteTemplates } from '../../actions/incidentNoteTemplate';
 
 interface IncidentNoteTemplatesProps {

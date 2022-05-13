@@ -14,7 +14,7 @@ import {
     setInternalNote,
     fetchIncidentMessages,
 } from '../../actions/incident';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import { RenderField } from '../basic/RenderField';

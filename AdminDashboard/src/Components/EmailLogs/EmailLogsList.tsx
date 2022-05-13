@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 
 import { ListLoader } from '../basic/Loader';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import EmailLogsContentViewModal from './EmailLogsContentViewModal';
 import EmailLogsErrorViewModal from './EmailLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';

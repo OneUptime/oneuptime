@@ -42,4 +42,8 @@ export default class ObjectID extends DatabaseProperty {
 
         return null;
     }
+
+    public static fromString(id: string): ObjectID {
+        return new ObjectID(id);
+    }
 }

@@ -1,7 +1,7 @@
 import * as types from '../constants/credential';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 // Add Git Credential
 export const addGitCredentialRequest: Function = (): void => {
     return {

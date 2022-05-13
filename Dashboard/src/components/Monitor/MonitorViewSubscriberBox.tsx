@@ -4,8 +4,8 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import SubscriberList from '../subscriber/subscriberList';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import CreateSubscriber from '../../components/modals/CreateSubscriber';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import CreateSubscriber from '../../components/Modals/CreateSubscriber';
 import DataPathHoC from '../DataPathHoC';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -15,7 +15,7 @@ import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 
 import { history, RootState } from '../../store';
-import UploadFileForm from '../modals/UploadFile';
+import UploadFileForm from '../Modals/UploadFile';
 
 interface MonitorViewSubscriberBoxProps {
     monitor: object;

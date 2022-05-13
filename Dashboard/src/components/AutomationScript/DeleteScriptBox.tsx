@@ -2,11 +2,11 @@ import React from 'react';
 
 import { v4 as uuidv4 } from 'uuid';
 import { deleteAutomatedScript } from '../../actions/automatedScript';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
-import DeleteAutomatedScript from '../modals/DeleteAutomatedScript';
+import DeleteAutomatedScript from '../Modals/DeleteAutomatedScript';
 import { history, RootState } from '../../store';
 
 interface DeleteScriptBoxProps {

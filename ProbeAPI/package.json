@@ -1,5 +1,5 @@
 {
-    "name": "ProbeAPI",
+    "name": "probe-api",
     "version": "3.0.0",
     "description": "A project to handle all resource fetching or update for probes",
     "main": "index.ts",
@@ -17,7 +17,7 @@
     "dependencies": {
         "axios": "^0.26.1",
         "CommonServer": "file:../CommonServer",
-"Common": "file:../Common",
+        "Common": "file:../Common",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
         "dotenv": "^16.0.0",

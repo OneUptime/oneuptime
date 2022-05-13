@@ -7,10 +7,10 @@ import { connect } from 'react-redux';
 
 import { Link } from 'react-router-dom';
 import { User, IS_SAAS_SERVICE } from '../../config';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
-import About from '../modals/About';
+import About from '../Modals/About';
 
 import { v4 as uuidv4 } from 'uuid';
 

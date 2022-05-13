@@ -6,7 +6,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { reduxForm, Field } from 'redux-form';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal, openModal } from 'CommonUI/actions/modal';
+import { closeModal, openModal } from 'CommonUI/actions/Modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { changeMonitorComponent } from '../../actions/monitor';
@@ -14,7 +14,7 @@ import ComponentSelector from '../basic/ComponentSelector';
 import { ValidateField } from '../../config';
 import { history, RootState } from '../../store';
 
-import MessageBox from '../modals/MessageBox';
+import MessageBox from '../Modals/MessageBox';
 import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';

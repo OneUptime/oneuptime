@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import CreateMsTeams from '../modals/CreateMsTeamsWebhook';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import CreateMsTeams from '../Modals/CreateMsTeamsWebhook';
 import DataPathHoC from '../DataPathHoC';
 
 interface MSTeamsButtonProps {

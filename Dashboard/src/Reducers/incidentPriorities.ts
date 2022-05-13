@@ -17,7 +17,7 @@ import {
     DELETE_INCIDENT_PRIORITY_RESET,
 } from '../constants/incidentPriorities';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const INITIAL_STATE: $TSFixMe = {
     incidentPrioritiesList: {

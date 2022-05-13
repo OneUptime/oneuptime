@@ -11,7 +11,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 
 interface StatusPageLanguageProps {
     updateStatusPageLanguage: Function;

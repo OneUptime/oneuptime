@@ -8,7 +8,7 @@ import { PricingPlan, Validate } from '../../config';
 import { FormLoader } from './Loader';
 import ShouldRender from './ShouldRender';
 import { changePlan } from '../../actions/project';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 
 import RadioInput from '../project/RadioInput';
 
