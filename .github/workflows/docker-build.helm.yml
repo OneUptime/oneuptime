@@ -17,4 +17,4 @@ jobs:
 
       # build image for home
       - name: build docker image
-        run: docker build . --file ./HelmChart/Dockerfile --tag helmchart-build-image:$(date +%s)
+        run: mom run build-ci helmchart
