@@ -1,0 +1,19 @@
+name: ApiDocs Image Build
+
+on:
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+      - 'staging-release'
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the Docker image
+      run: docker build . --file ./ApiDocs/Dockerfile --tag apidocs-build-image:$(date +%s)
