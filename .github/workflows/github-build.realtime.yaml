@@ -1,3 +1,5 @@
+name: Build Realtime Image
+
 on: 
   push:
     branches-ignore:
