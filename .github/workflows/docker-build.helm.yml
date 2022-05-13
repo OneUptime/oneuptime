@@ -1,0 +1,20 @@
+name: HelmChart Docker Build
+
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+      - 'staging-release'
+
+jobs:
+ # define jobs to build docker imag
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image for home
+      - name: build docker image
+        run: docker build HelmChart --file Dockerfile --tag helmchart-build-image:$(date +%s)
