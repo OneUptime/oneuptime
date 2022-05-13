@@ -1,37 +1,33 @@
-import React from 'react';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import React, { FunctionComponent } from 'react';
+import { Formik, Form, Field, ErrorMessage, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
 import BaseModel from 'Common/Models/BaseModel';
 import Columns from 'Common/Types/Database/Columns';
+import Dictionary from 'Common/Types/Dictionary';
+import FormValues from './FormValues';
 
-export interface ComponentProps {
-    model: BaseModel,
-    id: string
+export interface ComponentProps<T extends BaseModel> {
+    model: T,
+    id: string,
+    fieldsInForm: Dictionary<boolean>, 
+    initialValues: Dictionary<string | number>,
+    onSubmit: (values: FormValues) => void 
+    onValidate: (values: FormValues) => FormikErrors<FormValues> 
 }
 
-const BasicForm = (props: ComponentProps) => {
+const BasicForm: FunctionComponent = <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => {
 
     const columns: Columns = props.model.getTableColumns();
+    const requiredColumns: Columns = props.model.getTableColumns();
 
     return (<div>
         <Formik
             initialValues={{ email: '', password: '' }}
-            validate={values => {
-                const errors = {};
-                if (!values.email) {
-                    errors.email = 'Required';
-                } else if (
-                    !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)
-                ) {
-                    errors.email = 'Invalid email address';
-                }
-                return errors;
+            validate={(values: FormValues) => {
+                return props.onValidate(values);
             }}
-            onSubmit={(values, { setSubmitting }) => {
-                setTimeout(() => {
-                    alert(JSON.stringify(values, null, 2));
-                    setSubmitting(false);
-                }, 400);
+            onSubmit={(values: FormValues) => {
+                props.onSubmit(values);
             }}
         >
 

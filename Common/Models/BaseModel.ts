@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import Columns from '../Types/Database/Columns';
 import TableColumn from '../Types/Database/TableColumn';
+import Dictionary from '../Types/Dictionary';
 import BadRequestException from '../Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
@@ -32,6 +33,9 @@ export default class BaseModel extends BaseEntity {
     @TableColumn()
     @VersionColumn()
     public version!: number;
+
+    
+    private displayColumnAs: Dictionary<string> = {};
 
     private encryptedColumns: Columns = new Columns([]);
     private uniqueColumns: Columns = new Columns([]);
@@ -125,6 +129,18 @@ export default class BaseModel extends BaseEntity {
 
     public getHashedColumns(): Columns {
         return this.hashedColumns;
+    }
+
+    public addDisplayColumnAs(columnName: string, displayAs: string): void {
+        this.displayColumnAs[columnName] = displayAs;
+    }
+
+    public getDisplayColumnAs(columnName: string): string | null {
+        if (this.displayColumnAs[columnName]) {
+            return this.displayColumnAs[columnName] as string;
+        }
+
+        return null;
     }
 
     public addHashedColumn(columnName: string): void {
