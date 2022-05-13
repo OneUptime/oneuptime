@@ -1,22 +1,22 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import { MouseOnClick, KeyboardEventProp } from '../../Types/HtmlEvents';
-
-export enum ShortcutKey {
-    Enter = "Enter",
-    Esc = "Esc",
-    New = "N",
-    Settings = "S"
-}
+import { MouseOnClick, KeyboardEventProp } from '../../../Types/HtmlEvents';
+import ShortcutKey from '../ShortcutKey/ShortcutKey';
 
 export interface ComponentProps {
     title: string;
-    onClick: MouseOnClick;
+    onClick?: MouseOnClick;
     disabled?: boolean;
     id: string;
     shortcutKey?: ShortcutKey;
+    type?: ButtonType
 }
 
 const Button: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+
+    // props validation
+    if (!props.type) {
+        props.type = ButtonType.Button;
+    }
 
     useEffect(() => {
         // componentDidMount
@@ -34,7 +34,6 @@ const Button: FunctionComponent<ComponentProps> = (props: ComponentProps): React
 
 
     const handleKeyboard = (event: KeyboardEventProp) => {
-            
 
         if (event.target instanceof HTMLBodyElement && event.key && props.shortcutKey) {
             switch (event.key) {
@@ -53,7 +52,7 @@ const Button: FunctionComponent<ComponentProps> = (props: ComponentProps): React
         onClick={props.onClick}
         className={`${'Button bs-ButtonLegacy ActionIconParent'} ${props.disabled ? 'Is--disabled' : ''
             }`}
-        type="button"
+        type={props.type}
         disabled={props.disabled}
     >
         <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
