@@ -17,4 +17,4 @@ jobs:
 
       # build image for home
       - name: build docker image
-        run: npm run build-ci helm-chart
+        run: npm run build-ci helmchart
