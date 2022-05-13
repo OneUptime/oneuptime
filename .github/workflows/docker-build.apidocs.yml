@@ -1,6 +1,5 @@
 name: ApiDocs Image Build
-
-on:
+on: 
   push:
     branches-ignore:
       - 'hotfix-*'   
@@ -8,12 +7,13 @@ on:
       - 'staging-release'
 
 jobs:
-
-  build:
-
+ # define jobs to build docker imag
+  docker-build:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Build the Docker image
-      run: docker build . --file ./ApiDocs/Dockerfile --tag apidocs-build-image:$(date +%s)
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image for home
+      - name: build docker image
+        run: npm run build-ci apidocs
