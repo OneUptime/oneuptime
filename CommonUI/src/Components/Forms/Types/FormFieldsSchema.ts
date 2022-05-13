@@ -1,6 +1,6 @@
 import Hostname from 'Common/Types/API/Hostname';
 import ObjectID from 'Common/Types/ObjectID';
-import FormType from './FormType'
+import FormType from './FormSchemaType'
 
 type FormField<Property> =
     Property extends ObjectID ? FormType.ObjectID

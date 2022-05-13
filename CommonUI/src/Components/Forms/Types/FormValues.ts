@@ -1,4 +1,4 @@
-import FormFieldSchemaTypes from './FormFieldSchemaTypes'
+import FormFieldSchemaTypes from './FormFieldType'
 
 type FormFields<Property> = Property extends FormFieldSchemaTypes
     ? Property

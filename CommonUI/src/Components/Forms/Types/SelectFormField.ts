@@ -1,4 +1,4 @@
-import FormFieldSchemaTypes from "./FormFieldSchemaTypes";
+import FormFieldSchemaTypes from "./FormFieldType";
 
 type SelectFormField<Property> = Property extends FormFieldSchemaTypes
     ? boolean

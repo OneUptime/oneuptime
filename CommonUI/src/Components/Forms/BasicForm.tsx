@@ -1,27 +1,27 @@
 import React, { FunctionComponent } from 'react';
 import { Formik, Form, Field, ErrorMessage, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
-import Dictionary from 'Common/Types/Dictionary';
-import FormValues from './FormValues';
+import FormValues from './Types/FormValues'
+import RequiredFormFields from './Types/RequiredFormFields';
 
-export interface ComponentProps {
+export interface ComponentProps<T> {
     id: string,
-    initialValues: Dictionary<string | number>,
-    onSubmit: (values: FormValues) => void 
-    onValidate: (values: FormValues) => FormikErrors<FormValues>,
-    requiredfields: Array<string>,
-    fields: Dictionary<string>, 
+    initialValues: FormValues<T>,
+    onSubmit: (values: FormValues<T>) => void 
+    onValidate: (values: FormValues<T>) => FormikErrors<FormValues<T>>,
+    requiredfields: RequiredFormFields<T>,
+    fields: Array<keyof T>
 }
 
-const BasicForm: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+const BasicForm = <T,>(props: ComponentProps<T>) => {
 
     return (<div>
         <Formik
-            initialValues={{ email: '', password: '' }}
-            validate={(values: FormValues) => {
+            initialValues={props.initialValues}
+            validate={(values: FormValues<T>) => {
                 return props.onValidate(values);
             }}
-            onSubmit={(values: FormValues) => {
+            onSubmit={(values: FormValues<T>) => {
                 props.onSubmit(values);
             }}
         >
