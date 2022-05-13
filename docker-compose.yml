@@ -183,6 +183,17 @@ services:
         environment:
             - CLUSTER_KEY=test
             - PORT=3300
+    helmchart:
+        ports:
+            - '3423:3423'
+        build:
+            context: .
+            dockerfile: ./HelmChart/Dockerfile
+        env_file:
+            - ./HelmChart/.env
+        environment:
+            - CLUSTER_KEY=test
+            - PORT=3423        
     probe-api:
         ports:
             - '3400:3400'
