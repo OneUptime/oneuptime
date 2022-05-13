@@ -1,6 +1,4 @@
-name: Realtime Image Build
-
-on:
+on: 
   push:
     branches-ignore:
       - 'hotfix-*'   
@@ -8,12 +6,13 @@ on:
       - 'staging-release'
 
 jobs:
-
-  build:
-
+ # define jobs to build docker imag
+  docker-build:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Build the Docker image
-      run: docker build . --file ./Realtime/Dockerfile --tag realtime-build-image:$(date +%s)
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image for home
+      - name: build docker image
+        run: npm run build-ci realtime
