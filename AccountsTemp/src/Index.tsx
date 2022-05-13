@@ -8,14 +8,9 @@ import store, { history, isApiServer } from './store';
 import App from './App';
 import './index.css';
 
-if (!isApiServer) {
-    ReactGA.initialize('UA-115085157-1');
-}
-
-const target: $TSFixMe = document.getElementById('root');
+const target: HTMLElement | null = document.getElementById('root');
 
 render(
-
     <Provider store={store} history={history}>
         <ErrorBoundary>
             <App />

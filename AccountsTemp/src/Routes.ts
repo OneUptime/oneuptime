@@ -1,4 +1,4 @@
-import pages from './pages';
+import Pages from './Pages/Index';
 
 const {
     Register,
@@ -9,7 +9,7 @@ const {
     ResendToken,
     VerifyAuthToken,
     VerifyBackupCode,
-} = pages;
+} = Pages;
 
 export const groups: $TSFixMe = [
     {

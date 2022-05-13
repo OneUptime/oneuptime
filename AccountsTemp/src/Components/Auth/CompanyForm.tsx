@@ -7,7 +7,7 @@ import CompanySizeSelector from '../basic/CompanySizeSelector';
 import { connect } from 'react-redux';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
-import { FlatLoader } from '../basic/Loader.js';
+import { FlatLoader } from '../basic/Loader.js.js';
 
 const errorStyle: $TSFixMe = {
     color: 'red',
