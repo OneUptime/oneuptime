@@ -1,4 +1,4 @@
-name: Build Realtime Image
+name: Realtime Docker Build
 
 on: 
   push:
