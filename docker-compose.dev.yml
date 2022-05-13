@@ -133,6 +133,7 @@ services:
         ports:
             - '3423:3423'
         build:
+            network: host
             context: .
             dockerfile: ./HelmChart/Dockerfile
         env_file:

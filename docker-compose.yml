@@ -186,9 +186,7 @@ services:
     helmchart:
         ports:
             - '3423:3423'
-        build:
-            context: .
-            dockerfile: ./HelmChart/Dockerfile
+        image: oneuptime/helmchart:latest
         env_file:
             - ./HelmChart/.env
         environment:
