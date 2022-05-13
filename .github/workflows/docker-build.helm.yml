@@ -15,4 +15,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the HelmChart Docker image
-      run: docker build ./HelmChart --file Dockerfile --tag helmchart-image-build:$(date +%s)
+      run: docker build HelmChart --file Dockerfile --tag helmchart-image-build:$(date +%s)
