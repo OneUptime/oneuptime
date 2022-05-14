@@ -1,3 +1,5 @@
+import { checkIfIPisV4, checkIfIPisV6 } from '../../Tests/Types/IP/lib/helper';
+import BadDataException from '../Exception/BadDataException';
 import IP from './IP';
 
 export default class IPv4 extends IP {
@@ -7,10 +9,16 @@ export default class IPv4 extends IP {
     }
 
     public override isIPv4(): boolean {
-        return true;
+        if (checkIfIPisV4(this.ip)) {
+            return true;
+        }
+        throw new BadDataException('This IP address is not valid IPv4');
     }
 
     public override isIPv6(): boolean {
-        return false;
+        if (checkIfIPisV6(this.ip)) {
+            return true;
+        }
+        throw new BadDataException('This IP address is not valid IPv6');
     }
 }

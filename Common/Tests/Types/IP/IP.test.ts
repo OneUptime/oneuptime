@@ -1,8 +1,8 @@
-import IP from '../Types/IP/IP';
+import IP from '../../../Types/IP/IP';
 
 describe('IP()', () => {
     let ip: IP;
-    beforeAll(() => {
+    beforeEach(() => {
         ip = new IP('196.223.149.8');
     });
 
@@ -11,7 +11,7 @@ describe('IP()', () => {
     });
 
     test('Expects type of IP to be a string', () => {
-        expect(typeof ip.ip).toBe('string');
+        expect(typeof ip.toString()).toBe('string');
     });
 
     test('Expects IP address to be mutable', () => {

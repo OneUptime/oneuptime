@@ -1,8 +1,8 @@
-import IP from '../Types/IP/IPv4';
+import IP from '../../../Types/IP/IPv4';
 
 describe('IPv4()', () => {
     let ip: IP;
-    beforeAll(() => {
+    beforeEach(() => {
         ip = new IP('196.223.149.8');
     });
 
@@ -11,6 +11,8 @@ describe('IPv4()', () => {
     });
 
     test('should not be IPv6', () => {
-        expect(ip.isIPv6()).not.toBeTruthy();
+        expect(() => {
+            ip.isIPv6();
+        }).toThrow();
     });
 });
