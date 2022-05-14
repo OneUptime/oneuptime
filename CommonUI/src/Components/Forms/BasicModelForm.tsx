@@ -1,47 +1,45 @@
-import React, { FunctionComponent } from 'react';
-import { Formik, Form, Field, ErrorMessage, FormikErrors } from 'formik';
-import Button from '../Basic/Button/Button';
+import React from 'react';
+import { FormikErrors } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
-import Columns from 'Common/Types/Database/Columns';
-import Dictionary from 'Common/Types/Dictionary';
-import FormValues from './FormValues';
+import FormValues from './Types/FormValues';
+import Fields from './Types/Fields';
+import BasicForm from './BasicForm';
 
 export interface ComponentProps<T extends BaseModel> {
     model: T,
     id: string,
-    fieldsInForm: Dictionary<boolean>, 
-    initialValues: Dictionary<string | number>,
-    onSubmit: (values: FormValues) => void 
-    onValidate: (values: FormValues) => FormikErrors<FormValues> 
+    onSubmit: (values: FormValues<T>) => void
+    onValidate?: (values: FormValues<T>) => FormikErrors<FormValues<T>>,
+    fields: Fields<T>
 }
 
-const BasicForm: FunctionComponent = <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => {
+const BasicModelForm = <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>) => {
 
-    const columns: Columns = props.model.getTableColumns();
-    const requiredColumns: Columns = props.model.getTableColumns();
+    const initialValues: FormValues<TBaseModel> = {};
 
-    return (<div>
-        <Formik
-            initialValues={{ email: '', password: '' }}
-            validate={(values: FormValues) => {
-                return props.onValidate(values);
-            }}
-            onSubmit={(values: FormValues) => {
-                props.onSubmit(values);
-            }}
-        >
 
-            {({ isSubmitting }) => (
-                <Form>
-                    <Field type="email" name="email" />
-                    <ErrorMessage name="email" component="div" />
-                    <Field type="password" name="password" />
-                    <ErrorMessage name="password" component="div" />
-                    <Button title='Submit' disabled={isSubmitting} type={ButtonType.Submit} id={`${props.id}-submit-button`} />
-                </Form>
-            )}
-        </Formik>
-    </div>)
+    // Prep
+    for (const field of props.fields) {
+
+        if (Object.keys(field.field).length > 0){
+            if (props.model.getDisplayColumnTitleAs(Object.keys(field.field)[0] as string)) {
+                field.title = props.model.getDisplayColumnTitleAs(Object.keys(field.field)[0] as string) as string;
+            }
+
+            if (props.model.getDisplayColumnDescriptionAs(Object.keys(field.field)[0] as string)) {
+                field.description = props.model.getDisplayColumnDescriptionAs(Object.keys(field.field)[0] as string) as string;
+            }
+        }
+    }
+
+    return (<BasicForm
+        fields={props.fields}
+        id={props.id}
+        onSubmit={props.onSubmit}
+        initialValues={initialValues}
+        requiredfields={{}}
+        model={props.model}
+    />)
 };
 
-export default BasicForm;
+export default BasicModelForm;

@@ -3,3 +3,5 @@ enum ButtonType {
     Reset = "reset", 
     Button = "button"
 }
+
+export default ButtonType;

@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import { MouseOnClick, KeyboardEventProp } from '../../../Types/HtmlEvents';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
+import ButtonType from './ButtonTypes';
 
 export interface ComponentProps {
     title: string;

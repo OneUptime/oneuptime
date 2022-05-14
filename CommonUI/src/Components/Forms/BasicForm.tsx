@@ -1,25 +1,46 @@
-import React, { FunctionComponent } from 'react';
+import React, { ReactElement } from 'react';
 import { Formik, Form, Field, ErrorMessage, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
 import FormValues from './Types/FormValues'
 import RequiredFormFields from './Types/RequiredFormFields';
+import Fields from './Types/Fields';
+import DataField from './Types/Field';
+import ButtonTypes from '../Basic/Button/ButtonTypes';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export interface ComponentProps<T> {
     id: string,
     initialValues: FormValues<T>,
-    onSubmit: (values: FormValues<T>) => void 
-    onValidate: (values: FormValues<T>) => FormikErrors<FormValues<T>>,
+    onSubmit: (values: FormValues<T>) => void
+    onValidate?: (values: FormValues<T>) => FormikErrors<FormValues<T>>,
     requiredfields: RequiredFormFields<T>,
-    fields: Array<keyof T>
+    fields: Fields<T>,
+    model: T
 }
 
 const BasicForm = <T,>(props: ComponentProps<T>) => {
+
+    const getFormField = (field: DataField<T>): ReactElement => {
+
+        let fieldType = "text"; 
+        if (Object.keys(field.field).length === 0) {
+            throw new BadDataException("Object cannot be without Field")
+        } 
+        return (<div>
+            <Field type={fieldType} name={Object.keys(field.field)[0] as string} />
+            <ErrorMessage name={Object.keys(field.field)[0] as string} component="div" />
+        </div>)
+    }
 
     return (<div>
         <Formik
             initialValues={props.initialValues}
             validate={(values: FormValues<T>) => {
-                return props.onValidate(values);
+                if (props.onValidate) {
+                    return props.onValidate(values);
+                }
+
+                return {};
             }}
             onSubmit={(values: FormValues<T>) => {
                 props.onSubmit(values);
@@ -28,11 +49,10 @@ const BasicForm = <T,>(props: ComponentProps<T>) => {
 
             {({ isSubmitting }) => (
                 <Form>
-                    <Field type="email" name="email" />
-                    <ErrorMessage name="email" component="div" />
-                    <Field type="password" name="password" />
-                    <ErrorMessage name="password" component="div" />
-                    <Button title='Submit' disabled={isSubmitting} type={ButtonType.Submit} id={`${props.id}-submit-button`} />
+                    {props.fields && props.fields.map((field: DataField<T>) => {
+                        return getFormField(field);
+                    })}
+                    <Button title='Submit' disabled={isSubmitting} type={ButtonTypes.Submit} id={`${props.id}-submit-button`} />
                 </Form>
             )}
         </Formik>

@@ -1,6 +1,6 @@
 import FormFieldSchemaTypes from "./FormFieldType";
 
-type SelectFormField<Property> = Property extends FormFieldSchemaTypes
+export type SelectFormField<Property> = Property extends FormFieldSchemaTypes
     ? boolean
     : unknown;
 

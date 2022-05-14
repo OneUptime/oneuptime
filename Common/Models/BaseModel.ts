@@ -14,28 +14,29 @@ import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 
 export default class BaseModel extends BaseEntity {
-    @TableColumn()
+    @TableColumn({title: "ID"})
     @PrimaryGeneratedColumn('uuid')
     public _id!: string;
 
-    @TableColumn()
+    @TableColumn({title: "Created"})
     @CreateDateColumn()
     public createdAt!: Date;
 
-    @TableColumn()
+    @TableColumn({title: "Updated"})
     @UpdateDateColumn()
     public updatedAt!: Date;
 
-    @TableColumn()
+    @TableColumn({title: "Deleted"})
     @DeleteDateColumn()
     public deletedAt?: Date;
 
-    @TableColumn()
+    @TableColumn({title: "Version"})
     @VersionColumn()
     public version!: number;
 
     
-    private displayColumnAs: Dictionary<string> = {};
+    private displayColumnTitleAs: Dictionary<string> = {};
+    private displayColumnDescriptionAs: Dictionary<string> = {};
 
     private encryptedColumns: Columns = new Columns([]);
     private uniqueColumns: Columns = new Columns([]);
@@ -131,13 +132,25 @@ export default class BaseModel extends BaseEntity {
         return this.hashedColumns;
     }
 
-    public addDisplayColumnAs(columnName: string, displayAs: string): void {
-        this.displayColumnAs[columnName] = displayAs;
+    public addDisplayColumnTitleAs(columnName: string, title: string): void {
+        this.displayColumnTitleAs[columnName] = title;
     }
 
-    public getDisplayColumnAs(columnName: string): string | null {
-        if (this.displayColumnAs[columnName]) {
-            return this.displayColumnAs[columnName] as string;
+    public getDisplayColumnTitleAs(columnName: string): string | null {
+        if (this.displayColumnTitleAs[columnName]) {
+            return this.displayColumnTitleAs[columnName] as string;
+        }
+
+        return null;
+    }
+
+    public addDisplayColumnDescriptionAs(columnName: string, description: string): void {
+        this.displayColumnDescriptionAs[columnName] = description;
+    }
+
+    public getDisplayColumnDescriptionAs(columnName: string): string | null {
+        if (this.displayColumnDescriptionAs[columnName]) {
+            return this.displayColumnDescriptionAs[columnName] as string;
         }
 
         return null;
