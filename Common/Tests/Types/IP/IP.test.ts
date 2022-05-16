@@ -1,9 +1,5 @@
 import IP from '../../../Types/IP/IP';
-
-enum IPType {
-    IPv4 = 'IPv4',
-    IPv6 = 'IPv6',
-}
+import { IPType } from './IPType';
 
 describe('IP()', () => {
     test('expect ip to be defined', () => {
@@ -31,17 +27,14 @@ describe('IP()', () => {
         expect(ip.ip).toBe('127.0.0.1');
     });
 
-    test('should throw an error when isIPv4() is called', () => {
-        const ip: IP = new IP('196.223.149.8', IPType.IPv4);
-        expect(() => {
-            ip.isIPv4();
-        }).toThrow('This code is not implemented');
+    test('is valid IPv6 address', () => {
+        const ip: IP = new IP('::11.22.33.44', IPType.IPv6);
+        expect(ip.isIPv6(ip.toString())).toBeTruthy();
     });
 
-    test('should throw an error when isIPv6() is called', () => {
-        const ip: IP = new IP('196.223.149.8', IPType.IPv4);
+    test('should throw an error for invalid IP', () => {
         expect(() => {
-            ip.isIPv6();
-        }).toThrow('This code is not implemented');
+            new IP('', IPType.IPv4);
+        }).toThrow('IP is not a valid IPv4 address');
     });
 });
