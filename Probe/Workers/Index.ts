@@ -77,7 +77,7 @@ const _this: $TSFixMe = {
                 logger.info(
                     `Monitor ID ${monitor._id}: Start monitoring Kubernetes monitor`
                 );
-                await KubernetesMonitors.run({ monitor });
+                KubernetesMonitors.run({ monitor });
                 logger.info(
                     `Monitor ID ${monitor._id}: End monitoring Kubernetes monitor`
                 );

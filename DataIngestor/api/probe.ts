@@ -41,13 +41,13 @@ router.post(
             let matchedCriterion: $TSFixMe;
 
             if (type === 'incomingHttpRequest') {
-                const newMonitor: $TSFixMe = await MonitorService.findOneBy({
+                const newMonitor: $TSFixMe = MonitorService.findOneBy({
                     query: { _id: ObjectId(monitor._id) },
                 });
 
                 const probeId: $TSFixMe =
                     req.probe && req.probe.id ? req.probe.id : null;
-                log = await ProbeService.probeHttpRequest(newMonitor, probeId);
+                log = ProbeService.probeHttpRequest(newMonitor, probeId);
             } else {
                 if (type === 'api' || type === 'url') {
                     const {
@@ -591,10 +591,7 @@ router.post(
 
                 data.matchedCriterion = matchedCriterion;
                 // Update monitor to save the last matched criterion
-                await MonitorService.updateCriterion(
-                    monitor._id,
-                    matchedCriterion
-                );
+                MonitorService.updateCriterion(monitor._id, matchedCriterion);
 
                 data.monitorId = monitorId || monitor._id;
 
@@ -637,7 +634,7 @@ router.post(
                         ]);
                     } else {
                         // When this is scanned success or failed.
-                        await MonitorService.updateLighthouseScanStatus(
+                        MonitorService.updateLighthouseScanStatus(
                             data.monitorId,
 
                             data.lighthouseScanStatus,
@@ -647,7 +644,7 @@ router.post(
                     }
                 } else if (data.lighthouseData) {
                     data.scanning = false;
-                    log = await ProbeService.saveLighthouseLog(data);
+                    log = ProbeService.saveLighthouseLog(data);
                 } else {
                     data.matchedUpCriterion =
                         monitor && monitor.criteria && monitor.criteria.up;
@@ -660,10 +657,10 @@ router.post(
                         monitor.criteria &&
                         monitor.criteria.degraded;
 
-                    log = await ProbeService.saveMonitorLog(data);
+                    log = ProbeService.saveMonitorLog(data);
 
                     if (type === 'script') {
-                        await MonitorService.updateScriptStatus(
+                        MonitorService.updateScriptStatus(
                             monitorId,
                             'completed',
                             req.probe.id
@@ -686,7 +683,7 @@ router.post(
             const data: $TSFixMe = req.body;
             data.probeId = req.probe.id;
             data.monitorId = req.params['monitorId'];
-            const log: $TSFixMe = await ProbeService.saveMonitorLog(data);
+            const log: $TSFixMe = ProbeService.saveMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -702,7 +699,7 @@ router.post(
             const data: $TSFixMe = req.body;
             data.probeId = req.probe.id;
             data.monitorId = req.params['monitorId'];
-            const log: $TSFixMe = await ProbeService.getMonitorLog(data);
+            const log: $TSFixMe = ProbeService.getMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -716,7 +713,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { monitorIds, scanning }: $TSFixMe = req.body;
-            await MonitorService.updateScanStatus(monitorIds, scanning);
+            MonitorService.updateScanStatus(monitorIds, scanning);
 
             return sendEmptyResponse(req, res);
         } catch (error) {
@@ -731,7 +728,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { monitorIds }: $TSFixMe = req.body;
-            await MonitorService.addProbeScanning(monitorIds, req.probe.id);
+            MonitorService.addProbeScanning(monitorIds, req.probe.id);
 
             return sendEmptyResponse(req, res);
         } catch (error) {
@@ -746,7 +743,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { monitorIds }: $TSFixMe = req.body;
-            await MonitorService.removeProbeScanning(monitorIds, req.probe.id);
+            MonitorService.removeProbeScanning(monitorIds, req.probe.id);
 
             return sendEmptyResponse(req, res);
         } catch (error) {

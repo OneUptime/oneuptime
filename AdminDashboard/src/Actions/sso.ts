@@ -123,7 +123,7 @@ export const deleteSso: $TSFixMe = (ssoId: $TSFixMe) => {
     return async (dispatch: Dispatch): void => {
         dispatch(deleteSsoRequest());
         try {
-            await delete `sso/${ssoId}`;
+            delete `sso/${ssoId}`;
             dispatch(deleteSsoSuccess());
         } catch (error) {
             let errorMsg: $TSFixMe;

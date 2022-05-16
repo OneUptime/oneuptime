@@ -290,7 +290,7 @@ export const deleteUser: $TSFixMe = (userId: ObjectID) => {
         dispatch(deleteUserRequest());
 
         try {
-            const response: $TSFixMe = await delete `user/${userId}`;
+            const response: $TSFixMe = delete `user/${userId}`;
 
             const data: $TSFixMe = response.data;
 

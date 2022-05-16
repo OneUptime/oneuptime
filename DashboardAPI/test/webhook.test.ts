@@ -125,7 +125,7 @@ describe('Webhook API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {

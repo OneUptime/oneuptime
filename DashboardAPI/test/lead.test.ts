@@ -28,11 +28,11 @@ describe('Lead API', function (): void {
 
     before(async function (): void {
         this.timeout(30000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
     });
 
     it('should add lead when requested for type demo or whitepaper', (done: $TSFixMe): void => {

@@ -23,7 +23,7 @@ export default {
             query.probeId = data.probeId;
         }
 
-        let previousMonitorStatus: $TSFixMe = await this.findBy({
+        let previousMonitorStatus: $TSFixMe = this.findBy({
             query,
             limit: 1,
         });
@@ -48,7 +48,7 @@ export default {
                 ) {
                     data.status = previousMonitorStatus.lastStatus;
                 }
-                await this.updateOneBy(
+                this.updateOneBy(
                     {
                         _id: ObjectId(previousMonitorStatus._id),
                     },
@@ -75,11 +75,11 @@ export default {
             const result: $TSFixMe = await monitorStatusCollection.insertOne(
                 monitorStatusData
             );
-            const savedMonitorStatus: $TSFixMe = await this.findOneBy({
+            const savedMonitorStatus: $TSFixMe = this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
 
-            await this.sendMonitorStatus(savedMonitorStatus);
+            this.sendMonitorStatus(savedMonitorStatus);
 
             return savedMonitorStatus;
         }
@@ -131,7 +131,7 @@ export default {
     },
 
     async sendMonitorStatus(data: $TSFixMe): void {
-        const monitor: $TSFixMe = await MonitorService.findOneBy({
+        const monitor: $TSFixMe = MonitorService.findOneBy({
             query: { _id: ObjectId(data.monitorId) },
             /*
              * Select: 'projectId',
@@ -139,7 +139,7 @@ export default {
              */
         });
         if (monitor && monitor.projectId) {
-            const project: $TSFixMe = await ProjectService.findOneBy({
+            const project: $TSFixMe = ProjectService.findOneBy({
                 query: {
                     _id: ObjectId(monitor.projectId._id || monitor.projectId),
                 },

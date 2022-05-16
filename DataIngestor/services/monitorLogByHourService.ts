@@ -57,7 +57,7 @@ export default {
         const result: $TSFixMe = await monitorLogByHourCollection.insertOne(
             LogHour
         );
-        const savedLogHour: $TSFixMe = await this.findOneBy({
+        const savedLogHour: $TSFixMe = this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
 

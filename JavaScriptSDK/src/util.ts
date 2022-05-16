@@ -87,7 +87,7 @@ class Util {
          */
 
         if (readFile && this.options.captureCodeSnippet) {
-            obj = await this._getErrorCodeSnippet(obj);
+            obj = this._getErrorCodeSnippet(obj);
         }
         return obj;
     }
@@ -137,9 +137,8 @@ class Util {
                 }
             } else {
                 // Try to read the file content and save to cache
-                const currentContent: $TSFixMe = await this._readFileFromSource(
-                    fileName
-                );
+                const currentContent: $TSFixMe =
+                    this._readFileFromSource(fileName);
                 if (currentContent !== null) {
                     frames[i].sourceFile = currentContent;
                 }

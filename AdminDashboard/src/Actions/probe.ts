@@ -90,7 +90,7 @@ export const deleteProbe: $TSFixMe = (probeId: $TSFixMe) => {
         dispatch(deleteProbeRequest());
 
         try {
-            const response: $TSFixMe = await delete `probe/${probeId}`;
+            const response: $TSFixMe = delete `probe/${probeId}`;
             dispatch(deleteProbeSuccess(probeId));
             return response;
         } catch (error) {

@@ -33,7 +33,7 @@ describe('Team API', function (): void {
 
     before(async function (): void {
         this.timeout(40000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const res: $TSFixMe = await createUser(request, userData.user);
         const project: $TSFixMe = res.body.project;
         projectId = project._id;
@@ -54,7 +54,7 @@ describe('Team API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
 
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteAll({ tableName: 'User' });
@@ -217,7 +217,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     before(async function (): void {
         this.timeout(30000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
 
         const authorization: string = `Basic ${token}`;
         // Create a subproject for parent project
@@ -264,7 +264,7 @@ describe('Team API with Sub-Projects', async function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
         });

@@ -190,7 +190,7 @@ export const deleteCustomField: $TSFixMe = (
             dispatch(deleteCustomFieldRequest());
 
             const response: $TSFixMe =
-                await delete `customField/${projectId}/${customFieldId}`;
+                delete `customField/${projectId}/${customFieldId}`;
 
             dispatch(deleteCustomFieldSuccess(response.data));
         } catch (error) {

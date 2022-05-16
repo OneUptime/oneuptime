@@ -334,7 +334,7 @@ export const deleteScheduledEvent: $TSFixMe = (
             dispatch(deleteScheduledEventRequest());
 
             const response: $TSFixMe =
-                await delete `scheduledEvent/${projectId}/${scheduledEventId}`;
+                delete `scheduledEvent/${projectId}/${scheduledEventId}`;
 
             dispatch(deleteScheduledEventSuccess(response.data));
         } catch (error) {
@@ -758,7 +758,7 @@ export const deleteScheduledEventNote: $TSFixMe = (
             dispatch(deleteScheduledEventNoteRequest());
 
             const response: $TSFixMe =
-                await delete `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`;
+                delete `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`;
 
             dispatch(deleteScheduledEventNoteSuccess(response.data));
         } catch (error) {

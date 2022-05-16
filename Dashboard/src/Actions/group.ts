@@ -231,8 +231,7 @@ export const deleteGroup: $TSFixMe = (
         dispatch(deleteGroupRequest());
 
         try {
-            const response: $TSFixMe =
-                await delete `group/${projectId}/${groupId}`;
+            const response: $TSFixMe = delete `group/${projectId}/${groupId}`;
 
             dispatch(deleteGroupSuccess(response.data));
             dispatch(getGroups());

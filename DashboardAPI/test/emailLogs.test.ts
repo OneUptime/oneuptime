@@ -75,7 +75,7 @@ describe('Email Logs API', function (): void {
             },
         });
         await AirtableService.deleteAll({ tableName: 'User' });
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
 
         /*
          * Deleting any emailLogs created between this test suite.
@@ -172,7 +172,7 @@ describe('Email Logs API', function (): void {
         const authorization: string = `Basic ${token}`;
 
         // Creating Email Logs.
-        await GlobalConfig.enableEmailLog();
+        GlobalConfig.enableEmailLog();
         await createUser(request, userData.newUser);
         await createUser(request, userData.anotherUser);
         const res: $TSFixMe = await request
@@ -195,7 +195,7 @@ describe('Email Logs API', function (): void {
         const authorization: string = `Basic ${token}`;
 
         // Creating Email Logs.
-        await GlobalConfig.enableEmailLog();
+        GlobalConfig.enableEmailLog();
         await createUser(request, userData.newUser);
         await createUser(request, userData.anotherUser);
 

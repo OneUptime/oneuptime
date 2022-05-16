@@ -19,9 +19,7 @@ import flattenArray from './flattenArray';
 
 export default {
     scan: async function (security: $TSFixMe): void {
-        const decryptedSecurity: $TSFixMe = await this.decryptPassword(
-            security
-        );
+        const decryptedSecurity: $TSFixMe = this.decryptPassword(security);
         await this.scanContainerSecurity(decryptedSecurity);
     },
 
@@ -70,7 +68,7 @@ export default {
         const outputFile: string = `${uuidv1()}result.json`;
         let securityDir: $TSFixMe = 'container_security_dir';
 
-        securityDir = await createDir(securityDir);
+        securityDir = createDir(securityDir);
         const exactFilePath: $TSFixMe = Path.resolve(securityDir, outputFile);
         /*
          * Update container security to scanning true
@@ -112,7 +110,7 @@ export default {
             });
 
             output.on('close', async () => {
-                let auditLogs: $TSFixMe = await readFileContent(exactFilePath);
+                let auditLogs: $TSFixMe = readFileContent(exactFilePath);
                 /*
                  * If auditLogs is empty, then scanning was unsuccessful
                  * The provided credentials or image path must have been wrong

@@ -600,7 +600,7 @@ describe('Application Log API', function (): void {
     // Yet to figure out how thi works
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await ApplicationLogService.hardDeleteBy({
             _id: { $in: [applicationLog._id] },
