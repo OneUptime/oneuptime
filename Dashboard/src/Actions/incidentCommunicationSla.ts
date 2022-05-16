@@ -200,7 +200,7 @@ export const deleteCommunicationSla: $TSFixMe = (
             dispatch(deleteCommunicationSlaRequest());
 
             const response: $TSFixMe =
-                await delete `incidentSla/${projectId}/${incidentSlaId}`;
+                delete `incidentSla/${projectId}/${incidentSlaId}`;
 
             dispatch(deleteCommunicationSlaSuccess(response.data));
         } catch (error) {

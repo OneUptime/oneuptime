@@ -189,7 +189,7 @@ export const deleteMonitorSla: $TSFixMe = (
             dispatch(deleteMonitorSlaRequest());
 
             const response: $TSFixMe =
-                await delete `monitorSla/${projectId}/${monitorSlaId}`;
+                delete `monitorSla/${projectId}/${monitorSlaId}`;
 
             dispatch(deleteMonitorSlaSuccess(response.data));
         } catch (error) {

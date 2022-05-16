@@ -2425,16 +2425,13 @@ router.get(
             const { statusPageSlug }: $TSFixMe = req.params;
 
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const ongoingEvents: $TSFixMe = await getOngoingScheduledEvents(
+            const ongoingEvents: $TSFixMe = getOngoingScheduledEvents(
                 req,
 
                 statusPage.slug
@@ -2456,16 +2453,13 @@ router.get(
             const { statusPageSlug }: $TSFixMe = req.params;
 
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const futureEvents: $TSFixMe = await getFutureEvents(
+            const futureEvents: $TSFixMe = getFutureEvents(
                 req,
                 statusPage.slug
             );
@@ -2486,19 +2480,13 @@ router.get(
             const { statusPageSlug }: $TSFixMe = req.params;
 
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const pastEvents: $TSFixMe = await getPastEvents(
-                req,
-                statusPage.slug
-            );
+            const pastEvents: $TSFixMe = getPastEvents(req, statusPage.slug);
 
             return sendItemResponse(req, res, pastEvents);
         } catch (error) {
@@ -2516,16 +2504,13 @@ router.get(
             const { statusPageSlug }: $TSFixMe = req.params;
 
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const probes: $TSFixMe = await getProbes(req);
+            const probes: $TSFixMe = getProbes(req);
 
             return sendItemResponse(req, res, probes);
         } catch (error) {
@@ -2543,16 +2528,13 @@ router.get(
             const { statusPageSlug }: $TSFixMe = req.params;
 
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const monitorLogs: $TSFixMe = await getMonitorLogs(
+            const monitorLogs: $TSFixMe = getMonitorLogs(
                 req,
                 statusPage.monitors
             );
@@ -2573,10 +2555,7 @@ router.get(
             const { statusPageSlug }: $TSFixMe = req.params;
 
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
@@ -2584,7 +2563,7 @@ router.get(
 
             const { _id: statusPageId, projectId } = statusPage;
 
-            const announcements: $TSFixMe = await getAnnouncements(
+            const announcements: $TSFixMe = getAnnouncements(
                 req,
                 statusPageId,
                 projectId
@@ -2606,18 +2585,13 @@ router.get(
             const { statusPageSlug }: $TSFixMe = req.params;
 
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const announcementLogs: $TSFixMe = await getAnnouncementLogs(
-                statusPage
-            );
+            const announcementLogs: $TSFixMe = getAnnouncementLogs(statusPage);
 
             return sendItemResponse(req, res, announcementLogs);
         } catch (error) {
@@ -2635,18 +2609,13 @@ router.get(
             const { statusPageSlug }: $TSFixMe = req.params;
 
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const timelines: $TSFixMe = await getMonitorTimelines(
-                statusPage.slug
-            );
+            const timelines: $TSFixMe = getMonitorTimelines(statusPage.slug);
 
             return sendItemResponse(req, res, timelines);
         } catch (error) {
@@ -2664,16 +2633,13 @@ router.get(
             const { statusPageSlug }: $TSFixMe = req.params;
 
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            const statusPageNote: $TSFixMe = await getStatusPageNote(
+            const statusPageNote: $TSFixMe = getStatusPageNote(
                 req,
 
                 statusPage.slug,
@@ -2698,10 +2664,7 @@ router.get(
             const { range }: $TSFixMe = req.query;
             const response: $TSFixMe = {};
             //Get status pages
-            const statusPage: $TSFixMe = await getStatusPage(
-                req,
-                statusPageSlug
-            );
+            const statusPage: $TSFixMe = getStatusPage(req, statusPageSlug);
 
             if (statusPage.error) {
                 return sendErrorResponse(req, res, statusPage.data);
@@ -2709,10 +2672,7 @@ router.get(
 
             const { monitors }: $TSFixMe = statusPage;
 
-            const monitorStatus: $TSFixMe = await getMonitorStatuses(
-                req,
-                monitors
-            );
+            const monitorStatus: $TSFixMe = getMonitorStatuses(req, monitors);
 
             response.monitorStatus = monitorStatus || {};
 
@@ -2723,9 +2683,9 @@ router.get(
 
             response.statusPages = statusPage;
 
-            const probes: $TSFixMe = await getProbes(req);
+            const probes: $TSFixMe = getProbes(req);
 
-            const time: $TSFixMe = await calculateTime(
+            const time: $TSFixMe = calculateTime(
                 statusPage,
                 monitorStatus,
                 probes,

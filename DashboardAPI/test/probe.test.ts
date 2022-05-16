@@ -61,7 +61,7 @@ describe('Probe API', function (): void {
 
     before(async function (): void {
         this.timeout(40000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         // Remove every monitor in DB
         await MonitorService.hardDeleteBy({});
 
@@ -94,7 +94,7 @@ describe('Probe API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProbeService.hardDeleteBy({ _id: probeId });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({

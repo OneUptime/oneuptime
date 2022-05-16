@@ -27,7 +27,7 @@ describe('Email Template API', function (): void {
 
     before(async function (): void {
         this.timeout(40000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
 
         const res: $TSFixMe = await createUser(request, userData.user);
         const project: $TSFixMe = res.body.project;
@@ -50,7 +50,7 @@ describe('Email Template API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [

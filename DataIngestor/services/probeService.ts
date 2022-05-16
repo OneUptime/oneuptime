@@ -27,7 +27,7 @@ export default {
         } else {
             probeKey = uuidv1();
         }
-        const storedProbe: $TSFixMe = await this.findOneBy({
+        const storedProbe: $TSFixMe = this.findOneBy({
             probeName: data.probeName,
         });
         if (storedProbe && storedProbe.probeName) {
@@ -54,7 +54,7 @@ export default {
             probe.deleted = false;
 
             const result: $TSFixMe = await probeCollection.insertOne(probe);
-            const savedProbe: $TSFixMe = await this.findOneBy({
+            const savedProbe: $TSFixMe = this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
             return savedProbe;
@@ -84,17 +84,17 @@ export default {
         }
 
         await probeCollection.updateOne(query, { $set: data });
-        const probe: $TSFixMe = await this.findOneBy(query);
+        const probe: $TSFixMe = this.findOneBy(query);
         return probe;
     },
 
     saveLighthouseLog: async function (data: $TSFixMe): void {
-        const log: $TSFixMe = await LighthouseLogService.create(data);
+        const log: $TSFixMe = LighthouseLogService.create(data);
         return log;
     },
 
     createMonitorDisabledStatus: async function (data: $TSFixMe): void {
-        let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
+        let monitorStatus: $TSFixMe = MonitorStatusService.findBy({
             query: {
                 monitorId: data.monitorId,
             },
@@ -107,7 +107,7 @@ export default {
 
         if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
             data.lastStatus = lastStatus ? lastStatus : null;
-            monitorStatus = await MonitorStatusService.create({
+            monitorStatus = MonitorStatusService.create({
                 ...data,
                 deleted: false,
             });
@@ -116,7 +116,7 @@ export default {
     },
 
     saveMonitorLog: async function (data: $TSFixMe): void {
-        let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
+        let monitorStatus: $TSFixMe = MonitorStatusService.findBy({
             query: {
                 monitorId: data.monitorId,
                 probeId: data.probeId,
@@ -128,10 +128,10 @@ export default {
         const lastStatus: $TSFixMe =
             monitorStatus && monitorStatus.status ? monitorStatus.status : null;
 
-        let log: $TSFixMe = await MonitorLogService.create(data);
+        let log: $TSFixMe = MonitorLogService.create(data);
 
         if (!data.stopPingTimeUpdate) {
-            await MonitorService.updateMonitorPingTime(data.monitorId);
+            MonitorService.updateMonitorPingTime(data.monitorId);
         }
 
         // Grab all the criteria in a monitor
@@ -169,11 +169,11 @@ export default {
                     return { retry: true, retryCount: data.retryCount };
                 }
 
-                await this.incidentResolveOrAcknowledge(data, allCriteria);
+                this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
             const incidentIdsOrRetry: $TSFixMe =
-                await this.incidentCreateOrUpdate(data);
+                this.incidentCreateOrUpdate(data);
 
             if (incidentIdsOrRetry.retry) {
                 return incidentIdsOrRetry;
@@ -186,10 +186,10 @@ export default {
                 data.incidentId = incidentIdsOrRetry[0];
             }
 
-            await MonitorStatusService.create({ ...data, deleted: false });
+            MonitorStatusService.create({ ...data, deleted: false });
 
             if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
-                log = await MonitorLogService.updateOneBy(
+                log = MonitorLogService.updateOneBy(
                     { _id: ObjectId(log._id) },
                     { incidentIds: incidentIdsOrRetry }
                 );
@@ -197,10 +197,10 @@ export default {
         } else {
             // Should make sure all unresolved incidents for the monitor is resolved
             if (data.status === 'online') {
-                await this.incidentResolveOrAcknowledge(data, allCriteria);
+                this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
-            const incidents: $TSFixMe = await IncidentService.findBy({
+            const incidents: $TSFixMe = IncidentService.findBy({
                 query: {
                     'monitors.monitorId': ObjectId(data.monitorId),
                     incidentType: data.status,
@@ -215,7 +215,7 @@ export default {
             );
 
             if (incidentIds && incidentIds.length) {
-                log = await MonitorLogService.updateOneBy(
+                log = MonitorLogService.updateOneBy(
                     { _id: ObjectId(log._id) },
                     { incidentIds }
                 );
@@ -226,7 +226,7 @@ export default {
 
     getMonitorLog: async function (data: $TSFixMe): void {
         const date: $TSFixMe = new Date(moment().format());
-        const log: $TSFixMe = await MonitorLogService.findOneBy({
+        const log: $TSFixMe = MonitorLogService.findOneBy({
             monitorId: data.monitorId,
             probeId: data.probeId,
             createdAt: { $lt: data.date || date },
@@ -284,7 +284,7 @@ export default {
                                 };
                             }
                         );
-                        incident = await IncidentService.updateOneBy(
+                        incident = IncidentService.updateOneBy(
                             {
                                 _id: ObjectId(incident._id),
                             },
@@ -302,7 +302,7 @@ export default {
                         );
                     }
 
-                    await IncidentTimelineService.create({
+                    IncidentTimelineService.create({
                         incidentId: incident._id,
                         probeId: data.probeId,
                         status: data.status,
@@ -368,7 +368,7 @@ export default {
                                 };
                             }
                         );
-                        incident = await IncidentService.updateOneBy(
+                        incident = IncidentService.updateOneBy(
                             {
                                 _id: ObjectId(incident._id),
                             },
@@ -386,7 +386,7 @@ export default {
                         );
                     }
 
-                    await IncidentTimelineService.create({
+                    IncidentTimelineService.create({
                         incidentId: incident._id.toString(),
                         probeId: data.probeId,
                         status: data.status,
@@ -451,7 +451,7 @@ export default {
                                 };
                             }
                         );
-                        incident = await IncidentService.updateOneBy(
+                        incident = IncidentService.updateOneBy(
                             {
                                 _id: ObjectId(incident._id),
                             },
@@ -469,7 +469,7 @@ export default {
                         );
                     }
 
-                    await IncidentTimelineService.create({
+                    IncidentTimelineService.create({
                         incidentId: incident._id.toString(),
                         probeId: data.probeId,
                         status: data.status,
@@ -700,7 +700,7 @@ export default {
             },
             { $set: { lastAlive: now } }
         );
-        const probe: $TSFixMe = await this.findOneBy({
+        const probe: $TSFixMe = this.findOneBy({
             _id: ObjectId(probeId),
         });
 

@@ -149,7 +149,7 @@ export const deleteAuditLogs: $TSFixMe = () => {
         dispatch(deleteAuditLogsRequest());
 
         try {
-            const response: $TSFixMe = await delete `audit-logs`;
+            const response: $TSFixMe = delete `audit-logs`;
 
             const message: $TSFixMe = response.data.message;
 

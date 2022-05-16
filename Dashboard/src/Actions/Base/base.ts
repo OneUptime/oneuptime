@@ -149,7 +149,7 @@ class BaseAction {
                     }
 
                     if (this.actionType === 'delete') {
-                        response = await delete (path, data);
+                        response = delete (path, data);
                     }
 
                     const data: $TSFixMe = response.data;

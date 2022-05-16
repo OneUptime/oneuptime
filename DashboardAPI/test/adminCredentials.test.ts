@@ -22,13 +22,13 @@ describe('Admin process.env.login API', function (): void {
     before(async function (): void {
         this.timeout(40000);
         await UserService.hardDeleteBy({});
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
     });
 
     after(async (): void => {
         await UserService.hardDeleteBy({});
         await AirtableService.deleteAll({ tableName: 'User' });
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await AuditLogsService.hardDeleteBy({});
     });
 

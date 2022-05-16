@@ -25,7 +25,7 @@ describe('Tutorial API', function (): void {
 
     before(async function (): void {
         this.timeout(120000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const res: $TSFixMe = await createUser(request, userData.user);
         const project: $TSFixMe = res.body.project;
         projectId = project._id;
@@ -47,7 +47,7 @@ describe('Tutorial API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {

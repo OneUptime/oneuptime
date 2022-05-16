@@ -75,7 +75,7 @@ describe('Incident API', function (): void {
 
     before(async function (): void {
         this.timeout(90000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const res: $TSFixMe = await createUser(request, userData.user);
         projectId = res.body.project._id;
         userId = res.body.id;
@@ -148,7 +148,7 @@ describe('Incident API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteAll({ tableName: 'User' });
         await IntegrationService.hardDeleteBy({
@@ -712,7 +712,7 @@ describe('Incident API with Sub-Projects', function (): void {
 
         const authorization: string = `Basic ${token}`;
         // Create a subproject for parent project
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const res: $TSFixMe = await request
             .post(`/project/${projectId}/subProject`)
             .set('Authorization', authorization)

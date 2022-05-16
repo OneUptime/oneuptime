@@ -136,7 +136,7 @@ export const deleteSsoDefaultRole: $TSFixMe = (ssoId: $TSFixMe) => {
     return async (dispatch: Dispatch) => {
         dispatch(deleteSsoDefaultRoleRequest());
         try {
-            const response: $TSFixMe = await delete `ssoDefaultRoles/${ssoId}`;
+            const response: $TSFixMe = delete `ssoDefaultRoles/${ssoId}`;
 
             dispatch(deleteSsoDefaultRoleSuccess(response.data));
 

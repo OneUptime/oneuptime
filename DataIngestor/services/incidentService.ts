@@ -52,7 +52,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const oldIncident: $TSFixMe = await this.findOneBy({
+        const oldIncident: $TSFixMe = this.findOneBy({
             query: { _id: ObjectId(query._id), deleted: { $ne: null } },
         });
 
@@ -80,7 +80,7 @@ export default {
             }
         );
 
-        updatedIncident = await this.findOneBy({
+        updatedIncident = this.findOneBy({
             query,
         });
         /*
@@ -307,7 +307,7 @@ export default {
             }
         }
 
-        const project: $TSFixMe = await ProjectService.findOneBy({
+        const project: $TSFixMe = ProjectService.findOneBy({
             query: {
                 _id: ObjectId(
                     updatedIncident.projectId._id || updatedIncident.projectId

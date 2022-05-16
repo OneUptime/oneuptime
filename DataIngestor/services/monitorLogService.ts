@@ -77,7 +77,7 @@ export default {
         Log.scriptMetadata = data.scriptMetadata;
 
         const result: $TSFixMe = await monitorLogCollection.insertOne(Log);
-        const savedLog: $TSFixMe = await this.findOneBy({
+        const savedLog: $TSFixMe = this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
 
@@ -115,7 +115,7 @@ export default {
         ]);
 
         if (logByHour) {
-            await MonitorLogByHourService.updateOneBy(
+            MonitorLogByHourService.updateOneBy(
                 { _id: ObjectId(logByHour._id) },
                 {
                     ...data,
@@ -143,13 +143,13 @@ export default {
                 }
             );
         } else {
-            await MonitorLogByHourService.create({
+            MonitorLogByHourService.create({
                 ...data,
                 intervalDate: intervalHourDate,
             });
         }
         if (logByDay) {
-            await MonitorLogByDayService.updateOneBy(
+            MonitorLogByDayService.updateOneBy(
                 { _id: ObjectId(logByDay._id) },
                 {
                     ...data,
@@ -177,13 +177,13 @@ export default {
                 }
             );
         } else {
-            await MonitorLogByDayService.create({
+            MonitorLogByDayService.create({
                 ...data,
                 intervalDate: intervalDayDate,
             });
         }
         if (logByWeek) {
-            await MonitorLogByWeekService.updateOneBy(
+            MonitorLogByWeekService.updateOneBy(
                 { _id: ObjectId(logByWeek._id) },
                 {
                     ...data,
@@ -211,7 +211,7 @@ export default {
                 }
             );
         } else {
-            await MonitorLogByWeekService.create({
+            MonitorLogByWeekService.create({
                 ...data,
                 intervalDate: intervalWeekDate,
             });
@@ -226,7 +226,7 @@ export default {
         await monitorLogCollection.updateOne(query, {
             $set: data,
         });
-        const monitorLog: $TSFixMe = await this.findOneBy(query);
+        const monitorLog: $TSFixMe = this.findOneBy(query);
 
         return monitorLog;
     },
@@ -276,7 +276,7 @@ export default {
         ]);
 
         if (monitor && monitor.projectId) {
-            const project: $TSFixMe = await ProjectService.findOneBy({
+            const project: $TSFixMe = ProjectService.findOneBy({
                 query: {
                     _id: ObjectId(monitor.projectId._id || monitor.projectId),
                 },

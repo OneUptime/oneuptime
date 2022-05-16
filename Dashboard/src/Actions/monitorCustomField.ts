@@ -192,7 +192,7 @@ export const deleteCustomField: $TSFixMe = (
             dispatch(deleteCustomFieldRequest());
 
             const response: $TSFixMe =
-                await delete `monitorCustomField/${projectId}/${customFieldId}`;
+                delete `monitorCustomField/${projectId}/${customFieldId}`;
 
             dispatch(deleteCustomFieldSuccess(response.data));
         } catch (error) {

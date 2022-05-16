@@ -1463,7 +1463,7 @@ export const deleteProjectDomain: Function = ({
 
         try {
             const response: $TSFixMe =
-                await delete `domainVerificationToken/${projectId}/domain/${domainId}`;
+                delete `domainVerificationToken/${projectId}/domain/${domainId}`;
 
             dispatch(deleteProjectDomainSuccess(response.data));
 

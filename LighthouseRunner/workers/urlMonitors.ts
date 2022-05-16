@@ -25,7 +25,7 @@ export default {
                         (!monitor.lighthouseScanStatus ||
                             monitor.lighthouseScanStatus !== 'scanning'))
                 ) {
-                    await UrlService.ping(monitor._id, {
+                    UrlService.ping(monitor._id, {
                         monitor,
                         resp: { lighthouseScanStatus: 'scanning' },
                     });
@@ -35,7 +35,7 @@ export default {
                     for (const url of sites) {
                         const resp: $TSFixMe = await lighthouseFetch(url);
 
-                        await UrlService.ping(monitor._id, {
+                        UrlService.ping(monitor._id, {
                             monitor,
                             resp,
                         });
@@ -50,7 +50,7 @@ const lighthouseFetch: Function = (url: URL): void => {
     return new Promise((resolve: Function, reject: Function) => {
         const lighthouseWorker: $TSFixMe = fork('./utils/lighthouse');
         const timeoutHandler: $TSFixMe = setTimeout(async (): $TSFixMe => {
-            await processLighthouseScan({
+            processLighthouseScan({
                 data: { url },
                 error: { message: 'TIMEOUT' },
             });
@@ -58,7 +58,7 @@ const lighthouseFetch: Function = (url: URL): void => {
 
         lighthouseWorker.send(url);
         lighthouseWorker.on('message', async (result: $TSFixMe) => {
-            await processLighthouseScan(result);
+            processLighthouseScan(result);
         });
 
         async function processLighthouseScan(result: $TSFixMe): void {

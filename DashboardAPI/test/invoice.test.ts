@@ -28,7 +28,7 @@ describe('Invoice API', function (): void {
 
     before(async function (): void {
         this.timeout(30000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const checkCardData: $TSFixMe = await request
             .post('/stripe/checkCard')
             .send({
@@ -99,7 +99,7 @@ describe('Invoice API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [

@@ -8,7 +8,7 @@ export async function askUserPermission(): void {
 }
 
 export async function getUserAgent(): void {
-    return await navigator.userAgent;
+    return navigator.userAgent;
 }
 
 export async function getTheSubscription(): void {

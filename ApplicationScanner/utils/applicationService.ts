@@ -28,9 +28,7 @@ export default {
             security.gitCredential.gitUsername &&
             security.gitCredential.gitPassword
         ) {
-            const decryptedSecurity: $TSFixMe = await this.decryptPassword(
-                security
-            );
+            const decryptedSecurity: $TSFixMe = this.decryptPassword(security);
             await this.scanApplicationSecurity(decryptedSecurity);
         }
         if (
@@ -81,7 +79,7 @@ export default {
     sshScanApplicationSecurity: async (security: $TSFixMe) => {
         let securityDir: $TSFixMe = 'application_security_dir';
 
-        securityDir = await createDir(securityDir);
+        securityDir = createDir(securityDir);
         const cloneDirectory: string = `${uuidv1()}security`; // Always create unique paths
         const repoPath: $TSFixMe = Path.resolve(securityDir, cloneDirectory);
         const conn: $TSFixMe = new Client();
@@ -190,7 +188,7 @@ export default {
                                 await updateApplicationSecurityScanTime({
                                     _id: security._id,
                                 });
-                                await deleteFolderRecursive(repoPath);
+                                deleteFolderRecursive(repoPath);
                                 return resolve(resolvedLog);
                             });
                         });
@@ -204,7 +202,7 @@ export default {
                             error
                         );
 
-                        await deleteFolderRecursive(repoPath);
+                        deleteFolderRecursive(repoPath);
                         return reject(error);
                     });
             });
@@ -219,7 +217,7 @@ export default {
     scanApplicationSecurity: async (security: $TSFixMe) => {
         let securityDir: $TSFixMe = 'application_security_dir';
 
-        securityDir = await createDir(securityDir);
+        securityDir = createDir(securityDir);
 
         const USER: $TSFixMe = security.gitCredential.gitUsername;
         const PASS: $TSFixMe = security.gitCredential.gitPassword;
@@ -332,7 +330,7 @@ export default {
                             await updateApplicationSecurityScanTime({
                                 _id: security._id,
                             });
-                            await deleteFolderRecursive(repoPath);
+                            deleteFolderRecursive(repoPath);
                             return resolve(resolvedLog);
                         });
                     });
@@ -346,7 +344,7 @@ export default {
                         error
                     );
 
-                    await deleteFolderRecursive(repoPath);
+                    deleteFolderRecursive(repoPath);
                     return reject(error);
                 });
         });
