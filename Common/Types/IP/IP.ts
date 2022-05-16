@@ -74,7 +74,6 @@ export default class IP extends DatabaseProperty {
             } else if (IP.isIPv6(value)) {
                 return new IP(value, IPType.IPv6);
             }
-            return null;
         }
         return null;
     }
