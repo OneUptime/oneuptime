@@ -1,6 +1,5 @@
-const { override, addBabelPlugin } = require("customize-cra");
-const pluginProposalDecorators = require("@babel/plugin-proposal-decorators");
+const { override,useBabelRc } = require("customize-cra");
 
 module.exports = override(  
-    addBabelPlugin(pluginProposalDecorators, {})
+    useBabelRc()
 );
