@@ -1,5 +1,5 @@
 import IP from './IP';
-import { IPType } from '../../Tests/Types/IP/IPType';
+import IPType from './IPType';
 
 export default class IPv6 extends IP {
     public constructor(ip: string) {

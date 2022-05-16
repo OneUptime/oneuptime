@@ -1,5 +1,5 @@
 import IP from '../../../Types/IP/IP';
-import { IPType } from './IPType';
+import IPType from '../../../Types/IP/IPType';
 
 describe('IP()', () => {
     test('expect ip to be defined', () => {
@@ -29,7 +29,7 @@ describe('IP()', () => {
 
     test('is valid IPv6 address', () => {
         const ip: IP = new IP('::11.22.33.44', IPType.IPv6);
-        expect(ip.isIPv6(ip.toString())).toBeTruthy();
+        expect(ip.isIPv6()).toBeTruthy();
     });
 
     test('should throw an error for invalid IP', () => {
