@@ -80,7 +80,7 @@
         "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": "off",
         // turn on to error if needed to activate
-        "@typescript-eslint/await-thenable":"off",
+        "@typescript-eslint/await-thenable":"error",
         "unused-imports/no-unused-imports": "error",
         "unused-imports/no-unused-vars": [
             "error",
