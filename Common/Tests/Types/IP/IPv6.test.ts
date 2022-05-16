@@ -13,7 +13,7 @@ describe('IPv6()', () => {
         }).toThrow();
     });
 
-    test('Is not a valid IPv6 address', () => {
+    test('Is not a valid address', () => {
         const ip: IP = new IP('Invalid Ip');
         expect(() => {
             ip.isIPv6();

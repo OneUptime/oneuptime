@@ -13,7 +13,7 @@ describe('IPv4()', () => {
         }).toThrow();
     });
 
-    test('Is not a valid IPv4 address', () => {
+    test('Is not a valid address', () => {
         const ip: IP = new IP('Invalid IP');
         expect(() => {
             ip.isIPv4();
