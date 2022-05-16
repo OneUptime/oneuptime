@@ -1,15 +1,35 @@
+import BadDataException from '../Exception/BadDataException';
 import NotImplementedException from '../Exception/NotImplementedException';
+
+enum IPType {
+    IPv4 = 'IPv4',
+    IPv6 = 'IPv6',
+}
 
 export default class IP {
     private _ip: string = '';
+    protected type: IPType = IPType.IPv4;
     public get ip(): string {
         return this._ip;
     }
     public set ip(v: string) {
-        this._ip = v;
+        if (this.type === IPType.IPv4) {
+            if (IP.isValidIpv4(v)) {
+                this._ip = v;
+            } else {
+                throw new BadDataException('Invalid IPv4 address');
+            }
+        } else if (this.type === IPType.IPv6) {
+            if (IP.isValidIpv6(v)) {
+                this._ip = v;
+            } else {
+                throw new BadDataException('Invalid IPv6 address');
+            }
+        }
     }
 
-    public constructor(ip: string) {
+    public constructor(ip: string, type: IPType) {
+        this.type = type;
         this.ip = ip;
     }
 

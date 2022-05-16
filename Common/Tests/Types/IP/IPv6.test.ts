@@ -8,15 +8,12 @@ describe('IPv6()', () => {
 
     test('should not be IPv4', () => {
         const ip: IP = new IP('2001:0db8:85a3:0000:0000:8a2e:0370:7334');
-        expect(() => {
-            ip.isIPv4();
-        }).toThrow();
+        expect(ip.isIPv4()).toBeFalsy();
     });
 
     test('Is not a valid address', () => {
-        const ip: IP = new IP('Invalid Ip');
         expect(() => {
-            ip.isIPv6();
+            new IP('Invalid Ip');
         }).toThrow();
     });
 });
