@@ -1,7 +1,8 @@
+import DatabaseProperty from '../Database/DatabaseProperty';
 import BadDataException from '../Exception/BadDataException';
 import IPType from './IPType';
 
-export default class IP {
+export default class IP extends DatabaseProperty {
     private _ip: string = '';
     protected type: IPType = IPType.IPv4;
     public get ip(): string {
@@ -24,11 +25,12 @@ export default class IP {
     }
 
     public constructor(ip: string, type: IPType) {
+        super();
         this.type = type;
         this.ip = ip;
     }
 
-    public toString(): string {
+    public override toString(): string {
         return this.ip;
     }
 
@@ -56,5 +58,23 @@ export default class IP {
             return true;
         }
         return false;
+    }
+
+    public static override toDatabase(_value: string): string | null {
+        if (_value) {
+            return _value.toString();
+        }
+        return null;
+    }
+
+    public static override fromDatabase(value: string): IP | null {
+        if (value) {
+            if (IP.isIPv4(value)) {
+                return new IP(value, IPType.IPv4);
+            } else if (IP.isIPv6(value)) {
+                return new IP(value, IPType.IPv6);
+            }
+        }
+        return null;
     }
 }
