@@ -75,7 +75,7 @@ export default class UserMiddleware {
             oneuptimeRequest.authorizationType = AuthorizationType.User;
         }
 
-        UserService.updateOneBy({
+        await UserService.updateOneBy({
             query: {
                 _id: oneuptimeRequest.userAuthorization.userId.toString(),
             },

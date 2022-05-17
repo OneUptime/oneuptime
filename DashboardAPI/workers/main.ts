@@ -22,15 +22,15 @@ const certOrderCronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
 // Esclation Policy: This cron runs every minute
 cron.schedule('* * * * *', () => {
-    setTimeout(() => {
-        escalationPolicy.checkActiveEscalationPolicyAndSendAlerts();
+    setTimeout(async () => {
+        await escalationPolicy.checkActiveEscalationPolicyAndSendAlerts();
     }, cronMinuteStartTime * 1000);
 });
 
 // Server Monitor: This cron runs every minute
 cron.schedule('* * * * *', () => {
-    setTimeout(() => {
-        serverMonitorCron.checkAllServerMonitors();
+    setTimeout(async () => {
+        await serverMonitorCron.checkAllServerMonitors();
     }, serverMonitorCronMinuteStartTime * 1000);
 });
 

@@ -29,7 +29,7 @@ router.post(
             const { appId }: $TSFixMe = req.params;
             const { incoming, outgoing, sentAt }: $TSFixMe = req.body;
 
-            Promise.all([
+            await Promise.all([
                 PerformanceTrackerMetricService.createMetricsData(
                     appId,
                     'incoming',
