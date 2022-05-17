@@ -57,7 +57,7 @@ export default {
         const result: $TSFixMe = await monitorLogByWeekCollection.insertOne(
             LogWeek
         );
-        const savedLogWeek: $TSFixMe = await this.findOneBy({
+        const savedLogWeek: $TSFixMe = this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
 

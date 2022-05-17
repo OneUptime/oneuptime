@@ -41,7 +41,7 @@ export default {
         scriptLog.deleted = false;
 
         const result: $TSFixMe = await scriptLogCollection.insertOne(scriptLog);
-        const newScriptLog: $TSFixMe = await this.findOneBy({
+        const newScriptLog: $TSFixMe = this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
 
@@ -104,7 +104,7 @@ export default {
                         return null;
                 }
 
-                await this.createLog(resource.automatedScript, data);
+                this.createLog(resource.automatedScript, data);
             }
         }
 
@@ -145,7 +145,7 @@ export default {
         stackSize,
     }: $TSFixMe): void {
         const { script, scriptType, successEvent, failureEvent }: $TSFixMe =
-            await this.findOneBy({
+            this.findOneBy({
                 _id: ObjectId(automatedScriptId),
             });
         let data: $TSFixMe = null;
@@ -192,7 +192,7 @@ export default {
             : null;
 
         if (data.success && successEvent.length > 0) {
-            await this.runResource({
+            this.runResource({
                 triggeredId: automatedScriptId,
                 resources: successEvent,
                 stackSize,
@@ -200,17 +200,17 @@ export default {
         }
 
         if (!data.success && failureEvent.length > 0) {
-            await this.runResource({
+            this.runResource({
                 triggeredId: automatedScriptId,
                 resources: failureEvent,
                 stackSize,
             });
         }
-        const automatedScriptLog: $TSFixMe = await this.createLog(
+        const automatedScriptLog: $TSFixMe = this.createLog(
             automatedScriptId,
             data
         );
-        await this.updateOne(
+        this.updateOne(
             { _id: ObjectId(automatedScriptId) },
             { updatedAt: new Date(moment().format()) }
         );

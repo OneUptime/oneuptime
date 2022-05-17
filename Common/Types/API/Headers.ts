@@ -1,3 +1,4 @@
 import Dictionary from '../Dictionary';
 
-export default interface Headers extends Dictionary<string> {}
+type Headers = Dictionary<string>;
+export default Headers;

@@ -470,7 +470,7 @@ describe('Component API with Sub-Projects', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: {
                 $in: [projectId, newProjectId, otherProjectId, subProjectId],

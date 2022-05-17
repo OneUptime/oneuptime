@@ -38,7 +38,7 @@ async function handleFetchingDomains(): void {
 }
 
 export default async function (): void {
-    const domains: $TSFixMe = await handleFetchingDomains();
+    const domains: $TSFixMe = handleFetchingDomains();
 
     const greenlock: $TSFixMe = global.greenlock;
     if (greenlock) {

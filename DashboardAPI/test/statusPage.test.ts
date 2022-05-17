@@ -183,7 +183,7 @@ describe('Status API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await ScheduledEventService.hardDeleteBy({ _id: scheduledEventId });
         await StatusService.hardDeleteBy({ projectId: projectId });

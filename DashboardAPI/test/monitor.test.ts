@@ -137,7 +137,7 @@ describe('Monitor API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ projectId });
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -541,7 +541,7 @@ describe('API Monitor API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await UserService.hardDeleteBy({
             email: userData.user.email,
@@ -751,7 +751,7 @@ describe('IncomingHttpRequest Monitor', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await MonitorService.hardDeleteBy({ _id: monitor2Id });
         await UserService.hardDeleteBy({
@@ -949,7 +949,7 @@ describe('Monitor API with resource Category', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await AirtableService.deleteAll({ tableName: 'User' });
@@ -1062,7 +1062,7 @@ describe('Monitor API with Sub-Projects', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await MonitorService.hardDeleteBy({ _id: subProjectMonitorId });
     });
@@ -1310,7 +1310,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function (): void
 
     before(async function (): void {
         this.timeout(30000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const authorization: string = `Basic ${token}`;
 
         await MonitorService.hardDeleteBy({ projectId });
@@ -1326,7 +1326,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function (): void
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
         });

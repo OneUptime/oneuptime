@@ -1,3 +1,4 @@
 import ActionPayload from '../Types/ActionPayload';
 
-export default interface ErrorPayload extends ActionPayload {}
+type ErrorPayload = ActionPayload;
+export default ErrorPayload;

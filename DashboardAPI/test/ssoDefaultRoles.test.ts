@@ -81,7 +81,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
 
     before(async function (): void {
         this.timeout(40000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const response: $TSFixMe = await createUser(
             request,
             userData.adminUser
@@ -127,7 +127,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ 'users.userId': userId });
         await UserService.hardDeleteBy({
             _id: {

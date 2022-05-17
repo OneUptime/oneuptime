@@ -126,7 +126,7 @@ describe('Incident Settings API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await IncidentService.hardDeleteBy({ _id: incidentId });
         await IncidentSettings.hardDeleteBy({ projectId });
         await IncidentPrioritiesService.hardDeleteBy({ projectId });

@@ -433,7 +433,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const beforeDeleteBy: DeleteBy<TBaseModel> =
                 await this.onBeforeDelete(deleteBy);
 
-            this._updateBy({
+            await this._updateBy({
                 query: deleteBy.query,
                 data: {
                     deletedByUser: deleteBy.deletedByUser,

@@ -24,10 +24,10 @@ describe('Disable Sign up test', function (): void {
 
     this.beforeAll(async function (): void {
         this.timeout(400000);
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
         await AirtableService.deleteAll({ tableName: 'User' });
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const user: $TSFixMe = await createUser(request, data.adminUser);
         await UserService.updateBy(
             { _id: user.body.id },
@@ -42,7 +42,7 @@ describe('Disable Sign up test', function (): void {
     });
 
     this.afterAll(async () => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
         await AirtableService.deleteAll({ tableName: 'User' });
         process.env['DISABLE_SIGNUP'] = undefined;

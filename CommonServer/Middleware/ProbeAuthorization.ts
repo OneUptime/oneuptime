@@ -185,7 +185,7 @@ export default class ProbeMiddleware {
         };
 
         // Run in background.
-        ProbeService.updateLastAlive(probeName);
+        await ProbeService.updateLastAlive(probeName);
 
         if (
             probeVersion &&
@@ -195,7 +195,10 @@ export default class ProbeMiddleware {
                     probeName
                 ).version.toString() !== probeVersion.toString())
         ) {
-            ProbeService.updateProbeVersionByName(probeName, probeVersion);
+            await ProbeService.updateProbeVersionByName(
+                probeName,
+                probeVersion
+            );
         }
 
         return next();

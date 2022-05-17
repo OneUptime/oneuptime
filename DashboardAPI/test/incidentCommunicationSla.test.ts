@@ -36,7 +36,7 @@ describe('Incident Communication SLA', function (): void {
     this.timeout(timeout);
 
     before(async (): void => {
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const res: $TSFixMe = await createUser(request, userData.user);
         projectId = res.body.project._id;
         userId = res.body.id;
@@ -56,7 +56,7 @@ describe('Incident Communication SLA', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: userData.user.email.toLowerCase(),

@@ -131,7 +131,7 @@ describe('Alert API', (): void => {
             await StatusPageService.hardDeleteBy({ projectId: projectId });
             await NotificationService.hardDeleteBy({ projectId: projectId });
             await AlertService.hardDeleteBy({ _id: alertId });
-            await GlobalConfig.removeTestConfig();
+            GlobalConfig.removeTestConfig();
             await AirtableService.deleteAll({ tableName: 'User' });
             await UserService.hardDeleteBy({
                 email: userData.user.email,
@@ -303,7 +303,7 @@ describe('Alert API', (): void => {
             await MonitorService.hardDeleteBy({ _id: monitorId });
             await IncidentService.hardDeleteBy({ _id: incidentId });
             await AlertService.hardDeleteBy({ _id: alertId });
-            await GlobalConfig.removeTestConfig();
+            GlobalConfig.removeTestConfig();
         });
 
         it('should not create alert for user not in the project.', (done: $TSFixMe): void => {

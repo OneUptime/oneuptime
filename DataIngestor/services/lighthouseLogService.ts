@@ -28,11 +28,11 @@ export default {
             scanning: data.scanning,
             createdAt: new Date(moment().format()),
         });
-        const savedLog: $TSFixMe = await this.findOneBy({
+        const savedLog: $TSFixMe = this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
 
-        await this.sendLighthouseLog(savedLog);
+        this.sendLighthouseLog(savedLog);
 
         if (data.probeId && data.monitorId) {
             await probeService.sendProbe(data.probeId, data.monitorId);
@@ -56,12 +56,12 @@ export default {
     },
 
     async sendLighthouseLog(data: $TSFixMe): void {
-        const monitor: $TSFixMe = await MonitorService.findOneBy({
+        const monitor: $TSFixMe = MonitorService.findOneBy({
             query: { _id: ObjectId(data.monitorId) },
         });
 
         if (monitor && monitor.projectId) {
-            const project: $TSFixMe = await ProjectService.findOneBy({
+            const project: $TSFixMe = ProjectService.findOneBy({
                 query: {
                     _id: ObjectId(monitor.projectId._id || monitor.projectId),
                 },
@@ -108,6 +108,6 @@ export default {
     },
 
     async updateAllLighthouseLogs(monitorId: $TSFixMe, query: Query): void {
-        await this.updateManyBy({ monitorId: monitorId }, query);
+        this.updateManyBy({ monitorId: monitorId }, query);
     },
 };

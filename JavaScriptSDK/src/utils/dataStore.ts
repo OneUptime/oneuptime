@@ -112,7 +112,7 @@ class DataStore {
             mongoose: Object.fromEntries(this.mongoose),
             sentAt: Date.now(),
         };
-        await this._makeApiRequest(data);
+        this._makeApiRequest(data);
         this.clearData();
     }
     public async processDataOnExit(): void {
@@ -127,7 +127,7 @@ class DataStore {
                 mongoose: Object.fromEntries(this.mongoose),
                 sentAt: Date.now(),
             };
-            await this._makeApiRequest(data);
+            this._makeApiRequest(data);
             this.clearData();
             process.exit(1);
         }

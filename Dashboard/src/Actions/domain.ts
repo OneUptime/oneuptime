@@ -139,7 +139,7 @@ export const deleteDomain: Function = ({
         dispatch(deleteDomainRequest());
         try {
             const response: $TSFixMe =
-                await delete `StatusPage/${projectId}/${statusPageId}/${domainId}`;
+                delete `StatusPage/${projectId}/${statusPageId}/${domainId}`;
 
             dispatch(deleteDomainSuccess(response.data));
         } catch (error) {

@@ -168,7 +168,7 @@ describe('Subscriber API', function (): void {
     });
 
     after(async () => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [

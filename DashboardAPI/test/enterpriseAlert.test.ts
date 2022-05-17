@@ -73,7 +73,7 @@ describe('Enterprise Alert API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await UserService.hardDeleteBy({

@@ -124,7 +124,7 @@ describe('Zapier API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [

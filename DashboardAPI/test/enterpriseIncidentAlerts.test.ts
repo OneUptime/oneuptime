@@ -164,7 +164,7 @@ describe('Incident Alerts', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
         await SubscriberService.hardDeleteBy({ projectId });
         await SubscriberAlertService.hardDeleteBy({ projectId });

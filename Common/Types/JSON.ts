@@ -22,7 +22,7 @@ export interface JSONObject {
     [x: string]: JSONValue;
 }
 
-export interface JSONArray extends Array<JSONObject> {}
+export type JSONArray = Array<JSONObject>;
 
 export class JSONFunctions {
     public toCompressedString(val: JSONValue): string {

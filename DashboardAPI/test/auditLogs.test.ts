@@ -74,7 +74,7 @@ describe('Audit Logs API', function (): void {
             },
         });
         await AirtableService.deleteAll({ tableName: 'User' });
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
 
         /*
          * Deleting any auditLogs created between this test suite.

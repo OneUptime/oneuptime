@@ -82,7 +82,7 @@ describe('Resource Category API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -243,7 +243,7 @@ describe('User from other project have access to read / write and delete API.', 
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -461,7 +461,7 @@ describe('Non-admin user access to create, delete and access resource category.'
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
         await ProjectService.hardDeleteBy({ _id: projectIdSecondUser });
@@ -545,7 +545,7 @@ describe('Resource Category APIs accesible through API key', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -632,7 +632,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
 
     before(async function (): void {
         this.timeout(60000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const checkCardData: $TSFixMe = await request
             .post('/stripe/checkCard')
             .send({
@@ -689,7 +689,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({

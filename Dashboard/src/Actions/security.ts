@@ -230,7 +230,7 @@ export const deleteContainerSecurity: $TSFixMe = ({
 
         try {
             const response: $TSFixMe =
-                await delete `security/${projectId}/${componentId}/container/${containerSecurityId}`;
+                delete `security/${projectId}/${componentId}/container/${containerSecurityId}`;
 
             dispatch(deleteContainerSecuritySuccess(response.data));
 
@@ -721,7 +721,7 @@ export const deleteApplicationSecurity: $TSFixMe = ({
 
         try {
             const response: $TSFixMe =
-                await delete `security/${projectId}/${componentId}/application/${applicationSecurityId}`;
+                delete `security/${projectId}/${componentId}/application/${applicationSecurityId}`;
 
             dispatch(deleteApplicationSecuritySuccess(response.data));
 

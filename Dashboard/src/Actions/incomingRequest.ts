@@ -142,7 +142,7 @@ export const deleteIncomingRequest: $TSFixMe = (
             dispatch(deleteIncomingRequestRequest());
 
             const response: $TSFixMe =
-                await delete `incoming-request/${projectId}/remove/${requestId}`;
+                delete `incoming-request/${projectId}/remove/${requestId}`;
 
             dispatch(deleteIncomingRequestSuccess(response.data));
         } catch (error) {

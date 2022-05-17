@@ -65,7 +65,7 @@ describe('Schedule API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ScheduleService.hardDeleteBy({ _id: scheduleId });
         await AirtableService.deleteAll({ tableName: 'User' });
     });
@@ -249,7 +249,7 @@ describe('Schedule API with Sub-Projects', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
         });

@@ -65,7 +65,7 @@ describe('Global Config API', function (): void {
     });
 
     after(async () => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: data.user.email.toLowerCase(),
         });

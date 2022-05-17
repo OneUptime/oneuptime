@@ -103,7 +103,7 @@ export default {
             if (global.probes[probeName]) {
                 probeId = global.probes[probeName]._id;
             } else {
-                const probe: $TSFixMe = await ProbeService.findOneBy({
+                const probe: $TSFixMe = ProbeService.findOneBy({
                     probeName,
                 });
 
@@ -120,7 +120,7 @@ export default {
         } else if (global.probes[probeName]) {
             probeId = global.probes[probeName]._id;
         } else {
-            const probe: $TSFixMe = await ProbeService.findOneBy({
+            const probe: $TSFixMe = ProbeService.findOneBy({
                 probeKey,
                 probeName,
             });
@@ -146,7 +146,7 @@ export default {
 
         if (!probeId) {
             //Create a new probe.
-            const probe: $TSFixMe = await ProbeService.create({
+            const probe: $TSFixMe = ProbeService.create({
                 probeKey,
                 probeName,
                 probeVersion,
@@ -163,14 +163,14 @@ export default {
 
         if (global.probes[probeName].probeKey !== probeKey) {
             //Update probe key becasue it does not match.
-            await ProbeService.updateOneBy(
+            ProbeService.updateOneBy(
                 {
                     probeName,
                 },
                 { probeKey }
             );
 
-            const probe: $TSFixMe = await ProbeService.findOneBy({
+            const probe: $TSFixMe = ProbeService.findOneBy({
                 probeKey,
                 probeName,
             });
@@ -195,7 +195,7 @@ export default {
             (!global.probes[probeName].version ||
                 global.probes[probeName].version !== probeVersion)
         ) {
-            await ProbeService.updateOneBy(
+            ProbeService.updateOneBy(
                 {
                     probeName,
                 },
