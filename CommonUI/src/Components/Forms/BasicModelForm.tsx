@@ -18,19 +18,19 @@ const BasicModelForm = <TBaseModel extends BaseModel>(props: ComponentProps<TBas
     const initialValues: FormValues<TBaseModel> = {};
 
 
-    // Prep
-    for (const field of props.fields) {
+    // // Prep
+    // for (const field of props.fields) {
 
-        if (Object.keys(field.field).length > 0){
-            if (props.model.getDisplayColumnTitleAs(Object.keys(field.field)[0] as string)) {
-                field.title = props.model.getDisplayColumnTitleAs(Object.keys(field.field)[0] as string) as string;
-            }
+    //     if (Object.keys(field.field).length > 0){
+    //         if (props.model.getDisplayColumnTitleAs(Object.keys(field.field)[0] as string)) {
+    //             field.title = props.model.getDisplayColumnTitleAs(Object.keys(field.field)[0] as string) as string;
+    //         }
 
-            if (props.model.getDisplayColumnDescriptionAs(Object.keys(field.field)[0] as string)) {
-                field.description = props.model.getDisplayColumnDescriptionAs(Object.keys(field.field)[0] as string) as string;
-            }
-        }
-    }
+    //         if (props.model.getDisplayColumnDescriptionAs(Object.keys(field.field)[0] as string)) {
+    //             field.description = props.model.getDisplayColumnDescriptionAs(Object.keys(field.field)[0] as string) as string;
+    //         }
+    //     }
+    // }
 
     return (<BasicForm
         fields={props.fields}

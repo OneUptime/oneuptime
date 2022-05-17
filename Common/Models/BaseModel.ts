@@ -133,6 +133,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public addDisplayColumnTitleAs(columnName: string, title: string): void {
+        if (!this.displayColumnTitleAs) {
+            this.displayColumnTitleAs = {};
+        }
         this.displayColumnTitleAs[columnName] = title;
     }
 
@@ -145,6 +148,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public addDisplayColumnDescriptionAs(columnName: string, description: string): void {
+        if (!this.displayColumnDescriptionAs) {
+            this.displayColumnDescriptionAs = {};
+        }
         this.displayColumnDescriptionAs[columnName] = description;
     }
 

@@ -4,7 +4,9 @@
   "private": true,
   "dependencies": {
     "@babel/plugin-proposal-class-properties": "^7.16.7",
-    "@babel/plugin-proposal-decorators": "^7.17.9",
+    "@babel/plugin-proposal-private-methods": "^7.16.11",
+    "@babel/plugin-proposal-private-property-in-object": "^7.16.7",
+    "@babel/preset-env": "^7.17.10",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.2.0",
     "@testing-library/user-event": "^13.5.0",
@@ -15,6 +17,7 @@
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
     "CommonUI": "file:../CommonUI",
+    "formik": "^2.2.9",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "react-router-dom": "^6.3.0",
@@ -22,7 +25,7 @@
     "typescript": "^4.6.4"
   },
   "scripts": {
-    "dev": "PORT=3003 react-app-rewired start",
+    "dev": "webpack-dev-server --port=3003 --mode=development",
     "build": "react-app-rewired build",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject",
@@ -51,8 +54,19 @@
     ]
   },
   "devDependencies": {
+    "@babel/core": "^7.17.10",
+    "@babel/plugin-proposal-decorators": "^7.17.9",
+    "@babel/preset-flow": "^7.17.12",
+    "@babel/preset-react": "^7.16.7",
+    "@babel/preset-typescript": "^7.16.7",
+    "babel-loader": "^8.2.5",
     "babel-plugin-transform-decorators-legacy": "^1.3.5",
+    "css-loader": "^6.7.1",
     "customize-cra": "^1.0.0",
-    "react-app-rewired": "^2.2.1"
+    "react-app-rewired": "^2.2.1",
+    "ts-loader": "^9.3.0",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-server": "^4.9.0"
   }
 }
