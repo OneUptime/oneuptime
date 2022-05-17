@@ -36,6 +36,7 @@ export default class BaseModel extends BaseEntity {
 
     private displayColumnTitleAs: Dictionary<string> = {};
     private displayColumnDescriptionAs: Dictionary<string> = {};
+    private displayColumnPlaceholderAs: Dictionary<string> = {};
 
     private encryptedColumns: Columns = new Columns([]);
     private uniqueColumns: Columns = new Columns([]);
@@ -136,6 +137,21 @@ export default class BaseModel extends BaseEntity {
             this.displayColumnTitleAs = {};
         }
         this.displayColumnTitleAs[columnName] = title;
+    }
+
+    public addDisplayColumnPlaceholderAs(columnName: string, placeholder: string): void {
+        if (!this.displayColumnPlaceholderAs) {
+            this.displayColumnPlaceholderAs = {};
+        }
+        this.displayColumnPlaceholderAs[columnName] = placeholder;
+    }
+
+    public getDisplayColumnPlaceholderAs(columnName: string): string | null {
+        if (this.displayColumnPlaceholderAs[columnName]) {
+            return this.displayColumnPlaceholderAs[columnName] as string;
+        }
+
+        return null;
     }
 
     public getDisplayColumnTitleAs(columnName: string): string | null {
