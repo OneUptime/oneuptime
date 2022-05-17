@@ -26,7 +26,7 @@ export default class Email extends DatabaseProperty {
         return this.email;
     }
 
-    protected static override toDatabase(
+    public static override toDatabase(
         _value: Email | FindOperator<Email>
     ): string | null {
         if (_value) {
@@ -36,7 +36,7 @@ export default class Email extends DatabaseProperty {
         return null;
     }
 
-    protected static override fromDatabase(_value: string): Email | null {
+    public static override fromDatabase(_value: string): Email | null {
         if (_value) {
             return new Email(_value);
         }
