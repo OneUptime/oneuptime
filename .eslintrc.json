@@ -79,8 +79,10 @@
         // https://www.npmjs.com/package/eslint-plugin-unused-imports
         "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-for-in-array": "error",
         "@typescript-eslint/await-thenable":"error",
         "unused-imports/no-unused-imports": "error",
+        "@typescript-eslint/no-explicit-any":"error",
         "unused-imports/no-unused-vars": [
             "error",
             {

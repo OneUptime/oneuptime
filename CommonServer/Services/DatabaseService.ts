@@ -59,7 +59,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // Check required fields.
 
         for (const requiredField of data.getRequiredColumns().columns) {
-            if (!(data as any)[requiredField]) {
+            if (!(data as $TSFixMe)[requiredField]) {
                 throw new BadDataException(`${requiredField} is required`);
             }
         }
@@ -74,12 +74,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     protected encrypt(data: TBaseModel): TBaseModel {
         const iv: Buffer = Encryption.getIV();
-        (data as any)['iv'] = iv;
+        (data as $TSFixMe)['iv'] = iv;
 
         for (const key of data.getEncryptedColumns().columns) {
             // If data is an object.
-            if (typeof (data as any)[key] === 'object') {
-                const dataObj: JSONObject = (data as any)[key] as JSONObject;
+            if (typeof (data as $TSFixMe)[key] === 'object') {
+                const dataObj: JSONObject = (data as $TSFixMe)[
+                    key
+                ] as JSONObject;
 
                 for (const key in dataObj) {
                     dataObj[key] = Encryption.encrypt(
@@ -88,11 +90,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     );
                 }
 
-                (data as any)[key] = dataObj;
+                (data as $TSFixMe)[key] = dataObj;
             } else {
                 //If its string or other type.
-                (data as any)[key] = Encryption.encrypt(
-                    (data as any)[key] as string,
+                (data as $TSFixMe)[key] = Encryption.encrypt(
+                    (data as $TSFixMe)[key] as string,
                     iv
                 );
             }
@@ -103,8 +105,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     protected async hash(data: TBaseModel): Promise<TBaseModel> {
         for (const key of data.getHashedColumns().columns) {
-            if (!((data as any)[key] as HashedString).isValueHashed) {
-                await ((data as any)[key] as HashedString).hashValue(
+            if (!((data as $TSFixMe)[key] as HashedString).isValueHashed) {
+                await ((data as $TSFixMe)[key] as HashedString).hashValue(
                     EncryptionSecret
                 );
             }
@@ -114,12 +116,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     protected decrypt(data: TBaseModel): TBaseModel {
-        const iv: Buffer = (data as any)['iv'];
+        const iv: Buffer = (data as $TSFixMe)['iv'];
 
         for (const key of data.getEncryptedColumns().columns) {
             // If data is an object.
-            if (typeof (data as any)[key] === 'object') {
-                const dataObj: JSONObject = (data as any)[key];
+            if (typeof (data as $TSFixMe)[key] === 'object') {
+                const dataObj: JSONObject = (data as $TSFixMe)[key];
 
                 for (const key in dataObj) {
                     dataObj[key] = Encryption.decrypt(
@@ -128,10 +130,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     );
                 }
 
-                (data as any)[key] = dataObj;
+                (data as $TSFixMe)[key] = dataObj;
             } else {
                 //If its string or other type.
-                (data as any)[key] = Encryption.decrypt((data as any)[key], iv);
+                (data as $TSFixMe)[key] = Encryption.decrypt(
+                    (data as $TSFixMe)[key],
+                    iv
+                );
             }
         }
 
@@ -240,9 +245,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         try {
             if (data.getSlugifyColumn()) {
-                (data as any)[data.getSaveSlugToColumn() as string] =
+                (data as $TSFixMe)[data.getSaveSlugToColumn() as string] =
                     Slug.getSlug(
-                        (data as any)[
+                        (data as $TSFixMe)[
                             data.getSlugifyColumn() as string
                         ] as string
                     );
@@ -272,7 +277,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
 
             const count: number = await this.getRepository().count({
-                where: query as any,
+                where: query as $TSFixMe,
                 skip: skip.toNumber(),
                 take: limit.toNumber(),
             });
@@ -423,7 +428,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         hardDeleteBy: HardDeleteBy<TBaseModel>
     ): Promise<number> {
         return (
-            (await this.getRepository().delete(hardDeleteBy.query as any))
+            (await this.getRepository().delete(hardDeleteBy.query as $TSFixMe))
                 .affected || 0
         );
     }
@@ -437,12 +442,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query: deleteBy.query,
                 data: {
                     deletedByUser: deleteBy.deletedByUser,
-                } as any,
+                } as $TSFixMe,
             });
             const numberOfDocsAffected: number =
                 (
                     await this.getRepository().softDelete(
-                        beforeDeleteBy.query as any
+                        beforeDeleteBy.query as $TSFixMe
                     )
                 ).affected || 0;
 
@@ -591,9 +596,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
-                where: onBeforeFind.query as any,
-                order: onBeforeFind.sort as any,
-                relations: onBeforeFind.populate as any,
+                where: onBeforeFind.query as $TSFixMe,
+                order: onBeforeFind.sort as $TSFixMe,
+                relations: onBeforeFind.populate as $TSFixMe,
             });
 
             const decryptedItems: Array<TBaseModel> = [];
@@ -629,7 +634,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async findOneById(id: ObjectID): Promise<TBaseModel | null> {
         return await this.findOneBy({
             query: {
-                _id: id.toString() as any,
+                _id: id.toString() as $TSFixMe,
             },
         });
     }
@@ -648,7 +653,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const numberOfDocsAffected: number =
                 (
                     await this.getRepository().update(
-                        beforeUpdateBy.query as any,
+                        beforeUpdateBy.query as $TSFixMe,
                         beforeUpdateBy.data
                     )
                 ).affected || 0;
@@ -681,7 +686,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     ): Promise<void> {
         await this.updateOneBy({
             query: {
-                _id: updateById.id.toString() as any,
+                _id: updateById.id.toString() as $TSFixMe,
             },
             data: updateById.data,
         });

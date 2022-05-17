@@ -1,2 +1,2 @@
-export type $TSFixMe = any;
-export type $TSFixMeFunction = (...args: any[]) => any;
+export type $TSFixMe = unknown;
+export type $TSFixMeFunction = (...args: unknown[]) => unknown;

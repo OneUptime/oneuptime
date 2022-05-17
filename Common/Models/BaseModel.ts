@@ -536,7 +536,7 @@ export default class BaseModel extends BaseEntity {
         const baseModel: BaseModel = new BaseModel();
 
         for (const key of Object.keys(json)) {
-            (baseModel as any)[key] = json[key];
+            (baseModel as $TSFixMe)[key] = json[key];
         }
 
         return baseModel as T;
@@ -554,7 +554,7 @@ export default class BaseModel extends BaseEntity {
 
         for (const key of Object.keys(data)) {
             if (!columnsToKeep) {
-                (baseModel as any)[key] = (data as any)[key];
+                (baseModel as $TSFixMe)[key] = (data as $TSFixMe)[key];
             }
 
             if (
@@ -562,7 +562,7 @@ export default class BaseModel extends BaseEntity {
                 columnsToKeep.columns.length > 0 &&
                 columnsToKeep.columns.includes(key)
             ) {
-                (baseModel as any)[key] = (data as any)[key];
+                (baseModel as $TSFixMe)[key] = (data as $TSFixMe)[key];
             }
         }
 
@@ -1052,8 +1052,8 @@ export default class BaseModel extends BaseEntity {
     public toJSON(): JSONObject {
         const json: JSONObject = {};
         for (const column of this.tableColumns.columns) {
-            if ((this as any)[column]) {
-                json[column] = (this as any)[column];
+            if ((this as $TSFixMe)[column]) {
+                json[column] = (this as $TSFixMe)[column];
             }
         }
 
