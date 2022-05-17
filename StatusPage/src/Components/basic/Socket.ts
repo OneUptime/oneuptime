@@ -39,13 +39,16 @@ const socket: $TSFixMe = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 
-export interface ComponentProps {}
+export interface ComponentProps {
+    project: $TSFixMe;
+}
 
 class SocketApp extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
+    protected props: any;
 
-    public override shouldComponentUpdate(nextProps: ComponentProps): boolean {
+    public shouldComponentUpdate(nextProps: ComponentProps): boolean {
         if (this.props.project !== nextProps.project) {
             if (this.props.project) {
                 socket.removeListener(
@@ -110,7 +113,7 @@ class SocketApp extends Component<ComponentProps> {
         return false;
     }
 
-    public override render(): void {
+    public render(): void {
         const thisObj: $TSFixMe = this;
 
         if (this.props.project) {

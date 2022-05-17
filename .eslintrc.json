@@ -76,6 +76,12 @@
             "error",
             "unix"
         ],
+        "@typescript-eslint/no-empty-interface": [
+            "warn",
+            {
+              "allowSingleExtends": true
+            }
+          ],
         // https://www.npmjs.com/package/eslint-plugin-unused-imports
         "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": "off",
