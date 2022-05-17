@@ -3,7 +3,7 @@ import ScriptOptions from './Types/ScriptOptions';
 
 import Compile from './Services/Compile';
 
-(async (): Promise<void> => {
+await (async (): Promise<void> => {
     const token: $TSFixMe = await question('Choose Option: ', {
         choices: [ScriptOptions.CompileTypeScript],
     });
