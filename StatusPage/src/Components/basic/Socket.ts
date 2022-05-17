@@ -40,13 +40,13 @@ const socket: $TSFixMe = io.connect(REALTIME_URL.replace('/realtime', ''), {
 });
 
 export interface ComponentProps {
-    project: $TSFixMe;
+    project?: object;
 }
 
 class SocketApp extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
-    protected props: any;
+    protected props: $TSFixMe;
 
     public shouldComponentUpdate(nextProps: ComponentProps): boolean {
         if (this.props.project !== nextProps.project) {

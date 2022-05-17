@@ -77,7 +77,7 @@
             "unix"
         ],
         "@typescript-eslint/no-empty-interface": [
-            "warn",
+            "error",
             {
               "allowSingleExtends": true
             }
