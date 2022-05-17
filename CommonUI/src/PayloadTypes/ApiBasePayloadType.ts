@@ -14,6 +14,6 @@ export interface ApiSuccess extends ActionPayload {
     response: HTTPResponse;
 }
 
-export interface ApiReset extends ActionPayload {}
+export type ApiReset = ActionPayload;
 
 export type PayloadTypes = ApiRequest | ApiError | ApiSuccess | ApiReset;
