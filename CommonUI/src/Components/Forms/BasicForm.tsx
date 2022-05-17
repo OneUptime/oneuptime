@@ -32,7 +32,7 @@ const BasicForm = <T extends Object,>(props: ComponentProps<T>): ReactElement =>
         return (<div key={index}>
             <label>{field.title}</label>
             <p>{field.description}</p>
-            <Field type={fieldType} name={Object.keys(field.field)[0] as string} />
+            <Field placeholder={field.placeholder} type={fieldType} name={Object.keys(field.field)[0] as string} />
             <ErrorMessage name={Object.keys(field.field)[0] as string} component="div" />
         </div>)
     }
