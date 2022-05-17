@@ -21,7 +21,7 @@
     "compile": "tsc",
     "start": "node index.ts",
     "audit": "npm audit --audit-level=low",
-    "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+    "preinstall": "npm link ../CommonUI/node_modules/react && npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
     "dep-check": "depcheck ./ --skip-missing=true'"
   },
   "browserslist": {
@@ -37,19 +37,21 @@
     ]
   },
   "devDependencies": {
-    "css-loader": "^6.7.1",
-    "customize-cra": "^1.0.0",
-    "react-app-rewired": "^2.2.1",
-    "ts-loader": "^9.3.0",
-    "webpack": "^5.72.1",
-    "webpack-cli": "^4.9.2",
-    "webpack-dev-server": "^4.9.0",
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.2.0",
+    "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.1",
     "@types/node": "^16.11.35",
     "@types/react": "^18.0.9",
     "@types/react-dom": "^18.0.4",
-    "@testing-library/jest-dom": "^5.16.4",
-    "@testing-library/react": "^13.2.0",
-    "@testing-library/user-event": "^13.5.0"
+    "css-loader": "^6.7.1",
+    "customize-cra": "^1.0.0",
+    "react-app-rewired": "^2.2.1",
+    "sass": "^1.51.0",
+    "sass-loader": "^12.6.0",
+    "ts-loader": "^9.3.0",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-server": "^4.9.0"
   }
 }

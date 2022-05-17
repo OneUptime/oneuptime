@@ -1,4 +1,5 @@
 import React from 'react';
+import './App.scss';
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,7 +13,7 @@ function App() {
     <div className="App">
       <Router>
         <Routes>
-          <Route path="/" element={<LoginPage/>}/>
+          <Route path="/" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<LoginPage />} />
           <Route path="/register" element={<LoginPage />} />

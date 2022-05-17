@@ -53,7 +53,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn()
+    @TableColumn({title: "Email"})
     @UniqueColumn()
     @RequiredColumn()
     @Column({
@@ -80,7 +80,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn()
+    @TableColumn({title: "Password"})
     @HashedColumn()
     @Column({
         type: ColumnType.HashedString,

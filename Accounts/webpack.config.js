@@ -10,7 +10,7 @@ module.exports = {
         publicPath: "/",
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json']
+        extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss']
     },
     externals: {
         'react-native-sqlite-storage': 'react-native-sqlite-storage'
@@ -22,8 +22,8 @@ module.exports = {
                 use: 'ts-loader'
             },
             {
-                test: /\.css$/,
-                use: ['style-loader', 'css-loader']
+                test: /\.s[ac]ss$/i,
+                use: ['style-loader', 'css-loader', "sass-loader"]
             },
             {
                 test: /\.(png|j?g|svg|gif)?$/,
