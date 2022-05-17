@@ -18,7 +18,7 @@ export interface ComponentProps<T> {
     model: T
 }
 
-const BasicForm: FunctionComponent<ComponentProps<Object>> = <T,>(props: ComponentProps<T>) => {
+const BasicForm: FunctionComponent<ComponentProps<T,>> = <T,>(props: ComponentProps<T>): ReactElement => {
 
     const getFormField = (field: DataField<T>): ReactElement => {
 
