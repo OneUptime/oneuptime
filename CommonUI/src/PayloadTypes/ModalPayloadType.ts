@@ -1,5 +1,5 @@
 import ActionPayload from '../Types/ActionPayload';
-import ObjectID from '../../../Common/Types/ObjectID';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface OpenModalActionPayload extends ActionPayload {
     id: ObjectID;
