@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import { Formik, Form, Field, ErrorMessage, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
 import FormValues from './Types/FormValues'
@@ -18,7 +18,7 @@ export interface ComponentProps<T> {
     model: T
 }
 
-const BasicForm = <T,>(props: ComponentProps<T>) => {
+const BasicForm: FunctionComponent<ComponentProps<Object>> = <T,>(props: ComponentProps<T>) => {
 
     const getFormField = (field: DataField<T>): ReactElement => {
 
