@@ -25,12 +25,14 @@ const BasicForm = <T extends Object,>(props: ComponentProps<T>): ReactElement =>
 
     const getFormField = (field: DataField<T>, index: number): ReactElement => {
 
-        let fieldType = "text"; 
+        let fieldType = "text";
         if (Object.keys(field.field).length === 0) {
             throw new BadDataException("Object cannot be without Field")
-        } 
+        }
         return (<div key={index}>
-            <Field type={fieldType} label={field.title} name={Object.keys(field.field)[0] as string} />
+            <label>{field.title}</label>
+            <p>{field.description}</p>
+            <Field type={fieldType} name={Object.keys(field.field)[0] as string} />
             <ErrorMessage name={Object.keys(field.field)[0] as string} component="div" />
         </div>)
     }
@@ -49,14 +51,14 @@ const BasicForm = <T extends Object,>(props: ComponentProps<T>): ReactElement =>
                 props.onSubmit(values);
             }}
         >
-            
+
             {({ isSubmitting }) => (
                 <Form>
-                    <h1>{ props.title}</h1>
+                    <h1>{props.title}</h1>
                     {props.fields && props.fields.map((field: DataField<T>, i) => {
                         return getFormField(field, i);
                     })}
-                    <Button title={ props.submitButtonText || "Submit" } disabled={isSubmitting} type={ButtonTypes.Submit} id={`${props.id}-submit-button`} />
+                    <Button title={props.submitButtonText || "Submit"} disabled={isSubmitting} type={ButtonTypes.Submit} id={`${props.id}-submit-button`} />
                 </Form>
             )}
         </Formik>

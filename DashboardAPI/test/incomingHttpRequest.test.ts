@@ -300,8 +300,8 @@ describe('Incoming HTTP Request API', function (): void {
             });
     });
 
-    it('should create an incident with incoming http request url', (done: $TSFixMe): void => {
-        axios({
+    it('should create an incident with incoming http request url', async (done: $TSFixMe): void => {
+        await axios({
             method: 'post',
             url: createIncidentUrl,
         }).then((res: $TSFixMe): void => {
@@ -312,8 +312,8 @@ describe('Incoming HTTP Request API', function (): void {
         });
     });
 
-    it('should acknowledge an incident with an incoming http request url', (done: $TSFixMe): void => {
-        axios({
+    it('should acknowledge an incident with an incoming http request url', async (done: $TSFixMe): void => {
+        await axios({
             method: 'post',
             url: acknowledgeIncidentUrl,
         }).then((res: $TSFixMe): void => {
@@ -324,8 +324,8 @@ describe('Incoming HTTP Request API', function (): void {
         });
     });
 
-    it('should resolve an incident with an incoming http request url', (done: $TSFixMe): void => {
-        axios({
+    it('should resolve an incident with an incoming http request url', async (done: $TSFixMe): void => {
+        await axios({
             method: 'post',
             url: resolveIncidentUrl,
         }).then((res: $TSFixMe): void => {
@@ -336,9 +336,9 @@ describe('Incoming HTTP Request API', function (): void {
         });
     });
 
-    it('should add incident note with an incoming http request url', (done: $TSFixMe): void => {
+    it('should add incident note with an incoming http request url', async (done: $TSFixMe): void => {
         // It should also work for a get request
-        axios({
+        await axios({
             method: 'get',
             url: incidentNoteUrl,
         }).then((res: $TSFixMe): void => {
@@ -349,8 +349,8 @@ describe('Incoming HTTP Request API', function (): void {
         });
     });
 
-    it('should add internal note with an incoming http request url', (done: $TSFixMe): void => {
-        axios({
+    it('should add internal note with an incoming http request url', async (done: $TSFixMe): void => {
+        await axios({
             method: 'get',
             url: internalNoteUrl,
         }).then((res: $TSFixMe): void => {

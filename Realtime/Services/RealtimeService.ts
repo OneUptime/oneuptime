@@ -2,8 +2,8 @@ import { JSONObjectOrArray } from 'Common/Types/JSON';
 import io, { Socket } from 'CommonServer/Infrastructure/SocketIO';
 import ObjectID from 'Common/Types/ObjectID';
 io.sockets.on('connection', (socket: Socket) => {
-    socket.on('project', (projectId: ObjectID) => {
-        socket.join(projectId.toString());
+    socket.on('project', async (projectId: ObjectID) => {
+        await socket.join(projectId.toString());
     });
 });
 
