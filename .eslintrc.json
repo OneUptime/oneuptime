@@ -79,6 +79,7 @@
         // https://www.npmjs.com/package/eslint-plugin-unused-imports
         "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-extra-non-null-assertion": "error",
         "@typescript-eslint/no-floating-promises":"error",
         "@typescript-eslint/await-thenable":"error",
         "unused-imports/no-unused-imports": "error",
