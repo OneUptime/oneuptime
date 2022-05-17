@@ -11,6 +11,7 @@ import TableColumn from '../Types/Database/TableColumn';
 import BadRequestException from '../Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
+import { $TSFixMe } from '../../Types/tsfixme';
 
 export default class BaseModel extends BaseEntity {
     @TableColumn()
