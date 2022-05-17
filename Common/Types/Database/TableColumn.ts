@@ -1,6 +1,10 @@
 import BaseModel from '../../Models/BaseModel';
 
-export default (props?: { title?: string; description?: string, placeholder?: string }) => {
+export default (props?: {
+    title?: string;
+    description?: string;
+    placeholder?: string;
+}) => {
     return (target: Object, propertyKey: string) => {
         const baseModel: BaseModel = target as BaseModel;
         baseModel.addTableColumn(propertyKey);

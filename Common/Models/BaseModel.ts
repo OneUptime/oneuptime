@@ -139,7 +139,10 @@ export default class BaseModel extends BaseEntity {
         this.displayColumnTitleAs[columnName] = title;
     }
 
-    public addDisplayColumnPlaceholderAs(columnName: string, placeholder: string): void {
+    public addDisplayColumnPlaceholderAs(
+        columnName: string,
+        placeholder: string
+    ): void {
         if (!this.displayColumnPlaceholderAs) {
             this.displayColumnPlaceholderAs = {};
         }
