@@ -100,7 +100,7 @@ router.post(
 
         if (alreadySavedUser) {
             // Send Welcome Mail
-            MailService.sendMail(
+            await MailService.sendMail(
                 user.email,
                 EmailSubjects.getSubjectByType(
                     EmailTemplateType.SIGNUP_WELCOME_EMAIL
@@ -117,7 +117,7 @@ router.post(
             );
         } else {
             // Send EmailVerification Link because this is a new user.
-            MailService.sendMail(
+            await MailService.sendMail(
                 user.email,
                 EmailSubjects.getSubjectByType(
                     EmailTemplateType.SIGNUP_WELCOME_EMAIL

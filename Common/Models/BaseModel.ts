@@ -8,30 +8,35 @@ import {
 } from 'typeorm';
 import Columns from '../Types/Database/Columns';
 import TableColumn from '../Types/Database/TableColumn';
+import Dictionary from '../Types/Dictionary';
 import BadRequestException from '../Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 
 export default class BaseModel extends BaseEntity {
-    @TableColumn()
+    @TableColumn({ title: 'ID' })
     @PrimaryGeneratedColumn('uuid')
     public _id!: string;
 
-    @TableColumn()
+    @TableColumn({ title: 'Created' })
     @CreateDateColumn()
     public createdAt!: Date;
 
-    @TableColumn()
+    @TableColumn({ title: 'Updated' })
     @UpdateDateColumn()
     public updatedAt!: Date;
 
-    @TableColumn()
+    @TableColumn({ title: 'Deleted' })
     @DeleteDateColumn()
     public deletedAt?: Date;
 
-    @TableColumn()
+    @TableColumn({ title: 'Version' })
     @VersionColumn()
     public version!: number;
+
+    private displayColumnTitleAs: Dictionary<string> = {};
+    private displayColumnDescriptionAs: Dictionary<string> = {};
+    private displayColumnPlaceholderAs: Dictionary<string> = {};
 
     private encryptedColumns: Columns = new Columns([]);
     private uniqueColumns: Columns = new Columns([]);
@@ -125,6 +130,57 @@ export default class BaseModel extends BaseEntity {
 
     public getHashedColumns(): Columns {
         return this.hashedColumns;
+    }
+
+    public addDisplayColumnTitleAs(columnName: string, title: string): void {
+        if (!this.displayColumnTitleAs) {
+            this.displayColumnTitleAs = {};
+        }
+        this.displayColumnTitleAs[columnName] = title;
+    }
+
+    public addDisplayColumnPlaceholderAs(
+        columnName: string,
+        placeholder: string
+    ): void {
+        if (!this.displayColumnPlaceholderAs) {
+            this.displayColumnPlaceholderAs = {};
+        }
+        this.displayColumnPlaceholderAs[columnName] = placeholder;
+    }
+
+    public getDisplayColumnPlaceholderAs(columnName: string): string | null {
+        if (this.displayColumnPlaceholderAs[columnName]) {
+            return this.displayColumnPlaceholderAs[columnName] as string;
+        }
+
+        return null;
+    }
+
+    public getDisplayColumnTitleAs(columnName: string): string | null {
+        if (this.displayColumnTitleAs[columnName]) {
+            return this.displayColumnTitleAs[columnName] as string;
+        }
+
+        return null;
+    }
+
+    public addDisplayColumnDescriptionAs(
+        columnName: string,
+        description: string
+    ): void {
+        if (!this.displayColumnDescriptionAs) {
+            this.displayColumnDescriptionAs = {};
+        }
+        this.displayColumnDescriptionAs[columnName] = description;
+    }
+
+    public getDisplayColumnDescriptionAs(columnName: string): string | null {
+        if (this.displayColumnDescriptionAs[columnName]) {
+            return this.displayColumnDescriptionAs[columnName] as string;
+        }
+
+        return null;
     }
 
     public addHashedColumn(columnName: string): void {

@@ -1,35 +1,10 @@
+import app from 'CommonServer/Utils/StartServer';
+import path from 'path';
 import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
-import logger from 'CommonServer/Utils/Logger';
-import app from 'CommonServer/Utils/StartServer';
-
-import path from 'path';
-
-import compression from 'compression';
-
-app.use(compression());
-
-app.get(
-    ['/env.js', '/accounts/env.js'],
-    (req: ExpressRequest, res: ExpressResponse) => {
-        const env: $TSFixMe = {
-            REACT_APP_IS_SAAS_SERVICE: process.env['IS_SAAS_SERVICE'],
-            REACT_APP_DISABLE_SIGNUP: process.env['DISABLE_SIGNUP'],
-            REACT_APP_HOST: req.host,
-            REACT_APP_STRIPE_PUBLIC_KEY: process.env['STRIPE_PUBLIC_KEY'],
-            REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env['AMPLITUDE_PUBLIC_KEY'],
-            REACT_APP_VERSION:
-                process.env['npm_package_version'] ||
-                process.env['REACT_APP_VERSION'],
-        };
-
-        res.contentType('application/javascript');
-        res.send('window._env = ' + JSON.stringify(env));
-    }
-);
 
 app.use(ExpressStatic(path.join(__dirname, 'build')));
 
@@ -44,7 +19,4 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-const PORT: $TSFixMe = process.env['PORT'] || 3003;
-
-logger.info(`This project is running on port ${PORT}`);
-app.listen(PORT);
+export default app;

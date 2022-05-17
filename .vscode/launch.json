@@ -189,6 +189,18 @@
                 "debug:test"
             ],
             "port": 9229
+        },
+        {
+            "name": "Accounts: Debug Local Files",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceRoot}/Accounts",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run-script",
+                "dev"
+            ],
+            "port": 9229
         }
     ]
 }

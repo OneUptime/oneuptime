@@ -1,97 +1,57 @@
 {
-    "name": "oneuptime-accounts",
-    "version": "3.0.0",
-    "private": false,
-    "homepage": "/",
-    "type": "module",
-    "dependencies": {
-        "@loadable/component": "^5.15.2",
-        "@stripe/react-stripe-js": "^1.7.2",
-        "@stripe/stripe-js": "^1.29.0",
-        "@types/compression": "^1.7.2",
-        "@types/react-dom": "^17.0.2",
-        "@types/react-redux": "^7.1.24",
-        "@types/react-router-redux": "^5.0.21",
-        "@types/redux-form": "^8.3.5",
-        "@types/redux-logger": "^3.0.9",
-        "axios": "^0.27.2",
-        "card-validator": "^8.1.1",
-        "cli-table": "^0.3.11",
-        "Common": "file:../Common",
-        "CommonServer": "file:../CommonServer",
-        "CommonUI": "file:../CommonUI",
-        "compression": "^1.7.4",
-        "express": "^4.18.1",
-        "faker": "^6.6.6",
-        "file-saver": "^2.0.5",
-        "history": "^5.3.0",
-        "jest": "^28.1.0",
-        "prop-types": "^15.8.1",
-        "puppeteer": "^13.7.0",
-        "query-string": "^7.1.1",
-        "react": "^17.0.2",
-        "react-awesome-reveal": "^3.8.1",
-        "react-dom": "^17.0.2",
-        "react-frontload": "^2.0.0",
-        "react-ga": "^3.3.0",
-        "react-redux": "^8.0.1",
-        "react-router-dom": "^6.3.0",
-        "react-router-redux": "^4.0.8",
-        "react-scripts": "^5.0.1",
-        "sane-email-validation": "^3.0.1",
-        "universal-cookie": "^4.0.4",
-        "uuid": "^8.3.2",
-        "valid-url": "^1.0.9",
-        "workbox-build": "^6.5.3"
-    },
-    "scripts": {
-        "dev": "PORT=3003 react-scripts  start",
-        "build": "react-scripts  build && npm run build-sw",
-        "build-sw": "node ./src/sw-build.js",
-        "compile": "tsc",
-        "test": "jest --forceExit --runInBand ./src/test/*.test.js",
-        "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
-        "start": "node index.ts",
-        "audit": "npm audit --audit-level=low",
-        "light-house": "node lighthouse.js --web",
-        "light-house-mobile": "node lighthouse.js --mobile",
-        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "dep-check": "depcheck ./ --skip-missing=true'"
-    },
-    "devDependencies": {
-        "chrome-launcher": "^0.15.0",
-        "commander": "^9.2.0",
-        "depcheck": "^1.4.3",
-        "lighthouse": "^9.5.0",
-        "npm-force-resolutions": "0.0.10",
-        "ora": "^6.1.0",
-        "should": "^13.2.3"
-    },
-    "resolutions": {},
-    "jest": {
-        "collectCoverageFrom": [
-            "src/**/*.js",
-            "!src/**/*.stories.js",
-            "!src/store.js",
-            "!src/config.js",
-            "!src/routes.js",
-            "!src/setupTests.js"
-        ],
-        "testMatch": [
-            "<rootDir>/src/test/**/*.test.js",
-            "<rootDir>/src/test/**/*.test.enterprise.js"
-        ]
-    },
-    "browserslist": {
-        "production": [
-            ">0.2%",
-            "not dead",
-            "not op_mini all"
-        ],
-        "development": [
-            "last 1 chrome version",
-            "last 1 firefox version",
-            "last 1 safari version"
-        ]
-    }
+  "name": "accounts",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "Common": "file:../Common",
+    "CommonServer": "file:../CommonServer",
+    "CommonUI": "file:../CommonUI",
+    "formik": "^2.2.9",
+    "react": "^18.1.0",
+    "react-dom": "^18.1.0",
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "5.0.1",
+    "typescript": "^4.6.4"
+  },
+  "scripts": {
+    "dev": "webpack-dev-server --port=3003 --mode=development",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
+    "eject": "react-scripts eject",
+    "compile": "tsc",
+    "start": "node index.ts",
+    "audit": "npm audit --audit-level=low",
+    "preinstall": "npm link ../CommonUI/node_modules/react && npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+    "dep-check": "depcheck ./ --skip-missing=true'"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.2.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.1",
+    "@types/node": "^16.11.35",
+    "@types/react": "^18.0.9",
+    "@types/react-dom": "^18.0.4",
+    "css-loader": "^6.7.1",
+    "customize-cra": "^1.0.0",
+    "react-app-rewired": "^2.2.1",
+    "sass": "^1.51.0",
+    "sass-loader": "^12.6.0",
+    "ts-loader": "^9.3.0",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-server": "^4.9.0"
+  }
 }
