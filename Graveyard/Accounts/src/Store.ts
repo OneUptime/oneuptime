@@ -7,9 +7,7 @@ import RootReducers from './Reducers/Index';
 const store: Store = createStore(
     RootReducers,
     {},
-    compose(
-        applyMiddleware(thunk, routerMiddleware(history))
-    )
+    compose(applyMiddleware(thunk, routerMiddleware(history)))
 );
 
 export type RootState = ReturnType<typeof store.getState>;

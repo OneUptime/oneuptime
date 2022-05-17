@@ -1,5 +1,5 @@
-import Field from "./Field"
+import Field from './Field';
 
-type Fields<T> = Array<Field<T>>
+type Fields<T> = Array<Field<T>>;
 
-export default Fields
+export default Fields;

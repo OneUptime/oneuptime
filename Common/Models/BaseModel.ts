@@ -14,27 +14,26 @@ import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 
 export default class BaseModel extends BaseEntity {
-    @TableColumn({title: "ID"})
+    @TableColumn({ title: 'ID' })
     @PrimaryGeneratedColumn('uuid')
     public _id!: string;
 
-    @TableColumn({title: "Created"})
+    @TableColumn({ title: 'Created' })
     @CreateDateColumn()
     public createdAt!: Date;
 
-    @TableColumn({title: "Updated"})
+    @TableColumn({ title: 'Updated' })
     @UpdateDateColumn()
     public updatedAt!: Date;
 
-    @TableColumn({title: "Deleted"})
+    @TableColumn({ title: 'Deleted' })
     @DeleteDateColumn()
     public deletedAt?: Date;
 
-    @TableColumn({title: "Version"})
+    @TableColumn({ title: 'Version' })
     @VersionColumn()
     public version!: number;
 
-    
     private displayColumnTitleAs: Dictionary<string> = {};
     private displayColumnDescriptionAs: Dictionary<string> = {};
 
@@ -147,7 +146,10 @@ export default class BaseModel extends BaseEntity {
         return null;
     }
 
-    public addDisplayColumnDescriptionAs(columnName: string, description: string): void {
+    public addDisplayColumnDescriptionAs(
+        columnName: string,
+        description: string
+    ): void {
         if (!this.displayColumnDescriptionAs) {
             this.displayColumnDescriptionAs = {};
         }

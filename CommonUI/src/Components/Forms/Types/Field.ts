@@ -1,7 +1,7 @@
 import SelectFormFields from './SelectFormField';
 
-export default interface Field<TEntity> { 
-    title?: string, 
-    description?: string,
-    field: SelectFormFields<TEntity>
+export default interface Field<TEntity> {
+    title?: string;
+    description?: string;
+    field: SelectFormFields<TEntity>;
 }
