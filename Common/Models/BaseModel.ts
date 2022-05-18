@@ -12,6 +12,10 @@ import { getOwnerAccessControlForAllColumns } from '../Types/Database/AccessCont
 import { getViewerAccessControlForAllColumns } from '../Types/Database/AccessControls/Viewer/ViewerColumnPermissions';
 import { getAdminAccessControlForAllColumns } from '../Types/Database/AccessControls/Admin/AdminColumnPermissions';
 import { getUserAccessControlForAllColumns } from '../Types/Database/AccessControls/User/UserColumnPermissions';
+import { getEncryptedColumns } from '../Types/Database/EncryptedColumn';
+import { getUniqueColumns } from '../Types/Database/UniqueColumn';
+import { getHashedColumns } from '../Types/Database/HashedColumn';
+import { getRequiredColumns } from '../Types/Database/RequiredColumn';
 import Columns from '../Types/Database/Columns';
 import TableColumn, { getTableColumn, getAllTableColumns } from '../Types/Database/TableColumn';
 import BadRequestException from '../Types/Exception/BadRequestException';
@@ -41,11 +45,6 @@ export default class BaseModel extends BaseEntity {
     @TableColumn({ title: 'Version' })
     @VersionColumn()
     public version?: number = undefined;
-
-    private encryptedColumns: Columns = new Columns([]);
-    private uniqueColumns: Columns = new Columns([]);
-    private requiredColumns: Columns = new Columns([]);
-    private hashedColumns: Columns = new Columns([]);
 
     private canAdminCreateRecord = false;
     private canAdminDeleteRecord = false;
@@ -97,7 +96,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getHashedColumns(): Columns {
-        return this.hashedColumns;
+        return getHashedColumns(this);
     }
 
     public getDisplayColumnPlaceholderAs(columnName: string): string | null {
@@ -112,22 +111,8 @@ export default class BaseModel extends BaseEntity {
         return getTableColumn(this, columnName).description || null;
     }
 
-    public addHashedColumn(columnName: string): void {
-        if (!this.hashedColumns) {
-            this.hashedColumns = new Columns([]);
-        }
-        this.hashedColumns.addColumn(columnName);
-    }
-
     public getEncryptedColumns(): Columns {
-        return this.encryptedColumns;
-    }
-
-    public addEncryptedColumn(columnName: string): void {
-        if (!this.encryptedColumns) {
-            this.encryptedColumns = new Columns([]);
-        }
-        this.encryptedColumns.addColumn(columnName);
+        return getEncryptedColumns(this);
     }
 
     public getTableColumns(): Columns {
@@ -135,7 +120,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getUniqueColumns(): Columns {
-        return this.uniqueColumns;
+        return getUniqueColumns(this);
     }
 
     public getUserCreateableColumns(): Columns {
@@ -543,22 +528,8 @@ export default class BaseModel extends BaseEntity {
         this.slugifyColumn = columnName;
     }
 
-    public addUniqueColumn(columnName: string): void {
-        if (!this.uniqueColumns) {
-            this.uniqueColumns = new Columns([]);
-        }
-        this.uniqueColumns.addColumn(columnName);
-    }
-
     public getRequiredColumns(): Columns {
-        return this.requiredColumns;
-    }
-
-    public addRequiredColumn(columnName: string): void {
-        if (!this.requiredColumns) {
-            this.requiredColumns = new Columns([]);
-        }
-        this.requiredColumns.addColumn(columnName);
+        return getRequiredColumns(this);
     }
 
     public getSlugifyColumn(): string | null {
