@@ -1,4 +1,5 @@
 import { FindOperator } from 'typeorm';
+import Hostname from './API/Hostname';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 
@@ -25,9 +26,6 @@ const nonBusinessEmailDomains: Array<string> = [
     'yandex',
 ];
 
-type Hostname = {
-    value: string;
-};
 export default class Email extends DatabaseProperty {
     private _email: string = '';
     public get email(): string {
@@ -61,11 +59,11 @@ export default class Email extends DatabaseProperty {
     }
 
     public getEmailDomain(): Hostname {
-        return { value: this.email!.split('@')[1] || '' };
+        return new Hostname(this.email!.split('@')[1]!);
     }
 
     public isBusinessEmail(): boolean {
-        const domain: string = this.getEmailDomain().value || '';
+        const domain: string = this.getEmailDomain().hostname || '';
         if (domain) {
             for (let i: number = 0; i < nonBusinessEmailDomains.length; i++) {
                 if (domain.includes(nonBusinessEmailDomains[i]!)) {
