@@ -6,4 +6,8 @@ describe('NotImplementedException', () => {
             throw new NotImplementedException();
         }).toThrow('This code is not implemented');
     });
+
+    test('should return 0 as the code for NotImplementedException', () => {
+        expect(new NotImplementedException().code).toBe(0);
+    });
 });

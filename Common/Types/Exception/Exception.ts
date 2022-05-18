@@ -1,8 +1,5 @@
 import ExceptionCode from './ExceptionCode';
 
-type ExceptionRule = {
-    id: number;
-};
 export default class Exception extends Error {
     private _code: ExceptionCode = ExceptionCode.GeneralException;
 
@@ -23,23 +20,8 @@ export default class Exception extends Error {
         this.code = code;
     }
 
-    private static enumToArray(enumme: any): ExceptionRule[] {
-        const map: ExceptionRule[] = [];
-        for (const n in enumme) {
-            if (typeof enumme[n] === 'number') {
-                map.push({ id: <number>enumme[n] });
-            }
-        }
-        return map;
-    }
-
     private static isValidCode(code: number): boolean {
-        const rules: Array<ExceptionRule> = this.enumToArray(ExceptionCode);
-        for (let i: number = 0; i < rules.length; i++) {
-            if (code === rules[i]!['id']) {
-                return true;
-            }
-        }
-        return false;
+        const exceptionCode: Array<number> = [0, 1, 2, 3, 5, 400];
+        return exceptionCode.includes(code);
     }
 }

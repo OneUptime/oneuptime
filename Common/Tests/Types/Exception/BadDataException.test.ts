@@ -6,4 +6,10 @@ describe('BadDataException', () => {
             throw new BadDataException('This is not a valid IPv4 address');
         }).toThrow('This is not a valid IPv4 address');
     });
+
+    test('should return 400 as the code for BadDataException', () => {
+        expect(
+            new BadDataException('This is not a valid IPv4 address').code
+        ).toBe(400);
+    });
 });
