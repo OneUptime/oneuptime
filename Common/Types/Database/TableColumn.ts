@@ -1,24 +1,18 @@
-import BaseModel from '../../Models/BaseModel';
 
-export default (props?: {
+import "reflect-metadata";
+
+const tableColumn = Symbol("TableColumn");
+
+export interface TableColumnMetadata {
     title?: string;
     description?: string;
     placeholder?: string;
-}) => {
-    return (target: Object, propertyKey: string) => {
-        const baseModel: BaseModel = target as BaseModel;
-        baseModel.addTableColumn(propertyKey);
+}
 
-        if (props && props.title) {
-            baseModel.addDisplayColumnTitleAs(propertyKey, props.title);
-        }
+export default (props?: TableColumnMetadata) => {
+    return Reflect.metadata(tableColumn, props);
+}
 
-        if (props && props.description) {
-            baseModel.addDisplayColumnTitleAs(propertyKey, props.description);
-        }
-
-        if (props && props.placeholder) {
-            baseModel.addDisplayColumnTitleAs(propertyKey, props.placeholder);
-        }
-    };
-};
+export const getTableColumn = (target: any, propertyKey: string): TableColumnMetadata  => {
+    return Reflect.getMetadata(tableColumn, target, propertyKey) as TableColumnMetadata;
+}
