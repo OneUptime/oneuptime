@@ -22,7 +22,7 @@ describe('Email()', () => {
     });
 
     test('should return the domain of the email address', () => {
-        expect(new Email('hello@oneuptime.com').getEmailDomain()).toBe(
+        expect(new Email('hello@oneuptime.com').getEmailDomain().value).toBe(
             'oneuptime.com'
         );
     });

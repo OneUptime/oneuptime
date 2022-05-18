@@ -17,7 +17,17 @@ const nonBusinessEmailDomains: Array<string> = [
     'orange',
     'comcast',
     'facebook',
+    'hey.com',
+    'protonmail',
+    'inbox.com',
+    'mail.com',
+    'zoho',
+    'yandex',
 ];
+
+type Hostname = {
+    value: string;
+};
 export default class Email extends DatabaseProperty {
     private _email: string = '';
     public get email(): string {
@@ -50,12 +60,12 @@ export default class Email extends DatabaseProperty {
         return this.email;
     }
 
-    public getEmailDomain(): string {
-        return this.email!.split('@')[1] || '';
+    public getEmailDomain(): Hostname {
+        return { value: this.email!.split('@')[1] || '' };
     }
 
     public isBusinessEmail(): boolean {
-        const domain: string = this.getEmailDomain() || '';
+        const domain: string = this.getEmailDomain().value || '';
         if (domain) {
             for (let i: number = 0; i < nonBusinessEmailDomains.length; i++) {
                 if (domain.includes(nonBusinessEmailDomains[i]!)) {
