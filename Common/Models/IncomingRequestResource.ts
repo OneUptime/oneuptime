@@ -9,8 +9,8 @@ import IncomingRequest from './IncomingRequest';
 })
 export default class StatusPageChartType extends BaseModel {
     @Column()
-    public incomingRequest!: IncomingRequest;
+    public incomingRequest?: IncomingRequest;
 
     @Column()
-    public monitor!: Monitor;
+    public monitor?: Monitor;
 }

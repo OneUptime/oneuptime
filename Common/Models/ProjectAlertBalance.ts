@@ -6,17 +6,17 @@ import BaseModel from './BaseModel';
 })
 export default class ProjectAlertBalance extends BaseModel {
     @Column({ nullable: false })
-    public minimumBalance!: number;
+    public minimumBalance?: number;
 
     @Column({ type: 'varchar', nullable: false })
-    public rechargeToBalance!: number;
+    public rechargeToBalance?: number;
 
     @Column({ nullable: false })
-    public sendAlertsToUS!: boolean;
+    public sendAlertsToUS?: boolean = undefined;
 
     @Column({ nullable: false })
-    public sendAlertsToNonUS!: boolean;
+    public sendAlertsToNonUS?: boolean = undefined;
 
     @Column({ nullable: false })
-    public sendAlertsToHighRisk!: boolean;
+    public sendAlertsToHighRisk?: boolean = undefined;
 }

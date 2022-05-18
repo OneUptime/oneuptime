@@ -8,16 +8,16 @@ import OnCallDutySchedule from './OnCallDutySchedule';
 })
 export default class Model extends BaseModel {
     @Column()
-    public incomingCallRouting!: IncomingCallRouting;
+    public incomingCallRouting?: IncomingCallRouting;
     @Column()
-    public onCallDutySchedule!: OnCallDutySchedule;
+    public onCallDutySchedule?: OnCallDutySchedule;
 
     @Column()
-    public introText!: string;
+    public introText? : string = undefined;
 
     @Column()
-    public introAudio!: string;
+    public introAudio? : string = undefined;
 
     @Column()
-    public introAudioName!: string;
+    public introAudioName? : string = undefined;
 }

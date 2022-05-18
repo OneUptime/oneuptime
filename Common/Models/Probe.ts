@@ -27,7 +27,7 @@ export default class Probe extends BaseModel {
         length: ColumnLength.ObjectID,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public key!: ObjectID;
+    public key?: ObjectID;
 
     @TableColumn()
     @RequiredColumn()
@@ -36,7 +36,7 @@ export default class Probe extends BaseModel {
         type: ColumnType.Name,
         length: ColumnLength.Name,
     })
-    public name!: string;
+    public name? : string = undefined;
 
     @TableColumn()
     @RequiredColumn()
@@ -46,7 +46,7 @@ export default class Probe extends BaseModel {
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
     })
-    public slug!: string;
+    public slug? : string = undefined;
 
     @TableColumn()
     @RequiredColumn()
@@ -56,7 +56,7 @@ export default class Probe extends BaseModel {
         length: ColumnLength.Version,
         transformer: Version.getDatabaseTransformer(),
     })
-    public probeVersion!: Version;
+    public probeVersion?: Version;
 
     @TableColumn()
     @RequiredColumn()
@@ -67,7 +67,7 @@ export default class Probe extends BaseModel {
         },
         type: ColumnType.Date,
     })
-    public lastAlive!: Date;
+    public lastAlive?: Date = undefined;
 
     @TableColumn()
     @Column({

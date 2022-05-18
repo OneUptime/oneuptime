@@ -9,27 +9,27 @@ import Project from './Project';
 })
 export default class GitCredential extends BaseModel {
     @Column()
-    public gitUsername!: string;
+    public gitUsername? : string = undefined;
 
     @Column()
-    public gitPassword!: string;
+    public gitPassword? : string = undefined;
 
     @Column()
-    public sshTitle!: string;
+    public sshTitle? : string = undefined;
 
     @Column()
-    public sshPrivateKey!: string;
+    public sshPrivateKey? : string = undefined;
 
     @Column()
-    public iv!: Buffer;
+    public iv?: Buffer;
 
     @Index()
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

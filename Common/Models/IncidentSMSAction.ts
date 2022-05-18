@@ -8,23 +8,23 @@ import Incident from './Incident';
 })
 export default class Model extends BaseModel {
     @Column()
-    public incident!: Incident;
+    public incident?: Incident;
 
     @Column()
-    public user!: User; // Which User will perfom this action.
+    public user?: User; // Which User will perfom this action.
 
     @Column()
-    public number!: string;
+    public number? : string = undefined;
 
     @Column()
-    public name!: string;
+    public name? : string = undefined;
 
     @Column()
-    public resolved!: boolean;
+    public resolved?: boolean = undefined;
 
     @Column()
-    public acknowledged!: boolean;
+    public acknowledged?: boolean = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

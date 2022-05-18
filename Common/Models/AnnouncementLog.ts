@@ -11,27 +11,27 @@ import Project from './Project';
 })
 export default class AnnouncementLog extends BaseModel {
     @Column()
-    public announcement!: Announcement;
+    public announcement?: Announcement;
 
     @Index()
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public statusPage!: StatusPage;
+    public statusPage?: StatusPage;
 
     @Column()
-    public startDate!: Date;
+    public startDate?: Date = undefined;
 
     @Column()
-    public endDate!: Date;
+    public endDate?: Date = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public active!: boolean;
+    public active?: boolean = undefined;
 }

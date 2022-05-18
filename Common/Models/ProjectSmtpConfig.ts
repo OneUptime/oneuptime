@@ -15,55 +15,55 @@ export default class ProjectSmtpConfig extends BaseModel {
         nullable: false,
     })
     @Index()
-    public project!: Project;
+    public project?: Project;
 
     @Column({
         nullable: false,
     })
-    public useranme!: string;
+    public useranme? : string = undefined;
 
     @Column({
         nullable: false,
     })
-    public password!: string;
+    public password? : string = undefined;
 
     @Column({
         nullable: false,
     })
-    public host!: Hostname;
+    public host?: Hostname;
 
     @Column({
         nullable: false,
     })
-    public port!: Port;
+    public port?: Port;
 
     @Column({
         nullable: false,
     })
-    public fromEmail!: Email;
+    public fromEmail?:Email = undefined;
 
     @Column({
         nullable: false,
     })
-    public fromName!: string;
+    public fromName? : string = undefined;
 
     @Column({
         nullable: false,
     })
-    public iv!: Buffer;
-
-    @Column({
-        nullable: false,
-        default: true,
-    })
-    public secure!: boolean;
+    public iv?: Buffer;
 
     @Column({
         nullable: false,
         default: true,
     })
-    public enabled!: boolean;
+    public secure?: boolean = undefined;
+
+    @Column({
+        nullable: false,
+        default: true,
+    })
+    public enabled?: boolean = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

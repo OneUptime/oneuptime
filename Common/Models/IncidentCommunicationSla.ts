@@ -7,17 +7,17 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    public name!: string;
+    public name? : string = undefined;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public isDefault!: boolean;
+    public isDefault?: boolean = undefined;
 
     @Column()
-    public duration!: number;
+    public duration?: number;
 
     @Column()
-    public alertTime!: string;
+    public alertTime? : string = undefined;
 }

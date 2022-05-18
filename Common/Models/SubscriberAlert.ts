@@ -14,26 +14,26 @@ import OperationResult from '../Types/Operation/OperationResult';
 })
 export default class Model extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public subscriber!: Subscriber;
+    public subscriber?: Subscriber;
 
     @Column()
-    public incident!: Incident;
+    public incident?: Incident;
 
     @Column()
-    public alertVia!: AlertType;
+    public alertVia?: AlertType;
 
     @Column()
-    public status!: OperationResult;
+    public status?: OperationResult;
 
     @Column()
-    public eventType!: AlertEventType;
+    public eventType?: AlertEventType;
 
     @Column()
-    public errorMessage!: string;
+    public errorMessage? : string = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

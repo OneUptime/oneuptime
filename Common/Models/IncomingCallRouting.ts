@@ -8,44 +8,44 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public phoneNumber!: string;
+    public phoneNumber? : string = undefined;
 
     @Column()
-    public locality!: string;
+    public locality? : string = undefined;
 
     @Column()
-    public region!: string;
+    public region? : string = undefined;
 
     @Column()
-    public mmsCapabilities!: boolean;
+    public mmsCapabilities?: boolean = undefined;
 
     @Column()
-    public smsCapabilities!: boolean;
+    public smsCapabilities?: boolean = undefined;
 
     @Column()
-    public voiceCapabilities!: boolean;
+    public voiceCapabilities?: boolean = undefined;
 
     @Column()
-    public sid!: string;
+    public sid? : string = undefined;
 
     @Column()
-    public price!: string;
+    public price? : string = undefined;
 
     @Column()
-    public priceUnit!: string;
+    public priceUnit? : string = undefined;
 
     @Column()
-    public countryCode!: string;
+    public countryCode? : string = undefined;
 
     @Column()
-    public numberType!: string;
+    public numberType? : string = undefined;
 
     @Column()
-    public stripeSubscriptionId!: string;
+    public stripeSubscriptionId? : string = undefined;
 }

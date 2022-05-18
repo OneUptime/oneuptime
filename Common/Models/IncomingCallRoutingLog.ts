@@ -11,38 +11,38 @@ import OperationStatus from '../Types/Operation/OperationStatus';
 })
 export default class Model extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public callRouting!: IncomingCallRouting;
+    public callRouting?: IncomingCallRouting;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public callSid!: string;
+    public callSid? : string = undefined;
 
     @Column()
-    public price!: string;
+    public price? : string = undefined;
 
     @Column()
-    public calledFrom!: string;
+    public calledFrom? : string = undefined;
 
     @Column()
-    public calledTo!: string;
+    public calledTo? : string = undefined;
 
     @Column()
-    public duration!: string;
+    public duration? : string = undefined;
 
     @Column()
-    public user!: User; // User that call was forwarded to
+    public user?: User; // User that call was forwarded to
 
     @Column()
-    public schedule!: OnCallDutySchedule;
+    public schedule?: OnCallDutySchedule;
 
     @Column()
-    public phoneNumber!: string; // Phone number that call was forwarded to
+    public phoneNumber? : string = undefined; // Phone number that call was forwarded to
 
     @Column()
-    public status!: OperationStatus;
+    public status?: OperationStatus;
 }

@@ -9,19 +9,19 @@ import OnCallDutyScheduleStatus from './OnCallDutyScheduleStatus';
 })
 export default class Model extends BaseModel {
     @Column()
-    public escalation!: Escalation;
+    public escalation?: Escalation;
 
     @Column()
-    public callRemindersSent!: number;
+    public callRemindersSent?: number;
 
     @Column()
-    public smsRemindersSent!: number;
+    public smsRemindersSent?: number;
 
     @Column()
-    public emailRemindersSent!: number;
+    public emailRemindersSent?: number;
 
     @Column()
-    public pushRemindersSent!: number;
+    public pushRemindersSent?: number;
 
-    public onCallDutyScheduleStatus!: OnCallDutyScheduleStatus;
+    public onCallDutyScheduleStatus?: OnCallDutyScheduleStatus;
 }

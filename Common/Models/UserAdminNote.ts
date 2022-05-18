@@ -8,11 +8,11 @@ import User from './User';
 })
 export default class UserAdminNotes extends BaseModel {
     @Column({ nullable: false })
-    public forUser!: User;
+    public forUser?: User;
 
     @Column({ type: 'varchar', nullable: false })
-    public note!: string;
+    public note? : string = undefined;
 
     @Column({ nullable: false })
-    public postedByUser!: User;
+    public postedByUser?: User;
 }

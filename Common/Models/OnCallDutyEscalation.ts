@@ -10,50 +10,50 @@ import OnCallDutySchedule from './OnCallDutySchedule';
 })
 export default class Model extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public callReminders!: number;
+    public callReminders?: number;
 
     @Column()
-    public emailReminders!: number;
+    public emailReminders?: number;
 
     @Column()
-    public smsReminders!: number;
+    public smsReminders?: number;
 
     @Column()
-    public pushReminders!: number;
+    public pushReminders?: number;
 
     @Column()
-    public rotateBy!: string;
+    public rotateBy? : string = undefined;
 
     @Column()
-    public rotationInterval!: number;
+    public rotationInterval?: number;
 
     @Column()
-    public firstRotationOn!: Date;
+    public firstRotationOn?: Date = undefined;
 
     @Column()
-    public rotationTimezone!: string;
+    public rotationTimezone? : string = undefined;
 
     @Column()
-    public call!: boolean;
+    public call?: boolean = undefined;
 
     @Column()
-    public email!: boolean;
+    public email?: boolean = undefined;
 
     @Column()
-    public sms!: boolean;
+    public sms?: boolean = undefined;
 
     @Column()
-    public push!: boolean;
+    public push?: boolean = undefined;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public onCallDutySchedule!: OnCallDutySchedule;
+    public onCallDutySchedule?: OnCallDutySchedule;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

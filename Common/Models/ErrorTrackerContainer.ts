@@ -10,26 +10,26 @@ import ResourceLabel from './ResourceLabel';
 })
 export default class ErrorTrackerContainer extends BaseModel {
     @Column()
-    public component!: Component;
+    public component?: Component;
 
     @Column()
-    public name!: string;
+    public name? : string = undefined;
 
     @Column()
-    public slug!: string;
+    public slug? : string = undefined;
 
     @Column()
-    public key!: string;
+    public key? : string = undefined;
 
     @Column()
-    public showQuickStart!: boolean;
+    public showQuickStart?: boolean = undefined;
 
     @Column()
-    public resourceLabel!: ResourceLabel;
+    public resourceLabel?: ResourceLabel;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

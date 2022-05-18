@@ -8,132 +8,132 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public slug!: string;
+    public slug? : string = undefined;
 
     @Column()
-    public title!: string;
+    public title? : string = undefined;
 
     @Column()
-    public name!: string;
+    public name? : string = undefined;
 
     @Column()
-    public isPrivate!: boolean;
+    public isPrivate?: boolean = undefined;
 
     @Column()
-    public isSubscriberEnabled!: boolean;
+    public isSubscriberEnabled?: boolean = undefined;
 
     @Column()
-    public isGroupedByMonitorCategory!: boolean;
+    public isGroupedByMonitorCategory?: boolean = undefined;
 
     @Column()
-    public showScheduledEvents!: boolean;
+    public showScheduledEvents?: boolean = undefined;
     // Show incident to the top of status page
 
     @Column()
-    public moveIncidentToTheTop!: boolean;
+    public moveIncidentToTheTop?: boolean = undefined;
     // Show or hide the probe bar
 
     @Column()
-    public hideProbeBar!: boolean;
+    public hideProbeBar?: boolean = undefined;
     // Show or hide uptime (%) on the status page
 
     @Column()
-    public hideUptime!: boolean;
+    public hideUptime?: boolean = undefined;
 
     @Column()
-    public multipleNotificationTypes!: boolean;
+    public multipleNotificationTypes?: boolean = undefined;
     // Show or hide resolved incident on the status page
 
     @Column()
-    public hideResolvedIncident!: boolean;
+    public hideResolvedIncident?: boolean = undefined;
 
     @Column()
-    public description!: string;
+    public description? : string = undefined;
 
     @Column()
-    public copyright!: string;
+    public copyright? : string = undefined;
 
     @Column()
-    public faviconPath!: string;
+    public faviconPath? : string = undefined;
 
     @Column()
-    public logoPath!: string;
+    public logoPath? : string = undefined;
 
     @Column()
-    public bannerPath!: string;
+    public bannerPath? : string = undefined;
 
     @Column()
-    public colors!: Object;
+    public colors?: Object;
 
     @Column()
-    public layout!: Object;
+    public layout?: Object;
 
     @Column()
-    public headerHTML!: string;
+    public headerHTML? : string = undefined;
 
     @Column()
-    public footerHTML!: string;
+    public footerHTML? : string = undefined;
 
     @Column()
-    public customCSS!: string;
+    public customCSS? : string = undefined;
 
     @Column()
-    public customJS!: string;
+    public customJS? : string = undefined;
 
     @Column()
-    public statusBubble!: string;
+    public statusBubble? : string = undefined;
 
     @Column()
-    public embeddedCss!: string;
+    public embeddedCss? : string = undefined;
 
     @Column()
-    public enableRSSFeed!: boolean;
+    public enableRSSFeed?: boolean = undefined;
 
     @Column()
-    public emailNotification!: boolean;
+    public emailNotification?: boolean = undefined;
 
     @Column()
-    public smsNotification!: boolean;
+    public smsNotification?: boolean = undefined;
 
     @Column()
-    public webhookNotification!: boolean;
+    public webhookNotification?: boolean = undefined;
 
     @Column()
-    public selectIndividualMonitors!: boolean;
+    public selectIndividualMonitors?: boolean = undefined;
 
     @Column()
-    public enableIpWhitelist!: boolean;
+    public enableIpWhitelist?: boolean = undefined;
 
     @Column()
-    public incidentHistoryDays!: number;
+    public incidentHistoryDays?: number;
 
     @Column()
-    public scheduleHistoryDays!: number;
+    public scheduleHistoryDays?: number;
 
     @Column()
-    public announcementLogsHistory!: number;
+    public announcementLogsHistory?: number;
 
     @Column()
-    public onlineText!: string;
+    public onlineText? : string = undefined;
 
     @Column()
-    public offlineText!: string;
+    public offlineText? : string = undefined;
 
     @Column()
-    public degradedText!: string;
+    public degradedText? : string = undefined;
 
     @Column()
-    public twitterHandle!: string;
+    public twitterHandle? : string = undefined;
 
     @Column()
-    public enableMultipleLanguage!: boolean;
+    public enableMultipleLanguage?: boolean = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public theme!: string;
+    public theme? : string = undefined;
 }

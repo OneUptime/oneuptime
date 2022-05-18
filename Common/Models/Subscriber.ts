@@ -13,44 +13,44 @@ import HTTPMethod from '../Types/API/HTTPMethod';
 })
 export default class Model extends BaseModel {
     @Column()
-    public monitor!: Monitor;
+    public monitor?: Monitor;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public statusPage!: StatusPage;
+    public statusPage?: StatusPage;
 
     @Column()
-    public alertType!: AlertType;
+    public alertType?: AlertType;
 
     @Column()
-    public contactEmail!: string;
+    public contactEmail? : string = undefined;
 
     @Column()
-    public contactPhone!: string;
+    public contactPhone? : string = undefined;
 
     @Column()
-    public countryCode!: string;
+    public countryCode? : string = undefined;
 
     @Column()
-    public contactWebhook!: string;
+    public contactWebhook? : string = undefined;
 
     @Column()
-    public webhookMethod!: HTTPMethod;
+    public webhookMethod?: HTTPMethod;
 
     @Column()
-    public incidentNotification!: boolean;
+    public incidentNotification?: boolean = undefined;
 
     @Column()
-    public announcementNotification!: boolean;
+    public announcementNotification?: boolean = undefined;
 
     @Column()
-    public scheduledEventNotification!: boolean;
+    public scheduledEventNotification?: boolean = undefined;
 
     @Column()
-    public subscribed!: boolean;
+    public subscribed?: boolean = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

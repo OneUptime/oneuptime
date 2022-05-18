@@ -11,29 +11,29 @@ import Monitor from './Monitor';
 })
 export default class Model extends BaseModel {
     @Column()
-    public monitor!: Monitor;
+    public monitor?: Monitor;
 
     @Column()
-    public probe!: Probe;
+    public probe?: Probe;
 
     @Column()
-    public incident!: Incident;
+    public incident?: Incident;
 
     @Column()
-    public status!: ResourceStatus;
+    public status?: ResourceStatus;
 
     @Column()
-    public manuallyCreated!: boolean;
+    public manuallyCreated?: boolean = undefined;
 
     @Column()
-    public startTime!: Date;
+    public startTime?: Date = undefined;
 
     @Column()
-    public endTime!: Date;
+    public endTime?: Date = undefined;
 
     @Column()
-    public lastStatus!: string;
+    public lastStatus? : string = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

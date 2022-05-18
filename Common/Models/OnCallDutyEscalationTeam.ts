@@ -13,8 +13,8 @@ import Team from './Team';
 })
 export default class ResourceStatus extends BaseModel {
     @Column()
-    public onCallDutyEscalation!: OnCallDutyEscalation;
+    public onCallDutyEscalation?: OnCallDutyEscalation;
 
     @Column()
-    public team!: Team;
+    public team?: Team;
 }

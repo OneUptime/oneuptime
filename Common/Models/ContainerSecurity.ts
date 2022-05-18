@@ -10,35 +10,35 @@ import ResourceLabel from './ResourceLabel';
 })
 export default class Model extends BaseModel {
     @Column()
-    public name!: string;
+    public name? : string = undefined;
 
     @Column()
-    public slug!: string;
+    public slug? : string = undefined;
 
     @Column()
-    public dockerCredential!: DockerCredential;
+    public dockerCredential?: DockerCredential;
 
     @Column()
-    public imagePath!: string;
+    public imagePath? : string = undefined;
 
     @Column()
-    public imageTags!: string;
+    public imageTags? : string = undefined;
 
     @Column()
-    public component!: Component;
+    public component?: Component;
 
     @Column()
-    public resourceLabel!: ResourceLabel;
+    public resourceLabel?: ResourceLabel;
 
     @Column()
-    public deleteAt!: Date;
+    public deleteAt?: Date = undefined;
 
     @Column()
-    public lastScan!: Date;
+    public lastScan?: Date = undefined;
 
     @Column()
-    public scanned!: boolean;
+    public scanned?: boolean = undefined;
 
     @Column()
-    public scanning!: boolean;
+    public scanning?: boolean = undefined;
 }

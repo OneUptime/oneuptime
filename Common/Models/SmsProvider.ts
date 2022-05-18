@@ -14,20 +14,20 @@ export enum SMSProviderType {
 })
 export default class Model extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public enabled!: boolean;
+    public enabled?: boolean = undefined;
 
     @Column()
-    public provider!: SMSProviderType;
+    public provider?: SMSProviderType;
 
     @Column()
-    public credentials!: JSONObject;
+    public credentials?: JSONObject;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 }

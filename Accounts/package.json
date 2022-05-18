@@ -21,7 +21,7 @@
     "compile": "tsc",
     "start": "node index.ts",
     "audit": "npm audit --audit-level=low",
-    "preinstall": "npm link ../CommonUI/node_modules/react && npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+    "preinstall": "cd .. && cd CommonUI && npm i && cd .. && cd Accounts && npm link ../CommonUI/node_modules/react && npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
     "dep-check": "depcheck ./ --skip-missing=true'"
   },
   "browserslist": {

@@ -44,7 +44,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public name!: Name;
+    public name? : Name = undefined;
 
     @PublicColumnPermissions({
         create: true,
@@ -62,7 +62,7 @@ class User extends BaseModel {
         unique: true,
         nullable: false,
     })
-    public email!: Email;
+    public email?:Email = undefined;
 
     @TableColumn()
     @Column({
@@ -71,7 +71,7 @@ class User extends BaseModel {
         unique: false,
         nullable: true,
     })
-    public newUnverifiedTemporaryEmail?: string;
+    public newUnverifiedTemporaryEmail? : string = undefined;
 
     @PublicColumnPermissions({
         create: true,
@@ -88,14 +88,14 @@ class User extends BaseModel {
         unique: false,
         nullable: true,
     })
-    public password?: HashedString;
+    public password?: HashedString = undefined;
 
     @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
-    public isEmailVerified!: boolean;
+    public isEmailVerified?: boolean = undefined;
 
     @PublicColumnPermissions({
         create: true,
@@ -111,7 +111,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public companyName!: string;
+    public companyName? : string = undefined;
 
     @PublicColumnPermissions({
         create: true,
@@ -127,7 +127,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public jobRole!: JobRole;
+    public jobRole?: JobRole = undefined;
 
     @PublicColumnPermissions({
         create: true,
@@ -143,7 +143,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public companySize!: CompanySize;
+    public companySize?: CompanySize = undefined;
 
     @PublicColumnPermissions({
         create: true,
@@ -159,7 +159,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public referral?: string;
+    public referral? : string = undefined;
 
     @PublicColumnPermissions({
         create: true,
@@ -176,7 +176,7 @@ class User extends BaseModel {
         unique: false,
         transformer: Phone.getDatabaseTransformer(),
     })
-    public companyPhoneNumber!: Phone;
+    public companyPhoneNumber?: Phone = undefined;
 
     @TableColumn()
     @Column({
@@ -186,7 +186,7 @@ class User extends BaseModel {
         unique: false,
         transformer: URL.getDatabaseTransformer(),
     })
-    public profilePicImageUrl?: URL;
+    public profilePicImageUrl?: URL = undefined;
 
     @RequiredColumn()
     @TableColumn()
@@ -196,7 +196,7 @@ class User extends BaseModel {
         nullable: false,
         unique: false,
     })
-    public twoFactorAuthEnabled!: boolean;
+    public twoFactorAuthEnabled?: boolean = undefined;
 
     @TableColumn()
     @Column({
@@ -205,7 +205,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public twoFactorSecretCode?: string;
+    public twoFactorSecretCode? : string = undefined;
 
     @TableColumn()
     @Column({
@@ -223,7 +223,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public backupCodes?: Array<string>;
+    public backupCodes?: Array<string> = undefined;
 
     @TableColumn()
     @Column({
@@ -232,7 +232,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public jwtRefreshToken?: string;
+    public jwtRefreshToken? : string = undefined;
 
     @TableColumn()
     @Column({
@@ -241,7 +241,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentProviderCustomerId?: string;
+    public paymentProviderCustomerId? : string = undefined;
 
     @TableColumn()
     @Column({
@@ -250,7 +250,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public resetPasswordToken!: string;
+    public resetPasswordToken? : string = undefined;
 
     @TableColumn()
     @Column({
@@ -258,7 +258,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public resetPasswordExpires?: Date;
+    public resetPasswordExpires?: Date = undefined;
 
     @TableColumn()
     @Column({
@@ -267,7 +267,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public timezone?: Timezone;
+    public timezone?: Timezone = undefined;
 
     @TableColumn()
     @Column({
@@ -275,7 +275,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public lastActive!: Date;
+    public lastActive?: Date = undefined;
 
     @PublicColumnPermissions({
         create: true,
@@ -291,7 +291,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public promotionName!: string;
+    public promotionName? : string = undefined;
 
     @RequiredColumn()
     @TableColumn()
@@ -301,7 +301,7 @@ class User extends BaseModel {
         unique: false,
         default: false,
     })
-    public isDisabled!: boolean;
+    public isDisabled?: boolean = undefined;
 
     @TableColumn()
     @Column({
@@ -309,7 +309,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentFailedDate!: Date;
+    public paymentFailedDate?: Date = undefined;
 
     @RequiredColumn()
     @TableColumn()
@@ -319,7 +319,7 @@ class User extends BaseModel {
         unique: false,
         default: false,
     })
-    public isMasterAdmin!: boolean;
+    public isMasterAdmin?: boolean = undefined;
 
     @RequiredColumn()
     @TableColumn()
@@ -329,7 +329,7 @@ class User extends BaseModel {
         unique: false,
         default: false,
     })
-    public isBlocked!: boolean;
+    public isBlocked?: boolean = undefined;
 
     @TableColumn()
     @Column({
@@ -338,7 +338,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public alertPhoneNumber?: Phone;
+    public alertPhoneNumber?: Phone = undefined;
 
     @TableColumn()
     @Column({
@@ -347,7 +347,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public alertPhoneVerificationCode?: string;
+    public alertPhoneVerificationCode? : string = undefined;
 
     @TableColumn()
     @Column({
@@ -355,7 +355,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public alertPhoneVerificationCodeRequestTime?: Date;
+    public alertPhoneVerificationCodeRequestTime?: Date = undefined;
 
     @TableColumn()
     @Column({
@@ -364,28 +364,28 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public tempAlertPhoneNumber!: Phone;
+    public tempAlertPhoneNumber?: Phone = undefined;
 
     /*
      * @Column()
-     * public sso!: SSO;
+     * public sso?: SSO;
      */
 
     /*
      * @Column({
      *     nullable: true,
      * })
-     * public createdBy!: User;
+     * public createdBy?: User;
      */
 
     /*
      * @Column()
-     * public isBlockedByUser!: User;
+     * public isBlockedByUser?: User;
      */
 
     /*
      * @Column()
-     * public deletedByUser!: User;
+     * public deletedByUser?: User;
      */
 }
 

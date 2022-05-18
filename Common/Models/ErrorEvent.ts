@@ -8,25 +8,25 @@ import Issue from './Issue';
 })
 export default class Model extends BaseModel {
     @Column()
-    public errorTracker!: ErrorTrackerContainer;
+    public errorTracker?: ErrorTrackerContainer;
     @Column()
-    public issue!: Issue;
+    public issue?: Issue;
 
     @Column()
-    public content!: Object;
+    public content?: Object;
 
     @Column()
-    public timeline!: Object;
+    public timeline?: Object;
 
     @Column()
-    public tags!: Object;
+    public tags?: Object;
 
     @Column()
-    public sdk!: Object;
+    public sdk?: Object;
 
     @Column()
-    public fingerprintHash!: string;
+    public fingerprintHash? : string = undefined;
 
     @Column()
-    public device!: Object;
+    public device?: Object;
 }

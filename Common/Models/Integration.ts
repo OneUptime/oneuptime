@@ -15,32 +15,32 @@ export enum IntegrationType {
 })
 export default class Model extends BaseModel {
     @Column()
-    public webHookName!: string;
+    public webHookName? : string = undefined;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public integrationType!: IntegrationType;
+    public integrationType?: IntegrationType;
 
     @Column()
-    public data!: Object;
+    public data?: Object;
 
     @Column()
-    public incidentCreatedNotification!: boolean;
+    public incidentCreatedNotification?: boolean = undefined;
 
     @Column()
-    public incidentAcknowledgedNotification!: boolean;
+    public incidentAcknowledgedNotification?: boolean = undefined;
 
     @Column()
-    public incidentResolvedNotification!: boolean;
+    public incidentResolvedNotification?: boolean = undefined;
 
     @Column()
-    public incidentNoteAddedNotification!: boolean;
+    public incidentNoteAddedNotification?: boolean = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

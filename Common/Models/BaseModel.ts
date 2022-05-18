@@ -7,73 +7,45 @@ import {
     BaseEntity,
 } from 'typeorm';
 import { getPublicAccessControlForAllColumns } from '../Types/Database/AccessControls/Public/PublicColumnPermissions';
+import { getMemberAccessControlForAllColumns } from '../Types/Database/AccessControls/Member/MemberColumnPermissions';
+import { getOwnerAccessControlForAllColumns } from '../Types/Database/AccessControls/Owner/OwnerColumnPermissions';
+import { getViewerAccessControlForAllColumns } from '../Types/Database/AccessControls/Viewer/ViewerColumnPermissions';
+import { getAdminAccessControlForAllColumns } from '../Types/Database/AccessControls/Admin/AdminColumnPermissions';
+import { getUserAccessControlForAllColumns } from '../Types/Database/AccessControls/User/UserColumnPermissions';
 import Columns from '../Types/Database/Columns';
-import TableColumn, { getTableColumn } from '../Types/Database/TableColumn';
+import TableColumn, { getTableColumn, getAllTableColumns } from '../Types/Database/TableColumn';
 import BadRequestException from '../Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
+import AccessControl from '../Types/Database/AccessControls/AccessControl';
+import Dictionary from '../Types/Dictionary';
 
 export default class BaseModel extends BaseEntity {
+    
     @TableColumn({ title: 'ID' })
     @PrimaryGeneratedColumn('uuid')
-    public _id!: string;
+    public _id?: string = undefined;
 
     @TableColumn({ title: 'Created' })
     @CreateDateColumn()
-    public createdAt!: Date;
+    public createdAt?: Date = undefined;
 
     @TableColumn({ title: 'Updated' })
     @UpdateDateColumn()
-    public updatedAt!: Date;
+    public updatedAt?: Date = undefined;
 
     @TableColumn({ title: 'Deleted' })
     @DeleteDateColumn()
-    public deletedAt?: Date;
+    public deletedAt?: Date = undefined;
 
     @TableColumn({ title: 'Version' })
     @VersionColumn()
-    public version!: number;
+    public version?: number = undefined;
 
     private encryptedColumns: Columns = new Columns([]);
     private uniqueColumns: Columns = new Columns([]);
     private requiredColumns: Columns = new Columns([]);
     private hashedColumns: Columns = new Columns([]);
-    private tableColumns: Columns = new Columns([]);
-
-    private ownerReadableAsItemColumns: Columns = new Columns([]);
-    private userReadableAsItemColumns: Columns = new Columns([]);
-    private adminReadableAsItemColumns: Columns = new Columns([]);
-    private memberReadableAsItemColumns: Columns = new Columns([]);
-    private viewerReadableAsItemColumns: Columns = new Columns([]);
-    private publicReadableAsItemColumns: Columns = new Columns([]);
-
-    private ownerReadableAsListColumns: Columns = new Columns([]);
-    private userReadableAsListColumns: Columns = new Columns([]);
-    private adminReadableAsListColumns: Columns = new Columns([]);
-    private memberReadableAsListColumns: Columns = new Columns([]);
-    private viewerReadableAsListColumns: Columns = new Columns([]);
-    private publicReadableAsListColumns: Columns = new Columns([]);
-
-    private ownerUpdateableColumns: Columns = new Columns([]);
-    private userUpdateableColumns: Columns = new Columns([]);
-    private adminUpdateableColumns: Columns = new Columns([]);
-    private memberUpdateableColumns: Columns = new Columns([]);
-    private viewerUpdateableColumns: Columns = new Columns([]);
-    private publicUpdateableColumns: Columns = new Columns([]);
-
-    private ownerCreateableColumns: Columns = new Columns([]);
-    private userCreateableColumns: Columns = new Columns([]);
-    private adminCreateableColumns: Columns = new Columns([]);
-    private memberCreateableColumns: Columns = new Columns([]);
-    private viewerCreateableColumns: Columns = new Columns([]);
-    private publicCreateableColumns: Columns = new Columns([]);
-
-    private ownerDeleteableColumns: Columns = new Columns([]);
-    private userDeleteableColumns: Columns = new Columns([]);
-    private adminDeleteableColumns: Columns = new Columns([]);
-    private memberDeleteableColumns: Columns = new Columns([]);
-    private viewerDeleteableColumns: Columns = new Columns([]);
-    private publicDeleteableColumns: Columns = new Columns([]);
 
     private canAdminCreateRecord = false;
     private canAdminDeleteRecord = false;
@@ -159,14 +131,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getTableColumns(): Columns {
-        return this.tableColumns;
-    }
-
-    public addTableColumn(columnName: string): void {
-        if (!this.tableColumns) {
-            this.tableColumns = new Columns([]);
-        }
-        this.tableColumns.addColumn(columnName);
+        return new Columns(Object.keys(getAllTableColumns(this)));
     }
 
     public getUniqueColumns(): Columns {
@@ -174,335 +139,404 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getUserCreateableColumns(): Columns {
-        return this.userCreateableColumns;
+        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.create) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
-    public addUserCreateableColumn(columnName: string): void {
-        if (!this.userCreateableColumns) {
-            this.userCreateableColumns = new Columns([]);
-        }
-        this.userCreateableColumns.addColumn(columnName);
-    }
 
     public getUserDeleteableColumns(): Columns {
-        return this.userDeleteableColumns;
+        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.delete) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
-    public addUserDeleteableColumn(columnName: string): void {
-        if (!this.userDeleteableColumns) {
-            this.userDeleteableColumns = new Columns([]);
-        }
-        this.userDeleteableColumns.addColumn(columnName);
-    }
 
     public getUserUpdateableColumns(): Columns {
-        return this.userUpdateableColumns;
-    }
+        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addUserUpdateableColumn(columnName: string): void {
-        if (!this.userUpdateableColumns) {
-            this.userUpdateableColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.update) {
+                columns.push(key);
+            }
         }
-        this.userUpdateableColumns.addColumn(columnName);
-    }
 
-    public getOwnerCreateableColumns(): Columns {
-        return this.ownerCreateableColumns;
-    }
-
-    public getOwnerDeleteableColumns(): Columns {
-        return this.ownerDeleteableColumns;
-    }
-
-    public getOwnerReadableAsItemColumns(): Columns {
-        return this.ownerReadableAsItemColumns;
-    }
-
-    public addOwnerReadableAsItemColumn(columnName: string): void {
-        if (!this.ownerReadableAsItemColumns) {
-            this.ownerReadableAsItemColumns = new Columns([]);
-        }
-        this.ownerReadableAsItemColumns.addColumn(columnName);
+        return new Columns(columns);
     }
 
     public getUserReadableAsItemColumns(): Columns {
-        return this.userReadableAsItemColumns;
-    }
+        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addUserReadableAsItemColumn(columnName: string): void {
-        if (!this.userReadableAsItemColumns) {
-            this.userReadableAsItemColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsItem) {
+                columns.push(key);
+            }
         }
-        this.userReadableAsItemColumns.addColumn(columnName);
-    }
 
-    public getPublicReadableAsItemColumns(): Columns {
-        return this.publicReadableAsItemColumns;
-    }
-
-    public addPublicReadableAsItemColumn(columnName: string): void {
-        if (!this.publicReadableAsItemColumns) {
-            this.publicReadableAsItemColumns = new Columns([]);
-        }
-        this.publicReadableAsItemColumns.addColumn(columnName);
-    }
-
-    public addAdminReadableAsItemColumn(columnName: string): void {
-        if (!this.adminReadableAsItemColumns) {
-            this.adminReadableAsItemColumns = new Columns([]);
-        }
-        this.adminReadableAsItemColumns.addColumn(columnName);
-    }
-
-    public getAdminReadableAsItemColumns(): Columns {
-        return this.adminReadableAsItemColumns;
-    }
-
-    public addMemberReadableAsItemColumn(columnName: string): void {
-        if (!this.memberReadableAsItemColumns) {
-            this.memberReadableAsItemColumns = new Columns([]);
-        }
-        this.memberReadableAsItemColumns.addColumn(columnName);
-    }
-
-    public getMemberReadableAsItemColumns(): Columns {
-        return this.memberReadableAsItemColumns;
-    }
-
-    public addViewerReadableAsItemColumn(columnName: string): void {
-        if (!this.viewerReadableAsItemColumns) {
-            this.viewerReadableAsItemColumns = new Columns([]);
-        }
-        this.viewerReadableAsItemColumns.addColumn(columnName);
-    }
-
-    public getViewerReadableAsItemColumns(): Columns {
-        return this.viewerReadableAsItemColumns;
-    }
-
-    public getOwnerReadableAsListColumns(): Columns {
-        return this.ownerReadableAsListColumns;
-    }
-
-    public addOwnerReadableAsListColumn(columnName: string): void {
-        if (!this.ownerReadableAsListColumns) {
-            this.ownerReadableAsListColumns = new Columns([]);
-        }
-        this.ownerReadableAsListColumns.addColumn(columnName);
+        return new Columns(columns);
     }
 
     public getUserReadableAsListColumns(): Columns {
-        return this.userReadableAsListColumns;
-    }
+        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addUserReadableAsListColumn(columnName: string): void {
-        if (!this.userReadableAsListColumns) {
-            this.userReadableAsListColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsList) {
+                columns.push(key);
+            }
         }
-        this.userReadableAsListColumns.addColumn(columnName);
+
+        return new Columns(columns);
     }
 
-    public getPublicReadableAsListColumns(): Columns {
-        return this.publicReadableAsListColumns;
-    }
 
-    public addPublicReadableAsListColumn(columnName: string): void {
-        if (!this.publicReadableAsListColumns) {
-            this.publicReadableAsListColumns = new Columns([]);
+   
+    public getOwnerCreateableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.create) {
+                columns.push(key);
+            }
         }
-        this.publicReadableAsListColumns.addColumn(columnName);
+
+        return new Columns(columns);
     }
 
-    public addAdminReadableAsListColumn(columnName: string): void {
-        if (!this.adminReadableAsListColumns) {
-            this.adminReadableAsListColumns = new Columns([]);
+    public getOwnerDeleteableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.delete) {
+                columns.push(key);
+            }
         }
-        this.adminReadableAsListColumns.addColumn(columnName);
+
+        return new Columns(columns);
     }
 
-    public getAdminReadableAsListColumns(): Columns {
-        return this.adminReadableAsListColumns;
-    }
+    public getOwnerReadableAsItemColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addMemberReadableAsListColumn(columnName: string): void {
-        if (!this.memberReadableAsListColumns) {
-            this.memberReadableAsListColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsItem) {
+                columns.push(key);
+            }
         }
-        this.memberReadableAsListColumns.addColumn(columnName);
+
+        return new Columns(columns);
     }
 
-    public getMemberReadableAsListColumns(): Columns {
-        return this.memberReadableAsListColumns;
-    }
+    public getOwnerReadableAsListColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addViewerReadableAsListColumn(columnName: string): void {
-        if (!this.viewerReadableAsListColumns) {
-            this.viewerReadableAsListColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsList) {
+                columns.push(key);
+            }
         }
-        this.viewerReadableAsListColumns.addColumn(columnName);
-    }
 
-    public getViewerReadableAsListColumns(): Columns {
-        return this.viewerReadableAsListColumns;
+        return new Columns(columns);
     }
 
     public getOwnerUpdateableColumns(): Columns {
-        return this.ownerUpdateableColumns;
-    }
+        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addOwnerUpdateableColumn(columnName: string): void {
-        if (!this.ownerUpdateableColumns) {
-            this.ownerUpdateableColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.update) {
+                columns.push(key);
+            }
         }
-        this.ownerUpdateableColumns.addColumn(columnName);
+
+        return new Columns(columns);
     }
 
-    public getPublicUpdateableColumns(): Columns {
-        return this.publicUpdateableColumns;
-    }
 
-    public addPublicUpdateableColumn(columnName: string): void {
-        if (!this.publicUpdateableColumns) {
-            this.publicUpdateableColumns = new Columns([]);
+
+    public getAdminDeleteableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.delete) {
+                columns.push(key);
+            }
         }
-        this.publicUpdateableColumns.addColumn(columnName);
-    }
 
-    public addAdminUpdateableColumn(columnName: string): void {
-        if (!this.adminUpdateableColumns) {
-            this.adminUpdateableColumns = new Columns([]);
-        }
-        this.adminUpdateableColumns.addColumn(columnName);
-    }
-
-    public getAdminUpdateableColumns(): Columns {
-        return this.adminUpdateableColumns;
-    }
-
-    public addMemberUpdateableColumn(columnName: string): void {
-        if (!this.memberUpdateableColumns) {
-            this.memberUpdateableColumns = new Columns([]);
-        }
-        this.memberUpdateableColumns.addColumn(columnName);
-    }
-
-    public getMemberUpdateableColumns(): Columns {
-        return this.memberUpdateableColumns;
-    }
-
-    public addViewerUpdateableColumn(columnName: string): void {
-        if (!this.viewerUpdateableColumns) {
-            this.viewerUpdateableColumns = new Columns([]);
-        }
-        this.viewerUpdateableColumns.addColumn(columnName);
-    }
-
-    public getViewerUpdateableColumns(): Columns {
-        return this.viewerUpdateableColumns;
-    }
-
-    public addOwnerCreateableColumn(columnName: string): void {
-        if (!this.ownerCreateableColumns) {
-            this.ownerCreateableColumns = new Columns([]);
-        }
-        this.ownerCreateableColumns.addColumn(columnName);
-    }
-
-    public getPublicCreateableColumns(): Columns {
-        const _value = getPublicAccessControlForAllColumns(this);
-        console.log(_value);
-        return new Columns([]);
-    }
-
-    public addPublicCreateableColumn(columnName: string): void {
-        if (!this.publicCreateableColumns) {
-            this.publicCreateableColumns = new Columns([]);
-        }
-        this.publicCreateableColumns.addColumn(columnName);
-    }
-
-    public addAdminCreateableColumn(columnName: string): void {
-        if (!this.adminCreateableColumns) {
-            this.adminCreateableColumns = new Columns([]);
-        }
-        this.adminCreateableColumns.addColumn(columnName);
+        return new Columns(columns);
     }
 
     public getAdminCreateableColumns(): Columns {
-        return this.adminCreateableColumns;
-    }
+        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addMemberCreateableColumn(columnName: string): void {
-        if (!this.memberCreateableColumns) {
-            this.memberCreateableColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.create) {
+                columns.push(key);
+            }
         }
-        this.memberCreateableColumns.addColumn(columnName);
+
+        return new Columns(columns);
     }
 
-    public getMemberCreateableColumns(): Columns {
-        return this.memberCreateableColumns;
-    }
+    public getAdminReadableAsItemColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addViewerCreateableColumn(columnName: string): void {
-        if (!this.viewerCreateableColumns) {
-            this.viewerCreateableColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsItem) {
+                columns.push(key);
+            }
         }
-        this.viewerCreateableColumns.addColumn(columnName);
+
+        return new Columns(columns);
     }
 
-    public getViewerCreateableColumns(): Columns {
-        return this.viewerCreateableColumns;
-    }
+    public getAdminReadableAsListColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addOwnerDeleteableColumn(columnName: string): void {
-        if (!this.ownerDeleteableColumns) {
-            this.ownerDeleteableColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsList) {
+                columns.push(key);
+            }
         }
-        this.ownerDeleteableColumns.addColumn(columnName);
+
+        return new Columns(columns);
+    }
+
+    public getAdminUpdateableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.update) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    
+
+    public getPublicReadableAsItemColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsItem) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getPublicReadableAsListColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsList) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getPublicUpdateableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.update) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getPublicCreateableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.create) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
     public getPublicDeleteableColumns(): Columns {
-        return this.publicDeleteableColumns;
-    }
+        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addPublicDeleteableColumn(columnName: string): void {
-        if (!this.publicDeleteableColumns) {
-            this.publicDeleteableColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.delete) {
+                columns.push(key);
+            }
         }
-        this.publicDeleteableColumns.addColumn(columnName);
+
+        return new Columns(columns);
     }
 
-    public addAdminDeleteableColumn(columnName: string): void {
-        if (!this.adminDeleteableColumns) {
-            this.adminDeleteableColumns = new Columns([]);
+
+
+    public getMemberReadableAsItemColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsItem) {
+                columns.push(key);
+            }
         }
-        this.adminDeleteableColumns.addColumn(columnName);
+
+        return new Columns(columns);
     }
 
-    public getAdminDeleteableColumns(): Columns {
-        return this.adminDeleteableColumns;
-    }
+    public getMemberReadableAsListColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
 
-    public addMemberDeleteableColumn(columnName: string): void {
-        if (!this.memberDeleteableColumns) {
-            this.memberDeleteableColumns = new Columns([]);
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsList) {
+                columns.push(key);
+            }
         }
-        this.memberDeleteableColumns.addColumn(columnName);
+
+        return new Columns(columns);
+    }
+
+    public getMemberUpdateableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.update) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getMemberCreateableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.create) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
     public getMemberDeleteableColumns(): Columns {
-        return this.memberDeleteableColumns;
+        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.delete) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
-    public addViewerDeleteableColumn(columnName: string): void {
-        if (!this.viewerDeleteableColumns) {
-            this.viewerDeleteableColumns = new Columns([]);
+
+    public getViewerReadableAsItemColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsItem) {
+                columns.push(key);
+            }
         }
-        this.viewerDeleteableColumns.addColumn(columnName);
+
+        return new Columns(columns);
+    }
+
+    public getViewerReadableAsListColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.readAsList) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getViewerUpdateableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.update) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getViewerCreateableColumns(): Columns {
+        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.create) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
     public getViewerDeleteableColumns(): Columns {
-        return this.viewerDeleteableColumns;
+        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = []; 
+
+        for (const key in Object.keys(accessControl)) {
+            if (accessControl[key]?.delete) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
     public setSlugifyColumn(columnName: string): void {
@@ -539,12 +573,14 @@ export default class BaseModel extends BaseEntity {
         return this.projectIdColumn;
     }
 
-    public get id(): ObjectID {
-        return new ObjectID(this._id);
+    public get id(): ObjectID | null {
+        return this._id ? new ObjectID(this._id) : null;
     }
 
-    public set id(value: ObjectID) {
-        this._id = value.toString();
+    public set id(value: ObjectID | null) {
+        if (value) {
+            this._id = value.toString();
+        }
     }
 
     private static _fromJSON<T extends BaseModel>(json: JSONObject): T {
@@ -1066,7 +1102,7 @@ export default class BaseModel extends BaseEntity {
 
     public toJSON(): JSONObject {
         const json: JSONObject = {};
-        for (const column of this.tableColumns.columns) {
+        for (const column of this.getTableColumns().columns) {
             if ((this as any)[column]) {
                 json[column] = (this as any)[column];
             }

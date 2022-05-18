@@ -10,14 +10,14 @@ import Role from '../Types/Role';
 })
 export default class SsoDefaultRole extends BaseModel {
     @Column()
-    public domain!: string;
+    public domain? : string = undefined;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public role!: Role;
+    public role?: Role;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }
