@@ -7,8 +7,8 @@ export default class Exception extends Error {
         return this._code;
     }
 
-    public set code(v: ExceptionCode) {
-        this._code = v;
+    public set code(value: ExceptionCode) {
+        this._code = value;
     }
 
     public constructor(code: ExceptionCode, message: string) {
