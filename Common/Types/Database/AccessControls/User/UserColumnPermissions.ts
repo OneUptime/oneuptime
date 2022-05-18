@@ -1,27 +1,13 @@
-import BaseModel from '../../../../Models/BaseModel';
+
+import "reflect-metadata";
 import AccessControl from '../AccessControl';
 
+const accessControlSymbol = Symbol("UserAccessControl");
+
 export default (accessControl: AccessControl) => {
-    return (target: Object, propertyKey: string) => {
-        const baseModel: BaseModel = target as BaseModel;
-        if (accessControl.create) {
-            baseModel.addUserCreateableColumn(propertyKey);
-        }
+    return Reflect.metadata(accessControlSymbol, accessControl);
+}
 
-        if (accessControl.delete) {
-            baseModel.addUserDeleteableColumn(propertyKey);
-        }
-
-        if (accessControl.readAsItem) {
-            baseModel.addUserReadableAsItemColumn(propertyKey);
-        }
-
-        if (accessControl.readAsList) {
-            baseModel.addUserReadableAsListColumn(propertyKey);
-        }
-
-        if (accessControl.update) {
-            baseModel.addUserUpdateableColumn(propertyKey);
-        }
-    };
-};
+export const getUserAccessControl = (target: any, propertyKey: string): AccessControl  => {
+    return Reflect.getMetadata(accessControlSymbol, target, propertyKey) as AccessControl;
+}
