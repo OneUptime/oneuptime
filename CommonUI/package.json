@@ -15,6 +15,7 @@
         "@fortawesome/free-regular-svg-icons": "^6.1.0",
         "@fortawesome/free-solid-svg-icons": "^6.1.0",
         "@fortawesome/react-fontawesome": "^0.1.18",
+        "bootstrap": "^5.2.0-beta1",
         "Common": "file:../Common",
         "formik": "^2.2.9",
         "prop-types": "^15.8.1",

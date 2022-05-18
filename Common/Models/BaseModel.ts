@@ -6,6 +6,7 @@ import {
     PrimaryGeneratedColumn,
     BaseEntity,
 } from 'typeorm';
+import { getPublicAccessControlForAllColumns } from '../Types/Database/AccessControls/Public/PublicColumnPermissions';
 import Columns from '../Types/Database/Columns';
 import TableColumn, { getTableColumn } from '../Types/Database/TableColumn';
 import BadRequestException from '../Types/Exception/BadRequestException';
@@ -408,7 +409,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getPublicCreateableColumns(): Columns {
-        return this.publicCreateableColumns;
+        const _value = getPublicAccessControlForAllColumns(this);
+        console.log(_value);
+        return new Columns([]);
     }
 
     public addPublicCreateableColumn(columnName: string): void {

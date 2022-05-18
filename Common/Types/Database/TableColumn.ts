@@ -1,5 +1,6 @@
 
 import "reflect-metadata";
+import BaseModel from "../../Models/BaseModel";
 
 const tableColumn = Symbol("TableColumn");
 
@@ -13,6 +14,6 @@ export default (props?: TableColumnMetadata) => {
     return Reflect.metadata(tableColumn, props);
 }
 
-export const getTableColumn = (target: any, propertyKey: string): TableColumnMetadata  => {
+export const getTableColumn = (target: BaseModel, propertyKey: string): TableColumnMetadata  => {
     return Reflect.getMetadata(tableColumn, target, propertyKey) as TableColumnMetadata;
 }

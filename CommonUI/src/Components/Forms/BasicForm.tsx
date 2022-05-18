@@ -30,10 +30,18 @@ const BasicForm = <T extends Object,>(props: ComponentProps<T>): ReactElement =>
             throw new BadDataException("Object cannot be without Field")
         }
         return (<div key={index}>
-            <label>{field.title}</label>
-            <p>{field.description}</p>
-            <Field placeholder={field.placeholder} type={fieldType} name={Object.keys(field.field)[0] as string} />
-            <ErrorMessage name={Object.keys(field.field)[0] as string} component="div" />
+            {field.title && <div>
+                <label>{field.title}</label>
+            </div>}
+            {field.description && <div>
+                <p>{field.description}</p>
+            </div>}
+            <div>
+                <Field placeholder={field.placeholder} type={fieldType} name={Object.keys(field.field)[0] as string} />
+            </div>
+            <div>
+                <ErrorMessage name={Object.keys(field.field)[0] as string} component="div" />
+            </div>
         </div>)
     }
 

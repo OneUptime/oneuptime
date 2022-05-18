@@ -8,6 +8,8 @@ const LoginPage: FunctionComponent = () => {
 
     const user: User = new User();
 
+    user.getPublicCreateableColumns();
+
     return (
         <BasicModelForm<User>
             model={user}
