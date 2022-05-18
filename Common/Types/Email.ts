@@ -2,28 +2,69 @@ import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 
+const nonBusinessEmailDomains: Array<string> = [
+    'gmail',
+    'yahoo',
+    'yahoomail',
+    'googlemail',
+    'ymail',
+    'icloud',
+    'aol',
+    'hotmail',
+    'outlook',
+    'msn',
+    'wanadoo',
+    'orange',
+    'comcast',
+    'facebook',
+];
 export default class Email extends DatabaseProperty {
     private _email: string = '';
     public get email(): string {
         return this._email;
     }
-    public set email(v: string) {
-        this._email = v;
+    public set email(value: string) {
+        if (Email.isValid(value)) {
+            this._email = value;
+        } else {
+            throw new BadDataException('Email is not in valid format.');
+        }
     }
 
     public constructor(email: string) {
         super();
+        this.email = email;
+    }
+
+    private static isValid(value: string): boolean {
         const re: RegExp =
             /^(([^<>()[\].,;:\s@"]+(.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+.)+[^<>()[\].,;:\s@"]{2,})$/i;
-        const isValid: boolean = re.test(email);
+        const isValid: boolean = re.test(value);
         if (!isValid) {
-            throw new BadDataException('Email is not in valid format.');
+            return false;
         }
-        this.email = email;
+        return true;
     }
 
     public override toString(): string {
         return this.email;
+    }
+
+    public getEmailDomain(): string {
+        return this.email!.split('@')[1] || '';
+    }
+
+    public isBusinessEmail(): boolean {
+        const domain: string = this.getEmailDomain() || '';
+        if (domain) {
+            for (let i: number = 0; i < nonBusinessEmailDomains.length; i++) {
+                if (domain.includes(nonBusinessEmailDomains[i]!)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public static override toDatabase(

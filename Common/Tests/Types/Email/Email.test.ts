@@ -11,6 +11,22 @@ describe('Email()', () => {
         }).toThrow('Email is not in valid format.');
     });
 
+    test('should be a business email', () => {
+        const email: Email = new Email('dev@oneuptime.com');
+        expect(email.isBusinessEmail()).toBeTruthy();
+    });
+
+    test('should not be a business email', () => {
+        const email: Email = new Email('dev@yahoo.co.uk');
+        expect(email.isBusinessEmail()).toBeFalsy();
+    });
+
+    test('should return the domain of the email address', () => {
+        expect(new Email('hello@oneuptime.com').getEmailDomain()).toBe(
+            'oneuptime.com'
+        );
+    });
+
     test('value of email instance should be mutable', () => {
         const email: Email = new Email('test@test.com');
         email.email = 'new@test.com';
