@@ -44,6 +44,7 @@
     },
     "resolutions": {},
     "devDependencies": {
+        "@types/jest": "^27.5.1",
         "depcheck": "^1.4.3",
         "jest": "^28.1.0",
         "npm-force-resolutions": "0.0.10",
