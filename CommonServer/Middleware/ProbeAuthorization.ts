@@ -23,11 +23,11 @@ export default class ProbeMiddleware {
         _res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-        let probeKey: ObjectID | undefined,
-            probeName: string | undefined,
-            clusterKey: ObjectID | undefined,
-            probeVersion: Version | undefined,
-            probeId: ObjectID | undefined;
+        let probeKey: ObjectID | null = null,
+            probeName: string | null = null,
+            clusterKey: ObjectID | null = null,
+            probeVersion: Version | null = null,
+            probeId: ObjectID | null = null;
 
         if (req.params && req.params['probeKey']) {
             probeKey = new ObjectID(req.params['probeKey'] || '');
@@ -193,7 +193,7 @@ export default class ProbeMiddleware {
                 LocalCache.getModel<Probe>(
                     'probe',
                     probeName
-                ).version.toString() !== probeVersion.toString())
+                ).version?.toString() !== probeVersion.toString())
         ) {
             await ProbeService.updateProbeVersionByName(
                 probeName,
