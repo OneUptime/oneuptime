@@ -11,8 +11,8 @@ export default class Model extends BaseModel {
     public name?: Project;
 
     @Column()
-    public fileExtention? : string = undefined;
+    public fileExtention?: string = undefined;
 
     @Column()
-    public base64Content? : string = undefined;
+    public base64Content?: string = undefined;
 }

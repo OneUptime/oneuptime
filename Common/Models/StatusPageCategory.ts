@@ -12,7 +12,7 @@ export default class Model extends BaseModel {
     public statusPage?: StatusPage;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public createdByUser?: User;

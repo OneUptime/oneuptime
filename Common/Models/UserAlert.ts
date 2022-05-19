@@ -22,10 +22,10 @@ export default class UserAlerts extends BaseModel {
     public user?: User;
 
     @Column()
-    public alertType? : string = undefined;
+    public alertType?: string = undefined;
 
     @Column()
-    public alertStatus? : string = undefined;
+    public alertStatus?: string = undefined;
 
     @Column()
     public eventType?: IncidentState;
@@ -46,10 +46,10 @@ export default class UserAlerts extends BaseModel {
     public error?: boolean = undefined;
 
     @Column()
-    public errorMessage? : string = undefined;
+    public errorMessage?: string = undefined;
 
     @Column()
-    public alertProgress? : string = undefined;
+    public alertProgress?: string = undefined;
 
     @Column()
     public deletedByUser?: User;

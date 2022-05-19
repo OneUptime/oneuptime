@@ -12,13 +12,13 @@ export default class Model extends BaseModel {
     public component?: Component;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @Column()
-    public key? : string = undefined;
+    public key?: string = undefined;
 
     @Column()
     public showQuickStart?: boolean = undefined;

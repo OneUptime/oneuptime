@@ -15,10 +15,10 @@ export default class Feedback extends BaseModel {
     public createdByUser?: User;
 
     @Column()
-    public message? : string = undefined;
+    public message?: string = undefined;
 
     @Column()
-    public pageUrl? : string = undefined;
+    public pageUrl?: string = undefined;
 
     @Column()
     public deletedByUser?: User;

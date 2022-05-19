@@ -9,16 +9,16 @@ import Project from './Project';
 })
 export default class GitCredential extends BaseModel {
     @Column()
-    public gitUsername? : string = undefined;
+    public gitUsername?: string = undefined;
 
     @Column()
-    public gitPassword? : string = undefined;
+    public gitPassword?: string = undefined;
 
     @Column()
-    public sshTitle? : string = undefined;
+    public sshTitle?: string = undefined;
 
     @Column()
-    public sshPrivateKey? : string = undefined;
+    public sshPrivateKey?: string = undefined;
 
     @Column()
     public iv?: Buffer;

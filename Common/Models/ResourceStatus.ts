@@ -16,10 +16,10 @@ export default class ResourceStatus extends BaseModel {
     public project?: Project;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
-    public color? : string = undefined;
+    public color?: string = undefined;
 
     @Column()
     public createdByUser?: User;

@@ -18,7 +18,7 @@ export default class Model extends BaseModel {
     public scheduledEvent?: ScheduledEvent;
 
     @Column()
-    public content? : string = undefined;
+    public content?: string = undefined;
 
     @Column()
     public type?: ScheduledEventNote;

@@ -7,7 +7,7 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public project?: Project;
@@ -19,5 +19,5 @@ export default class Model extends BaseModel {
     public duration?: number;
 
     @Column()
-    public alertTime? : string = undefined;
+    public alertTime?: string = undefined;
 }

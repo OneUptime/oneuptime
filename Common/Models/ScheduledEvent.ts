@@ -12,7 +12,7 @@ export default class Model extends BaseModel {
     public project?: Project;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public cancelled?: boolean = undefined;
@@ -24,7 +24,7 @@ export default class Model extends BaseModel {
     public cancelledBy?: User;
 
     @Column()
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @Column()
     public createdByUser?: User;
@@ -39,7 +39,7 @@ export default class Model extends BaseModel {
     public endDate?: Date = undefined;
 
     @Column()
-    public description? : string = undefined;
+    public description?: string = undefined;
 
     @Column()
     public showEventOnStatusPage?: boolean = undefined;
@@ -54,7 +54,7 @@ export default class Model extends BaseModel {
     public recurring?: boolean = undefined;
 
     @Column()
-    public interval? : string = undefined;
+    public interval?: string = undefined;
 
     @Column()
     public alertSubscriber?: boolean = undefined;

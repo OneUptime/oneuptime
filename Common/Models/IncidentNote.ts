@@ -17,7 +17,7 @@ export default class IncidentNote extends BaseModel {
     public incident?: Incident;
 
     @Column()
-    public content? : string = undefined;
+    public content?: string = undefined;
 
     @Column()
     public type?: IncidentMessageType;

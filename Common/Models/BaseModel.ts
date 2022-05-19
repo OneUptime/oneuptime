@@ -17,7 +17,10 @@ import { getUniqueColumns } from '../Types/Database/UniqueColumn';
 import { getHashedColumns } from '../Types/Database/HashedColumn';
 import { getRequiredColumns } from '../Types/Database/RequiredColumn';
 import Columns from '../Types/Database/Columns';
-import TableColumn, { getTableColumn, getAllTableColumns } from '../Types/Database/TableColumn';
+import TableColumn, {
+    getTableColumn,
+    getAllTableColumns,
+} from '../Types/Database/TableColumn';
 import BadRequestException from '../Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
@@ -25,7 +28,6 @@ import AccessControl from '../Types/Database/AccessControls/AccessControl';
 import Dictionary from '../Types/Dictionary';
 
 export default class BaseModel extends BaseEntity {
-    
     @TableColumn({ title: 'ID' })
     @PrimaryGeneratedColumn('uuid')
     public _id?: string = undefined;
@@ -124,8 +126,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getUserCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.create) {
@@ -136,10 +139,10 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-
     public getUserDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.delete) {
@@ -150,10 +153,10 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-
     public getUserUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.update) {
@@ -165,8 +168,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getUserReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsItem) {
@@ -178,8 +182,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getUserReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getUserAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsList) {
@@ -190,11 +195,10 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-
-   
     public getOwnerCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.create) {
@@ -206,8 +210,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getOwnerDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.delete) {
@@ -219,8 +224,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getOwnerReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsItem) {
@@ -232,8 +238,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getOwnerReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsList) {
@@ -245,8 +252,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getOwnerUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getOwnerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.update) {
@@ -257,11 +265,10 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-
-
     public getAdminDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.delete) {
@@ -273,8 +280,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getAdminCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.create) {
@@ -286,8 +294,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getAdminReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsItem) {
@@ -299,8 +308,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getAdminReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsList) {
@@ -312,8 +322,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getAdminUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getAdminAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.update) {
@@ -324,11 +335,10 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-    
-
     public getPublicReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsItem) {
@@ -340,8 +350,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getPublicReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsList) {
@@ -353,8 +364,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getPublicUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.update) {
@@ -366,8 +378,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getPublicCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.create) {
@@ -379,8 +392,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getPublicDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getPublicAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getPublicAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.delete) {
@@ -391,11 +405,10 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-
-
     public getMemberReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsItem) {
@@ -407,8 +420,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getMemberReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsList) {
@@ -420,8 +434,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getMemberUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.update) {
@@ -433,8 +448,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getMemberCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.create) {
@@ -446,8 +462,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getMemberDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getMemberAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.delete) {
@@ -458,10 +475,10 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-
     public getViewerReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsItem) {
@@ -473,8 +490,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getViewerReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.readAsList) {
@@ -486,8 +504,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getViewerUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.update) {
@@ -499,8 +518,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getViewerCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.create) {
@@ -512,8 +532,9 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getViewerDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> = getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = []; 
+        const accessControl: Dictionary<AccessControl> =
+            getViewerAccessControlForAllColumns(this);
+        const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
             if (accessControl[key]?.delete) {

@@ -13,7 +13,7 @@ export default class StatusPageDomains extends BaseModel {
     public statusPage?: StatusPage;
 
     @Column()
-    public domain? : string = undefined;
+    public domain?: string = undefined;
 
     @Column()
     public certificate?: User;

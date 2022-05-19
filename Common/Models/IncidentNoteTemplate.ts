@@ -14,5 +14,5 @@ export default class IncidentNoteTemplate extends BaseModel {
     public incidentState?: IncidentState;
 
     @Column()
-    public incidentNote? : string = undefined;
+    public incidentNote?: string = undefined;
 }

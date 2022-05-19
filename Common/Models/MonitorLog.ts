@@ -15,7 +15,7 @@ export default class Model extends BaseModel {
     public probe?: Probe;
 
     @Column()
-    public status? : string = undefined;
+    public status?: string = undefined;
 
     @Column()
     public responseTime?: Number;
@@ -24,7 +24,7 @@ export default class Model extends BaseModel {
     public responseStatus?: Number;
 
     @Column()
-    public responseBody? : string = undefined;
+    public responseBody?: string = undefined;
 
     @Column()
     public responseHeader?: Object;

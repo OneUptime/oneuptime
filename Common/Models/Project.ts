@@ -21,7 +21,7 @@ export default class Model extends BaseModel {
         type: ColumnType.Name,
         length: ColumnLength.Name,
     })
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @RequiredColumn()
     @UniqueColumn()
@@ -31,7 +31,7 @@ export default class Model extends BaseModel {
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
     })
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @TableColumn()
     @Column({
@@ -40,7 +40,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentProviderPlanId? : string = undefined;
+    public paymentProviderPlanId?: string = undefined;
 
     @TableColumn()
     @Column({
@@ -49,7 +49,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentProviderSubscriptionId? : string = undefined;
+    public paymentProviderSubscriptionId?: string = undefined;
 
     @TableColumn()
     @ManyToOne(

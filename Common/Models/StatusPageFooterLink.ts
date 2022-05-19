@@ -12,10 +12,10 @@ export default class Model extends BaseModel {
     public statusPage?: StatusPage;
 
     @Column()
-    public title? : string = undefined;
+    public title?: string = undefined;
 
     @Column()
-    public url? : string = undefined;
+    public url?: string = undefined;
 
     @Column()
     public createdByUser?: User;

@@ -10,19 +10,19 @@ import ResourceLabel from './ResourceLabel';
 })
 export default class Model extends BaseModel {
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @Column()
     public dockerCredential?: DockerCredential;
 
     @Column()
-    public imagePath? : string = undefined;
+    public imagePath?: string = undefined;
 
     @Column()
-    public imageTags? : string = undefined;
+    public imageTags?: string = undefined;
 
     @Column()
     public component?: Component;

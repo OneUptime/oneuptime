@@ -25,10 +25,10 @@ export default class Model extends BaseModel {
     public createdByApi?: boolean = undefined;
 
     @Column()
-    public status? : string = undefined;
+    public status?: string = undefined;
 
     @Column()
-    public incidentState? : string = undefined;
+    public incidentState?: string = undefined;
 
     @Column()
     public deletedByUser?: User;

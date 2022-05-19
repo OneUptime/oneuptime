@@ -25,13 +25,13 @@ export default class Incident extends BaseModel {
     public project?: Project;
 
     @Column()
-    public title? : string = undefined;
+    public title?: string = undefined;
 
     @Column()
-    public description? : string = undefined;
+    public description?: string = undefined;
 
     @Column()
-    public reason? : string = undefined;
+    public reason?: string = undefined;
 
     @Column()
     public response?: Object;
@@ -70,10 +70,10 @@ export default class Incident extends BaseModel {
     public resolvedByZapier?: boolean = undefined;
 
     @Column()
-    public internalNote? : string = undefined;
+    public internalNote?: string = undefined;
 
     @Column()
-    public investigationNote? : string = undefined;
+    public investigationNote?: string = undefined;
 
     @Column()
     public createdByUser?: User;
@@ -118,5 +118,5 @@ export default class Incident extends BaseModel {
     public hideIncident?: boolean = undefined;
 
     @Column()
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 }

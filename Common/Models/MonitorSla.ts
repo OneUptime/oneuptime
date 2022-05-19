@@ -7,7 +7,7 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public project?: Project;
@@ -16,8 +16,8 @@ export default class Model extends BaseModel {
     public isDefault?: boolean = undefined;
 
     @Column()
-    public frequency? : string = undefined; // Measured in days
+    public frequency?: string = undefined; // Measured in days
 
     @Column()
-    public monitorUptime? : string = undefined;
+    public monitorUptime?: string = undefined;
 }

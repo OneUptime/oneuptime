@@ -10,23 +10,23 @@ export default class LoginHistory extends BaseModel {
     public user?: User;
 
     @Column()
-    public ipLocationCity? : string = undefined;
+    public ipLocationCity?: string = undefined;
 
     @Column()
-    public ipLocationNeighbourhood? : string = undefined;
+    public ipLocationNeighbourhood?: string = undefined;
 
     @Column()
-    public ipLocationCountry? : string = undefined;
+    public ipLocationCountry?: string = undefined;
 
     @Column()
-    public browserName? : string = undefined;
+    public browserName?: string = undefined;
 
     @Column()
-    public browserVersion? : string = undefined;
+    public browserVersion?: string = undefined;
 
     @Column()
-    public deviceName? : string = undefined;
+    public deviceName?: string = undefined;
 
     @Column()
-    public loginStatus? : string = undefined;
+    public loginStatus?: string = undefined;
 }

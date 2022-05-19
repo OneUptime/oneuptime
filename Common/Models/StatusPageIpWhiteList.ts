@@ -12,7 +12,7 @@ export default class Model extends BaseModel {
     public statusPage?: StatusPage;
 
     @Column()
-    public ipWhitelist? : string = undefined;
+    public ipWhitelist?: string = undefined;
 
     @Column()
     public createdByUser?: User;

@@ -15,10 +15,10 @@ export enum IssueType {
 })
 export default class Model extends BaseModel {
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
-    public description? : string = undefined;
+    public description?: string = undefined;
 
     @Column()
     public errorTracker?: ErrorTrackerContainer;
@@ -27,7 +27,7 @@ export default class Model extends BaseModel {
     public type?: IssueType;
 
     @Column()
-    public fingerprintHash? : string = undefined;
+    public fingerprintHash?: string = undefined;
 
     @Column()
     public deletedByUser?: User;

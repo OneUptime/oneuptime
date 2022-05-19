@@ -11,7 +11,7 @@ export default class UserAdminNotes extends BaseModel {
     public forUser?: User;
 
     @Column({ type: 'varchar', nullable: false })
-    public note? : string = undefined;
+    public note?: string = undefined;
 
     @Column({ nullable: false })
     public postedByUser?: User;

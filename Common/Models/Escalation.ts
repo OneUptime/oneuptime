@@ -25,7 +25,7 @@ export default class Model extends BaseModel {
     public pushReminders?: number;
 
     @Column()
-    public rotateBy? : string = undefined;
+    public rotateBy?: string = undefined;
 
     @Column()
     public rotationInterval?: number;
@@ -34,7 +34,7 @@ export default class Model extends BaseModel {
     public firstRotationOn?: Date = undefined;
 
     @Column()
-    public rotationTimezone? : string = undefined;
+    public rotationTimezone?: string = undefined;
 
     @Column()
     public call?: boolean = undefined;

@@ -12,20 +12,20 @@ export default class Model extends BaseModel {
     public user?: User;
 
     @Column()
-    public sentTo? : string = undefined;
+    public sentTo?: string = undefined;
 
     @Column()
     public project?: Project;
 
     @Column()
-    public content? : string = undefined;
+    public content?: string = undefined;
 
     @Column()
     public deletedByUser?: User;
 
     @Column()
-    public status? : string = undefined;
+    public status?: string = undefined;
 
     @Column()
-    public error? : string = undefined;
+    public error?: string = undefined;
 }

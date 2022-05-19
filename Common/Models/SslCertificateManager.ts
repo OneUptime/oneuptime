@@ -6,7 +6,7 @@ import BaseModel from './BaseModel';
 })
 export default class Model extends BaseModel {
     @Column()
-    public subject? : string = undefined;
+    public subject?: string = undefined;
 
     @Column()
     public altnames?: Array<string>;

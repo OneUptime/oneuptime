@@ -20,12 +20,12 @@ export default class ProjectSmtpConfig extends BaseModel {
     @Column({
         nullable: false,
     })
-    public useranme? : string = undefined;
+    public useranme?: string = undefined;
 
     @Column({
         nullable: false,
     })
-    public password? : string = undefined;
+    public password?: string = undefined;
 
     @Column({
         nullable: false,
@@ -40,12 +40,12 @@ export default class ProjectSmtpConfig extends BaseModel {
     @Column({
         nullable: false,
     })
-    public fromEmail?:Email = undefined;
+    public fromEmail?: Email = undefined;
 
     @Column({
         nullable: false,
     })
-    public fromName? : string = undefined;
+    public fromName?: string = undefined;
 
     @Column({
         nullable: false,

@@ -9,10 +9,10 @@ import Project from './Project';
 export default class Model extends BaseModel {
     @Index()
     @Column()
-    public domain? : string = undefined; // The main or base domain eg oneuptime.com
+    public domain?: string = undefined; // The main or base domain eg oneuptime.com
 
     @Column()
-    public verificationToken? : string = undefined;
+    public verificationToken?: string = undefined;
 
     @Column()
     public verified?: boolean = undefined;

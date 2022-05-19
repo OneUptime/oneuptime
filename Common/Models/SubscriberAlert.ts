@@ -32,7 +32,7 @@ export default class Model extends BaseModel {
     public eventType?: AlertEventType;
 
     @Column()
-    public errorMessage? : string = undefined;
+    public errorMessage?: string = undefined;
 
     @Column()
     public deletedByUser?: User;

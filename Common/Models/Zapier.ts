@@ -14,7 +14,7 @@ export default class Zapier extends BaseModel {
     public url?: URL;
 
     @Column()
-    public type? : string = undefined;
+    public type?: string = undefined;
 
     @Column()
     public monitors?: [String];

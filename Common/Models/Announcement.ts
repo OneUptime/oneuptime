@@ -16,7 +16,7 @@ export default class Announcement extends BaseModel {
     public project?: Project;
 
     @Column()
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @Column()
     public hideAnnouncement?: boolean = undefined;
@@ -28,10 +28,10 @@ export default class Announcement extends BaseModel {
     public createdByUser?: User;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
-    public description? : string = undefined;
+    public description?: string = undefined;
 
     @Column()
     public resolved?: boolean = undefined;

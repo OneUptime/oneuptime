@@ -11,13 +11,13 @@ export default class Model extends BaseModel {
     public project?: Project;
 
     @Column()
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @Column()
-    public title? : string = undefined;
+    public title?: string = undefined;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public isPrivate?: boolean = undefined;
@@ -51,19 +51,19 @@ export default class Model extends BaseModel {
     public hideResolvedIncident?: boolean = undefined;
 
     @Column()
-    public description? : string = undefined;
+    public description?: string = undefined;
 
     @Column()
-    public copyright? : string = undefined;
+    public copyright?: string = undefined;
 
     @Column()
-    public faviconPath? : string = undefined;
+    public faviconPath?: string = undefined;
 
     @Column()
-    public logoPath? : string = undefined;
+    public logoPath?: string = undefined;
 
     @Column()
-    public bannerPath? : string = undefined;
+    public bannerPath?: string = undefined;
 
     @Column()
     public colors?: Object;
@@ -72,22 +72,22 @@ export default class Model extends BaseModel {
     public layout?: Object;
 
     @Column()
-    public headerHTML? : string = undefined;
+    public headerHTML?: string = undefined;
 
     @Column()
-    public footerHTML? : string = undefined;
+    public footerHTML?: string = undefined;
 
     @Column()
-    public customCSS? : string = undefined;
+    public customCSS?: string = undefined;
 
     @Column()
-    public customJS? : string = undefined;
+    public customJS?: string = undefined;
 
     @Column()
-    public statusBubble? : string = undefined;
+    public statusBubble?: string = undefined;
 
     @Column()
-    public embeddedCss? : string = undefined;
+    public embeddedCss?: string = undefined;
 
     @Column()
     public enableRSSFeed?: boolean = undefined;
@@ -117,16 +117,16 @@ export default class Model extends BaseModel {
     public announcementLogsHistory?: number;
 
     @Column()
-    public onlineText? : string = undefined;
+    public onlineText?: string = undefined;
 
     @Column()
-    public offlineText? : string = undefined;
+    public offlineText?: string = undefined;
 
     @Column()
-    public degradedText? : string = undefined;
+    public degradedText?: string = undefined;
 
     @Column()
-    public twitterHandle? : string = undefined;
+    public twitterHandle?: string = undefined;
 
     @Column()
     public enableMultipleLanguage?: boolean = undefined;
@@ -135,5 +135,5 @@ export default class Model extends BaseModel {
     public deletedByUser?: User;
 
     @Column()
-    public theme? : string = undefined;
+    public theme?: string = undefined;
 }

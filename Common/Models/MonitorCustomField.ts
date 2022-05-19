@@ -9,7 +9,7 @@ import { CustomFieldType } from './CustomField';
 })
 export default class MonitorCustomField extends BaseModel {
     @Column()
-    public fieldName? : string = undefined;
+    public fieldName?: string = undefined;
 
     @Column()
     public fieldType?: CustomFieldType;

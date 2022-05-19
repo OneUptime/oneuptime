@@ -15,7 +15,7 @@ export enum IntegrationType {
 })
 export default class Model extends BaseModel {
     @Column()
-    public webHookName? : string = undefined;
+    public webHookName?: string = undefined;
 
     @Column()
     public project?: Project;

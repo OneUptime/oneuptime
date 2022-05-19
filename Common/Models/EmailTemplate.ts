@@ -13,10 +13,10 @@ export default class EmailTemplate extends BaseModel {
     public project?: Project;
 
     @Column()
-    public subject? : string = undefined;
+    public subject?: string = undefined;
 
     @Column()
-    public body? : string = undefined;
+    public body?: string = undefined;
 
     @Column()
     public emailType?: EmailTemplateType;

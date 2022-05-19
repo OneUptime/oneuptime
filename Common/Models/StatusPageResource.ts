@@ -19,7 +19,7 @@ export default class StatusPageChartType extends BaseModel {
     public statusPageCategory?: StatusPageCategory;
 
     @Column()
-    public resourceDescription? : string = undefined;
+    public resourceDescription?: string = undefined;
 
     @Column()
     public chartTypes?: Array<StatusPageChartType>;

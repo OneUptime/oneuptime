@@ -25,7 +25,7 @@ export default class Model extends BaseModel {
     public sdk?: Object;
 
     @Column()
-    public fingerprintHash? : string = undefined;
+    public fingerprintHash?: string = undefined;
 
     @Column()
     public device?: Object;

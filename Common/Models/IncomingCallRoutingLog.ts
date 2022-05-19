@@ -20,19 +20,19 @@ export default class Model extends BaseModel {
     public deletedByUser?: User;
 
     @Column()
-    public callSid? : string = undefined;
+    public callSid?: string = undefined;
 
     @Column()
-    public price? : string = undefined;
+    public price?: string = undefined;
 
     @Column()
-    public calledFrom? : string = undefined;
+    public calledFrom?: string = undefined;
 
     @Column()
-    public calledTo? : string = undefined;
+    public calledTo?: string = undefined;
 
     @Column()
-    public duration? : string = undefined;
+    public duration?: string = undefined;
 
     @Column()
     public user?: User; // User that call was forwarded to
@@ -41,7 +41,7 @@ export default class Model extends BaseModel {
     public schedule?: OnCallDutySchedule;
 
     @Column()
-    public phoneNumber? : string = undefined; // Phone number that call was forwarded to
+    public phoneNumber?: string = undefined; // Phone number that call was forwarded to
 
     @Column()
     public status?: OperationStatus;

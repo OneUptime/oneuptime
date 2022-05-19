@@ -12,7 +12,7 @@ export default class ProjectAdminNote extends BaseModel {
     public project?: Project;
 
     @Column({ type: 'varchar', nullable: false })
-    public note? : string = undefined;
+    public note?: string = undefined;
 
     @Column({ nullable: false })
     public createdByUser?: User;

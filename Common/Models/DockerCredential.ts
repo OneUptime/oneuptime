@@ -12,10 +12,10 @@ export default class DockerCredential extends BaseModel {
     public dockerRegistryUrl?: URL;
 
     @Column()
-    public dockerUsername? : string = undefined;
+    public dockerUsername?: string = undefined;
 
     @Column()
-    public dockerPassword? : string = undefined;
+    public dockerPassword?: string = undefined;
 
     @Column()
     public iv?: Buffer;

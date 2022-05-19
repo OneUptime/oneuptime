@@ -10,13 +10,13 @@ import StatusPage from './StatusPage';
 })
 export default class ExternalStatusPage extends BaseModel {
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public url?: URL;
 
     @Column()
-    public description? : string = undefined;
+    public description?: string = undefined;
 
     @Column()
     public statusPage?: StatusPage;

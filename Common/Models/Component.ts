@@ -12,10 +12,10 @@ export default class ComponentModel extends BaseModel {
     public project?: Project;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @Column()
     public createdByUser?: User;

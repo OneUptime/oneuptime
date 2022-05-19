@@ -25,16 +25,16 @@ export default class Model extends BaseModel {
     public alertType?: AlertType;
 
     @Column()
-    public contactEmail? : string = undefined;
+    public contactEmail?: string = undefined;
 
     @Column()
-    public contactPhone? : string = undefined;
+    public contactPhone?: string = undefined;
 
     @Column()
-    public countryCode? : string = undefined;
+    public countryCode?: string = undefined;
 
     @Column()
-    public contactWebhook? : string = undefined;
+    public contactWebhook?: string = undefined;
 
     @Column()
     public webhookMethod?: HTTPMethod;

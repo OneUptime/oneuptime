@@ -36,7 +36,7 @@ export default class Probe extends BaseModel {
         type: ColumnType.Name,
         length: ColumnLength.Name,
     })
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @TableColumn()
     @RequiredColumn()
@@ -46,7 +46,7 @@ export default class Probe extends BaseModel {
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
     })
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @TableColumn()
     @RequiredColumn()

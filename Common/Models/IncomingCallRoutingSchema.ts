@@ -13,11 +13,11 @@ export default class Model extends BaseModel {
     public onCallDutySchedule?: OnCallDutySchedule;
 
     @Column()
-    public introText? : string = undefined;
+    public introText?: string = undefined;
 
     @Column()
-    public introAudio? : string = undefined;
+    public introAudio?: string = undefined;
 
     @Column()
-    public introAudioName? : string = undefined;
+    public introAudioName?: string = undefined;
 }

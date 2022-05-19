@@ -10,8 +10,8 @@ export default class Model extends BaseModel {
     public project?: Project;
 
     @Column()
-    public message? : string = undefined;
+    public message?: string = undefined;
 
     @Column()
-    public icon? : string = undefined;
+    public icon?: string = undefined;
 }

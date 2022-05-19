@@ -10,7 +10,7 @@ import Filter from '../Types/Filter/Filter';
 })
 export default class Model extends BaseModel {
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public project?: Project;
@@ -37,10 +37,10 @@ export default class Model extends BaseModel {
     public updateInternalNote?: boolean = undefined;
 
     @Column()
-    public noteContent? : string = undefined;
+    public noteContent?: string = undefined;
 
     @Column()
-    public incidentState? : string = undefined;
+    public incidentState?: string = undefined;
 
     @Column()
     public url?: URL;
@@ -49,16 +49,16 @@ export default class Model extends BaseModel {
     public enabled?: boolean = undefined;
 
     @Column()
-    public incidentTitle? : string = undefined;
+    public incidentTitle?: string = undefined;
 
     @Column()
-    public incidentType? : string = undefined;
+    public incidentType?: string = undefined;
 
     @Column()
     public incidentPriority?: IncidentPriority;
 
     @Column()
-    public incidentDescription? : string = undefined;
+    public incidentDescription?: string = undefined;
 
     @Column()
     public customFields?: IncomingRequestCustomFields;

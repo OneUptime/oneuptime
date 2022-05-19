@@ -13,10 +13,10 @@ export default class IncidentSetting extends BaseModel {
     public project?: Project;
 
     @Column()
-    public title? : string = undefined;
+    public title?: string = undefined;
 
     @Column()
-    public description? : string = undefined;
+    public description?: string = undefined;
 
     @Column()
     public incidentPriority?: IncidentPriority;
@@ -25,7 +25,7 @@ export default class IncidentSetting extends BaseModel {
     public isDefault?: boolean = undefined;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public deletedByUser?: User;

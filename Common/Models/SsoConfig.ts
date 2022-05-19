@@ -13,22 +13,22 @@ export default class SsoConfig extends BaseModel {
 
     @Index()
     @Column({ nullable: false })
-    public domain? : string = undefined;
+    public domain?: string = undefined;
 
     @Column({ nullable: false })
-    public entity? : string = undefined;
+    public entity?: string = undefined;
 
     @Column({ nullable: false })
-    public loginUrl? : string = undefined;
+    public loginUrl?: string = undefined;
 
     @Column()
-    public certificateFingerprint? : string = undefined;
+    public certificateFingerprint?: string = undefined;
 
     @Column({ nullable: false })
-    public logoutUrl? : string = undefined;
+    public logoutUrl?: string = undefined;
 
     @Column()
-    public ipRanges? : string = undefined;
+    public ipRanges?: string = undefined;
 
     @Column({ nullable: false })
     public deletedByUser?: User;

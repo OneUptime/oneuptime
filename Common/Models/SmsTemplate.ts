@@ -13,7 +13,7 @@ export default class SmsTemplate extends BaseModel {
     public project?: Project;
 
     @Column()
-    public content? : string = undefined;
+    public content?: string = undefined;
 
     @Column()
     public smsType?: SmsTemplateType;

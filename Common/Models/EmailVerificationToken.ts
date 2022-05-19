@@ -41,7 +41,7 @@ export default class EmailVerificationToken extends BaseModel {
         nullable: false,
         transformer: Email.getDatabaseTransformer(),
     })
-    public email?:Email = undefined;
+    public email?: Email = undefined;
 
     @Index()
     @RequiredColumn()

@@ -33,5 +33,5 @@ export default class Model extends BaseModel {
     public incident?: Incident;
 
     @Column()
-    public sentTo? : string = undefined;
+    public sentTo?: string = undefined;
 }

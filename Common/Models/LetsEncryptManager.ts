@@ -12,19 +12,19 @@ export default class Model extends BaseModel {
     public challenges?: Object;
 
     @Column()
-    public renewOffset? : string = undefined;
+    public renewOffset?: string = undefined;
 
     @Column()
-    public renewStagger? : string = undefined;
+    public renewStagger?: string = undefined;
 
     @Column()
-    public accountKeyType? : string = undefined;
+    public accountKeyType?: string = undefined;
 
     @Column()
-    public serverKeyType? : string = undefined;
+    public serverKeyType?: string = undefined;
 
     @Column()
-    public subscriberEmail? : string = undefined;
+    public subscriberEmail?: string = undefined;
 
     @Column()
     public agreeToTerms?: boolean = undefined;

@@ -14,13 +14,13 @@ export default class Model extends BaseModel {
     public deletedByUser?: User;
 
     @Column()
-    public phoneNumber? : string = undefined;
+    public phoneNumber?: string = undefined;
 
     @Column()
-    public locality? : string = undefined;
+    public locality?: string = undefined;
 
     @Column()
-    public region? : string = undefined;
+    public region?: string = undefined;
 
     @Column()
     public mmsCapabilities?: boolean = undefined;
@@ -32,20 +32,20 @@ export default class Model extends BaseModel {
     public voiceCapabilities?: boolean = undefined;
 
     @Column()
-    public sid? : string = undefined;
+    public sid?: string = undefined;
 
     @Column()
-    public price? : string = undefined;
+    public price?: string = undefined;
 
     @Column()
-    public priceUnit? : string = undefined;
+    public priceUnit?: string = undefined;
 
     @Column()
-    public countryCode? : string = undefined;
+    public countryCode?: string = undefined;
 
     @Column()
-    public numberType? : string = undefined;
+    public numberType?: string = undefined;
 
     @Column()
-    public stripeSubscriptionId? : string = undefined;
+    public stripeSubscriptionId?: string = undefined;
 }

@@ -14,10 +14,10 @@ export default class Model extends BaseModel {
     public user?: User; // Which User will perfom this action.
 
     @Column()
-    public number? : string = undefined;
+    public number?: string = undefined;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public resolved?: boolean = undefined;

@@ -13,7 +13,7 @@ export default class Team extends BaseModel {
     public project?: Project;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
     public createdByUser?: User;

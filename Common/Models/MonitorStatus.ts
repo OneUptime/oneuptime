@@ -32,7 +32,7 @@ export default class Model extends BaseModel {
     public endTime?: Date = undefined;
 
     @Column()
-    public lastStatus? : string = undefined;
+    public lastStatus?: string = undefined;
 
     @Column()
     public deletedByUser?: User;

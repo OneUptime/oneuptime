@@ -36,5 +36,5 @@ export default class AutomationScriptRunInstance extends BaseModel {
     public executionTime?: Number;
 
     @Column()
-    public errorDescription? : string = undefined;
+    public errorDescription?: string = undefined;
 }

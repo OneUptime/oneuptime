@@ -11,5 +11,5 @@ export default class ApplicationSecurityRunInstanceLog extends BaseModel {
     public automatedScriptRunInstance?: AutomatedScriptRunInstance;
 
     @Column()
-    public log? : string = undefined;
+    public log?: string = undefined;
 }

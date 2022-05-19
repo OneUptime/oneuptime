@@ -10,7 +10,7 @@ import Role from '../Types/Role';
 })
 export default class SsoDefaultRole extends BaseModel {
     @Column()
-    public domain? : string = undefined;
+    public domain?: string = undefined;
 
     @Column()
     public project?: Project;

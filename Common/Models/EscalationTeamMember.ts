@@ -15,7 +15,7 @@ export default class Model extends BaseModel {
     public endTime?: Date = undefined;
 
     @Column()
-    public timezone? : string = undefined;
+    public timezone?: string = undefined;
 
     @Column()
     public user?: User;

@@ -15,5 +15,5 @@ export default class ApplicationSecurityRunInstanceLog extends BaseModel {
     public severity?: SecuritySeverity;
 
     @Column()
-    public log? : string = undefined;
+    public log?: string = undefined;
 }

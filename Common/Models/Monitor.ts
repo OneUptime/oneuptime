@@ -25,10 +25,10 @@ export default class Model extends BaseModel {
     public component?: Component;
 
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @Column()
     public config?: Object;
@@ -40,13 +40,13 @@ export default class Model extends BaseModel {
     public type?: MonitorType;
 
     @Column()
-    public agentlessConfig? : string = undefined;
+    public agentlessConfig?: string = undefined;
 
     @Column()
-    public kubernetesConfig? : string = undefined;
+    public kubernetesConfig?: string = undefined;
 
     @Column()
-    public kubernetesNamespace? : string = undefined;
+    public kubernetesNamespace?: string = undefined;
 
     @Column()
     public lastPingTime?: Date = undefined;
@@ -64,13 +64,13 @@ export default class Model extends BaseModel {
     public method?: HTTPMethod;
 
     @Column()
-    public bodyType? : string = undefined;
+    public bodyType?: string = undefined;
 
     @Column()
     public formData?: FormData;
 
     @Column()
-    public text? : string = undefined;
+    public text?: string = undefined;
 
     @Column()
     public headers?: Headers;
@@ -82,7 +82,7 @@ export default class Model extends BaseModel {
     public deletedByUser?: User;
 
     @Column()
-    public scriptRunStatus? : string = undefined;
+    public scriptRunStatus?: string = undefined;
 
     @Column()
     public scriptRunBy?: Probe;
@@ -91,7 +91,7 @@ export default class Model extends BaseModel {
     public lighthouseScannedAt?: Date = undefined;
 
     @Column()
-    public lighthouseScanStatus? : string = undefined;
+    public lighthouseScanStatus?: string = undefined;
 
     @Column()
     public siteUrls?: Array<string>;

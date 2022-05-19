@@ -9,13 +9,13 @@ import GitCredential from './GitCredential';
 })
 export default class Model extends BaseModel {
     @Column()
-    public name? : string = undefined;
+    public name?: string = undefined;
 
     @Column()
-    public slug? : string = undefined;
+    public slug?: string = undefined;
 
     @Column()
-    public gitRepositoryurl? : string = undefined;
+    public gitRepositoryurl?: string = undefined;
 
     @Column()
     public gitCredential?: GitCredential;

@@ -13,7 +13,7 @@ export default class Model extends BaseModel {
     public applicationLogContainer?: ApplicationLogContainer;
 
     @Column()
-    public content? : string = undefined;
+    public content?: string = undefined;
 
     @Column()
     public type?: ApplicationLogType;
