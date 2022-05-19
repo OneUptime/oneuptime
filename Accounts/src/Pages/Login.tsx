@@ -45,7 +45,7 @@ const LoginPage: FunctionComponent = () => {
                         </Link>
                     </p>
                     <p>
-                        <span>Don&apos;t have an account? </span>{' '}
+                        <span>Don&apos;t have an account? </span>
                         <Link to="/register">Sign up</Link>
                     </p>
                 </div>
