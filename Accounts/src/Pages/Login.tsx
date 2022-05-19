@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import Route from 'Common/Types/API/Route';
 
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
@@ -24,6 +25,11 @@ const LoginPage: FunctionComponent = () => {
                             password: true,
                         },
                         title: 'Password',
+                        sideLink: {
+                            text: 'Forgot password?',
+                            url: new Route('/forgot-password'),
+                            openLinkInNewTab: true,
+                        },
                     },
                 ]}
                 onSubmit={(values: FormValues<User>) => {
@@ -31,7 +37,22 @@ const LoginPage: FunctionComponent = () => {
                 }}
                 submitButtonText={'Login'}
                 title={'Sign in to your account'}
-            />
+            >
+                <div className="actions">
+                    <p>
+                        <Link to="/forgot-password">Forgot your password?</Link>
+                    </p>
+                    <p>
+                        <Link to="/login/sso">
+                            Use single sign-on (SSO) instead
+                        </Link>
+                    </p>
+                    <p>
+                        <span>Don&apos;t have an account? </span>{' '}
+                        <Link to="/register">Sign up</Link>
+                    </p>
+                </div>
+            </BasicModelForm>
 
             <div className="footer">
                 <p>

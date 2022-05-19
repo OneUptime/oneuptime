@@ -7,7 +7,6 @@ import Fields from './Types/Fields';
 import DataField from './Types/Field';
 import ButtonTypes from '../Basic/Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-
 export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
@@ -18,19 +17,36 @@ export interface ComponentProps<T extends Object> {
     model: T;
     submitButtonText?: string;
     title?: string;
+    children: ReactElement;
 }
 
 const BasicForm = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const getFormField = (field: DataField<T>, index: number): ReactElement => {
-        let fieldType = 'text';
+        const fieldType = 'text';
         if (Object.keys(field.field).length === 0) {
             throw new BadDataException('Object cannot be without Field');
         }
         return (
             <div key={index}>
-                <label>{field.title}</label>
+                <label>
+                    <span>{field.title}</span>
+                    {
+                        <span>
+                            <a
+                                href={field.sideLink?.url.toString()}
+                                target={`${
+                                    field.sideLink?.openLinkInNewTab
+                                        ? '_blank'
+                                        : '_self'
+                                }`}
+                            >
+                                {field.sideLink?.text}
+                            </a>
+                        </span>
+                    }
+                </label>
                 <p>{field.description}</p>
                 <Field
                     placeholder={field.placeholder}
@@ -60,35 +76,24 @@ const BasicForm = <T extends Object>(
                     props.onSubmit(values);
                 }}
             >
-                {({ isSubmitting }) => (
-                    <Form>
-                        <h1>{props.title}</h1>
-                        {props.fields &&
-                            props.fields.map((field: DataField<T>, i) => {
-                                return getFormField(field, i);
-                            })}
-                        <div className="remember">
-                            <input type="checkbox" id="remember" />
-                            <label htmlFor="remember">
-                                Stay signed in for a week
-                            </label>
-                        </div>
-                        <Button
-                            title={props.submitButtonText || 'Submit'}
-                            disabled={isSubmitting}
-                            type={ButtonTypes.Submit}
-                            id={`${props.id}-submit-button`}
-                        />
-                        <div className="actions">
-                            <p>Forgot your password?</p>
-                            <p>Use single sign-on (SSO) instead</p>
-                            <p>
-                                <span>Don&apos;t have an account? </span> Sign
-                                up
-                            </p>
-                        </div>
-                    </Form>
-                )}
+                {({ isSubmitting }) => {
+                    return (
+                        <Form>
+                            <h1>{props.title}</h1>
+                            {props.fields &&
+                                props.fields.map((field: DataField<T>, i) => {
+                                    return getFormField(field, i);
+                                })}
+                            <Button
+                                title={props.submitButtonText || 'Submit'}
+                                disabled={isSubmitting}
+                                type={ButtonTypes.Submit}
+                                id={`${props.id}-submit-button`}
+                            />
+                            {props.children}
+                        </Form>
+                    );
+                }}
             </Formik>
         </div>
     );

@@ -61,17 +61,10 @@ body {
 
 .brand {
     position: absolute;
-    top: 5%;
+    top: -5%;
     left: 50%;
-    transform: translateX(-55%);
-
-    @include responsive($xs) {
-        top: 6%;
-    }
-
-    @include responsive($lg) {
-        top: 5%;
-    }
+    transform: translateX(-50%);
+    margin-bottom: 20px;
 
     img {
         width: 200px;
@@ -137,6 +130,19 @@ form {
             font-weight: 400;
             color: lighten($bgDark, 20%);
             margin-bottom: 5px;
+
+            display: flex;
+            justify-content: space-between;
+
+            span:last-child {
+                color: $lightBlue;
+                cursor: pointer;
+                transition: $transition;
+
+                &:hover {
+                    color: darken($lightBlue, 50%);
+                }
+            }
         }
 
         input {
@@ -248,6 +254,7 @@ form {
 
             span {
                 color: lighten($bgDark, 20%);
+                cursor: default;
             }
 
             &:hover {
@@ -282,7 +289,7 @@ form {
         cursor: pointer;
 
         @include responsive($xs) {
-            padding-bottom: 15px;
+            padding-bottom: 5px;
         }
 
         a {
