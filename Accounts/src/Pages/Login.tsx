@@ -9,12 +9,6 @@ const LoginPage: FunctionComponent = () => {
 
     return (
         <>
-            <div className="brand">
-                <img
-                    alt="OneUpTime"
-                    src="/assets/img/logos/OneUptimeSVG/3.svg"
-                />
-            </div>
             <BasicModelForm<User>
                 model={user}
                 id="login-form"
@@ -38,12 +32,7 @@ const LoginPage: FunctionComponent = () => {
                 submitButtonText={'Login'}
                 title={'Sign in to your account'}
             />
-            <div className="signup_panel">
-                Don&apos;t have an account?{' '}
-                <span>
-                    <Link to="/register">Sign up</Link>
-                </span>
-            </div>
+
             <div className="footer">
                 <p>
                     <Link to="/">&copy; OneUptime</Link>

@@ -62,8 +62,16 @@ body {
 .brand {
     position: absolute;
     top: 5%;
-    left: 35%;
-    transform: translate(-40%, -20%);
+    left: 50%;
+    transform: translateX(-55%);
+
+    @include responsive($xs) {
+        top: 6%;
+    }
+
+    @include responsive($lg) {
+        top: 5%;
+    }
 
     img {
         width: 200px;
@@ -71,39 +79,12 @@ body {
     }
 }
 
-.signup_panel {
-    position: absolute;
-    bottom: 19%;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.4rem;
-    z-index: 25;
-    transition: $transition;
-
-    @include responsive($xs) {
-        bottom: 10%;
-    }
-
-    @include responsive($sm) {
-        bottom: 15%;
-    }
-
-    span {
-        color: $lightBlue;
-        cursor: pointer;
-
-        &:hover {
-            color: darken($lightBlue, 50%);
-        }
-    }
-}
-
 form {
     height: fit-content;
     position: absolute;
-    top: 35%;
+    top: 50%;
     left: 50%;
-    transform: translate(-50%, -35%);
+    transform: translate(-50%, -50%);
     background-color: $bglight;
     border-radius: 5px;
     box-shadow: 1px 2px 10px lighten($bgDark, 85%);
@@ -253,7 +234,6 @@ form {
 
     .actions {
         margin: 15px 0;
-        text-align: center;
 
         p {
             font-size: 1.4rem;
@@ -261,6 +241,14 @@ form {
             color: $lightBlue;
             cursor: pointer;
             transition: $transition;
+
+            &:last-child {
+                font-size: 1.2rem;
+            }
+
+            span {
+                color: lighten($bgDark, 20%);
+            }
 
             &:hover {
                 color: darken($lightBlue, 50%);
@@ -290,8 +278,12 @@ form {
 
     p {
         padding-right: 20px;
-        padding-bottom: 10px;
+        padding-bottom: 30px;
         cursor: pointer;
+
+        @include responsive($xs) {
+            padding-bottom: 15px;
+        }
 
         a {
             color: lighten($bgDark, 50%);

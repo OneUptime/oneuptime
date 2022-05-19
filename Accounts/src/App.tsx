@@ -6,6 +6,12 @@ import LoginPage from './Pages/Login';
 function App() {
     return (
         <div className="App">
+            <div className="brand">
+                <img
+                    alt="OneUpTime"
+                    src="/assets/img/logos/OneUptimeSVG/3.svg"
+                />
+            </div>
             <Router>
                 <Routes>
                     <Route path="/" element={<LoginPage />} />

@@ -82,6 +82,10 @@ const BasicForm = <T extends Object>(
                         <div className="actions">
                             <p>Forgot your password?</p>
                             <p>Use single sign-on (SSO) instead</p>
+                            <p>
+                                <span>Don&apos;t have an account? </span> Sign
+                                up
+                            </p>
                         </div>
                     </Form>
                 )}
