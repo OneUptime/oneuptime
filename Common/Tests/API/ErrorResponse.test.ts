@@ -1,4 +1,4 @@
-import ErrorResponse from '../Types/API/ErrorResponse';
+import ErrorResponse from '../../Types/API/ErrorResponse';
 describe('ErrorResponse', () => {
     test('should return a valid error response object', () => {
         const errorResponseObject: ErrorResponse = new ErrorResponse(500, {

@@ -1,4 +1,4 @@
-import Protocol from '../Types/API/Protocol';
+import Protocol from '../../Types/API/Protocol';
 
 describe('Protocol', () => {
     test('Protocol.HTTPS should be https://', () => {

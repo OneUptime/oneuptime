@@ -1,7 +1,7 @@
-import Hostname from '../Types/API/Hostname';
-import Protocol from '../Types/API/Protocol';
-import Route from '../Types/API/Route';
-import URL from '../Types/API/URL';
+import Hostname from '../../Types/API/Hostname';
+import Protocol from '../../Types/API/Protocol';
+import Route from '../../Types/API/Route';
+import URL from '../../Types/API/URL';
 
 describe('URL', () => {
     test('new URL() should return a valid object', () => {

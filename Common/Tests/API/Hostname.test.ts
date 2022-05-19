@@ -1,5 +1,5 @@
-import Hostname from '../Types/API/Hostname';
-import BadDataException from '../Types/Exception/BadDataException';
+import Hostname from '../../Types/API/Hostname';
+import BadDataException from '../../Types/Exception/BadDataException';
 describe('Hostname', () => {
     test('new Hostname(hostname) should throw an error if invalid hostname is given', () => {
         expect(() => {

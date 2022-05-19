@@ -1,5 +1,5 @@
-import Headers from '../Types/API/Headers';
-import Faker from './TestingUtils/Faker';
+import Headers from '../../Types/API/Headers';
+import Faker from '../TestingUtils/Faker';
 describe('Headers', () => {
     test('should compile', () => {
         const apiKey: string = Faker.random16Numbers();

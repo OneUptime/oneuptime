@@ -1,4 +1,4 @@
-import HTTPMethod from '../Types/API/HTTPMethod';
+import HTTPMethod from '../../Types/API/HTTPMethod';
 
 describe('HTTPMethod', () => {
     test('HTTPMethod.GET should be GET', () => {
