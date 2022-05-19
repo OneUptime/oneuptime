@@ -1,5 +1,5 @@
-import StatusCode from '../../Types/API/StatusCode';
-import BadDataException from '../../Types/Exception/BadDataException';
+import StatusCode from '../../../Types/API/StatusCode';
+import BadDataException from '../../../Types/Exception/BadDataException';
 describe('Route', () => {
     test('new StatusCode should throw if number is not passed', () => {
         expect(() => {
