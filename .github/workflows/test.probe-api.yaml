@@ -1,0 +1,19 @@
+name: ProbeApi Test
+
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+      - 'release'
+      - 'staging-release'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          check-latest: true
+      - run: cd ProbeAPI && npm install && npm run test
+  
