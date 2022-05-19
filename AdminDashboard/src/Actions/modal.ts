@@ -1,4 +1,4 @@
-import * as types from '../constants/modal';
+import * as types from '../constants/Modal';
 
 export const openModal: Function = (obj: $TSFixMe): void => {
     return {

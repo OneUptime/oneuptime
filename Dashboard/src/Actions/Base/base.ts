@@ -1,7 +1,7 @@
 import BackendAPI from '../../api';
 import { getErrorMessageFromResponse } from '../../utils/error';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 class BaseAction {
     private actionKeys: $TSFixMe;
     private actionType: $TSFixMe;

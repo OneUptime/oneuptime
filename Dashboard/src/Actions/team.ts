@@ -2,7 +2,7 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/team';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 export const teamLoadingRequest: Function = (): void => {
     return {
         type: types.TEAM_LOADING_REQUEST,

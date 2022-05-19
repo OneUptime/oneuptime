@@ -1,5 +1,5 @@
 {
-    "name": "HelmChart",
+    "name": "helm-chart",
     "version": "3.0.0",
     "description": "Helm Chart Server for OneUptime",
     "main": "server.js",

@@ -1,7 +1,7 @@
 import * as types from '../constants/incidentNoteTemplate';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 // CREATE INCIDENT NOTE TEMPLATE
 export const createIncidentNoteTemplateRequest: Function = (): void => {
     return {

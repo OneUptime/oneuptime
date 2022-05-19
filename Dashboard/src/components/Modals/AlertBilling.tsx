@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes, { string } from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { FormLoader } from '../basic/Loader';
 
 interface AlertBillingProps {

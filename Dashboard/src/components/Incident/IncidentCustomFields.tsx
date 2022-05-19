@@ -6,13 +6,13 @@ import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { fetchCustomFields, paginate } from '../../actions/customField';
-import DeleteCustomField from '../modals/DeleteCustomField';
-import CreateCustomField from '../modals/CreateCustomField';
+import DeleteCustomField from '../Modals/DeleteCustomField';
+import CreateCustomField from '../Modals/CreateCustomField';
 
 import DataPathHoC from '../DataPathHoC';
-import EditCustomField from '../modals/EditCustomField';
+import EditCustomField from '../Modals/EditCustomField';
 
 interface IncidentCustomFieldsProps {
     currentProject?: object;

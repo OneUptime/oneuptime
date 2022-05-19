@@ -8,11 +8,11 @@ import moment from 'moment';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import DeleteAnnouncementLog from '../modals/DeleteAnnouncementLog';
+import DeleteAnnouncementLog from '../Modals/DeleteAnnouncementLog';
 
 interface AnnouncementLogProps {
     fetchAnnouncementLogs?: Function;

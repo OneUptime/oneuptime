@@ -3,7 +3,7 @@
 </p>
 <p align="center">
   <a href='http://makeapullrequest.com'><img alt='PRs Welcome' src='https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields'/></a>
-  <a href='https://join.slack.com/t/oneuptimehelp/shared_invite/zt-f9it996u-Klha030kbWe6FhCDYUmwig'><img alt="Join Slack Community" src="https://img.shields.io/badge/slack%20community-join-blue"/></a>
+  <a href='https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ'><img alt="Join Slack Community" src="https://img.shields.io/badge/slack%20community-join-blue"/></a>
   <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/oneuptime/backend"/>
   <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/oneuptime/app"/>
   <img alt="GitHub closed issues" src="https://img.shields.io/github/issues-closed/oneuptime/app"/>

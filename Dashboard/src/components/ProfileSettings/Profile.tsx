@@ -39,10 +39,10 @@ import ReactPhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { User } from '../../config';
 
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import DataPathHoC from '../DataPathHoC';
-import TwoFactorAuthModal from '../modals/TwoFactorAuth';
-import BackupCodesModal from '../modals/BackupCodes';
+import TwoFactorAuthModal from '../Modals/TwoFactorAuth';
+import BackupCodesModal from '../Modals/BackupCodes';
 import {
     askUserPermission,
     getTheSubscription,

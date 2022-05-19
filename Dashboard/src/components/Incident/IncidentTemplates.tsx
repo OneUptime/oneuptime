@@ -3,17 +3,17 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import DataPathHoC from '../DataPathHoC';
 import { ListLoader } from '../basic/Loader';
-import CreateIncidentTemplate from '../modals/CreateIncidentTemplate';
+import CreateIncidentTemplate from '../Modals/CreateIncidentTemplate';
 import {
     fetchIncidentTemplates,
     setDefaultTemplate,
     setActiveTemplate,
 } from '../../actions/incidentBasicsSettings';
-import EditIncidentTemplate from '../modals/EditIncidentTemplate';
-import DeleteIncidentTemplate from '../modals/DeleteIncidentTemplate';
+import EditIncidentTemplate from '../Modals/EditIncidentTemplate';
+import DeleteIncidentTemplate from '../Modals/DeleteIncidentTemplate';
 
 interface IncidentTemplatesProps {
     openModal: Function;

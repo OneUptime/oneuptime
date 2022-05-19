@@ -4,7 +4,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/monitor';
 import Route from 'Common/Types/api/route';
 import { change, autofill } from 'redux-form';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 /*

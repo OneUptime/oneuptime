@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 
 import { ListLoader } from '../basic/Loader';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import SmsLogsContentViewModal from './SmsLogsContentViewModal';
 import SmsLogsErrorViewModal from './SmsLogsErrorViewModal';

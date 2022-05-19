@@ -8,7 +8,7 @@ import Markdown from 'markdown-to-jsx';
 import ShouldRender from '../basic/ShouldRender';
 import { currentTimeZone } from '../basic/TimezoneArray';
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import DeleteNoteModal from './DeleteNoteModal';
 import AddNoteModal from './AddNoteModal';
 import EditNoteModal from './EditNoteModal';

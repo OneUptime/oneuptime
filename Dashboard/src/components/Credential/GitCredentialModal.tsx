@@ -10,7 +10,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import {
     addGitCredential,
     updateGitCredential,

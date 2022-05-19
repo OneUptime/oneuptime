@@ -1,7 +1,7 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incidentBasicSettings';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 const fetchBasicIncidentSettingsVariablesRequest: Function = (): void => {
     return {
         type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST,

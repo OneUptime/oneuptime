@@ -16,11 +16,11 @@ import { User } from '../../config';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import RemoveTeamUserModal from '../Modals/RemoveTeamUserModal.js';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { history, RootState } from '../../store';
 
-import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
+import ConfirmChangeRoleModal from '../Modals/ConfirmChangeRole';
 import DropDownMenu from '../basic/DropDownMenu';
 import ExitProjectModal from '../settings/ExitProjectModal';
 import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';

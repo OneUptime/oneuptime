@@ -20,10 +20,10 @@ import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEv
 import ShouldRender from '../basic/ShouldRender';
 
 import OnCallScheduleModal from '../OnCallScheduleModal';
-import IncidentHeaderModal from '../modals/IncidentHeaderModal';
-import ScheduleHeaderModal from '../modals/ScheduleHeaderModal';
+import IncidentHeaderModal from '../Modals/IncidentHeaderModal';
+import ScheduleHeaderModal from '../Modals/ScheduleHeaderModal';
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 
 import _ from 'lodash';
 import moment from 'moment-timezone';

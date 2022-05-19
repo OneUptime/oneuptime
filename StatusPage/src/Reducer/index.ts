@@ -1,6 +1,6 @@
 import { combineReducers } from 'redux';
 import { RootState } from '../store';
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 import { reducer as form } from 'redux-form';
 import login from './login';
 import status from './status';

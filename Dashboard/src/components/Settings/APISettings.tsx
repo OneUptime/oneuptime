@@ -8,8 +8,8 @@ import { resetProjectToken } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import RenderIfAdmin from '../../components/basic/RenderIfAdmin';
-import ResetAPIKey from '../modals/ResetAPIKey';
-import { openModal } from 'CommonUI/actions/modal';
+import ResetAPIKey from '../Modals/ResetAPIKey';
+import { openModal } from 'CommonUI/actions/Modal';
 
 import { API_URL } from '../../config';
 import TooltipMini from '../basic/TooltipMini';

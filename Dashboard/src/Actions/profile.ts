@@ -4,8 +4,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import Route from 'Common/Types/api/route';
 import * as types from '../constants/profile';
 import FormData from 'form-data';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
-import Action from 'CommonUI/src/types/action';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
+import Action from 'CommonUI/src/Types/Action';
 //Update profile setting
 
 export const updateProfileSettingRequest: Function = (): void => {

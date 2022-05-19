@@ -23,7 +23,7 @@ import {
     TEAM_DELETE_RESET,
 } from '../constants/team';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     teamLoading: {

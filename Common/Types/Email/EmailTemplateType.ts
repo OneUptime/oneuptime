@@ -1,5 +1,6 @@
 enum EmailTemplateType {
-    SIGNUP_EMAIL = 'Signup Email',
+    SIGNUP_WELCOME_EMAIL = 'SignupWelcomeEmail',
+    SIGNUP_VERIFICATION_EMAIL = 'SignupVerificationEmail',
     SUBSCRIBER_INCIDENT_CREATED = 'Subscriber Incident Created',
     SUBSCRIBER_INCIDENT_ACKNOWLEDGED = 'Subscriber Incident Acknowledged',
     SUBSCRIBER_INCIDENT_RESOLVED = 'Subscriber Incident Resolved',

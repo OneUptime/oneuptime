@@ -10,7 +10,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import DataPathHoC from '../DataPathHoC';
 import DuplicateStatusPageForm from './DuplicateStatusPageForm';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 export class DuplicateStatusPageBox extends Component<ComponentProps>{
     public static displayName = '';

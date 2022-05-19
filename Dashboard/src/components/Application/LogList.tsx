@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import moment from 'moment';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 import { v4 as uuidv4 } from 'uuid';
-import ViewJsonLogs from '../modals/ViewJsonLogs';
+import ViewJsonLogs from '../Modals/ViewJsonLogs';
 import DataPathHoC from '../DataPathHoC';
 import { bindActionCreators, Dispatch } from 'redux';
 import { ListLoader } from '../basic/Loader';

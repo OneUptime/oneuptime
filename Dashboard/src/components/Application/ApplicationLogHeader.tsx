@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import DataPathHoC from '../DataPathHoC';
-import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
+import ViewApplicationLogKey from '../Modals/ViewApplicationLogKey';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { connect } from 'react-redux';

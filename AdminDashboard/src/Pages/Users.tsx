@@ -8,7 +8,7 @@ import { ListLoader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from '../actions/modal';
+import { openModal, closeModal } from '../actions/Modal';
 import UserAddModal from '../components/user/UserAddModal';
 
 import * as _ from 'lodash';

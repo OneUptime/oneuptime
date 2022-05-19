@@ -5,7 +5,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { restoreUser } from '../../actions/user';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 export class UserRestoreBox extends Component<ComponentProps>{
     public static displayName = '';

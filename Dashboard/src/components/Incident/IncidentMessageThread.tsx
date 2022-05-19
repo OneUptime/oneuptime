@@ -4,12 +4,12 @@ import ShouldRender from '../basic/ShouldRender';
 import moment from 'moment';
 import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
-import NewIncidentMessage from '../modals/NewIncidentMessage';
+import NewIncidentMessage from '../Modals/NewIncidentMessage';
 import { User } from '../../config';
 import { ListLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
 import Markdown from 'markdown-to-jsx';
-import DeleteIncidentMessage from '../modals/DeleteIncidentMessage';
+import DeleteIncidentMessage from '../Modals/DeleteIncidentMessage';
 import { history, RootState } from '../../store';
 import { API_URL } from '../../config';
 

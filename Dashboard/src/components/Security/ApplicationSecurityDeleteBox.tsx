@@ -4,8 +4,8 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'CommonUI/actions/modal';
-import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
+import { openModal } from 'CommonUI/actions/Modal';
+import DeleteApplicationSecurity from '../Modals/DeleteApplicationSecurity';
 
 interface ApplicationSecurityDeleteBoxProps {
     componentId: string;

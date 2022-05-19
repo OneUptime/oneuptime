@@ -1,6 +1,7 @@
-enum ColumnLength {
+enum ColumnType {
     Version = 'varchar',
     Phone = 'varchar',
+    HashedString = 'varchar',
     Password = 'varchar',
     Email = 'varchar',
     Slug = 'varchar',
@@ -15,6 +16,12 @@ enum ColumnLength {
     Date = 'timestamptz',
     Boolean = 'boolean',
     Array = 'simple-array',
+    SmallPositiveNumber = 'smallint',
+    PositiveNumber = 'integer',
+    BigPositiveNumber = 'bigint',
+    SmallNumber = 'smallint',
+    Number = 'integer',
+    BigNumber = 'bigint',
 }
 
-export default ColumnLength;
+export default ColumnType;

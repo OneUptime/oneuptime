@@ -12,15 +12,15 @@ import DeleteScriptBox from '../components/automationScript/DeleteScriptBox';
 import DataPathHoC from '../components/DataPathHoC';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
-import { openModal } from '../actions/modal';
+import { openModal } from '../actions/Modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import { fetchSingleAutomatedScript } from '../actions/automatedScript';
 import Badge from '../components/common/Badge';
-import ViewScriptLogs from '../components/modals/ViewScriptLogs';
+import ViewScriptLogs from '../components/Modals/ViewScriptLogs';
 
 import UpdateScript from '../components/automationScript/UpdateScript';
-import RunAutomationScript from '../components/modals/RunAutomationScript';
+import RunAutomationScript from '../components/Modals/RunAutomationScript';
 import moment from 'moment';
 
 interface AutomatedScripViewProps {

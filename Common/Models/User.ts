@@ -1,11 +1,10 @@
 import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
-import EncryptedColumn from '../Types/Database/EncryptedColumnDecorator';
 import ColumnType from '../Types/Database/ColumnType';
 import ColumnLength from '../Types/Database/ColumnLength';
-import RequiredColumn from '../Types/Database/RequiredColumnDecorator';
-import UniqueColumn from '../Types/Database/UniqueColumnDecorator';
-import SlugifyColumn from '../Types/Database/SlugifyColumnDecorator';
+import RequiredColumn from '../Types/Database/RequiredColumn';
+import UniqueColumn from '../Types/Database/UniqueColumn';
+import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import Phone from '../Types/Phone';
 import Email from '../Types/Email';
 import Name from '../Types/Name';
@@ -13,20 +12,48 @@ import URL from '../Types/API/URL';
 import Timezone from '../Types/Timezone';
 import CompanySize from '../Types/Company/CompanySize';
 import JobRole from '../Types/Company/JobRole';
+import HashedColumn from '../Types/Database/HashedColumn';
+import HashedString from '../Types/HashedString';
+import PublicRecordPermissions from '../Types/Database/AccessControls/Public/PublicRecordPermissions';
+import TableColumn from '../Types/Database/TableColumn';
+import PublicColumnPermissions from '../Types/Database/AccessControls/Public/PublicColumnPermissions';
 
+@PublicRecordPermissions({
+    create: true,
+    readAsList: false,
+    readAsItem: false,
+    update: false,
+    delete: false,
+})
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'User',
 })
 class User extends BaseModel {
-    @RequiredColumn()
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn()
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
-        nullable: false,
+        nullable: true,
+        unique: false,
     })
     public name!: Name;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn()
     @UniqueColumn()
     @RequiredColumn()
     @Column({
@@ -37,6 +64,7 @@ class User extends BaseModel {
     })
     public email!: Email;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
@@ -45,48 +73,86 @@ class User extends BaseModel {
     })
     public newUnverifiedTemporaryEmail?: string;
 
-    @EncryptedColumn()
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn()
+    @HashedColumn()
     @Column({
-        type: ColumnType.Password,
-        length: ColumnLength.Password,
+        type: ColumnType.HashedString,
+        length: ColumnLength.HashedString,
         unique: false,
         nullable: true,
     })
-    public password?: string;
+    public password?: HashedString;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         default: false,
     })
     public isEmailVerified!: boolean;
 
-    @RequiredColumn()
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn()
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
-        nullable: false,
+        nullable: true,
         unique: false,
     })
     public companyName!: string;
 
-    @RequiredColumn()
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
-        nullable: false,
+        nullable: true,
         unique: false,
     })
     public jobRole!: JobRole;
 
-    @RequiredColumn()
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
-        nullable: false,
+        nullable: true,
         unique: false,
     })
     public companySize!: CompanySize;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -95,16 +161,24 @@ class User extends BaseModel {
     })
     public referral?: string;
 
-    @RequiredColumn()
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn()
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
-        nullable: false,
+        nullable: true,
         unique: false,
         transformer: Phone.getDatabaseTransformer(),
     })
     public companyPhoneNumber!: Phone;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortURL,
         length: ColumnLength.ShortURL,
@@ -115,6 +189,7 @@ class User extends BaseModel {
     public profilePicImageUrl?: URL;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -123,6 +198,7 @@ class User extends BaseModel {
     })
     public twoFactorAuthEnabled!: boolean;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -131,6 +207,7 @@ class User extends BaseModel {
     })
     public twoFactorSecretCode?: string;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortURL,
         length: ColumnLength.ShortURL,
@@ -138,8 +215,9 @@ class User extends BaseModel {
         unique: false,
         transformer: URL.getDatabaseTransformer(),
     })
-    public otpAuthUrl?: URL;
+    public twoFactorAuthUrl?: URL;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Array,
         nullable: true,
@@ -147,6 +225,7 @@ class User extends BaseModel {
     })
     public backupCodes?: Array<string>;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -155,6 +234,7 @@ class User extends BaseModel {
     })
     public jwtRefreshToken?: string;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -163,6 +243,7 @@ class User extends BaseModel {
     })
     public paymentProviderCustomerId?: string;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -171,6 +252,7 @@ class User extends BaseModel {
     })
     public resetPasswordToken!: string;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -178,6 +260,7 @@ class User extends BaseModel {
     })
     public resetPasswordExpires?: Date;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -186,14 +269,22 @@ class User extends BaseModel {
     })
     public timezone?: Timezone;
 
-    @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
-        nullable: false,
+        nullable: true,
         unique: false,
     })
     public lastActive!: Date;
 
+    @PublicColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn()
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -203,6 +294,7 @@ class User extends BaseModel {
     public promotionName!: string;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -211,6 +303,7 @@ class User extends BaseModel {
     })
     public isDisabled!: boolean;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -219,6 +312,7 @@ class User extends BaseModel {
     public paymentFailedDate!: Date;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -228,6 +322,7 @@ class User extends BaseModel {
     public isMasterAdmin!: boolean;
 
     @RequiredColumn()
+    @TableColumn()
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -236,6 +331,7 @@ class User extends BaseModel {
     })
     public isBlocked!: boolean;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
@@ -244,6 +340,7 @@ class User extends BaseModel {
     })
     public alertPhoneNumber?: Phone;
 
+    @TableColumn()
     @Column({
         type: ColumnType.OTP,
         length: ColumnLength.OTP,
@@ -252,6 +349,7 @@ class User extends BaseModel {
     })
     public alertPhoneVerificationCode?: string;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -259,6 +357,7 @@ class User extends BaseModel {
     })
     public alertPhoneVerificationCodeRequestTime?: Date;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,

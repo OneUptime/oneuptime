@@ -3,13 +3,13 @@ import PropTypes from 'prop-types';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import io from 'socket.io-client';
-import RemovedFromSubProjectModal from '../modals/RemovedFromSubProject';
-import RemovedFromProjectModal from '../modals/RemovedFromProject';
+import RemovedFromSubProjectModal from '../Modals/RemovedFromSubProject';
+import RemovedFromProjectModal from '../Modals/RemovedFromProject';
 import { User, REALTIME_URL } from '../../config';
 
 import { v4 as uuidv4 } from 'uuid';
 import { RootState } from '../../store';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import {
     incidentresolvedbysocket,
     incidentacknowledgedbysocket,

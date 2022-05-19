@@ -6,7 +6,7 @@ import moment from 'moment';
 import { ListLoader, FormLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { updateProbe } from '../../actions/probe';
 import ProbeDeleteModal from './ProbeDeleteModal';
 

@@ -21,6 +21,11 @@ import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import { DataSource, Repository } from 'typeorm';
 import SortOrder from '../Types/DB/SortOrder';
 import HardDeleteBy from '../Types/DB/HardDeleteBy';
+import { EncryptionSecret } from '../Config';
+import HashedString from 'Common/Types/HashedString';
+import UpdateByID from '../Types/DB/UpdateByID';
+import ObjectID from 'Common/Types/ObjectID';
+import Role from 'Common/Types/Role';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     public entityName!: string;
@@ -89,6 +94,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (data as any)[key] = Encryption.encrypt(
                     (data as any)[key] as string,
                     iv
+                );
+            }
+        }
+
+        return data;
+    }
+
+    protected async hash(data: TBaseModel): Promise<TBaseModel> {
+        for (const key of data.getHashedColumns().columns) {
+            if (!((data as any)[key] as HashedString).isValueHashed) {
+                await ((data as any)[key] as HashedString).hashValue(
+                    EncryptionSecret
                 );
             }
         }
@@ -218,6 +235,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // Encrypt data
         data = this.encrypt(data);
 
+        // hash data
+        data = await this.hash(data);
+
         try {
             if (data.getSlugifyColumn()) {
                 (data as any)[data.getSaveSlugToColumn() as string] =
@@ -269,6 +289,124 @@ class DatabaseService<TBaseModel extends BaseModel> {
         deleteOneBy: DeleteOneBy<TBaseModel>
     ): Promise<number> {
         return await this._deleteBy(deleteOneBy);
+    }
+
+    public async deleteByRole(
+        role: Role,
+        deleteBy: DeleteBy<TBaseModel>
+    ): Promise<number> {
+        if (role === Role.Administrator) {
+            return await this.deleteByForAdmin(deleteBy);
+        }
+
+        if (role === Role.Member) {
+            return await this.deleteByForMember(deleteBy);
+        }
+
+        if (role === Role.Public) {
+            return await this.deleteByForPublic(deleteBy);
+        }
+
+        if (role === Role.Viewer) {
+            return await this.deleteByForViewer(deleteBy);
+        }
+
+        if (role === Role.Owner) {
+            return await this.deleteByForOwner(deleteBy);
+        }
+
+        throw new BadDataException(`Invalid role - ${role}`);
+    }
+
+    public async updateByRole(
+        role: Role,
+        updateBy: UpdateBy<TBaseModel>
+    ): Promise<void> {
+        if (role === Role.Administrator) {
+            await this.updateBy(updateBy);
+        }
+
+        if (role === Role.Member) {
+            await this.updateBy(updateBy);
+        }
+
+        if (role === Role.Public) {
+            await this.updateBy(updateBy);
+        }
+
+        if (role === Role.Viewer) {
+            await this.updateBy(updateBy);
+        }
+
+        if (role === Role.Owner) {
+            await this.updateBy(updateBy);
+        }
+
+        throw new BadDataException(`Invalid role - ${role}`);
+    }
+
+    public async createByRole(
+        role: Role,
+        createBy: CreateBy<TBaseModel>
+    ): Promise<TBaseModel> {
+        if (role === Role.Administrator) {
+            return await this.create({
+                data: BaseModel.asAdminCreateable<TBaseModel>(createBy.data),
+            });
+        }
+
+        if (role === Role.Member) {
+            return await this.create({
+                data: BaseModel.asMemberCreateable<TBaseModel>(createBy.data),
+            });
+        }
+
+        if (role === Role.Public) {
+            return await this.create({
+                data: BaseModel.asPublicCreateable<TBaseModel>(createBy.data),
+            });
+        }
+
+        if (role === Role.Viewer) {
+            return await this.create({
+                data: BaseModel.asViewerCreateable<TBaseModel>(createBy.data),
+            });
+        }
+
+        if (role === Role.Owner) {
+            return await this.create({
+                data: BaseModel.asOwnerCreateable<TBaseModel>(createBy.data),
+            });
+        }
+
+        throw new BadDataException(`Invalid role - ${role}`);
+    }
+
+    public deleteByForOwner(
+        deleteBy: DeleteBy<TBaseModel>
+    ): PromiseLike<number> {
+        return this.deleteBy(deleteBy);
+    }
+    public deleteByForViewer(
+        deleteBy: DeleteBy<TBaseModel>
+    ): PromiseLike<number> {
+        return this.deleteBy(deleteBy);
+    }
+    public deleteByForPublic(
+        deleteBy: DeleteBy<TBaseModel>
+    ): PromiseLike<number> {
+        return this.deleteBy(deleteBy);
+    }
+    public deleteByForMember(
+        deleteBy: DeleteBy<TBaseModel>
+    ): PromiseLike<number> {
+        return this.deleteBy(deleteBy);
+    }
+
+    public deleteByForAdmin(
+        deleteBy: DeleteBy<TBaseModel>
+    ): PromiseLike<number> {
+        return this.deleteBy(deleteBy);
     }
 
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
@@ -340,6 +478,33 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return await this.findBy(findBy);
     }
 
+    public async getListByRole(
+        role: Role,
+        findBy: FindBy<TBaseModel>
+    ): Promise<Array<TBaseModel>> {
+        if (role === Role.Administrator) {
+            return await this.getListForAdmin(findBy);
+        }
+
+        if (role === Role.Member) {
+            return await this.getListForMember(findBy);
+        }
+
+        if (role === Role.Public) {
+            return await this.getListForPublic(findBy);
+        }
+
+        if (role === Role.Viewer) {
+            return await this.getListForViewer(findBy);
+        }
+
+        if (role === Role.Owner) {
+            return await this.getListForOwner(findBy);
+        }
+
+        throw new BadDataException(`Invalid role - ${role}`);
+    }
+
     public async getListForPublic(
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
@@ -374,6 +539,33 @@ class DatabaseService<TBaseModel extends BaseModel> {
         findOneBy: FindOneBy<TBaseModel>
     ): Promise<TBaseModel | null> {
         return await this.findOneBy(findOneBy);
+    }
+
+    public async getItemByRole(
+        role: Role,
+        findOneBy: FindOneBy<TBaseModel>
+    ): Promise<TBaseModel | null> {
+        if (role === Role.Administrator) {
+            return await this.getItemForAdmin(findOneBy);
+        }
+
+        if (role === Role.Member) {
+            return await this.getItemForMember(findOneBy);
+        }
+
+        if (role === Role.Public) {
+            return await this.getItemForPublic(findOneBy);
+        }
+
+        if (role === Role.Viewer) {
+            return await this.getItemForViewer(findOneBy);
+        }
+
+        if (role === Role.Owner) {
+            return await this.getItemForOwner(findOneBy);
+        }
+
+        throw new BadDataException(`Invalid role - ${role}`);
     }
 
     public async findBy(
@@ -434,6 +626,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return null;
     }
 
+    public async findOneById(id: ObjectID): Promise<TBaseModel | null> {
+        return await this.findOneBy({
+            query: {
+                _id: id.toString() as any,
+            },
+        });
+    }
+
     private async _updateBy({
         query,
         data,
@@ -474,6 +674,24 @@ class DatabaseService<TBaseModel extends BaseModel> {
         data,
     }: UpdateBy<TBaseModel>): Promise<number> {
         return await this._updateBy({ query, data });
+    }
+
+    public async updateOneById(
+        updateById: UpdateByID<TBaseModel>
+    ): Promise<void> {
+        await this.updateOneBy({
+            query: {
+                _id: updateById.id.toString() as any,
+            },
+            data: updateById.data,
+        });
+    }
+
+    public async updateOneByIdAndFetch(
+        updateById: UpdateByID<TBaseModel>
+    ): Promise<TBaseModel | null> {
+        await this.updateOneById(updateById);
+        return this.findOneById(updateById.id);
     }
 
     public async searchBy({

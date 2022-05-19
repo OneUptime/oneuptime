@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { deleteProbe } from '../../actions/probe';
 
 class ProbeDeleteModal extends Component<ComponentProps> {

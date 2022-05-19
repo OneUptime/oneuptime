@@ -5,7 +5,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/project';
 import { User, IS_SAAS_SERVICE } from '../config.js';
 import { history } from '../store';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 import { fetchComponents, resetFetchComponentResources } from './component';
 import {
     fetchMonitors,

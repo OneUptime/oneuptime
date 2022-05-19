@@ -2,7 +2,7 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTracker';
 import { encode } from 'js-base64';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 export const setStartDate: Function = (date: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch({
