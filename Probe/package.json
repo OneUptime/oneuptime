@@ -8,7 +8,7 @@
         "start": "ts-node index.ts",
         "compile": "tsc",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 --max-http-header-size=80000 index.ts",
-        "test": "echo 'no tests'",
+        "test": "jest",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
     },
@@ -45,6 +45,7 @@
     "resolutions": {},
     "devDependencies": {
         "depcheck": "^1.4.3",
+        "jest": "^28.1.0",
         "npm-force-resolutions": "0.0.10",
         "ts-node-dev": "^1.1.8"
     }
