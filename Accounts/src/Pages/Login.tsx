@@ -40,9 +40,6 @@ const LoginPage: FunctionComponent = () => {
             >
                 <div className="actions">
                     <p>
-                        <Link to="/forgot-password">Forgot your password?</Link>
-                    </p>
-                    <p>
                         <Link to="/login/sso">
                             Use single sign-on (SSO) instead
                         </Link>
