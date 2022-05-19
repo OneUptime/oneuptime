@@ -1,4 +1,4 @@
-import Response from '../../Types/API/Response';
+import Response from '../../../Types/API/Response';
 describe('Response()', () => {
     test('should return a valid response object', () => {
         let responseObject: Response;

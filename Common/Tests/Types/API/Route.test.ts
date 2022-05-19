@@ -1,5 +1,5 @@
-import Route from '../../Types/API/Route';
-import BadDataException from '../../Types/Exception/BadDataException';
+import Route from '../../../Types/API/Route';
+import BadDataException from '../../../Types/Exception/BadDataException';
 describe('Route', () => {
     test('new Route() should throw an error if invalid route is passed', () => {
         expect(() => {
