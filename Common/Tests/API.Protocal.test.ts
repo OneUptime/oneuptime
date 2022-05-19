@@ -10,7 +10,7 @@ describe('Protocol', () => {
     test('Protocol.WS should be ws://', () => {
         expect(Protocol.WS).toBe('ws://');
     });
-    test('Protocol.WS should be ws://', () => {
+    test('Protocol.WSS should be ws://', () => {
         expect(Protocol.WSS).toBe('wss://');
     });
     test('Protocol.MONGO_DB should be mongodb://', () => {
