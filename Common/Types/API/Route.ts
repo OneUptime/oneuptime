@@ -5,14 +5,14 @@ export default class Route {
         return this._route;
     }
     public set route(v: string) {
+        const matchRouteCharacters: RegExp = /^[a-zA-Z\d!#$&'()*+,/:;=?@[\]]*$/;
+        if (v && !matchRouteCharacters.test(v)) {
+            throw new BadDataException(`Invalid route: ${v}`);
+        }
         this._route = v;
     }
 
     public constructor(route?: string) {
-        const matchRouteCharacters: RegExp = /^[a-zA-Z\d!#$&'()*+,/:;=?@[\]]*$/;
-        if (route && !matchRouteCharacters.test(route)) {
-            throw new BadDataException(`Invalid route: ${route}`);
-        }
         if (route) {
             this.route = route;
         }

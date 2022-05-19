@@ -1,20 +1,28 @@
 import Route from '../Types/API/Route';
 import BadDataException from '../Types/Exception/BadDataException';
 describe('Route', () => {
-    type createRouteType = (route: string) => () => Route;
-    const createRoute: createRouteType = (route: string) => {
-        return () => {
-            return new Route(route);
-        };
-    };
     test('new Route() should throw an error if invalid route is passed', () => {
-        expect(createRoute('api test')).toThrowError(BadDataException);
-        expect(createRoute('api\test')).toThrowError(BadDataException);
-        expect(createRoute('api`test')).toThrowError(BadDataException);
-        expect(createRoute('/api|test')).toThrowError(BadDataException);
+        expect(() => {
+            return new Route('api test');
+        }).toThrowError(BadDataException);
+        expect(() => {
+            return new Route('api\test');
+        }).toThrowError(BadDataException);
+        expect(() => {
+            return new Route('api`test');
+        }).toThrowError(BadDataException);
+        expect(() => {
+            return new Route('/api|test');
+        }).toThrowError(BadDataException);
+    });
+    test('new Route() should throw an error if invalid route is passed', () => {
+        const route: Route = new Route('/api/test');
+        expect(() => {
+            route.route = 'api`test';
+        }).toThrowError(BadDataException);
     });
     test('Route.toString() should return valid string', () => {
-        expect(createRoute('/api/test')().toString()).toBe('/api/test');
-        expect(createRoute('/api#test')().toString()).toBe('/api#test');
+        expect(new Route('/api/test').toString()).toBe('/api/test');
+        expect(new Route('/api#test').toString()).toBe('/api#test');
     });
 });
