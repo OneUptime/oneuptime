@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/typedef */
 import React, { ReactElement } from 'react';
 import { ErrorMessage, Field, Form, Formik, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
@@ -57,9 +58,32 @@ const BasicForm = <T extends Object>(
                 <ErrorMessage
                     name={Object.keys(field.field)[0] as string}
                     component="div"
+                    className="error_message"
                 />
             </div>
         );
+    };
+
+    const validate = (values: FormValues<T>): object => {
+        const errors: any = {};
+        props.fields.forEach(field => {
+            const name = Object.keys(field.field)[0] as string;
+            if (name in values) {
+                const entries: any = { ...values };
+                if (!entries[name] || entries[name].trim().length === 0) {
+                    errors[name] = `${name.charAt(0).toUpperCase()}${name.slice(
+                        1,
+                        name.length
+                    )} field is required`;
+                }
+            } else if (field.required && !(name in values)) {
+                errors[name] = `${name.charAt(0).toUpperCase()}${name.slice(
+                    1,
+                    name.length
+                )} field is required`;
+            }
+        });
+        return errors;
     };
 
     return (
@@ -71,24 +95,30 @@ const BasicForm = <T extends Object>(
                         return props.onValidate(values);
                     }
 
-                    return {};
+                    return validate(values);
                 }}
+                validateOnChange={true}
+                validateOnBlur={true}
                 onSubmit={(values: FormValues<T>) => {
                     props.onSubmit(values);
                 }}
             >
-                {({ isSubmitting }) => {
+                {({ isSubmitting, isValidating, isValid }) => {
                     return (
                         <Form autoComplete="off">
                             <h1>{props.title}</h1>
+
                             <p className="description">{props.description}</p>
+
                             {props.fields &&
                                 props.fields.map((field: DataField<T>, i) => {
                                     return getFormField(field, i);
                                 })}
                             <Button
                                 title={props.submitButtonText || 'Submit'}
-                                disabled={isSubmitting}
+                                disabled={
+                                    isSubmitting || !isValid || isValidating
+                                }
                                 type={ButtonTypes.Submit}
                                 id={`${props.id}-submit-button`}
                             />

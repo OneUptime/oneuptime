@@ -22,12 +22,14 @@ const LoginPage: FunctionComponent = () => {
                             email: true,
                         },
                         title: 'Email',
+                        required: true,
                     },
                     {
                         field: {
                             password: true,
                         },
                         title: 'Password',
+                        required: true,
                         sideLink: {
                             text: 'Forgot password?',
                             url: new Route('/forgot-password'),
