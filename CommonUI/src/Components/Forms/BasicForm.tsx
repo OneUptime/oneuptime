@@ -71,10 +71,10 @@ const BasicForm = <T extends Object>(
             if (name in values) {
                 const entries: JSONObject = { ...values } as JSONObject;
                 if (entries[name]?.toString().trim().length === 0) {
-                    errors[name] = `${field.title} is required`;
+                    errors[name] = `${field.title || name} is required`;
                 }
             } else if (field.required && !(name in values)) {
-                errors[name] = `${field.title} is required`;
+                errors[name] = `${field.title || name} is required`;
             }
         });
         return errors;
