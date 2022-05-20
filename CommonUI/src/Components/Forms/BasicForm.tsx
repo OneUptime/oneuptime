@@ -7,6 +7,7 @@ import Fields from './Types/Fields';
 import DataField from './Types/Field';
 import ButtonTypes from '../Basic/Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
 export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
@@ -50,6 +51,7 @@ const BasicForm = <T extends Object>(
                 </label>
                 <p>{field.description}</p>
                 <Field
+                    autoFocus={index === 0 ? true : false}
                     placeholder={field.placeholder}
                     type={fieldType}
                     name={Object.keys(field.field)[0] as string}
@@ -62,6 +64,22 @@ const BasicForm = <T extends Object>(
         );
     };
 
+    const validate = (values: FormValues<T>): object => {
+        const errors: JSONObject = {};
+        props.fields.forEach(field => {
+            const name = Object.keys(field.field)[0] as string;
+            if (name in values) {
+                const entries: JSONObject = { ...values } as JSONObject;
+                if (entries[name]?.toString().trim().length === 0) {
+                    errors[name] = `${field.title || name} is required`;
+                }
+            } else if (field.required && !(name in values)) {
+                errors[name] = `${field.title || name} is required`;
+            }
+        });
+        return errors;
+    };
+
     return (
         <div>
             <Formik
@@ -71,24 +89,30 @@ const BasicForm = <T extends Object>(
                         return props.onValidate(values);
                     }
 
-                    return {};
+                    return validate(values);
                 }}
+                validateOnChange={true}
+                validateOnBlur={true}
                 onSubmit={(values: FormValues<T>) => {
                     props.onSubmit(values);
                 }}
             >
-                {({ isSubmitting }) => {
+                {({ isSubmitting, isValidating, isValid }) => {
                     return (
                         <Form autoComplete="off">
                             <h1>{props.title}</h1>
+
                             <p className="description">{props.description}</p>
+
                             {props.fields &&
                                 props.fields.map((field: DataField<T>, i) => {
                                     return getFormField(field, i);
                                 })}
                             <Button
                                 title={props.submitButtonText || 'Submit'}
-                                disabled={isSubmitting}
+                                disabled={
+                                    isSubmitting || !isValid || isValidating
+                                }
                                 type={ButtonTypes.Submit}
                                 id={`${props.id}-submit-button`}
                             />

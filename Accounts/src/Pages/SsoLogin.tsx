@@ -18,6 +18,7 @@ const SsoLoginPage: FunctionComponent = () => {
                         field: {
                             email: true,
                         },
+                        required: true,
                         title: 'Email',
                     },
                 ]}

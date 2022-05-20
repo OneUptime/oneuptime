@@ -24,5 +24,6 @@ describe('Route', () => {
     test('Route.toString() should return valid string', () => {
         expect(new Route('/api/test').toString()).toBe('/api/test');
         expect(new Route('/api#test').toString()).toBe('/api#test');
+        expect(new Route('/api-test').toString()).toBe('/api-test');
     });
 });

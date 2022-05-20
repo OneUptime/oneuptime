@@ -19,6 +19,7 @@ const ForgotPasswordPage: FunctionComponent = () => {
                             email: true,
                         },
                         title: 'Email',
+                        required: true,
                     },
                 ]}
                 onSubmit={(values: FormValues<User>) => {

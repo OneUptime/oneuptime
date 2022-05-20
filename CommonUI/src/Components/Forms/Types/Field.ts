@@ -7,6 +7,7 @@ export default interface Field<TEntity> {
     description?: string;
     field: SelectFormFields<TEntity>;
     placeholder?: string;
+    required?: boolean;
     sideLink?: {
         text: string;
         url: Route | URL;
