@@ -8,6 +8,7 @@ export interface TableColumnMetadata {
     title?: string;
     description?: string;
     placeholder?: string;
+    isDefaultValueColumn?: boolean
 }
 
 export default (props?: TableColumnMetadata) => {

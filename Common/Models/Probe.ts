@@ -58,7 +58,7 @@ export default class Probe extends BaseModel {
     })
     public probeVersion?: Version;
 
-    @TableColumn()
+    @TableColumn({isDefaultValueColumn: true})
     @RequiredColumn()
     @Column({
         nullable: false,
