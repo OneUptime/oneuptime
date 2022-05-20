@@ -1,5 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
+import FormFieldSchemaType from './FormFieldSchemaType';
 import SelectFormFields from './SelectFormField';
 
 export default interface Field<TEntity> {
@@ -13,4 +14,5 @@ export default interface Field<TEntity> {
         url: Route | URL;
         openLinkInNewTab?: boolean;
     };
+    fieldType?: FormFieldSchemaType;
 }

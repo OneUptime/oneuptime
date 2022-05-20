@@ -8,6 +8,7 @@ import DataField from './Types/Field';
 import ButtonTypes from '../Basic/Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
+
 export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
@@ -65,18 +66,24 @@ const BasicForm = <T extends Object>(
     };
 
     const validate = (values: FormValues<T>): object => {
+
         const errors: JSONObject = {};
+        const entries: JSONObject = { ...values } as JSONObject;
+
+        // Check Required. 
         props.fields.forEach(field => {
             const name = Object.keys(field.field)[0] as string;
             if (name in values) {
-                const entries: JSONObject = { ...values } as JSONObject;
                 if (entries[name]?.toString().trim().length === 0) {
-                    errors[name] = `${field.title || name} is required`;
+                    errors[name] = `${field.title || name} is required.`;
                 }
             } else if (field.required && !(name in values)) {
-                errors[name] = `${field.title || name} is required`;
+                errors[name] = `${field.title || name} is required.`;
             }
         });
+
+        // Check for valid data. 
+
         return errors;
     };
 
