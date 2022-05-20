@@ -29,7 +29,7 @@ const LoginPage: FunctionComponent = () => {
                         sideLink: {
                             text: 'Forgot password?',
                             url: new Route('/forgot-password'),
-                            openLinkInNewTab: true,
+                            openLinkInNewTab: false,
                         },
                     },
                 ]}

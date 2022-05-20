@@ -17,6 +17,7 @@ export interface ComponentProps<T extends Object> {
     model: T;
     submitButtonText?: string;
     title?: string;
+    description?: string;
     children: ReactElement;
 }
 
@@ -78,8 +79,9 @@ const BasicForm = <T extends Object>(
             >
                 {({ isSubmitting }) => {
                     return (
-                        <Form>
+                        <Form autoComplete="off">
                             <h1>{props.title}</h1>
+                            <p className="description">{props.description}</p>
                             {props.fields &&
                                 props.fields.map((field: DataField<T>, i) => {
                                     return getFormField(field, i);

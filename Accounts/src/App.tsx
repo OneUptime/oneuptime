@@ -2,6 +2,8 @@ import React, { ReactElement } from 'react';
 import './App.scss';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './Pages/Login';
+import SsoLoginPage from './Pages/SsoLogin';
+import ForgotPasswordPage from './Pages/ForgotPassword';
 
 function App(): ReactElement {
     return (
@@ -16,9 +18,12 @@ function App(): ReactElement {
                 <Routes>
                     <Route path="/" element={<LoginPage />} />
                     <Route path="/login" element={<LoginPage />} />
-                    <Route path="/forgot-password" element={<LoginPage />} />
+                    <Route
+                        path="/forgot-password"
+                        element={<ForgotPasswordPage />}
+                    />
                     <Route path="/register" element={<LoginPage />} />
-                    <Route path="/login/sso" element={<LoginPage />} />
+                    <Route path="/login/sso" element={<SsoLoginPage />} />
                     <Route path="/verify-email" element={<LoginPage />} />
                 </Routes>
             </Router>
