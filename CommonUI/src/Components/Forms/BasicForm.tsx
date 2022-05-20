@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/typedef */
 import React, { ReactElement } from 'react';
 import { ErrorMessage, Field, Form, Formik, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
@@ -8,6 +7,7 @@ import Fields from './Types/Fields';
 import DataField from './Types/Field';
 import ButtonTypes from '../Basic/Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import { JSONObject } from 'Common/Types/JSON';
 export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
@@ -58,29 +58,22 @@ const BasicForm = <T extends Object>(
                 <ErrorMessage
                     name={Object.keys(field.field)[0] as string}
                     component="div"
-                    className="error_message"
                 />
             </div>
         );
     };
 
     const validate = (values: FormValues<T>): object => {
-        const errors: any = {};
+        const errors: JSONObject = {};
         props.fields.forEach(field => {
             const name = Object.keys(field.field)[0] as string;
             if (name in values) {
-                const entries: any = { ...values };
-                if (!entries[name] || entries[name].trim().length === 0) {
-                    errors[name] = `${name.charAt(0).toUpperCase()}${name.slice(
-                        1,
-                        name.length
-                    )} field is required`;
+                const entries: JSONObject = { ...values } as JSONObject;
+                if (entries[name]?.toString().trim().length === 0) {
+                    errors[name] = `${name} is required`;
                 }
             } else if (field.required && !(name in values)) {
-                errors[name] = `${name.charAt(0).toUpperCase()}${name.slice(
-                    1,
-                    name.length
-                )} field is required`;
+                errors[name] = `${name} is required`;
             }
         });
         return errors;

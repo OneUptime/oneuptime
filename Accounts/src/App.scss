@@ -59,12 +59,6 @@ body {
     }
 }
 
-.error_message {
-    color: rgb(189, 11, 11);
-    margin-top: 5px;
-    font-size: 1.2rem;
-}
-
 .brand {
     position: absolute;
     top: -5%;
@@ -170,6 +164,12 @@ form {
 
             &:focus {
                 outline: 2px solid rgba(84, 84, 238, 0.72);
+            }
+
+            & + div {
+                color: rgb(189, 11, 11);
+                margin-top: 5px;
+                font-size: 1.2rem;
             }
         }
     }
