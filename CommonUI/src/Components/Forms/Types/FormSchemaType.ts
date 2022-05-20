@@ -3,6 +3,7 @@ enum FormType {
     Name,
     Hostname,
     URL,
+    Route,
     String,
     Number,
     Password,

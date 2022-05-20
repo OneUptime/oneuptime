@@ -11,9 +11,8 @@ export default class PositiveNumber {
 
     public constructor(positiveNumber: number | string) {
         if (typeof positiveNumber === 'string') {
-            try {
-                positiveNumber = Number.parseInt(positiveNumber, 10);
-            } catch (error) {
+            positiveNumber = Number.parseInt(positiveNumber, 10);
+            if (isNaN(positiveNumber)) {
                 throw new BadDataException(`Invalid number: ${positiveNumber}`);
             }
         }

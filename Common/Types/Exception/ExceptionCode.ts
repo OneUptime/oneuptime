@@ -2,7 +2,7 @@ enum ExceptionCode {
     NotImplementedException = 0,
     GeneralException = 1,
     APIException = 2,
-    DatabaseNotConnected = 3,
+    DatabaseNotConnectedException = 3,
     BadOperationException = 5,
     BadDataException = 400,
     BadRequestException = 400,
