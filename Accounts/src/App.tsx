@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import './App.scss';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './Pages/Login';
 
-function App() {
+function App(): ReactElement {
     return (
         <div className="App">
             <div className="brand">

@@ -289,7 +289,7 @@ form {
         cursor: pointer;
 
         @include responsive($xs) {
-            padding-bottom: 5px;
+            padding-bottom: 15px;
         }
 
         a {
