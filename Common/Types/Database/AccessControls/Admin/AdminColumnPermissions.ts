@@ -3,13 +3,13 @@ import BaseModel from '../../../../Models/BaseModel';
 import Dictionary from '../../../Dictionary';
 import AccessControl from '../AccessControl';
 
-const accessControlSymbol = Symbol('AdminAccessControl');
+const accessControlSymbol: Symbol = Symbol('AdminAccessControl');
 
 export default (accessControl: AccessControl) => {
     return Reflect.metadata(accessControlSymbol, accessControl);
 };
 
-export const getAdminAccessControl = (
+export const getAdminAccessControl: Function = (
     target: BaseModel,
     propertyKey: string
 ): AccessControl => {
@@ -20,11 +20,11 @@ export const getAdminAccessControl = (
     ) as AccessControl;
 };
 
-export const getAdminAccessControlForAllColumns = <T extends BaseModel>(
+export const getAdminAccessControlForAllColumns: Function = <T extends BaseModel>(
     target: T
 ): Dictionary<AccessControl> => {
     const dictonary: Dictionary<AccessControl> = {};
-    const keys = Object.keys(target);
+    const keys: Array<string> = Object.keys(target);
 
     for (const key of keys) {
         if (Reflect.getMetadata(accessControlSymbol, target, key)) {

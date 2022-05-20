@@ -1092,8 +1092,8 @@ export default class BaseModel extends BaseEntity {
         return this.keepColumns(data, data.getAdminDeleteableColumns());
     }
 
-    public isDefaultValueColumn(columnName: string): boolean{
-        return !!getTableColumn(this, columnName).isDefaultValueColumn;
+    public isDefaultValueColumn(columnName: string): boolean {
+        return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
     }
 
     public toJSON(): JSONObject {

@@ -2,13 +2,13 @@ import 'reflect-metadata';
 import BaseModel from '../../Models/BaseModel';
 import Columns from './Columns';
 
-const requiredColumnSymbol = Symbol('RequiredColumn');
+const requiredColumnSymbol: Symbol = Symbol('RequiredColumn');
 
 export default () => {
     return Reflect.metadata(requiredColumnSymbol, true);
 };
 
-export const isRequiredColumn = (
+export const isRequiredColumn: Function = (
     target: BaseModel,
     propertyKey: string
 ): boolean => {
@@ -19,8 +19,8 @@ export const isRequiredColumn = (
     ) as boolean;
 };
 
-export const getRequiredColumns = <T extends BaseModel>(target: T): Columns => {
-    const keys = Object.keys(target);
+export const getRequiredColumns: Function = <T extends BaseModel>(target: T): Columns => {
+    const keys: Array<string> = Object.keys(target);
     const columns: Array<string> = [];
 
     for (const key of keys) {

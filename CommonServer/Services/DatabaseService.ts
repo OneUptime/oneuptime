@@ -59,7 +59,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // Check required fields.
 
         for (const requiredField of data.getRequiredColumns().columns) {
-            if (!(data as any)[requiredField] && !data.isDefaultValueColumn(requiredField)) {
+            if (
+                !(data as any)[requiredField] &&
+                !data.isDefaultValueColumn(requiredField)
+            ) {
                 throw new BadDataException(`${requiredField} is required`);
             }
         }
@@ -103,7 +106,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     protected async hash(data: TBaseModel): Promise<TBaseModel> {
         for (const key of data.getHashedColumns().columns) {
-            if ((data as any)[key] && !((data as any)[key] as HashedString).isValueHashed) {
+            if (
+                (data as any)[key] &&
+                !((data as any)[key] as HashedString).isValueHashed
+            ) {
                 await ((data as any)[key] as HashedString).hashValue(
                     EncryptionSecret
                 );
@@ -219,14 +225,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
         throw error;
     }
 
-    private generateSlug(createBy: CreateBy<TBaseModel>): CreateBy<TBaseModel>{
+    private generateSlug(createBy: CreateBy<TBaseModel>): CreateBy<TBaseModel> {
         if (createBy.data.getSlugifyColumn()) {
-            (createBy.data as any)[createBy.data.getSaveSlugToColumn() as string] =
-                Slug.getSlug(
-                    (createBy.data as any)[
-                        createBy.data.getSlugifyColumn() as string
-                    ] as string
-                );
+            (createBy.data as any)[
+                createBy.data.getSaveSlugToColumn() as string
+            ] = Slug.getSlug(
+                (createBy.data as any)[
+                    createBy.data.getSlugifyColumn() as string
+                ] as string
+            );
         }
 
         return createBy;

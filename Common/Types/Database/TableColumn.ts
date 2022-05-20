@@ -2,20 +2,20 @@ import 'reflect-metadata';
 import BaseModel from '../../Models/BaseModel';
 import Dictionary from '../Dictionary';
 
-const tableColumn = Symbol('TableColumn');
+const tableColumn: Symbol = Symbol('TableColumn');
 
 export interface TableColumnMetadata {
     title?: string;
     description?: string;
     placeholder?: string;
-    isDefaultValueColumn?: boolean
+    isDefaultValueColumn?: boolean;
 }
 
 export default (props?: TableColumnMetadata) => {
     return Reflect.metadata(tableColumn, props);
 };
 
-export const getTableColumn = <T extends BaseModel>(
+export const getTableColumn: Function = <T extends BaseModel>(
     target: T,
     propertyKey: string
 ): TableColumnMetadata => {
@@ -26,11 +26,11 @@ export const getTableColumn = <T extends BaseModel>(
     ) as TableColumnMetadata;
 };
 
-export const getAllTableColumns = <T extends BaseModel>(
+export const getAllTableColumns: Function = <T extends BaseModel>(
     target: T
 ): Dictionary<TableColumnMetadata> => {
     const dictonary: Dictionary<TableColumnMetadata> = {};
-    const keys = Object.keys(target);
+    const keys: Array<string> = Object.keys(target);
 
     for (const key of keys) {
         if (Reflect.getMetadata(tableColumn, target, key)) {

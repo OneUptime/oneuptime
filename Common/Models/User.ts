@@ -90,7 +90,7 @@ class User extends BaseModel {
     })
     public password?: HashedString = undefined;
 
-    @TableColumn({isDefaultValueColumn: true})
+    @TableColumn({ isDefaultValueColumn: true })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -189,7 +189,7 @@ class User extends BaseModel {
     public profilePicImageUrl?: URL = undefined;
 
     @RequiredColumn()
-    @TableColumn({isDefaultValueColumn: true})
+    @TableColumn({ isDefaultValueColumn: true })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -294,7 +294,7 @@ class User extends BaseModel {
     public promotionName?: string = undefined;
 
     @RequiredColumn()
-    @TableColumn({isDefaultValueColumn: true})
+    @TableColumn({ isDefaultValueColumn: true })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -312,7 +312,7 @@ class User extends BaseModel {
     public paymentFailedDate?: Date = undefined;
 
     @RequiredColumn()
-    @TableColumn({isDefaultValueColumn: true})
+    @TableColumn({ isDefaultValueColumn: true })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -322,7 +322,7 @@ class User extends BaseModel {
     public isMasterAdmin?: boolean = undefined;
 
     @RequiredColumn()
-    @TableColumn({isDefaultValueColumn: true})
+    @TableColumn({ isDefaultValueColumn: true })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
