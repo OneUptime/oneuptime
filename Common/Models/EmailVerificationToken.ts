@@ -26,14 +26,14 @@ export default class EmailVerificationToken extends BaseModel {
         }
     )
     @JoinColumn({ name: 'userId' })
-    public user!: User;
+    public user?: User;
 
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public userId!: ObjectID;
+    public userId?: ObjectID;
 
     @Column({
         type: ColumnType.Email,
@@ -41,7 +41,7 @@ export default class EmailVerificationToken extends BaseModel {
         nullable: false,
         transformer: Email.getDatabaseTransformer(),
     })
-    public email!: Email;
+    public email?: Email = undefined;
 
     @Index()
     @RequiredColumn()
@@ -53,12 +53,12 @@ export default class EmailVerificationToken extends BaseModel {
         length: ColumnLength.ObjectID,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public token!: ObjectID;
+    public token?: ObjectID;
 
     @RequiredColumn()
     @Column({
         nullable: false,
         type: ColumnType.Date,
     })
-    public expires!: Date;
+    public expires?: Date = undefined;
 }

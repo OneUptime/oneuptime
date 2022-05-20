@@ -10,65 +10,65 @@ import Filter from '../Types/Filter/Filter';
 })
 export default class Model extends BaseModel {
     @Column()
-    public name!: string;
+    public name?: string = undefined;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public isDefault!: boolean;
+    public isDefault?: boolean = undefined;
 
     @Column()
-    public selectAllMonitors!: boolean;
+    public selectAllMonitors?: boolean = undefined;
 
     @Column()
-    public createIncident!: boolean;
+    public createIncident?: boolean = undefined;
 
     @Column()
-    public acknowledgeIncident!: boolean;
+    public acknowledgeIncident?: boolean = undefined;
 
     @Column()
-    public resolveIncident!: boolean;
+    public resolveIncident?: boolean = undefined;
 
     @Column()
-    public updateIncidentNote!: boolean;
+    public updateIncidentNote?: boolean = undefined;
 
     @Column()
-    public updateInternalNote!: boolean;
+    public updateInternalNote?: boolean = undefined;
 
     @Column()
-    public noteContent!: string;
+    public noteContent?: string = undefined;
 
     @Column()
-    public incidentState!: string;
+    public incidentState?: string = undefined;
 
     @Column()
-    public url!: URL;
+    public url?: URL;
 
     @Column()
-    public enabled!: boolean;
+    public enabled?: boolean = undefined;
 
     @Column()
-    public incidentTitle!: string;
+    public incidentTitle?: string = undefined;
 
     @Column()
-    public incidentType!: string;
+    public incidentType?: string = undefined;
 
     @Column()
-    public incidentPriority!: IncidentPriority;
+    public incidentPriority?: IncidentPriority;
 
     @Column()
-    public incidentDescription!: string;
+    public incidentDescription?: string = undefined;
 
     @Column()
-    public customFields!: IncomingRequestCustomFields;
+    public customFields?: IncomingRequestCustomFields;
 
     @Column()
-    public createSeparateIncident!: boolean;
+    public createSeparateIncident?: boolean = undefined;
 
     @Column()
-    public postOnsStatusPage!: boolean;
+    public postOnsStatusPage?: boolean = undefined;
 
     @Column()
-    public filter!: Filter;
+    public filter?: Filter;
 }

@@ -8,11 +8,11 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    public name!: Project;
+    public name?: Project;
 
     @Column()
-    public fileExtention!: string;
+    public fileExtention?: string = undefined;
 
     @Column()
-    public base64Content!: string;
+    public base64Content?: string = undefined;
 }

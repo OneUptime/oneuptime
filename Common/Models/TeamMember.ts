@@ -10,14 +10,14 @@ import User from './User';
 export default class TeamMember extends BaseModel {
     @Column()
     @Index()
-    public team!: Team;
+    public team?: Team;
 
     @Column()
-    public user!: User;
+    public user?: User;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

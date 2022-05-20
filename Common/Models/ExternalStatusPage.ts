@@ -10,22 +10,22 @@ import StatusPage from './StatusPage';
 })
 export default class ExternalStatusPage extends BaseModel {
     @Column()
-    public name!: string;
+    public name?: string = undefined;
 
     @Column()
-    public url!: URL;
+    public url?: URL;
 
     @Column()
-    public description!: string;
+    public description?: string = undefined;
 
     @Column()
-    public statusPage!: StatusPage;
+    public statusPage?: StatusPage;
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 }

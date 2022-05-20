@@ -19,104 +19,104 @@ export enum IncidentState {
 })
 export default class Incident extends BaseModel {
     @Column()
-    public idNumber!: number;
+    public idNumber?: number;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public title!: string;
+    public title?: string = undefined;
 
     @Column()
-    public description!: string;
+    public description?: string = undefined;
 
     @Column()
-    public reason!: string;
+    public reason?: string = undefined;
 
     @Column()
-    public response!: Object;
+    public response?: Object;
 
     @Column()
-    public notifications!: Notification;
+    public notifications?: Notification;
 
     @Column()
-    public incidentPriority!: IncidentPriority;
+    public incidentPriority?: IncidentPriority;
 
     @Column()
-    public acknowledged!: boolean;
+    public acknowledged?: boolean = undefined;
 
     @Column()
-    public acknowledgedBy!: User;
+    public acknowledgedBy?: User;
 
     @Column()
-    public acknowledgedAt!: Date;
+    public acknowledgedAt?: Date = undefined;
 
     @Column()
-    public acknowledgedByZapier!: boolean;
+    public acknowledgedByZapier?: boolean = undefined;
 
     @Column()
-    public resolved!: boolean;
+    public resolved?: boolean = undefined;
 
     @Column()
-    public resourceStatus!: ResourceStatus;
+    public resourceStatus?: ResourceStatus;
 
     @Column()
-    public resolvedBy!: User;
+    public resolvedBy?: User;
 
     @Column()
-    public resolvedAt!: Date;
+    public resolvedAt?: Date = undefined;
 
     @Column()
-    public resolvedByZapier!: boolean;
+    public resolvedByZapier?: boolean = undefined;
 
     @Column()
-    public internalNote!: string;
+    public internalNote?: string = undefined;
 
     @Column()
-    public investigationNote!: string;
+    public investigationNote?: string = undefined;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public createdByApi!: boolean;
+    public createdByApi?: boolean = undefined;
 
     @Column()
-    public createdByZapier!: boolean;
+    public createdByZapier?: boolean = undefined;
 
     @Column()
-    public acknowledgedByApi!: boolean;
+    public acknowledgedByApi?: boolean = undefined;
 
     @Column()
-    public resolvedByApi!: boolean;
+    public resolvedByApi?: boolean = undefined;
 
     @Column()
-    public manuallyCreated!: boolean;
+    public manuallyCreated?: boolean = undefined;
 
     @Column()
-    public criterionCause!: Object;
+    public criterionCause?: Object;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public breachedCommunicationSla!: boolean;
+    public breachedCommunicationSla?: boolean = undefined;
 
     @Column()
-    public customFields!: IncidentCustomFields;
+    public customFields?: IncidentCustomFields;
 
     @Column()
-    public acknowledgedByIncomingHttpRequest!: IncomingRequest;
+    public acknowledgedByIncomingHttpRequest?: IncomingRequest;
 
     @Column()
-    public resolvedByIncomingHttpRequest!: IncomingRequest;
+    public resolvedByIncomingHttpRequest?: IncomingRequest;
 
     @Column()
-    public createdByIncomingHttpRequest!: IncomingRequest;
+    public createdByIncomingHttpRequest?: IncomingRequest;
 
     @Column()
-    public hideIncident!: boolean;
+    public hideIncident?: boolean = undefined;
 
     @Column()
-    public slug!: string;
+    public slug?: string = undefined;
 }

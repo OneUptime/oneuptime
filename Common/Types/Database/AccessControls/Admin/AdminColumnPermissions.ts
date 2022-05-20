@@ -1,27 +1,43 @@
+import 'reflect-metadata';
 import BaseModel from '../../../../Models/BaseModel';
+import Dictionary from '../../../Dictionary';
+import { ReflectionMetadataType } from '../../../Reflection';
 import AccessControl from '../AccessControl';
 
-export default (accessControl: AccessControl) => {
-    return (target: Object, propertyKey: string) => {
-        const baseModel: BaseModel = target as BaseModel;
-        if (accessControl.create) {
-            baseModel.addAdminCreateableColumn(propertyKey);
-        }
+const accessControlSymbol: Symbol = Symbol('AdminAccessControl');
 
-        if (accessControl.delete) {
-            baseModel.addAdminDeleteableColumn(propertyKey);
-        }
+export default (accessControl: AccessControl): ReflectionMetadataType => {
+    return Reflect.metadata(accessControlSymbol, accessControl);
+};
 
-        if (accessControl.readAsItem) {
-            baseModel.addAdminReadableAsItemColumn(propertyKey);
-        }
+export const getAdminAccessControl: Function = (
+    target: BaseModel,
+    propertyKey: string
+): AccessControl => {
+    return Reflect.getMetadata(
+        accessControlSymbol,
+        target,
+        propertyKey
+    ) as AccessControl;
+};
 
-        if (accessControl.readAsList) {
-            baseModel.addAdminReadableAsListColumn(propertyKey);
-        }
+export const getAdminAccessControlForAllColumns: Function = <
+    T extends BaseModel
+>(
+    target: T
+): Dictionary<AccessControl> => {
+    const dictonary: Dictionary<AccessControl> = {};
+    const keys: Array<string> = Object.keys(target);
 
-        if (accessControl.update) {
-            baseModel.addAdminUpdateableColumn(propertyKey);
+    for (const key of keys) {
+        if (Reflect.getMetadata(accessControlSymbol, target, key)) {
+            dictonary[key] = Reflect.getMetadata(
+                accessControlSymbol,
+                target,
+                key
+            ) as AccessControl;
         }
-    };
+    }
+
+    return dictonary;
 };

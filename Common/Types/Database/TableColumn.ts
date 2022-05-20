@@ -1,24 +1,47 @@
+import 'reflect-metadata';
 import BaseModel from '../../Models/BaseModel';
+import Dictionary from '../Dictionary';
+import { ReflectionMetadataType } from '../Reflection';
 
-export default (props?: {
+const tableColumn: Symbol = Symbol('TableColumn');
+
+export interface TableColumnMetadata {
     title?: string;
     description?: string;
     placeholder?: string;
-}) => {
-    return (target: Object, propertyKey: string) => {
-        const baseModel: BaseModel = target as BaseModel;
-        baseModel.addTableColumn(propertyKey);
+    isDefaultValueColumn?: boolean;
+}
 
-        if (props && props.title) {
-            baseModel.addDisplayColumnTitleAs(propertyKey, props.title);
-        }
+export default (props?: TableColumnMetadata): ReflectionMetadataType => {
+    return Reflect.metadata(tableColumn, props);
+};
 
-        if (props && props.description) {
-            baseModel.addDisplayColumnTitleAs(propertyKey, props.description);
-        }
+export const getTableColumn: Function = <T extends BaseModel>(
+    target: T,
+    propertyKey: string
+): TableColumnMetadata => {
+    return Reflect.getMetadata(
+        tableColumn,
+        target,
+        propertyKey
+    ) as TableColumnMetadata;
+};
 
-        if (props && props.placeholder) {
-            baseModel.addDisplayColumnTitleAs(propertyKey, props.placeholder);
+export const getAllTableColumns: Function = <T extends BaseModel>(
+    target: T
+): Dictionary<TableColumnMetadata> => {
+    const dictonary: Dictionary<TableColumnMetadata> = {};
+    const keys: Array<string> = Object.keys(target);
+
+    for (const key of keys) {
+        if (Reflect.getMetadata(tableColumn, target, key)) {
+            dictonary[key] = Reflect.getMetadata(
+                tableColumn,
+                target,
+                key
+            ) as TableColumnMetadata;
         }
-    };
+    }
+
+    return dictonary;
 };

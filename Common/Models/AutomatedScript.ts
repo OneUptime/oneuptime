@@ -14,20 +14,20 @@ export enum ScriptType {
 })
 export default class AutomatedScript extends BaseModel {
     @Column()
-    public name!: string;
+    public name?: string = undefined;
 
     @Column()
-    public script!: string;
+    public script?: string = undefined;
 
     @Column()
-    public scriptType!: ScriptType;
+    public scriptType?: ScriptType;
 
     @Column()
-    public slug!: string;
+    public slug?: string = undefined;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

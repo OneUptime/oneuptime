@@ -15,38 +15,38 @@ export enum IssueType {
 })
 export default class Model extends BaseModel {
     @Column()
-    public name!: string;
+    public name?: string = undefined;
 
     @Column()
-    public description!: string;
+    public description?: string = undefined;
 
     @Column()
-    public errorTracker!: ErrorTrackerContainer;
+    public errorTracker?: ErrorTrackerContainer;
 
     @Column()
-    public type!: IssueType;
+    public type?: IssueType;
 
     @Column()
-    public fingerprintHash!: string;
+    public fingerprintHash?: string = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public resolved!: boolean;
+    public resolved?: boolean = undefined;
 
     @Column()
-    public resolvedAt!: Date;
+    public resolvedAt?: Date = undefined;
 
     @Column()
-    public resolvedBy!: User;
+    public resolvedBy?: User;
 
     @Column()
-    public ignored!: boolean;
+    public ignored?: boolean = undefined;
 
     @Column()
-    public ignoredAt!: Date;
+    public ignoredAt?: Date = undefined;
 
     @Column()
-    public ignoredBy!: User;
+    public ignoredBy?: User;
 }

@@ -6,20 +6,20 @@ import BaseModel from './BaseModel';
 })
 export default class Model extends BaseModel {
     @Column()
-    public certificateId!: string;
+    public certificateId?: string = undefined;
 
     @Column()
-    public privateKeyPem!: string;
+    public privateKeyPem?: string = undefined;
 
     @Column()
-    public privateKeyJwk!: string;
+    public privateKeyJwk?: string = undefined;
 
     @Column()
-    public publicKeyPem!: string;
+    public publicKeyPem?: string = undefined;
 
     @Column()
-    public publicKeyJwk!: string;
+    public publicKeyJwk?: string = undefined;
 
     @Column()
-    public key!: string;
+    public key?: string = undefined;
 }

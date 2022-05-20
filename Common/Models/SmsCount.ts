@@ -9,23 +9,23 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    public user!: User;
+    public user?: User;
 
     @Column()
-    public sentTo!: string;
+    public sentTo?: string = undefined;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public content!: string;
+    public content?: string = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public status!: string;
+    public status?: string = undefined;
 
     @Column()
-    public error!: string;
+    public error?: string = undefined;
 }

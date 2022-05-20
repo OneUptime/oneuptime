@@ -125,13 +125,13 @@ export default class MailService {
 
         if (projectSmtp) {
             return {
-                username: projectSmtp.useranme,
-                password: projectSmtp.password,
-                host: projectSmtp.host,
-                port: projectSmtp.port,
-                fromName: projectSmtp.fromName || 'OneUptime',
-                fromEmail: projectSmtp.fromEmail,
-                secure: projectSmtp.secure,
+                username: projectSmtp.useranme!,
+                password: projectSmtp.password!,
+                host: projectSmtp.host!,
+                port: projectSmtp.port!,
+                fromName: projectSmtp.fromName! || 'OneUptime',
+                fromEmail: projectSmtp.fromEmail!,
+                secure: projectSmtp.secure!,
                 enabled: true,
             };
         }

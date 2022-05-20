@@ -6,26 +6,26 @@ import BaseModel from './BaseModel';
 })
 export default class Model extends BaseModel {
     @Column()
-    public store!: Object;
+    public store?: Object;
 
     @Column()
-    public challenges!: Object;
+    public challenges?: Object;
 
     @Column()
-    public renewOffset!: string;
+    public renewOffset?: string = undefined;
 
     @Column()
-    public renewStagger!: string;
+    public renewStagger?: string = undefined;
 
     @Column()
-    public accountKeyType!: string;
+    public accountKeyType?: string = undefined;
 
     @Column()
-    public serverKeyType!: string;
+    public serverKeyType?: string = undefined;
 
     @Column()
-    public subscriberEmail!: string;
+    public subscriberEmail?: string = undefined;
 
     @Column()
-    public agreeToTerms!: boolean;
+    public agreeToTerms?: boolean = undefined;
 }

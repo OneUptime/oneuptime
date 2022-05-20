@@ -10,14 +10,14 @@ import Project from './Project';
 export default class ResourceLabel extends BaseModel {
     @Column()
     @Index()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public name!: string;
+    public name?: string = undefined;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

@@ -8,6 +8,8 @@ import Route from 'Common/Types/API/Route';
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
 
+    user.getPublicCreateableColumns();
+
     return (
         <>
             <BasicModelForm<User>

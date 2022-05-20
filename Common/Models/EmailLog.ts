@@ -12,35 +12,35 @@ import Hostname from '../Types/API/Hostname';
 })
 export default class EmailLog extends BaseModel {
     @Column()
-    public fromEmail?: Email;
+    public fromEmail?: Email = undefined;
 
     @Column()
-    public fromName?: string;
+    public fromName?: string = undefined;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public toEmail!: Email;
+    public toEmail?: Email = undefined;
 
     @Column()
-    public subject!: string;
+    public subject?: string = undefined;
 
     @Column()
-    public body!: string;
+    public body?: string = undefined;
 
     @Column()
-    public templateType!: EmailTemplateType;
+    public templateType?: EmailTemplateType;
 
     @Column()
-    public status!: OperationResult;
+    public status?: OperationResult;
 
     @Column()
-    public errorDescription!: string;
+    public errorDescription?: string = undefined;
 
     @Column()
-    public smtpHost!: Hostname;
+    public smtpHost?: Hostname;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

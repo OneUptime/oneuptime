@@ -8,8 +8,8 @@ import AutomatedScriptRunInstance from './AutomatedScriptRunInstance';
 })
 export default class ApplicationSecurityRunInstanceLog extends BaseModel {
     @Column()
-    public automatedScriptRunInstance!: AutomatedScriptRunInstance;
+    public automatedScriptRunInstance?: AutomatedScriptRunInstance;
 
     @Column()
-    public log!: string;
+    public log?: string = undefined;
 }

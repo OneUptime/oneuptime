@@ -7,11 +7,11 @@ import BaseModel from './BaseModel';
 })
 export default class GlobalConfig extends BaseModel {
     @Column()
-    public name!: string;
+    public name?: string = undefined;
 
     @Column()
-    public value!: JSONObject;
+    public value?: JSONObject;
 
     @Column()
-    public iv!: Buffer;
+    public iv?: Buffer;
 }

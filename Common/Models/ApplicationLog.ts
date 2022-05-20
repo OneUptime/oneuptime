@@ -10,20 +10,20 @@ import Tags from '../Types/Tags';
 })
 export default class Model extends BaseModel {
     @Column()
-    public applicationLogContainer!: ApplicationLogContainer;
+    public applicationLogContainer?: ApplicationLogContainer;
 
     @Column()
-    public content!: string;
+    public content?: string = undefined;
 
     @Column()
-    public type!: ApplicationLogType;
+    public type?: ApplicationLogType;
 
     @Column()
-    public tags!: Tags;
+    public tags?: Tags;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

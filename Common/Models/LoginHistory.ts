@@ -7,26 +7,26 @@ import User from './User';
 })
 export default class LoginHistory extends BaseModel {
     @Column()
-    public user!: User;
+    public user?: User;
 
     @Column()
-    public ipLocationCity!: string;
+    public ipLocationCity?: string = undefined;
 
     @Column()
-    public ipLocationNeighbourhood!: string;
+    public ipLocationNeighbourhood?: string = undefined;
 
     @Column()
-    public ipLocationCountry!: string;
+    public ipLocationCountry?: string = undefined;
 
     @Column()
-    public browserName!: string;
+    public browserName?: string = undefined;
 
     @Column()
-    public browserVersion!: string;
+    public browserVersion?: string = undefined;
 
     @Column()
-    public deviceName!: string;
+    public deviceName?: string = undefined;
 
     @Column()
-    public loginStatus!: string;
+    public loginStatus?: string = undefined;
 }

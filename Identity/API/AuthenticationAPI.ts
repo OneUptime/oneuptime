@@ -67,7 +67,7 @@ router.post(
         }
 
         const alreadySavedUser: User | null = await UserService.findOneBy({
-            query: { email: user.email },
+            query: { email: user.email! },
             select: {
                 _id: true,
                 password: true,
@@ -77,7 +77,8 @@ router.post(
         if (
             emailVerificationToken &&
             user &&
-            user.id.toString() === emailVerificationToken.userId.toString()
+            alreadySavedUser?.id?.toString() ===
+                emailVerificationToken?.userId?.toString()
         ) {
             user.isEmailVerified = true;
         }
@@ -91,7 +92,7 @@ router.post(
         let savedUser: User | null = null;
         if (alreadySavedUser) {
             savedUser = await UserService.updateOneByIdAndFetch({
-                id: alreadySavedUser.id,
+                id: alreadySavedUser.id!,
                 data: user,
             });
         } else {
@@ -101,13 +102,13 @@ router.post(
         if (alreadySavedUser) {
             // Send Welcome Mail
             await MailService.sendMail(
-                user.email,
+                user.email!,
                 EmailSubjects.getSubjectByType(
                     EmailTemplateType.SIGNUP_WELCOME_EMAIL
                 ),
                 EmailTemplateType.SIGNUP_WELCOME_EMAIL,
                 {
-                    name: user.name.toString(),
+                    name: user.name!.toString(),
                     dashboardUrl: new URL(
                         HttpProtocol,
                         DashboardHostname
@@ -118,13 +119,13 @@ router.post(
         } else {
             // Send EmailVerification Link because this is a new user.
             await MailService.sendMail(
-                user.email,
+                user.email!,
                 EmailSubjects.getSubjectByType(
                     EmailTemplateType.SIGNUP_WELCOME_EMAIL
                 ),
                 EmailTemplateType.SIGNUP_WELCOME_EMAIL,
                 {
-                    name: user.name.toString(),
+                    name: user.name!.toString(),
                     emailVerificationUrl: new URL(
                         HttpProtocol,
                         AccountsHostname
@@ -137,9 +138,9 @@ router.post(
         if (savedUser) {
             const token: string = JSONWebToken.sign(
                 {
-                    userId: savedUser?.id,
-                    email: savedUser?.email,
-                    isMasterAdmin: savedUser?.isMasterAdmin,
+                    userId: savedUser.id!,
+                    email: savedUser.email!,
+                    isMasterAdmin: savedUser.isMasterAdmin!,
                     roles: [],
                 },
                 OneUptimeDate.getSomeDaysAfter(new PositiveNumber(30))

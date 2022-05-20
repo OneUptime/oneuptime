@@ -9,62 +9,62 @@ import Project from './Project';
 })
 export default class Model extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public name!: string;
+    public name?: string = undefined;
 
     @Column()
-    public cancelled!: boolean;
+    public cancelled?: boolean = undefined;
 
     @Column()
-    public cancelledAt!: Date;
+    public cancelledAt?: Date = undefined;
 
     @Column()
-    public cancelledBy!: User;
+    public cancelledBy?: User;
 
     @Column()
-    public slug!: string;
+    public slug?: string = undefined;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public startDate!: Date;
+    public startDate?: Date = undefined;
 
     @Column()
-    public endDate!: Date;
+    public endDate?: Date = undefined;
 
     @Column()
-    public description!: string;
+    public description?: string = undefined;
 
     @Column()
-    public showEventOnStatusPage!: boolean;
+    public showEventOnStatusPage?: boolean = undefined;
 
     @Column()
-    public callScheduleOnEvent!: boolean;
+    public callScheduleOnEvent?: boolean = undefined;
 
     @Column()
-    public monitorDuringEvent!: boolean;
+    public monitorDuringEvent?: boolean = undefined;
 
     @Column()
-    public recurring!: boolean;
+    public recurring?: boolean = undefined;
 
     @Column()
-    public interval!: string;
+    public interval?: string = undefined;
 
     @Column()
-    public alertSubscriber!: boolean;
+    public alertSubscriber?: boolean = undefined;
 
     @Column()
-    public resolved!: boolean;
+    public resolved?: boolean = undefined;
 
     @Column()
-    public resolvedBy!: User;
+    public resolvedBy?: User;
 
     @Column()
-    public resolvedAt!: Date;
+    public resolvedAt?: Date = undefined;
 }

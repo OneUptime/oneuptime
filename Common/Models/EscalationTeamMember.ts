@@ -9,17 +9,17 @@ import User from './User';
 })
 export default class Model extends BaseModel {
     @Column()
-    public startTime!: Date;
+    public startTime?: Date = undefined;
 
     @Column()
-    public endTime!: Date;
+    public endTime?: Date = undefined;
 
     @Column()
-    public timezone!: string;
+    public timezone?: string = undefined;
 
     @Column()
-    public user!: User;
+    public user?: User;
 
     @Column()
-    public team!: Team;
+    public team?: Team;
 }

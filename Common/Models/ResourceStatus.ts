@@ -13,17 +13,17 @@ import Project from './Project';
 })
 export default class ResourceStatus extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public name!: string;
+    public name?: string = undefined;
 
     @Column()
-    public color!: string;
+    public color?: string = undefined;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

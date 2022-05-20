@@ -8,11 +8,11 @@ import { IncidentState } from './Incident';
 })
 export default class IncidentNoteTemplate extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public incidentState!: IncidentState;
+    public incidentState?: IncidentState;
 
     @Column()
-    public incidentNote!: string;
+    public incidentNote?: string = undefined;
 }

@@ -9,20 +9,20 @@ import Issue from './Issue';
 })
 export default class Model extends BaseModel {
     @Column()
-    public issue!: Issue;
+    public issue?: Issue;
 
     @Column()
-    public user!: User;
+    public user?: User;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public removed!: boolean;
+    public removed?: boolean = undefined;
 
     @Column()
-    public removedAt!: Date;
+    public removedAt?: Date = undefined;
 
     @Column()
-    public removedBy!: User;
+    public removedBy?: User;
 }

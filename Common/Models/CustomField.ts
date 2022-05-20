@@ -13,14 +13,14 @@ export enum CustomFieldType {
 })
 export default class CustomField extends BaseModel {
     @Column()
-    public fieldName!: string;
+    public fieldName?: string = undefined;
 
     @Column()
-    public fieldType!: CustomFieldType;
+    public fieldType?: CustomFieldType;
 
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public uniqueField!: boolean;
+    public uniqueField?: boolean = undefined;
 }

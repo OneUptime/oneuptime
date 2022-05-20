@@ -8,6 +8,7 @@ import Faker from 'Common/Tests/TestingUtils/Faker';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import User from 'Common/Models/User';
 import UserTestService from '../TestingUtils/Services/UserTestService';
+import { fail } from 'assert';
 
 describe('probeService', () => {
     let database!: Database;
@@ -34,13 +35,13 @@ describe('probeService', () => {
         );
 
         expect(savedProbe.name).toEqual(name);
-        expect(savedProbe.probeVersion.toString()).toEqual(
-            probeVersion.toString()
+        expect(savedProbe.probeVersion?.toString()).toEqual(
+            probeVersion?.toString()
         );
         expect(savedProbe.createdAt).toBeTruthy();
         expect(savedProbe.version).toBeTruthy();
         expect(savedProbe._id).toBeTruthy();
-        expect(savedProbe.key.toString()).toEqual(key.toString());
+        expect(savedProbe.key?.toString()).toEqual(key?.toString());
     });
 
     test('findOneBy probe by name', async () => {
@@ -56,6 +57,10 @@ describe('probeService', () => {
             probeVersion
         );
 
+        if (!savedProbe.name) {
+            fail('savedprobe name is null');
+        }
+
         const fetchedProbe: Probe | null = await probeService.findOneBy({
             query: {
                 name: savedProbe.name,
@@ -69,13 +74,13 @@ describe('probeService', () => {
 
         expect(fetchedProbe.name).toEqual(name);
         expect(fetchedProbe._id).toEqual(savedProbe._id);
-        expect(fetchedProbe.probeVersion.toString()).toEqual(
-            probeVersion.toString()
+        expect(fetchedProbe.probeVersion?.toString()).toEqual(
+            probeVersion?.toString()
         );
         expect(fetchedProbe.createdAt).toBeTruthy();
         expect(fetchedProbe.version).toBeTruthy();
         expect(fetchedProbe._id).toBeTruthy();
-        expect(fetchedProbe.key.toString()).toEqual(key.toString());
+        expect(fetchedProbe.key?.toString()).toEqual(key?.toString());
     });
 
     test('findOneBy by probeVersion', async () => {
@@ -104,13 +109,13 @@ describe('probeService', () => {
 
         expect(fetchedProbe._id).toEqual(savedProbe._id);
         expect(fetchedProbe.name).toEqual(name);
-        expect(fetchedProbe.probeVersion.toString()).toEqual(
-            probeVersion.toString()
+        expect(fetchedProbe.probeVersion?.toString()).toEqual(
+            probeVersion?.toString()
         );
         expect(fetchedProbe.createdAt).toBeTruthy();
         expect(fetchedProbe.version).toBeTruthy();
         expect(fetchedProbe._id).toBeTruthy();
-        expect(fetchedProbe.key.toString()).toEqual(key.toString());
+        expect(fetchedProbe.key?.toString()).toEqual(key?.toString());
     });
 
     test('findOneBy by invalid name', async () => {
@@ -157,13 +162,13 @@ describe('probeService', () => {
 
         expect(fetchedProbe._id).toEqual(savedProbe._id);
         expect(fetchedProbe.name).toEqual(name);
-        expect(fetchedProbe.probeVersion.toString()).toEqual(
-            probeVersion.toString()
+        expect(fetchedProbe.probeVersion?.toString()).toEqual(
+            probeVersion?.toString()
         );
         expect(fetchedProbe.createdAt).toBeTruthy();
         expect(fetchedProbe.version).toBeTruthy();
         expect(fetchedProbe._id).toBeTruthy();
-        expect(fetchedProbe.key.toString()).toEqual(key.toString());
+        expect(fetchedProbe.key?.toString()).toEqual(key?.toString());
     });
 
     test('findBy all entities', async () => {
@@ -201,23 +206,23 @@ describe('probeService', () => {
 
         expect(fetchedProbes[0]?._id).toEqual(savedProbe2._id);
         expect(fetchedProbes[0]?.name).toEqual(name2);
-        expect(fetchedProbes[0]?.probeVersion.toString()).toEqual(
+        expect(fetchedProbes[0]?.probeVersion?.toString()).toEqual(
             probeVersion2.toString()
         );
         expect(fetchedProbes[0]?.createdAt).toBeTruthy();
         expect(fetchedProbes[0]?.version).toBeTruthy();
         expect(fetchedProbes[0]?._id).toBeTruthy();
-        expect(fetchedProbes[0]?.key.toString()).toEqual(key2.toString());
+        expect(fetchedProbes[0]?.key?.toString()).toEqual(key2.toString());
 
         expect(fetchedProbes[1]?._id).toEqual(savedProbe1._id);
         expect(fetchedProbes[1]?.name).toEqual(name1);
-        expect(fetchedProbes[1]?.probeVersion.toString()).toEqual(
+        expect(fetchedProbes[1]?.probeVersion?.toString()).toEqual(
             probeVersion1.toString()
         );
         expect(fetchedProbes[1]?.createdAt).toBeTruthy();
         expect(fetchedProbes[1]?.version).toBeTruthy();
         expect(fetchedProbes[1]?._id).toBeTruthy();
-        expect(fetchedProbes[1]?.key.toString()).toEqual(key1.toString());
+        expect(fetchedProbes[1]?.key?.toString()).toEqual(key1.toString());
     });
 
     test('findBy limit', async () => {
@@ -254,14 +259,14 @@ describe('probeService', () => {
         for (let i: number = 0; i < fetchedProbes.length; i++) {
             expect(fetchedProbes[i]?._id).toEqual(savedProbes[19 - i]?._id);
             expect(fetchedProbes[i]?.name).toEqual(savedProbes[19 - i]?.name);
-            expect(fetchedProbes[i]?.probeVersion.toString()).toEqual(
-                savedProbes[19 - i]?.probeVersion.toString()
+            expect(fetchedProbes[i]?.probeVersion?.toString()).toEqual(
+                savedProbes[19 - i]?.probeVersion?.toString()
             );
             expect(fetchedProbes[i]?.createdAt).toBeTruthy();
             expect(fetchedProbes[i]?.version).toBeTruthy();
             expect(fetchedProbes[i]?._id).toBeTruthy();
-            expect(fetchedProbes[i]?.key.toString()).toEqual(
-                savedProbes[19 - i]?.key.toString()
+            expect(fetchedProbes[i]?.key?.toString()).toEqual(
+                savedProbes[19 - i]?.key?.toString()
             );
         }
     });
@@ -300,14 +305,14 @@ describe('probeService', () => {
         for (let i: number = 0; i < fetchedProbes.length; i++) {
             expect(fetchedProbes[i]?._id).toEqual(savedProbes[9 - i]?._id);
             expect(fetchedProbes[i]?.name).toEqual(savedProbes[9 - i]?.name);
-            expect(fetchedProbes[i]?.probeVersion.toString()).toEqual(
-                savedProbes[9 - i]?.probeVersion.toString()
+            expect(fetchedProbes[i]?.probeVersion?.toString()).toEqual(
+                savedProbes[9 - i]?.probeVersion?.toString()
             );
             expect(fetchedProbes[i]?.createdAt).toBeTruthy();
             expect(fetchedProbes[i]?.version).toBeTruthy();
             expect(fetchedProbes[i]?._id).toBeTruthy();
-            expect(fetchedProbes[i]?.key.toString()).toEqual(
-                savedProbes[9 - i]?.key.toString()
+            expect(fetchedProbes[i]?.key?.toString()).toEqual(
+                savedProbes[9 - i]?.key?.toString()
             );
         }
     });
@@ -481,6 +486,10 @@ describe('probeService', () => {
         savedProbe.createdByUser = user;
         const updatedProbe: Probe = await savedProbe.save();
 
+        if (!updatedProbe._id) {
+            fail('updatedProbe._id is null');
+        }
+
         const findProbe: Probe | null = await probeService.findOneBy({
             query: {
                 _id: updatedProbe._id,
@@ -513,6 +522,10 @@ describe('probeService', () => {
         savedProbe.createdByUser = user;
         const updatedProbe: Probe = await savedProbe.save();
 
+        if (!updatedProbe._id) {
+            fail('updatedProbe._id not found');
+        }
+
         const findProbe: Probe | null = await probeService.findOneBy({
             query: {
                 _id: updatedProbe._id,
@@ -524,8 +537,10 @@ describe('probeService', () => {
 
         expect(findProbe).toBeTruthy();
         expect(findProbe?.createdByUser?._id).toContain(user._id);
-        expect(findProbe?.createdByUser?.name.toString()).toContain(
-            user.name.toString()
+        expect(findProbe?.createdByUser?.name?.toString()).toBeTruthy();
+        expect(user.name?.toString()).toBeTruthy();
+        expect(findProbe?.createdByUser?.name?.toString()).toContain(
+            user.name?.toString()
         );
     });
 
@@ -553,6 +568,10 @@ describe('probeService', () => {
 
         expect(updatedProbe).toBeTruthy();
 
+        if (!user.id) {
+            fail('user.id not found');
+        }
+
         const findProbe: Probe | null = await probeService.findOneBy({
             query: {
                 createdByUserId: user.id,
@@ -564,8 +583,8 @@ describe('probeService', () => {
 
         expect(findProbe).toBeTruthy();
         expect(findProbe?.createdByUser?._id).toContain(user._id);
-        expect(findProbe?.createdByUser?.name.toString()).toContain(
-            user.name.toString()
+        expect(findProbe?.createdByUser?.name?.toString()).toContain(
+            user.name?.toString()
         );
     });
 });

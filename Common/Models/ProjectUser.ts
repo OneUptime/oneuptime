@@ -10,11 +10,11 @@ import User from './User';
 })
 export default class ProjectAdminNote extends BaseModel {
     @Column({ nullable: false })
-    public project!: Project;
+    public project?: Project;
 
     @Column({ type: 'varchar', nullable: false })
-    public user!: User;
+    public user?: User;
 
     @Column({ nullable: false })
-    public role!: Role;
+    public role?: Role;
 }

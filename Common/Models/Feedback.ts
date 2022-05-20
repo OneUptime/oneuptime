@@ -9,17 +9,17 @@ import Project from './Project';
 })
 export default class Feedback extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public createdByUser!: User;
+    public createdByUser?: User;
 
     @Column()
-    public message!: string;
+    public message?: string = undefined;
 
     @Column()
-    public pageUrl!: string;
+    public pageUrl?: string = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

@@ -21,7 +21,7 @@ export default class Model extends BaseModel {
         type: ColumnType.Name,
         length: ColumnLength.Name,
     })
-    public name!: string;
+    public name?: string = undefined;
 
     @RequiredColumn()
     @UniqueColumn()
@@ -31,7 +31,7 @@ export default class Model extends BaseModel {
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
     })
-    public slug!: string;
+    public slug?: string = undefined;
 
     @TableColumn()
     @Column({
@@ -40,7 +40,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentProviderPlanId?: string;
+    public paymentProviderPlanId?: string = undefined;
 
     @TableColumn()
     @Column({
@@ -49,7 +49,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentProviderSubscriptionId?: string;
+    public paymentProviderSubscriptionId?: string = undefined;
 
     @TableColumn()
     @ManyToOne(
@@ -82,7 +82,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: 1,
     })
-    public numberOfLicensesIssued!: PositiveNumber;
+    public numberOfLicensesIssued?: PositiveNumber;
 
     @TableColumn()
     @ManyToOne(
@@ -130,7 +130,7 @@ export default class Model extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
         default: ObjectID.generate(),
     })
-    public apiKey!: ObjectID;
+    public apiKey?: ObjectID;
 
     @RequiredColumn()
     @TableColumn()
@@ -140,7 +140,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: false,
     })
-    public alertsEnabled!: boolean;
+    public alertsEnabled?: boolean = undefined;
 
     @RequiredColumn()
     @TableColumn()
@@ -150,7 +150,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: 0,
     })
-    public alertAccountBalance!: number;
+    public alertAccountBalance?: number;
 
     @RequiredColumn()
     @TableColumn()
@@ -160,7 +160,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: false,
     })
-    public isBlocked!: boolean;
+    public isBlocked?: boolean = undefined;
 
     @TableColumn()
     @Column({
@@ -168,7 +168,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public unpaidSubscriptionNotificationCount!: PositiveNumber;
+    public unpaidSubscriptionNotificationCount?: PositiveNumber;
 
     @TableColumn()
     @Column({
@@ -176,7 +176,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentFailedDate?: Date;
+    public paymentFailedDate?: Date = undefined;
 
     @TableColumn()
     @Column({
@@ -184,5 +184,5 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentSuccessDate?: Date;
+    public paymentSuccessDate?: Date = undefined;
 }

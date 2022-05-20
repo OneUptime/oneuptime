@@ -19,95 +19,95 @@ import MonitorType from '../Types/Monitor/MonitorType';
 })
 export default class Model extends BaseModel {
     @Column()
-    public project!: Project; //Which project this monitor belongs to.
+    public project?: Project; //Which project this monitor belongs to.
 
     @Column()
-    public component!: Component;
+    public component?: Component;
 
     @Column()
-    public name!: string;
+    public name?: string = undefined;
 
     @Column()
-    public slug!: string;
+    public slug?: string = undefined;
 
     @Column()
-    public config!: Object;
+    public config?: Object;
 
     @Column()
-    public createdByUser!: User; //user.
+    public createdByUser?: User; //user.
 
     @Column()
-    public type!: MonitorType;
+    public type?: MonitorType;
 
     @Column()
-    public agentlessConfig!: string;
+    public agentlessConfig?: string = undefined;
 
     @Column()
-    public kubernetesConfig!: string;
+    public kubernetesConfig?: string = undefined;
 
     @Column()
-    public kubernetesNamespace!: string;
+    public kubernetesNamespace?: string = undefined;
 
     @Column()
-    public lastPingTime!: Date;
+    public lastPingTime?: Date = undefined;
 
     @Column()
-    public updateTime!: Date;
+    public updateTime?: Date = undefined;
 
     @Column()
-    public criteria!: MonitorCriteria;
+    public criteria?: MonitorCriteria;
 
     @Column()
-    public lastMatchedCriterion!: MonitorCriteriaInstance;
+    public lastMatchedCriterion?: MonitorCriteriaInstance;
 
     @Column()
-    public method!: HTTPMethod;
+    public method?: HTTPMethod;
 
     @Column()
-    public bodyType!: string;
+    public bodyType?: string = undefined;
 
     @Column()
-    public formData!: FormData;
+    public formData?: FormData;
 
     @Column()
-    public text!: string;
+    public text?: string = undefined;
 
     @Column()
-    public headers!: Headers;
+    public headers?: Headers;
 
     @Column()
-    public disabled!: boolean;
+    public disabled?: boolean = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public scriptRunStatus!: string;
+    public scriptRunStatus?: string = undefined;
 
     @Column()
-    public scriptRunBy!: Probe;
+    public scriptRunBy?: Probe;
 
     @Column()
-    public lighthouseScannedAt!: Date;
+    public lighthouseScannedAt?: Date = undefined;
 
     @Column()
-    public lighthouseScanStatus!: string;
+    public lighthouseScanStatus?: string = undefined;
 
     @Column()
-    public siteUrls!: Array<string>;
+    public siteUrls?: Array<string>;
 
     @Column()
-    public incidentCommunicationSla!: IncidentCommunicationSla;
+    public incidentCommunicationSla?: IncidentCommunicationSla;
 
     @Column()
-    public monitorSla!: MonitorSla;
+    public monitorSla?: MonitorSla;
 
     @Column()
-    public customFields!: MonitorCustomFields;
+    public customFields?: MonitorCustomFields;
 
     @Column()
-    public disableMonitoring!: boolean;
+    public disableMonitoring?: boolean = undefined;
 
     @Column()
-    public monitorStatus!: ResourceStatus;
+    public monitorStatus?: ResourceStatus;
 }

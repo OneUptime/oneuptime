@@ -9,8 +9,8 @@ import Incident from './Incident';
 })
 export default class IncidentResource extends BaseModel {
     @Column()
-    public incident!: Incident;
+    public incident?: Incident;
 
     @Column()
-    public monitor!: Monitor;
+    public monitor?: Monitor;
 }

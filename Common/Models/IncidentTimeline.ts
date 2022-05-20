@@ -10,26 +10,26 @@ import User from './User';
 })
 export default class Model extends BaseModel {
     @Column()
-    public incident!: Incident;
+    public incident?: Incident;
 
     @Column()
-    public createdByUser!: User; // user
+    public createdByUser?: User; // user
 
     @Column()
-    public probe!: Probe;
+    public probe?: Probe;
 
     @Column()
-    public createdByZapier!: boolean; // Is true when zapier creates incident
+    public createdByZapier?: boolean = undefined; // Is true when zapier creates incident
 
     @Column()
-    public createdByApi!: boolean;
+    public createdByApi?: boolean = undefined;
 
     @Column()
-    public status!: string;
+    public status?: string = undefined;
 
     @Column()
-    public incidentState!: string;
+    public incidentState?: string = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 }

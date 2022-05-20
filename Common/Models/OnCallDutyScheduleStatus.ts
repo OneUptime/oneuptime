@@ -11,23 +11,23 @@ import OnCallDutySchedule from './OnCallDutySchedule';
 })
 export default class Model extends BaseModel {
     @Column()
-    public project!: Project;
+    public project?: Project;
 
     @Column()
-    public onCallDutySchedule!: OnCallDutySchedule;
+    public onCallDutySchedule?: OnCallDutySchedule;
 
     @Column()
-    public incident!: Incident;
+    public incident?: Incident;
 
     @Column()
-    public incidentAcknowledged!: boolean;
+    public incidentAcknowledged?: boolean = undefined;
 
     @Column()
-    public deletedByUser!: User;
+    public deletedByUser?: User;
 
     @Column()
-    public isOnDuty!: boolean;
+    public isOnDuty?: boolean = undefined;
 
     @Column()
-    public alertedEveryone!: boolean;
+    public alertedEveryone?: boolean = undefined;
 }

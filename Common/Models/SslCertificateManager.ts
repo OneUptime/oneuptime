@@ -6,17 +6,17 @@ import BaseModel from './BaseModel';
 })
 export default class Model extends BaseModel {
     @Column()
-    public subject!: string;
+    public subject?: string = undefined;
 
     @Column()
-    public altnames!: Array<string>;
+    public altnames?: Array<string>;
 
     @Column()
-    public renewAt!: Date;
+    public renewAt?: Date = undefined;
 
     @Column()
-    public expiresAt!: Date;
+    public expiresAt?: Date = undefined;
 
     @Column()
-    public issuedAt!: Date;
+    public issuedAt?: Date = undefined;
 }
