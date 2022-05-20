@@ -58,7 +58,7 @@ describe('probeService', () => {
         );
 
         if (!savedProbe.name) {
-            fail("savedprobe name is null");
+            fail('savedprobe name is null');
         }
 
         const fetchedProbe: Probe | null = await probeService.findOneBy({
@@ -487,7 +487,7 @@ describe('probeService', () => {
         const updatedProbe: Probe = await savedProbe.save();
 
         if (!updatedProbe._id) {
-            fail("updatedProbe._id is null");
+            fail('updatedProbe._id is null');
         }
 
         const findProbe: Probe | null = await probeService.findOneBy({
@@ -523,7 +523,7 @@ describe('probeService', () => {
         const updatedProbe: Probe = await savedProbe.save();
 
         if (!updatedProbe._id) {
-            fail("updatedProbe._id not found");
+            fail('updatedProbe._id not found');
         }
 
         const findProbe: Probe | null = await probeService.findOneBy({
@@ -569,7 +569,7 @@ describe('probeService', () => {
         expect(updatedProbe).toBeTruthy();
 
         if (!user.id) {
-            fail("user.id not found");
+            fail('user.id not found');
         }
 
         const findProbe: Probe | null = await probeService.findOneBy({
