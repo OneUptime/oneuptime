@@ -51,6 +51,7 @@ const BasicForm = <T extends Object>(
                 </label>
                 <p>{field.description}</p>
                 <Field
+                    autoFocus={index === 0 ? true : false}
                     placeholder={field.placeholder}
                     type={fieldType}
                     name={Object.keys(field.field)[0] as string}
@@ -70,10 +71,10 @@ const BasicForm = <T extends Object>(
             if (name in values) {
                 const entries: JSONObject = { ...values } as JSONObject;
                 if (entries[name]?.toString().trim().length === 0) {
-                    errors[name] = `${name} is required`;
+                    errors[name] = `${field.title} is required`;
                 }
             } else if (field.required && !(name in values)) {
-                errors[name] = `${name} is required`;
+                errors[name] = `${field.title} is required`;
             }
         });
         return errors;
