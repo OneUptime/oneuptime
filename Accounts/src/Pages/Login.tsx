@@ -4,6 +4,7 @@ import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Route from 'Common/Types/API/Route';
+import Footer from '../Footer';
 
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
@@ -30,7 +31,7 @@ const LoginPage: FunctionComponent = () => {
                         sideLink: {
                             text: 'Forgot password?',
                             url: new Route('/forgot-password'),
-                            openLinkInNewTab: true,
+                            openLinkInNewTab: false,
                         },
                     },
                 ]}
@@ -52,18 +53,7 @@ const LoginPage: FunctionComponent = () => {
                     </p>
                 </div>
             </BasicModelForm>
-
-            <div className="footer">
-                <p>
-                    <Link to="/">&copy; OneUptime</Link>
-                </p>
-                <p>
-                    <Link to="/">Contact</Link>
-                </p>
-                <p>
-                    <Link to="/">Privacy &amp; terms</Link>
-                </p>
-            </div>
+            <Footer />
         </>
     );
 };

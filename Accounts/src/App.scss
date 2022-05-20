@@ -112,9 +112,15 @@ form {
         font-family: 'Helvetica Neue', sans-serif;
         font-size: 2.4rem;
         font-weight: 500;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         letter-spacing: -0.2px;
         line-height: 32px;
+    }
+
+    .description {
+        margin-bottom: 20px;
+        font-size: 1.3rem;
+        color: lighten($bgDark, 40%);
     }
 
     div {
@@ -289,7 +295,7 @@ form {
         cursor: pointer;
 
         @include responsive($xs) {
-            padding-bottom: 5px;
+            padding-bottom: 15px;
         }
 
         a {

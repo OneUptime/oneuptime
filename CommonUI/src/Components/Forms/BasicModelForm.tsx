@@ -13,6 +13,7 @@ export interface ComponentProps<T extends BaseModel> {
     fields: Fields<T>;
     submitButtonText?: string;
     title?: string;
+    description?: string;
     children: ReactElement;
 }
 
@@ -59,6 +60,7 @@ const BasicModelForm = <TBaseModel extends BaseModel>(
             model={props.model}
             submitButtonText={props.submitButtonText || 'Save'}
             title={props.title || ''}
+            description={props.description || ''}
         >
             {props.children}
         </BasicForm>

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import './App.scss';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './Pages/Login';
+import SsoLoginPage from './Pages/SsoLogin';
+import ForgotPasswordPage from './Pages/ForgotPassword';
 
-function App() {
+function App(): ReactElement {
     return (
         <div className="App">
             <div className="brand">
@@ -16,9 +18,12 @@ function App() {
                 <Routes>
                     <Route path="/" element={<LoginPage />} />
                     <Route path="/login" element={<LoginPage />} />
-                    <Route path="/forgot-password" element={<LoginPage />} />
+                    <Route
+                        path="/forgot-password"
+                        element={<ForgotPasswordPage />}
+                    />
                     <Route path="/register" element={<LoginPage />} />
-                    <Route path="/login/sso" element={<LoginPage />} />
+                    <Route path="/login/sso" element={<SsoLoginPage />} />
                     <Route path="/verify-email" element={<LoginPage />} />
                 </Routes>
             </Router>
