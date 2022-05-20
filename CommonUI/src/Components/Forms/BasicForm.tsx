@@ -70,7 +70,7 @@ const BasicForm = <T extends Object>(
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
-        // Check Required. 
+        // Check Required fields. 
         for (const field of props.fields) {
             const name = Object.keys(field.field)[0] as string;
             if (name in values) {
