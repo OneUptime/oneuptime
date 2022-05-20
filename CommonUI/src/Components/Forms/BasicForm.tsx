@@ -71,7 +71,7 @@ const BasicForm = <T extends Object>(
         const entries: JSONObject = { ...values } as JSONObject;
 
         // Check Required. 
-        props.fields.forEach(field => {
+        for (const field of props.fields) {
             const name = Object.keys(field.field)[0] as string;
             if (name in values) {
                 if (entries[name]?.toString().trim().length === 0) {
@@ -80,7 +80,7 @@ const BasicForm = <T extends Object>(
             } else if (field.required && !(name in values)) {
                 errors[name] = `${field.title || name} is required.`;
             }
-        });
+        }
 
         // Check for valid data. 
 
