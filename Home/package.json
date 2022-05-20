@@ -47,6 +47,7 @@
         "ora": "^6.1.0",
         "puppeteer": "^13.5.1",
         "start-server-and-test": "^1.14.0",
+        "ts-jest": "^28.0.2",
         "ts-node-dev": "^1.1.8"
     }
 }
