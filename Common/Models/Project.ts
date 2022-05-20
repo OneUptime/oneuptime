@@ -1,7 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
-import RequiredColumn from '../Types/Database/RequiredColumn';
-import UniqueColumn from '../Types/Database/UniqueColumn';
 import User from './User';
 import Project from './Project';
 import ColumnType from '../Types/Database/ColumnType';
@@ -14,8 +12,7 @@ import TableColumn from '../Types/Database/TableColumn';
     name: 'Project',
 })
 export default class Model extends BaseModel {
-    @RequiredColumn()
-    @TableColumn()
+    @TableColumn({ required: true })
     @Column({
         nullable: false,
         type: ColumnType.Name,
@@ -23,9 +20,7 @@ export default class Model extends BaseModel {
     })
     public name?: string = undefined;
 
-    @RequiredColumn()
-    @UniqueColumn()
-    @TableColumn()
+    @TableColumn({ required: true, unique: true })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -51,7 +46,7 @@ export default class Model extends BaseModel {
     })
     public paymentProviderSubscriptionId?: string = undefined;
 
-    @TableColumn()
+    @TableColumn({ manyToOneRelationColumn: 'parentProjectId' })
     @ManyToOne(
         (_type: string) => {
             return Project;
@@ -84,7 +79,7 @@ export default class Model extends BaseModel {
     })
     public numberOfLicensesIssued?: PositiveNumber;
 
-    @TableColumn()
+    @TableColumn({ manyToOneRelationColumn: 'createdByUserId' })
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -107,7 +102,7 @@ export default class Model extends BaseModel {
     })
     public createdByUserId?: ObjectID;
 
-    @TableColumn()
+    @TableColumn({ manyToOneRelationColumn: 'deletedByUserId' })
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -132,8 +127,7 @@ export default class Model extends BaseModel {
     })
     public apiKey?: ObjectID;
 
-    @RequiredColumn()
-    @TableColumn()
+    @TableColumn({ required: true })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -142,8 +136,7 @@ export default class Model extends BaseModel {
     })
     public alertsEnabled?: boolean = undefined;
 
-    @RequiredColumn()
-    @TableColumn()
+    @TableColumn({ required: true })
     @Column({
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
@@ -152,8 +145,7 @@ export default class Model extends BaseModel {
     })
     public alertAccountBalance?: number;
 
-    @RequiredColumn()
-    @TableColumn()
+    @TableColumn({ required: true })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,

@@ -10,6 +10,11 @@ export interface TableColumnMetadata {
     description?: string;
     placeholder?: string;
     isDefaultValueColumn?: boolean;
+    required?: boolean;
+    unique?: boolean;
+    hashed?: boolean;
+    encrypted?: boolean;
+    manyToOneRelationColumn?: string;
 }
 
 export default (props?: TableColumnMetadata): ReflectionMetadataType => {
@@ -27,7 +32,7 @@ export const getTableColumn: Function = <T extends BaseModel>(
     ) as TableColumnMetadata;
 };
 
-export const getAllTableColumns: Function = <T extends BaseModel>(
+export const getTableColumns: Function = <T extends BaseModel>(
     target: T
 ): Dictionary<TableColumnMetadata> => {
     const dictonary: Dictionary<TableColumnMetadata> = {};
