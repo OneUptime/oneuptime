@@ -5,8 +5,6 @@ import ColumnType from '../Types/Database/ColumnType';
 import Project from './Project';
 import ObjectID from '../Types/ObjectID';
 import Version from '../Types/Version';
-import RequiredColumn from '../Types/Database/RequiredColumn';
-import UniqueColumn from '../Types/Database/UniqueColumn';
 import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import URL from '../Types/API/URL';
 import User from './User';
@@ -17,9 +15,7 @@ import TableColumn from '../Types/Database/TableColumn';
     name: 'Probe',
 })
 export default class Probe extends BaseModel {
-    @TableColumn()
-    @RequiredColumn()
-    @UniqueColumn()
+    @TableColumn({ required: true, unique: true })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -29,8 +25,7 @@ export default class Probe extends BaseModel {
     })
     public key?: ObjectID;
 
-    @TableColumn()
-    @RequiredColumn()
+    @TableColumn({ required: true })
     @Column({
         nullable: false,
         type: ColumnType.Name,
@@ -38,9 +33,7 @@ export default class Probe extends BaseModel {
     })
     public name?: string = undefined;
 
-    @TableColumn()
-    @RequiredColumn()
-    @UniqueColumn()
+    @TableColumn({ required: true, unique: true })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -48,8 +41,7 @@ export default class Probe extends BaseModel {
     })
     public slug?: string = undefined;
 
-    @TableColumn()
-    @RequiredColumn()
+    @TableColumn({ required: true })
     @Column({
         nullable: false,
         type: ColumnType.Version,
@@ -58,8 +50,7 @@ export default class Probe extends BaseModel {
     })
     public probeVersion?: Version;
 
-    @TableColumn({ isDefaultValueColumn: true })
-    @RequiredColumn()
+    @TableColumn({ isDefaultValueColumn: true, required: true })
     @Column({
         nullable: false,
         default: () => {

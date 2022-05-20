@@ -2,18 +2,16 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import BaseModel from './BaseModel';
-import RequiredColumn from '../Types/Database/RequiredColumn';
-import UniqueColumn from '../Types/Database/UniqueColumn';
-
 import User from './User';
 import ColumnLength from '../Types/Database/ColumnLength';
 import Email from '../Types/Email';
+import TableColumn from '../Types/Database/TableColumn';
 
 @Entity({
     name: 'EmailVerificationToken',
 })
 export default class EmailVerificationToken extends BaseModel {
-    @RequiredColumn()
+    @TableColumn({ manyToOneRelationColumn: 'userId', required: true })
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -28,6 +26,7 @@ export default class EmailVerificationToken extends BaseModel {
     @JoinColumn({ name: 'userId' })
     public user?: User;
 
+    @TableColumn()
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -35,6 +34,7 @@ export default class EmailVerificationToken extends BaseModel {
     })
     public userId?: ObjectID;
 
+    @TableColumn()
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
@@ -44,8 +44,7 @@ export default class EmailVerificationToken extends BaseModel {
     public email?: Email = undefined;
 
     @Index()
-    @RequiredColumn()
-    @UniqueColumn()
+    @TableColumn({ required: true, unique: true })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -55,7 +54,7 @@ export default class EmailVerificationToken extends BaseModel {
     })
     public token?: ObjectID;
 
-    @RequiredColumn()
+    @TableColumn({ required: true })
     @Column({
         nullable: false,
         type: ColumnType.Date,

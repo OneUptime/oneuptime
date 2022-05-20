@@ -12,14 +12,11 @@ import { getOwnerAccessControlForAllColumns } from '../Types/Database/AccessCont
 import { getViewerAccessControlForAllColumns } from '../Types/Database/AccessControls/Viewer/ViewerColumnPermissions';
 import { getAdminAccessControlForAllColumns } from '../Types/Database/AccessControls/Admin/AdminColumnPermissions';
 import { getUserAccessControlForAllColumns } from '../Types/Database/AccessControls/User/UserColumnPermissions';
-import { getEncryptedColumns } from '../Types/Database/EncryptedColumn';
-import { getUniqueColumns } from '../Types/Database/UniqueColumn';
-import { getHashedColumns } from '../Types/Database/HashedColumn';
-import { getRequiredColumns } from '../Types/Database/RequiredColumn';
 import Columns from '../Types/Database/Columns';
 import TableColumn, {
     getTableColumn,
-    getAllTableColumns,
+    getTableColumns,
+    TableColumnMetadata,
 } from '../Types/Database/TableColumn';
 import BadRequestException from '../Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from '../Types/JSON';
@@ -98,7 +95,16 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getHashedColumns(): Columns {
-        return getHashedColumns(this);
+        const dictionary: Dictionary<TableColumnMetadata> =
+            getTableColumns(this);
+        const columns: Array<string> = [];
+        for (const key in dictionary) {
+            if (dictionary[key]?.hashed) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
     public getDisplayColumnPlaceholderAs(columnName: string): string | null {
@@ -114,15 +120,33 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getEncryptedColumns(): Columns {
-        return getEncryptedColumns(this);
+        const dictionary: Dictionary<TableColumnMetadata> =
+            getTableColumns(this);
+        const columns: Array<string> = [];
+        for (const key in dictionary) {
+            if (dictionary[key]?.encrypted) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
     public getTableColumns(): Columns {
-        return new Columns(Object.keys(getAllTableColumns(this)));
+        return new Columns(Object.keys(getTableColumns(this)));
     }
 
     public getUniqueColumns(): Columns {
-        return getUniqueColumns(this);
+        const dictionary: Dictionary<TableColumnMetadata> =
+            getTableColumns(this);
+        const columns: Array<string> = [];
+        for (const key in dictionary) {
+            if (dictionary[key]?.unique) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
     public getUserCreateableColumns(): Columns {
@@ -550,7 +574,16 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getRequiredColumns(): Columns {
-        return getRequiredColumns(this);
+        const dictionary: Dictionary<TableColumnMetadata> =
+            getTableColumns(this);
+        const columns: Array<string> = [];
+        for (const key in dictionary) {
+            if (dictionary[key]?.required) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
     }
 
     public getSlugifyColumn(): string | null {

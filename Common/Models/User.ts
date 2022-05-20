@@ -2,8 +2,6 @@ import { Column, Entity } from 'typeorm';
 import BaseModel from './BaseModel';
 import ColumnType from '../Types/Database/ColumnType';
 import ColumnLength from '../Types/Database/ColumnLength';
-import RequiredColumn from '../Types/Database/RequiredColumn';
-import UniqueColumn from '../Types/Database/UniqueColumn';
 import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import Phone from '../Types/Phone';
 import Email from '../Types/Email';
@@ -12,7 +10,6 @@ import URL from '../Types/API/URL';
 import Timezone from '../Types/Timezone';
 import CompanySize from '../Types/Company/CompanySize';
 import JobRole from '../Types/Company/JobRole';
-import HashedColumn from '../Types/Database/HashedColumn';
 import HashedString from '../Types/HashedString';
 import PublicRecordPermissions from '../Types/Database/AccessControls/Public/PublicRecordPermissions';
 import TableColumn from '../Types/Database/TableColumn';
@@ -53,9 +50,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn({ title: 'Email' })
-    @UniqueColumn()
-    @RequiredColumn()
+    @TableColumn({ title: 'Email', required: true, unique: true })
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
@@ -80,8 +75,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn({ title: 'Password' })
-    @HashedColumn()
+    @TableColumn({ title: 'Password', hashed: true })
     @Column({
         type: ColumnType.HashedString,
         length: ColumnLength.HashedString,
@@ -188,8 +182,7 @@ class User extends BaseModel {
     })
     public profilePicImageUrl?: URL = undefined;
 
-    @RequiredColumn()
-    @TableColumn({ isDefaultValueColumn: true })
+    @TableColumn({ isDefaultValueColumn: true, required: true })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -293,8 +286,7 @@ class User extends BaseModel {
     })
     public promotionName?: string = undefined;
 
-    @RequiredColumn()
-    @TableColumn({ isDefaultValueColumn: true })
+    @TableColumn({ isDefaultValueColumn: true, required: true })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -311,8 +303,7 @@ class User extends BaseModel {
     })
     public paymentFailedDate?: Date = undefined;
 
-    @RequiredColumn()
-    @TableColumn({ isDefaultValueColumn: true })
+    @TableColumn({ isDefaultValueColumn: true, required: true })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -321,8 +312,7 @@ class User extends BaseModel {
     })
     public isMasterAdmin?: boolean = undefined;
 
-    @RequiredColumn()
-    @TableColumn({ isDefaultValueColumn: true })
+    @TableColumn({ isDefaultValueColumn: true, required: true })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
