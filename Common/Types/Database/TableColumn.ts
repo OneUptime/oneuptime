@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import BaseModel from '../../Models/BaseModel';
 import Dictionary from '../Dictionary';
+import { ReflectionMetadataType } from '../Reflection';
 
 const tableColumn: Symbol = Symbol('TableColumn');
 
@@ -11,7 +12,7 @@ export interface TableColumnMetadata {
     isDefaultValueColumn?: boolean;
 }
 
-export default (props?: TableColumnMetadata) => {
+export default (props?: TableColumnMetadata): ReflectionMetadataType => {
     return Reflect.metadata(tableColumn, props);
 };
 

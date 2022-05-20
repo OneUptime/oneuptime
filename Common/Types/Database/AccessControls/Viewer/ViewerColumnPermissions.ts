@@ -1,15 +1,16 @@
 import 'reflect-metadata';
 import BaseModel from '../../../../Models/BaseModel';
 import Dictionary from '../../../Dictionary';
+import { ReflectionMetadataType } from '../../../Reflection';
 import AccessControl from '../AccessControl';
 
-const accessControlSymbol = Symbol('ViewerAccessControl');
+const accessControlSymbol: Symbol = Symbol('ViewerAccessControl');
 
-export default (accessControl: AccessControl) => {
+export default (accessControl: AccessControl): ReflectionMetadataType => {
     return Reflect.metadata(accessControlSymbol, accessControl);
 };
 
-export const getViewerAccessControl = (
+export const getViewerAccessControl: Function = (
     target: BaseModel,
     propertyKey: string
 ): AccessControl => {
@@ -20,11 +21,13 @@ export const getViewerAccessControl = (
     ) as AccessControl;
 };
 
-export const getViewerAccessControlForAllColumns = <T extends BaseModel>(
+export const getViewerAccessControlForAllColumns: Function = <
+    T extends BaseModel
+>(
     target: T
 ): Dictionary<AccessControl> => {
     const dictonary: Dictionary<AccessControl> = {};
-    const keys = Object.keys(target);
+    const keys: Array<string> = Object.keys(target);
 
     for (const key of keys) {
         if (Reflect.getMetadata(accessControlSymbol, target, key)) {

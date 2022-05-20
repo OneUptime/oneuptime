@@ -1,11 +1,12 @@
 import 'reflect-metadata';
 import BaseModel from '../../../../Models/BaseModel';
 import Dictionary from '../../../Dictionary';
+import { ReflectionMetadataType } from '../../../Reflection';
 import AccessControl from '../AccessControl';
 
 const accessControlSymbol: Symbol = Symbol('MemberAccessControl');
 
-export default (accessControl: AccessControl) => {
+export default (accessControl: AccessControl): ReflectionMetadataType => {
     return Reflect.metadata(accessControlSymbol, accessControl);
 };
 
@@ -20,7 +21,9 @@ export const getMemberAccessControl: Function = (
     ) as AccessControl;
 };
 
-export const getMemberAccessControlForAllColumns: Function = <T extends BaseModel>(
+export const getMemberAccessControlForAllColumns: Function = <
+    T extends BaseModel
+>(
     target: T
 ): Dictionary<AccessControl> => {
     const dictonary: Dictionary<AccessControl> = {};

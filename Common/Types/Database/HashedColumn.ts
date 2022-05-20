@@ -1,14 +1,15 @@
 import 'reflect-metadata';
 import BaseModel from '../../Models/BaseModel';
+import { ReflectionMetadataType } from '../Reflection';
 import Columns from './Columns';
 
-const hashedColumnSymbol = Symbol('HashedColumn');
+const hashedColumnSymbol: Symbol = Symbol('HashedColumn');
 
-export default () => {
+export default (): ReflectionMetadataType => {
     return Reflect.metadata(hashedColumnSymbol, true);
 };
 
-export const isHashedColumn = (
+export const isHashedColumn: Function = (
     target: BaseModel,
     propertyKey: string
 ): boolean => {
@@ -19,8 +20,10 @@ export const isHashedColumn = (
     ) as boolean;
 };
 
-export const getHashedColumns = <T extends BaseModel>(target: T): Columns => {
-    const keys = Object.keys(target);
+export const getHashedColumns: Function = <T extends BaseModel>(
+    target: T
+): Columns => {
+    const keys: Array<string> = Object.keys(target);
     const columns: Array<string> = [];
 
     for (const key of keys) {

@@ -1,14 +1,15 @@
 import 'reflect-metadata';
 import BaseModel from '../../Models/BaseModel';
+import { ReflectionMetadataType } from '../Reflection';
 import Columns from './Columns';
 
-const encryptedColumnSymbol = Symbol('EncryptedColumn');
+const encryptedColumnSymbol: Symbol = Symbol('EncryptedColumn');
 
-export default () => {
+export default (): ReflectionMetadataType => {
     return Reflect.metadata(encryptedColumnSymbol, true);
 };
 
-export const isEncryptedColumn = (
+export const isEncryptedColumn: Function = (
     target: BaseModel,
     propertyKey: string
 ): boolean => {
@@ -19,10 +20,10 @@ export const isEncryptedColumn = (
     ) as boolean;
 };
 
-export const getEncryptedColumns = <T extends BaseModel>(
+export const getEncryptedColumns: Function = <T extends BaseModel>(
     target: T
 ): Columns => {
-    const keys = Object.keys(target);
+    const keys: Array<string> = Object.keys(target);
     const columns: Array<string> = [];
 
     for (const key of keys) {
