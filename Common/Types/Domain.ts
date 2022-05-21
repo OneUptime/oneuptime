@@ -6,6 +6,10 @@ export default class Domain {
         return this._domain;
     }
     public set domain(v: string) {
+        const isValid: boolean = Domain.isValidDomain(v);
+        if (!isValid) {
+            throw new BadDataException('Domain is not in valid format.');
+        }
         this._domain = v;
     }
 
@@ -40,11 +44,6 @@ export default class Domain {
     }
 
     public constructor(domain: string) {
-        const isValid: boolean = Domain.isValidDomain(domain);
-
-        if (!isValid) {
-            throw new BadDataException('Domain is not in valid format.');
-        }
         this.domain = domain;
     }
 

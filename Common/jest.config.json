@@ -13,7 +13,7 @@
     },
     "testEnvironment": "node",
     "collectCoverage": true,
-    "coverageReporters": ["text"],
+    "coverageReporters": ["text", "html"],
     "testRegex": "./Tests/(.*).test.ts",
     "collectCoverageFrom": ["./**/*.(tsx||ts)"],
     "coverageThreshold": {
