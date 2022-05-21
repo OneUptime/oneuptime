@@ -41,7 +41,7 @@
         "chrome-launcher": "^0.15.0",
         "commander": "^9.1.0",
         "depcheck": "^1.4.3",
-        "jest": "^27.5.1",
+        "jest": "^28.1.0",
         "lighthouse": "^9.5.0",
         "npm-force-resolutions": "0.0.10",
         "ora": "^6.1.0",

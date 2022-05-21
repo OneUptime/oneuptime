@@ -60,6 +60,7 @@ services:
         depends_on:
             - redis
             - postgres
+            - mail
             
     alert:
         ports:
@@ -273,6 +274,9 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://mail:3190
             - CLUSTER_KEY=test
+        depends_on:
+            - haraka
+            
     application-scanner:
         ports:
             - '3005:3005'
