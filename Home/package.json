@@ -6,7 +6,7 @@
         "start": "ts-node index.ts",
         "compile": "tsc",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
-        "test": "echo 'no tests'",
+        "test": "jest",
         "lighthouse-test": "jest --forceExit lighthouse-tests/test/index.test.js --env=node",
         "lighthouse": "start-server-and-test http://localhost:1444",
         "smoketest": "jest --forceExit smoketest/index.test.js --env=node",
@@ -25,8 +25,8 @@
         "axios": "^0.26.1",
         "body-parser": "^1.19.2",
         "cli-table": "^0.3.11",
-        "CommonServer": "file:../CommonServer",
         "Common": "file:../Common",
+        "CommonServer": "file:../CommonServer",
         "compression": "^1.7.4",
         "ejs": "^3.1.6",
         "express": "^4.17.3",
@@ -36,6 +36,7 @@
     },
     "resolutions": {},
     "devDependencies": {
+        "@types/jest": "^27.5.1",
         "@types/node": "^17.0.22",
         "chrome-launcher": "^0.15.0",
         "commander": "^9.1.0",
@@ -46,6 +47,8 @@
         "ora": "^6.1.0",
         "puppeteer": "^13.5.1",
         "start-server-and-test": "^1.14.0",
-        "ts-node-dev": "^1.1.8"
+        "ts-jest": "^28.0.2",
+        "ts-node-dev": "^1.1.8",
+        "typescript": "^4.6.4"
     }
 }
