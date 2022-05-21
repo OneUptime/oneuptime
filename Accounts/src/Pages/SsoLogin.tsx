@@ -4,12 +4,13 @@ import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Footer from '../Footer';
+import Container from '../Container';
 
 const SsoLoginPage: FunctionComponent = () => {
     const user: User = new User();
 
     return (
-        <>
+        <Container title="SSO Login">
             <BasicModelForm<User>
                 model={user}
                 id="login-form"
@@ -40,7 +41,7 @@ const SsoLoginPage: FunctionComponent = () => {
                 }
             />
             <Footer />
-        </>
+        </Container>
     );
 };
 

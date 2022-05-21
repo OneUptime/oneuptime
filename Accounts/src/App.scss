@@ -99,6 +99,7 @@ body {
 
 .grid_form_2 {
     width: 45%;
+    margin-top: 10px;
 
     @include responsive($xs) {
         width: 100%;
@@ -170,7 +171,7 @@ form {
 
     div {
         &:not(:last-child) {
-            margin-bottom: 30px;
+            margin-bottom: 10px;
         }
 
         div {
