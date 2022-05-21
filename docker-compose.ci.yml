@@ -3,6 +3,9 @@
 
 version: '3.7'
 
+x-common-variables: &common-variables
+   IS_SAAS_SERVICE: ${IS_SAAS_SERVICE}
+
 services:
     postgres:
         image: postgres:latest
@@ -19,10 +22,10 @@ services:
         ports:
             - 9876:8080
             - 8443:8443
-        environment:
-            - SIMPLESAMLPHP_SP_ENTITY_ID=hackerbay.io
-            - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback
-            - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./SAML/.env
         volumes:
             - ./saml/users.php:/var/www/simplesamlphp/config/authsources.php
 
@@ -31,6 +34,8 @@ services:
         ports:
             - '6379:6379'
         command: redis-server
+        env_file:
+            - ./Redis/.env
 
     dashboard-api:
         ports:
@@ -39,13 +44,10 @@ services:
             context: .
             dockerfile: ./dashboard-api/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./DashboardAPI/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - CLUSTER_KEY=test
-            - REALTIME_URL=http://realtime:3300
+        environment: *common-variables
         depends_on:
             - redis
             - haraka
@@ -58,12 +60,10 @@ services:
             context: .
             dockerfile: ./Identity/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Identity/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
@@ -76,12 +76,10 @@ services:
             context: .
             dockerfile: ./Alert/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Alert/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
@@ -93,12 +91,10 @@ services:
             context: .
             dockerfile: ./Integration/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Integration/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
@@ -110,11 +106,13 @@ services:
             context: .
             dockerfile: ./Accounts/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Accounts/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         depends_on:
             - identity
+            
     dashboard:
         ports:
             - '3000:3000'
@@ -122,9 +120,10 @@ services:
             context: .
             dockerfile: ./Dashboard/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Dashboard/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         depends_on:
             - dashboard-api
             - accounts
@@ -132,12 +131,14 @@ services:
         ports:
             - '1444:1444'
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Home/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         build:
             context: .
             dockerfile: ./Home/Dockerfile
+
     status-page:
         ports:
             - '3006:3006'
@@ -145,13 +146,15 @@ services:
             context: .
             dockerfile: ./status-page/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./StatusPage/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         depends_on:
             - dashboard-api
             - accounts
             - dashboard
+            
     admin-dashboard:
         ports:
             - '3100:3100'
@@ -159,32 +162,38 @@ services:
             context: .
             dockerfile: ./AdminDashboard/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./AdminDashboard/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         depends_on:
             - dashboard-api
             - accounts
+            
     http-test-server:
         ports:
             - '3010:3010'
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./HttpTestServer/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         build:
             context: .
             dockerfile: ./HttpTestServer/Dockerfile
+
     licensing:
         ports:
             - '3004:3004'
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Licensing/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         build:
             context: .
             dockerfile: ./Licensing/Dockerfile
+
     data-ingestor:
         ports:
             - '3200:3200'
@@ -192,18 +201,15 @@ services:
             context: .
             dockerfile: ./DataIngestor/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./DataIngestor/.env
-        environment:
-            - SERVER_URL=http://dashboard-api:3002
-            - CLUSTER_KEY=test
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
-
-            - REALTIME_URL=http://realtime:3300
+        environment: *common-variables
         depends_on:
-
             - script-runner
             - dashboard-api
             - realtime
+            
     realtime:
         ports:
             - '3300:3300'
@@ -211,10 +217,11 @@ services:
             context: .
             dockerfile: ./Realtime/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Realtime/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3300
+        environment: *common-variables
+
     helmchart:
         ports:
             - '3423:3423'
@@ -222,10 +229,11 @@ services:
             context: .
             dockerfile: ./HelmChart/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./HelmChart/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3423        
+        environment: *common-variables
+
     probe-api:
         ports:
             - '3400:3400'
@@ -233,27 +241,24 @@ services:
             context: .
             dockerfile: ./ProbeAPI/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ProbeAPI/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3400
+        environment: *common-variables
 
-            - REALTIME_URL=http://realtime:3300
+
     probe1:
         build:
             context: .
             dockerfile: ./Probe/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Probe/.env
-        environment:
-            - PORT=3024
-            - SERVER_URL=http://dashboard-api:3002
-            - PROBE_NAME=Probe 1
-            - PROBE_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
-            - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - PROBE_API_URL=http://probe-api:3400
+        environment: 
+            <<: *common-variables
+            PROBE_NAME: Probe 1
+            PROBE_KEY: test-key
         depends_on:
             - dashboard-api
             - data-ingestor
@@ -262,18 +267,17 @@ services:
             context: .
             dockerfile: ./Probe/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Probe/.env
-        environment:
-            - PORT=3025
-            - SERVER_URL=http://dashboard-api:3002
-            - PROBE_NAME=Probe 2
-            - PROBE_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
-            - DATA_INGESTOR_URL=http://data-ingestor:3200
+        environment: 
+            <<: *common-variables
+            PROBE_NAME: Probe 2
+            PROBE_KEY: test-key
         depends_on:
             - dashboard-api
             - data-ingestor
+            
     api-docs:
         ports:
             - '1445:1445'
@@ -281,9 +285,10 @@ services:
             context: .
             dockerfile: ./ApiDocs/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./ApiDocs/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
    
     haraka:
         ports:
@@ -294,6 +299,7 @@ services:
                 PORT: '2525'
         env_file:
             - ./Haraka/.env
+            
     script-runner:
         ports:
             - '3009:3009'
@@ -301,11 +307,11 @@ services:
             context: .
             dockerfile: ./ScriptRunner/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ScriptRunner/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SERVER_URL=http://dashboard-api:3002
-            - CLUSTER_KEY=test
+        environment: *common-variables
+           
     application-scanner:
         ports:
             - '3005:3005'
@@ -313,14 +319,13 @@ services:
             context: .
             dockerfile: ./ApplicationScanner/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ApplicationScanner/.env
-        environment:
-            - PORT=3005
-            - SERVER_URL=http://dashboard-api:3002
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - dashboard-api
+            
     mail:
         ports:
             - 3190:3190
@@ -328,12 +333,10 @@ services:
             context: .
             dockerfile: ./Mail/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Mail/.env
-        environment:
-            - PORT=3190
-            - SERVER_URL=http://mail:3190
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - haraka
 
@@ -344,14 +347,13 @@ services:
             context: .
             dockerfile: ./ContainerScanner/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ContainerScanner/.env
-        environment:
-            - PORT=3055
-            - SERVER_URL=http://dashboard-api:3002
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - dashboard-api
+            
     lighthouse-runner:
         ports:
             - '3015:3015'
@@ -359,17 +361,15 @@ services:
             context: .
             dockerfile: ./LighthouseRunner/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./LighthouseRunner/.env
-        environment:
-            - PORT=3015
-            - SERVER_URL=http://dashboard-api:3002
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - dashboard-api
+        
     nginx:
         depends_on:
-
             - dashboard-api
             - home
             - dashboard
