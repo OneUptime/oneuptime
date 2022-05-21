@@ -48,6 +48,8 @@ services:
             - SERVER_URL=http://mail:3190
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
+        depends_on:
+            - haraka
 
     saml:
         image: kenchan0130/simplesamlphp
@@ -273,6 +275,7 @@ services:
         depends_on:
             - redis
             - postgres
+            - mail
         volumes:
             - ./Identity:/usr/src/app
             # Use node modules of the container and not host system.
@@ -355,7 +358,7 @@ services:
         build:
             network: host
             context: .
-            dockerfile: ./home/Dockerfile.dev
+            dockerfile: ./Home/Dockerfile.dev
         volumes:
             - ./home:/usr/src/app
             # Use node modules of the container and not host system.
