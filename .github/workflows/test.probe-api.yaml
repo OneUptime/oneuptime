@@ -1,4 +1,4 @@
-name: ProbeApi Test
+name: Probe Api Test
 
 on: 
   push:
