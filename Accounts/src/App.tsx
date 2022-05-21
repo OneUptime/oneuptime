@@ -10,10 +10,7 @@ function App(): ReactElement {
     return (
         <div className="App">
             <div className="brand">
-                <img
-                    alt="OneUpTime"
-                    src="/assets/img/logos/OneUptimeSVG/3.svg"
-                />
+                <img alt="OneUpTime" src="/assets/img/OneUptimeSVG/3.svg" />
             </div>
             <Router>
                 <Routes>

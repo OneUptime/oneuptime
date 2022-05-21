@@ -4,12 +4,13 @@ import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Footer from '../Footer';
+import Container from 'CommonUI/src/Container';
 
 const RegisterPage: FunctionComponent = () => {
     const user: User = new User();
 
     return (
-        <>
+        <Container title="Register">
             <BasicModelForm<User>
                 model={user}
                 id="login-form"
@@ -79,7 +80,7 @@ const RegisterPage: FunctionComponent = () => {
                 }
             />
             <Footer />
-        </>
+        </Container>
     );
 };
 

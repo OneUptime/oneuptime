@@ -5,6 +5,7 @@ import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Route from 'Common/Types/API/Route';
 import Footer from '../Footer';
+import Container from 'CommonUI/src/Container';
 
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
@@ -12,7 +13,7 @@ const LoginPage: FunctionComponent = () => {
     user.getPublicCreateableColumns();
 
     return (
-        <>
+        <Container title="Login">
             <BasicModelForm<User>
                 model={user}
                 id="login-form"
@@ -57,7 +58,7 @@ const LoginPage: FunctionComponent = () => {
                 }
             />
             <Footer />
-        </>
+        </Container>
     );
 };
 
