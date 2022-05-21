@@ -28,7 +28,6 @@ const BasicForm = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const getFormField = (field: DataField<T>, index: number): ReactElement => {
-        console.log(field);
 
         const fieldType = 'text';
         if (Object.keys(field.field).length === 0) {
