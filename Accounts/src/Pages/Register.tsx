@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import Route from 'Common/Types/API/Route';
 import Footer from '../Footer';
 
 const RegisterPage: FunctionComponent = () => {
@@ -14,43 +13,71 @@ const RegisterPage: FunctionComponent = () => {
             <BasicModelForm<User>
                 model={user}
                 id="login-form"
+                showAsColumns={2}
                 fields={[
                     {
                         field: {
                             email: true,
                         },
+                        placeholder: 'jeff@example.com',
+                        required: true,
                         title: 'Email',
+                    },
+                    {
+                        field: {
+                            name: true,
+                        },
+                        placeholder: 'Jeff Smith',
+                        required: true,
+                        title: 'Full Name',
+                    },
+                    {
+                        field: {
+                            companyName: true,
+                        },
+                        placeholder: 'Company Name',
+                        required: true,
+                        title: 'Company Name',
+                    },
+                    {
+                        field: {
+                            companyPhoneNumber: true,
+                        },
+                        required: true,
+                        placeholder: 'Phone Number',
+                        title: 'Phone Number',
                     },
                     {
                         field: {
                             password: true,
                         },
+                        placeholder: 'Password',
                         title: 'Password',
-                        sideLink: {
-                            text: 'Forgot password?',
-                            url: new Route('/forgot-password'),
-                            openLinkInNewTab: true,
+                        required: true,
+                    },
+                    {
+                        field: {
+                            password: true,
                         },
+                        placeholder: 'Confirm Password',
+                        title: 'Confirm Password',
+                        required: true,
                     },
                 ]}
                 onSubmit={(values: FormValues<User>) => {
                     console.log(values);
                 }}
-                submitButtonText={'Login'}
-                title={'Sign in to your account'}
-            >
-                <div className="actions">
-                    <p>
-                        <Link to="/login/sso">
-                            Use single sign-on (SSO) instead
-                        </Link>
-                    </p>
-                    <p>
-                        <span>Don&apos;t have an account? </span>
-                        <Link to="/register">Sign up</Link>
-                    </p>
-                </div>
-            </BasicModelForm>
+                submitButtonText={'Sign Up'}
+                title={'Create your OneUptime account'}
+                footer={
+                    <div className="actions">
+                        <p>
+                            <span>Have an account? </span>
+                            <Link to="/login">Login</Link>
+                        </p>
+                    </div>
+                }
+            />
             <Footer />
         </>
     );

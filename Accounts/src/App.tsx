@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './Pages/Login';
 import SsoLoginPage from './Pages/SsoLogin';
 import ForgotPasswordPage from './Pages/ForgotPassword';
+import RegisterPage from './Pages/Register';
 
 function App(): ReactElement {
     return (
@@ -22,7 +23,7 @@ function App(): ReactElement {
                         path="/forgot-password"
                         element={<ForgotPasswordPage />}
                     />
-                    <Route path="/register" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
                     <Route path="/login/sso" element={<SsoLoginPage />} />
                     <Route path="/verify-email" element={<LoginPage />} />
                 </Routes>
