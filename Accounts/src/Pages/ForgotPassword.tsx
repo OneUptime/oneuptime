@@ -4,7 +4,7 @@ import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Footer from '../Footer';
-import Container from '../Container';
+import Container from 'CommonUI/src/Container';
 
 const ForgotPasswordPage: FunctionComponent = () => {
     const user: User = new User();

@@ -5,7 +5,7 @@ import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Route from 'Common/Types/API/Route';
 import Footer from '../Footer';
-import Container from '../Container';
+import Container from 'CommonUI/src/Container';
 
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
