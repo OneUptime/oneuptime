@@ -38,18 +38,12 @@ RUN npm run compile
 
 WORKDIR /usr/src/app
 
-# Install trivy for container scanning
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
-
 # Install app dependencies
 RUN cd /usr/src/app
-
-RUN mkdir -p greenlock.d || echo "Directory already exists"
 
 # Copy package.json files
 COPY ./Identity/package.json /usr/src/app/package.json
 COPY ./Identity/package-lock.json /usr/src/app/package-lock.json
-
 
 RUN npm install
 
