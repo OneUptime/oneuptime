@@ -34,18 +34,13 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
-#SET ENV Variables
-
-WORKDIR /usr/src/app
-
 # Install app dependencies
-RUN cd /usr/src/app
-
-# Copy package.json files
-COPY ./Identity/package.json /usr/src/app/package.json
-COPY ./Identity/package-lock.json /usr/src/app/package-lock.json
-
+COPY ./Identity/package*.json /usr/src/app/
 RUN npm install
+RUN npm install -g ts-node
+
+# Bundle app source
+COPY ./Identity /usr/src/app
 
 # Expose ports.
 #   - 3087: OneUptime-identity
