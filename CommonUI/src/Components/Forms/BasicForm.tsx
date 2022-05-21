@@ -20,13 +20,16 @@ export interface ComponentProps<T extends Object> {
     submitButtonText?: string;
     title?: string;
     description?: string;
-    children: ReactElement;
+    showAsColumns?: number;
+    footer: ReactElement;
 }
 
 const BasicForm = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const getFormField = (field: DataField<T>, index: number): ReactElement => {
+        console.log(field);
+
         const fieldType = 'text';
         if (Object.keys(field.field).length === 0) {
             throw new BadDataException('Object cannot be without Field');
@@ -106,15 +109,23 @@ const BasicForm = <T extends Object>(
             >
                 {({ isSubmitting, isValidating, isValid }) => {
                     return (
-                        <Form autoComplete="off">
+                        <Form
+                            autoComplete="off"
+                            className={`grid_form_${props.showAsColumns}`}
+                        >
                             <h1>{props.title}</h1>
 
                             <p className="description">{props.description}</p>
 
-                            {props.fields &&
-                                props.fields.map((field: DataField<T>, i) => {
-                                    return getFormField(field, i);
-                                })}
+                            <div className={`grid_${props.showAsColumns}`}>
+                                {props.fields &&
+                                    props.fields.map(
+                                        (field: DataField<T>, i) => {
+                                            return getFormField(field, i);
+                                        }
+                                    )}
+                            </div>
+
                             <Button
                                 title={props.submitButtonText || 'Submit'}
                                 disabled={
@@ -123,7 +134,7 @@ const BasicForm = <T extends Object>(
                                 type={ButtonTypes.Submit}
                                 id={`${props.id}-submit-button`}
                             />
-                            {props.children}
+                            {props.footer}
                         </Form>
                     );
                 }}

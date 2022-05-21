@@ -28,17 +28,18 @@ const ForgotPasswordPage: FunctionComponent = () => {
                 submitButtonText={'Continue'}
                 title={'Reset your password'}
                 description={`Enter the email address associated with your account, and we'll send you a link to reset your password.`}
-            >
-                <div className="actions">
-                    <p>
-                        <Link to="/login">Return to sign in</Link>
-                    </p>
-                    <p>
-                        <span>Don&apos;t have an account? </span>
-                        <Link to="/register">Sign up</Link>
-                    </p>
-                </div>
-            </BasicModelForm>
+                footer={
+                    <div className="actions">
+                        <p>
+                            <Link to="/login">Return to sign in</Link>
+                        </p>
+                        <p>
+                            <span>Don&apos;t have an account? </span>
+                            <Link to="/register">Sign up</Link>
+                        </p>
+                    </div>
+                }
+            />
             <Footer />
         </>
     );

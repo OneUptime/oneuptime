@@ -42,19 +42,20 @@ const LoginPage: FunctionComponent = () => {
                 }}
                 submitButtonText={'Login'}
                 title={'Sign in to your account'}
-            >
-                <div className="actions">
-                    <p>
-                        <Link to="/login/sso">
-                            Use single sign-on (SSO) instead
-                        </Link>
-                    </p>
-                    <p>
-                        <span>Don&apos;t have an account? </span>
-                        <Link to="/register">Sign up</Link>
-                    </p>
-                </div>
-            </BasicModelForm>
+                footer={
+                    <div className="actions">
+                        <p>
+                            <Link to="/login/sso">
+                                Use single sign-on (SSO) instead
+                            </Link>
+                        </p>
+                        <p>
+                            <span>Don&apos;t have an account? </span>
+                            <Link to="/register">Sign up</Link>
+                        </p>
+                    </div>
+                }
+            />
             <Footer />
         </>
     );

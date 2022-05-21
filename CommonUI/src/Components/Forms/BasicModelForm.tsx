@@ -14,7 +14,8 @@ export interface ComponentProps<T extends BaseModel> {
     submitButtonText?: string;
     title?: string;
     description?: string;
-    children: ReactElement;
+    showAsColumns?: number;
+    footer: ReactElement;
 }
 
 const BasicModelForm = <TBaseModel extends BaseModel>(
@@ -61,9 +62,9 @@ const BasicModelForm = <TBaseModel extends BaseModel>(
             submitButtonText={props.submitButtonText || 'Save'}
             title={props.title || ''}
             description={props.description || ''}
-        >
-            {props.children}
-        </BasicForm>
+            footer={props.footer}
+            showAsColumns={props.showAsColumns || 1}
+        ></BasicForm>
     );
 };
 

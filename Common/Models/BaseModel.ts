@@ -108,15 +108,15 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getDisplayColumnPlaceholderAs(columnName: string): string | null {
-        return getTableColumn(this, columnName).placeholder || null;
+        return getTableColumn(this, columnName)?.placeholder || null;
     }
 
     public getDisplayColumnTitleAs(columnName: string): string | null {
-        return getTableColumn(this, columnName).title || null;
+        return getTableColumn(this, columnName)?.title || null;
     }
 
     public getDisplayColumnDescriptionAs(columnName: string): string | null {
-        return getTableColumn(this, columnName).description || null;
+        return getTableColumn(this, columnName)?.description || null;
     }
 
     public getEncryptedColumns(): Columns {
