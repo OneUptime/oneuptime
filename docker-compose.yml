@@ -4,9 +4,8 @@ services:
     postgres:
         image: postgres:latest
         restart: always
-        environment:
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=postgres
+        env_file:
+            - ./Postgres/.env
         ports:
             - '5400:5432'
         volumes: 
@@ -101,7 +100,8 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
-            - dashboard-api
+            - identity
+        
     dashboard:
         ports:
             - '3000:3000'
@@ -247,13 +247,9 @@ services:
         ports:
             - '2525:2525'
         image: oneuptime/haraka:latest
-        environment:
-            - SMTP_USER=user@oneuptime.com
-            - SMTP_PASSWORD=oneuptime
-            - DOMAIN="${DOMAIN}"
-            - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
-            - TLS_CERT="${TLS_CERT}"
-            - TLS_KEY="${TLS_KEY}"
+        env_file:
+            - ./Haraka/.env
+        
     script-runner:
         ports:
             - '3009:3009'

@@ -14,20 +14,14 @@ services:
             context: ./Haraka
             args:
                 PORT: '2525'
-        environment:
-            - SMTP_USER=user@oneuptime.com
-            - SMTP_PASSWORD=oneuptime
-            - DOMAIN="${DOMAIN}"
-            - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
-            - TLS_CERT="${TLS_CERT}"
-            - TLS_KEY="${TLS_KEY}"
+        env_file:
+            - ./Haraka/.env
 
     postgres:
         image: postgres:latest
         restart: always
-        environment:
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=postgres
+        env_file:
+            - ./Postgres/.env
         ports:
             - '5400:5432'
         volumes: 
@@ -77,9 +71,13 @@ services:
             context: .
             dockerfile: ./Accounts/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Accounts/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        depends_on:
+            - identity
         volumes:
             - ./accounts:/usr/src/app
             # Use node modules of the container and not host system.
@@ -266,6 +264,7 @@ services:
             context: .
             dockerfile: ./Identity/Dockerfile.dev
         env_file:
+            - ./CommonServer/.env
             - ./Identity/.env
         environment:
             - REDIS_HOST=redis
