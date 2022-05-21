@@ -1,5 +1,5 @@
 {
-    "name": "ProbeAPI",
+    "name": "probe-api",
     "version": "3.0.0",
     "description": "A project to handle all resource fetching or update for probes",
     "main": "index.ts",
@@ -8,16 +8,17 @@
         "compile": "tsc",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
         "audit": "npm audit --audit-level=low",
-        "dep-check": "depcheck ./ --skip-missing=true"
+        "dep-check": "depcheck ./ --skip-missing=true",
+        "test": "jest"
     },
     "keywords": [],
     "author": "HackerBay, Inc. ",
-    "license": "ISC",
+    "license": "MIT",
     "type": "module",
     "dependencies": {
         "axios": "^0.26.1",
+        "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
-"Common": "file:../Common",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
         "dotenv": "^16.0.0",
@@ -32,7 +33,10 @@
     "devDependencies": {
         "@types/cors": "^2.8.12",
         "@types/express": "^4.17.13",
+        "@types/jest": "^27.5.1",
         "@types/node": "^17.0.22",
+        "jest": "^28.1.0",
+        "ts-jest": "^28.0.2",
         "ts-node-dev": "^1.1.8"
     }
 }

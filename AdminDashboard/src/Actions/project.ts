@@ -498,7 +498,7 @@ export const deleteProject: $TSFixMe = (projectId: ObjectID) => {
 
         try {
             const response: $TSFixMe =
-                await delete `project/${projectId}/deleteProject`;
+                delete `project/${projectId}/deleteProject`;
 
             const data: $TSFixMe = response.data;
 

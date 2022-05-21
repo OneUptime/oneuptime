@@ -5,9 +5,9 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 
-import AlertDetails from '../modals/AlertDetails';
+import AlertDetails from '../Modals/AlertDetails';
 
 import countryTelephoneCode from 'country-telephone-code';
 import DataPathHoC from '../DataPathHoC';

@@ -1,5 +1,5 @@
-import { ExpressStatic } from 'CommonServer/utils/Express';
-import app from 'CommonServer/utils/StartServer';
+import { ExpressStatic } from 'CommonServer/Utils/Express';
+import app from 'CommonServer/Utils/StartServer';
 
 import path from 'path';
 

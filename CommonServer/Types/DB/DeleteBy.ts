@@ -1,3 +1,5 @@
 import DeleteOneBy from './DeleteOneBy';
+import BaseModel from 'Common/Models/BaseModel';
 
-export default interface DeleteBy extends DeleteOneBy {}
+type DeleteBy<TBaseModel extends BaseModel> = DeleteOneBy<TBaseModel>;
+export default DeleteBy;

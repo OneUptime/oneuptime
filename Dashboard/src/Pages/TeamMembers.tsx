@@ -12,7 +12,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from '../actions/modal';
+import { openModal, closeModal } from '../actions/Modal';
 import TeamMemberProjectBox from '../components/team/TeamMemberProjectBox';
 import PropTypes from 'prop-types';
 import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProject';

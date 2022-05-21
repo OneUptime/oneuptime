@@ -1,4 +1,7 @@
-export default class Name {
+import { FindOperator } from 'typeorm';
+import DatabaseProperty from './Database/DatabaseProperty';
+
+export default class Name extends DatabaseProperty {
     private _title: string = '';
     public get title(): string {
         return this._title;
@@ -16,6 +19,7 @@ export default class Name {
     }
 
     public constructor(name: string) {
+        super();
         this.name = name;
     }
 
@@ -37,7 +41,25 @@ export default class Name {
         return '';
     }
 
-    public toString(): string {
+    public override toString(): string {
         return this.name;
+    }
+
+    protected static override toDatabase(
+        _value: Name | FindOperator<Name>
+    ): string | null {
+        if (_value) {
+            return _value.toString();
+        }
+
+        return null;
+    }
+
+    protected static override fromDatabase(_value: string): Name | null {
+        if (_value) {
+            return new Name(_value);
+        }
+
+        return null;
     }
 }

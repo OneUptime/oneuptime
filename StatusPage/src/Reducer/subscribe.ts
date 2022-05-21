@@ -1,4 +1,4 @@
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 import {
     OPEN_SUBSCRIBE_MENU,
     SELECTED_MENU,

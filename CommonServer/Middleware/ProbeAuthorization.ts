@@ -1,5 +1,5 @@
-import ProbeService from '../Services/ProbeService';
-import { sendErrorResponse } from '../Utils/Response';
+import Services from '../Services/Index';
+import ProbeServiceClass from '../Services/ProbeService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Version from 'Common/Types/Version';
 
@@ -13,28 +13,21 @@ import {
 import { ClusterKey as CLUSTER_KEY } from '../Config';
 import ObjectID from 'Common/Types/ObjectID';
 import LocalCache from '../Infrastructure/LocalCache';
-import { JSONObject } from 'Common/Types/JSON';
-import Query from '../Types/DB/Query';
-import { Document } from '../Infrastructure/ORM';
+import Probe from 'Common/Models/Probe';
 
-interface ProbeCache extends JSONObject {
-    _id: ObjectID;
-    key: ObjectID;
-    name: string;
-    version: Version;
-}
+const ProbeService: ProbeServiceClass = Services.ProbeService;
 
-export default {
-    async isAuthorizedProbe(
+export default class ProbeMiddleware {
+    public static async isAuthorizedProbeMiddleware(
         req: ExpressRequest,
-        res: ExpressResponse,
+        _res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-        let probeKey: ObjectID | undefined,
-            probeName: string | undefined,
-            clusterKey: ObjectID | undefined,
-            probeVersion: Version | undefined,
-            probeId: ObjectID | undefined;
+        let probeKey: ObjectID | null = null,
+            probeName: string | null = null,
+            clusterKey: ObjectID | null = null,
+            probeVersion: Version | null = null,
+            probeId: ObjectID | null = null;
 
         if (req.params && req.params['probeKey']) {
             probeKey = new ObjectID(req.params['probeKey'] || '');
@@ -48,11 +41,7 @@ export default {
         }
 
         if (!probeKey) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe key not found.')
-            );
+            throw new BadDataException('Probe key not found.');
         }
 
         if (req.params && req.params['probeName']) {
@@ -67,11 +56,7 @@ export default {
         }
 
         if (!probeName) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe Name not found.')
-            );
+            throw new BadDataException('Probe Name not found.');
         }
 
         if (req.params && req.params['clusterKey']) {
@@ -97,11 +82,7 @@ export default {
         }
 
         if (!probeVersion) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe version not found.')
-            );
+            throw new BadDataException('Probe version not found.');
         }
 
         if (clusterKey && clusterKey === CLUSTER_KEY) {
@@ -112,124 +93,91 @@ export default {
              */
 
             if (LocalCache.hasValue('probe', probeName)) {
-                probeId = new ObjectID(
-                    (
-                        LocalCache.get('probe', probeName) as ProbeCache
-                    )._id.toString()
-                );
+                probeId = (LocalCache.getModel('probe', probeName) as Probe).id;
             } else {
-                const probe: Document | null = await ProbeService.findOneBy({
-                    query: new Query().equalTo('name', probeName),
-                    populate: [],
-                    select: ['name', 'key', 'version', '_id'],
-                    sort: [],
+                const probe: Probe | null = await ProbeService.findOneBy({
+                    query: {
+                        name: probeName,
+                    },
                 });
 
-                if (probe && probe._id) {
-                    probeId = probe._id;
+                if (probe && probe.id) {
+                    probeId = probe.id;
 
-                    LocalCache.set('probe', probeName, {
-                        _id: probe._id,
-                        name: probe.get('name'),
-                        key: probe.get('key'),
-                        version: probe.get('version'),
-                    });
+                    LocalCache.setModel('probe', probeName, probe);
                 }
             }
         } else if (LocalCache.hasValue('probe', probeName)) {
-            probeId = new ObjectID(
-                (
-                    LocalCache.get('probe', probeName) as ProbeCache
-                )._id.toString()
-            );
+            probeId = LocalCache.getModel<Probe>('probe', probeName).id;
         } else {
-            const probe: Document | null = await ProbeService.findOneBy({
-                query: new Query()
-                    .equalTo('name', probeName)
-                    .equalTo('key', probeKey),
-                populate: [],
-                select: ['name', 'key', 'version', '_id'],
-                sort: [],
+            const probe: Probe | null = await ProbeService.findOneBy({
+                query: {
+                    name: probeName,
+                    key: probeKey,
+                },
+                select: {
+                    _id: true,
+                    name: true,
+                    key: true,
+                    probeVersion: true,
+                },
             });
 
-            if (probe && probe._id) {
-                probeId = probe._id;
+            if (probe && probe.id) {
+                probeId = probe.id;
 
-                LocalCache.set('probe', probeName, {
-                    _id: probe._id,
-                    name: probe.get('name'),
-                    key: probe.get('key'),
-                    version: probe.get('version'),
-                });
+                LocalCache.setModel('probe', probeName, probe);
             }
         }
 
         if (!probeId && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe key and probe name do not match.')
+            throw new BadDataException(
+                'Probe key and probe name do not match.'
             );
         }
 
         if (!probeId) {
             //Create a new probe.
-            const probe: Document = await ProbeService.create({
-                data: {
-                    key: probeKey
-                        ? probeKey.toString()
-                        : ObjectID.generate().toString(),
-                    name: probeName,
-                    version: probeVersion,
-                },
+            let probe: Probe = new Probe();
+            probe.name = probeName;
+            probe.probeVersion = probeVersion;
+            probe.key = probeKey;
+
+            probe = await ProbeService.create({
+                data: probe,
             });
 
-            probeId = probe._id;
+            probeId = probe.id;
 
-            LocalCache.set('probe', probeName, {
-                _id: probe._id,
-                name: probe.get('name'),
-                key: probe.get('key'),
-                version: probe.get('version'),
-            });
+            LocalCache.setModel('probe', probeName, probe);
         }
 
-        if (
-            (LocalCache.get('probe', probeName) as ProbeCache).key !== probeKey
-        ) {
+        if (LocalCache.getModel<Probe>('probe', probeName).key !== probeKey) {
             //Update probe key becasue it does not match.
 
             await ProbeService.updateProbeKeyByName(probeName, probeKey);
 
-            const probe: Document | null = await ProbeService.findOneBy({
-                query: new Query()
-                    .equalTo('name', probeName)
-                    .equalTo('key', probeKey),
-                populate: [],
-                select: ['name', 'key', 'version', '_id'],
-                sort: [],
+            const probe: Probe | null = await ProbeService.findOneBy({
+                query: { name: probeName, key: probeKey },
+                select: {
+                    _id: true,
+                    name: true,
+                    key: true,
+                    probeVersion: true,
+                },
             });
 
             if (probe) {
-                probeId = probe._id;
+                probeId = probe.id;
 
-                LocalCache.set('probe', probeName, {
-                    _id: probe._id,
-                    name: probe.get('name'),
-                    key: probe.get('key'),
-                    version: probe.get('version'),
-                });
+                LocalCache.setModel('probe', probeName, probe);
             }
         }
 
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
         if (!probeId) {
-            return sendErrorResponse(
-                req,
-                res,
-                new BadDataException('Probe ID not found')
-            );
+            throw new BadDataException('Probe ID not found');
         }
 
         oneuptimeRequest.probe = {
@@ -237,18 +185,22 @@ export default {
         };
 
         // Run in background.
-        ProbeService.updateLastAlive(probeName);
+        await ProbeService.updateLastAlive(probeName);
 
         if (
             probeVersion &&
-            (!(LocalCache.get('probe', probeName) as ProbeCache).version ||
-                (
-                    LocalCache.get('probe', probeName) as ProbeCache
-                ).version.toString() !== probeVersion.toString())
+            (!LocalCache.getModel<Probe>('probe', probeName).version ||
+                LocalCache.getModel<Probe>(
+                    'probe',
+                    probeName
+                ).version?.toString() !== probeVersion.toString())
         ) {
-            ProbeService.updateProbeVersionByName(probeName, probeVersion);
+            await ProbeService.updateProbeVersionByName(
+                probeName,
+                probeVersion
+            );
         }
 
         return next();
-    },
-};
+    }
+}

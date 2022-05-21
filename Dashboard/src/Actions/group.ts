@@ -3,7 +3,7 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 import { User } from '../config.js';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 // Add Group
 export const addGroupRequest: Function = (): void => {
@@ -231,8 +231,7 @@ export const deleteGroup: $TSFixMe = (
         dispatch(deleteGroupRequest());
 
         try {
-            const response: $TSFixMe =
-                await delete `group/${projectId}/${groupId}`;
+            const response: $TSFixMe = delete `group/${projectId}/${groupId}`;
 
             dispatch(deleteGroupSuccess(response.data));
             dispatch(getGroups());

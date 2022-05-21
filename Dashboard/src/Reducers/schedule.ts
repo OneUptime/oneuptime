@@ -44,7 +44,7 @@ import {
     PAGINATE_PREV,
     PAGINATE_RESET,
 } from '../constants/schedule';
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     schedules: {

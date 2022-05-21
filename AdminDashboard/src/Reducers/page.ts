@@ -4,7 +4,7 @@ import {
     PAGE_LOAD_RESET,
 } from '../constants/page';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     requesting: false,

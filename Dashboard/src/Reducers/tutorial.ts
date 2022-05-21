@@ -9,7 +9,7 @@ import {
     CLOSE_TUTORIAL_RESET,
 } from '../constants/tutorial';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     error: null,

@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
-import UpdateFooterLink from '../modals/FooterLink';
-import RemoveFooterLink from '../modals/RemoveFooterLink';
+import UpdateFooterLink from '../Modals/FooterLink';
+import RemoveFooterLink from '../Modals/RemoveFooterLink';
 
 interface RenderLinksProps {
     submitForm: Function;

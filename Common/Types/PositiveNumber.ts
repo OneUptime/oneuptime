@@ -9,7 +9,14 @@ export default class PositiveNumber {
         this._positiveNumber = v;
     }
 
-    public constructor(positiveNumber: number) {
+    public constructor(positiveNumber: number | string) {
+        if (typeof positiveNumber === 'string') {
+            positiveNumber = Number.parseInt(positiveNumber, 10);
+            if (isNaN(positiveNumber)) {
+                throw new BadDataException(`Invalid number: ${positiveNumber}`);
+            }
+        }
+
         if (positiveNumber < 0) {
             throw new BadDataException('positiveNumber cannot be less than 0');
         }

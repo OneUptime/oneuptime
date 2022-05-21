@@ -8,8 +8,8 @@ import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import AddExternalStatusPagesModal from '../modals/AddExternalStatusPagesModal';
-import { openModal } from 'CommonUI/actions/modal';
+import AddExternalStatusPagesModal from '../Modals/AddExternalStatusPagesModal';
+import { openModal } from 'CommonUI/actions/Modal';
 
 interface ExternalStatusPagesProps {
     openModal?: Function;

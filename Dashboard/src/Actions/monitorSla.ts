@@ -2,7 +2,7 @@ import * as types from '../constants/monitorSla';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export const createMonitorSlaRequest: Function = (): void => {
@@ -189,7 +189,7 @@ export const deleteMonitorSla: $TSFixMe = (
             dispatch(deleteMonitorSlaRequest());
 
             const response: $TSFixMe =
-                await delete `monitorSla/${projectId}/${monitorSlaId}`;
+                delete `monitorSla/${projectId}/${monitorSlaId}`;
 
             dispatch(deleteMonitorSlaSuccess(response.data));
         } catch (error) {

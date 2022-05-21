@@ -19,7 +19,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { Validate } from '../../config';
 import DataPathHoC from '../DataPathHoC';
-import MessageBox from '../modals/MessageBox';
+import MessageBox from '../Modals/MessageBox';
 import formatEmails from '../../utils/formatEmails';
 
 function validate(values: $TSFixMe) {

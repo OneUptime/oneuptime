@@ -11,7 +11,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import {
     addGitCredential,
     updateGitCredential,

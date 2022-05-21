@@ -1,7 +1,7 @@
 import * as types from '../constants/credential';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 // Add Git Credential
 export const addGitCredentialRequest: Function = (): void => {
     return {
@@ -185,7 +185,7 @@ export const deleteGitCredential: $TSFixMe = ({
 
         try {
             const response: $TSFixMe =
-                await delete `credential/${projectId}/gitCredential/${credentialId}`;
+                delete `credential/${projectId}/gitCredential/${credentialId}`;
 
             dispatch(deleteGitCredentialSuccess(response.data));
         } catch (error) {
@@ -444,7 +444,7 @@ export const deleteDockerCredential: $TSFixMe = ({
 
         try {
             const response: $TSFixMe =
-                await delete `credential/${projectId}/dockerCredential/${credentialId}`;
+                delete `credential/${projectId}/dockerCredential/${credentialId}`;
 
             dispatch(deleteDockerCredentialSuccess(response.data));
         } catch (error) {

@@ -5,16 +5,16 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
 import { fetchResourceCategories } from '../../actions/resourceCategories';
-import AddResourceCategoryForm from '../modals/AddResourceCategory';
-import RemoveResourceCategory from '../modals/RemoveResourceCategory';
-import EditResourceCategory from '../modals/EditResourceCategory';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import AddResourceCategoryForm from '../Modals/AddResourceCategory';
+import RemoveResourceCategory from '../Modals/RemoveResourceCategory';
+import EditResourceCategory from '../Modals/EditResourceCategory';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-import Unauthorised from '../modals/Unauthorised';
+import Unauthorised from '../Modals/Unauthorised';
 
 interface ResourceCategoriesProps {
     projectId?: string;

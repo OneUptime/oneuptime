@@ -8,8 +8,8 @@ import { editMonitor, fetchLighthouseLogs } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader, Spinner } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import AddSiteUrl from '../modals/AddSiteUrl';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import AddSiteUrl from '../Modals/AddSiteUrl';
 import MonitorLighthouseLogsList from './MonitorLighthouseLogsList';
 import Select from '../../components/basic/Select';
 

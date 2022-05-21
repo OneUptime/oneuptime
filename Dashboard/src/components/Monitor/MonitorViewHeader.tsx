@@ -15,20 +15,20 @@ import {
     deleteMonitor,
     toggleEdit,
 } from '../../actions/monitor';
-import DeleteMonitor from '../modals/DeleteMonitor';
+import DeleteMonitor from '../Modals/DeleteMonitor';
 import { FormLoader } from '../basic/Loader';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { selectedProbe } from '../../actions/monitor';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { history, RootState } from '../../store';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 
-import CreateManualIncident from '../modals/CreateManualIncident';
+import CreateManualIncident from '../Modals/CreateManualIncident';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
-import DisabledMessage from '../modals/DisabledMessage';
+import DisabledMessage from '../Modals/DisabledMessage';
 import { updateprobebysocket } from '../../actions/socket';
 
 interface MonitorViewHeaderProps {

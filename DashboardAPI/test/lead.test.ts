@@ -21,18 +21,18 @@ const leadData: $TSFixMe = {
     type: 'demo',
 };
 const selectEmailStatus: $TSFixMe =
-    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+    'from to subject body createdAt template status content error deleted deletedAt deletedByUser replyTo smtpServer';
 
 describe('Lead API', function (): void {
     this.timeout(20000);
 
     before(async function (): void {
         this.timeout(30000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
     });
 
     it('should add lead when requested for type demo or whitepaper', (done: $TSFixMe): void => {

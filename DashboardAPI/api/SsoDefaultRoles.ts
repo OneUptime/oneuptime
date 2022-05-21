@@ -31,7 +31,7 @@ router.get(
         ];
 
         const selectDefaultRoleSso: $TSFixMe =
-            '_id domain project role createdAt deleted deletedAt deletedById';
+            '_id domain project role createdAt deleted deletedAt deletedByUser';
         try {
             const [ssos, count]: $TSFixMe = await Promise.all([
                 SsoDefaultRolesService.findBy({
@@ -98,7 +98,7 @@ router.get(
             ];
 
             const selectDefaultRoleSso: $TSFixMe =
-                '_id domain project role createdAt deleted deletedAt deletedById';
+                '_id domain project role createdAt deleted deletedAt deletedByUser';
             const sso: $TSFixMe = await SsoDefaultRolesService.findOneBy({
                 query: { _id: req.params['id'] },
                 select: selectDefaultRoleSso,

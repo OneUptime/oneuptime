@@ -12,7 +12,7 @@
     },
     "keywords": [],
     "author": "",
-    "license": "ISC",
+    "license": "MIT",
     "type": "module",
     "dependencies": {
         "axios": "^0.26.1",
@@ -29,6 +29,6 @@
         "winston-slack-webhook-transport": "^2.1.0"
     },
     "devDependencies": {
-        "ts-node-dev": "^1.1.8"
+        "ts-node-dev": "1.1.8"
     }
 }

@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import {
     verifyProjectDomain,
     fetchProjectDomains,

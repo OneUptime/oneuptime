@@ -150,7 +150,7 @@ export const deleteEmailLogs: $TSFixMe = () => {
         dispatch(deleteEmailLogsRequest());
 
         try {
-            const response: $TSFixMe = await delete `email-logs`;
+            const response: $TSFixMe = delete `email-logs`;
 
             const message: $TSFixMe = response.data.message;
 

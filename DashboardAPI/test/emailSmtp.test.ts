@@ -26,7 +26,7 @@ describe('Email SMTP Api Test', function (): void {
 
     before(async function (): void {
         this.timeout(400000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const res: $TSFixMe = await createUser(request, data.user);
 
         const project: $TSFixMe = res.body.project;
@@ -51,7 +51,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     after(async () => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [data.user.email.toLowerCase()],

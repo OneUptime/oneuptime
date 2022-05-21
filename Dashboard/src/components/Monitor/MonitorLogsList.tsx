@@ -7,14 +7,14 @@ import { ListLoader } from '../basic/Loader';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
-import ViewJsonLogs from '../modals/ViewJsonLogs';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
+import ViewJsonLogs from '../Modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import { formatDecimal, formatBytes } from '../../config';
 import ShouldRender from '../../components/basic/ShouldRender';
 
 import toPascalCase from 'to-pascal-case';
-import ViewScriptLogs from '../modals/ViewScriptLogs';
+import ViewScriptLogs from '../Modals/ViewScriptLogs';
 import { updatemonitorlogbysocket } from '../../actions/socket';
 
 interface MonitorLogsListProps {

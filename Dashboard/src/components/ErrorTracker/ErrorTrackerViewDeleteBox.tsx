@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
@@ -9,7 +9,7 @@ import { connect } from 'react-redux';
 import { deleteErrorTracker } from '../../actions/errorTracker';
 
 import { history, RootState } from '../../store';
-import DeleteErrorTracker from '../modals/DeleteErrorTracker';
+import DeleteErrorTracker from '../Modals/DeleteErrorTracker';
 
 interface ErrorTrackerViewDeleteBoxProps {
     errorTracker?: object;

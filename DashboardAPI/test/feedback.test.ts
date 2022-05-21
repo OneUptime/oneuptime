@@ -17,7 +17,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 const selectEmailStatus: $TSFixMe =
-    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+    'from to subject body createdAt template status content error deleted deletedAt deletedByUser replyTo smtpServer';
 
 let token: $TSFixMe, projectId: ObjectID, userId: ObjectID;
 
@@ -73,7 +73,7 @@ describe('Feedback API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
                 $in: [

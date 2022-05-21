@@ -26,7 +26,7 @@ export default {
                     consoleLogs,
                 };
 
-                await ApiService.ping(monitor._id, {
+                ApiService.ping(monitor._id, {
                     monitor,
                     resp,
                 });

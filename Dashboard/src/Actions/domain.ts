@@ -1,7 +1,7 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import * as types from '../constants/domain';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 export const resetDomain: Function = (): void => {
     return {
         type: types.RESET_VERIFY_DOMAIN,
@@ -139,7 +139,7 @@ export const deleteDomain: Function = ({
         dispatch(deleteDomainRequest());
         try {
             const response: $TSFixMe =
-                await delete `StatusPage/${projectId}/${statusPageId}/${domainId}`;
+                delete `StatusPage/${projectId}/${statusPageId}/${domainId}`;
 
             dispatch(deleteDomainSuccess(response.data));
         } catch (error) {

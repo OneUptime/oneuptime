@@ -1,6 +1,6 @@
 import * as types from '../constants/group';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     createGroup: { requesting: false, success: false, error: null },

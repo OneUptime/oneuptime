@@ -10,7 +10,7 @@
         "test": "echo 'no tests'"
     },
     "author": "",
-    "license": "ISC",
+    "license": "MIT",
     "dependencies": {
         "@types/node": "^17.0.27",
         "@types/nodemailer": "^6.4.4",

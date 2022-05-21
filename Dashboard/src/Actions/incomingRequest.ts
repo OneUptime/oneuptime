@@ -2,7 +2,7 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/incomingRequest';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 export const createIncomingRequestRequest: Function = (): void => {
     return {
@@ -142,7 +142,7 @@ export const deleteIncomingRequest: $TSFixMe = (
             dispatch(deleteIncomingRequestRequest());
 
             const response: $TSFixMe =
-                await delete `incoming-request/${projectId}/remove/${requestId}`;
+                delete `incoming-request/${projectId}/remove/${requestId}`;
 
             dispatch(deleteIncomingRequestSuccess(response.data));
         } catch (error) {

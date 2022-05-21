@@ -4,7 +4,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import { deletePerformanceTracker } from '../../actions/performanceTracker';

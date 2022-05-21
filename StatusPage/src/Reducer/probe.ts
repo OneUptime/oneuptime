@@ -1,7 +1,7 @@
 import * as types from '../constants/probe';
 import { FETCH_ALL_RESOURCES_SUCCESS } from '../constants/status';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const INITIAL_STATE: $TSFixMe = {
     requesting: false,

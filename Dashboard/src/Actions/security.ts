@@ -1,7 +1,7 @@
 import * as types from '../constants/security';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 // Add Container Security
 export const addContainerSecurityRequest: Function = (): void => {
     return {
@@ -230,7 +230,7 @@ export const deleteContainerSecurity: $TSFixMe = ({
 
         try {
             const response: $TSFixMe =
-                await delete `security/${projectId}/${componentId}/container/${containerSecurityId}`;
+                delete `security/${projectId}/${componentId}/container/${containerSecurityId}`;
 
             dispatch(deleteContainerSecuritySuccess(response.data));
 
@@ -721,7 +721,7 @@ export const deleteApplicationSecurity: $TSFixMe = ({
 
         try {
             const response: $TSFixMe =
-                await delete `security/${projectId}/${componentId}/application/${applicationSecurityId}`;
+                delete `security/${projectId}/${componentId}/application/${applicationSecurityId}`;
 
             dispatch(deleteApplicationSecuritySuccess(response.data));
 

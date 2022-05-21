@@ -84,7 +84,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
     before(async function (): void {
         this.timeout(30000);
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const user: $TSFixMe = await createUser(request, userData.user);
         const project: $TSFixMe = user.body.project;
         projectId = project._id;
@@ -202,7 +202,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
         await SubscriberService.hardDeleteBy({ projectId });
         await SubscriberAlertService.hardDeleteBy({ projectId });
@@ -922,8 +922,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             ];
 
-            let updatedProject: $TSFixMe =
-                await TeamMembers.addTeamMembersToProject(projectId, members);
+            let updatedProject: $TSFixMe = TeamMembers.addTeamMembersToProject(
+                projectId,
+                members
+            );
 
             // A user was added when creating the project, so we expect a total of 2 members
             expect(updatedProject.users).to.have.lengthOf(2);
@@ -1028,7 +1030,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
 
             // Remove the added team members
-            updatedProject = await TeamMembers.removeTeamMembersFromProject(
+            updatedProject = TeamMembers.removeTeamMembersFromProject(
                 projectId,
                 updatedProject.users.filter((user: $TSFixMe) => {
                     return user.userId === newUserId;
@@ -1071,8 +1073,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             ];
 
-            let updatedProject: $TSFixMe =
-                await TeamMembers.addTeamMembersToProject(projectId, members);
+            let updatedProject: $TSFixMe = TeamMembers.addTeamMembersToProject(
+                projectId,
+                members
+            );
 
             // A user was added when creating the project, so we expect a total of 2 members
             expect(updatedProject.users).to.have.lengthOf(2);
@@ -1190,7 +1194,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
 
             // Remove the added team members
-            updatedProject = await TeamMembers.removeTeamMembersFromProject(
+            updatedProject = TeamMembers.removeTeamMembersFromProject(
                 projectId,
                 updatedProject.users.filter((user: $TSFixMe) => {
                     return user.userId === newUserId;
@@ -1240,8 +1244,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             ];
 
-            let updatedProject: $TSFixMe =
-                await TeamMembers.addTeamMembersToProject(projectId, members);
+            let updatedProject: $TSFixMe = TeamMembers.addTeamMembersToProject(
+                projectId,
+                members
+            );
 
             // A user was added when creating the project, so we expect a total of 2 members
             expect(updatedProject.users).to.have.lengthOf(2);
@@ -1341,7 +1347,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             });
 
             // Remove the added team members
-            updatedProject = await TeamMembers.removeTeamMembersFromProject(
+            updatedProject = TeamMembers.removeTeamMembersFromProject(
                 projectId,
                 updatedProject.users.filter((user: $TSFixMe) => {
                     return user.userId === newUserId;
@@ -2732,7 +2738,7 @@ describe('Email Incident Alerts', (): void => {
 
     after(async function (): void {
         this.timeout(30000);
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
         await SubscriberService.hardDeleteBy({ projectId });
         await SubscriberAlertService.hardDeleteBy({ projectId });
@@ -3471,7 +3477,7 @@ describe('Webhook Incident Alerts', function (): void {
 
     after(async function (): void {
         this.timeout(30000);
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
         await SubscriberService.hardDeleteBy({ projectId });
         await SubscriberAlertService.hardDeleteBy({ projectId });

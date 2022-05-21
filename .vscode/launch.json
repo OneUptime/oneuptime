@@ -72,6 +72,42 @@
         },
         {
             "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/Identity",
+            "name": "Identity: Debug with Docker",
+            "port": 9132,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/Alert",
+            "name": "Alert: Debug with Docker",
+            "port": 9133,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/Alert",
+            "name": "Integration: Debug with Docker",
+            "port": 9134,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
             "localRoot": "${workspaceFolder}/licensing",
             "name": "Licensing: Debug with Docker",
             "port": 9233,
@@ -141,6 +177,30 @@
                 "<node_internals>/**"
             ],
             "type": "pwa-node"
+        },
+        {
+            "name": "CommonServer: Debug Tests",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceRoot}/CommonServer",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run-script",
+                "debug:test"
+            ],
+            "port": 9229
+        },
+        {
+            "name": "Accounts: Debug Local Files",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceRoot}/Accounts",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run-script",
+                "dev"
+            ],
+            "port": 9229
         }
     ]
 }

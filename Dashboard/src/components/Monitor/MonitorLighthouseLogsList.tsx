@@ -6,11 +6,11 @@ import { history, RootState } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 import { ListLoader, Spinner } from '../basic/Loader';
 import { deleteSiteUrl } from '../../actions/monitor';
-import DeleteSiteUrl from '../modals/DeleteSiteUrl';
+import DeleteSiteUrl from '../Modals/DeleteSiteUrl';
 import moment from 'moment';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 interface MonitorLighthouseLogsListProps {
     monitor?: object;

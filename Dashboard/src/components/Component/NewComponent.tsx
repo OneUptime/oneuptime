@@ -18,8 +18,8 @@ import {
 import { RenderField } from '../basic/RenderField';
 // import { makeCriteria } from '../../config';
 import { FormLoader } from '../basic/Loader';
-import AddSeats from '../modals/AddSeats';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import AddSeats from '../Modals/AddSeats';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';

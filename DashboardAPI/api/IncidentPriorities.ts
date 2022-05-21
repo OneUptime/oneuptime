@@ -31,7 +31,7 @@ router.get(
         }
         try {
             const selectIncPriority: $TSFixMe =
-                'projectId name color createdAt deletedAt deleted deletedById';
+                'projectId name color createdAt deletedAt deleted deletedByUser';
             const [IncidentPriorities, count]: $TSFixMe = await Promise.all([
                 IncidentPrioritiesService.findBy(
                     { query: { projectId }, select: selectIncPriority },

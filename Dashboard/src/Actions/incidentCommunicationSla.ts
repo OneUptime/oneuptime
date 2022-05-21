@@ -2,7 +2,7 @@ import * as types from '../constants/incidentCommunicationSla';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 export const createCommunicationSlaRequest: Function = (): void => {
     return {
         type: types.CREATE_COMMUNICATION_SLA_REQUEST,
@@ -200,7 +200,7 @@ export const deleteCommunicationSla: $TSFixMe = (
             dispatch(deleteCommunicationSlaRequest());
 
             const response: $TSFixMe =
-                await delete `incidentSla/${projectId}/${incidentSlaId}`;
+                delete `incidentSla/${projectId}/${incidentSlaId}`;
 
             dispatch(deleteCommunicationSlaSuccess(response.data));
         } catch (error) {

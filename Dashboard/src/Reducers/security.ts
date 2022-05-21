@@ -1,6 +1,6 @@
 import * as types from '../constants/security';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     addContainer: { requesting: false, success: false, error: null },

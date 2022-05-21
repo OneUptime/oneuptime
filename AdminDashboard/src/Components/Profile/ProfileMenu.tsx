@@ -7,8 +7,8 @@ import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 
 import { v4 as uuidv4 } from 'uuid';
-import About from '../modals/About';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import About from '../Modals/About';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
 export class ProfileMenu extends Component<ComponentProps>{
     public static displayName = '';

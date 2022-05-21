@@ -5,7 +5,7 @@ import {
     DASHBOARD_LOAD_FAILED,
 } from '../constants/dashboard';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     requesting: false,

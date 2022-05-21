@@ -1,7 +1,8 @@
-import { Document } from '../../Infrastructure/ORM';
+import BaseModel from 'Common/Models/BaseModel';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import Query from './Query';
 
-export default interface UpdateOneBy {
-    query: Query;
-    data: Document;
+export default interface UpdateOneBy<TBaseModel extends BaseModel> {
+    query: Query<TBaseModel>;
+    data: QueryDeepPartialEntity<TBaseModel>;
 }

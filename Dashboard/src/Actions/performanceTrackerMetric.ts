@@ -3,7 +3,7 @@ import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTrackerMetric';
 import moment from 'moment';
 import { encode } from 'js-base64';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 // Fetch performance tracker metrics - TIME
 export const fetchTimeMetricsRequest: Function = (): void => {
     return {

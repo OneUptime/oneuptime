@@ -5,7 +5,7 @@ export default class Encryption {
     public static encrypt(text: string, iv: Buffer): string {
         const cipher: Crypto.Cipher = Crypto.createCipheriv(
             'aes-256-cbc',
-            EncryptionSecret,
+            EncryptionSecret.toString(),
             iv
         );
         return cipher.update(text, 'utf8', 'hex') + cipher.final('hex');
@@ -14,7 +14,7 @@ export default class Encryption {
     public static decrypt(encrypted: string, iv: Buffer): string {
         const decipher: Crypto.Cipher = Crypto.createDecipheriv(
             'aes-256-cbc',
-            EncryptionSecret,
+            EncryptionSecret.toString(),
             iv
         );
         return (

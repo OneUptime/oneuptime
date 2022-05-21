@@ -23,12 +23,12 @@ import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from 'CommonUI/actions/modal';
-//import EditIncident from '../modals/EditIncident';
+import { openModal } from 'CommonUI/actions/Modal';
+//import EditIncident from '../Modals/EditIncident';
 import { history, RootState } from '../../store';
-import MessageBox from '../modals/MessageBox';
+import MessageBox from '../Modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
-import ViewJsonLogs from '../modals/ViewJsonLogs';
+import ViewJsonLogs from '../Modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import FooterButton from './FooterButton';
 import { animateSidebar } from '../../actions/animateSidebar';

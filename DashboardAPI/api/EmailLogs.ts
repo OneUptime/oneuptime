@@ -27,7 +27,7 @@ router.get(
             const skip: $TSFixMe = req.query['skip'];
             const limit: $TSFixMe = req.query['limit'];
             const selectEmailStatus: $TSFixMe =
-                'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+                'from to subject body createdAt template status content error deleted deletedAt deletedByUser replyTo smtpServer';
 
             const [emailLogs, count]: $TSFixMe = await Promise.all([
                 EmailLogsService.findBy({

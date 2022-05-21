@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { deleteGitCredential } from '../../actions/credential';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { getGitSecurities } from '../../actions/credential';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';

@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import DataPathHoC from '../DataPathHoC';
-import CreateSlackWebhook from '../modals/CreateSlackWebhook';
+import CreateSlackWebhook from '../Modals/CreateSlackWebhook';
 
 interface SlackButtonProps {
     openModal: Function;

@@ -64,7 +64,7 @@ describe('Incident Priority API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await IncidentSettings.hardDeleteBy({ projectId: projectId });
         await UserService.hardDeleteBy({ _id: userId });
         await ProjectService.hardDeleteBy({ _id: projectId });

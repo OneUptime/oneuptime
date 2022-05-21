@@ -4,9 +4,9 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
-import DeleteErrorTracker from '../modals/DeleteErrorTracker';
+import DeleteErrorTracker from '../Modals/DeleteErrorTracker';
 import { connect } from 'react-redux';
-import ViewErrorTrackerKey from '../modals/ViewErrorTrackerKey';
+import ViewErrorTrackerKey from '../Modals/ViewErrorTrackerKey';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import Badge from '../common/Badge';
 

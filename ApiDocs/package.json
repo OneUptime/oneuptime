@@ -1,5 +1,5 @@
 {
-    "name": "oneuptime-ApiDocs",
+    "name": "api-docs",
     "version": "3.0.0",
     "description": "oneuptime api refernce",
     "main": "Gruntfile.js",
@@ -8,7 +8,7 @@
         "url": "git+https://github.com/OneUptime/ApiDocs.git"
     },
     "author": "HackerBay, Inc.",
-    "license": "ISC",
+    "license": "MIT",
     "bugs": {
         "url": "https://github.com/oneuptime/ApiDocs/issues"
     },

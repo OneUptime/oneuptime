@@ -8,7 +8,7 @@ import Button from './ssoDefaultRoles/Button';
 import BoxHeader from './ssoDefaultRoles/BoxHeader';
 import BoxFooter from './ssoDefaultRoles/BoxFooter';
 import Table from './ssoDefaultRoles/Table';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { CreateDefaultRoleModal } from './ssoDefaultRoles/DefaultRoleModal';
 
 class Box extends Component<ComponentProps> {

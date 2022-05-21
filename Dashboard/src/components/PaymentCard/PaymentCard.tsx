@@ -4,11 +4,11 @@ import { connect } from 'react-redux';
 import { v4 as uuidv4 } from 'uuid';
 import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { fetchCards, setDefaultCard } from '../../actions/card';
 import DataPathHoC from '../DataPathHoC';
-import AddCard from '../modals/AddCard';
-import DeleteCard from '../modals/DeleteCard';
+import AddCard from '../Modals/AddCard';
+import DeleteCard from '../Modals/DeleteCard';
 import { ListLoader } from '../basic/Loader';
 import { User } from '../../config';
 

@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import ClickOutside from 'react-click-outside';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
-import { closeModal } from 'CommonUI/actions/modal';
+import { closeModal } from 'CommonUI/actions/Modal';
 import PropTypes from 'prop-types';
 
 import { Field, FieldArray, reduxForm } from 'redux-form';

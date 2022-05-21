@@ -2,7 +2,7 @@ import * as types from '../constants/monitorCustomField';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
-import ErrorPayload from 'CommonUI/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/PayloadTypes/error';
 export const createCustomFieldRequest: Function = (): void => {
     return {
         type: types.CREATE_CUSTOM_FIELD_REQUEST,
@@ -192,7 +192,7 @@ export const deleteCustomField: $TSFixMe = (
             dispatch(deleteCustomFieldRequest());
 
             const response: $TSFixMe =
-                await delete `monitorCustomField/${projectId}/${customFieldId}`;
+                delete `monitorCustomField/${projectId}/${customFieldId}`;
 
             dispatch(deleteCustomFieldSuccess(response.data));
         } catch (error) {

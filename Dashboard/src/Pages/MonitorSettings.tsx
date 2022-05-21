@@ -6,7 +6,7 @@ import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../Utils/getParentRoute';
-import { openModal, closeModal } from '../actions/modal';
+import { openModal, closeModal } from '../actions/Modal';
 import MonitorSla from '../components/monitorSla/MonitorSla';
 
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';

@@ -8,11 +8,11 @@ import { connect } from 'react-redux';
 import { bindActionCreators, compose } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from 'CommonUI/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/Modal';
 import { changeMonitorComponent } from '../../actions/monitor';
 import { addCurrentComponent } from '../../actions/component';
 import DataPathHoC from '../DataPathHoC';
-import ChangeMonitorComponent from '../modals/ChangeMonitorComponent';
+import ChangeMonitorComponent from '../Modals/ChangeMonitorComponent';
 
 interface MonitorViewChangeComponentBoxProps {
     closeModal?: Function;

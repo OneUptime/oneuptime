@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
-import { closeModal, openModal } from 'CommonUI/actions/modal';
+import { closeModal, openModal } from 'CommonUI/actions/Modal';
 import {
     resetSubProjectToken,
     resetSubProjectKeyReset,

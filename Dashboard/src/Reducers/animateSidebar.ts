@@ -1,6 +1,6 @@
 import { ANIMATE_SIDEBAR } from '../constants/animateSidebar';
 
-import Action from 'CommonUI/src/types/action';
+import Action from 'CommonUI/src/Types/Action';
 
 const initialState: $TSFixMe = {
     animateSidebar: false,

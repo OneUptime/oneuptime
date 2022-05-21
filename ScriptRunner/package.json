@@ -1,5 +1,5 @@
 {
-    "name": "ScriptRunner",
+    "name": "script-runner",
     "version": "1.0.0",
     "description": "automation script runner",
     "main": "index.ts",
@@ -11,7 +11,7 @@
         "audit": "npm audit --audit-level=low"
     },
     "author": "Augustine",
-    "license": "ISC",
+    "license": "MIT",
     "type": "module",
     "dependencies": {
         "@types/node-cron": "^3.0.1",

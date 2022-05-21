@@ -32,7 +32,7 @@ describe('Docker Credential API', function (): void {
     this.timeout(timeout);
 
     before(async (): void => {
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         const res: $TSFixMe = await createUser(request, userData.user);
         const project: $TSFixMe = res.body.project;
         projectId = project._id;
@@ -52,7 +52,7 @@ describe('Docker Credential API', function (): void {
     });
 
     after(async (): void => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: userData.user.email,

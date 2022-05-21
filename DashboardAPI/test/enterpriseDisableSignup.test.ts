@@ -17,9 +17,9 @@ describe('Disable Sign up test', function (): void {
     let token: $TSFixMe = null;
     this.beforeAll(async function (): void {
         this.timeout(400000);
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
-        await GlobalConfig.initTestConfig();
+        GlobalConfig.initTestConfig();
         await createUser(request, data.adminUser);
         const res: $TSFixMe = await request.post('/user/login').send({
             email: data.adminUser.email,
@@ -30,7 +30,7 @@ describe('Disable Sign up test', function (): void {
     });
 
     this.afterAll(async () => {
-        await GlobalConfig.removeTestConfig();
+        GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
         await ProjectService.hardDeleteBy({});
         process.env['DISABLE_SIGNUP'] = undefined;

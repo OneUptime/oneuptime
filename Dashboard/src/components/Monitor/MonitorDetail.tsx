@@ -12,13 +12,13 @@ import {
     fetchMonitorStatuses,
     fetchMonitorsIncidents,
 } from '../../actions/monitor';
-import { openModal } from 'CommonUI/actions/modal';
+import { openModal } from 'CommonUI/actions/Modal';
 import { createNewIncident } from '../../actions/incident';
 import moment from 'moment';
 import { FormLoader } from '../basic/Loader';
-import CreateManualIncident from '../modals/CreateManualIncident';
+import CreateManualIncident from '../Modals/CreateManualIncident';
 import ShouldRender from '../basic/ShouldRender';
-import DisabledMessage from '../modals/DisabledMessage';
+import DisabledMessage from '../Modals/DisabledMessage';
 import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
 import { history, RootState } from '../../store';
