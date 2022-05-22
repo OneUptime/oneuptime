@@ -1,4 +1,3 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/DockerCredential';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DatabaseService from './DatabaseService';
@@ -37,4 +36,4 @@ class Service extends DatabaseService<Model> {
         }
     }
 }
-export default Service;
+export default new Service();

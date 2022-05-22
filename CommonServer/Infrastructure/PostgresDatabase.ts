@@ -50,9 +50,8 @@ export default class Database {
         return this.dataSource;
     }
 
-
     public isConnected(): boolean {
-        return !!this.dataSource;
+        return Boolean(this.dataSource);
     }
 
     public async connect(
@@ -74,4 +73,4 @@ export default class Database {
     }
 }
 
-export const PostgresAppInstance = new Database();
+export const PostgresAppInstance: Database = new Database();

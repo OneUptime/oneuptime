@@ -64,4 +64,4 @@ class Service extends DatabaseService<Model> {
     }
 }
 
-export default Service;
+export default new Service();

@@ -30,10 +30,7 @@ import Role from 'Common/Types/Role';
 class DatabaseService<TBaseModel extends BaseModel> {
     public entityName!: string;
 
-    public constructor(
-        type: { new(): TBaseModel },
-
-    ) {
+    public constructor(type: { new (): TBaseModel }) {
         this.entityName = type.name;
     }
 
@@ -41,8 +38,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         if (!PostgresAppInstance.isConnected()) {
             throw new DatabaseNotConnectedException();
         }
-        
-        const dataSource: DataSource | null = PostgresAppInstance.getDataSource();
+
+        const dataSource: DataSource | null =
+            PostgresAppInstance.getDataSource();
         if (dataSource) {
             return dataSource.getRepository<TBaseModel>(this.entityName);
         }
@@ -233,7 +231,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
+                    createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -738,6 +736,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return { items, count };
     }
 }
-export default Service;
+export default new Service();
 
 export default DatabaseService;

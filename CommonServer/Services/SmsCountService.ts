@@ -1,6 +1,5 @@
 import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/SmsCount';
 import DatabaseService from './DatabaseService';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -29,4 +28,4 @@ class Service extends DatabaseService<Model> {
         return true;
     }
 }
-export default Service;
+export default new Service();
