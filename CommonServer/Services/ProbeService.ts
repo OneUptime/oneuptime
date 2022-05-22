@@ -1,10 +1,11 @@
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/Probe';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import OneUptimeDate from 'Common/Types/Date';
 
-class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<Model> {
     public constructor() {
         super(Model);
     }

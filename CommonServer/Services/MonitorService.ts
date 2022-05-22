@@ -1,13 +1,14 @@
 import OneUptimeDate from 'Common/Types/Date';
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/Monitor';
 import Query from '../Types/DB/Query';
 import DatabaseService from './DatabaseService';
 import { In, IsNull, LessThan } from 'typeorm';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 
-class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<Model> {
     public constructor() {
         super(Model);
     }

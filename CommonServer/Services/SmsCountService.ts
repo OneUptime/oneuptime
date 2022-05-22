@@ -1,12 +1,13 @@
 import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/SmsCount';
 import DatabaseService from './DatabaseService';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import User from 'Common/Models/User';
 import { MoreThan } from 'typeorm';
 
-class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<Model> {
     public constructor() {
         super(Model);
     }
