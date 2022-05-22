@@ -7,7 +7,7 @@ export default class Hostname {
     }
     public set hostname(v: string) {
         const matchHostnameCharacters: RegExp =
-            /^[a-zA-Z\d!#$&'*+,/:;=?@[\].]*$/;
+            /^[a-zA-Z-\d!#$&'*+,/:;=?@[\].]*$/;
         if (v && !matchHostnameCharacters.test(v)) {
             throw new BadDataException(`Invalid hostname: ${v}`);
         }
