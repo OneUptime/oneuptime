@@ -20,6 +20,5 @@ class FileService {
          */
     }
 }
-export default new Service();
 
 export default FileService;

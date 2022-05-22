@@ -9,7 +9,7 @@ import { In, IsNull, LessThan } from 'typeorm';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export class Service extends DatabaseService<Model> {
-    public constructor() {
+    public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
     }
 

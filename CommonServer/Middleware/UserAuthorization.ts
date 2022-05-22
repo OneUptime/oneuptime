@@ -5,14 +5,11 @@ import {
     OneUptimeRequest,
     AuthorizationType,
 } from '../Utils/Express';
-import Service from '../Services/Index';
-import UserServiceType from '../Services/UserService';
+import UserService from '../Services/UserService';
 import ProjectMiddleware from './ProjectAuthorization';
 import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
 import UserRole from 'Common/Types/UserRole';
-
-const UserService: UserServiceType = Service.UserService;
 
 export default class UserMiddleware {
     /*

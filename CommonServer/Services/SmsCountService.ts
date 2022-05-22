@@ -8,7 +8,7 @@ import User from 'Common/Models/User';
 import { MoreThan } from 'typeorm';
 
 export class Service extends DatabaseService<Model> {
-    public constructor() {
+    public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
     }
 

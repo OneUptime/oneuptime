@@ -3,7 +3,7 @@ import Model from 'Common/Models/IssueMember';
 import DatabaseService from './DatabaseService';
 
 export class Service extends DatabaseService<Model> {
-    public constructor() {
+    public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
     }
 }

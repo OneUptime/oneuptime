@@ -9,7 +9,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 
 export class Service extends DatabaseService<Model> {
-    public constructor() {
+    public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
     }
 
