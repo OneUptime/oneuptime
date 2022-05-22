@@ -6,6 +6,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "dependencies": {
+    "Common": "file:../Common",
+    "CommonServer": "file:../CommonServer",
+    "CommonUI": "file:../CommonUI"
+  },
   "author": "",
-  "license": "ISC"
+  "license": "MIT"
 }
