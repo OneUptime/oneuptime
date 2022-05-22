@@ -72,9 +72,9 @@
                 "winston-slack-webhook-transport": "^2.1.0"
         },
         "scripts": {
-                "start": "ts-node index.ts",
+                "start": "ts-node Index.ts",
                 "compile": "tsc",
-                "dev": "ts-node-dev --inspect=0.0.0.0 index.ts --ignore greenlock.d/* -- --staging",
+                "dev": "ts-node-dev --inspect=0.0.0.0 Index.ts --ignore greenlock.d/* -- --staging",
                 "test": "nyc --reporter=lcov --reporter=text mocha --exit test/index.ts",
                 "enterprise-test": "IS_TESTING=true nyc --reporter=lcov --reporter=text mocha --exit test/enterprise.js",
                 "audit": "npm audit --audit-level=low",

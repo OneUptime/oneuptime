@@ -4,9 +4,9 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "ts-node index.ts",
+        "start": "ts-node Index.ts",
         "compile": "tsc",
-        "dev": "ts-node-dev --inspect=0.0.0.0 index.ts",
+        "dev": "ts-node-dev --inspect=0.0.0.0 Index.ts",
         "test": "echo 'no tests'"
     },
     "author": "",

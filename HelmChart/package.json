@@ -5,9 +5,9 @@
     "main": "server.js",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "start": "ts-node index.ts",
+        "start": "ts-node Index.ts",
         "compile": "tsc",
-        "dev": "ts-node-dev --inspect=0.0.0.0 index.ts",
+        "dev": "ts-node-dev --inspect=0.0.0.0 Index.ts",
         "test": "mocha --exit test/index.ts",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
