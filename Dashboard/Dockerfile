@@ -52,6 +52,7 @@ WORKDIR /usr/src/app
 COPY ./Dashboard/package*.json /usr/src/app/
 RUN npm install  
 RUN npm install -g ts-node
+RUN npm install -g ts-node-dev
 
 # Copy app source
 COPY ./Dashboard /usr/src/app

@@ -1,5 +1,4 @@
-import Services from '../Services/Index';
-import ProbeServiceClass from '../Services/ProbeService';
+import ProbeService from '../Services/ProbeService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Version from 'Common/Types/Version';
 
@@ -14,8 +13,6 @@ import { ClusterKey as CLUSTER_KEY } from '../Config';
 import ObjectID from 'Common/Types/ObjectID';
 import LocalCache from '../Infrastructure/LocalCache';
 import Probe from 'Common/Models/Probe';
-
-const ProbeService: ProbeServiceClass = Services.ProbeService;
 
 export default class ProbeMiddleware {
     public static async isAuthorizedProbeMiddleware(

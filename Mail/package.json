@@ -4,9 +4,9 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "ts-node index.ts",
+        "start": "ts-node Index.ts",
         "compile": "tsc",
-        "dev": "ts-node-dev --inspect=0.0.0.0 index.ts",
+        "dev": "ts-node-dev --inspect=0.0.0.0 Index.ts",
         "test": "echo 'no tests'"
     },
     "author": "",
@@ -20,8 +20,5 @@
         "handlebars": "^4.7.7",
         "nodemailer": "^6.7.3",
         "nodemailer-express-handlebars": "^5.0.0"
-    },
-    "devDependencies": {
-        
     }
 }

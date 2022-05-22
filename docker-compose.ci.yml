@@ -339,6 +339,7 @@ services:
         environment: *common-variables
         depends_on:
             - haraka
+            - postgres
 
     container-scanner:
         ports:

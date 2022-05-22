@@ -10,7 +10,7 @@ import API from 'Common/Utils/API';
 import { ClusterKey, HttpProtocol, MailHostname } from '../Config';
 
 export default class MailService {
-    public async sendMail(
+    public static async sendMail(
         to: Email,
         subject: string,
         template: EmailTemplateType,

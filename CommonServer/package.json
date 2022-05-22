@@ -10,7 +10,6 @@
     },
     "author": "",
     "license": "MIT",
-    "type": "module",
     "dependencies": {
         "@elastic/elasticsearch": "^8.1.0",
         "@types/gridfs-stream": "^0.5.35",

@@ -57,6 +57,7 @@ WORKDIR /usr/src/app
 COPY ./AdminDashboard/package*.json /usr/src/app/
 RUN npm install  
 RUN npm install -g ts-node
+RUN npm install -g ts-node-dev
 
 # Copy app source
 COPY ./AdminDashboard /usr/src/app

@@ -41,6 +41,7 @@ WORKDIR /usr/src/app
 COPY ./ScriptRunner/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
+RUN npm install -g ts-node-dev
 
 # Bundle app source
 COPY ./ScriptRunner /usr/src/app

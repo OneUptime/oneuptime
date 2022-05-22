@@ -8,9 +8,9 @@ import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 
-export default class Service extends DatabaseService<Model> {
-    public constructor(database: PostgresDatabase) {
-        super(Model, database);
+export class Service extends DatabaseService<Model> {
+    public constructor(postgresDatabase?: PostgresDatabase) {
+        super(Model, postgresDatabase);
     }
 
     public async validateDockerCredential({
@@ -37,3 +37,4 @@ export default class Service extends DatabaseService<Model> {
         }
     }
 }
+export default new Service();

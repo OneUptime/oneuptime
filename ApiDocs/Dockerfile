@@ -36,6 +36,7 @@ WORKDIR /usr/src/app
 COPY ./ApiDocs/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
+RUN npm install -g ts-node-dev
 
 # Bundle app source
 COPY ./ApiDocs /usr/src/app

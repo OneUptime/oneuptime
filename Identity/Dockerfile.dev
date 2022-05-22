@@ -34,10 +34,12 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
+WORKDIR /usr/src/app/
 # Install app dependencies
 COPY ./Identity/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
+RUN npm install -g ts-node-dev
 
 # Bundle app source
 COPY ./Identity /usr/src/app

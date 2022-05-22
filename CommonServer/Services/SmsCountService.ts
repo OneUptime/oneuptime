@@ -7,9 +7,9 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import User from 'Common/Models/User';
 import { MoreThan } from 'typeorm';
 
-export default class Service extends DatabaseService<Model> {
-    public constructor(database: PostgresDatabase) {
-        super(Model, database);
+export class Service extends DatabaseService<Model> {
+    public constructor(postgresDatabase?: PostgresDatabase) {
+        super(Model, postgresDatabase);
     }
 
     public async validateResend(user: User): Promise<boolean> {
@@ -29,3 +29,4 @@ export default class Service extends DatabaseService<Model> {
         return true;
     }
 }
+export default new Service();

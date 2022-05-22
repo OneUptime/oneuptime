@@ -2,8 +2,10 @@ import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/GlobalConfig';
 import DatabaseService from './DatabaseService';
 
-export default class Service extends DatabaseService<Model> {
-    public constructor(database: PostgresDatabase) {
-        super(Model, database);
+export class Service extends DatabaseService<Model> {
+    public constructor(postgresDatabase?: PostgresDatabase) {
+        super(Model, postgresDatabase);
     }
 }
+
+export default new Service();
