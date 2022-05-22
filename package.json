@@ -49,6 +49,7 @@
         "start-enterprise-ci": "export DOCKER_CLIENT_TIMEOUT=1000 && export COMPOSE_HTTP_TIMEOUT=1000 && docker-compose -f docker-compose.ci.yml up -d $npm_config_services",
         "stop-dev": "docker-compose -f docker-compose.dev.yml down --remove-orphans",
         "staging-test": "cd tests && npm run-script staging-test",
+        "prune": "docker system prune",
         "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
         "debug-staging-test": "cd tests && npm run-script debug-staging-test",
         "docker-enterprise-test": "npm install && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up -d && cd tests && npm run-script enterprise-test",

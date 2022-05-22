@@ -41,6 +41,7 @@ WORKDIR /usr/src/app
 COPY ./Realtime/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
+RUN npm install -g ts-node-dev
 
 # Bundle app source
 COPY ./Realtime /usr/src/app

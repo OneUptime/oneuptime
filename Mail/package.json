@@ -20,8 +20,5 @@
         "handlebars": "^4.7.7",
         "nodemailer": "^6.7.3",
         "nodemailer-express-handlebars": "^5.0.0"
-    },
-    "devDependencies": {
-        
     }
 }

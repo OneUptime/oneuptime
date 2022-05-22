@@ -46,6 +46,7 @@ services:
         environment: *common-variables
         depends_on:
             - haraka
+            - postgres
 
     saml:
         image: kenchan0130/simplesamlphp
