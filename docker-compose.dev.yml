@@ -2,6 +2,10 @@
 # It connects to debugging ports that help you debug the app.
 
 version: '3.7'
+
+x-common-variables: &common-variables
+   IS_SAAS_SERVICE: ${IS_SAAS_SERVICE}
+
 services:
     ##IMPORTANT:
     ## This container is an SMTP server used to send emails.
@@ -14,20 +18,14 @@ services:
             context: ./Haraka
             args:
                 PORT: '2525'
-        environment:
-            - SMTP_USER=user@oneuptime.com
-            - SMTP_PASSWORD=oneuptime
-            - DOMAIN="${DOMAIN}"
-            - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
-            - TLS_CERT="${TLS_CERT}"
-            - TLS_KEY="${TLS_KEY}"
+        env_file:
+            - ./Haraka/.env
 
     postgres:
         image: postgres:latest
         restart: always
-        environment:
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=postgres
+        env_file:
+            - ./Postgres/.env
         ports:
             - '5400:5432'
         volumes: 
@@ -42,12 +40,10 @@ services:
             context: .
             dockerfile: ./Mail/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Mail/.env
-        environment:
-            - PORT=3190
-            - SERVER_URL=http://mail:3190
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - haraka
 
@@ -56,10 +52,10 @@ services:
         ports:
             - 9876:8080
             - 8443:8443
-        environment:
-            - SIMPLESAMLPHP_SP_ENTITY_ID=hackerbay.io
-            - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback
-            - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./SAML/.env
         volumes:
             - ./saml/users.php:/var/www/simplesamlphp/config/authsources.php
 
@@ -68,6 +64,8 @@ services:
         ports:
             - '6390:6379'
         command: redis-server
+        env_file:
+            - ./Redis/.env
 
     accounts:
         ports:
@@ -77,14 +75,18 @@ services:
             context: .
             dockerfile: ./Accounts/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Accounts/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
+        depends_on:
+            - identity
         volumes:
             - ./accounts:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
+
 
     data-ingestor:
         ports:
@@ -95,15 +97,11 @@ services:
             context: .
             dockerfile: ./DataIngestor/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./DataIngestor/.env
-        environment:
-            - SERVER_URL=http://dashboard-api:3002
-            - CLUSTER_KEY=test
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
-
-            - REALTIME_URL=http://realtime:3300
+        environment: *common-variables
         depends_on:
-
             - script-runner
             - dashboard-api
             - realtime
@@ -122,10 +120,10 @@ services:
             context: .
             dockerfile: ./Realtime/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Realtime/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3300
+        environment: *common-variables
         volumes:
             - ./realtime:/usr/src/app
             # Use node modules of the container and not host system.
@@ -139,10 +137,12 @@ services:
             context: .
             dockerfile: ./HelmChart/Dockerfile
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./HelmChart/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3423
+        environment: *common-variables
+
+            
     probe-api:
         ports:
             - '3400:3400'
@@ -152,12 +152,10 @@ services:
             context: .
             dockerfile: ./ProbeAPI/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ProbeAPI/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3400
-
-            - REALTIME_URL=http://realtime:3300
+        environment: *common-variables
         volumes:
             - ./probe-api:/usr/src/app
             # Use node modules of the container and not host system.
@@ -174,16 +172,13 @@ services:
             context: .
             dockerfile: ./Probe/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Probe/.env
-        environment:
-            - PORT=3008
-            - SERVER_URL=http://dashboard-api:3002
-            - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - PROBE_NAME=Probe 1
-            - PROBE_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
-            - PROBE_API_URL=http://probe-api:3400
+        environment: 
+            <<: *common-variables
+            PROBE_NAME: Probe 1
+            PROBE_KEY: test-key
         volumes:
             - ./probe:/usr/src/app
             # Use node modules of the container and not host system.
@@ -199,9 +194,10 @@ services:
             context: .
             dockerfile: ./ApiDocs/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ApiDocs/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         volumes:
             - ./api-docs:/usr/src/app
             # Use node modules of the container and not host system.
@@ -218,11 +214,10 @@ services:
             context: .
             dockerfile: ./ScriptRunner/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ScriptRunner/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SERVER_URL=http://dashboard-api:3002
-            - CLUSTER_KEY=test
+        environment: *common-variables
         volumes:
             - ./script-runner:/usr/src/app
             # Use node modules of the container and not host system.
@@ -238,14 +233,10 @@ services:
             context: .
             dockerfile: ./DashboardAPI/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./DashboardAPI/.env
-        environment:
-            - REDIS_HOST=redis
-            - REDIS_PORT=6379
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - CLUSTER_KEY=test
-            - REALTIME_URL=http://realtime:3300
+        environment: *common-variables
         depends_on:
             - redis
         volumes:
@@ -266,12 +257,10 @@ services:
             context: .
             dockerfile: ./Identity/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Identity/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
@@ -291,12 +280,10 @@ services:
             context: .
             dockerfile: ./Alert/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Alert/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
@@ -315,12 +302,10 @@ services:
             context: .
             dockerfile: ./Integration/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Integration/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
@@ -338,9 +323,10 @@ services:
             context: .
             dockerfile: ./dashboard/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Dashboard/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         volumes:
             - ./dashboard:/usr/src/app
             # Use node modules of the container and not host system.
@@ -352,9 +338,10 @@ services:
             - '1444:1444'
             - '9235:9229' # Debugging port.
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Home/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         build:
             network: host
             context: .
@@ -373,9 +360,10 @@ services:
             context: .
             dockerfile: ./StatusPage/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./StatusPage/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         volumes:
             - ./status-page:/usr/src/app
             # Use node modules of the container and not host system.
@@ -390,9 +378,10 @@ services:
             context: .
             dockerfile: ./AdminDashboard/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./AdminDashboard/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         volumes:
             - ./admin-dashboard:/usr/src/app
             # Use node modules of the container and not host system.
@@ -404,9 +393,10 @@ services:
             - '3010:3010'
             - '9234:9229' # Debugging port.
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./HttpTestServer/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         build:
             network: host
             context: .
@@ -422,9 +412,10 @@ services:
             - '3004:3004'
             - '9233:9229' # Debugging port.
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Licensing/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         build:
             network: host
             context: .
@@ -434,6 +425,7 @@ services:
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
+            
     application-scanner:
         ports:
             - '3005:3005'
@@ -443,19 +435,16 @@ services:
             context: .
             dockerfile: ./ApplicationScanner/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ApplicationScanner/.env
-        environment:
-            - PORT=3005
-            - SERVER_URL=http://dashboard-api:3002
-            - APPLICATION_SCANNER_NAME=US
-            - APPPLICATION_SCANNER_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         volumes:
             - ./ApplicationScanner:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
+            
     container-scanner:
         ports:
             - '3055:3055'
@@ -465,14 +454,10 @@ services:
             context: .
             dockerfile: ./ContainerScanner/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ContainerScanner/.env
-        environment:
-            - PORT=3055
-            - SERVER_URL=http://dashboard-api:3002
-            - CONTAINER_SCANNER_NAME=US
-            - CONTAINER_SCANNER_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         volumes:
             - ./ContainerScanner:/usr/src/app
             # Use node modules of the container and not host system.
@@ -487,12 +472,10 @@ services:
             context: .
             dockerfile: ./LighthouseRunner/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./LighthouseRunner/.env
-        environment:
-            - PORT=3015
-            - SERVER_URL=http://dashboard-api:3002
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         volumes:
             - ./LighthouseRunner:/usr/src/app
             # Use node modules of the container and not host system.
@@ -500,7 +483,10 @@ services:
             - /usr/src/app/node_modules/
     nginx:
         depends_on:
-
+            - identity
+            - alert
+            - application-scanner
+            - container-scanner
             - dashboard-api
             - home
             - dashboard
