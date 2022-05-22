@@ -7,7 +7,7 @@ import UserService from '../../../Services/UserService';
 
 export default class UserTestService {
     private database: PostgresDatabase;
-    public constructor(database: PostgresDatabase) {
+    public constructor() {
         this.database = database;
     }
     public async generateRandomUser(): Promise<User> {

@@ -48,3 +48,4 @@ export default class MailService {
         );
     }
 }
+export default Service;

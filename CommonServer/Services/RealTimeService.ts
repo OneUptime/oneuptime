@@ -6,7 +6,7 @@ import Headers from 'Common/Types/API/Headers';
 import ObjectID from 'Common/Types/ObjectID';
 import HTTPResponse from 'Common/Types/API/Response';
 
-export default class Service {
+class Service {
     private api: API;
     private headers: Headers;
 
@@ -33,3 +33,4 @@ export default class Service {
         );
     }
 }
+export default Service;

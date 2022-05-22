@@ -2,8 +2,9 @@ import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/MonitorCustomField';
 import DatabaseService from './DatabaseService';
 
-export default class Service extends DatabaseService<Model> {
-    public constructor(database: PostgresDatabase) {
-        super(Model, database);
+class Service extends DatabaseService<Model> {
+    public constructor() {
+        super(Model);
     }
 }
+export default Service;

@@ -17,7 +17,7 @@ import SearchResult from '../Types/DB/SearchResult';
 import Encryption from '../Utils/Encryption';
 import { JSONObject } from 'Common/Types/JSON';
 import BaseModel from 'Common/Models/BaseModel';
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import { PostgresAppInstance } from '../Infrastructure/PostgresDatabase';
 import { DataSource, Repository } from 'typeorm';
 import SortOrder from '../Types/DB/SortOrder';
 import HardDeleteBy from '../Types/DB/HardDeleteBy';
@@ -29,18 +29,20 @@ import Role from 'Common/Types/Role';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     public entityName!: string;
-    private database!: PostgresDatabase;
 
     public constructor(
-        type: { new (): TBaseModel },
-        database: PostgresDatabase
+        type: { new(): TBaseModel },
+
     ) {
         this.entityName = type.name;
-        this.database = database;
     }
 
     public getRepository(): Repository<TBaseModel> {
-        const dataSource: DataSource | null = this.database.getDataSource();
+        if (!PostgresAppInstance.isConnected()) {
+            throw new DatabaseNotConnectedException();
+        }
+        
+        const dataSource: DataSource | null = PostgresAppInstance.getDataSource();
         if (dataSource) {
             return dataSource.getRepository<TBaseModel>(this.entityName);
         }
@@ -231,7 +233,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                    createBy.data.getSlugifyColumn() as string
+                createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -736,5 +738,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return { items, count };
     }
 }
+export default Service;
 
 export default DatabaseService;
