@@ -6,15 +6,13 @@ import Express, {
     ExpressRouter,
 } from 'CommonServer/Utils/Express';
 
-import Service from 'CommonServer/Services/Index';
-import MonitorServiceClass from 'CommonServer/Services/MonitorService';
+import MonitorService from 'CommonServer/Services/MonitorService';
 import ProbeAuthorization from 'CommonServer/Middleware/ProbeAuthorization';
 import Response from 'CommonServer/Utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Monitor from 'Common/Models/Monitor';
 
-const MonitorService: MonitorServiceClass = Service.MonitorService;
 const router: ExpressRouter = Express.getRouter();
 
 router.get(

@@ -17,7 +17,9 @@ import SearchResult from '../Types/DB/SearchResult';
 import Encryption from '../Utils/Encryption';
 import { JSONObject } from 'Common/Types/JSON';
 import BaseModel from 'Common/Models/BaseModel';
-import PostgresDatabase, { PostgresAppInstance } from '../Infrastructure/PostgresDatabase';
+import PostgresDatabase, {
+    PostgresAppInstance,
+} from '../Infrastructure/PostgresDatabase';
 import { DataSource, Repository } from 'typeorm';
 import SortOrder from '../Types/DB/SortOrder';
 import HardDeleteBy from '../Types/DB/HardDeleteBy';
@@ -31,7 +33,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public entityName!: string;
     private postgresDatabase!: PostgresDatabase;
 
-    public constructor(type: { new(): TBaseModel }, postgresDatabase?: PostgresDatabase) {
+    public constructor(
+        type: { new (): TBaseModel },
+        postgresDatabase?: PostgresDatabase
+    ) {
         this.entityName = type.name;
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
@@ -39,7 +44,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public getRepository(): Repository<TBaseModel> {
-
         if (this.postgresDatabase && !this.postgresDatabase.isConnected()) {
             throw new DatabaseNotConnectedException();
         }
@@ -48,13 +52,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
             throw new DatabaseNotConnectedException();
         }
 
-        const dataSource: DataSource | null = this.postgresDatabase ? this.postgresDatabase.getDataSource() :
-            PostgresAppInstance.getDataSource();
+        const dataSource: DataSource | null = this.postgresDatabase
+            ? this.postgresDatabase.getDataSource()
+            : PostgresAppInstance.getDataSource();
 
         if (dataSource) {
             return dataSource.getRepository<TBaseModel>(this.entityName);
         }
-        
+
         throw new DatabaseNotConnectedException();
     }
 
@@ -242,7 +247,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
+                    createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }

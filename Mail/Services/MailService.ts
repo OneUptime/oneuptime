@@ -25,7 +25,6 @@ import ProjectSmtpConfig from 'Common/Models/ProjectSmtpConfig';
 import EmailLog from 'Common/Models/EmailLog';
 import Project from 'Common/Models/Project';
 
-
 export default class MailService {
     private static async getGlobalSmtpSettings(): Promise<MailServer> {
         const document: GlobalConfig | null =

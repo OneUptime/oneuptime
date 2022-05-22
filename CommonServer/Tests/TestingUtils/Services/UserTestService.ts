@@ -3,7 +3,7 @@ import Faker from 'Common/Tests/TestingUtils/Faker';
 import CompanySize from 'Common/Types/Company/CompanySize';
 import JobRole from 'Common/Types/Company/JobRole';
 import PostgresDatabase from '../../../Infrastructure/PostgresDatabase';
-import {Service as UserService} from '../../../Services/UserService';
+import { Service as UserService } from '../../../Services/UserService';
 
 export default class UserTestService {
     private database: PostgresDatabase;

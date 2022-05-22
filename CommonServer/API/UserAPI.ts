@@ -1,5 +1,7 @@
 import User from 'Common/Models/User';
-import UserService, { Service as UserServiceType } from '../Services/UserService';
+import UserService, {
+    Service as UserServiceType,
+} from '../Services/UserService';
 import BaseAPI from './BaseAPI';
 
 export default class UserAPI extends BaseAPI<User, UserServiceType> {
