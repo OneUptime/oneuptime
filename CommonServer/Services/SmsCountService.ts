@@ -9,7 +9,7 @@ import { MoreThan } from 'typeorm';
 
 export class Service extends DatabaseService<Model> {
     public constructor() {
-        super(Model);
+        super(Model, postgresDatabase);
     }
 
     public async validateResend(user: User): Promise<boolean> {

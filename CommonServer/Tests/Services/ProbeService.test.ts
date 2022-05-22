@@ -1,5 +1,5 @@
 import '../TestingUtils/Init';
-import ProbeService from '../../Services/ProbeService';
+import { Service as ProbeService } from '../../Services/ProbeService';
 import Probe from 'Common/Models/Probe';
 import Database from '../TestingUtils/Database';
 import ObjectID from 'Common/Types/ObjectID';

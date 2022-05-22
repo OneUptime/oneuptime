@@ -4,7 +4,7 @@ import DatabaseService from './DatabaseService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model);
+        super(Model, postgresDatabase);
     }
 }
 

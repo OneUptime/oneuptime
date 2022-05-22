@@ -6,8 +6,8 @@ import Version from 'Common/Types/Version';
 import OneUptimeDate from 'Common/Types/Date';
 
 export class Service extends DatabaseService<Model> {
-    public constructor() {
-        super(Model);
+    public constructor(postgresDatabase?: PostgresDatabase) {
+        super(Model, postgresDatabase);
     }
 
     public async createProbe(

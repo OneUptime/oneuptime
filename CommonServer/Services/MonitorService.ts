@@ -10,7 +10,7 @@ import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export class Service extends DatabaseService<Model> {
     public constructor() {
-        super(Model);
+        super(Model, postgresDatabase);
     }
 
     public async getMonitorsNotPingedByProbeInLastMinute(

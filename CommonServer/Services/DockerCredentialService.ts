@@ -10,7 +10,7 @@ import Route from 'Common/Types/API/Route';
 
 export class Service extends DatabaseService<Model> {
     public constructor() {
-        super(Model);
+        super(Model, postgresDatabase);
     }
 
     public async validateDockerCredential({
