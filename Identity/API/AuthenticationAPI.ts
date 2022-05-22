@@ -14,13 +14,12 @@ import Express, {
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import { JSONObject } from 'Common/Types/JSON';
 import User from 'Common/Models/User';
-import Service from 'CommonServer/Services/Index';
-import EmailVerificationTokenServiceType from 'CommonServer/Services/EmailVerificationTokenService';
-import UserServiceType from 'CommonServer/Services/UserService';
+import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
+import UserService from 'CommonServer/Services/UserService';
 import ObjectID from 'Common/Types/ObjectID';
 import EmailVerificationToken from 'Common/Models/EmailVerificationToken';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import MailServiceType from 'CommonServer/Services/MailService';
+import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import EmailSubjects from 'Common/Types/Email/EmailSubjects';
 import URL from 'Common/Types/API/URL';
@@ -28,11 +27,6 @@ import Response from 'CommonServer/Utils/Response';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-
-const UserService: UserServiceType = Service.UserService;
-const EmailVerificationTokenService: EmailVerificationTokenServiceType =
-    Service.EmailVerificationTokenService;
-const MailService: MailServiceType = Service.MailService;
 
 const router: ExpressRouter = Express.getRouter();
 
