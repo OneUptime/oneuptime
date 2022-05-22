@@ -6,7 +6,7 @@
     "scripts": {
         "start": "ts-node index.ts",
         "compile": "tsc",
-        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "dev": "ts-node-dev --inspect=0.0.0.0 index.ts",
         "test": "echo 'no tests'"
     },
     "author": "",

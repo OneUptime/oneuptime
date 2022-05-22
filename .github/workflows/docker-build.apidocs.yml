@@ -1,4 +1,4 @@
-name: ApiDocs Docker Build
+name: API Docs Docker Build
 on: 
   push:
     branches-ignore:

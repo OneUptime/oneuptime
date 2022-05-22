@@ -1,6 +1,0 @@
-export const GET_INVOICE_SUCCESS: string = 'GET_INVOICE_SUCCESS';
-export const GET_INVOICE_FAILED: string = 'GET_INVOICE_FAILED';
-export const GET_INVOICE_REQUEST: string = 'GET_INVOICE_REQUEST';
-export const GET_INVOICE_RESET: string = 'GET_INVOICE_RESET';
-export const INCREMENT_NEXT_COUNT: string = 'INCREMENT_NEXT_COUNT';
-export const DECREMENT_NEXT_COUNT: string = 'DECREMENT_NEXT_COUNT';

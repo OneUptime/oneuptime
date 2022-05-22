@@ -1,5 +1,0 @@
-{
-  "plugins": [
-    "@loadable/component/babel"
-  ]
-}
