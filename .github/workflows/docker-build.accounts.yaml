@@ -1,0 +1,20 @@
+name: Accounts Docker Build
+
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+      - 'staging-release'
+
+jobs:
+ # define job to build docker image
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image for accounts service
+      - name: build docker image
+        run: npm run build-ci accounts
