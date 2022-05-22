@@ -7,7 +7,7 @@
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "ts-node index.ts",
         "compile": "tsc",
-        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 --max-http-header-size=80000 index.ts",
+        "dev": "ts-node-dev --inspect=0.0.0.0 --max-http-header-size=80000 index.ts",
         "test": "jest",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
