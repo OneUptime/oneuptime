@@ -9,7 +9,8 @@ export interface ComponentProps {
     disabled?: boolean;
     id: string;
     shortcutKey?: ShortcutKey;
-    type?: ButtonType
+    type?: ButtonType;
+    isLoading?: boolean;
 }
 
 const Button: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {

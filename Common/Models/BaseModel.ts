@@ -618,7 +618,17 @@ export default class BaseModel extends BaseEntity {
         return baseModel as T;
     }
 
-    public static fromJSON<T extends BaseModel>(json: JSONObject): T {
+    public static fromJSON<T extends BaseModel>(json: JSONObject | JSONArray): T | Array<T> {
+        if (Array.isArray(json)) {
+            let arr: Array<T> = [];
+
+            for (const item of json) {
+                arr.push(this._fromJSON<T>(item))
+            }
+
+            return arr; 
+        }
+
         return this._fromJSON<T>(json);
     }
 
