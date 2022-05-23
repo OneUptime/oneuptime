@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+$xl: 87.5em;
+$lg: 60em;
+$med: 40em;
+$sm: 28em;
+$xs: 18em;
+
+$bglight: #fff;
+$bgDark: #000;
+$colorGrey: #808080;
+$lightBlue: rgb(23, 38, 176);
+$colorLightGrey: rgb(202, 202, 202);
+
+$transition: all 0.2s ease-in-out;
+
+@mixin responsive($query) {
+    @media (min-width: $query) {
+        @content;
+    }
+}
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-family: 'Poppins', sans-serif;
+    color: lighten($bgDark, 25%);
+    font-size: 10px;
+}
+
+body {
+    background-color: rgba(234, 234, 247, 0.796);
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+
+    a {
+        text-decoration: none;
+
+        &:visited {
+            color: $lightBlue;
+        }
+    }
+
+    &::after {
+        content: '';
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        z-index: 20;
+        clip-path: polygon(0 79%, 100% 48%, 100% 100%, 0% 100%);
+    }
+}

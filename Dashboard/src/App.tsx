@@ -1,9 +1,12 @@
 import React, { ReactElement } from 'react';
+import './App.scss';
 
 function App(): ReactElement {
     return (
         <div className="App">
-            <h1>This is my app</h1>
+            <div className="brand">
+                <img alt="OneUpTime" src="/assets/img/OneUptimeSVG/3.svg" />
+            </div>
         </div>
     );
 }
