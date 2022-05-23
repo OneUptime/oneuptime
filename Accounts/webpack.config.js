@@ -17,10 +17,13 @@ module.exports = {
         'react-native-sqlite-storage': 'react-native-sqlite-storage'
     },
     plugins: [
-        new webpack.DefinePlugin({
-            "app.env.production": JSON.stringify(true),
+        new webpack.ProvidePlugin({
+            process: 'process/browser',
         }),
-        new Dotenv({ path: '../Common/.env', ignoreStub: true, prefix: "window." }),
+        // new webpack.DefinePlugin({
+        //     "process.env.hello": JSON.stringify(true),
+        // }),
+        // new Dotenv({ path: '../Common/.env' }),
         // new Dotenv({ path: '../CommonUI/.env'}),
         // new Dotenv({ path: './.env'})
     ],
