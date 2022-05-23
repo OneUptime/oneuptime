@@ -7,18 +7,11 @@ import app from 'CommonServer/Utils/StartServer';
 import Dictionary from 'Common/Types/Dictionary';
 import path from 'path';
 
-import compression from 'compression';
 import OneUptimeDate from 'Common/Types/Date';
-import minify from 'minify';
 import URL from 'Common/Types/API/URL';
-import tryToCatch from 'try-to-catch';
 import productCompare, { Product } from './config/product-compare';
 import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
-
-if (process.env['NODE_ENV'] === 'production') {
-    app.use(compression());
-}
 
 //View engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -682,47 +675,20 @@ app.get(
     '/js/default.js',
     async (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'text/javascript');
-        const [error, data] = await tryToCatch(
-            minify,
-            './public/js/default.js'
-        );
-
-        if (error) {
-            res.status(500).send();
-            return;
-        }
-
-        res.send(data);
+        res.sendFile('./public/js/default.js' , { root : __dirname});
     }
 );
 
-// Minify
 app.get('/css/home.css', async (_req: ExpressRequest, res: ExpressResponse) => {
     res.setHeader('Content-Type', 'text/css');
-    const [error, data] = await tryToCatch(minify, './public/css/home.css');
-    if (error) {
-        res.status(500).send();
-        return;
-    }
-    res.send(data);
+    res.sendFile('./public/css/home.css', { root: __dirname });
 });
 
-// Minify
 app.get(
     '/css/comparision.css',
     async (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'text/css');
-        const [error, data] = await tryToCatch(
-            minify,
-            './public/css/comparision.css'
-        );
-
-        if (error) {
-            res.status(500).send();
-            return;
-        }
-
-        res.send(data);
+        res.sendFile('./public/css/comparision.css' , { root : __dirname});
     }
 );
 
