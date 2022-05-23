@@ -1,43 +1,49 @@
 import Email from '../../Types/Email';
 import EmailWithName from '../../Types/EmailWithName';
 import BadDataException from '../../Types/Exception/BadDataException';
+import Faker from '../TestingUtils/Faker';
 
 describe('class EmailWithName', () => {
     test('new EmailWithName() should return valid object if valid name and email is given', () => {
-        expect(
-            new EmailWithName('John Doe', 'johndoe@example.com').name
-        ).toEqual('John Doe');
-        expect(
-            new EmailWithName('John Doe', 'johndoe@example.com').email
-        ).toEqual('johndoe@example.com');
-        expect(
-            new EmailWithName('John Doe', new Email('johndoe@example.com')).name
-        ).toEqual('John Doe');
+        const name: string = Faker.generateName();
+        const email: Email = Faker.generateEmail();
+        expect(new EmailWithName(name, email).name).toEqual(name);
+        expect(new EmailWithName(name, email).email).toEqual(email);
     });
     test('EmailWithName.name should be mutable', () => {
+        const newName: string = Faker.generateName();
         const emailWithName: EmailWithName = new EmailWithName(
-            'John Doe',
-            new Email('johndoe@example.com')
+            Faker.generateName(),
+            Faker.generateEmail().toString()
         );
-        emailWithName.name = 'Jane doe';
-        expect(emailWithName.name).toEqual('John Doe');
+        emailWithName.name = newName;
+        expect(emailWithName.name).toEqual(newName);
     });
     test('EmailWithName.email should be mutable', () => {
+        const newEmail: Email = Faker.generateEmail();
         const emailWithName: EmailWithName = new EmailWithName(
-            'John Doe',
-            new Email('johndoe@example.com')
+            Faker.generateName(),
+            Faker.generateEmail()
         );
-        emailWithName.name = 'janedoe@example.com';
-        expect(emailWithName.name).toEqual('janedoe@example.com');
+        emailWithName.email = newEmail;
+        expect(emailWithName.email).toEqual(newEmail);
     });
-    test('mutating EmailWithName email with invalid email should throw BadDataException', () => {
+    test('mutating EmailWithName.email with invalid email should throw BadDataException', () => {
         const emailWithName: EmailWithName = new EmailWithName(
-            'John Doe',
-            new Email('johndoe@example.com')
+            Faker.generateName(),
+            Faker.generateEmail()
         );
-        emailWithName.name = 'janedoe@example.com';
+        emailWithName.email = 'janedoe@example.com';
         expect(() => {
-            emailWithName.name = 'Invalid email';
+            emailWithName.email = 'Invalid email';
         }).toThrowError(BadDataException);
+    });
+
+    test('EmailWithName.toString() should return the name with email', () => {
+        const name: string = Faker.generateName();
+        const email: Email = Faker.generateEmail();
+        expect(new EmailWithName(name, email).toString()).toEqual(
+            `"${name}" <${email}>`
+        );
     });
 });
