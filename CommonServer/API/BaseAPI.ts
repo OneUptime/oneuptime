@@ -146,7 +146,7 @@ export default class BaseAPI<
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
             body['data'] as JSONObject
-        );
+        ) as TBaseModel;
 
         await this.service.updateByRole(oneuptimeRequest.role, {
             query: {
@@ -167,7 +167,7 @@ export default class BaseAPI<
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
             body['data'] as JSONObject
-        );
+        ) as TBaseModel;
 
         const savedItem: BaseModel = await this.service.createByRole(
             oneuptimeRequest.role,
