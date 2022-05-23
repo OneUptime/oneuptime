@@ -7,10 +7,11 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Cookies from 'universal-cookie';
 import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
+import Route from 'Common/Types/API/Route';
 
 class BaseAPI extends API {
-    public constructor(protocol: Protocol, hostname: Hostname) {
-        super(protocol, hostname);
+    public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
+        super(protocol, hostname, route);
     }
 
     protected static override getHeaders(): Headers {

@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import URL from '../Types/API/URL';
-import { JSONObjectOrArray } from '../Types/JSON';
+import { JSONObject, JSONArray } from '../Types/JSON';
 import Headers from '../Types/API/Headers';
 import HTTPResponse from '../Types/API/HTTPResponse';
 import HTTPErrorResponse from '../Types/API/HTTPErrorResponse';
@@ -29,54 +29,71 @@ export default class API {
         this._hostname = v;
     }
 
-    public constructor(protocol: Protocol, hostname: Hostname) {
+
+    
+    private _baseRoute! : Route;
+    public get baseRoute() : Route {
+        return this._baseRoute;
+    }
+    public set baseRoute(v : Route) {
+        this._baseRoute = v;
+    }
+    
+
+    public constructor(protocol: Protocol, hostname: Hostname, baseRoute?: Route) {
         this.protocol = protocol;
         this.hostname = hostname;
+
+        if (baseRoute) {
+            this.baseRoute = baseRoute;
+        } else {
+            this.baseRoute = new Route("/");
+        }
     }
 
-    public async get<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
+    public async get<T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>>(
         path: Route,
-        data?: JSONObjectOrArray,
+        data?: JSONObject | JSONArray,
         headers?: Headers
     ): Promise<HTTPResponse<T>> {
         return await API.get<T>(
-            new URL(this.protocol, this.hostname, path),
+            new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
             data,
             headers
         );
     }
 
-    public async delete<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
+    public async delete<T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>>(
         path: Route,
-        data?: JSONObjectOrArray,
+        data?: JSONObject | JSONArray,
         headers?: Headers
     ): Promise<HTTPResponse<T>> {
         return await API.delete<T>(
-            new URL(this.protocol, this.hostname, path),
+            new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
             data,
             headers
         );
     }
 
-    public async put<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
+    public async put<T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>>(
         path: Route,
-        data?: JSONObjectOrArray,
+        data?: JSONObject | JSONArray,
         headers?: Headers
     ): Promise<HTTPResponse<T>> {
         return await API.put<T>(
-            new URL(this.protocol, this.hostname, path),
+            new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
             data,
             headers
         );
     }
 
-    public async post<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
+    public async post<T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>>(
         path: Route,
-        data?: JSONObjectOrArray,
+        data?: JSONObject | JSONArray,
         headers?: Headers
     ): Promise<HTTPResponse<T>> {
         return await API.post<T>(
-            new URL(this.protocol, this.hostname, path),
+            new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
             data,
             headers
         );
@@ -111,42 +128,42 @@ export default class API {
         return defaultHeaders;
     }
 
-    public static async get<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
+    public static async get<T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>>(
         url: URL,
-        data?: JSONObjectOrArray,
+        data?: JSONObject | JSONArray,
         headers?: Headers
     ): Promise<HTTPResponse<T>> {
         return await this.fetch<T>(HTTPMethod.GET, url, data, headers);
     }
 
-    public static async delete<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
+    public static async delete<T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>>(
         url: URL,
-        data?: JSONObjectOrArray,
+        data?: JSONObject | JSONArray,
         headers?: Headers
     ): Promise<HTTPResponse<T>> {
         return await this.fetch(HTTPMethod.DELETE, url, data, headers);
     }
 
-    public static async put<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
+    public static async put<T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>>(
         url: URL,
-        data?: JSONObjectOrArray,
+        data?: JSONObject | JSONArray,
         headers?: Headers
     ): Promise<HTTPResponse<T>> {
         return await this.fetch(HTTPMethod.PUT, url, data, headers);
     }
 
-    public static async post<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
+    public static async post<T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>>(
         url: URL,
-        data?: JSONObjectOrArray,
+        data?: JSONObject | JSONArray,
         headers?: Headers
     ): Promise<HTTPResponse<T>> {
         return await this.fetch(HTTPMethod.POST, url, data, headers);
     }
 
-    private static async fetch<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
+    private static async fetch<T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>>(
         method: HTTPMethod,
         url: URL,
-        data?: JSONObjectOrArray,
+        data?: JSONObject | JSONArray,
         headers?: Headers
     ): Promise<HTTPResponse<T>> {
         const apiHeaders: Headers = this.getHeaders(headers);
@@ -154,7 +171,7 @@ export default class API {
         try {
 
             const result: {
-                data: JSONObjectOrArray;
+                data: JSONObject | JSONArray;
                 status: number;
             } = await axios({
                 method: method,

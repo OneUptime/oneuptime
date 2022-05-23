@@ -16,7 +16,7 @@ export interface ComponentProps<T extends BaseModel> {
     description?: string;
     showAsColumns?: number;
     footer: ReactElement;
-    isLoading: boolean;
+    isLoading?: boolean;
 }
 
 const BasicModelForm = <TBaseModel extends BaseModel>(
@@ -54,7 +54,7 @@ const BasicModelForm = <TBaseModel extends BaseModel>(
 
     return (
         <BasicForm<TBaseModel>
-            isLoading={props.isLoading}
+            isLoading={props.isLoading || false}
             fields={fields}
             id={props.id}
             onSubmit={props.onSubmit}

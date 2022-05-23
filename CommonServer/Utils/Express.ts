@@ -2,7 +2,7 @@ import express from 'express';
 import logger from './Logger';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import { JSONWebTokenData } from '../Utils/JsonWebToken';
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Role from 'Common/Types/Role';
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;

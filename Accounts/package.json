@@ -48,6 +48,7 @@
         "@types/react-router-dom": "^5.3.3",
         "css-loader": "^6.7.1",
         "customize-cra": "^1.0.0",
+        "dotenv-webpack": "^7.1.0",
         "react-app-rewired": "^2.2.1",
         "sass": "^1.51.0",
         "sass-loader": "^12.6.0",

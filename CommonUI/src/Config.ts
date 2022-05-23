@@ -1,49 +1,122 @@
 import Hostname from 'Common/Types/API/Hostname';
 import Protocol from 'Common/Types/API/Protocol';
+import Route from 'Common/Types/API/Route';
 import Version from 'Common/Types/Version';
+import URL from 'Common/Types/API/URL'
 
-export const env: Function = (key: string): string => {
-    return process.env[`REACT_APP_${key}`] || '';
+export const env: Function = (_key: string): string => {
+    console.log(process.env['production']);
+    return ''
 };
-
-export const IS_SAAS_SERVICE: boolean = env('IS_SAAS_SERVICE') === 'true';
-export const DISABLE_SIGNUP: boolean = env('DISABLE_SIGNUP') === 'true';
-export const VERSION: Version = new Version(env('VERSION') || '');
-
-export const BACKEND_HOSTNAME: Hostname = new Hostname(
-    `${window.location.hostname}/api`
-);
-
-export const IDENTITY_HOSTNAME: Hostname = new Hostname(
-    `${window.location.hostname}/identity`
-);
-
-export const DASHBOARD_HOSTNAME: Hostname = new Hostname(
-    `${window.location.hostname}/dashboard`
-);
-
-export const INTEGRATION_HOSTNAME: Hostname = new Hostname(
-    `${window.location.hostname}/integration`
-);
-
-export const HELM_HOSTNAME: Hostname = new Hostname(
-    `${window.location.hostname}/charts`
-);
-
-export const API_DOCS_HOSTANME: Hostname = new Hostname(
-    `${window.location.hostname}/docs`
-);
-
-export const ADMIN_DASHBOARD_HOSTNAME: Hostname = new Hostname(
-    `${window.location.hostname}/admin`
-);
-export const ACCOUNTS_HOSTNAME: Hostname = new Hostname(
-    `${window.location.hostname}/accounts`
-);
-export const HOME_HOSTNAME: Hostname = new Hostname(
-    `${window.location.hostname}`
-);
 
 export const API_PROTOCOL: Protocol = window.location.protocol.includes('https')
     ? Protocol.HTTPS
     : Protocol.HTTP;
+
+export const IS_SAAS_SERVICE: boolean = env('IS_SAAS_SERVICE') === 'true';
+export const DISABLE_SIGNUP: boolean = env('DISABLE_SIGNUP') === 'true';
+export const VERSION: Version = new Version(env('VERSION') || '1.0.0');
+
+export const DASHBOARD_API_ROUTE: Route = new Route(
+    env('DASHBOARD_API_Route')
+);
+
+export const IDENTITY_ROUTE: Route = new Route(
+    env('IDENTITY_ROUTE')
+);
+
+export const DASHBOARD_ROUTE: Route = new Route(
+    env('DASHBOARD_ROUTE')
+);
+
+export const INTEGRATION_ROUTE: Route = new Route(
+    env('INTEGRATION_ROUTE')
+);
+
+export const HELM_ROUTE: Route = new Route(
+    env('HELMCHART_ROUTE')
+);
+
+export const API_DOCS_ROUTE: Route = new Route(
+    env('APIDOCS_ROUTE')
+);
+
+export const ADMIN_DASHBOARD_ROUTE: Route = new Route(
+    env('ADMINDASHBOARD_ROUTE')
+);
+export const ACCOUNTS_ROUTE: Route = new Route(
+    env('ACCOUNTS_ROUTE')
+);
+export const HOME_ROUTE: Route = new Route(
+    env('HOME_ROUTE')
+);
+
+
+export const DASHBOARD_API_HOSTNAME: Hostname = new Hostname(
+    env('DASHBOARD_API_HOSTNAME')
+);
+
+export const IDENTITY_HOSTNAME: Hostname = new Hostname(
+    env('IDENTITY_HOSTNAME')
+);
+
+export const DASHBOARD_HOSTNAME: Hostname = new Hostname(
+    env('DASHBOARD_HOSTNAME')
+);
+
+export const INTEGRATION_HOSTNAME: Hostname = new Hostname(
+    env('INTEGRATION_HOSTNAME')
+);
+
+export const HELM_HOSTNAME: Hostname = new Hostname(
+    env('HELMCHART_HOSTNAME')
+);
+
+export const API_DOCS_HOSTNAME: Hostname = new Hostname(
+    env('APIDOCS_HOSTNAME')
+);
+
+export const ADMIN_DASHBOARD_HOSTNAME: Hostname = new Hostname(
+    env('ADMINDASHBOARD_HOSTNAME')
+);
+export const ACCOUNTS_HOSTNAME: Hostname = new Hostname(
+    env('ACCOUNTS_HOSTNAME')
+);
+export const HOME_HOSTNAME: Hostname = new Hostname(
+    env('HOME_HOSTNAME')
+);
+
+export const DASHBOARD_API_URL: URL = new URL(
+    API_PROTOCOL, INTEGRATION_HOSTNAME, INTEGRATION_ROUTE
+);
+
+export const IDENTITY_URL: URL = new URL(
+    API_PROTOCOL, IDENTITY_HOSTNAME, IDENTITY_ROUTE
+);
+
+export const DASHBOARD_URL: URL = new URL(
+    API_PROTOCOL, DASHBOARD_HOSTNAME, DASHBOARD_ROUTE
+);
+
+export const INTEGRATION_URL: URL = new URL(
+    API_PROTOCOL, INTEGRATION_HOSTNAME, INTEGRATION_ROUTE
+);
+
+export const HELM_URL: URL = new URL(
+    API_PROTOCOL, HELM_HOSTNAME, HELM_ROUTE
+);
+
+export const API_DOCS_URL: URL = new URL(
+    API_PROTOCOL, API_DOCS_HOSTNAME, API_DOCS_ROUTE
+);
+
+export const ADMIN_DASHBOARD_URL: URL = new URL(
+    API_PROTOCOL, ADMIN_DASHBOARD_HOSTNAME, ADMIN_DASHBOARD_ROUTE
+);
+export const ACCOUNTS_URL: URL = new URL(
+    API_PROTOCOL, ACCOUNTS_HOSTNAME, ACCOUNTS_ROUTE
+);
+export const HOME_URL: URL = new URL(
+    API_PROTOCOL, HOME_HOSTNAME, HOME_ROUTE
+);
+

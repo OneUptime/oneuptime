@@ -7,6 +7,8 @@ import Footer from '../Footer';
 import Container from 'CommonUI/src/Container';
 import IdentityAPI from 'CommonUI/src/Utils/API/IdentityAPI';
 import Route from 'Common/Types/API/Route';
+import { JSONObject } from 'Common/Types/JSON';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
 
 const RegisterPage: FunctionComponent = () => {
     
@@ -17,9 +19,10 @@ const RegisterPage: FunctionComponent = () => {
     const submitForm = async (values: FormValues<User>) => {
         setIsLoading(true);
 
-        await IdentityAPI.post(new Route("/"))
+        const response: HTTPResponse<JSONObject> = await IdentityAPI.post<JSONObject>(new Route("/signup"), values as JSONObject);
         
-
+        // navigate to dashboard. 
+        console.log(response);
         setIsLoading(false);
     }
 

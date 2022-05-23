@@ -1,5 +1,6 @@
 const path = require("path");
 const webpack = require("webpack");
+const Dotenv = require('dotenv-webpack');
 
 module.exports = {
     entry: "./src/Index.tsx",
@@ -15,6 +16,14 @@ module.exports = {
     externals: {
         'react-native-sqlite-storage': 'react-native-sqlite-storage'
     },
+    plugins: [
+        new webpack.DefinePlugin({
+            "app.env.production": JSON.stringify(true),
+        }),
+        new Dotenv({ path: '../Common/.env', ignoreStub: true, prefix: "window." }),
+        // new Dotenv({ path: '../CommonUI/.env'}),
+        // new Dotenv({ path: './.env'})
+    ],
     module: {
         rules: [
             {
@@ -35,5 +44,4 @@ module.exports = {
         historyApiFallback: true,
     },
     devtool: 'inline-source-map',
-
 }

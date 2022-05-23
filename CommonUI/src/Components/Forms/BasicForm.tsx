@@ -22,7 +22,7 @@ export interface ComponentProps<T extends Object> {
     description?: string;
     showAsColumns?: number;
     footer: ReactElement;
-    isLoading: boolean;
+    isLoading?: boolean;
 }
 
 const BasicForm = <T extends Object>(
@@ -133,7 +133,7 @@ const BasicForm = <T extends Object>(
                                 }
                                 type={ButtonTypes.Submit}
                                 id={`${props.id}-submit-button`}
-                                isLoading={props.isLoading}
+                                isLoading={props.isLoading || false}
                             />
                             {props.footer}
                         </Form>
