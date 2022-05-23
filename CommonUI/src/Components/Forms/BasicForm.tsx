@@ -114,6 +114,22 @@ const BasicForm = <T extends Object>(
         return null;
     };
 
+    const validateRequired = (content: string, field: DataField<T>) => {
+        if (field.required && content.length === 0) {
+            return `${field.title} is required.`;
+        }
+        return null;
+    };
+
+    const validateData = (content: string, field: DataField<T>) => {
+        if (field.fieldType === FormFieldSchemaType.Email) {
+            if (!Email.isValid(content!)) {
+                return 'Email is not valid.';
+            }
+        }
+        return null;
+    };
+
     const validate = (values: FormValues<T>): object => {
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
@@ -127,15 +143,15 @@ const BasicForm = <T extends Object>(
 
                 if (content) {
                     // Check Required fields.
-
-                    if (field.required && content.trim().length === 0) {
-                        errors[name] = `${field.title || name} is required.`;
+                    const resultRequired = validateRequired(content, field);
+                    if (resultRequired) {
+                        errors[name] = resultRequired;
                     }
+
                     // Check for valid email data.
-                    if (field.fieldType === FormFieldSchemaType.Email) {
-                        if (!Email.isValid(content!)) {
-                            errors[name] = 'Email is not valid.';
-                        }
+                    const resultValidateData = validateData(content, field);
+                    if (resultValidateData) {
+                        errors[name] = resultValidateData;
                     }
                     // check for length of content
                     const result = validateLength(content, field);
@@ -167,7 +183,6 @@ const BasicForm = <T extends Object>(
                     }
                     return validate(values);
                 }}
-                isInitialValid={false}
                 validateOnChange={true}
                 validateOnBlur={true}
                 onSubmit={(values: FormValues<T>, { setSubmitting }) => {

@@ -5,7 +5,7 @@ export type FormField<Property> = Property extends FormFieldSchemaTypes
     : unknown;
 
 declare type FormValues<Entity> = {
-    [P in keyof Entity]?: FormField<NonNullable<Entity[P]>>;
+    [P in keyof Entity]?: FormField<NonNullable<Entity[P]>> | undefined;
 };
 
 export default FormValues;

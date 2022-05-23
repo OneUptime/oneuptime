@@ -30,7 +30,7 @@ const RegisterPage: FunctionComponent = () => {
                         field: {
                             name: true,
                         },
-                        fieldType: FormFieldSchemaType.String,
+                        fieldType: FormFieldSchemaType.Text,
                         placeholder: 'Jeff Smith',
                         required: true,
                         title: 'Full Name',
@@ -39,7 +39,7 @@ const RegisterPage: FunctionComponent = () => {
                         field: {
                             companyName: true,
                         },
-                        fieldType: FormFieldSchemaType.String,
+                        fieldType: FormFieldSchemaType.Text,
                         placeholder: 'Company Name',
                         required: true,
                         title: 'Company Name',
@@ -48,7 +48,7 @@ const RegisterPage: FunctionComponent = () => {
                         field: {
                             companyPhoneNumber: true,
                         },
-                        fieldType: FormFieldSchemaType.String,
+                        fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Phone Number',
                         title: 'Phone Number',
@@ -75,7 +75,7 @@ const RegisterPage: FunctionComponent = () => {
                         fieldType: FormFieldSchemaType.Password,
                         placeholder: 'Confirm Password',
                         title: 'Confirm Password',
-                        overideFieldKey: 'confirm',
+                        overideFieldKey: 'confirmPassword',
                         required: true,
                     },
                 ]}
