@@ -15,7 +15,6 @@
         "light-house-mobile": "node lighthouse.js --mobile",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,puppeteer'"
     },
-    "type": "module",
     "dependencies": {
         "@types/body-parser": "^1.19.2",
         "@types/cli-table": "^0.3.0",
