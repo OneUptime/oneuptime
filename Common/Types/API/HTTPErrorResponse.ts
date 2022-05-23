@@ -1,5 +1,4 @@
-import BaseModel from '../../Models/BaseModel';
-import { JSONObjectOrArray } from '../JSON';
+import { JSONObject } from '../JSON';
 import HTTPResponse from './HTTPResponse';
 
-export default class HTTPErrorResponse<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>> extends HTTPResponse<T> {}
+export default class HTTPErrorResponse extends HTTPResponse<JSONObject> {}

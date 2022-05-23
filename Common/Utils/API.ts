@@ -82,9 +82,9 @@ export default class API {
         );
     }
 
-    protected static handleError<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(
-        error: HTTPErrorResponse<T> | APIException
-    ): HTTPErrorResponse<T> | APIException {
+    protected static handleError(
+        error: HTTPErrorResponse | APIException
+    ): HTTPErrorResponse | APIException {
         return error;
     }
 
@@ -171,7 +171,7 @@ export default class API {
             return response;
         } catch (e) {
             const error: Error | AxiosError = e as Error | AxiosError;
-            let errorResponse: HTTPErrorResponse<T> | APIException;
+            let errorResponse: HTTPErrorResponse | APIException;
             if (axios.isAxiosError(error)) {
                 // Do whatever you want with native error
                 errorResponse = this.getErrorResponse(error);
@@ -179,16 +179,16 @@ export default class API {
                 errorResponse = new APIException(error.message);
             }
 
-            this.handleError<T>(errorResponse);
+            this.handleError(errorResponse);
             throw errorResponse;
         }
     }
 
-    private static getErrorResponse<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>>(error: AxiosError): HTTPErrorResponse<T> {
+    private static getErrorResponse(error: AxiosError): HTTPErrorResponse {
         if (error.response) {
-            return new HTTPErrorResponse<T>(
+            return new HTTPErrorResponse(
                 error.response.status,
-                error.response.data as JSONObjectOrArray
+                error.response.data
             );
         }
 
