@@ -44,9 +44,8 @@ export default class Email extends DatabaseProperty {
         this.email = email;
     }
 
-    private static isValid(value: string): boolean {
-        const re: RegExp =
-            /^(([^<>()[\].,;:\s@"]+(.[^<>()[\].,;:\s@"]+)*)|(".+"))@(([^<>()[\].,;:\s@"]+.)+[^<>()[\].,;:\s@"]{2,})$/i;
+    public static isValid(value: string): boolean {
+        const re: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
         const isValid: boolean = re.test(value);
         if (!isValid) {
             return false;

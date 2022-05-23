@@ -5,6 +5,7 @@ import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Footer from '../Footer';
 import Container from 'CommonUI/src/Container';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const ForgotPasswordPage: FunctionComponent = () => {
     const user: User = new User();
@@ -21,6 +22,7 @@ const ForgotPasswordPage: FunctionComponent = () => {
                         },
                         title: 'Email',
                         required: true,
+                        fieldType: FormFieldSchemaType.Email,
                     },
                 ]}
                 onSubmit={(values: FormValues<User>) => {

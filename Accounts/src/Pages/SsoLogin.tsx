@@ -5,6 +5,7 @@ import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Footer from '../Footer';
 import Container from 'CommonUI/src/Container';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const SsoLoginPage: FunctionComponent = () => {
     const user: User = new User();
@@ -19,6 +20,7 @@ const SsoLoginPage: FunctionComponent = () => {
                         field: {
                             email: true,
                         },
+                        fieldType: FormFieldSchemaType.Email,
                         required: true,
                         title: 'Email',
                     },
