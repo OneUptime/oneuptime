@@ -675,7 +675,7 @@ app.get(
     '/js/default.js',
     async (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'text/javascript');
-        res.sendFile('./public/js/default.js' , { root : __dirname});
+        res.sendFile('./public/js/default.js', { root: __dirname });
     }
 );
 
@@ -688,7 +688,7 @@ app.get(
     '/css/comparision.css',
     async (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'text/css');
-        res.sendFile('./public/css/comparision.css' , { root : __dirname});
+        res.sendFile('./public/css/comparision.css', { root: __dirname });
     }
 );
 

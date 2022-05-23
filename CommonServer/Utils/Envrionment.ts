@@ -9,12 +9,12 @@ if (Env === AppEnvironment.Development || Env === AppEnvironment.Test) {
      * Production values are supplied by Kubernetes Helm charts or docker compose files.
      */
     dotenv.config({
-        path: '../Common/.env'
+        path: '../Common/.env',
     });
     dotenv.config({
-        path: '../CommonServer/.env'
+        path: '../CommonServer/.env',
     });
     dotenv.config({
-        path: './.env'
+        path: './.env',
     });
 }
