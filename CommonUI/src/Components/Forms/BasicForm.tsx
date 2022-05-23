@@ -175,7 +175,7 @@ const BasicForm = <T extends Object>(
                     setSubmitting(false);
                 }}
             >
-                {({ isSubmitting, isValid, isValidating }) => {
+                {({ isSubmitting, isValid }) => {
                     return (
                         <Form
                             autoComplete="off"
@@ -196,9 +196,7 @@ const BasicForm = <T extends Object>(
 
                             <Button
                                 title={props.submitButtonText || 'Submit'}
-                                disabled={
-                                    isSubmitting || !isValid || isValidating
-                                }
+                                disabled={isSubmitting || !isValid}
                                 type={ButtonTypes.Submit}
                                 id={`${props.id}-submit-button`}
                             />
