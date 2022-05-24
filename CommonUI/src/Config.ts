@@ -52,37 +52,37 @@ export const HOME_ROUTE: Route = new Route(
 
 
 export const DASHBOARD_API_HOSTNAME: Hostname = new Hostname(
-    env('DASHBOARD_API_HOSTNAME')
+    window.location.hostname
 );
 
 export const IDENTITY_HOSTNAME: Hostname = new Hostname(
-    env('IDENTITY_HOSTNAME')
+    window.location.hostname
 );
 
 export const DASHBOARD_HOSTNAME: Hostname = new Hostname(
-    env('DASHBOARD_HOSTNAME')
+    window.location.hostname
 );
 
 export const INTEGRATION_HOSTNAME: Hostname = new Hostname(
-    env('INTEGRATION_HOSTNAME')
+    window.location.hostname
 );
 
 export const HELM_HOSTNAME: Hostname = new Hostname(
-    env('HELMCHART_HOSTNAME')
+    window.location.hostname
 );
 
 export const API_DOCS_HOSTNAME: Hostname = new Hostname(
-    env('APIDOCS_HOSTNAME')
+    window.location.hostname
 );
 
 export const ADMIN_DASHBOARD_HOSTNAME: Hostname = new Hostname(
-    env('ADMINDASHBOARD_HOSTNAME')
+    window.location.hostname
 );
 export const ACCOUNTS_HOSTNAME: Hostname = new Hostname(
-    env('ACCOUNTS_HOSTNAME')
+    window.location.hostname
 );
 export const HOME_HOSTNAME: Hostname = new Hostname(
-    env('HOME_HOSTNAME')
+    window.location.hostname
 );
 
 export const DASHBOARD_API_URL: URL = new URL(
