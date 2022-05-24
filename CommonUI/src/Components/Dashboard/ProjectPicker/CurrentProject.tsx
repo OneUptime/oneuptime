@@ -1,25 +1,22 @@
 import React, { ReactElement, useState } from 'react';
-import ProjectLists from './ProjectLists';
+import ProjectList from './ProjectList';
 import { faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Project.scss';
 
-const ProjectView = (): ReactElement => {
-    const [showProjects, setShowProjects] = useState(false);
+const CurrentProject = (): ReactElement => {
+    const [showList, setShowList] = useState(false);
 
     return (
         <div className="projectPreview">
-            <div
-                className="preview"
-                onClick={() => setShowProjects(!showProjects)}
-            >
+            <div className="preview" onClick={() => setShowList(!showList)}>
                 <img src="img/placeholder.png" alt="Project Image" />
                 <p>Flow</p>
                 <FontAwesomeIcon icon={faCaretDown} />
             </div>
-            {showProjects && <ProjectLists />}
+            {showList && <ProjectList />}
         </div>
     );
 };
 
-export default ProjectView;
+export default CurrentProject;

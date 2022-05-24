@@ -1,0 +1,31 @@
+$primaryColor: rgb(246, 248, 250);
+
+.account {
+    position: relative;
+    user-select: none;
+
+    .preview {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        cursor: pointer;
+
+        svg {
+            color: rgb(52, 52, 52);
+            font-size: 1.2rem;
+        }
+    }
+
+    .details {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        padding-top: 3px;
+        width: 200px;
+        height: 100px;
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 1px 3px 10px rgba(0, 0, 0, 0.2);
+        color: darken($primaryColor, 70%);
+    }
+}

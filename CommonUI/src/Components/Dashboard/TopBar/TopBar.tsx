@@ -1,5 +1,6 @@
 import React, { ReactElement } from 'react';
-import ProjectView from '../Project/ProjectView';
+import Account from '../Account/Account';
+import CurrentProject from '../ProjectPicker/CurrentProject';
 import SearchBar from './SearchBar/SearchBar';
 import './TopBar.scss';
 
@@ -7,9 +8,11 @@ const TopBar = (): ReactElement => {
     return (
         <div className="root">
             <header>
-                <ProjectView />
+                <CurrentProject />
                 <SearchBar />
-                <div>3</div>
+                <div>
+                    <Account />
+                </div>
             </header>
             <nav></nav>
         </div>
