@@ -2,6 +2,7 @@ $primaryColor: rgb(246, 248, 250);
 
 .projectPreview {
     position: relative;
+    user-select: none;
 
     .preview {
         display: flex;
@@ -34,6 +35,7 @@ $primaryColor: rgb(246, 248, 250);
         position: absolute;
         top: 90%;
         left: 0;
+        padding-top: 3px;
         width: 200px;
         height: fit-content;
         background-color: white;
