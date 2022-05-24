@@ -61,14 +61,14 @@ class Express {
         return this.app;
     }
 
-    public static launchApplication(): express.Application {
+    public static launchApplication(appName: string): express.Application {
         if (!this.app) {
             this.setupExpress();
         }
 
         this.app.listen(this.app.get('port'), () => {
             // eslint-disable-next-line
-            logger.info(`Server started on port: ${this.app.get('port')}`);
+            logger.info(`${appName} server started on port: ${this.app.get('port')}`);
         });
 
         return this.app;

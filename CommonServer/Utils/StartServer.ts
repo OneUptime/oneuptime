@@ -74,7 +74,7 @@ app.use(ExpressUrlEncoded({ limit: '10mb' }));
 app.use(logRequest);
 
 export default (appName: string) => {
-    Express.launchApplication();
+    Express.launchApplication(appName);
     CommonAPI(appName);
     return app;
 };
