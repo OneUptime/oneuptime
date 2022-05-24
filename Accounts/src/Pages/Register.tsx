@@ -91,7 +91,8 @@ const RegisterPage: FunctionComponent = () => {
                     <div className="actions">
                         <p>
                             <span>Have an account? </span>
-                            <Link to="/login">Login</Link>
+                            <Link to="/accounts/login">Login</Link>
+                            
                         </p>
                     </div>
                 }

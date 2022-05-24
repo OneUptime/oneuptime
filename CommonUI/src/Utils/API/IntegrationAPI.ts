@@ -1,9 +1,9 @@
-import { INTEGRATION_HOSTNAME, API_PROTOCOL } from '../../Config';
+import { INTEGRATION_HOSTNAME, HTTP_PROTOCOL } from '../../Config';
 import BaseAPI from './BaseAPI';
 
 class BackendAPI extends BaseAPI {
     public constructor() {
-        super(API_PROTOCOL, INTEGRATION_HOSTNAME);
+        super(HTTP_PROTOCOL, INTEGRATION_HOSTNAME);
     }
 }
 

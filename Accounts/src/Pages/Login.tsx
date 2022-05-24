@@ -33,7 +33,7 @@ const LoginPage: FunctionComponent = () => {
                         required: true,
                         sideLink: {
                             text: 'Forgot password?',
-                            url: new Route('/forgot-password'),
+                            url: new Route('/accounts/forgot-password'),
                             openLinkInNewTab: false,
                         },
                     },
@@ -46,13 +46,13 @@ const LoginPage: FunctionComponent = () => {
                 footer={
                     <div className="actions">
                         <p>
-                            <Link to="/login/sso">
+                            <Link to="/accounts/login/sso">
                                 Use single sign-on (SSO) instead
                             </Link>
                         </p>
                         <p>
                             <span>Don&apos;t have an account? </span>
-                            <Link to="/register">Sign up</Link>
+                            <Link to="/accounts/register">Sign up</Link>
                         </p>
                     </div>
                 }

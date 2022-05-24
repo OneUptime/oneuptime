@@ -1,9 +1,9 @@
-import { DASHBOARD_HOSTNAME, API_PROTOCOL } from '../../Config';
+import { DASHBOARD_HOSTNAME, HTTP_PROTOCOL } from '../../Config';
 import API from 'Common/Utils/API';
 
 class DashboardAPI extends API {
     public constructor() {
-        super(API_PROTOCOL, DASHBOARD_HOSTNAME);
+        super(HTTP_PROTOCOL, DASHBOARD_HOSTNAME);
     }
 }
 

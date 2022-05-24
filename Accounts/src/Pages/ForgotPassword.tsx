@@ -32,11 +32,11 @@ const ForgotPasswordPage: FunctionComponent = () => {
                 footer={
                     <div className="actions">
                         <p>
-                            <Link to="/login">Return to sign in</Link>
+                            <Link to="/accounts/login">Return to sign in</Link>
                         </p>
                         <p>
                             <span>Don&apos;t have an account? </span>
-                            <Link to="/register">Sign up</Link>
+                            <Link to="/accounts/register">Sign up</Link>
                         </p>
                     </div>
                 }

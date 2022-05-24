@@ -31,11 +31,11 @@ const SsoLoginPage: FunctionComponent = () => {
                 footer={
                     <div className="actions">
                         <p>
-                            <Link to="/login">Use your password instead</Link>
+                            <Link to="/accounts/login">Use your password instead</Link>
                         </p>
                         <p>
                             <span>Don&apos;t have an account? </span>
-                            <Link to="/register">Sign up</Link>
+                            <Link to="/accounts/register">Sign up</Link>
                         </p>
                     </div>
                 }
