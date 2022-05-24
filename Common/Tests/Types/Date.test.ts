@@ -57,8 +57,8 @@ describe('class OneUptimeDate', () => {
         );
     });
     test('OneUptimeDAte.getOneDayAfter should return moment Date', () => {
-        expect(OneUptimeDate.getOneDayAfter()).toEqual(
-            moment().add(1, 'day').toDate()
+        expect(OneUptimeDate.getOneDayAfter().getDay()).toEqual(
+            moment().add(1, 'day').toDate().getDay()
         );
     });
     test('OneUptimeDAte.getSomeMinutesAfter should return moment Date', () => {
