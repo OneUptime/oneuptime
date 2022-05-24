@@ -11,22 +11,24 @@ import { JSONObject } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 
 const RegisterPage: FunctionComponent = () => {
-    
+
     const [isLaoding, setIsLoading] = useState<boolean>(false);
-   
+
     const user: User = new User();
 
     const submitForm = async (values: FormValues<User>) => {
         setIsLoading(true);
 
-        const response: HTTPResponse<JSONObject> = await IdentityAPI.post<JSONObject>(new Route("/signup"), values as JSONObject);
-        
+        const response: HTTPResponse<JSONObject> = await IdentityAPI.post<JSONObject>(new Route("/signup"), {
+            user: values as JSONObject
+        });
+
         // navigate to dashboard. 
         console.log(response);
         setIsLoading(false);
     }
 
-    
+
     return (
         <Container title="Register">
             <BasicModelForm<User>
@@ -92,7 +94,7 @@ const RegisterPage: FunctionComponent = () => {
                         <p>
                             <span>Have an account? </span>
                             <Link to="/accounts/login">Login</Link>
-                            
+
                         </p>
                     </div>
                 }

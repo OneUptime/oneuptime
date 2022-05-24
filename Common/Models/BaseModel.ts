@@ -45,47 +45,47 @@ export default class BaseModel extends BaseEntity {
     @VersionColumn()
     public version?: number = undefined;
 
-    private canAdminCreateRecord = false;
-    private canAdminDeleteRecord = false;
-    private canAdminUpdateRecord = false;
-    private canAdminReadItemRecord = false;
-    private canAdminReadListRecord = false;
+    public canAdminCreateRecord!: boolean;
+    public canAdminDeleteRecord!: boolean;
+    public canAdminUpdateRecord!: boolean;
+    public canAdminReadItemRecord!: boolean;
+    public canAdminReadListRecord!: boolean;
 
-    private canPublicCreateRecord = false;
-    private canPublicDeleteRecord = false;
-    private canPublicUpdateRecord = false;
-    private canPublicReadItemRecord = false;
-    private canPublicReadListRecord = false;
+    public canPublicCreateRecord!: boolean;
+    public canPublicDeleteRecord!: boolean;
+    public canPublicUpdateRecord!: boolean;
+    public canPublicReadItemRecord!: boolean;
+    public canPublicReadListRecord!: boolean;
 
-    private canOwnerCreateRecord = false;
-    private canOwnerDeleteRecord = false;
-    private canOwnerUpdateRecord = false;
-    private canOwnerReadItemRecord = false;
-    private canOwnerReadListRecord = false;
+    public canOwnerCreateRecord!: boolean;
+    public canOwnerDeleteRecord!: boolean;
+    public canOwnerUpdateRecord!: boolean;
+    public canOwnerReadItemRecord!: boolean;
+    public canOwnerReadListRecord!: boolean;
 
-    private canMemberCreateRecord = false;
-    private canMemberDeleteRecord = false;
-    private canMemberUpdateRecord = false;
-    private canMemberReadItemRecord = false;
-    private canMemberReadListRecord = false;
+    public canMemberCreateRecord!: boolean;
+    public canMemberDeleteRecord!: boolean;
+    public canMemberUpdateRecord!: boolean;
+    public canMemberReadItemRecord!: boolean;
+    public canMemberReadListRecord!: boolean;
 
-    private canViewerCreateRecord = false;
-    private canViewerDeleteRecord = false;
-    private canViewerUpdateRecord = false;
-    private canViewerReadItemRecord = false;
-    private canViewerReadListRecord = false;
+    public canViewerCreateRecord!: boolean;
+    public canViewerDeleteRecord!: boolean;
+    public canViewerUpdateRecord!: boolean;
+    public canViewerReadItemRecord!: boolean;
+    public canViewerReadListRecord!: boolean;
 
-    private canUserCreateRecord = false;
-    private canUserDeleteRecord = false;
-    private canUserUpdateRecord = false;
-    private canUserReadItemRecord = false;
-    private canUserReadListRecord = false;
+    public canUserCreateRecord!: boolean;
+    public canUserDeleteRecord!: boolean;
+    public canUserUpdateRecord!: boolean;
+    public canUserReadItemRecord!: boolean;
+    public canUserReadListRecord!: boolean;
 
-    private slugifyColumn!: string | null;
-    private saveSlugToColumn!: string | null;
+    public slugifyColumn!: string | null;
+    public saveSlugToColumn!: string | null;
 
     // If this resource is by projectId, which column does projectId belong to?
-    private projectIdColumn!: string | null;
+    public projectIdColumn!: string | null;
 
     public constructor(id?: ObjectID) {
         super();
@@ -663,12 +663,12 @@ export default class BaseModel extends BaseEntity {
         }
 
         if (!data.canPublicCreateRecord) {
-            throw new BadRequestException(
-                'A user of role public cannot create this record.'
-            );
+            // throw new BadRequestException(
+            //     'A user of role public cannot create this record.'
+            // );
         }
 
-        return this.keepColumns(data, data.getPublicCreateableColumns());
+        return this.keepColumns<T>(data as T, data.getPublicCreateableColumns());
     }
 
     public static asPublicUpdateable<T extends BaseModel>(

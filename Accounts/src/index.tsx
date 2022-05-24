@@ -1,8 +1,5 @@
 import React from 'react';
-
-/// Load Styles
 import 'CommonUI/src/Styles/Bootstrap';
-
 import ReactDOM from 'react-dom/client';
 import App from './App';
 

@@ -18,6 +18,7 @@ import CommonAPI from '../API/Index';
 
 import OneUptimeDate from 'Common/Types/Date';
 import LocalCache from '../Infrastructure/LocalCache';
+import Exception from 'Common/Types/Exception/Exception';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -71,6 +72,26 @@ app.use(setDefaultHeaders);
 
 app.use(ExpressJson({ limit: '10mb' }));
 app.use(ExpressUrlEncoded({ limit: '10mb' }));
+
+
+// Error Handler. 
+app.use((err: Error, _req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    
+    logger.error(err);
+
+    if (res.headersSent) {
+        return next(err)
+    }
+
+    if (err instanceof Exception) {
+        res.status((err as Exception).code)
+        res.send({ error: (err as Exception).message })
+    } else {
+        res.status(500)
+        res.send({ error: err });
+    }
+
+});
 
 app.use(logRequest);
 
