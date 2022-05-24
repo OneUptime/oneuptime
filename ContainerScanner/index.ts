@@ -1,8 +1,12 @@
-import app from 'CommonServer/utils/StartServer';
+import App from 'CommonServer/utils/StartServer';
 
 import Main from './worker/main';
 
 import cron from 'node-cron';
+
+export const APP_NAME: string = 'container';
+const app = App(APP_NAME);
+
 
 const cronContainerSecurityStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 

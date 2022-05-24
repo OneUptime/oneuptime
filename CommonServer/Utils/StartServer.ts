@@ -14,7 +14,7 @@ import Express, {
 } from './Express';
 
 // Connect common api's.
-import '../API/Index';
+import CommonAPI from '../API/Index';
 
 import OneUptimeDate from 'Common/Types/Date';
 
@@ -61,6 +61,8 @@ const setDefaultHeaders: RequestHandler = (
 app.use(cors());
 app.use(setDefaultHeaders);
 
+
+
 /*
  * Add limit of 10 MB to avoid "Request Entity too large error"
  * https://stackoverflow.com/questions/19917401/error-request-entity-too-large
@@ -71,6 +73,8 @@ app.use(ExpressUrlEncoded({ limit: '10mb' }));
 
 app.use(logRequest);
 
-Express.launchApplication();
-
-export default app;
+export default (appName: string) => {
+    Express.launchApplication();
+    CommonAPI(appName);
+    return app;
+};

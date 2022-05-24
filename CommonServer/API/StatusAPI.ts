@@ -6,9 +6,14 @@ import Express, {
 
 const router: ExpressRouter = Express.getRouter();
 
+
+router.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.send({ status: 'identity' });
+});
+
 // General status
 router.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.send({ status: 'ok' });
+    res.send({ status: 'status' });
 });
 
 //Healthy probe
