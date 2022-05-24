@@ -4,9 +4,8 @@ import Route from 'Common/Types/API/Route';
 import Version from 'Common/Types/Version';
 import URL from 'Common/Types/API/URL'
 
-export const env: Function = (_key: string): string => {
-    console.log(process.env['production']);
-    return ''
+export const env: Function = (key: string): string => {
+    return process.env[key] || '';
 };
 
 export const API_PROTOCOL: Protocol = window.location.protocol.includes('https')
