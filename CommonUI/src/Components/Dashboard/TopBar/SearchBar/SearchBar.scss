@@ -1,0 +1,61 @@
+$primaryColor: rgb(246, 248, 250);
+
+$transition: all 0.2s linear;
+
+.top-search {
+    background-color: white;
+    flex: 0 0 35% !important;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    border: 1px solid darken($primaryColor, 4%);
+    border-radius: 100px;
+
+    & > * {
+        flex: 0 0 5%;
+        color: darken($primaryColor, 50%);
+    }
+
+    svg {
+        font-size: 1.2rem;
+        color: darken($primaryColor, 60%);
+        cursor: text;
+    }
+
+    .aside {
+        padding: 5px;
+        background-color: darken($primaryColor, 1%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 5px;
+        visibility: hidden;
+        transition: $transition;
+    }
+
+    svg:last-child {
+        font-size: 0.8rem;
+        color: darken($primaryColor, 25%);
+        transform: rotate(80deg);
+    }
+
+    &:hover > .aside {
+        visibility: visible;
+    }
+
+    input {
+        flex: 1;
+        border: none;
+        outline: none;
+        padding: 5px;
+        font-size: 1.2rem;
+
+        &::placeholder {
+            color: darken($primaryColor, 30%);
+        }
+
+        &:focus + .aside {
+            visibility: hidden !important;
+        }
+    }
+}
