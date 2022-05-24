@@ -17,6 +17,7 @@ import Express, {
 import CommonAPI from '../API/Index';
 
 import OneUptimeDate from 'Common/Types/Date';
+import LocalCache from '../Infrastructure/LocalCache';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -76,5 +77,6 @@ app.use(logRequest);
 export default (appName: string) => {
     Express.launchApplication(appName);
     CommonAPI(appName);
+    LocalCache.setString("app", "name", appName);
     return app;
 };
