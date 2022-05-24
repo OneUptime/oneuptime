@@ -1,8 +1,19 @@
 {
     "name": "dashboard",
-    "version": "1.0.0",
-    "description": "",
-    "main": "index.js",
+    "version": "0.1.0",
+    "private": true,
+    "dependencies": {
+        "Common": "file:../Common",
+        "CommonServer": "file:../CommonServer",
+        "CommonUI": "file:../CommonUI",
+        "formik": "^2.2.9",
+        "react": "^18.1.0",
+        "react-dom": "^18.1.0",
+        "react-router": "^6.3.0",
+        "react-router-dom": "^6.3.0",
+        "react-scripts": "5.0.1",
+        "typescript": "^4.6.4"
+    },
     "scripts": {
         "dev": "webpack-dev-server --port=3003 --mode=development",
         "build": "react-app-rewired build",
@@ -14,20 +25,6 @@
         "preinstall": "npm link ../CommonUI/node_modules/react && npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "dep-check": "depcheck ./ --skip-missing=true'"
     },
-    "dependencies": {
-        "Common": "file:../Common",
-        "CommonServer": "file:../CommonServer",
-        "CommonUI": "file:../CommonUI",
-        "formik": "^2.2.9",
-        "react": "^18.1.0",
-        "react-dom": "^18.1.0",
-        "react-router": "^6.3.0",
-        "react-router-dom": "^6.3.0",
-        "react-scripts": "^2.1.3",
-        "typescript": "^4.6.4"
-    },
-    "author": "",
-    "license": "MIT",
     "browserslist": {
         "production": [
             ">0.2%",
