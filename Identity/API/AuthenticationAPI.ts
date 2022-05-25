@@ -40,9 +40,10 @@ router.post(
             }
 
             const data: JSONObject = req.body;
+            
             const user: User = User.asPublicCreateable<User>(
-                data['user'] as JSONObject
-            ) as User;
+                data['user'] as JSONObject, User
+            );
 
             if (IsSaaSService) {
                 //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.

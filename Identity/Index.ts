@@ -1,10 +1,26 @@
+import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
+import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import AuthenticationAPI from './API/AuthenticationAPI';
 
-export const APP_NAME: string = 'identity';
+const app: ExpressApplication = Express.getExpressApp();
 
-const app = App(APP_NAME);
+const APP_NAME: string = 'identity';
 
-app.use([`/${APP_NAME}`,'/'], AuthenticationAPI);
+app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
 
-export default app;
+const init = async () => {
+    try {
+        // init the app
+        await App(APP_NAME);
+        // connect to the database.
+        await PostgresAppInstance.connect(PostgresAppInstance.getDatasourceOptions());
+    } catch (err) {
+        logger.error("App Init Failed:")
+        logger.error(err);
+    }
+};
+
+init();
+

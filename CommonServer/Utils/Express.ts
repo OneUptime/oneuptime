@@ -61,17 +61,19 @@ class Express {
         return this.app;
     }
 
-    public static launchApplication(appName: string): express.Application {
-        if (!this.app) {
-            this.setupExpress();
-        }
+    public static async launchApplication(appName: string): Promise<express.Application> {
 
-        this.app.listen(this.app.get('port'), () => {
-            // eslint-disable-next-line
-            logger.info(`${appName} server started on port: ${this.app.get('port')}`);
+        return new Promise((resolve) => {
+            if (!this.app) {
+                this.setupExpress();
+            }
+    
+            this.app.listen(this.app.get('port'), () => {
+                // eslint-disable-next-line
+                logger.info(`${appName} server started on port: ${this.app.get('port')}`);
+                return resolve(this.app);
+            });
         });
-
-        return this.app;
     }
 }
 

@@ -30,14 +30,14 @@ import ObjectID from 'Common/Types/ObjectID';
 import Role from 'Common/Types/Role';
 
 class DatabaseService<TBaseModel extends BaseModel> {
-    public entityName!: string;
     private postgresDatabase!: PostgresDatabase;
-
+    private entityType!: { new(): TBaseModel }; 
+    
     public constructor(
         type: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
-        this.entityName = type.name;
+        this.entityType = type; 
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
         }
@@ -57,7 +57,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             : PostgresAppInstance.getDataSource();
 
         if (dataSource) {
-            return dataSource.getRepository<TBaseModel>(this.entityName);
+            return dataSource.getRepository<TBaseModel>(this.entityType.name);
         }
 
         throw new DatabaseNotConnectedException();
@@ -380,31 +380,31 @@ class DatabaseService<TBaseModel extends BaseModel> {
     ): Promise<TBaseModel> {
         if (role === Role.Administrator) {
             return await this.create({
-                data: BaseModel.asAdminCreateable<TBaseModel>(createBy.data),
+                data: BaseModel.asAdminCreateable<TBaseModel>(createBy.data, this.entityType),
             });
         }
 
         if (role === Role.Member) {
             return await this.create({
-                data: BaseModel.asMemberCreateable<TBaseModel>(createBy.data),
+                data: BaseModel.asMemberCreateable<TBaseModel>(createBy.data, this.entityType),
             });
         }
 
         if (role === Role.Public) {
             return await this.create({
-                data: BaseModel.asPublicCreateable<TBaseModel>(createBy.data),
+                data: BaseModel.asPublicCreateable<TBaseModel>(createBy.data, this.entityType),
             });
         }
 
         if (role === Role.Viewer) {
             return await this.create({
-                data: BaseModel.asViewerCreateable<TBaseModel>(createBy.data),
+                data: BaseModel.asViewerCreateable<TBaseModel>(createBy.data, this.entityType),
             });
         }
 
         if (role === Role.Owner) {
             return await this.create({
-                data: BaseModel.asOwnerCreateable<TBaseModel>(createBy.data),
+                data: BaseModel.asOwnerCreateable<TBaseModel>(createBy.data, this.entityType),
             });
         }
 

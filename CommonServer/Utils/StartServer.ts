@@ -95,9 +95,9 @@ app.use((err: Error, _req: ExpressRequest, res: ExpressResponse, next: NextFunct
 
 app.use(logRequest);
 
-export default (appName: string) => {
-    Express.launchApplication(appName);
-    CommonAPI(appName);
+export default async (appName: string) => {
+    await Express.launchApplication(appName);
     LocalCache.setString("app", "name", appName);
+    CommonAPI(appName);
     return app;
 };

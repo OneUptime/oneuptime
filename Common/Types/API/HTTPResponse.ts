@@ -35,7 +35,8 @@ export default class HTTPResponse<T extends JSONObjectOrArray | BaseModel | Arra
         let obj!: T; 
 
         if (obj instanceof BaseModel) {
-            this.data = BaseModel.fromJSON(data) as T;
+            // this.data = BaseModel.fromJSON(data) as T;
+            this.data = data as T;
         } else {
             this.data = data as T;
         }
