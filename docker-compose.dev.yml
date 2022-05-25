@@ -332,6 +332,10 @@ services:
             - redis
             - postgres
             - mail
+        links:
+            - redis
+            - postgres
+            - mail
         volumes:
             - ./Identity:/usr/src/app
             # Use node modules of the container and not host system.

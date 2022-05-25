@@ -2,7 +2,6 @@ import { createLogger, format, transports } from 'winston';
 
 const { combine, timestamp, errors, colorize, cli } = format;
 
-
 const logger = createLogger({
     format: combine(
         colorize(),

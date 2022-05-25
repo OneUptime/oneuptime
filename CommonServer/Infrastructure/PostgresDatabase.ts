@@ -59,7 +59,6 @@ export default class Database {
         dataSourceOptions: DataSourceOptions
     ): Promise<DataSource> {
         try {
-            logger.info(JSON.stringify(dataSourceOptions));
             const PostgresDataSource: DataSource = new DataSource(
                 dataSourceOptions
             );
