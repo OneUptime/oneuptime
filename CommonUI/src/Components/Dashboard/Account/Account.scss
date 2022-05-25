@@ -1,4 +1,5 @@
 $primaryColor: rgb(246, 248, 250);
+$blue: #948dfc;
 $transition: all 0.2s ease;
 
 .account {
@@ -50,10 +51,11 @@ $transition: all 0.2s ease;
             a {
                 font-weight: 400;
                 letter-spacing: 1.1px;
-                color: rgb(9, 141, 223);
+                color: $blue;
                 padding: 2px 10px;
                 flex: 1;
                 font-size: 1.4rem;
+                font-weight: 500;
                 transition: $transition;
 
                 &:hover {
