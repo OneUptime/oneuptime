@@ -6,6 +6,7 @@ import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Route from 'Common/Types/API/Route';
 import Footer from '../Footer';
 import Container from 'CommonUI/src/Container';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
@@ -23,6 +24,7 @@ const LoginPage: FunctionComponent = () => {
                             email: true,
                         },
                         title: 'Email',
+                        fieldType: FormFieldSchemaType.Email,
                         required: true,
                     },
                     {
@@ -31,6 +33,10 @@ const LoginPage: FunctionComponent = () => {
                         },
                         title: 'Password',
                         required: true,
+                        validation: {
+                            minLength: 6,
+                        },
+                        fieldType: FormFieldSchemaType.Password,
                         sideLink: {
                             text: 'Forgot password?',
                             url: new Route('/accounts/forgot-password'),

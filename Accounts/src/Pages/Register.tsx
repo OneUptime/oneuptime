@@ -9,6 +9,7 @@ import IdentityAPI from 'CommonUI/src/Utils/API/IdentityAPI';
 import Route from 'Common/Types/API/Route';
 import { JSONObject } from 'Common/Types/JSON';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const RegisterPage: FunctionComponent = () => {
 
@@ -41,6 +42,7 @@ const RegisterPage: FunctionComponent = () => {
                         field: {
                             email: true,
                         },
+                        fieldType: FormFieldSchemaType.Email,
                         placeholder: 'jeff@example.com',
                         required: true,
                         title: 'Email',
@@ -49,6 +51,7 @@ const RegisterPage: FunctionComponent = () => {
                         field: {
                             name: true,
                         },
+                        fieldType: FormFieldSchemaType.Text,
                         placeholder: 'Jeff Smith',
                         required: true,
                         title: 'Full Name',
@@ -57,6 +60,7 @@ const RegisterPage: FunctionComponent = () => {
                         field: {
                             companyName: true,
                         },
+                        fieldType: FormFieldSchemaType.Text,
                         placeholder: 'Company Name',
                         required: true,
                         title: 'Company Name',
@@ -65,6 +69,7 @@ const RegisterPage: FunctionComponent = () => {
                         field: {
                             companyPhoneNumber: true,
                         },
+                        fieldType: FormFieldSchemaType.Text,
                         required: true,
                         placeholder: 'Phone Number',
                         title: 'Phone Number',
@@ -72,6 +77,10 @@ const RegisterPage: FunctionComponent = () => {
                     {
                         field: {
                             password: true,
+                        },
+                        fieldType: FormFieldSchemaType.Password,
+                        validation: {
+                            minLength: 6,
                         },
                         placeholder: 'Password',
                         title: 'Password',
@@ -81,8 +90,13 @@ const RegisterPage: FunctionComponent = () => {
                         field: {
                             password: true,
                         },
+                        validation: {
+                            minLength: 6,
+                        },
+                        fieldType: FormFieldSchemaType.Password,
                         placeholder: 'Confirm Password',
                         title: 'Confirm Password',
+                        overideFieldKey: 'confirmPassword',
                         required: true,
                     },
                 ]}

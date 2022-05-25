@@ -1,0 +1,78 @@
+$primaryColor: rgb(246, 248, 250);
+
+.projectPreview {
+    position: relative;
+    user-select: none;
+
+    .preview {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        cursor: pointer;
+
+        img {
+            width: 30px;
+            border-radius: 50%;
+            margin: 10px;
+        }
+
+        p {
+            padding: 0;
+            margin: 0;
+            font-size: 1.3rem;
+            color: rgb(77, 75, 75);
+            font-weight: 400;
+            margin-right: 7px;
+        }
+
+        svg {
+            color: rgb(144, 139, 139);
+            font-size: 1.2rem;
+        }
+    }
+
+    .lists {
+        position: absolute;
+        top: 90%;
+        left: 0;
+        padding-top: 3px;
+        width: 200px;
+        height: fit-content;
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 1px 3px 10px rgba(0, 0, 0, 0.2);
+        color: darken($primaryColor, 70%);
+
+        div {
+            padding-bottom: 3px;
+            font-size: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+
+            img {
+                width: 30px;
+                border-radius: 50%;
+                margin: 5px;
+            }
+
+            p {
+                padding: 0;
+                font-size: 1.5rem;
+                font-weight: 500;
+                margin: 4px;
+            }
+
+            span {
+                font-size: 1.2rem;
+                margin-right: 10px;
+            }
+
+            &:hover {
+                color: $primaryColor !important;
+                background-color: #333;
+            }
+        }
+    }
+}
