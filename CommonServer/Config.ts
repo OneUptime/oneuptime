@@ -3,9 +3,9 @@ import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 
-export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === "true";
+export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
-export const IsSaaSService: boolean = process.env['IS_SAAS_SERVICE'] === "true";
+export const IsSaaSService: boolean = process.env['IS_SAAS_SERVICE'] === 'true';
 
 export const DatabaseHost: Hostname = new Hostname(
     process.env['DATABASE_HOST'] || ''

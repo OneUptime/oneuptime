@@ -13,7 +13,6 @@ import productCompare, { Product } from './config/product-compare';
 import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
-
 export const APP_NAME: string = 'home';
 const app = App(APP_NAME);
 

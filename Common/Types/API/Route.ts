@@ -19,7 +19,7 @@ export default class Route {
         }
     }
 
-    public addRoute(route: Route): Route{
+    public addRoute(route: Route): Route {
         this.route += route.toString();
         return this;
     }

@@ -7,6 +7,4 @@ const app: ExpressApplication = Express.getExpressApp();
 export default (appName: string) => {
     app.use([`/${appName}`, '/'], version);
     app.use([`/${appName}`, '/'], status);
-}
-
-
+};

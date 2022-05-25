@@ -3,7 +3,6 @@ import App from 'CommonServer/Utils/StartServer';
 export const APP_NAME: string = 'accounts';
 const app = App(APP_NAME);
 
-
 import path from 'path';
 import {
     ExpressRequest,

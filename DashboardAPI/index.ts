@@ -168,7 +168,10 @@ app.use(
     IncidentPriorityAPI
 );
 
-app.use(['/incidentSettings', `${APP_NAME}/incidentSettings`], IncidentSettingsAPI);
+app.use(
+    ['/incidentSettings', `${APP_NAME}/incidentSettings`],
+    IncidentSettingsAPI
+);
 
 app.use(['/reports', `${APP_NAME}/reports`], ReportAPI);
 
@@ -196,7 +199,10 @@ app.use(['/stripe', `${APP_NAME}/stripe`], StripeAPI);
 
 app.use(['/subscriber', `${APP_NAME}/subscriber`], SubscriberAPI);
 
-app.use(['/subscriberAlert', `${APP_NAME}/subscriberAlert`], SubscriberAlertAPI);
+app.use(
+    ['/subscriberAlert', `${APP_NAME}/subscriberAlert`],
+    SubscriberAlertAPI
+);
 
 app.use(['/emailTemplate', `${APP_NAME}/emailTemplate`], EmailTemplateAPI);
 
@@ -206,14 +212,20 @@ app.use(['/smsTemplate', `${APP_NAME}/smsTemplate`], SmsTemplateAPI);
 
 app.use(['/smsSmtp', `${APP_NAME}/smsSmtp`], SmsSmtpAPI);
 
-app.use(['/resourceCategory', `${APP_NAME}/resourceCategory`], ResourceCategoryAPI);
+app.use(
+    ['/resourceCategory', `${APP_NAME}/resourceCategory`],
+    ResourceCategoryAPI
+);
 
 app.use(
     ['/statusPageCategory', `${APP_NAME}/statusPageCategory`],
     StatusPageCategoryAPI
 );
 
-app.use(['/monitorCriteria', `${APP_NAME}/monitorCriteria`], MonitorCriteriaAPI);
+app.use(
+    ['/monitorCriteria', `${APP_NAME}/monitorCriteria`],
+    MonitorCriteriaAPI
+);
 
 app.use(['/scheduledEvent', `${APP_NAME}/scheduledEvent`], ScheduledEventAPI);
 
@@ -233,7 +245,10 @@ app.use(['/email-logs', `${APP_NAME}/email-logs`], EmailLogsAPI);
 
 app.use(['/call-logs', `${APP_NAME}/call-logs`], CallLogsAPI);
 
-app.use(['/automated-scripts', `${APP_NAME}/automated-scripts`], AutomatedScriptAPI);
+app.use(
+    ['/automated-scripts', `${APP_NAME}/automated-scripts`],
+    AutomatedScriptAPI
+);
 
 app.use(['/sms-logs', `${APP_NAME}/sms-logs`], SMSLogAPI);
 
@@ -262,11 +277,17 @@ app.use(['/securityLog', `${APP_NAME}/securityLog`], ContainerSecurityLogAPI);
 
 app.use(['/error-tracker', `${APP_NAME}/error-tracker`], ErrorTrackerAPI);
 
-app.use(['/incidentSla', `${APP_NAME}/incidentSla`], IncidentCommunicationSlaAPI);
+app.use(
+    ['/incidentSla', `${APP_NAME}/incidentSla`],
+    IncidentCommunicationSlaAPI
+);
 
 app.use(['/monitorSla', `${APP_NAME}/monitorSla`], MonitorSlaAPI);
 
-app.use(['/incoming-request', `${APP_NAME}/incoming-request`], IncomingHTTPRequestAPI);
+app.use(
+    ['/incoming-request', `${APP_NAME}/incoming-request`],
+    IncomingHTTPRequestAPI
+);
 
 app.use(['/ScriptRunner', `${APP_NAME}/ScriptRunner`], ScriptRunnerAPI);
 

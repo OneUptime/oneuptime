@@ -9,7 +9,6 @@ import {
 export const APP_NAME: string = 'dashboard';
 const app = App(APP_NAME);
 
-
 app.use(ExpressStatic(path.join(__dirname, 'build')));
 
 app.use(

@@ -1,7 +1,9 @@
-import BaseModel from "../../Models/BaseModel";
-import { JSONObjectOrArray } from "../JSON";
+import BaseModel from '../../Models/BaseModel';
+import { JSONObjectOrArray } from '../JSON';
 
-export default class HTTPResponse<T extends JSONObjectOrArray | BaseModel | Array<BaseModel>> {
+export default class HTTPResponse<
+    T extends JSONObjectOrArray | BaseModel | Array<BaseModel>
+> {
     private _statusCode: number = -1;
     public get statusCode(): number {
         return this._statusCode;
@@ -18,21 +20,19 @@ export default class HTTPResponse<T extends JSONObjectOrArray | BaseModel | Arra
         this._jsonData = v;
     }
 
-    
-    private _data! : T;
-    public get data() : T {
+    private _data!: T;
+    public get data(): T {
         return this._data;
     }
-    public set data(v : T) {
+    public set data(v: T) {
         this._data = v;
     }
-    
 
     public constructor(statusCode: number, data: JSONObjectOrArray) {
         this.statusCode = statusCode;
-        this.jsonData = data; 
+        this.jsonData = data;
 
-        let obj!: T; 
+        let obj!: T;
 
         if (obj instanceof BaseModel) {
             // this.data = BaseModel.fromJSON(data) as T;
@@ -40,6 +40,5 @@ export default class HTTPResponse<T extends JSONObjectOrArray | BaseModel | Arra
         } else {
             this.data = data as T;
         }
-       
     }
 }

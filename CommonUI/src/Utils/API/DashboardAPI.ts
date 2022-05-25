@@ -1,4 +1,8 @@
-import { DASHBOARD_API_HOSTNAME, HTTP_PROTOCOL, DASHBOARD_API_ROUTE } from '../../Config';
+import {
+    DASHBOARD_API_HOSTNAME,
+    HTTP_PROTOCOL,
+    DASHBOARD_API_ROUTE,
+} from '../../Config';
 import BaseAPI from './BaseAPI';
 
 class BackendAPI extends BaseAPI {

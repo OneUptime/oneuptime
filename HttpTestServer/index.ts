@@ -12,10 +12,8 @@ import HTTPTestServerResponse from './types/HttpTestServerResponse';
 import ResponseType from 'Common/Types/api/ResponseType';
 import Headers from 'Common/Types/API/Headers';
 
-
 export const APP_NAME: string = 'home';
 const app = App(APP_NAME);
-
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');

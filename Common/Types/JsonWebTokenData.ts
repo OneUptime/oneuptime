@@ -1,6 +1,6 @@
-import Email from "./Email";
-import ObjectID from "./ObjectID";
-import UserRole from "./UserRole";
+import Email from './Email';
+import ObjectID from './ObjectID';
+import UserRole from './UserRole';
 
 export default interface JSONWebTokenData {
     userId: ObjectID;
@@ -8,4 +8,3 @@ export default interface JSONWebTokenData {
     roles: Array<UserRole>;
     isMasterAdmin: boolean;
 }
-

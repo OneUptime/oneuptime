@@ -33,16 +33,21 @@ const router: ExpressRouter = Express.getRouter();
 
 router.post(
     '/signup',
-    async (req: ExpressRequest, res: ExpressResponse, next: NextFunction): Promise<void> => {
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
         try {
             if (DisableSignup) {
                 throw new BadRequestException('Sign up is disabled.');
             }
 
             const data: JSONObject = req.body;
-            
+
             const user: User = User.asPublicCreateable<User>(
-                data['user'] as JSONObject, User
+                data['user'] as JSONObject,
+                User
             );
 
             if (IsSaaSService) {
@@ -75,7 +80,7 @@ router.post(
                 emailVerificationToken &&
                 user &&
                 alreadySavedUser?.id?.toString() ===
-                emailVerificationToken?.userId?.toString()
+                    emailVerificationToken?.userId?.toString()
             ) {
                 user.isEmailVerified = true;
             }

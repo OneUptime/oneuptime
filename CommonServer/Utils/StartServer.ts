@@ -63,8 +63,6 @@ const setDefaultHeaders: RequestHandler = (
 app.use(cors());
 app.use(setDefaultHeaders);
 
-
-
 /*
  * Add limit of 10 MB to avoid "Request Entity too large error"
  * https://stackoverflow.com/questions/19917401/error-request-entity-too-large
@@ -73,31 +71,35 @@ app.use(setDefaultHeaders);
 app.use(ExpressJson({ limit: '10mb' }));
 app.use(ExpressUrlEncoded({ limit: '10mb' }));
 
+// Error Handler.
+app.use(
+    (
+        err: Error,
+        _req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ) => {
+        logger.error(err);
 
-// Error Handler. 
-app.use((err: Error, _req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-    
-    logger.error(err);
+        if (res.headersSent) {
+            return next(err);
+        }
 
-    if (res.headersSent) {
-        return next(err)
+        if (err instanceof Exception) {
+            res.status((err as Exception).code);
+            res.send({ error: (err as Exception).message });
+        } else {
+            res.status(500);
+            res.send({ error: err });
+        }
     }
-
-    if (err instanceof Exception) {
-        res.status((err as Exception).code)
-        res.send({ error: (err as Exception).message })
-    } else {
-        res.status(500)
-        res.send({ error: err });
-    }
-
-});
+);
 
 app.use(logRequest);
 
 export default async (appName: string) => {
     await Express.launchApplication(appName);
-    LocalCache.setString("app", "name", appName);
+    LocalCache.setString('app', 'name', appName);
     CommonAPI(appName);
     return app;
 };

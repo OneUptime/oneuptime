@@ -1,7 +1,4 @@
-import { ExpressRequest, ExpressResponse } from 'CommonServer/utils/Express';
-
 import App from 'CommonServer/utils/StartServer';
-
 
 export const APP_NAME: string = 'application';
 const app = App(APP_NAME);

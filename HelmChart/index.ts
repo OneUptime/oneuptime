@@ -5,8 +5,6 @@ import path from 'path';
 export const APP_NAME: string = 'chart';
 const app = App(APP_NAME);
 
-
-
 // Set the view engine to ejs
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');

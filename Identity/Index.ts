@@ -15,12 +15,13 @@ const init = async () => {
         // init the app
         await App(APP_NAME);
         // connect to the database.
-        await PostgresAppInstance.connect(PostgresAppInstance.getDatasourceOptions());
+        await PostgresAppInstance.connect(
+            PostgresAppInstance.getDatasourceOptions()
+        );
     } catch (err) {
-        logger.error("App Init Failed:")
+        logger.error('App Init Failed:');
         logger.error(err);
     }
 };
 
 init();
-

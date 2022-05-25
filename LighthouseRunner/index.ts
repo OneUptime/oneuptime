@@ -10,7 +10,6 @@ import cron from 'node-cron';
 export const APP_NAME: string = 'licensing';
 const app = App(APP_NAME);
 
-
 const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 //App Version
 
