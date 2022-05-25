@@ -11,6 +11,10 @@ const TopBar = (): ReactElement => {
                 <CurrentProject />
                 <SearchBar />
                 <div>
+                    <div>Create</div>
+                    <div>Help</div>
+                    <div>Notifications</div>
+                    <div>Settings</div>
                     <Account />
                 </div>
             </header>
