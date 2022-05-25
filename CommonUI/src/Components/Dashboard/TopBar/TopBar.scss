@@ -13,10 +13,22 @@ $primaryColor: rgb(246, 248, 250);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 40px;
+        padding: 0 20px;
 
         & > * {
             flex: 0 0 15%;
+        }
+
+        svg {
+            color: rgb(94, 92, 92);
+            font-size: 1.6rem;
+            cursor: pointer;
+        }
+
+        & > div:last-child {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
     }
 }
