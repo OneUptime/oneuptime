@@ -6,6 +6,7 @@ import { faCog } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './TopBar.scss';
 import CreateButton from '../Create/CreateButton';
+import HelpButton from '../Help/HelpButton';
 
 const TopBar = (): ReactElement => {
     return (
@@ -15,7 +16,7 @@ const TopBar = (): ReactElement => {
                 <SearchBar />
                 <div>
                     <CreateButton />
-                    <div>Help</div>
+                    <HelpButton />
                     <div>Notifications</div>
                     <FontAwesomeIcon icon={faCog} />
                     <Account />
