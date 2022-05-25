@@ -2,6 +2,8 @@ import React, { ReactElement } from 'react';
 import Account from '../Account/Account';
 import CurrentProject from '../ProjectPicker/CurrentProject';
 import SearchBar from './SearchBar/SearchBar';
+import { faCog } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './TopBar.scss';
 
 const TopBar = (): ReactElement => {
@@ -14,7 +16,7 @@ const TopBar = (): ReactElement => {
                     <div>Create</div>
                     <div>Help</div>
                     <div>Notifications</div>
-                    <div>Settings</div>
+                    <FontAwesomeIcon icon={faCog} />
                     <Account />
                 </div>
             </header>
