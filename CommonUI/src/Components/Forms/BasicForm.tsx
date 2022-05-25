@@ -8,6 +8,8 @@ import DataField from './Types/Field';
 import ButtonTypes from '../Basic/Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
+import FormFieldSchemaType from './Types/FormFieldSchemaType';
+import Email from 'Common/Types/Email';
 
 export interface ComponentProps<T extends Object> {
     id: string;
@@ -24,12 +26,25 @@ export interface ComponentProps<T extends Object> {
     footer: ReactElement;
 }
 
+function getFieldType(fieldType: FormFieldSchemaType): string {
+    switch (fieldType) {
+        case FormFieldSchemaType.Email:
+            return 'email';
+        case FormFieldSchemaType.Password:
+            return 'password';
+        default:
+            return 'text';
+    }
+}
+
 const BasicForm = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const getFormField = (field: DataField<T>, index: number): ReactElement => {
+        let fieldType: string = field.fieldType
+            ? getFieldType(field.fieldType)
+            : 'text';
 
-        const fieldType = 'text';
         if (Object.keys(field.field).length === 0) {
             throw new BadDataException('Object cannot be without Field');
         }
@@ -57,35 +72,98 @@ const BasicForm = <T extends Object>(
                     autoFocus={index === 0 ? true : false}
                     placeholder={field.placeholder}
                     type={fieldType}
-                    name={Object.keys(field.field)[0] as string}
+                    name={
+                        field.overideFieldKey
+                            ? field.overideFieldKey
+                            : (Object.keys(field.field)[0] as string)
+                    }
                 />
                 <ErrorMessage
-                    name={Object.keys(field.field)[0] as string}
+                    name={
+                        field.overideFieldKey
+                            ? field.overideFieldKey
+                            : (Object.keys(field.field)[0] as string)
+                    }
                     component="div"
                 />
             </div>
         );
     };
 
-    const validate = (values: FormValues<T>): object => {
+    const validateLength = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
+        if (field.validation) {
+            if (field.validation.minLength) {
+                if (content.trim().length < field.validation?.minLength) {
+                    return `${field.title || name} cannot be less than ${
+                        field.validation.minLength
+                    } characters.`;
+                }
+            }
 
+            if (field.validation.maxLength) {
+                if (content.trim().length > field.validation?.maxLength) {
+                    return `${field.title || name} cannot be more than ${
+                        field.validation.maxLength
+                    } characters.`;
+                }
+            }
+        }
+        return null;
+    };
+
+    const validateRequired = (content: string, field: DataField<T>) => {
+        if (field.required && content.length === 0) {
+            return `${field.title} is required.`;
+        }
+        return null;
+    };
+
+    const validateData = (content: string, field: DataField<T>) => {
+        if (field.fieldType === FormFieldSchemaType.Email) {
+            if (!Email.isValid(content!)) {
+                return 'Email is not valid.';
+            }
+        }
+        return null;
+    };
+
+    const validate = (values: FormValues<T>): object => {
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
-        // Check Required fields. 
         for (const field of props.fields) {
-            const name = Object.keys(field.field)[0] as string;
+            const name = field.overideFieldKey
+                ? field.overideFieldKey
+                : (Object.keys(field.field)[0] as string);
             if (name in values) {
-                if (entries[name]?.toString().trim().length === 0) {
-                    errors[name] = `${field.title || name} is required.`;
+                const content = entries[name]?.toString();
+
+                if (content) {
+                    // Check Required fields.
+                    const resultRequired = validateRequired(content, field);
+                    if (resultRequired) {
+                        errors[name] = resultRequired;
+                    }
+
+                    // Check for valid email data.
+                    const resultValidateData = validateData(content, field);
+                    if (resultValidateData) {
+                        errors[name] = resultValidateData;
+                    }
+                    // check for length of content
+                    const result = validateLength(content, field);
+                    if (result) {
+                        errors[name] = result;
+                    }
+                    
                 }
-            } else if (field.required && !(name in values)) {
+            } else if (field.required) {
                 errors[name] = `${field.title || name} is required.`;
             }
         }
-
-        // Check for valid data. 
-
         return errors;
     };
 
@@ -97,16 +175,16 @@ const BasicForm = <T extends Object>(
                     if (props.onValidate) {
                         return props.onValidate(values);
                     }
-
                     return validate(values);
                 }}
                 validateOnChange={true}
                 validateOnBlur={true}
-                onSubmit={(values: FormValues<T>) => {
+                onSubmit={(values: FormValues<T>, { setSubmitting }) => {
                     props.onSubmit(values);
+                    setSubmitting(false);
                 }}
             >
-                {({ isSubmitting, isValidating, isValid }) => {
+                {({ isSubmitting, isValid }) => {
                     return (
                         <Form
                             autoComplete="off"
@@ -127,9 +205,7 @@ const BasicForm = <T extends Object>(
 
                             <Button
                                 title={props.submitButtonText || 'Submit'}
-                                disabled={
-                                    isSubmitting || !isValid || isValidating
-                                }
+                                disabled={isSubmitting || !isValid}
                                 type={ButtonTypes.Submit}
                                 id={`${props.id}-submit-button`}
                             />

@@ -26,6 +26,11 @@ $transition: all 0.2s ease-in-out;
     box-sizing: border-box;
 }
 
+:disabled {
+    cursor: not-allowed;
+    background-color: $colorGrey !important;
+}
+
 html {
     font-family: 'Poppins', sans-serif;
     color: lighten($bgDark, 25%);
