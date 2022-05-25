@@ -20,8 +20,8 @@ export default class Route {
     }
 
     public addRoute(route: Route): Route {
-        this.route += route.toString();
-        return this;
+        const newRoute: Route = new Route(this.route +  route.toString());
+        return newRoute;
     }
 
     public toString(): string {

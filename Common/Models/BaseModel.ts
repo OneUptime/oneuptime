@@ -401,9 +401,10 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-    public getPublicCreateableColumns(): Columns {
+    public getPublicCreateableColumns<T extends BaseModel>(type: { new(): T }): Columns {
+        const obj = new type();
         const accessControl: Dictionary<AccessControl> =
-            getPublicAccessControlForAllColumns(this);
+            getPublicAccessControlForAllColumns(obj);
         const columns: Array<string> = [];
 
         for (const key in Object.keys(accessControl)) {
@@ -671,16 +672,14 @@ export default class BaseModel extends BaseEntity {
         }
 
         if (!data.canPublicCreateRecord) {
-            /*
-             * throw new BadRequestException(
-             *     'A user of role public cannot create this record.'
-             * );
-             */
+              throw new BadRequestException(
+                  'A user of role public cannot create this record.'
+              );
         }
 
         data = this.keepColumns<T>(
             data as T,
-            data.getPublicCreateableColumns(),
+            data.getPublicCreateableColumns(type),
             type
         );
         return data;

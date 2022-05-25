@@ -1,14 +1,17 @@
 import App from 'CommonServer/Utils/StartServer';
-
-export const APP_NAME: string = 'accounts';
-const app = App(APP_NAME);
-
 import path from 'path';
-import {
+import Express, {
+    ExpressApplication,
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
+
+export const APP_NAME: string = 'accounts';
+
+App(APP_NAME);
+
+const app: ExpressApplication = Express.getExpressApp();
 
 app.use(ExpressStatic(path.join(__dirname, 'build')));
 

@@ -11,8 +11,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
 
-    user.getPublicCreateableColumns();
-
     return (
         <Container title="Login">
             <BasicModelForm<User>
