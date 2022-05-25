@@ -1,0 +1,125 @@
+$primaryColor: rgb(246, 248, 250);
+$lightDark: #888;
+$dark: #333;
+$transition: all 0.2s ease;
+
+.create-layout {
+    user-select: none;
+    position: relative;
+
+    .button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: 300;
+        font-size: 1.3rem;
+        outline: 1px solid $lightDark;
+        color: $lightDark;
+        border-radius: 100px;
+        padding: 3px 15px;
+        cursor: pointer;
+        transition: $transition;
+
+        svg {
+            color: rgb(144, 139, 139);
+            font-size: 1.2rem;
+            padding-left: 5px;
+        }
+
+        &:hover {
+            outline: 1px solid $dark;
+            color: white;
+            background-color: $dark;
+        }
+
+        &:hover > svg {
+            color: white;
+        }
+    }
+
+    .lists {
+        position: absolute;
+        top: 35px;
+        right: 0;
+        padding: 15px 0;
+        width: 200px;
+        height: fit-content;
+        background-color: white;
+        border-radius: 7px;
+        box-shadow: 1px 3px 10px rgba(0, 0, 0, 0.2);
+        color: darken($primaryColor, 70%);
+        animation: fadeIn 0.2s linear;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: -7px;
+            right: 0;
+            width: 15px;
+            height: 10px;
+            background-color: white;
+            box-shadow: -1px -30px 10px rgba(0, 0, 0, 0.6);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        .legend {
+            font-size: 1.3rem;
+            font-weight: 400;
+            text-transform: uppercase;
+            padding: 0 15px;
+            color: #888;
+        }
+
+        div {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+            cursor: pointer;
+
+            &:hover {
+                background-color: $primaryColor;
+            }
+
+            div {
+                padding: 0 15px;
+                display: flex;
+                align-items: center;
+                font-size: 1.3rem;
+
+                & > * {
+                    padding-right: 10px;
+                }
+
+                svg {
+                    font-size: 1.2rem;
+                }
+
+                p {
+                    padding: 0;
+                    margin: 0;
+                    font-size: 1.5rem;
+                }
+
+                code {
+                    display: block;
+                    color: #999;
+                    background-color: lighten($dark, 75%);
+                    padding: 0 5px;
+                    margin: 0 1px;
+                    border-radius: 2px;
+                }
+            }
+        }
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

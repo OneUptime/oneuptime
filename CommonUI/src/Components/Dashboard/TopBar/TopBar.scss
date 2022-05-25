@@ -13,10 +13,11 @@ $primaryColor: rgb(246, 248, 250);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 20px;
+        padding: 0 30px;
+        box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
 
         & > * {
-            flex: 0 0 15%;
+            flex: 1 1 30%;
         }
 
         svg {
@@ -27,8 +28,12 @@ $primaryColor: rgb(246, 248, 250);
 
         & > div:last-child {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
+
+            & > * {
+                padding-left: 25px;
+            }
         }
     }
 }

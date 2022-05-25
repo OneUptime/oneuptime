@@ -1,11 +1,12 @@
 import React, { ReactElement, useState } from 'react';
-import ProjectList from './ProjectList';
 import OutsideClickHandler from 'react-outside-click-handler';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import './Project.scss';
 
-const CurrentProject = (): ReactElement => {
+import './Create.scss';
+import OptionList from './OptionList';
+
+const CreateButton = (): ReactElement => {
     const [showList, setShowList] = useState(false);
 
     return (
@@ -16,16 +17,15 @@ const CurrentProject = (): ReactElement => {
                 }
             }}
         >
-            <div className="projectPreview">
-                <div className="preview" onClick={() => setShowList(!showList)}>
-                    <img src="img/placeholder.png" alt="Project Image" />
-                    <p>Flow</p>
+            <div className="create-layout">
+                <div className="button" onClick={() => setShowList(!showList)}>
+                    <span>Create</span>
                     <FontAwesomeIcon icon={faChevronDown} />
                 </div>
-                {showList && <ProjectList />}
+                {showList && <OptionList />}
             </div>
         </OutsideClickHandler>
     );
 };
 
-export default CurrentProject;
+export default CreateButton;
