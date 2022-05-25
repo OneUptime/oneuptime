@@ -158,13 +158,7 @@ const BasicForm = <T extends Object>(
                     if (result) {
                         errors[name] = result;
                     }
-                    // look ahead for matching passwords
-                    if (
-                        entries['confirm']?.toString().trim() !==
-                        entries['password']?.toString().trim()
-                    ) {
-                        errors['confirm'] = 'Passwords do not match';
-                    }
+                    
                 }
             } else if (field.required) {
                 errors[name] = `${field.title || name} is required.`;
