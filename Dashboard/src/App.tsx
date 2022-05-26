@@ -5,9 +5,9 @@ import SearchBar from 'CommonUI/src/Components/Dashboard/TopBar/SearchBar/Search
 import { MenuIconButton } from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
 import { faCog, faBell } from '@fortawesome/free-solid-svg-icons';
 import './App.scss';
-import CreatePayment from './Components/CreatePayment';
+import CreatePaymentButton from './Components/CreatePaymentButton';
 import HelpButton from './Components/HelpButton';
-import UserProfile from './Components/UserProfile';
+import UserProfileButton from './Components/UserProfileButton';
 
 const App: FunctionComponent = () => {
     return (
@@ -16,11 +16,11 @@ const App: FunctionComponent = () => {
                 leftContents={[<CurrentProject />]}
                 middleContents={[<SearchBar />]}
                 rightContents={[
-                    <CreatePayment />,
+                    <CreatePaymentButton />,
                     <HelpButton />,
                     <MenuIconButton icon={faBell} />,
                     <MenuIconButton icon={faCog} />,
-                    <UserProfile />,
+                    <UserProfileButton />,
                 ]}
             />
         </div>

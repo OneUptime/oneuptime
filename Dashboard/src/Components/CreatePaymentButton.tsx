@@ -10,7 +10,7 @@ import {
     faLink,
 } from '@fortawesome/free-solid-svg-icons';
 
-const CreatePayment: FunctionComponent = (): ReactElement => {
+const CreatePaymentButton: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
     const toggle = () => setShowList(!showList);
 
@@ -54,4 +54,4 @@ const CreatePayment: FunctionComponent = (): ReactElement => {
     );
 };
 
-export default CreatePayment;
+export default CreatePaymentButton;

@@ -5,7 +5,7 @@ import MenuLinkItem from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/Me
 import { MenuIconButton } from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
 import { faUser } from '@fortawesome/free-solid-svg-icons';
 
-const UserProfile: FunctionComponent = (): ReactElement => {
+const UserProfileButton: FunctionComponent = (): ReactElement => {
     const [showProfile, setShowProfile] = useState(false);
     const toggle = () => setShowProfile(!showProfile);
 
@@ -37,4 +37,4 @@ const UserProfile: FunctionComponent = (): ReactElement => {
     );
 };
 
-export default UserProfile;
+export default UserProfileButton;
