@@ -4,6 +4,7 @@ import TopbarMenu from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/Topb
 import MenuLinkItem from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/MenuLinkItem';
 import { MenuIconButton } from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
 import { faUser } from '@fortawesome/free-solid-svg-icons';
+import UserInfo from './UserInfo';
 
 const UserProfileButton: FunctionComponent = (): ReactElement => {
     const [showProfile, setShowProfile] = useState(false);
@@ -24,9 +25,7 @@ const UserProfileButton: FunctionComponent = (): ReactElement => {
                 modalContent={
                     <TopbarMenu
                         items={[
-                            <h3 className="modal-text">Caleb Okpara</h3>,
-                            <p className="modal-text text">Administrator</p>,
-                            <hr />,
+                            <UserInfo name="Caleb" role="Administrator" />,
                             <MenuLinkItem text="Profile" />,
                             <MenuLinkItem text="Sign out" />,
                         ]}

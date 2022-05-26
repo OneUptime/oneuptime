@@ -7,7 +7,7 @@ import { faCog, faBell } from '@fortawesome/free-solid-svg-icons';
 import './App.scss';
 import CreatePaymentButton from './Components/CreatePaymentButton';
 import HelpButton from './Components/HelpButton';
-import UserProfileButton from './Components/UserProfileButton';
+import UserProfileButton from './Components/UserProfile/UserProfileButton';
 
 const App: FunctionComponent = () => {
     return (
