@@ -5,7 +5,7 @@ import SearchBar from 'CommonUI/src/Components/Dashboard/TopBar/SearchBar/Search
 import { MenuIconButton } from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
 import { faCog, faBell } from '@fortawesome/free-solid-svg-icons';
 import './App.scss';
-import CreatePaymentButton from './Components/CreatePaymentButton';
+import CreateButton from './Components/CreateButton';
 import HelpButton from './Components/HelpButton';
 import UserProfileButton from './Components/UserProfile/UserProfileButton';
 
@@ -16,7 +16,7 @@ const App: FunctionComponent = () => {
                 leftContents={[<CurrentProject />]}
                 middleContents={[<SearchBar />]}
                 rightContents={[
-                    <CreatePaymentButton />,
+                    <CreateButton />,
                     <HelpButton />,
                     <MenuIconButton icon={faBell} />,
                     <MenuIconButton icon={faCog} />,

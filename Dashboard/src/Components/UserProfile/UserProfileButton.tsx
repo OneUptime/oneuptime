@@ -25,7 +25,10 @@ const UserProfileButton: FunctionComponent = (): ReactElement => {
                 modalContent={
                     <TopbarMenu
                         items={[
-                            <UserInfo name="Caleb" role="Administrator" />,
+                            <UserInfo
+                                name="Caleb Okpara"
+                                role="Administrator"
+                            />,
                             <MenuLinkItem text="Profile" />,
                             <MenuLinkItem text="Sign out" />,
                         ]}

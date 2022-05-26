@@ -2,13 +2,14 @@ import React, { ReactElement, FC, MouseEventHandler } from 'react';
 import Shortcut from '../../../Basic/ShortcutKey/Shortcut';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import Char from 'Common/Types/Char';
 
 import './MenuItem.scss';
 
 export interface ComponentProps {
     text: string;
     icon?: IconProp;
-    shortcuts?: Array<string>;
+    shortcuts?: Array<Char>;
     action?: MouseEventHandler;
 }
 
