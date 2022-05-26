@@ -16,23 +16,18 @@ $primaryColor: rgb(246, 248, 250);
         padding: 0 30px;
         box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
 
-        & > * {
-            flex: 1 1 30%;
+        .middle {
+            flex: 0 0 25%;
+            align-self: center;
         }
 
-        svg {
-            color: rgb(94, 92, 92);
-            font-size: 1.6rem;
-            cursor: pointer;
-        }
-
-        & > div:last-child {
+        .right {
             display: flex;
             justify-content: flex-end;
             align-items: center;
 
             & > * {
-                padding-left: 25px;
+                padding-left: 20px;
             }
         }
     }

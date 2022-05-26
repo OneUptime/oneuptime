@@ -1,25 +1,40 @@
-import React, { ReactElement } from 'react';
-import Account from '../Account/Account';
-import CurrentProject from '../ProjectPicker/CurrentProject';
-import SearchBar from './SearchBar/SearchBar';
-import { faCog } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import React, { FunctionComponent, ReactElement } from 'react';
 import './TopBar.scss';
-import CreateButton from '../Create/CreateButton';
-import HelpButton from '../Help/HelpButton';
 
-const TopBar = (): ReactElement => {
+export interface ComponentProps {
+    leftContents?: Array<ReactElement>;
+    middleContents?: Array<ReactElement>;
+    rightContents?: Array<ReactElement>;
+}
+
+const TopBar: FunctionComponent<ComponentProps> = ({
+    leftContents,
+    rightContents,
+    middleContents,
+}): ReactElement => {
     return (
         <div className="root">
             <header>
-                <CurrentProject />
-                <SearchBar />
                 <div>
-                    <CreateButton />
-                    <HelpButton />
-                    <div>Notifications</div>
-                    <FontAwesomeIcon icon={faCog} />
-                    <Account />
+                    {leftContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <div key={index}>{content}</div>
+                        )
+                    )}
+                </div>
+                <div className="middle">
+                    {middleContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <div key={index}>{content}</div>
+                        )
+                    )}
+                </div>
+                <div className="right">
+                    {rightContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <div key={index}>{content}</div>
+                        )
+                    )}
                 </div>
             </header>
             <nav></nav>

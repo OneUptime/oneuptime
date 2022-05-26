@@ -1,0 +1,68 @@
+$primaryColor: rgb(246, 248, 250);
+$lightDark: #888;
+$dark: #333;
+$blue: #948dfc;
+$transition: all 0.2s ease;
+
+.legend {
+    font-size: 1.3rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    padding: 0 15px;
+    margin: 0;
+    margin-bottom: 3px;
+    color: #888;
+}
+
+.menu-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+    cursor: pointer;
+
+    &:hover {
+        background-color: $primaryColor;
+    }
+
+    div {
+        padding: 0 15px;
+        display: flex;
+        align-items: center;
+        font-size: 1.3rem;
+        transition: color 0.2s linear;
+
+        & > * {
+            padding-right: 10px;
+        }
+
+        svg {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: $blue;
+        }
+
+        p {
+            font-weight: 500;
+            padding: 5px 0;
+            margin: 0;
+            font-size: 1.5rem;
+            color: $blue;
+            padding-right: 7px;
+        }
+
+        &:hover > svg {
+            color: $dark;
+        }
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

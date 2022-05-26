@@ -2,18 +2,25 @@ import React, { ReactElement, FC } from 'react';
 import { faUpRightFromSquare } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-const Resource: FC<{ name: string; openInNewTab?: boolean }> = ({
-    name,
+import './MenuLink.scss';
+
+export interface ComponentProps {
+    text: string;
+    openInNewTab?: boolean;
+}
+
+const MenuLinkItem: FC<ComponentProps> = ({
+    text,
     openInNewTab,
 }): ReactElement => {
     return (
-        <div>
+        <div className="menu-link">
             <div className="name">
-                <p>{name}</p>
+                <p>{text}</p>
                 {openInNewTab && <FontAwesomeIcon icon={faUpRightFromSquare} />}
             </div>
         </div>
     );
 };
 
-export default Resource;
+export default MenuLinkItem;
