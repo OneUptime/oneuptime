@@ -6,8 +6,8 @@ $primaryColor: rgb(246, 248, 250);
 
     .preview {
         display: flex;
-        align-items: center;
         flex: 1;
+        align-items: center;
         cursor: pointer;
 
         img {
@@ -33,7 +33,7 @@ $primaryColor: rgb(246, 248, 250);
 
     .lists {
         position: absolute;
-        top: 90%;
+        top: 10%;
         left: 0;
         padding-top: 3px;
         width: 200px;
@@ -42,6 +42,7 @@ $primaryColor: rgb(246, 248, 250);
         border-radius: 5px;
         box-shadow: 1px 3px 10px rgba(0, 0, 0, 0.2);
         color: darken($primaryColor, 70%);
+        animation: fadeIn 0.2s linear;
 
         div {
             padding-bottom: 3px;
@@ -74,5 +75,15 @@ $primaryColor: rgb(246, 248, 250);
                 background-color: #333;
             }
         }
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
     }
 }
