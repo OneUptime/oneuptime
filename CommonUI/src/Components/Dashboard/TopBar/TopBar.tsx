@@ -5,12 +5,17 @@ export interface ComponentProps {
     leftContents?: Array<ReactElement>;
     middleContents?: Array<ReactElement>;
     rightContents?: Array<ReactElement>;
+    navContents?: {
+        leftContents?: Array<ReactElement>;
+        rightContents?: Array<ReactElement>;
+    };
 }
 
 const TopBar: FunctionComponent<ComponentProps> = ({
     leftContents,
     rightContents,
     middleContents,
+    navContents,
 }): ReactElement => {
     return (
         <div className="root">
@@ -32,12 +37,33 @@ const TopBar: FunctionComponent<ComponentProps> = ({
                 <div className="right">
                     {rightContents?.map(
                         (content: ReactElement, index: number) => (
-                            <div key={index}>{content}</div>
+                            <React.Fragment key={index}>
+                                {content}
+                            </React.Fragment>
                         )
                     )}
                 </div>
             </header>
-            <nav></nav>
+            <nav>
+                <div>
+                    {navContents?.leftContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <React.Fragment key={index}>
+                                {content}
+                            </React.Fragment>
+                        )
+                    )}
+                </div>
+                <div>
+                    {navContents?.rightContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <React.Fragment key={index}>
+                                {content}
+                            </React.Fragment>
+                        )
+                    )}
+                </div>
+            </nav>
         </div>
     );
 };
