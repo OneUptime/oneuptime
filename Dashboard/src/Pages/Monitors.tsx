@@ -10,7 +10,7 @@ const Monitors: FunctionComponent = (): ReactElement => {
             title="OneUptime | Monitors"
             showSideBar={true}
             sideBar={
-                <SidebarContainer title="Payments">
+                <SidebarContainer title="Monitors">
                     <Sidebar
                         title="All payments"
                         isActive={true}
