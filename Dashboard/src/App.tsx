@@ -1,4 +1,5 @@
 import React, { FunctionComponent } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import TopBar from 'CommonUI/src/Components/Dashboard/TopBar/TopBar';
 import NavLink from 'CommonUI/src/Components/Dashboard/TopBar/NavLink/NavLink';
 import NavContainer from 'CommonUI/src/Components/Dashboard/TopBar/NavLink/NavContainer';
@@ -11,6 +12,7 @@ import CreateButton from './Components/CreateButton';
 import HelpButton from './Components/HelpButton';
 import UserProfileButton from './Components/UserProfile/UserProfileButton';
 import Dropdown from './Components/Navigations/Dropdown';
+import Monitors from './Pages/Monitors';
 
 const App: FunctionComponent = () => {
     return (
@@ -29,10 +31,10 @@ const App: FunctionComponent = () => {
                     leftContents: [
                         <NavContainer
                             navigations={[
-                                <NavLink isActive={true}>
+                                <NavLink>
                                     <p>Home</p>
                                 </NavLink>,
-                                <NavLink>
+                                <NavLink isActive={true}>
                                     <p>Monitors</p>
                                 </NavLink>,
                                 <NavLink>
@@ -58,6 +60,11 @@ const App: FunctionComponent = () => {
                     ],
                 }}
             />
+            <Router>
+                <Routes>
+                    <Route path="/" element={<Monitors />} />
+                </Routes>
+            </Router>
         </div>
     );
 };
