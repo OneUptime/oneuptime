@@ -4,7 +4,7 @@ import Name from '../../Types/Name';
 import Phone from '../../Types/Phone';
 
 export default class Faker {
-    public static generateName(): string {
+    public static import URL from 'Common/Types/API/URL';(): string {
         return faker.name.firstName();
     }
 
