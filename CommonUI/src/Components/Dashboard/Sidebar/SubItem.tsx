@@ -5,7 +5,7 @@ export interface ComponentProps {
     action?: MouseEventHandler;
 }
 
-const SubSidebar: FC<ComponentProps> = ({ title, action }): ReactElement => {
+const SubItem: FC<ComponentProps> = ({ title, action }): ReactElement => {
     return (
         <div className="subsidebar" onClick={action}>
             {title}
@@ -13,4 +13,4 @@ const SubSidebar: FC<ComponentProps> = ({ title, action }): ReactElement => {
     );
 };
 
-export default SubSidebar;
+export default SubItem;

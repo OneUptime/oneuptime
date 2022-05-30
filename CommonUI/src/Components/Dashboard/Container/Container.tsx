@@ -3,7 +3,6 @@ import './Container.scss';
 
 export interface ComponentProps {
     title: string;
-    showSideBar?: boolean;
     sideBar?: ReactElement;
     children: ReactElement | Array<ReactElement>;
 }
@@ -11,7 +10,6 @@ export interface ComponentProps {
 const Container: FC<ComponentProps> = ({
     title,
     children,
-    showSideBar,
     sideBar,
 }): ReactElement => {
     useEffect(() => {
@@ -21,7 +19,7 @@ const Container: FC<ComponentProps> = ({
     return (
         <div className="container">
             <main className="main">
-                {showSideBar && <div className="sidebar">{sideBar}</div>}
+                {sideBar && <div className="sidebar">{sideBar}</div>}
                 <div className="main_layout">{children}</div>
             </main>
         </div>

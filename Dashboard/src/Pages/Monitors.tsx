@@ -1,29 +1,28 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Container from 'CommonUI/src/Components/Dashboard/Container/Container';
-import SidebarContainer from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarContainer';
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
-import SubSidebar from 'CommonUI/src/Components/Dashboard/Sidebar/SubSidebar';
+import SidebarItem from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarItem';
+import SubItem from 'CommonUI/src/Components/Dashboard/Sidebar/SubItem';
 
 const Monitors: FunctionComponent = (): ReactElement => {
     return (
         <Container
             title="OneUptime | Monitors"
-            showSideBar={true}
             sideBar={
-                <SidebarContainer title="Monitors">
-                    <Sidebar
+                <Sidebar title="Monitors">
+                    <SidebarItem
                         title="All payments"
                         isActive={true}
                         showSubsidebar={true}
-                        subSidebar={[<SubSidebar title="All transactions" />]}
+                        subSidebar={[<SubItem title="All transactions" />]}
                     />
-                    <Sidebar title="Fraud &amp; risk" />
-                    <Sidebar title="Invoices" />
-                    <Sidebar title="Subscriptions" />
-                    <Sidebar title="Quotes" />
-                    <Sidebar title="Payment links" />
-                    <Sidebar title="Orders" />
-                </SidebarContainer>
+                    <SidebarItem title="Fraud &amp; risk" />
+                    <SidebarItem title="Invoices" />
+                    <SidebarItem title="Subscriptions" />
+                    <SidebarItem title="Quotes" />
+                    <SidebarItem title="Payment links" />
+                    <SidebarItem title="Orders" />
+                </Sidebar>
             }
         >
             <h1>Monitors</h1>

@@ -1,29 +1,16 @@
-import React, { ReactElement, FC, MouseEventHandler } from 'react';
+import React, { ReactElement, FC } from 'react';
+import './Sidebar.scss';
 
 export interface ComponentProps {
-    isActive?: boolean;
-    showSubsidebar?: boolean;
-    subSidebar?: Array<ReactElement>;
-    action?: MouseEventHandler;
     title: string;
+    children: Array<ReactElement>;
 }
 
-const Sidebar: FC<ComponentProps> = ({
-    isActive,
-    showSubsidebar,
-    subSidebar,
-    title,
-    action,
-}): ReactElement => {
+const Sidebar: FC<ComponentProps> = ({ title, children }): ReactElement => {
     return (
-        <div className="side_bar">
-            <div
-                className={`sidebar_label ${isActive && 'active_sidebar'}`}
-                onClick={action}
-            >
-                {title}
-            </div>
-            {showSubsidebar && <>{subSidebar}</>}
+        <div className="sideBar">
+            <h2>{title}</h2>
+            <div className="sidebar_list">{children}</div>
         </div>
     );
 };
