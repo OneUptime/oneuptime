@@ -1,0 +1,36 @@
+.pager {
+    display: flex;
+    align-items: center;
+
+    button {
+        width: fit-content;
+        padding: 7px 20px;
+        background-color: white;
+        border: none;
+        border-radius: 3px;
+        outline: 1px solid rgb(220, 218, 218);
+        margin: 5px;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: rgb(131, 129, 129);
+        cursor: pointer;
+        box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s ease;
+
+        &:disabled {
+            cursor: not-allowed !important;
+            background-color: rgb(236, 234, 234);
+            color: #ccc;
+
+            &:hover {
+                background-color: rgb(236, 234, 234);
+                color: #ccc;
+            }
+        }
+
+        &:hover {
+            background-color: #333;
+            color: white;
+        }
+    }
+}

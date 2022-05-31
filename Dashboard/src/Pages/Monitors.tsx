@@ -1,9 +1,9 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Container from 'CommonUI/src/Components/Dashboard/Container/Container';
-import TableContainer from 'CommonUI/src/Components/Dashboard/Container/TableContainer';
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
 import SidebarItem from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarItem';
 import SubItem from 'CommonUI/src/Components/Dashboard/Sidebar/SubItem';
+import Table from '../Components/Monitors/Table';
 
 const Monitors: FunctionComponent = (): ReactElement => {
     return (
@@ -26,10 +26,7 @@ const Monitors: FunctionComponent = (): ReactElement => {
                 </Sidebar>
             }
         >
-            <TableContainer
-                title="Monitors"
-                description="Lorem, ipsum dolor sit amet consectetur adipisicing elit."
-            />
+            <Table />
         </Container>
     );
 };

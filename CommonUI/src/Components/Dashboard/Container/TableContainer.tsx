@@ -1,18 +1,20 @@
 import React, { ReactElement, FC } from 'react';
-import Button from '../../Basic/Button/Button';
-import ButtonTypes from '../../Basic/Button/ButtonTypes';
 import './TableContainer.scss';
 
 export interface ComponentProps {
     title: string;
     description?: string;
+    asideComponents?: Array<ReactElement>;
     footerText?: string;
+    pagination?: ReactElement;
 }
 
 const TableContainer: FC<ComponentProps> = ({
     title,
     description,
     footerText,
+    asideComponents,
+    pagination,
 }): ReactElement => {
     return (
         <div className="tableContainer">
@@ -22,16 +24,9 @@ const TableContainer: FC<ComponentProps> = ({
                     <p>{description}</p>
                 </div>
                 <div className="tableContainer_header__aside">
-                    <Button
-                        title="Button"
-                        id="table_button"
-                        type={ButtonTypes.Button}
-                    />
-                    <Button
-                        title="Button"
-                        id="table_button"
-                        type={ButtonTypes.Button}
-                    />
+                    {asideComponents?.map((item, index) => (
+                        <React.Fragment key={index}>{item}</React.Fragment>
+                    ))}
                 </div>
             </div>
             <div className="tableContainer_body"></div>
@@ -39,7 +34,7 @@ const TableContainer: FC<ComponentProps> = ({
                 <div className="tableContainer_footer__details">
                     <p>{footerText}</p>
                 </div>
-                <div></div>
+                {pagination}
             </div>
         </div>
     );
