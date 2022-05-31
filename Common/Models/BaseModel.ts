@@ -405,7 +405,7 @@ export default class BaseModel extends BaseEntity {
     public getPublicCreateableColumns<T extends BaseModel>(type: {
         new (): T;
     }): Columns {
-        const obj = new type();
+        const obj: T = new type();
         const accessControl: Dictionary<AccessControl> =
             getPublicAccessControlForAllColumns(obj);
         const columns: Array<string> = [];

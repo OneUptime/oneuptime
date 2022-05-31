@@ -2,12 +2,13 @@ import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
+    ExpressApplication,
 } from 'CommonServer/Utils/Express';
 
 import App from 'CommonServer/Utils/StartServer';
 
 export const APP_NAME: string = 'licensing';
-const app = App(APP_NAME);
+const app: ExpressApplication = App(APP_NAME);
 
 import path from 'path';
 

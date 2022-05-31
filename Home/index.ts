@@ -2,6 +2,7 @@ import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
+    ExpressApplication,
 } from 'CommonServer/Utils/Express';
 import App from 'CommonServer/Utils/StartServer';
 import Dictionary from 'Common/Types/Dictionary';
@@ -14,7 +15,7 @@ import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
 export const APP_NAME: string = 'home';
-const app = App(APP_NAME);
+const app: ExpressApplication = App(APP_NAME);
 
 //View engine setup
 app.set('views', path.join(__dirname, 'views'));

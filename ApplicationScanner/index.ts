@@ -1,7 +1,8 @@
-import App from 'CommonServer/utils/StartServer';
+import { ExpressApplication } from 'CommonServer/Utils/Express';
+import App from 'CommonServer/Utils/StartServer';
 
 export const APP_NAME: string = 'application';
-const app = App(APP_NAME);
+const app: ExpressApplication = App(APP_NAME);
 
 import Main from './worker/main';
 

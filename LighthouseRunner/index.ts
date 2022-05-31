@@ -1,4 +1,5 @@
-import App from 'CommonServer/utils/StartServer';
+import { ExpressApplication } from 'CommonServer/Utils/Express';
+import App from 'CommonServer/Utils/StartServer';
 
 import http from 'http';
 http.createServer(app);
@@ -8,7 +9,7 @@ import Main from './workers/main';
 import cron from 'node-cron';
 
 export const APP_NAME: string = 'licensing';
-const app = App(APP_NAME);
+const app: ExpressApplication = App(APP_NAME);
 
 const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 //App Version

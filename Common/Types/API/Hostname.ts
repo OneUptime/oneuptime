@@ -39,13 +39,13 @@ export default class Hostname {
     }
 
     public toString(): string {
-        let hostame = this.hostname;
+        let hostame: string = this.hostname;
 
         if (this.port) {
             hostame += ':' + this.port.toString();
         }
 
-        return this.hostname;
+        return hostame;
     }
 
     public static fromString(hostname: string): Hostname {

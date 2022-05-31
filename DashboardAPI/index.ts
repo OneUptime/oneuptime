@@ -3,12 +3,13 @@ import {
     ExpressResponse,
     NextFunction,
     ExpressStatic,
+    ExpressApplication,
 } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 
 export const APP_NAME: string = 'api';
-const app = App(APP_NAME);
+const app: ExpressApplication = App(APP_NAME);
 
 import expressRequestId from 'express-request-id';
 

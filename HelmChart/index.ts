@@ -1,9 +1,9 @@
-import { ExpressStatic } from 'CommonServer/Utils/Express';
+import { ExpressStatic. ExpressApplication } from 'CommonServer/Utils/Express';
 import App from 'CommonServer/Utils/StartServer';
 import path from 'path';
 
 export const APP_NAME: string = 'chart';
-const app = App(APP_NAME);
+const app: ExpressApplication = App(APP_NAME);
 
 // Set the view engine to ejs
 app.set('views', path.join(__dirname, 'views'));
