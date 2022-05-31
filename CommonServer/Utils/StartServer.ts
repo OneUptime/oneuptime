@@ -97,9 +97,11 @@ app.use(
 
 app.use(logRequest);
 
-export default async (appName: string) => {
+const init: Function = async (appName: string): Promise<ExpressApplication> => {
     await Express.launchApplication(appName);
     LocalCache.setString('app', 'name', appName);
     CommonAPI(appName);
     return app;
 };
+
+export default init;
