@@ -23,6 +23,7 @@ import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 import AccessControl from '../Types/Database/AccessControls/AccessControl';
 import Dictionary from '../Types/Dictionary';
+import HashedString from '../Types/HashedString';
 
 export default class BaseModel extends BaseEntity {
     @TableColumn({ title: 'ID' })
@@ -154,7 +155,7 @@ export default class BaseModel extends BaseEntity {
             getUserAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.create) {
                 columns.push(key);
             }
@@ -168,7 +169,7 @@ export default class BaseModel extends BaseEntity {
             getUserAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.delete) {
                 columns.push(key);
             }
@@ -182,7 +183,7 @@ export default class BaseModel extends BaseEntity {
             getUserAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.update) {
                 columns.push(key);
             }
@@ -196,7 +197,7 @@ export default class BaseModel extends BaseEntity {
             getUserAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsItem) {
                 columns.push(key);
             }
@@ -210,7 +211,7 @@ export default class BaseModel extends BaseEntity {
             getUserAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsList) {
                 columns.push(key);
             }
@@ -224,7 +225,7 @@ export default class BaseModel extends BaseEntity {
             getOwnerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.create) {
                 columns.push(key);
             }
@@ -238,7 +239,7 @@ export default class BaseModel extends BaseEntity {
             getOwnerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.delete) {
                 columns.push(key);
             }
@@ -252,7 +253,7 @@ export default class BaseModel extends BaseEntity {
             getOwnerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsItem) {
                 columns.push(key);
             }
@@ -266,7 +267,7 @@ export default class BaseModel extends BaseEntity {
             getOwnerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsList) {
                 columns.push(key);
             }
@@ -280,7 +281,7 @@ export default class BaseModel extends BaseEntity {
             getOwnerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.update) {
                 columns.push(key);
             }
@@ -294,7 +295,7 @@ export default class BaseModel extends BaseEntity {
             getAdminAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.delete) {
                 columns.push(key);
             }
@@ -308,7 +309,7 @@ export default class BaseModel extends BaseEntity {
             getAdminAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.create) {
                 columns.push(key);
             }
@@ -322,7 +323,7 @@ export default class BaseModel extends BaseEntity {
             getAdminAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsItem) {
                 columns.push(key);
             }
@@ -336,7 +337,7 @@ export default class BaseModel extends BaseEntity {
             getAdminAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsList) {
                 columns.push(key);
             }
@@ -350,7 +351,7 @@ export default class BaseModel extends BaseEntity {
             getAdminAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.update) {
                 columns.push(key);
             }
@@ -364,7 +365,7 @@ export default class BaseModel extends BaseEntity {
             getPublicAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsItem) {
                 columns.push(key);
             }
@@ -378,7 +379,7 @@ export default class BaseModel extends BaseEntity {
             getPublicAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsList) {
                 columns.push(key);
             }
@@ -392,7 +393,7 @@ export default class BaseModel extends BaseEntity {
             getPublicAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.update) {
                 columns.push(key);
             }
@@ -407,7 +408,7 @@ export default class BaseModel extends BaseEntity {
             getPublicAccessControlForAllColumns(obj);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.create) {
                 columns.push(key);
             }
@@ -421,7 +422,7 @@ export default class BaseModel extends BaseEntity {
             getPublicAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.delete) {
                 columns.push(key);
             }
@@ -435,7 +436,7 @@ export default class BaseModel extends BaseEntity {
             getMemberAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsItem) {
                 columns.push(key);
             }
@@ -449,7 +450,7 @@ export default class BaseModel extends BaseEntity {
             getMemberAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsList) {
                 columns.push(key);
             }
@@ -463,7 +464,7 @@ export default class BaseModel extends BaseEntity {
             getMemberAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.update) {
                 columns.push(key);
             }
@@ -477,7 +478,7 @@ export default class BaseModel extends BaseEntity {
             getMemberAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.create) {
                 columns.push(key);
             }
@@ -491,7 +492,7 @@ export default class BaseModel extends BaseEntity {
             getMemberAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.delete) {
                 columns.push(key);
             }
@@ -505,7 +506,7 @@ export default class BaseModel extends BaseEntity {
             getViewerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsItem) {
                 columns.push(key);
             }
@@ -519,7 +520,7 @@ export default class BaseModel extends BaseEntity {
             getViewerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.readAsList) {
                 columns.push(key);
             }
@@ -533,7 +534,7 @@ export default class BaseModel extends BaseEntity {
             getViewerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.update) {
                 columns.push(key);
             }
@@ -547,7 +548,7 @@ export default class BaseModel extends BaseEntity {
             getViewerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.create) {
                 columns.push(key);
             }
@@ -561,7 +562,7 @@ export default class BaseModel extends BaseEntity {
             getViewerAccessControlForAllColumns(this);
         const columns: Array<string> = [];
 
-        for (const key in Object.keys(accessControl)) {
+        for (const key in accessControl) {
             if (accessControl[key]?.delete) {
                 columns.push(key);
             }
@@ -614,9 +615,15 @@ export default class BaseModel extends BaseEntity {
         type: { new (): T }
     ): T {
         const baseModel: T = new type();
+        const hashedColumns: Columns = baseModel.getHashedColumns();
 
         for (const key of Object.keys(json)) {
-            (baseModel as any)[key] = json[key];
+            if (hashedColumns.hasColumn(key)) {
+                (baseModel as any)[key] = new HashedString(json[key] as string); 
+            } else {
+                (baseModel as any)[key] = json[key]; 
+            }
+            
         }
 
         return baseModel as T;

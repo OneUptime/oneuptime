@@ -36,35 +36,35 @@ export const ADMIN_DASHBOARD_ROUTE: Route = new Route(
 export const ACCOUNTS_ROUTE: Route = new Route(env('ACCOUNTS_ROUTE'));
 export const HOME_ROUTE: Route = new Route(env('HOME_ROUTE'));
 
-export const DASHBOARD_API_HOSTNAME: Hostname = new Hostname(
+export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
 
-export const IDENTITY_HOSTNAME: Hostname = new Hostname(
+export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
 
-export const DASHBOARD_HOSTNAME: Hostname = new Hostname(
+export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
 
-export const INTEGRATION_HOSTNAME: Hostname = new Hostname(
+export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
 
-export const HELM_HOSTNAME: Hostname = new Hostname(window.location.hostname);
+export const HELM_HOSTNAME: Hostname = Hostname.fromString(window.location.hostname);
 
-export const API_DOCS_HOSTNAME: Hostname = new Hostname(
+export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
 
-export const ADMIN_DASHBOARD_HOSTNAME: Hostname = new Hostname(
+export const ADMIN_DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
-export const ACCOUNTS_HOSTNAME: Hostname = new Hostname(
+export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
-export const HOME_HOSTNAME: Hostname = new Hostname(window.location.hostname);
+export const HOME_HOSTNAME: Hostname = Hostname.fromString(window.location.hostname);
 
 export const DASHBOARD_API_URL: URL = new URL(
     HTTP_PROTOCOL,

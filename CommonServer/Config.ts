@@ -7,7 +7,7 @@ export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
 export const IsSaaSService: boolean = process.env['IS_SAAS_SERVICE'] === 'true';
 
-export const DatabaseHost: Hostname = new Hostname(
+export const DatabaseHost: Hostname = Hostname.fromString(
     process.env['DATABASE_HOST'] || ''
 );
 
@@ -33,35 +33,35 @@ export const ClusterKey: ObjectID = new ObjectID(
     process.env['CLUSTER_KEY'] || ''
 );
 
-export const RealtimeHostname: Hostname = new Hostname(
+export const RealtimeHostname: Hostname = Hostname.fromString(
     process.env['REALTIME_HOSTNAME'] || ''
 );
 
-export const MailHostname: Hostname = new Hostname(
+export const MailHostname: Hostname = Hostname.fromString(
     process.env['MAIL_HOSTNAME'] || ''
 );
 
-export const DashboardApiHostname: Hostname = new Hostname(
+export const DashboardApiHostname: Hostname = Hostname.fromString(
     process.env['DASHBOARD_API_HOSTNAME'] || ''
 );
 
-export const ProbeApiHostname: Hostname = new Hostname(
+export const ProbeApiHostname: Hostname = Hostname.fromString(
     process.env['PROBE_API_HOSTNAME'] || ''
 );
 
-export const DataIngestorHostname: Hostname = new Hostname(
+export const DataIngestorHostname: Hostname = Hostname.fromString(
     process.env['DATA_INGESTOR_HOSTNAME'] || ''
 );
 
-export const AccountsHostname: Hostname = new Hostname(
+export const AccountsHostname: Hostname = Hostname.fromString(
     process.env['ACCOUNTS_HOSTNAME'] || ''
 );
 
-export const HomeHostname: Hostname = new Hostname(
+export const HomeHostname: Hostname = Hostname.fromString(
     process.env['HOME_HOSTNAME'] || ''
 );
 
-export const DashboardHostname: Hostname = new Hostname(
+export const DashboardHostname: Hostname = Hostname.fromString(
     process.env['DASHBOARD_HOSTNAME'] || ''
 );
 
