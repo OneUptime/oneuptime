@@ -13,7 +13,6 @@ const Monitors: FunctionComponent = (): ReactElement => {
                     <SidebarItem
                         title="All payments"
                         isActive={true}
-                        showSubsidebar={true}
                         subSidebar={[<SubItem title="All transactions" />]}
                     />
                     <SidebarItem title="Fraud &amp; risk" />

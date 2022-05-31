@@ -2,7 +2,6 @@ import React, { ReactElement, FC, MouseEventHandler } from 'react';
 
 export interface ComponentProps {
     isActive?: boolean;
-    showSubsidebar?: boolean;
     subSidebar?: Array<ReactElement>;
     action?: MouseEventHandler;
     title: string;
@@ -10,7 +9,6 @@ export interface ComponentProps {
 
 const SidebarItem: FC<ComponentProps> = ({
     isActive,
-    showSubsidebar,
     subSidebar,
     title,
     action,
@@ -23,13 +21,11 @@ const SidebarItem: FC<ComponentProps> = ({
             >
                 {title}
             </div>
-            {showSubsidebar && (
-                <>
-                    {subSidebar?.map((item, index) => (
-                        <React.Fragment key={index}>{item}</React.Fragment>
-                    ))}
-                </>
-            )}
+            <>
+                {subSidebar?.map((item, index) => (
+                    <React.Fragment key={index}>{item}</React.Fragment>
+                ))}
+            </>
         </div>
     );
 };
