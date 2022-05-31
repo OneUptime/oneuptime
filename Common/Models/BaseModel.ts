@@ -402,7 +402,9 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-    public getPublicCreateableColumns<T extends BaseModel>(type: { new(): T }): Columns {
+    public getPublicCreateableColumns<T extends BaseModel>(type: {
+        new (): T;
+    }): Columns {
         const obj = new type();
         const accessControl: Dictionary<AccessControl> =
             getPublicAccessControlForAllColumns(obj);
@@ -619,11 +621,10 @@ export default class BaseModel extends BaseEntity {
 
         for (const key of Object.keys(json)) {
             if (hashedColumns.hasColumn(key)) {
-                (baseModel as any)[key] = new HashedString(json[key] as string); 
+                (baseModel as any)[key] = new HashedString(json[key] as string);
             } else {
-                (baseModel as any)[key] = json[key]; 
+                (baseModel as any)[key] = json[key];
             }
-            
         }
 
         return baseModel as T;
@@ -679,9 +680,9 @@ export default class BaseModel extends BaseEntity {
         }
 
         if (!data.canPublicCreateRecord) {
-              throw new BadRequestException(
-                  'A user of role public cannot create this record.'
-              );
+            throw new BadRequestException(
+                'A user of role public cannot create this record.'
+            );
         }
 
         data = this.keepColumns<T>(

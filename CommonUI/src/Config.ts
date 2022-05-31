@@ -52,7 +52,9 @@ export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
 
-export const HELM_HOSTNAME: Hostname = Hostname.fromString(window.location.hostname);
+export const HELM_HOSTNAME: Hostname = Hostname.fromString(
+    window.location.hostname
+);
 
 export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
@@ -64,7 +66,9 @@ export const ADMIN_DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
 export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
-export const HOME_HOSTNAME: Hostname = Hostname.fromString(window.location.hostname);
+export const HOME_HOSTNAME: Hostname = Hostname.fromString(
+    window.location.hostname
+);
 
 export const DASHBOARD_API_URL: URL = new URL(
     HTTP_PROTOCOL,

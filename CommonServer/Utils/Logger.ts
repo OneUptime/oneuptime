@@ -16,7 +16,7 @@ const logger = createLogger({
             },
         }),
         errors({ stack: true }), // <-- use errors format
-        timestamp(),
+        timestamp()
     ),
     transports: [new transports.Console()],
 });

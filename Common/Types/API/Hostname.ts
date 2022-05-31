@@ -7,15 +7,13 @@ export default class Hostname {
         return this._route;
     }
 
-    
-    private _port! : Port;
-    public get port() : Port {
+    private _port!: Port;
+    public get port(): Port {
         return this._port;
     }
-    public set port(v : Port) {
+    public set port(v: Port) {
         this._port = v;
     }
-    
 
     public set hostname(v: string) {
         const matchHostnameCharacters: RegExp =
@@ -24,8 +22,6 @@ export default class Hostname {
             throw new BadDataException(`Invalid hostname: ${v}`);
         }
         this._route = v;
-
-        
     }
 
     public constructor(hostname: string, port?: Port | string | number) {
@@ -35,9 +31,9 @@ export default class Hostname {
 
         if (port instanceof Port) {
             this.port = port;
-        } else if(typeof port === "string") {
+        } else if (typeof port === 'string') {
             this.port = new Port(port);
-        } else if (typeof port === "number") {
+        } else if (typeof port === 'number') {
             this.port = new Port(port);
         }
     }
@@ -46,17 +42,19 @@ export default class Hostname {
         let hostame = this.hostname;
 
         if (this.port) {
-            hostame += ":" + this.port.toString();
+            hostame += ':' + this.port.toString();
         }
 
         return this.hostname;
     }
 
     public static fromString(hostname: string): Hostname {
-        if (hostname.includes(":")) {
-            return new Hostname(hostname.split(":")[0] as string, hostname.split(":")[1]);
-        } else {
-            return new Hostname(hostname);
-       }
+        if (hostname.includes(':')) {
+            return new Hostname(
+                hostname.split(':')[0] as string,
+                hostname.split(':')[1]
+            );
+        }
+        return new Hostname(hostname);
     }
 }
