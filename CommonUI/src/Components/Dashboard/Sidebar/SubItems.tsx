@@ -7,7 +7,7 @@ export interface ComponentProps {
     title: string;
 }
 
-const SidebarItem: FC<ComponentProps> = ({
+const SubItem: FC<ComponentProps> = ({
     isActive,
     subSidebar,
     title,
@@ -30,4 +30,4 @@ const SidebarItem: FC<ComponentProps> = ({
     );
 };
 
-export default SidebarItem;
+export default SubItem;

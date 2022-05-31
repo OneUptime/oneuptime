@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Container from 'CommonUI/src/Components/Dashboard/Container/Container';
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
-import SidebarItem from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarItem';
+import SubItems from 'CommonUI/src/Components/Dashboard/Sidebar/SubItems';
 import SubItem from 'CommonUI/src/Components/Dashboard/Sidebar/SubItem';
 
 const Monitors: FunctionComponent = (): ReactElement => {
@@ -10,17 +10,17 @@ const Monitors: FunctionComponent = (): ReactElement => {
             title="OneUptime | Monitors"
             sideBar={
                 <Sidebar title="Monitors">
-                    <SidebarItem
+                    <SubItems
                         title="All payments"
                         isActive={true}
                         subSidebar={[<SubItem title="All transactions" />]}
                     />
-                    <SidebarItem title="Fraud &amp; risk" />
-                    <SidebarItem title="Invoices" />
-                    <SidebarItem title="Subscriptions" />
-                    <SidebarItem title="Quotes" />
-                    <SidebarItem title="Payment links" />
-                    <SidebarItem title="Orders" />
+                    <SubItems title="Fraud &amp; risk" />
+                    <SubItems title="Invoices" />
+                    <SubItems title="Subscriptions" />
+                    <SubItems title="Quotes" />
+                    <SubItems title="Payment links" />
+                    <SubItems title="Orders" />
                 </Sidebar>
             }
         >
