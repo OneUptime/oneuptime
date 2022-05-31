@@ -13,7 +13,7 @@ const Table = (): ReactElement => {
     return (
         <TableContainer
             title="Monitors"
-            description="Lorem, ipsum dolor sit amet consectetur adipisicing elit."
+            description="Monitor the status of your projects."
             footerText="Page 1 of 1 (2 total monitors)"
             pagination={
                 <Pagination>

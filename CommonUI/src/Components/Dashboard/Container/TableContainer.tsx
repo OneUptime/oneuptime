@@ -1,4 +1,5 @@
 import React, { ReactElement, FC } from 'react';
+import Table from '../Table/Table';
 import './TableContainer.scss';
 
 export interface ComponentProps {
@@ -29,7 +30,12 @@ const TableContainer: FC<ComponentProps> = ({
                     ))}
                 </div>
             </div>
-            <div className="tableContainer_body"></div>
+            <div className="tableContainer_body">
+                <Table
+                    columns={['One', 'Two', 'Three', 'Four', 'Five']}
+                    records={[]}
+                />
+            </div>
             <div className="tableContainer_footer">
                 <div className="tableContainer_footer__details">
                     <p>{footerText}</p>

@@ -1,6 +1,6 @@
 .tableContainer {
     width: 100%;
-    height: 400px;
+    height: fit-content;
     outline: 1px solid rgba(134, 132, 132, 0.1);
     border-radius: 5px;
     box-shadow: 1px 3px 10px rgba(0, 0, 0, 0.05);
@@ -64,6 +64,11 @@
                 box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
             }
         }
+    }
+
+    .tableContainer_body {
+        overflow: auto;
+        flex: 1;
     }
 
     .tableContainer_footer {

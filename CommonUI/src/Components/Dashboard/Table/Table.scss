@@ -1,3 +1,47 @@
+table {
+    width: 100%;
+    margin: 0 auto;
+    border-collapse: collapse;
+    transition: all 0.2s ease-in;
+    color: rgb(77, 76, 76);
+    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0.1)) !important;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.4rem;
+    color: rgb(0, 0, 0);
+    overflow: auto;
+
+    & > thead > tr > th {
+        border: none;
+        height: 40px;
+        font-weight: 500;
+        background-color: rgba(255, 255, 255, 0.925);
+        text-transform: uppercase;
+        text-align: left;
+        padding: 10px 15px;
+        cursor: pointer;
+    }
+
+    & > tbody > tr {
+        cursor: pointer;
+        font-size: 1.35rem;
+        color: rgba(0, 0, 0, 0.9);
+
+        & > td {
+            padding: 15px;
+
+            & > i {
+                cursor: pointer;
+                margin: 0 5px;
+                color: rgb(116, 110, 110);
+
+                &:hover {
+                    color: rgb(22, 22, 22);
+                }
+            }
+        }
+    }
+}
+
 .pager {
     display: flex;
     align-items: center;
