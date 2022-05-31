@@ -18,11 +18,16 @@ const Table: FC<ComponentProps> = ({ columns, records }): ReactElement => {
             </thead>
             <tbody>
                 {records.length > 0 ? (
-                    records.map(record => (
-                        <tr>
-                            <td>{record.title}</td>
-                        </tr>
-                    ))
+                    records.map((record, index) => {
+                        const data = Object.keys(record);
+                        return (
+                            <tr key={index}>
+                                {data.map((item, index) => (
+                                    <td key={index}>{record[item]}</td>
+                                ))}
+                            </tr>
+                        );
+                    })
                 ) : (
                     <tr>
                         <td

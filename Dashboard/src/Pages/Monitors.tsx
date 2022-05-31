@@ -3,7 +3,7 @@ import Container from 'CommonUI/src/Components/Dashboard/Container/Container';
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
 import SidebarItem from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarItem';
 import SubItem from 'CommonUI/src/Components/Dashboard/Sidebar/SubItem';
-import Table from '../Components/Monitors/Table';
+import MonitorTable from '../Components/Tables/MonitorTable';
 
 const Monitors: FunctionComponent = (): ReactElement => {
     return (
@@ -26,7 +26,7 @@ const Monitors: FunctionComponent = (): ReactElement => {
                 </Sidebar>
             }
         >
-            <Table />
+            <MonitorTable />
         </Container>
     );
 };

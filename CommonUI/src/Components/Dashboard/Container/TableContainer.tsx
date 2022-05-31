@@ -1,5 +1,4 @@
 import React, { ReactElement, FC } from 'react';
-import Table from '../Table/Table';
 import './TableContainer.scss';
 
 export interface ComponentProps {
@@ -8,6 +7,7 @@ export interface ComponentProps {
     asideComponents?: Array<ReactElement>;
     footerText?: string;
     pagination?: ReactElement;
+    table: ReactElement;
 }
 
 const TableContainer: FC<ComponentProps> = ({
@@ -16,6 +16,7 @@ const TableContainer: FC<ComponentProps> = ({
     footerText,
     asideComponents,
     pagination,
+    table,
 }): ReactElement => {
     return (
         <div className="tableContainer">
@@ -30,12 +31,7 @@ const TableContainer: FC<ComponentProps> = ({
                     ))}
                 </div>
             </div>
-            <div className="tableContainer_body">
-                <Table
-                    columns={['One', 'Two', 'Three', 'Four', 'Five']}
-                    records={[]}
-                />
-            </div>
+            <div className="tableContainer_body">{table}</div>
             <div className="tableContainer_footer">
                 <div className="tableContainer_footer__details">
                     <p>{footerText}</p>

@@ -1,5 +1,5 @@
 type TableRecord = {
-    title: string;
+    [key: string]: string;
 };
 
 export default TableRecord;
