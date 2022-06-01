@@ -71,34 +71,41 @@ table {
     align-items: center;
 
     button {
-        width: fit-content;
-        padding: 7px 20px;
-        background-color: white;
-        border: none;
-        border-radius: 3px;
-        outline: 1px solid rgb(220, 218, 218);
         margin: 5px;
-        font-size: 1.3rem;
-        font-weight: 600;
-        color: rgb(131, 129, 129);
+        display: flex;
+        align-items: center;
+        padding: 0;
+        color: #000000;
+        background: transparent;
+        border: 0;
         cursor: pointer;
-        box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
-        transition: all 0.2s ease;
+        outline: none;
 
-        &:disabled {
-            cursor: not-allowed !important;
-            background-color: rgb(236, 234, 234);
-            color: #ccc;
+        flex: 0 0 auto;
+        padding: 4px 9px 2px;
+        background-color: #fff;
+        border-radius: 4px;
+        box-shadow: 0 0 0 1px rgb(50 50 93 / 10%),
+            0 2px 5px 0 rgb(50 50 93 / 8%), 0 1px 1.5px 0 rgb(0 0 0 / 7%),
+            0 1px 2px 0 rgb(0 0 0 / 8%), 0 0 0 0 transparent;
+        color: #000000;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.6;
+        text-align: left;
+        text-decoration: none;
+        vertical-align: middle;
+        white-space: nowrap;
+        word-break: keep-all;
+        transition: box-shadow 0.08s ease-in, color 0.08s ease-in;
 
-            &:hover {
-                background-color: rgb(236, 234, 234);
-                color: #ccc;
-            }
+        svg {
+            margin-left: 5px;
         }
 
         &:hover {
-            background-color: #333;
-            color: white;
+            color: #4c4c4c;
         }
     }
 }
