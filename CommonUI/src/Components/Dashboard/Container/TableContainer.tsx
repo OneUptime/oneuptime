@@ -31,7 +31,12 @@ const TableContainer: FC<ComponentProps> = ({
                     ))}
                 </div>
             </div>
-            <div className="tableContainer_body">{table}</div>
+            <div
+                className="tableContainer_body"
+                style={{ overflow: 'auto hidden' }}
+            >
+                {table}
+            </div>
             <div className="tableContainer_footer">
                 <div className="tableContainer_footer__details">
                     <p>{footerText}</p>

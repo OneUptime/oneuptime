@@ -42,32 +42,46 @@
 
         #table_button,
         button {
-            width: fit-content;
-            padding: 4px 20px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 5px;
-            font-size: 1.3rem;
-            font-weight: 500;
-            color: #333;
-            background-color: rgb(255, 255, 255);
-            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+            color: #000000;
+            background: transparent;
+            border: 0;
             cursor: pointer;
-            transition: all 0.2s linear;
+            outline: none;
 
-            &:hover {
-                transform: translateY(-1px);
-                box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.2);
+            flex: 0 0 auto;
+            padding: 4px 9px 2px;
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 0 0 1px rgb(50 50 93 / 10%),
+                0 2px 5px 0 rgb(50 50 93 / 8%), 0 1px 1.5px 0 rgb(0 0 0 / 7%),
+                0 1px 2px 0 rgb(0 0 0 / 8%), 0 0 0 0 transparent;
+            color: #000000;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.6;
+            text-align: left;
+            text-decoration: none;
+            vertical-align: middle;
+            white-space: nowrap;
+            word-break: keep-all;
+            transition: box-shadow 0.08s ease-in, color 0.08s ease-in;
+
+            svg {
+                margin-left: 5px;
             }
 
-            &:active {
-                transform: translateY(1px);
-                box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
+            &:hover {
+                color: #4c4c4c;
             }
         }
     }
 
     .tableContainer_body {
-        overflow: auto;
         flex: 1;
     }
 

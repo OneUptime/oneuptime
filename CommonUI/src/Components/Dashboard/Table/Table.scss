@@ -1,20 +1,42 @@
 table {
+    max-width: 100%;
     width: 100%;
     margin: 0 auto;
+    display: table;
+    border-color: #fdfdfd;
     border-collapse: collapse;
     transition: all 0.2s ease-in;
     color: rgb(77, 76, 76);
     filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0.1)) !important;
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.4rem;
-    color: rgb(0, 0, 0);
+    font-family: Camphor, Segoe UI, Open Sans, sans-serif;
+    font-weight: 400;
+    line-height: normal;
+    color: #000000;
+    text-transform: none;
+    font-size: 1.3rem;
+    color: #4c4c4c;
     overflow: auto;
 
+    thead {
+        display: table-header-group;
+        vertical-align: middle;
+        border-color: inherit;
+
+        & > tr {
+            background-color: #f7f7f7;
+            color: #000000;
+            height: 100%;
+        }
+    }
+
     & > thead > tr > th {
+        height: 1px;
+        min-width: 100px;
         border: none;
         height: 40px;
         font-weight: 500;
-        background-color: rgba(255, 255, 255, 0.925);
+        background-color: #f7f7f7;
+        color: #4c4c4c;
         text-transform: uppercase;
         text-align: left;
         padding: 10px 15px;
@@ -23,11 +45,13 @@ table {
 
     & > tbody > tr {
         cursor: pointer;
-        font-size: 1.35rem;
+        font-size: 1.4rem;
+        font-weight: 500;
         color: rgba(0, 0, 0, 0.9);
 
         & > td {
             padding: 15px;
+            color: #000;
 
             & > i {
                 cursor: pointer;
