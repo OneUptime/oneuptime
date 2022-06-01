@@ -1,0 +1,35 @@
+.breadcrumb-container {
+    width: 100%;
+    max-width: 100%;
+    height: fit-content;
+    display: flex;
+    justify-content: space-between;
+    background-color: #fff;
+    border: 1px solid rgba(240, 238, 238, 0.668);
+    border-radius: 5px;
+    box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.1);
+    padding: 15px 20px;
+
+    .breadcrumb_detail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        &__summary {
+            display: flex;
+            align-items: center;
+
+            svg {
+                margin-right: 5px;
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.8rem;
+                font-weight: 600;
+                margin: 0;
+                padding: 0;
+            }
+        }
+    }
+}
