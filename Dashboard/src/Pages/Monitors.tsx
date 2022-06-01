@@ -11,12 +11,9 @@ const Monitors: FunctionComponent = (): ReactElement => {
             title="OneUptime | Monitors"
             sideBar={
                 <Sidebar title="Monitors">
-                    <SidebarItem
-                        title="All payments"
-                        isActive={true}
-                        showSubsidebar={true}
-                        subSidebar={[<SubItem title="All transactions" />]}
-                    />
+                    <SidebarItem title="All payments" isActive={true}>
+                        <SubItem title="All transactions" />
+                    </SidebarItem>
                     <SidebarItem title="Fraud &amp; risk" />
                     <SidebarItem title="Invoices" />
                     <SidebarItem title="Subscriptions" />

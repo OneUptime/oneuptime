@@ -1,35 +1,22 @@
-import React, { ReactElement, FC, MouseEventHandler } from 'react';
+import React, { ReactElement, FC } from 'react';
 
 export interface ComponentProps {
     isActive?: boolean;
-    showSubsidebar?: boolean;
-    subSidebar?: Array<ReactElement>;
-    action?: MouseEventHandler;
+    children?: Array<ReactElement> | ReactElement;
     title: string;
 }
 
 const SidebarItem: FC<ComponentProps> = ({
     isActive,
-    showSubsidebar,
-    subSidebar,
+    children,
     title,
-    action,
 }): ReactElement => {
     return (
         <div className="side_bar">
-            <div
-                className={`sidebar_label ${isActive && 'active_sidebar'}`}
-                onClick={action}
-            >
+            <div className={`sidebar_label ${isActive && 'active_sidebar'}`}>
                 {title}
             </div>
-            {showSubsidebar && (
-                <>
-                    {subSidebar?.map((item, index) => (
-                        <React.Fragment key={index}>{item}</React.Fragment>
-                    ))}
-                </>
-            )}
+            {children}
         </div>
     );
 };
