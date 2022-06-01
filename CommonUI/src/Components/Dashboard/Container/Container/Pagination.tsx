@@ -1,5 +1,5 @@
 import React, { FC, ReactElement } from 'react';
-import './Table.scss';
+import '../../Table/Table.scss';
 
 export interface ComponentProps {
     children: Array<ReactElement> | ReactElement;

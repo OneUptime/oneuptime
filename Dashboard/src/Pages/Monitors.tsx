@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import PageContainer from 'CommonUI/src/Components/Dashboard/Container/PageContainer';
+import PageContainer from 'CommonUI/src/Components/Dashboard/Container/PageContainer/PageContainer';
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
 import SidebarItem from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarItem';
 import SubItem from 'CommonUI/src/Components/Dashboard/Sidebar/SubItem';

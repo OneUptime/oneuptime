@@ -41,6 +41,20 @@ table {
         text-align: left;
         padding: 10px 15px;
         cursor: pointer;
+        transition: all 0.2s linear;
+
+        & > svg {
+            margin-left: 5px;
+            font-size: 1.1rem;
+            color: rgb(150, 150, 150);
+            fill: rgb(150, 150, 150);
+            font-weight: 300 !important;
+            visibility: hidden;
+        }
+
+        &:hover > svg {
+            visibility: visible;
+        }
     }
 
     & > tbody > tr {

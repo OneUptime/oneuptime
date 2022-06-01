@@ -1,13 +1,13 @@
 import React, { ReactElement, useState } from 'react';
-import Container from 'CommonUI/src/Components/Dashboard/Container/Container';
-import Pagination from 'CommonUI/src/Components/Dashboard/Table/Pagination';
+import Container from 'CommonUI/src/Components/Dashboard/Container/Container/Container';
+import Pagination from 'CommonUI/src/Components/Dashboard/Container/Container/Pagination';
 import Table from 'CommonUI/src/Components/Dashboard/Table/Table';
-import Pager from 'CommonUI/src/Components/Dashboard/Table/Pager';
 import Button from 'CommonUI/src/Components/Basic/Button/Button';
 import ButtonTypes from 'CommonUI/src/Components/Basic/Button/ButtonTypes';
 import DropdownButton from 'CommonUI/src/Components/Basic/Button/DropdownButton';
 import DropdownItem from 'CommonUI/src/Components/Basic/Button/DropdownItem';
 import ShortcutKey from 'CommonUI/src/Components/Basic/ShortcutKey/ShortcutKey';
+import { ColumnSort } from 'CommonUI/src/Components/Dashboard/Table/Type/Table';
 
 const MonitorTable = (): ReactElement => {
     const [showList, setShowList] = useState(false);
@@ -19,8 +19,16 @@ const MonitorTable = (): ReactElement => {
             footerText="Page 1 of 1 (3 total monitors)"
             pagination={
                 <Pagination>
-                    <Pager title="Previous" />
-                    <Pager title="Next" />
+                    <Button
+                        title="Previous"
+                        type={ButtonTypes.Button}
+                        id="table_button"
+                    />
+                    <Button
+                        title="Next"
+                        type={ButtonTypes.Button}
+                        id="table_button"
+                    />
                 </Pagination>
             }
             headerButtons={[
@@ -46,6 +54,8 @@ const MonitorTable = (): ReactElement => {
                     {
                         title: 'ID',
                         key: 'id',
+                        isSortable: true,
+                        sortDirection: ColumnSort.ASC,
                     },
                     {
                         title: 'Monitors',
