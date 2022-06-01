@@ -7,6 +7,7 @@ import Button from 'CommonUI/src/Components/Basic/Button/Button';
 import ButtonTypes from 'CommonUI/src/Components/Basic/Button/ButtonTypes';
 import DropdownButton from 'CommonUI/src/Components/Basic/Button/DropdownButton';
 import DropdownItem from 'CommonUI/src/Components/Basic/Button/DropdownItem';
+import ShortcutKey from 'CommonUI/src/Components/Basic/ShortcutKey/ShortcutKey';
 
 const MonitorTable = (): ReactElement => {
     const [showList, setShowList] = useState(false);
@@ -37,6 +38,7 @@ const MonitorTable = (): ReactElement => {
                     title="Create New Monitor"
                     id="table_button"
                     type={ButtonTypes.Button}
+                    shortcutKey={ShortcutKey.New}
                 />,
             ]}
             table={
