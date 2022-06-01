@@ -20,7 +20,7 @@ const HelpButton: FunctionComponent = (): ReactElement => {
             <MenuButton
                 text="Help"
                 icon={faQuestionCircle}
-                action={toggle}
+                onClick={toggle}
                 showModal={showList}
                 modalContent={
                     <>

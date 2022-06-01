@@ -1,8 +1,8 @@
 import React, { FC, ReactElement } from 'react';
-import TableRecord from './Type/Table';
+import TableRecord, { TableColumn } from './Type/Table';
 
 export interface ComponentProps {
-    columns: Array<string>;
+    columns: Array<TableColumn>;
     records: Array<TableRecord>;
 }
 
@@ -12,18 +12,17 @@ const Table: FC<ComponentProps> = ({ columns, records }): ReactElement => {
             <thead>
                 <tr>
                     {columns.map(column => (
-                        <th key={column}>{column}</th>
+                        <th key={column.key}>{column.title}</th>
                     ))}
                 </tr>
             </thead>
             <tbody>
                 {records.length > 0 ? (
                     records.map((record, index) => {
-                        const data = Object.keys(record);
                         return (
                             <tr key={index}>
-                                {data.map((item, index) => (
-                                    <td key={index}>{record[item]}</td>
+                                {columns.map((item, index) => (
+                                    <td key={index}>{record[item.key]}</td>
                                 ))}
                             </tr>
                         );

@@ -21,7 +21,7 @@ const UserProfileButton: FunctionComponent = (): ReactElement => {
             <MenuIconButton
                 icon={faUser}
                 showModal={showProfile}
-                action={toggle}
+                onClick={toggle}
                 modalContent={
                     <TopbarMenu
                         items={[

@@ -7,20 +7,22 @@ import './MenuButton.scss';
 export interface ComponentProps {
     text?: string;
     icon?: IconProp;
-    action?: MouseEventHandler;
+    onClick?: MouseEventHandler;
     modalContent?: ReactElement;
     showModal?: boolean;
+    className?: string;
+    id?: string;
 }
 
 export const MenuIconButton: FC<ComponentProps> = ({
     icon,
-    action,
+    onClick,
     showModal,
     modalContent,
 }): ReactElement => {
     return (
         <div className="button-layout">
-            <div className="icon-button" onClick={action}>
+            <div className="icon-button" onClick={onClick}>
                 {icon && <FontAwesomeIcon icon={icon} />}
             </div>
             {showModal && <div className="button-modal">{modalContent}</div>}
@@ -31,13 +33,15 @@ export const MenuIconButton: FC<ComponentProps> = ({
 export const MenuOutlineButton: FC<ComponentProps> = ({
     text,
     icon,
-    action,
+    onClick,
     showModal,
     modalContent,
+    className,
+    id,
 }): ReactElement => {
     return (
         <div className="button-layout">
-            <div className="button" onClick={action}>
+            <div className={`button ${className}`} id={id} onClick={onClick}>
                 <span>{text}</span>
                 {icon && <FontAwesomeIcon icon={icon} />}
             </div>
@@ -49,13 +53,13 @@ export const MenuOutlineButton: FC<ComponentProps> = ({
 const MenuButton: FC<ComponentProps> = ({
     text,
     icon,
-    action,
+    onClick,
     showModal,
     modalContent,
 }): ReactElement => {
     return (
         <div className="button-layout">
-            <div className="menu-button" onClick={action}>
+            <div className="menu-button" onClick={onClick}>
                 {icon && <FontAwesomeIcon icon={icon} />}
                 <span>{text}</span>
             </div>

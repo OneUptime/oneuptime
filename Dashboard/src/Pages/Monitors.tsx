@@ -1,13 +1,13 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Container from 'CommonUI/src/Components/Dashboard/Container/Container';
+import PageContainer from 'CommonUI/src/Components/Dashboard/Container/PageContainer';
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
 import SidebarItem from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarItem';
 import SubItem from 'CommonUI/src/Components/Dashboard/Sidebar/SubItem';
-import MonitorTable from '../Components/Tables/MonitorTable';
+import MonitorTable from '../Components/Monitor/MonitorTable';
 
 const Monitors: FunctionComponent = (): ReactElement => {
     return (
-        <Container
+        <PageContainer
             title="OneUptime | Monitors"
             sideBar={
                 <Sidebar title="Monitors">
@@ -24,7 +24,7 @@ const Monitors: FunctionComponent = (): ReactElement => {
             }
         >
             <MonitorTable />
-        </Container>
+        </PageContainer>
     );
 };
 

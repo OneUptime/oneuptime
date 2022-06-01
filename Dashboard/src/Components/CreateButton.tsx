@@ -25,7 +25,7 @@ const CreateButton: FunctionComponent = (): ReactElement => {
             <MenuOutlineButton
                 text="Create"
                 icon={faChevronDown}
-                action={toggle}
+                onClick={toggle}
                 showModal={showList}
                 modalContent={
                     <TopbarMenu
