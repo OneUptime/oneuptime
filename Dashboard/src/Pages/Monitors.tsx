@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
+import { Link } from 'react-router-dom';
 import Container from 'CommonUI/src/Components/Dashboard/Container/Container';
 import Breadcrumb from 'CommonUI/src/Components/Dashboard/Container/Breadcrumb/Breadcrumb';
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
@@ -24,7 +25,10 @@ const Monitors: FunctionComponent = (): ReactElement => {
                 </Sidebar>
             }
         >
-            <Breadcrumb title="Monitor" icon={faSignal} />
+            <Breadcrumb title="Monitors" icon={faSignal}>
+                <Link to="/">Monitors</Link>
+                <Link to="/status-page">Status Page</Link>
+            </Breadcrumb>
         </Container>
     );
 };
