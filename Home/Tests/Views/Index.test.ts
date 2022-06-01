@@ -1,11 +1,12 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
+import PuppeteerHelper from 'Common/Tests/TestingUtils/PuppeteerHelper';
 
 import {
     OPERATION_TIMEOUT,
     PUPPETEER_OPTIONS,
-    VIEW_PORT,
+    VIEW_PORT_OPTIONS,
     HOME_URL,
-} from '../config';
+} from '../Config';
 
 let browser: Browser, page: Page;
 
@@ -14,7 +15,7 @@ describe('Home page test', () => {
         jest.setTimeout(OPERATION_TIMEOUT);
         browser = await puppeteer.launch(PUPPETEER_OPTIONS);
         page = await browser.newPage();
-        await page.setViewport(VIEW_PORT);
+        await page.setViewport(VIEW_PORT_OPTIONS);
     });
 
     afterAll(async () => {
@@ -43,14 +44,14 @@ describe('Home page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            await page.waitForSelector('#cookies-text');
-            await page.waitForSelector('#cookies-btn');
-            const text = await page.$eval('#cookies-text', (e: Element) => {
-                return e.textContent;
-            });
-            const button = await page.$eval('#cookies-btn', (e: Element) => {
-                return e.textContent;
-            });
+            const text = await PuppeteerHelper.getTextContent(
+                page,
+                '#cookies-text'
+            );
+            const button = await PuppeteerHelper.getTextContent(
+                page,
+                '.#cookies-btn'
+            );
 
             expect(button).toBeDefined();
             expect(text).toBeDefined();
@@ -66,26 +67,17 @@ describe('Home page test', () => {
                 timeout: OPERATION_TIMEOUT,
             });
 
-            await page.waitForSelector('#page-title');
-            await page.waitForSelector('#feature-title');
-            await page.waitForSelector('#compare-rate');
-
-            const pageTittle = await page.$eval('#page-title', (e: Element) => {
-                return e.textContent;
-            });
-
-            const featureTittle = await page.$eval(
-                '#feature-title',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const pageTittle = await PuppeteerHelper.getTextContent(
+                page,
+                '#page-title'
             );
-
-            const compareRate = await page.$eval(
-                '#compare-rate',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const compareRate = await PuppeteerHelper.getTextContent(
+                page,
+                '#compare-rate'
+            );
+            const featureTittle = await PuppeteerHelper.getTextContent(
+                page,
+                '#feature-title'
             );
 
             expect(pageTittle).toBeDefined();
@@ -105,10 +97,10 @@ describe('Home page test', () => {
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
 
-            await page.waitForSelector('.common-PageTitle');
-            const text = await page.$eval('.common-PageTitle', (e: Element) => {
-                return e.textContent;
-            });
+            const text = await PuppeteerHelper.getTextContent(
+                page,
+                '.common-PageTitle'
+            );
 
             expect(text).toContain('Request Demo');
             expect(page.url()).toBe(`${HOME_URL.toString()}/enterprise/demo`);

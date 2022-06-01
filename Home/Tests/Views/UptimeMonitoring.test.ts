@@ -1,11 +1,11 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
-
+import PuppeteerHelper from 'Common/Tests/TestingUtils/PuppeteerHelper';
 import {
     OPERATION_TIMEOUT,
     PUPPETEER_OPTIONS,
-    VIEW_PORT,
+    VIEW_PORT_OPTIONS,
     HOME_URL,
-} from '../config';
+} from '../Config';
 
 let browser: Browser, page: Page;
 
@@ -14,7 +14,7 @@ describe('Uptime monitoring page test', () => {
         jest.setTimeout(OPERATION_TIMEOUT);
         browser = await puppeteer.launch(PUPPETEER_OPTIONS);
         page = await browser.newPage();
-        await page.setViewport(VIEW_PORT);
+        await page.setViewport(VIEW_PORT_OPTIONS);
     });
 
     afterAll(async () => {
@@ -48,44 +48,26 @@ describe('Uptime monitoring page test', () => {
                 }
             );
 
-            await page.waitForSelector('.Header-title');
-            await page.waitForSelector('#compare-rate');
-            await page.waitForSelector('#website-scans');
-            await page.waitForSelector('#set-criteria');
-            await page.waitForSelector('#helps-your-biz');
-
-            const pageTittle = await page.$eval(
-                '.Header-title',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const pageTittle = await PuppeteerHelper.getTextContent(
+                page,
+                '.Header-title'
+            );
+            const compareRate = await PuppeteerHelper.getTextContent(
+                page,
+                '#compare-rate'
+            );
+            const helpYourBiz = await PuppeteerHelper.getTextContent(
+                page,
+                '#helps-your-biz'
             );
 
-            const compareRate = await page.$eval(
-                '#compare-rate',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const setCriteria = await PuppeteerHelper.getTextContent(
+                page,
+                '#set-criteria'
             );
-
-            const webSiteScans = await page.$eval(
-                '#website-scans',
-                (e: Element) => {
-                    return e.textContent;
-                }
-            );
-
-            const setCriteria = await page.$eval(
-                '#set-criteria',
-                (e: Element) => {
-                    return e.textContent;
-                }
-            );
-            const helpYourBiz = await page.$eval(
-                '#helps-your-biz',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const webSiteScans = await PuppeteerHelper.getTextContent(
+                page,
+                '#website-scans'
             );
 
             expect(pageTittle).toBeDefined();
@@ -109,12 +91,10 @@ describe('Uptime monitoring page test', () => {
             );
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
-
-            await page.waitForSelector('.common-PageTitle');
-            const text = await page.$eval('.common-PageTitle', (e: Element) => {
-                return e.textContent;
-            });
-
+            const text = await PuppeteerHelper.getTextContent(
+                page,
+                '.common-PageTitle'
+            );
             expect(text).toContain('Request Demo');
             expect(page.url()).toBe(`${HOME_URL.toString()}/enterprise/demo`);
         },

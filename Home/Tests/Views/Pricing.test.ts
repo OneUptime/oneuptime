@@ -1,10 +1,11 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
+import PuppeteerHelper from 'Common/Tests/TestingUtils/PuppeteerHelper';
 import {
     OPERATION_TIMEOUT,
     PUPPETEER_OPTIONS,
-    VIEW_PORT,
+    VIEW_PORT_OPTIONS,
     HOME_URL,
-} from '../config';
+} from '../Config';
 
 let browser: Browser, page: Page;
 
@@ -13,7 +14,7 @@ describe('Pricing page test', () => {
         jest.setTimeout(OPERATION_TIMEOUT);
         browser = await puppeteer.launch(PUPPETEER_OPTIONS);
         page = await browser.newPage();
-        await page.setViewport(VIEW_PORT);
+        await page.setViewport(VIEW_PORT_OPTIONS);
     });
 
     afterAll(async () => {
@@ -41,29 +42,21 @@ describe('Pricing page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-
-            await page.waitForSelector('#page-title');
-            await page.waitForSelector('.Plan-title--enterprise');
-            await page.waitForSelector('#compare-rate');
-            await page.waitForSelector('.common-BodyText');
-
-            const pageTittle = await page.$eval(
-                '#page-title',
-                (e: Element) => e.textContent
+            const pageTittle = await PuppeteerHelper.getTextContent(
+                page,
+                '#page-title'
             );
-
-            const enterprise = await page.$eval(
-                '.Plan-title--enterprise',
-                (e: Element) => e.textContent
+            const compareRate = await PuppeteerHelper.getTextContent(
+                page,
+                '#compare-rate'
             );
-
-            const compareRate = await page.$eval(
-                '#compare-rate',
-                (e: Element) => e.textContent
+            const enterprise = await PuppeteerHelper.getTextContent(
+                page,
+                '.Plan-title--enterprise'
             );
-            const commonBodyText = await page.$eval(
-                '.common-BodyText',
-                (e: Element) => e.textContent
+            const commonBodyText = await PuppeteerHelper.getTextContent(
+                page,
+                '.common-BodyText'
             );
 
             expect(pageTittle).toBeDefined();
@@ -83,21 +76,17 @@ describe('Pricing page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            await page.waitForSelector('#startup-rate');
-            await page.waitForSelector('#growth-rate');
-            await page.waitForSelector('#scale-rate');
-            const startUp = await page.$eval(
-                '#startup-rate',
-                (e: Element) => e.textContent
+            const startUp = await PuppeteerHelper.getTextContent(
+                page,
+                '#startup-rate'
             );
-            const growth = await page.$eval(
-                '#growth-rate',
-                (e: Element) => e.textContent
+            const growth = await PuppeteerHelper.getTextContent(
+                page,
+                '#growth-rate'
             );
-
-            const scale = await page.$eval(
-                '#scale-rate',
-                (e: Element) => e.textContent
+            const scale = await PuppeteerHelper.getTextContent(
+                page,
+                '#scale-rate'
             );
 
             expect(startUp).toContain('$22');
@@ -116,13 +105,10 @@ describe('Pricing page test', () => {
             });
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
-
-            await page.waitForSelector('.common-PageTitle');
-            const text = await page.$eval(
-                '.common-PageTitle',
-                (e: Element) => e.textContent
+            const text = await PuppeteerHelper.getTextContent(
+                page,
+                '.common-PageTitle'
             );
-
             expect(text).toContain('Request Demo');
             expect(page.url()).toBe(`${HOME_URL.toString()}/enterprise/demo`);
         },

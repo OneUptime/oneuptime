@@ -1,10 +1,11 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
+import PuppeteerHelper from 'Common/Tests/TestingUtils/PuppeteerHelper';
 import {
     OPERATION_TIMEOUT,
     PUPPETEER_OPTIONS,
-    VIEW_PORT,
+    VIEW_PORT_OPTIONS,
     HOME_URL,
-} from '../config';
+} from '../Config';
 
 let browser: Browser, page: Page;
 
@@ -13,7 +14,7 @@ describe('Support page test', () => {
         jest.setTimeout(OPERATION_TIMEOUT);
         browser = await puppeteer.launch(PUPPETEER_OPTIONS);
         page = await browser.newPage();
-        await page.setViewport(VIEW_PORT);
+        await page.setViewport(VIEW_PORT_OPTIONS);
     });
 
     afterAll(async () => {
@@ -42,17 +43,13 @@ describe('Support page test', () => {
                 timeout: OPERATION_TIMEOUT,
             });
 
-            await page.waitForSelector('#page-title');
-            await page.waitForSelector('.title');
-
-            const pageTittle = await page.$eval(
-                '#page-title',
-                (e: Element) => e.textContent
+            const pageTittle = await PuppeteerHelper.getTextContent(
+                page,
+                '#page-title'
             );
-
-            const featureTittle = await page.$eval(
-                '.title',
-                (e: Element) => e.textContent
+            const featureTittle = await PuppeteerHelper.getTextContent(
+                page,
+                '.title'
             );
 
             expect(pageTittle).toBeDefined();
@@ -70,13 +67,10 @@ describe('Support page test', () => {
             });
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
-
-            await page.waitForSelector('.common-PageTitle');
-            const text = await page.$eval(
-                '.common-PageTitle',
-                (e: Element) => e.textContent
+            const text = await PuppeteerHelper.getTextContent(
+                page,
+                '.common-PageTitle'
             );
-
             expect(text).toContain('Request Demo');
             expect(page.url()).toBe(`${HOME_URL.toString()}/enterprise/demo`);
         },

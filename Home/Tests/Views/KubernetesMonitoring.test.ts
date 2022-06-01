@@ -1,11 +1,12 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
+import PuppeteerHelper from 'Common/Tests/TestingUtils/PuppeteerHelper';
 
 import {
     OPERATION_TIMEOUT,
     PUPPETEER_OPTIONS,
-    VIEW_PORT,
+    VIEW_PORT_OPTIONS,
     HOME_URL,
-} from '../config';
+} from '../Config';
 
 let browser: Browser, page: Page;
 
@@ -14,7 +15,7 @@ describe('Kubernetes monitoring page test', () => {
         jest.setTimeout(OPERATION_TIMEOUT);
         browser = await puppeteer.launch(PUPPETEER_OPTIONS);
         page = await browser.newPage();
-        await page.setViewport(VIEW_PORT);
+        await page.setViewport(VIEW_PORT_OPTIONS);
     });
 
     afterAll(async () => {
@@ -24,10 +25,13 @@ describe('Kubernetes monitoring page test', () => {
     test(
         'Title of the page',
         async () => {
-            await page.goto(`${HOME_URL.toString()}/product/kubernetes-monitoring`, {
-                waitUntil: 'networkidle0',
-                timeout: OPERATION_TIMEOUT,
-            });
+            await page.goto(
+                `${HOME_URL.toString()}/product/kubernetes-monitoring`,
+                {
+                    waitUntil: 'networkidle0',
+                    timeout: OPERATION_TIMEOUT,
+                }
+            );
             const title = await page.title();
             expect(title).toBe(
                 `OneUptime | Monitor your kubernetes cluster every second`
@@ -39,10 +43,13 @@ describe('Kubernetes monitoring page test', () => {
     test(
         'Animated gif on page',
         async () => {
-            await page.goto(`${HOME_URL.toString()}/product/kubernetes-monitoring`, {
-                waitUntil: 'networkidle0',
-                timeout: OPERATION_TIMEOUT,
-            });
+            await page.goto(
+                `${HOME_URL.toString()}/product/kubernetes-monitoring`,
+                {
+                    waitUntil: 'networkidle0',
+                    timeout: OPERATION_TIMEOUT,
+                }
+            );
             const imgGif = await page.waitForSelector('#uptime-monitoring-gif');
             expect(imgGif).toBeTruthy();
         },
@@ -52,34 +59,24 @@ describe('Kubernetes monitoring page test', () => {
     test(
         'Confirm text on page',
         async () => {
-            await page.goto(`${HOME_URL.toString()}/product/kubernetes-monitoring`, {
-                waitUntil: 'networkidle0',
-                timeout: OPERATION_TIMEOUT,
-            });
-
-            await page.waitForSelector('.Header-title');
-            await page.waitForSelector('#compare-rate');
-            await page.waitForSelector('#enterprise-integration');
-
-            const pageTittle = await page.$eval(
-                '.Header-title',
-                (e: Element) => {
-                    return e.textContent;
+            await page.goto(
+                `${HOME_URL.toString()}/product/kubernetes-monitoring`,
+                {
+                    waitUntil: 'networkidle0',
+                    timeout: OPERATION_TIMEOUT,
                 }
             );
-
-            const compareRate = await page.$eval(
-                '#compare-rate',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const pageTittle = await PuppeteerHelper.getTextContent(
+                page,
+                '.Header-title'
             );
-
-            const enterpriseIntegration = await page.$eval(
-                '#enterprise-integration',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const compareRate = await PuppeteerHelper.getTextContent(
+                page,
+                '#compare-rate'
+            );
+            const enterpriseIntegration = await PuppeteerHelper.getTextContent(
+                page,
+                '#enterprise-integration'
             );
 
             expect(pageTittle).toBeDefined();
@@ -92,17 +89,20 @@ describe('Kubernetes monitoring page test', () => {
     test(
         'Request demo button',
         async () => {
-            await page.goto(`${HOME_URL.toString()}/product/kubernetes-monitoring`, {
-                waitUntil: 'networkidle0',
-                timeout: OPERATION_TIMEOUT,
-            });
+            await page.goto(
+                `${HOME_URL.toString()}/product/kubernetes-monitoring`,
+                {
+                    waitUntil: 'networkidle0',
+                    timeout: OPERATION_TIMEOUT,
+                }
+            );
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
 
-            await page.waitForSelector('.common-PageTitle');
-            const text = await page.$eval('.common-PageTitle', (e: Element) => {
-                return e.textContent;
-            });
+            const text = await PuppeteerHelper.getTextContent(
+                page,
+                '.common-PageTitle'
+            );
 
             expect(text).toContain('Request Demo');
             expect(page.url()).toBe(`${HOME_URL.toString()}/enterprise/demo`);
@@ -113,10 +113,13 @@ describe('Kubernetes monitoring page test', () => {
     test(
         'Customer icons',
         async () => {
-            await page.goto(`${HOME_URL.toString()}/product/kubernetes-monitoring`, {
-                waitUntil: 'networkidle0',
-                timeout: OPERATION_TIMEOUT,
-            });
+            await page.goto(
+                `${HOME_URL.toString()}/product/kubernetes-monitoring`,
+                {
+                    waitUntil: 'networkidle0',
+                    timeout: OPERATION_TIMEOUT,
+                }
+            );
             const sodexoImg = await page.waitForSelector('.sodexo');
             const viewsonicImg = await page.waitForSelector('.viewsonic');
             const siemensImg = await page.waitForSelector('.siemens');

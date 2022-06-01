@@ -1,11 +1,11 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
-
+import PuppeteerHelper from 'Common/Tests/TestingUtils/PuppeteerHelper';
 import {
     OPERATION_TIMEOUT,
     PUPPETEER_OPTIONS,
-    VIEW_PORT,
+    VIEW_PORT_OPTIONS,
     HOME_URL,
-} from '../config';
+} from '../Config';
 
 let browser: Browser, page: Page;
 
@@ -14,7 +14,7 @@ describe('Website monitoring page test', () => {
         jest.setTimeout(OPERATION_TIMEOUT);
         browser = await puppeteer.launch(PUPPETEER_OPTIONS);
         page = await browser.newPage();
-        await page.setViewport(VIEW_PORT);
+        await page.setViewport(VIEW_PORT_OPTIONS);
     });
 
     afterAll(async () => {
@@ -67,51 +67,30 @@ describe('Website monitoring page test', () => {
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-
-            await page.waitForSelector('.Header-title');
-            await page.waitForSelector('#compare-rate');
-            await page.waitForSelector('#help-your-biz');
-            await page.waitForSelector('#websiite-scan');
-            await page.waitForSelector('#enterprise-integration');
-
-            const pageTittle = await page.$eval(
-                '.Header-title',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const pageTittle = await PuppeteerHelper.getTextContent(
+                page,
+                '.Header-title'
             );
-
-            const compareRate = await page.$eval(
-                '#compare-rate',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const compareRate = await PuppeteerHelper.getTextContent(
+                page,
+                '#compare-rate'
             );
-
-            const helpYourBiz = await page.$eval(
-                '#help-your-biz',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const helpYourBiz = await PuppeteerHelper.getTextContent(
+                page,
+                '#help-your-biz'
             );
-            const websiteScan = await page.$eval(
-                '#websiite-scan',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const webSiteScan = await PuppeteerHelper.getTextContent(
+                page,
+                '#website-scans'
             );
-
-            const enterpriseIntegration = await page.$eval(
-                '#enterprise-integration',
-                (e: Element) => {
-                    return e.textContent;
-                }
+            const enterpriseIntegration = await PuppeteerHelper.getTextContent(
+                page,
+                '#enterprise-integration'
             );
-
             expect(pageTittle).toBeDefined();
             expect(compareRate).toBeDefined();
             expect(helpYourBiz).toBeDefined();
-            expect(websiteScan).toBeDefined();
+            expect(webSiteScan).toBeDefined();
             expect(enterpriseIntegration).toBeDefined();
         },
         OPERATION_TIMEOUT
@@ -129,12 +108,10 @@ describe('Website monitoring page test', () => {
             );
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
-
-            await page.waitForSelector('.common-PageTitle');
-            const text = await page.$eval('.common-PageTitle', (e: Element) => {
-                return e.textContent;
-            });
-
+            const text = await PuppeteerHelper.getTextContent(
+                page,
+                '.common-PageTitle'
+            );
             expect(text).toContain('Request Demo');
             expect(page.url()).toBe(`${HOME_URL.toString()}/enterprise/demo`);
         },
