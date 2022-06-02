@@ -20,43 +20,45 @@ export interface ComponentProps {
     text: string;
     icon?: ModalIcons;
     showSecondaryButton?: boolean;
+    primaryButtonText?: string;
 }
-
-const getIconProperty = (icon: ModalIcons): ConfirmModal => {
-    switch (icon) {
-        case ModalIcons.ERROR:
-            return {
-                icon: faWarning,
-                theme: 'danger',
-            };
-        case ModalIcons.QUESTION:
-            return {
-                icon: faQuestionCircle,
-                theme: 'info',
-            };
-        case ModalIcons.SUCCESS:
-            return {
-                icon: faCheckCircle,
-                theme: 'success',
-            };
-        default:
-            return {
-                icon: faInfoCircle,
-                theme: 'info',
-            };
-    }
-};
 
 const ConfirmTextModal: FunctionComponent<ComponentProps> = ({
     title,
     text,
     icon,
     showSecondaryButton,
+    primaryButtonText = 'OKAY',
 }): ReactElement => {
     const [theme, setTheme] = useState<ConfirmModal>({
         theme: 'info',
         icon: faInfoCircle,
     });
+
+    const getIconProperty = (icon: ModalIcons): ConfirmModal => {
+        switch (icon) {
+            case ModalIcons.ERROR:
+                return {
+                    icon: faWarning,
+                    theme: 'danger',
+                };
+            case ModalIcons.QUESTION:
+                return {
+                    icon: faQuestionCircle,
+                    theme: 'info',
+                };
+            case ModalIcons.SUCCESS:
+                return {
+                    icon: faCheckCircle,
+                    theme: 'success',
+                };
+            default:
+                return {
+                    icon: faInfoCircle,
+                    theme: 'info',
+                };
+        }
+    };
 
     useEffect(() => {
         setTheme(getIconProperty(icon || ModalIcons.INFO));
@@ -66,7 +68,7 @@ const ConfirmTextModal: FunctionComponent<ComponentProps> = ({
         <BasicModal
             title={title}
             showPrimaryButton={true}
-            primaryButtonText="Okay"
+            primaryButtonText={primaryButtonText}
             showCancelButton={showSecondaryButton!}
         >
             <div className="confirmDialog">
