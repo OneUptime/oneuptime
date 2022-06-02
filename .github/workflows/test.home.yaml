@@ -15,5 +15,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           check-latest: true
-      - run: cd Home && npm install && npm run test
+      - run: cd Common && npm install
+      - run: cd CommonServer && bash test-setup.sh
+      - run: cd CommonServer && npm install && npm run test
   
