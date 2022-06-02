@@ -24,7 +24,6 @@ const App: FunctionComponent = () => {
                     <CreateButton />,
                     <HelpButton />,
                     <MenuIconButton icon={faBell} />,
-                    <MenuIconButton icon={faCog} />,
                     <UserProfileButton />,
                 ]}
                 navContents={{
@@ -50,14 +49,7 @@ const App: FunctionComponent = () => {
                             ]}
                         />,
                     ],
-                    rightContents: [
-                        <NavLink>
-                            <p>Automation Scripts</p>
-                        </NavLink>,
-                        <NavLink>
-                            <p>Reports</p>
-                        </NavLink>,
-                    ],
+                    rightContents: [<MenuIconButton icon={faCog} />],
                 }}
             />
             <Router>

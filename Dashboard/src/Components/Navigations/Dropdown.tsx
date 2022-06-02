@@ -25,6 +25,8 @@ const Dropdown = (): ReactElement => {
                     <NavDropDownItem title="Error Tracking" />,
                     <NavDropDownItem title="Performance Tracker" />,
                     <NavDropDownItem title="Security" />,
+                    <NavDropDownItem title="Automation Script" />,
+                    <NavDropDownItem title="Reports" />,
                 ]}
             />
         </OutsideClickHandler>

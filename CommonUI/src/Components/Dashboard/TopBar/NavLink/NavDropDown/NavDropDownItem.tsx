@@ -5,16 +5,16 @@ import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 export interface ComponentProps {
     title: string;
     description?: string;
-    action?: MouseEventHandler;
+    onClick?: MouseEventHandler;
 }
 
 const NavDropDownItem: FC<ComponentProps> = ({
     title,
     description,
-    action,
+    onClick,
 }): ReactElement => {
     return (
-        <div className="body" onClick={action}>
+        <div className="body" onClick={onClick}>
             <div className="nav-details">
                 <h4>{title}</h4>
                 {description && <p>{description}</p>}
