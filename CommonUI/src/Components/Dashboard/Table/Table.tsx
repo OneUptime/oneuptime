@@ -5,12 +5,13 @@ import {
     faUnsorted,
 } from '@fortawesome/free-solid-svg-icons';
 import React, { FC, ReactElement } from 'react';
-import TableRecord, { ColumnSort, TableColumn } from './Type/Table';
+import { ColumnSort, TableColumn } from './Type/Table';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { JSONObject } from 'Common/Types/JSON';
 
 export interface ComponentProps {
     columns: Array<TableColumn>;
-    records: Array<TableRecord>;
+    records: Array<JSONObject>;
 }
 
 const Table: FC<ComponentProps> = ({ columns, records }): ReactElement => {
@@ -51,7 +52,9 @@ const Table: FC<ComponentProps> = ({ columns, records }): ReactElement => {
                         return (
                             <tr key={index}>
                                 {columns.map((item, index) => (
-                                    <td key={index}>{record[item.key]}</td>
+                                    <td key={index}>
+                                        {record[item.key] as string}
+                                    </td>
                                 ))}
                             </tr>
                         );

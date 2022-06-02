@@ -1,7 +1,3 @@
-type TableRecord = {
-    [key: string]: string;
-};
-
 export enum ColumnSort {
     ASC = 'ASC',
     DESC = 'DESC',
@@ -14,5 +10,3 @@ export type TableColumn = {
     sortDirection?: ColumnSort;
     isSortable?: boolean;
 };
-
-export default TableRecord;
