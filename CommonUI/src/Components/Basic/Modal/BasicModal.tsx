@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
+import { MouseOnClick } from '../../../Types/HtmlEvents';
 import Button from '../Button/Button';
 import ButtonTypes from '../Button/ButtonTypes';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
@@ -8,13 +9,24 @@ import './Modal.scss';
 export interface ComponentProps {
     title: string;
     description?: string;
-    children?: Array<ReactElement> | ReactElement;
+    children: Array<ReactElement> | ReactElement;
+    onClick?: MouseOnClick;
+    closeModal?: Function;
+    showPrimaryButton?: boolean;
+    showCancelButton?: boolean;
+    primaryButtonText?: string;
+    cancelButtonText?: string;
 }
 
 const BasicModal: FunctionComponent<ComponentProps> = ({
     title,
     description,
     children,
+    showPrimaryButton,
+    showCancelButton = true,
+    primaryButtonText = 'Save',
+    cancelButtonText = 'Cancel',
+    onClick,
 }): ReactElement => {
     return (
         <>
@@ -28,18 +40,23 @@ const BasicModal: FunctionComponent<ComponentProps> = ({
                 </div>
                 <div className="basic-modal__content">{children}</div>
                 <div className="basic-modal__footer">
-                    <Button
-                        id="cancel"
-                        title="Cancel"
-                        shortcutKey={ShortcutKey.Esc}
-                        type={ButtonTypes.Button}
-                    />
-                    <Button
-                        id="primary"
-                        title="Save"
-                        shortcutKey={ShortcutKey.Enter}
-                        type={ButtonTypes.Button}
-                    />
+                    {showCancelButton && (
+                        <Button
+                            id="cancel"
+                            title={cancelButtonText}
+                            shortcutKey={ShortcutKey.Esc}
+                            type={ButtonTypes.Button}
+                        />
+                    )}
+                    {showPrimaryButton && (
+                        <Button
+                            id="primary"
+                            title={primaryButtonText}
+                            shortcutKey={ShortcutKey.Enter}
+                            type={ButtonTypes.Button}
+                            onClick={onClick!}
+                        />
+                    )}
                 </div>
             </div>
         </>

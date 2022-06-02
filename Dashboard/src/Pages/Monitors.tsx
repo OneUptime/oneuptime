@@ -3,7 +3,6 @@ import Container from 'CommonUI/src/Components/Dashboard/Container/Container';
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
 import SidebarItem from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarItem';
 import SubItem from 'CommonUI/src/Components/Dashboard/Sidebar/SubItem';
-import BasicModal from 'CommonUI/src/Components/Basic/Modal/BasicModal';
 
 const Monitors: FunctionComponent = (): ReactElement => {
     return (
@@ -24,12 +23,6 @@ const Monitors: FunctionComponent = (): ReactElement => {
             }
         >
             <h1>Monitors</h1>
-            <BasicModal
-                title="Create new monitor"
-                description="This is the description"
-            >
-                <h1>Hello Monitor Modal</h1>
-            </BasicModal>
         </Container>
     );
 };
