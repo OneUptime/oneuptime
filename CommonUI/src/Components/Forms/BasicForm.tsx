@@ -114,14 +114,21 @@ const BasicForm = <T extends Object>(
         return null;
     };
 
-    const validateRequired = (content: string, field: DataField<T>) => {
+    const validateRequired = (content: string, field: DataField<T>): string | null => {
         if (field.required && content.length === 0) {
             return `${field.title} is required.`;
         }
         return null;
     };
 
-    const validateData = (content: string, field: DataField<T>) => {
+    const validateMatchField = (content: string, field: DataField<T>, entity: JSONObject): string | null => {
+        if (content && field.validation?.toMatchField && entity[field.validation?.toMatchField] && (entity[field.validation?.toMatchField] as string).trim() !== content.trim()) {
+            return `${field.title} should match ${field.validation?.toMatchField}`;
+        }
+        return null;
+    };
+
+    const validateData = (content: string, field: DataField<T>): string | null => {
         if (field.fieldType === FormFieldSchemaType.Email) {
             if (!Email.isValid(content!)) {
                 return 'Email is not valid.';
@@ -130,7 +137,8 @@ const BasicForm = <T extends Object>(
         return null;
     };
 
-    const validate = (values: FormValues<T>): object => {
+    const validate = (values: FormValues<T>): JSONObject => {
+
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
@@ -153,6 +161,13 @@ const BasicForm = <T extends Object>(
                     if (resultValidateData) {
                         errors[name] = resultValidateData;
                     }
+
+                    const resultMatch = validateMatchField(content, field, entries);
+
+                    if (resultMatch) {
+                        errors[name] = resultMatch;
+                    }
+
                     // check for length of content
                     const result = validateLength(content, field);
                     if (result) {
@@ -164,7 +179,14 @@ const BasicForm = <T extends Object>(
                 errors[name] = `${field.title || name} is required.`;
             }
         }
-        return errors;
+
+        let customValidateResult = {}
+
+        if (props.onValidate) {
+            customValidateResult = props.onValidate(values);
+        }
+        
+        return {...errors, ...customValidateResult};
     };
 
     return (

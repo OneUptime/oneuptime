@@ -5,12 +5,12 @@ import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import BasicForm from './BasicForm';
 
-export interface ComponentProps<T extends BaseModel> {
-    model: T;
+export interface ComponentProps<TBaseModel extends BaseModel> {
+    model: TBaseModel;
     id: string;
-    onSubmit: (values: FormValues<T>) => void;
-    onValidate?: (values: FormValues<T>) => FormikErrors<FormValues<T>>;
-    fields: Fields<T>;
+    onSubmit: (values: FormValues<TBaseModel>) => void;
+    onValidate?: (values: FormValues<TBaseModel>) => FormikErrors<FormValues<TBaseModel>>;
+    fields: Fields<TBaseModel>;
     submitButtonText?: string;
     title?: string;
     description?: string;
@@ -21,6 +21,9 @@ export interface ComponentProps<T extends BaseModel> {
 const BasicModelForm = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
+
+    const defaultValidateFunction = () => { return {} };
+
     const initialValues: FormValues<TBaseModel> = {};
 
     const fields = [];
@@ -55,6 +58,7 @@ const BasicModelForm = <TBaseModel extends BaseModel>(
         <BasicForm<TBaseModel>
             fields={fields}
             id={props.id}
+            onValidate={props.onValidate ? props.onValidate : defaultValidateFunction}
             onSubmit={props.onSubmit}
             initialValues={initialValues}
             requiredfields={{}}
