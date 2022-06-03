@@ -64,7 +64,7 @@ class Express {
     public static async launchApplication(
         appName: string
     ): Promise<express.Application> {
-        return new Promise((resolve) => {
+        return new Promise<express.Application>((resolve: Function) => {
             if (!this.app) {
                 this.setupExpress();
             }

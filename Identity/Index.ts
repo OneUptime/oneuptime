@@ -10,7 +10,7 @@ const APP_NAME: string = 'identity';
 
 app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
 
-const init = async () => {
+const init: Function = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);
