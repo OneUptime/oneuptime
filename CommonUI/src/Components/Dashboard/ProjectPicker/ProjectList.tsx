@@ -1,7 +1,7 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import ProjectItem from './ProjectItem';
 
-const ProjectLists = (): ReactElement => {
+const ProjectLists:FunctionComponent = (): ReactElement => {
     return (
         <div className="lists">
             <ProjectItem />
