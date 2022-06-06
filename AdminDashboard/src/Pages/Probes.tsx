@@ -30,7 +30,6 @@ class Probes extends Component<ComponentProps> {
     }
 
     handleKeyboard = (event: $TSFixMe) => {
-
         const { modalId, modalList }: $TSFixMe = this.props;
 
         const { addModalId }: $TSFixMe = this.state;
@@ -51,7 +50,6 @@ class Probes extends Component<ComponentProps> {
     };
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         this.props.getProbes(
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
@@ -61,19 +59,19 @@ class Probes extends Component<ComponentProps> {
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         this.props.getProbes(skip + limit, 10);
 
         this.setState({ page: this.state.page + 1 });
     };
 
     handleClick = () => {
-
         const { addModalId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: addModalId,
-            onConfirm: () => true,
+            onConfirm: () => {
+                return true;
+            },
             content: ProbeAddModal,
         });
     };
@@ -174,10 +172,8 @@ class Probes extends Component<ComponentProps> {
                                             </div>
                                         </div>
                                         <ProbeList
-
                                             prevClicked={this.prevClicked}
                                             nextClicked={this.nextClicked}
-
                                             page={this.state.page}
                                         />
                                     </div>
@@ -191,7 +187,6 @@ class Probes extends Component<ComponentProps> {
     }
 }
 
-
 Probes.displayName = 'Probes';
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => {
@@ -204,7 +199,6 @@ const mapStateToProps: Function = (state: RootState) => {
         modalList: state.modal.modals,
     };
 };
-
 
 Probes.propTypes = {
     getProbes: PropTypes.func.isRequired,

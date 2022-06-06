@@ -39,11 +39,9 @@ class EventsMain extends Component<ComponentProps> {
     }
 
     getAll = () => {
-
         this.props.showEventCard(true);
 
         this.props.fetchFutureEvents(
-
             this.props.projectId,
 
             this.props.statusPageSlug,
@@ -52,9 +50,7 @@ class EventsMain extends Component<ComponentProps> {
     };
 
     more = () => {
-
         this.props.fetchMoreFutureEvents(
-
             this.props.projectId,
 
             this.props.statusPageSlug,
@@ -72,7 +68,6 @@ class EventsMain extends Component<ComponentProps> {
         const subheading: $TSFixMe = {};
 
         if (this.props.statusPage) {
-
             const colors: $TSFixMe = this.props.statusPage.colors;
             contentBackground = {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
@@ -91,55 +86,39 @@ class EventsMain extends Component<ComponentProps> {
         }
 
         if (this.props.futureEvents && this.props.futureEvents.events) {
-
             event = (
                 <Events
-
                     events={this.props.futureEvents.events}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
-
                     statusPageId={this.props.statusPageId}
-
                     statusPageSlug={this.props.statusPageSlug}
-
                     monitorState={this.props.monitorState}
                 />
             );
         }
 
         if (
-
             this.props.individualEvents.show &&
-
             this.props.individualEvents.events
         ) {
-
             event = (
                 <Events
-
                     events={this.props.individualEvents.events}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
-
                     statusPageId={this.props.statusPageId}
-
                     statusPageSlug={this.props.statusPageSlug}
-
                     monitorState={this.props.monitorState}
                 />
             );
         }
 
-
         return (!this.props.individualEvents.show &&
-
             this.props.futureEvents.events.length > 0) ||
-
             this.props.individualEvents.show ||
-
             this.props.showEventCardState ? (
             <div
                 id="scheduledEvents"
@@ -149,9 +128,7 @@ class EventsMain extends Component<ComponentProps> {
                 <div className="messages" style={{ position: 'relative' }}>
                     <ShouldRender
                         if={
-
                             this.props.futureEvents &&
-
                             !this.props.futureEvents.error
                         }
                     >
@@ -165,7 +142,6 @@ class EventsMain extends Component<ComponentProps> {
                         >
                             <div className="feed-header">
                                 <ShouldRender
-
                                     if={!this.props.individualEvents.show}
                                 >
                                     <span
@@ -178,7 +154,6 @@ class EventsMain extends Component<ComponentProps> {
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender
-
                                     if={this.props.individualEvents.show}
                                 >
                                     <span
@@ -186,34 +161,26 @@ class EventsMain extends Component<ComponentProps> {
                                         style={primaryTextColor}
                                     >
                                         Scheduled Events for{' '}
-
                                         {this.props.individualEvents.monitorName
-
                                             ? this.props.individualEvents
-                                                .monitorName
+                                                  .monitorName
                                             : ''}{' '}
                                         on{' '}
-
                                         {this.props.individualEvents.date
                                             ? moment(
-
-                                                this.props.individualEvents
-                                                    .date
-                                            ).format('LL')
+                                                  this.props.individualEvents
+                                                      .date
+                                              ).format('LL')
                                             : ''}
                                     </span>
                                 </ShouldRender>
                             </div>
                             <ShouldRender
                                 if={
-
                                     (!this.props.individualEvents.show &&
-
                                         this.props.futureEvents.events.length >
-                                        0) ||
-
+                                            0) ||
                                     (this.props.individualEvents.show &&
-
                                         this.props.individualEvents.events
                                             .length > 0)
                                 }
@@ -222,9 +189,7 @@ class EventsMain extends Component<ComponentProps> {
                             </ShouldRender>
                             <ShouldRender
                                 if={
-
                                     this.props.individualEvents.show &&
-
                                     this.props.individualEvents.events
                                         .length === 0
                                 }
@@ -258,12 +223,9 @@ class EventsMain extends Component<ComponentProps> {
                             </ShouldRender>
                             <ShouldRender
                                 if={
-
                                     this.props.showEventCardState &&
-
                                     this.props.futureEvents.events.length ===
-                                    0 &&
-
+                                        0 &&
                                     this.props.individualEvents.events
                                         .length === 0
                                 }
@@ -299,29 +261,22 @@ class EventsMain extends Component<ComponentProps> {
 
                         <ShouldRender
                             if={
-
                                 this.props.futureEvents &&
-
                                 this.props.futureEvents.events &&
-
                                 this.props.futureEvents.events.length &&
-
                                 this.props.count >
-
-                                this.props.futureEvents.events.length &&
-
+                                    this.props.futureEvents.events.length &&
                                 !this.props.futureEvents.requesting &&
-
                                 !this.props.requestingmoreevents &&
-
                                 !this.props.futureEvents.error &&
-
                                 !this.props.individualEvents.show
                             }
                         >
                             <button
                                 className="more button-as-anchor anchor-centered"
-                                onClick={() => this.more()}
+                                onClick={() => {
+                                    return this.more();
+                                }}
                             >
                                 <Translate> More</Translate>
                             </button>
@@ -336,19 +291,17 @@ class EventsMain extends Component<ComponentProps> {
                         >
                             <ShouldRender
                                 if={
-
                                     this.props.futureEvents &&
-
                                     !this.props.futureEvents.error &&
-
                                     !this.props.futureEvents.requesting &&
-
                                     this.props.individualEvents.show
                                 }
                             >
                                 <button
                                     className="all__btn"
-                                    onClick={() => this.getAll()}
+                                    onClick={() => {
+                                        return this.getAll();
+                                    }}
                                 >
                                     <Translate> All Scheduled Events</Translate>
                                 </button>
@@ -357,9 +310,7 @@ class EventsMain extends Component<ComponentProps> {
 
                         <ShouldRender
                             if={
-
                                 this.props.futureEvents.requesting ||
-
                                 this.props.requestingmoreevents
                             }
                         >
@@ -381,7 +332,6 @@ class EventsMain extends Component<ComponentProps> {
         ) : null;
     }
 }
-
 
 EventsMain.displayName = 'EventsMain';
 
@@ -413,15 +363,16 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        fetchMoreFutureEvents,
-        fetchFutureEvents,
-        showEventCard,
-    },
-    dispatch
-);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            fetchMoreFutureEvents,
+            fetchFutureEvents,
+            showEventCard,
+        },
+        dispatch
+    );
+};
 
 EventsMain.propTypes = {
     fetchMoreFutureEvents: PropTypes.func,

@@ -8,14 +8,13 @@ export interface ComponentProps {
     body: object;
 }
 
-const Modal: FunctionComponent<ComponentProps> = (_props: ComponentProps): ReactElement => {
-
+const Modal: FunctionComponent<ComponentProps> = (
+    _props: ComponentProps
+): ReactElement => {
     const mainClass: string = `modal-dialog-view`;
 
     return (
-        <div
-            className={mainClass}
-        >
+        <div className={mainClass}>
             <div
                 className="modal_overlay"
                 style={{
@@ -35,13 +34,10 @@ const Modal: FunctionComponent<ComponentProps> = (_props: ComponentProps): React
                         display: 'block',
                         top: '0px',
                     }}
-                >
-
-                </div>
+                ></div>
             </div>
         </div>
     );
-}
-
+};
 
 export default Modal;

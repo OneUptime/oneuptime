@@ -6,18 +6,16 @@ import LicenseSetting from '../components/license/LicenseSetting';
 import { fetchLicense } from '../actions/license';
 
 class License extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     componentDidMount = async () => {
-
         await this.props.fetchLicense();
     };
 
     override render() {
         return (
-            <div className="Box-root Margin-vertical--12" >
+            <div className="Box-root Margin-vertical--12">
                 <div>
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -43,14 +41,13 @@ class License extends Component<ComponentProps> {
     }
 }
 
-
 License.displayName = 'License';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ fetchLicense }, dispatch);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ fetchLicense }, dispatch);
+};
 
 License.contextTypes = {};
-
 
 License.propTypes = {
     fetchLicense: PropTypes.func.isRequired,

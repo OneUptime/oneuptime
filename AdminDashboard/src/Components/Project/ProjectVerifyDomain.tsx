@@ -14,12 +14,10 @@ import {
 } from '../../actions/project';
 
 class ProjectVerifyDomain extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
-
         this.props.resetVerifyProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -40,16 +38,13 @@ class ProjectVerifyDomain extends Component<ComponentProps> {
     };
 
     handleCloseModal = () => {
-
         this.props.closeModal({
-
             id: this.props.domainId,
         });
     };
 
     handleVerifyDomain = () => {
         const {
-
             domainId,
 
             projectId,
@@ -59,7 +54,6 @@ class ProjectVerifyDomain extends Component<ComponentProps> {
             fetchProjectDomains,
         } = this.props;
         verifyProjectDomain({ projectId, domainId }).then(() => {
-
             if (!this.props.verifyError) {
                 fetchProjectDomains(projectId, 0, 10);
                 this.handleCloseModal();
@@ -68,8 +62,8 @@ class ProjectVerifyDomain extends Component<ComponentProps> {
     };
 
     override render() {
-
-        const { requesting, verificationToken, verifyError }: $TSFixMe = this.props;
+        const { requesting, verificationToken, verifyError }: $TSFixMe =
+            this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -224,8 +218,7 @@ class ProjectVerifyDomain extends Component<ComponentProps> {
                                                         <div className="Box-root">
                                                             <span
                                                                 style={{
-                                                                    color:
-                                                                        'red',
+                                                                    color: 'red',
                                                                 }}
                                                             >
                                                                 {verifyError}
@@ -244,8 +237,10 @@ class ProjectVerifyDomain extends Component<ComponentProps> {
                                         >
                                             <button
                                                 id="cancelVerifyDomain"
-                                                className={`bs-Button btn__modal ${requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button btn__modal ${
+                                                    requesting &&
+                                                    'bs-is-disabled'
+                                                }`}
                                                 type="button"
                                                 disabled={requesting}
                                                 onClick={this.handleCloseModal}
@@ -257,8 +252,10 @@ class ProjectVerifyDomain extends Component<ComponentProps> {
                                             </button>
                                             <button
                                                 id="confirmVerifyDomain"
-                                                className={`bs-Button bs-Button--blue btn__modal ${requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button bs-Button--blue btn__modal ${
+                                                    requesting &&
+                                                    'bs-is-disabled'
+                                                }`}
                                                 onClick={
                                                     this.handleVerifyDomain
                                                 }
@@ -288,28 +285,30 @@ class ProjectVerifyDomain extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps: Function = (state: RootState) => ({
-    requesting: state.project.verifyDomain.requesting,
-    verifyError: state.project.verifyDomain.error,
-    domainId: state.modal.modals[0].id,
-    verificationToken: state.modal.modals[0].verificationToken,
-    domain: state.modal.modals[0].domain,
-    projectId: state.modal.modals[0].projectId
-});
-
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        requesting: state.project.verifyDomain.requesting,
+        verifyError: state.project.verifyDomain.error,
+        domainId: state.modal.modals[0].id,
+        verificationToken: state.modal.modals[0].verificationToken,
+        domain: state.modal.modals[0].domain,
+        projectId: state.modal.modals[0].projectId,
+    };
+};
 
 ProjectVerifyDomain.displayName = 'ProjectVerifyDomain';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        closeModal,
-        fetchProjectDomains,
-        verifyProjectDomain,
-        resetVerifyProjectDomain,
-    },
-    dispatch
-);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            closeModal,
+            fetchProjectDomains,
+            verifyProjectDomain,
+            resetVerifyProjectDomain,
+        },
+        dispatch
+    );
+};
 
 ProjectVerifyDomain.propTypes = {
     closeModal: PropTypes.func,

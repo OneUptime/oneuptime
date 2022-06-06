@@ -31,21 +31,16 @@ class SubscribeBox extends Component<ComponentProps> {
         this.selectbutton = this.selectbutton.bind(this);
     }
     subscribebutton = () => {
-
         if (this.props.theme) {
-
             this.props.handleCloseButtonClick();
         } else {
-
             this.props.openSubscribeMenu();
         }
     };
     selectbutton = (data: $TSFixMe) => {
-
         this.props.selectedMenu(data);
     };
     override render() {
-
         const { statusPage }: $TSFixMe = this.props;
         const {
             enableRSSFeed,
@@ -59,8 +54,9 @@ class SubscribeBox extends Component<ComponentProps> {
         return (
             <div className="subscribe-overlay">
                 <ClickOutHandler
-
-                    onClickOut={() => this.props.openSubscribeMenu()}
+                    onClickOut={() => {
+                        return this.props.openSubscribeMenu();
+                    }}
                 >
                     <div
                         className={
@@ -78,11 +74,11 @@ class SubscribeBox extends Component<ComponentProps> {
                             <ShouldRender if={emailNotification}>
                                 <button
                                     id="updates-dropdown-email-btn"
-
                                     disabled={this.props.subscribed.requesting}
-                                    onClick={() => this.selectbutton(1)}
+                                    onClick={() => {
+                                        return this.selectbutton(1);
+                                    }}
                                     className={
-
                                         this.props.select === 1
                                             ? 'icon-container selected'
                                             : 'icon-container'
@@ -102,11 +98,11 @@ class SubscribeBox extends Component<ComponentProps> {
                             <ShouldRender if={smsNotification}>
                                 <button
                                     id="updates-dropdown-sms-btn"
-
                                     disabled={this.props.subscribed.requesting}
-                                    onClick={() => this.selectbutton(2)}
+                                    onClick={() => {
+                                        return this.selectbutton(2);
+                                    }}
                                     className={
-
                                         this.props.select === 2
                                             ? 'icon-container selected'
                                             : 'icon-container'
@@ -126,11 +122,11 @@ class SubscribeBox extends Component<ComponentProps> {
                             <ShouldRender if={webhookNotification}>
                                 <button
                                     id="updates-dropdown-webhook-btn"
-
                                     disabled={this.props.subscribed.requesting}
-                                    onClick={() => this.selectbutton(3)}
+                                    onClick={() => {
+                                        return this.selectbutton(3);
+                                    }}
                                     className={
-
                                         this.props.select === 3
                                             ? 'icon-container selected'
                                             : 'icon-container'
@@ -150,11 +146,11 @@ class SubscribeBox extends Component<ComponentProps> {
                             <ShouldRender if={enableRSSFeed}>
                                 <button
                                     id="updates-dropdown-atom-btn"
-
                                     disabled={this.props.subscribed.requesting}
-                                    onClick={() => this.selectbutton(4)}
+                                    onClick={() => {
+                                        return this.selectbutton(4);
+                                    }}
                                     className={
-
                                         this.props.select === 4
                                             ? 'icon-container selected'
                                             : 'icon-container'
@@ -173,8 +169,9 @@ class SubscribeBox extends Component<ComponentProps> {
                             </ShouldRender>
                             <button
                                 id="updates-dropdown-close-btn"
-                                onClick={() => this.subscribebutton()}
-
+                                onClick={() => {
+                                    return this.subscribebutton();
+                                }}
                                 disabled={this.props.subscribed.requesting}
                                 className="icon-container"
                             >
@@ -199,17 +196,13 @@ class SubscribeBox extends Component<ComponentProps> {
                         >
                             <ShouldRender
                                 if={
-
                                     !this.props.openSelectedBox &&
-
                                     this.props.select === 1 &&
                                     emailNotification
                                 }
                             >
                                 <Message
-
                                     handleCloseButtonClick={
-
                                         this.props.handleCloseButtonClick
                                     }
                                     theme={theme}
@@ -217,17 +210,13 @@ class SubscribeBox extends Component<ComponentProps> {
                             </ShouldRender>
                             <ShouldRender
                                 if={
-
                                     !this.props.openSelectedBox &&
-
                                     this.props.select === 2 &&
                                     smsNotification
                                 }
                             >
                                 <Call
-
                                     handleCloseButtonClick={
-
                                         this.props.handleCloseButtonClick
                                     }
                                     theme={theme}
@@ -235,17 +224,13 @@ class SubscribeBox extends Component<ComponentProps> {
                             </ShouldRender>
                             <ShouldRender
                                 if={
-
                                     !this.props.openSelectedBox &&
-
                                     this.props.select === 3 &&
                                     webhookNotification
                                 }
                             >
                                 <Webhook
-
                                     handleCloseButtonClick={
-
                                         this.props.handleCloseButtonClick
                                     }
                                     theme={theme}
@@ -253,9 +238,7 @@ class SubscribeBox extends Component<ComponentProps> {
                             </ShouldRender>
                             <ShouldRender
                                 if={
-
                                     !this.props.openSelectedBox &&
-
                                     this.props.select === 4 &&
                                     enableRSSFeed
                                 }
@@ -278,15 +261,12 @@ class SubscribeBox extends Component<ComponentProps> {
                             </ShouldRender>
                             <ShouldRender
                                 if={
-
                                     this.props.openSelectedBox &&
                                     selectIndividualMonitors
                                 }
                             >
                                 <Monitors
-
                                     handleCloseButtonClick={
-
                                         this.props.handleCloseButtonClick
                                     }
                                     theme={theme}
@@ -300,18 +280,20 @@ class SubscribeBox extends Component<ComponentProps> {
     }
 }
 
-
 SubscribeBox.displayName = 'SubscribeBox';
 
-const mapStateToProps: Function = (state: RootState) => ({
-    select: state.subscribe.selectedMenu,
-    subscribed: state.subscribe.subscribed,
-    openSelectedBox: state.subscribe.openSelectedBox,
-    statusPage: state.status.statusPage
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        select: state.subscribe.selectedMenu,
+        subscribed: state.subscribe.subscribed,
+        openSelectedBox: state.subscribe.openSelectedBox,
+        statusPage: state.status.statusPage,
+    };
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openSubscribeMenu, selectedMenu }, dispatch);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ openSubscribeMenu, selectedMenu }, dispatch);
+};
 
 SubscribeBox.propTypes = {
     openSubscribeMenu: PropTypes.func,

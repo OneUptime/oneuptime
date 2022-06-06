@@ -4,10 +4,11 @@ import SelectItem from './SelectItem';
 
 class SelectList extends Component<ComponentProps> {
     handleSelectionChanged = (option: $TSFixMe, checked: $TSFixMe) => {
-
         const { selected, onSelectedChanged, disabled }: $TSFixMe = this.props;
 
-        if (disabled) return true;
+        if (disabled) {
+            return true;
+        }
 
         if (checked) {
             onSelectedChanged({ selected, onSelectedChanged, disabled });
@@ -24,7 +25,6 @@ class SelectList extends Component<ComponentProps> {
 
     renderItems() {
         const {
-
             options,
 
             selected,
@@ -37,23 +37,32 @@ class SelectList extends Component<ComponentProps> {
 
             disabled,
         } = this.props;
-        return options.map((o: $TSFixMe, i: $TSFixMe) => (
-            <li
-                key={Object.prototype.hasOwnProperty.call(o, 'key') ? o.key : i}
-                style={{ listStyle: 'none' }}
-            >
-                <SelectItem
-
-                    focused={focusIndex === 1}
-                    option={o}
-                    onSelectChanged={(c: $TSFixMe) => this.handleSelectionChanged(o, c)}
-                    checked={selected.includes(o.value)}
-                    onClick={(e: $TSFixMe) => onClick(e, i)}
-                    ItemRenderer={ItemRenderer}
-                    disabled={disabled}
-                />
-            </li>
-        ));
+        return options.map((o: $TSFixMe, i: $TSFixMe) => {
+            return (
+                <li
+                    key={
+                        Object.prototype.hasOwnProperty.call(o, 'key')
+                            ? o.key
+                            : i
+                    }
+                    style={{ listStyle: 'none' }}
+                >
+                    <SelectItem
+                        focused={focusIndex === 1}
+                        option={o}
+                        onSelectChanged={(c: $TSFixMe) => {
+                            return this.handleSelectionChanged(o, c);
+                        }}
+                        checked={selected.includes(o.value)}
+                        onClick={(e: $TSFixMe) => {
+                            return onClick(e, i);
+                        }}
+                        ItemRenderer={ItemRenderer}
+                        disabled={disabled}
+                    />
+                </li>
+            );
+        });
     }
     override render() {
         return (
@@ -62,19 +71,16 @@ class SelectList extends Component<ComponentProps> {
                 style={{ margin: 0, paddingLeft: 0 }}
             >
                 {this.renderItems()}
-            </ul >
+            </ul>
         );
     }
 }
 
-
 SelectList.displayName = 'SelectList';
-
 
 SelectList.propTypes = {
     selected: PropTypes.arrayOf(Object).isRequired,
     options: PropTypes.arrayOf({
-
         label: PropTypes.string.isRequired,
         value: PropTypes.string.isRequired,
         key: PropTypes.string,

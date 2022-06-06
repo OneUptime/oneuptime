@@ -16,7 +16,7 @@ import { reduxForm, Field } from 'redux-form';
 import { UploadFile } from '../basic/UploadFile';
 import { API_URL } from '../../config';
 
-export class ProbeList extends Component<ComponentProps>{
+export class ProbeList extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -26,7 +26,6 @@ export class ProbeList extends Component<ComponentProps>{
     }
 
     handleClick = (probeId: $TSFixMe) => {
-
         const { deleteModalId }: $TSFixMe = this.state;
 
         this.props.openModal({
@@ -43,9 +42,11 @@ export class ProbeList extends Component<ComponentProps>{
         const reader: $TSFixMe = new FileReader();
         const file: $TSFixMe = e.target.files[0];
 
-        // reader.onloadend = () => {
-        //     this.props.logFile(reader.result);
-        // };
+        /*
+         * reader.onloadend = () => {
+         *     this.props.logFile(reader.result);
+         * };
+         */
         try {
             reader.readAsDataURL(file);
             const data: $TSFixMe = { id: probe._id, probeImage: file };
@@ -57,10 +58,8 @@ export class ProbeList extends Component<ComponentProps>{
     };
 
     override render() {
-
         const { selectedProbe }: $TSFixMe = this.state;
         const {
-
             probes,
 
             deleteRequesting,
@@ -77,8 +76,12 @@ export class ProbeList extends Component<ComponentProps>{
         if (probes && probes.limit && typeof probes.limit === 'string') {
             probes.limit = parseInt(probes.limit, 10);
         }
-        if (!probes.skip) probes.skip = 0;
-        if (!probes.limit) probes.limit = 0;
+        if (!probes.skip) {
+            probes.skip = 0;
+        }
+        if (!probes.limit) {
+            probes.limit = 0;
+        }
 
         let canNext =
             probes && probes.count && probes.count > probes.skip + probes.limit
@@ -175,8 +178,8 @@ export class ProbeList extends Component<ComponentProps>{
                                     </tr>
                                 </Fragment>
                             ) : probes &&
-                                probes.data &&
-                                probes.data.length > 0 ? (
+                              probes.data &&
+                              probes.data.length > 0 ? (
                                 probes.data.map((probe: $TSFixMe) => {
                                     const fileData: $TSFixMe =
                                         probe && probe.probeImage
@@ -246,10 +249,10 @@ export class ProbeList extends Component<ComponentProps>{
                                                                 <span>
                                                                     {probe.lastAlive
                                                                         ? moment(
-                                                                            probe.lastAlive
-                                                                        ).format(
-                                                                            'dddd, MMMM Do YYYY, h:mm a'
-                                                                        )
+                                                                              probe.lastAlive
+                                                                          ).format(
+                                                                              'dddd, MMMM Do YYYY, h:mm a'
+                                                                          )
                                                                         : ''}
                                                                 </span>
                                                             </div>
@@ -302,7 +305,6 @@ export class ProbeList extends Component<ComponentProps>{
                                                                 'flex-end',
                                                         }}
                                                     >
-
                                                         <form onSubmit>
                                                             <div className="bs-Button bs-DeprecatedButton Margin-left--8">
                                                                 <ShouldRender
@@ -335,17 +337,19 @@ export class ProbeList extends Component<ComponentProps>{
                                                                     name="profilePic"
                                                                     id="profilePic"
                                                                     accept="image/jpeg, image/jpg, image/png"
-                                                                    onChange={(e: $TSFixMe) => this.handleChange(
-                                                                        probe,
-                                                                        e
-                                                                    )
-                                                                    }
+                                                                    onChange={(
+                                                                        e: $TSFixMe
+                                                                    ) => {
+                                                                        return this.handleChange(
+                                                                            probe,
+                                                                            e
+                                                                        );
+                                                                    }}
                                                                     disabled={
                                                                         updateRequesting &&
                                                                         selectedProbe ===
-                                                                        probe.id
+                                                                            probe.id
                                                                     }
-
                                                                     fileInputKey={Math.round()}
                                                                 />
                                                             </div>
@@ -358,11 +362,11 @@ export class ProbeList extends Component<ComponentProps>{
                                                                 addRequesting ||
                                                                 deleteRequesting
                                                             }
-                                                            onClick={() =>
-                                                                this.handleClick(
+                                                            onClick={() => {
+                                                                return this.handleClick(
                                                                     probe._id
-                                                                )
-                                                            }
+                                                                );
+                                                            }}
                                                         >
                                                             <ShouldRender
                                                                 if={
@@ -396,9 +400,9 @@ export class ProbeList extends Component<ComponentProps>{
                 </div>
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
                     {probes &&
-                        (!probes.data || !probes.data.length) &&
-                        !probes.requesting &&
-                        !probes.error
+                    (!probes.data || !probes.data.length) &&
+                    !probes.requesting &&
+                    !probes.error
                         ? "We don't have any probes yet"
                         : null}
                     {probes && probes.error ? probes.error : null}
@@ -409,12 +413,15 @@ export class ProbeList extends Component<ComponentProps>{
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {probes && probes.count
-                                        ? `Page ${this.props.page
-                                        } of ${numberOfPages} (${probes &&
-                                        probes.count} Probe${probes && probes.count === 1
-                                            ? ''
-                                            : 's'
-                                        })`
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${
+                                              probes && probes.count
+                                          } Probe${
+                                              probes && probes.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
                                         : null}
                                 </span>
                             </span>
@@ -426,7 +433,6 @@ export class ProbeList extends Component<ComponentProps>{
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
-
                                         this.props.prevClicked(
                                             probes.skip,
                                             probes.limit
@@ -451,7 +457,6 @@ export class ProbeList extends Component<ComponentProps>{
                                 <button
                                     id="btnNext"
                                     onClick={() => {
-
                                         this.props.nextClicked(
                                             probes.skip,
                                             probes.limit
@@ -496,9 +501,7 @@ function mapStateToProps(state: RootState) {
     };
 }
 
-
 ProbeList.displayName = 'ProbeList';
-
 
 ProbeList.propTypes = {
     addRequesting: PropTypes.bool,

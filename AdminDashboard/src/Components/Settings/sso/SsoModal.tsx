@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators, Dispatch } from 'redux';
+import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { RenderField } from '../../basic/RenderField';
 import { API_URL, Validate } from '../../../config';
@@ -15,22 +15,18 @@ function validate(values: $TSFixMe) {
     const errors: $TSFixMe = {};
 
     if (!Validate.text(values.domain)) {
-
         errors.domain = 'Domain is not valid.';
     }
 
     if (!Validate.text(values.entityId)) {
-
         errors.entityId = 'Application ID is not valid.';
     }
 
     if (!Validate.text(values.remoteLoginUrl)) {
-
         errors.remoteLoginUrl = 'SSO URL is not valid.';
     }
 
     if (!Validate.text(values.remoteLogoutUrl)) {
-
         errors.remoteLogoutUrl = 'Remote logout URL is not valid.';
     }
 
@@ -44,24 +40,24 @@ const fields: $TSFixMe = [
         description:
             'SAML is an industry standard SSO framework typically used by large enterprises for communicating identities across the internet.',
 
-        component: ({
-            input: { value, onChange }
-        }: $TSFixMe) => (
-            <label className="Toggler-wrap">
-                <input
-                    className="btn-toggler"
-                    checked={value}
-                    onChange={onChange}
-                    type="checkbox"
-                    name="saml-enabled"
-                    id="saml-enabled"
-                />
-                <span
-                    id="saml-enabled-slider"
-                    className="TogglerBtn-slider round"
-                ></span>
-            </label>
-        ),
+        component: ({ input: { value, onChange } }: $TSFixMe) => {
+            return (
+                <label className="Toggler-wrap">
+                    <input
+                        className="btn-toggler"
+                        checked={value}
+                        onChange={onChange}
+                        type="checkbox"
+                        name="saml-enabled"
+                        id="saml-enabled"
+                    />
+                    <span
+                        id="saml-enabled-slider"
+                        className="TogglerBtn-slider round"
+                    ></span>
+                </label>
+            );
+        },
     },
     {
         key: 'ssoCallbackUrl',
@@ -137,7 +133,9 @@ class Component extends Component<ComponentProps> {
 
         this.setState({ copied: true });
         // reset it after 0.5 secs
-        setTimeout(() => this.setState({ copied: false }), 500);
+        setTimeout(() => {
+            return this.setState({ copied: false });
+        }, 500);
     };
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
@@ -150,7 +148,6 @@ class Component extends Component<ComponentProps> {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -158,7 +155,6 @@ class Component extends Component<ComponentProps> {
     };
 
     submitForm = async (data: $TSFixMe) => {
-
         const { closeThisDialog }: $TSFixMe = this.props;
         const { _id: id } = data;
 
@@ -172,7 +168,6 @@ class Component extends Component<ComponentProps> {
 
     override render() {
         const {
-
             handleSubmit,
 
             closeThisDialog,
@@ -189,7 +184,6 @@ class Component extends Component<ComponentProps> {
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
-
                     tabIndex="-1"
                     style={{ marginTop: '40px' }}
                 >
@@ -259,15 +253,13 @@ class Component extends Component<ComponentProps> {
                                                                                 'no-repeat',
                                                                             backgroundSize:
                                                                                 'contain',
-                                                                            cursor:
-                                                                                'pointer',
+                                                                            cursor: 'pointer',
                                                                         }}
-                                                                        onClick={() =>
-                                                                            this.handleCopyToClipboard(
+                                                                        onClick={() => {
+                                                                            return this.handleCopyToClipboard(
                                                                                 field.value
-                                                                            )
-                                                                        }
-
+                                                                            );
+                                                                        }}
                                                                         disabled={
                                                                             this
                                                                                 .state
@@ -323,12 +315,11 @@ class Component extends Component<ComponentProps> {
                                                                     sso.requesting
                                                                 }
                                                                 style={{
-                                                                    width:
-                                                                        '350px',
+                                                                    width: '350px',
                                                                 }}
                                                                 autoFocus={
                                                                     field.key ===
-                                                                        'domain'
+                                                                    'domain'
                                                                         ? true
                                                                         : false
                                                                 }
@@ -387,9 +378,7 @@ class Component extends Component<ComponentProps> {
     }
 }
 
-
 Component.displayName = 'SsoModal';
-
 
 Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,

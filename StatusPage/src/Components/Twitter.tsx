@@ -1,12 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-const Twitter: Function = ({
-    tweets,
-    theme,
-    loading,
-    error
-}: $TSFixMe) => {
+const Twitter: Function = ({ tweets, theme, loading, error }: $TSFixMe) => {
     const TweetLayout: $TSFixMe =
         theme && theme === 'Classic Theme' ? (
             <div
@@ -42,8 +37,10 @@ const Twitter: Function = ({
                                     style={{ marginTop: '35px' }}
                                 >
                                     {tweets?.length &&
-                                        tweets.map((tweet: $TSFixMe, i: $TSFixMe) =>
-                                            TweetList(tweet, i)
+                                        tweets.map(
+                                            (tweet: $TSFixMe, i: $TSFixMe) => {
+                                                return TweetList(tweet, i);
+                                            }
                                         )}
                                 </ul>
                             )}
@@ -86,8 +83,10 @@ const Twitter: Function = ({
                         ) : (
                             <ul className="feed-contents plain">
                                 {tweets?.length &&
-                                    tweets.map((tweet: $TSFixMe, i: $TSFixMe) =>
-                                        TweetList(tweet, i)
+                                    tweets.map(
+                                        (tweet: $TSFixMe, i: $TSFixMe) => {
+                                            return TweetList(tweet, i);
+                                        }
                                     )}
                             </ul>
                         )}

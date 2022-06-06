@@ -39,11 +39,9 @@ class PastEvent extends Component<ComponentProps> {
     }
 
     getAll = () => {
-
         this.props.showEventCard(true);
 
         this.props.fetchPastEvents(
-
             this.props.projectId,
 
             this.props.statusPageSlug,
@@ -52,9 +50,7 @@ class PastEvent extends Component<ComponentProps> {
     };
 
     more = () => {
-
         this.props.fetchMorePastEvents(
-
             this.props.projectId,
 
             this.props.statusPageSlug,
@@ -72,7 +68,6 @@ class PastEvent extends Component<ComponentProps> {
         const subheading: $TSFixMe = {};
 
         if (this.props.statusPage) {
-
             const colors: $TSFixMe = this.props.statusPage.colors;
             contentBackground = {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
@@ -91,55 +86,39 @@ class PastEvent extends Component<ComponentProps> {
         }
 
         if (this.props.pastEvents && this.props.pastEvents.events) {
-
             event = (
                 <Events
-
                     events={this.props.pastEvents.events}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
-
                     statusPageId={this.props.statusPageId}
-
                     statusPageSlug={this.props.statusPageSlug}
-
                     monitorState={this.props.monitorState}
                 />
             );
         }
 
         if (
-
             this.props.individualEvents.show &&
-
             this.props.individualEvents.events
         ) {
-
             event = (
                 <Events
-
                     events={this.props.individualEvents.events}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
-
                     statusPageId={this.props.statusPageId}
-
                     statusPageSlug={this.props.statusPageSlug}
-
                     monitorState={this.props.monitorState}
                 />
             );
         }
 
-
         return (!this.props.individualEvents.show &&
-
             this.props.pastEvents.events.length > 0) ||
-
             this.props.individualEvents.show ||
-
             this.props.showEventCardState ? (
             <div
                 id="scheduledEvents"
@@ -149,9 +128,7 @@ class PastEvent extends Component<ComponentProps> {
                 <div className="messages" style={{ position: 'relative' }}>
                     <ShouldRender
                         if={
-
                             this.props.pastEvents &&
-
                             !this.props.pastEvents.error
                         }
                     >
@@ -165,7 +142,6 @@ class PastEvent extends Component<ComponentProps> {
                         >
                             <div className="feed-header">
                                 <ShouldRender
-
                                     if={!this.props.individualEvents.show}
                                 >
                                     <span
@@ -178,7 +154,6 @@ class PastEvent extends Component<ComponentProps> {
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender
-
                                     if={this.props.individualEvents.show}
                                 >
                                     <span
@@ -187,21 +162,17 @@ class PastEvent extends Component<ComponentProps> {
                                     >
                                         <Translate>
                                             Scheduled Events for{' '}
-
                                             {this.props.individualEvents
                                                 .monitorName
-
                                                 ? this.props.individualEvents
-                                                    .monitorName
+                                                      .monitorName
                                                 : ''}{' '}
                                             on{' '}
-
                                             {this.props.individualEvents.date
                                                 ? moment(
-                                                    this.props
-
-                                                        .individualEvents.date
-                                                ).format('LL')
+                                                      this.props
+                                                          .individualEvents.date
+                                                  ).format('LL')
                                                 : ''}
                                         </Translate>
                                     </span>
@@ -209,14 +180,10 @@ class PastEvent extends Component<ComponentProps> {
                             </div>
                             <ShouldRender
                                 if={
-
                                     (!this.props.individualEvents.show &&
-
                                         this.props.pastEvents.events.length >
-                                        0) ||
-
+                                            0) ||
                                     (this.props.individualEvents.show &&
-
                                         this.props.individualEvents.events
                                             .length > 0)
                                 }
@@ -225,9 +192,7 @@ class PastEvent extends Component<ComponentProps> {
                             </ShouldRender>
                             <ShouldRender
                                 if={
-
                                     this.props.individualEvents.show &&
-
                                     this.props.individualEvents.events
                                         .length === 0
                                 }
@@ -261,11 +226,8 @@ class PastEvent extends Component<ComponentProps> {
                             </ShouldRender>
                             <ShouldRender
                                 if={
-
                                     this.props.showEventCardState &&
-
                                     this.props.pastEvents.events.length === 0 &&
-
                                     this.props.individualEvents.events
                                         .length === 0
                                 }
@@ -301,29 +263,22 @@ class PastEvent extends Component<ComponentProps> {
 
                         <ShouldRender
                             if={
-
                                 this.props.pastEvents &&
-
                                 this.props.pastEvents.events &&
-
                                 this.props.pastEvents.events.length &&
-
                                 this.props.count >
-
-                                this.props.pastEvents.events.length &&
-
+                                    this.props.pastEvents.events.length &&
                                 !this.props.pastEvents.requesting &&
-
                                 !this.props.requestingmoreevents &&
-
                                 !this.props.pastEvents.error &&
-
                                 !this.props.individualEvents.show
                             }
                         >
                             <button
                                 className="more button-as-anchor anchor-centered"
-                                onClick={() => this.more()}
+                                onClick={() => {
+                                    return this.more();
+                                }}
                             >
                                 <Translate>More</Translate>
                             </button>
@@ -338,19 +293,17 @@ class PastEvent extends Component<ComponentProps> {
                         >
                             <ShouldRender
                                 if={
-
                                     this.props.pastEvents &&
-
                                     !this.props.pastEvents.error &&
-
                                     !this.props.pastEvents.requesting &&
-
                                     this.props.individualEvents.show
                                 }
                             >
                                 <button
                                     className="all__btn"
-                                    onClick={() => this.getAll()}
+                                    onClick={() => {
+                                        return this.getAll();
+                                    }}
                                 >
                                     <Translate>All Scheduled Events</Translate>
                                 </button>
@@ -359,9 +312,7 @@ class PastEvent extends Component<ComponentProps> {
 
                         <ShouldRender
                             if={
-
                                 this.props.pastEvents.requesting ||
-
                                 this.props.requestingmoreevents
                             }
                         >
@@ -383,7 +334,6 @@ class PastEvent extends Component<ComponentProps> {
         ) : null;
     }
 }
-
 
 PastEvent.displayName = 'PastEvent';
 
@@ -415,15 +365,16 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        fetchMorePastEvents,
-        fetchPastEvents,
-        showEventCard,
-    },
-    dispatch
-);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            fetchMorePastEvents,
+            fetchPastEvents,
+            showEventCard,
+        },
+        dispatch
+    );
+};
 
 PastEvent.propTypes = {
     fetchMorePastEvents: PropTypes.func,

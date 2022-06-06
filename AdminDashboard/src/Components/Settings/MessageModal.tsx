@@ -11,7 +11,9 @@ const MessageModal: Function = (props: $TSFixMe) => {
 
     return (
         <div
-            onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
+            onKeyDown={e => {
+                return e.key === 'Escape' && closeThisDialog();
+            }}
             className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
         >
             <div

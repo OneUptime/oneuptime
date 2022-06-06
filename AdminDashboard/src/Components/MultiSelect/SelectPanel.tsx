@@ -14,13 +14,16 @@ class SelectPanel extends Component<ComponentProps> {
         focusIndex: 0,
     };
 
-    selectAll = () => { };
+    selectAll = () => {};
 
-    selectNone = () => { };
+    selectNone = () => {};
 
     selectAllChanged = (checked: $TSFixMe) => {
-        if (checked) this.selectAll();
-        else this.selectNone();
+        if (checked) {
+            this.selectAll();
+        } else {
+            this.selectNone();
+        }
     };
 
     handleSearchChange = (e: $TSFixMe) => {
@@ -36,17 +39,23 @@ class SelectPanel extends Component<ComponentProps> {
         });
     };
 
-    clearSearch = () => this.setState({ searchText: '' });
+    clearSearch = () => {
+        return this.setState({ searchText: '' });
+    };
 
     handleKeyDown = (e: $TSFixMe) => {
         switch (e) {
             case 38:
-                if (e.altKey) return;
+                if (e.altKey) {
+                    return;
+                }
 
                 this.updateFocus(-1);
                 break;
             case 40:
-                if (e.altKey) return;
+                if (e.altKey) {
+                    return;
+                }
 
                 this.updateFocus(1);
                 break;
@@ -66,7 +75,6 @@ class SelectPanel extends Component<ComponentProps> {
     };
 
     allAreSelected() {
-
         const { options, selected }: $TSFixMe = this.props;
         return options.length === selected.length;
     }
@@ -95,7 +103,6 @@ class SelectPanel extends Component<ComponentProps> {
 
     override render() {
         const {
-
             ItemRenderer,
 
             selectAllLabel,
@@ -124,8 +131,10 @@ class SelectPanel extends Component<ComponentProps> {
                         <input
                             placeholder="Search"
                             type="text"
-                            className={`db-MultiSelect-search ${searchHasFocus &&
-                                'db-MultiSelect-search--focused'}`}
+                            className={`db-MultiSelect-search ${
+                                searchHasFocus &&
+                                'db-MultiSelect-search--focused'
+                            }`}
                             onChange={this.handleSearchChange}
                             onBlur={this.onBlur}
                             onFocus={this.onFocus}
@@ -134,12 +143,13 @@ class SelectPanel extends Component<ComponentProps> {
                 )}
                 {hasSelectAll && (
                     <SelectItem
-
                         focused={focusIndex === 0}
                         checked={this.allAreSelected}
                         option={selectAllOption}
                         onSelectChanged={this.selectAllChanged}
-                        onClick={() => this.handleItemClicked(0)}
+                        onClick={() => {
+                            return this.handleItemClicked(0);
+                        }}
                         ItemRenderer={ItemRenderer}
                         disabled={disabled}
                     />
@@ -147,10 +157,11 @@ class SelectPanel extends Component<ComponentProps> {
 
                 <SelectList
                     {...this.props}
-
                     options={this.filteredOptions()}
                     focusIndex={focusIndex - 1}
-                    onClick={(e: $TSFixMe, index: $TSFixMe) => this.handleItemClicked(index + 1)}
+                    onClick={(e: $TSFixMe, index: $TSFixMe) => {
+                        return this.handleItemClicked(index + 1);
+                    }}
                     ItemRenderer={ItemRenderer}
                     disabled={disabled}
                 />
@@ -159,14 +170,11 @@ class SelectPanel extends Component<ComponentProps> {
     }
 }
 
-
 SelectPanel.displayName = 'SelectPanel';
-
 
 SelectPanel.propTypes = {
     ItemRenderer: PropTypes.element,
     options: PropTypes.arrayOf({
-
         label: PropTypes.string.isRequired,
         value: PropTypes.string.isRequired,
         key: PropTypes.string,

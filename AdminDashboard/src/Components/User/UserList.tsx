@@ -3,10 +3,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import moment from 'moment';
 
-const UserList: Function = ({
-    users
-}: $TSFixMe) =>
-    users.map((user: $TSFixMe, k: $TSFixMe) => {
+const UserList: Function = ({ users }: $TSFixMe) => {
+    return users.map((user: $TSFixMe, k: $TSFixMe) => {
         return (
             <Link
                 id={
@@ -32,10 +30,11 @@ const UserList: Function = ({
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle">
                     <div className="bs-ObjectList-cell-row">
-                        {`${user.projects && user.projects[0]
+                        {`${
+                            user.projects && user.projects[0]
                                 ? user.projects[0].name
                                 : 'Not Added Yet'
-                            }`}{' '}
+                        }`}{' '}
                         {user.projects && user.projects.length - 1 > 0
                             ? user.projects.length - 1 > 1
                                 ? `and ${user.projects.length - 1} others`
@@ -68,7 +67,7 @@ const UserList: Function = ({
                                 <span>
                                     {user.name
                                         ? 'Online ' +
-                                        moment(user.lastActive).fromNow()
+                                          moment(user.lastActive).fromNow()
                                         : 'Invitation Sent'}
                                 </span>
                             </span>
@@ -82,6 +81,7 @@ const UserList: Function = ({
             </Link>
         );
     });
+};
 
 UserList.displayName = 'UserList';
 

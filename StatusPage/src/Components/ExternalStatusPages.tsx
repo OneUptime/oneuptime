@@ -13,10 +13,8 @@ interface ExternalStatusPagesProps {
 }
 
 class ExternalStatusPages extends Component<ComponentProps> {
-    async override componentDidMount() {
-
+    override async componentDidMount() {
         this.props.fetchExternalStatusPages(
-
             this.props.statusPage.projectId._id,
 
             this.props.statusPage._id
@@ -24,7 +22,6 @@ class ExternalStatusPages extends Component<ComponentProps> {
     }
 
     override render() {
-
         const { externalStatusPages, theme }: $TSFixMe = this.props;
         return (
             <div>
@@ -90,7 +87,7 @@ class ExternalStatusPages extends Component<ComponentProps> {
                                                         'translateY(-50%)',
                                                     color:
                                                         link.description ===
-                                                            'All Systems Operational'
+                                                        'All Systems Operational'
                                                             ? '#49c3b1'
                                                             : 'red',
                                                     fontWeight: '500',
@@ -202,7 +199,7 @@ class ExternalStatusPages extends Component<ComponentProps> {
                                                                     'translateY(-50%)',
                                                                 color:
                                                                     link.description ===
-                                                                        'All Systems Operational'
+                                                                    'All Systems Operational'
                                                                         ? '#49c3b1'
                                                                         : 'red',
                                                                 fontWeight:
@@ -244,17 +241,19 @@ class ExternalStatusPages extends Component<ComponentProps> {
     }
 }
 
-
 ExternalStatusPages.displayName = 'ExternalStatusPages';
-const mapStateToProps: Function = (state: RootState) => ({
-    statusPage: state.status.statusPage,
-    externalStatusPages: state.status.externalStatusPages,
-    requesting: state.status.announcementLogs.requesting,
-    error: state.status.announcementLogs.error
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        statusPage: state.status.statusPage,
+        externalStatusPages: state.status.externalStatusPages,
+        requesting: state.status.announcementLogs.requesting,
+        error: state.status.announcementLogs.error,
+    };
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ fetchExternalStatusPages }, dispatch);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ fetchExternalStatusPages }, dispatch);
+};
 
 ExternalStatusPages.propTypes = {
     externalStatusPages: PropTypes.object,

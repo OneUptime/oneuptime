@@ -8,7 +8,6 @@ import { translateLanguage } from '../actions/status';
 
 import { openLanguageMenu } from '../actions/subscribe';
 
-
 import ClickOutHandler from 'react-onclickout';
 
 interface LanguageBoxProps {
@@ -27,7 +26,6 @@ class LanguageBox extends Component<ComponentProps> {
         };
     }
     translateButton = () => {
-
         this.props.handleCloseButtonClick();
     };
     handleChange = (event: $TSFixMe) => {
@@ -37,19 +35,21 @@ class LanguageBox extends Component<ComponentProps> {
         });
     };
     handleTranslate = () => {
-
         this.props.translateLanguage(this.state.language);
         this.translateButton();
     };
     override render() {
-
         const { statusPage }: $TSFixMe = this.props;
         const languages: $TSFixMe = statusPage.multipleLanguages;
 
         const theme: $TSFixMe = this.props.theme;
         return (
             <div className="subscribe-overlay">
-                <ClickOutHandler onClickOut={() => this.translateButton()}>
+                <ClickOutHandler
+                    onClickOut={() => {
+                        return this.translateButton();
+                    }}
+                >
                     <div
                         className={'white box subscribe-box'}
                         style={{
@@ -94,7 +94,9 @@ class LanguageBox extends Component<ComponentProps> {
 
                             <button
                                 id="updates-dropdown-close-btn"
-                                onClick={() => this.translateButton()}
+                                onClick={() => {
+                                    return this.translateButton();
+                                }}
                                 className="icon-container"
                                 style={{
                                     width: '70px',
@@ -121,29 +123,33 @@ class LanguageBox extends Component<ComponentProps> {
                             style={{ paddingTop: 0 }}
                         >
                             <select
-
                                 value={this.state.language}
                                 onChange={this.handleChange}
                                 name="country"
                                 className="select-full"
                             >
-                                {languages.map((language: $TSFixMe) => <option
-                                    value={language.toLowerCase()}
-                                    key={language}
-                                >
-                                    {language}
-                                </option>)}
+                                {languages.map((language: $TSFixMe) => {
+                                    return (
+                                        <option
+                                            value={language.toLowerCase()}
+                                            key={language}
+                                        >
+                                            {language}
+                                        </option>
+                                    );
+                                })}
                             </select>
                             <div style={{ marginTop: 10 }}>
                                 <button
                                     className={
-
                                         this.props.theme
                                             ? 'subscribe-btn-full bs-theme-btn'
                                             : 'subscribe-btn-full'
                                     }
                                     id="subscribe-btn-sms"
-                                    onClick={() => this.handleTranslate()}
+                                    onClick={() => {
+                                        return this.handleTranslate();
+                                    }}
                                 >
                                     <Translate>Translate Page</Translate>
                                 </button>
@@ -156,17 +162,22 @@ class LanguageBox extends Component<ComponentProps> {
     }
 }
 
-
 LanguageBox.displayName = 'LanguageBox';
 
-const mapStateToProps: Function = (state: RootState) => ({
-    select: state.subscribe.selectedMenu,
-    subscribed: state.subscribe.subscribed,
-    statusPage: state.status.statusPage
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        select: state.subscribe.selectedMenu,
+        subscribed: state.subscribe.subscribed,
+        statusPage: state.status.statusPage,
+    };
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openLanguageMenu, translateLanguage }, dispatch);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        { openLanguageMenu, translateLanguage },
+        dispatch
+    );
+};
 
 LanguageBox.propTypes = {
     statusPage: PropTypes.object,

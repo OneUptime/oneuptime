@@ -6,7 +6,7 @@ import { Field } from 'redux-form';
 
 const AdminNote: Function = ({
     fields,
-    meta: { error, submitFailed }
+    meta: { error, submitFailed },
 }: $TSFixMe) => {
     return (
         <ul>
@@ -37,7 +37,9 @@ const AdminNote: Function = ({
                                         id={`btnRemoveAdminNote${i}`}
                                         className="bs-Button bs-DeprecatedButton"
                                         type="button"
-                                        onClick={() => fields.remove(i)}
+                                        onClick={() => {
+                                            return fields.remove(i);
+                                        }}
                                     >
                                         Remove
                                     </button>
@@ -58,7 +60,9 @@ const AdminNote: Function = ({
                                     id="btnAddAdminNotes"
                                     type="button"
                                     className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                    onClick={() => fields.push({ note: '' })}
+                                    onClick={() => {
+                                        return fields.push({ note: '' });
+                                    }}
                                 >
                                     Add Notes
                                 </button>

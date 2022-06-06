@@ -11,7 +11,7 @@ import { capitalize } from '../config';
 const AffectedResources: Function = ({
     event,
     monitorState,
-    colorStyle
+    colorStyle,
 }: $TSFixMe) => {
     const affectedMonitors: $TSFixMe = [];
     let monitorCount = 0;
@@ -32,8 +32,10 @@ const AffectedResources: Function = ({
         }
         return monitor;
     });
-    // check if the length of monitors on status page equals the monitor count
-    // if they are equal then all the monitors in status page is in a particular scheduled event
+    /*
+     * check if the length of monitors on status page equals the monitor count
+     * if they are equal then all the monitors in status page is in a particular scheduled event
+     */
     if (monitorCount === monitorState.length) {
         return (
             <>
@@ -59,8 +61,9 @@ const AffectedResources: Function = ({
                 </span>
             </>
         );
-    } else {
-        return <>
+    }
+    return (
+        <>
             <span
                 className="ongoing__affectedmonitor--title"
                 style={
@@ -81,12 +84,14 @@ const AffectedResources: Function = ({
             >
                 {affectedMonitors
 
-                    .map(monitor => capitalize(monitor.name))
+                    .map((monitor) => {
+                        return capitalize(monitor.name);
+                    })
                     .join(', ')
                     .replace(/, ([^,]*)$/, ' and $1')}
             </span>
-        </>;
-    }
+        </>
+    );
 };
 
 interface NewThemeEventProps {
@@ -108,7 +113,6 @@ class NewThemeEvent extends Component<ComponentProps> {
             for (const item of items) {
                 const date: $TSFixMe = String(item.createdAt).slice(0, 10);
 
-
                 if (!track[date]) {
                     item.style = true;
 
@@ -124,7 +128,7 @@ class NewThemeEvent extends Component<ComponentProps> {
         };
 
         const formatMsg: Function = (data: $TSFixMe) => {
-            const result: $TSFixMe = data.reduce(function (r: $TSFixMe, a: $TSFixMe) {
+            const result: $TSFixMe = data.reduce((r: $TSFixMe, a: $TSFixMe) => {
                 r[a.event_state] = r[a.event_state] || [];
                 r[a.event_state].push(a);
                 return r;
@@ -133,13 +137,9 @@ class NewThemeEvent extends Component<ComponentProps> {
             return result;
         };
 
-
         const data: $TSFixMe = this.props.filteredEvents.success
-
             ? this.props.filteredEvents.events
-
             : this.props.events;
-
 
         const noteBackgroundColor: $TSFixMe = this.props.noteBackgroundColor;
 
@@ -153,7 +153,7 @@ class NewThemeEvent extends Component<ComponentProps> {
                         style={{
                             backgroundColor:
                                 noteBackgroundColor.background ===
-                                    'rgba(247, 247, 247, 1)'
+                                'rgba(247, 247, 247, 1)'
                                     ? 'rgba(255,255,255,1)'
                                     : noteBackgroundColor.background,
                         }}
@@ -175,13 +175,11 @@ class NewThemeEvent extends Component<ComponentProps> {
                                     <b
                                         id={`event-name-${event.name}`}
                                         style={{ cursor: 'pointer' }}
-                                        onClick={() =>
-
-                                            this.props.history.push(
-
+                                        onClick={() => {
+                                            return this.props.history.push(
                                                 `/StatusPage/${this.props.statusPageSlug}/scheduledEvent/${event.slug}`
-                                            )
-                                        }
+                                            );
+                                        }}
                                     >
                                         {event.name}
                                     </b>
@@ -216,8 +214,8 @@ class NewThemeEvent extends Component<ComponentProps> {
                                             </span>
                                         </div>
                                     ) : currentTime >=
-                                        moment(event.startDate) &&
-                                        currentTime < moment(event.endDate) ? (
+                                          moment(event.startDate) &&
+                                      currentTime < moment(event.endDate) ? (
                                         <div
                                             style={{
                                                 marginLeft: 15,
@@ -233,7 +231,7 @@ class NewThemeEvent extends Component<ComponentProps> {
                                             </span>
                                         </div>
                                     ) : currentTime <
-                                        moment(event.startDate) ? (
+                                      moment(event.startDate) ? (
                                         <div
                                             style={{
                                                 marginLeft: 15,
@@ -250,7 +248,7 @@ class NewThemeEvent extends Component<ComponentProps> {
                                         </div>
                                     ) : (
                                         currentTime >=
-                                        moment(event.endDate) && (
+                                            moment(event.endDate) && (
                                             <div
                                                 style={{
                                                     marginLeft: 15,
@@ -276,16 +274,24 @@ class NewThemeEvent extends Component<ComponentProps> {
                                     >
                                         {event.description
                                             .split('\n')
-                                            .map((elem: $TSFixMe, index: $TSFixMe) => (
-                                                <Markdown
-                                                    key={`${elem}-${index}`}
-                                                    options={{
-                                                        forceBlock: true,
-                                                    }}
-                                                >
-                                                    {elem}
-                                                </Markdown>
-                                            ))}
+                                            .map(
+                                                (
+                                                    elem: $TSFixMe,
+                                                    index: $TSFixMe
+                                                ) => {
+                                                    return (
+                                                        <Markdown
+                                                            key={`${elem}-${index}`}
+                                                            options={{
+                                                                forceBlock:
+                                                                    true,
+                                                            }}
+                                                        >
+                                                            {elem}
+                                                        </Markdown>
+                                                    );
+                                                }
+                                            )}
                                     </div>
                                 </ShouldRender>
                                 {AffectedResources({
@@ -346,7 +352,10 @@ class NewThemeEvent extends Component<ComponentProps> {
                                                             {formatMsg(
                                                                 event.notes
                                                             )[key].map(
-                                                                (item: $TSFixMe, i: $TSFixMe) => {
+                                                                (
+                                                                    item: $TSFixMe,
+                                                                    i: $TSFixMe
+                                                                ) => {
                                                                     return (
                                                                         <div
                                                                             className="incident-brief"
@@ -361,10 +370,10 @@ class NewThemeEvent extends Component<ComponentProps> {
                                                                             ]
                                                                                 .length >
                                                                                 1 && (
-                                                                                    <span className="big_dot">
-                                                                                        &#9679;
-                                                                                    </span>
-                                                                                )}
+                                                                                <span className="big_dot">
+                                                                                    &#9679;
+                                                                                </span>
+                                                                            )}
                                                                             {
                                                                                 item.content
                                                                             }
@@ -379,23 +388,26 @@ class NewThemeEvent extends Component<ComponentProps> {
                                                             {formatMsg(
                                                                 event.notes
                                                             )[key].map(
-                                                                (time: $TSFixMe, i: $TSFixMe) => {
+                                                                (
+                                                                    time: $TSFixMe,
+                                                                    i: $TSFixMe
+                                                                ) => {
                                                                     return (
                                                                         <>
                                                                             {i ===
                                                                                 0 && (
-                                                                                    <div
-                                                                                        key={
-                                                                                            i
-                                                                                        }
-                                                                                    >
-                                                                                        {moment(
-                                                                                            time.createdAt
-                                                                                        ).format(
-                                                                                            'LLL'
-                                                                                        )}
-                                                                                    </div>
-                                                                                )}
+                                                                                <div
+                                                                                    key={
+                                                                                        i
+                                                                                    }
+                                                                                >
+                                                                                    {moment(
+                                                                                        time.createdAt
+                                                                                    ).format(
+                                                                                        'LLL'
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
                                                                         </>
                                                                     );
                                                                 }
@@ -420,10 +432,8 @@ class NewThemeEvent extends Component<ComponentProps> {
             })
         ) : (
             <>
-
                 <ShouldRender if={this.props.filteredEvents.date}>
                     <div className="date-big ma-t-20">
-
                         {moment(this.props.filteredEvents.date).format('LL')}
                     </div>
                 </ShouldRender>
@@ -435,9 +445,7 @@ class NewThemeEvent extends Component<ComponentProps> {
     }
 }
 
-
 NewThemeEvent.displayName = 'NewThemeEvent';
-
 
 NewThemeEvent.propTypes = {
     events: PropTypes.array,
@@ -456,15 +464,15 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
         state.status &&
         state.status.ongoing &&
         state.status.ongoing.ongoing &&
-        state.status.ongoing.ongoing.filter(
-            (ongoingSchedule: $TSFixMe) => !ongoingSchedule.cancelled
-        );
+        state.status.ongoing.ongoing.filter((ongoingSchedule: $TSFixMe) => {
+            return !ongoingSchedule.cancelled;
+        });
     const events: $TSFixMe =
         type === 'future'
             ? futureEvents
             : type === 'past'
-                ? pastEvents
-                : ongoing;
+            ? pastEvents
+            : ongoing;
     return {
         events,
         filteredEvents: state.status.individualEvents,

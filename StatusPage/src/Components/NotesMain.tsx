@@ -61,13 +61,9 @@ class NotesMain extends Component<ComponentProps> {
     }
 
     componentDidUpdate(prevProps: $TSFixMe) {
-
         if (prevProps.statusPage !== this.props.statusPage) {
-
             if (this.props.individualnote) {
-
                 this.props.getStatusPageIndividualNote(
-
                     this.props.projectId,
 
                     this.props.individualnote._id,
@@ -82,11 +78,9 @@ class NotesMain extends Component<ComponentProps> {
     }
 
     getAll = () => {
-
         this.props.showIncidentCard(true);
 
         this.props.getStatusPageNote(
-
             this.props.projectId,
 
             this.props.statusPageSlug,
@@ -95,9 +89,7 @@ class NotesMain extends Component<ComponentProps> {
     };
 
     more = () => {
-
         this.props.getMoreNote(
-
             this.props.projectId,
 
             this.props.statusPageSlug,
@@ -106,7 +98,6 @@ class NotesMain extends Component<ComponentProps> {
         );
 
         this.props.fetchLastIncidentTimelines(
-
             this.props.projectId,
 
             this.props.statusPageSlug
@@ -114,7 +105,6 @@ class NotesMain extends Component<ComponentProps> {
     };
 
     subscribebutton = () => {
-
         this.props.openSubscribeMenu();
     };
 
@@ -135,7 +125,6 @@ class NotesMain extends Component<ComponentProps> {
             if (incident.resolved) {
                 timelineStatus = (
                     <Badge backgroundColor={'#fff'} fontColor={'#49c3b1'}>
-
                         <Translate>Resolved</Translate>
                     </Badge>
                 );
@@ -155,7 +144,6 @@ class NotesMain extends Component<ComponentProps> {
                                 : 'rgb(250, 109, 70)'
                         }
                     >
-
                         <Translate>Acknowledged</Translate>
                     </Badge>
                 );
@@ -174,21 +162,17 @@ class NotesMain extends Component<ComponentProps> {
                                 : 'rgb(250, 109, 70)'
                         }
                     >
-
                         <Translate>Active Incident</Translate>
                     </Badge>
                 );
             }
 
             if (
-
                 !incidentTimeline.incident_state &&
-
                 incidentTimeline.status === 'investigation notes deleted'
             ) {
                 timelineStatus = (
                     <Badge backgroundColor={'#fff'} fontColor={'#49c3b1'}>
-
                         <Translate>Deleted a note</Translate>
                     </Badge>
                 );
@@ -197,7 +181,6 @@ class NotesMain extends Component<ComponentProps> {
             if (incidentTimeline.incident_state) {
                 timelineStatus = (
                     <Badge backgroundColor={'#fff'} fontColor={'#49c3b1'}>
-
                         {capitalize(incidentTimeline.incident_state)}
                     </Badge>
                 );
@@ -219,7 +202,6 @@ class NotesMain extends Component<ComponentProps> {
         const subheading: $TSFixMe = {};
 
         if (this.props.statusPage) {
-
             const colors: $TSFixMe = this.props.statusPage.colors;
             contentBackground = {
                 background: `rgba(${colors.statusPageBackground.r}, ${colors.statusPageBackground.g}, ${colors.statusPageBackground.b}, ${colors.statusPageBackground.a})`,
@@ -246,17 +228,12 @@ class NotesMain extends Component<ComponentProps> {
             };
         }
         if (
-
             this.props.noteData &&
-
             this.props.noteData.notes &&
-
             this.props.lastIncidentTimelines
         ) {
-
             note = (
                 <Notes
-
                     notes={this.props.noteData.notes}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
@@ -264,11 +241,8 @@ class NotesMain extends Component<ComponentProps> {
                     uptimeColor={uptimeColor}
                     degradedColor={degradedColor}
                     noteBackgroundColor={noteBackgroundColor}
-
                     statusPageId={this.props.statusPageId}
-
                     incidentTimelines={this.props.lastIncidentTimelines}
-
                     statusPageSlug={this.props.statusPageSlug}
                 />
             );
@@ -278,7 +252,6 @@ class NotesMain extends Component<ComponentProps> {
             smsNotification,
             webhookNotification,
             emailNotification,
-
         } = this.props.statusPage;
         const showSubscriberOption: $TSFixMe =
             enableRSSFeed ||
@@ -294,7 +267,6 @@ class NotesMain extends Component<ComponentProps> {
             for (const item of items) {
                 const date: $TSFixMe = String(item.createdAt).slice(0, 10);
 
-
                 if (!track[date]) {
                     item.style = true;
 
@@ -309,24 +281,17 @@ class NotesMain extends Component<ComponentProps> {
             return result;
         };
 
-
         const incidentNoteData: $TSFixMe = this.props.noteData;
         if (
-
             this.props.theme === 'Clean Theme' &&
-
             this.props.noteData.notes.length > countNum &&
-
             !this.props.noteData.notes[1].idNumber &&
-
             !this.props.noteData.notes[1].style
         ) {
-
             this.props.noteData.notes.splice(1, 1);
 
             incidentNoteData.notes = this.props.noteData.notes;
         }
-
 
         if (this.props.theme === 'Clean Theme') {
             return incidentNoteData && incidentNoteData.requesting ? (
@@ -361,7 +326,7 @@ class NotesMain extends Component<ComponentProps> {
                             className="incident-object"
                             style={
                                 noteBackgroundColor.background ===
-                                    'rgba(247, 247, 247, 1)'
+                                'rgba(247, 247, 247, 1)'
                                     ? { background: 'rgba(255,255,255,1)' }
                                     : noteBackgroundColor
                             }
@@ -394,13 +359,11 @@ class NotesMain extends Component<ComponentProps> {
                                     <div
                                         className="list_k"
                                         style={{ cursor: 'pointer' }}
-                                        onClick={() =>
-
-                                            this.props.history.push(
-
+                                        onClick={() => {
+                                            return this.props.history.push(
                                                 `/StatusPage/${this.props.statusPageSlug}/incident/${note.slug}`
-                                            )
-                                        }
+                                            );
+                                        }}
                                     >
                                         <b>{note.title}</b>
                                     </div>
@@ -426,60 +389,72 @@ class NotesMain extends Component<ComponentProps> {
                                     </div>
                                     {note.message &&
                                         note.message
-                                            .sort((a: $TSFixMe, b: $TSFixMe) => {
-                                                (a = moment(a.createdAt)),
-                                                    (b = moment(b.createdAt));
-                                                // order in ascending order
-                                                if (b.diff(a) > 0) {
-                                                    return -1;
-                                                } else if (b.diff(a) < 0) {
-                                                    return 1;
-                                                } else {
+                                            .sort(
+                                                (a: $TSFixMe, b: $TSFixMe) => {
+                                                    (a = moment(a.createdAt)),
+                                                        (b = moment(
+                                                            b.createdAt
+                                                        ));
+                                                    // order in ascending order
+                                                    if (b.diff(a) > 0) {
+                                                        return -1;
+                                                    } else if (b.diff(a) < 0) {
+                                                        return 1;
+                                                    }
                                                     return 0;
                                                 }
-                                            })
-                                            .map((message: $TSFixMe) => <div key={message._id}>
-                                                <div
-                                                    className="incident_desc"
-                                                    style={{
-                                                        marginBottom: 5,
-                                                        whiteSpace:
-                                                            'pre-wrap',
-                                                    }}
-                                                    key={message._id}
-                                                >
-                                                    <b>
-                                                        {
-                                                            message.incident_state
-                                                        }
-                                                    </b>{' '}
-                                                    {message.content
-                                                        .split('\n')
-                                                        .map(
-                                                            (
-                                                                elem: $TSFixMe,
-                                                                index: $TSFixMe
-                                                            ) => (
-                                                                <Markdown
-                                                                    key={`${elem}-${index}`}
-                                                                    options={{
-                                                                        forceBlock: true,
-                                                                    }}
-                                                                    id={`note-${i}`}
-                                                                >
-                                                                    {elem}
-                                                                </Markdown>
-                                                            )
-                                                        )}
-                                                </div>
-                                                <div className="incident-date">
-                                                    <span>
-                                                        {moment(
-                                                            message.createdAt
-                                                        ).format('LLL')}
-                                                    </span>
-                                                </div>
-                                            </div>)}
+                                            )
+                                            .map((message: $TSFixMe) => {
+                                                return (
+                                                    <div key={message._id}>
+                                                        <div
+                                                            className="incident_desc"
+                                                            style={{
+                                                                marginBottom: 5,
+                                                                whiteSpace:
+                                                                    'pre-wrap',
+                                                            }}
+                                                            key={message._id}
+                                                        >
+                                                            <b>
+                                                                {
+                                                                    message.incident_state
+                                                                }
+                                                            </b>{' '}
+                                                            {message.content
+                                                                .split('\n')
+                                                                .map(
+                                                                    (
+                                                                        elem: $TSFixMe,
+                                                                        index: $TSFixMe
+                                                                    ) => {
+                                                                        return (
+                                                                            <Markdown
+                                                                                key={`${elem}-${index}`}
+                                                                                options={{
+                                                                                    forceBlock:
+                                                                                        true,
+                                                                                }}
+                                                                                id={`note-${i}`}
+                                                                            >
+                                                                                {
+                                                                                    elem
+                                                                                }
+                                                                            </Markdown>
+                                                                        );
+                                                                    }
+                                                                )}
+                                                        </div>
+                                                        <div className="incident-date">
+                                                            <span>
+                                                                {moment(
+                                                                    message.createdAt
+                                                                ).format('LLL')}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                 </span>
                             ) : (
                                 <div
@@ -499,24 +474,19 @@ class NotesMain extends Component<ComponentProps> {
                 <div className="no_monitor">
                     <ShouldRender
                         if={
-
                             this.props.individualnote &&
-
                             this.props.individualnote
                         }
                     >
                         <div className="date-big bs-color-b">
                             {moment(
-
                                 this.props.individualnote &&
-
-                                this.props.individualnote.date
+                                    this.props.individualnote.date
                             ).format('LL')}
                         </div>
                     </ShouldRender>
 
                     {typeof this.props.notesmessage === 'string' ? (
-
                         this.props.notesmessage
                     ) : (
                         <div>
@@ -525,368 +495,305 @@ class NotesMain extends Component<ComponentProps> {
                     )}
                 </div>
             );
-        } else {
+        }
 
-            if (this.props.noteData && this.props.noteData.requesting) {
-                return (
-                    <div
-                        className="twitter-feed white box"
-                        style={{ overflow: 'visible', ...contentBackground }}
-                    >
-                        <div
-                            className="messages"
-                            style={{ position: 'relative' }}
-                        >
-                            <ShouldRender
-                                if={
-
-                                    this.props.noteData &&
-
-                                    !this.props.noteData.error
-                                }
-                            >
-                                <div
-                                    className="box-inner"
-                                    style={{
-                                        paddingLeft: 0,
-                                        paddingRight: 0,
-                                        width: '100%',
-                                    }}
-                                >
-                                    <div className="feed-header">
-                                        <ShouldRender
-
-                                            if={!this.props.individualnote}
-                                        >
-                                            <span
-                                                className="feed-title"
-                                                style={subheading}
-                                            >
-                                                <Translate>Incidents</Translate>
-                                            </span>
-                                        </ShouldRender>
-                                        <ShouldRender
-
-                                            if={this.props.individualnote}
-                                        >
-                                            <span
-                                                className="feed-title"
-                                                style={primaryTextColor}
-                                            >
-                                                Incidents for{' '}
-
-                                                {this.props.individualnote
-
-                                                    ? this.props.individualnote
-                                                        .name
-                                                    : ''}{' '}
-                                                on{' '}
-
-                                                {this.props.individualnote
-                                                    ? moment(
-                                                        this.props
-
-                                                            .individualnote
-                                                            .date
-                                                    ).format('LL')
-                                                    : ''}
-                                            </span>
-                                        </ShouldRender>
-                                    </div>
-                                    <ShouldRender
-                                        if={
-
-                                            this.props.noteData &&
-
-                                            this.props.noteData.requesting
-                                        }
-                                    >
-                                        <div
-                                            className="ball-beat"
-                                            id="notes-loader"
-                                            style={{ marginBottom: 0 }}
-                                        >
-                                            <div
-                                                style={{
-                                                    height: '12px',
-                                                    width: '12px',
-                                                }}
-                                            ></div>
-                                            <div
-                                                style={{
-                                                    height: '12px',
-                                                    width: '12px',
-                                                }}
-                                            ></div>
-                                            <div
-                                                style={{
-                                                    height: '12px',
-                                                    width: '12px',
-                                                }}
-                                            ></div>
-                                        </div>
-                                    </ShouldRender>
-                                </div>
-                            </ShouldRender>
-                        </div>
-                    </div>
-                );
-            }
-
-
-            return this.props.noteData ||
-
-                this.props.individualnote ||
-
-                this.props.showIncidentCardState ? (
+        if (this.props.noteData && this.props.noteData.requesting) {
+            return (
                 <div
                     className="twitter-feed white box"
-                    style={{
-                        overflow: 'visible',
-                        marginBottom: 40,
-                        ...contentBackground,
-                    }}
-                    id="incidentCard"
+                    style={{ overflow: 'visible', ...contentBackground }}
                 >
                     <div className="messages" style={{ position: 'relative' }}>
-                        <div
-                            className="box-inner"
-                            style={{
-                                paddingLeft: 0,
-                                paddingRight: 0,
-                                width: '100%',
-                            }}
+                        <ShouldRender
+                            if={
+                                this.props.noteData &&
+                                !this.props.noteData.error
+                            }
                         >
-                            <div className="feed-header">
-
-                                <ShouldRender if={!this.props.individualnote}>
-                                    <span
-                                        className="feed-title"
-                                        style={subheading}
-                                    >
-                                        <Translate>Incidents</Translate>
-                                    </span>
-                                </ShouldRender>
-
-                                <ShouldRender if={this.props.individualnote}>
-                                    <span
-                                        className="feed-title"
-                                        style={primaryTextColor}
-                                    >
-                                        Incidents for{' '}
-
-                                        {this.props.individualnote
-
-                                            ? this.props.individualnote.name
-                                            : ''}{' '}
-                                        on{' '}
-
-                                        {this.props.individualnote
-                                            ? moment(
-
-                                                this.props.individualnote.date
-                                            ).format('LL')
-                                            : ''}
-                                    </span>
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={
-
-                                        this.props.isSubscriberEnabled ===
-                                        true && showSubscriberOption
-                                    }
-                                >
-                                    <button
-                                        className="bs-Button-subscribe"
-                                        type="submit"
-                                        onClick={() => this.subscribebutton()}
-                                    >
-                                        <span>
-                                            <Translate>Subscribe</Translate>
-                                        </span>
-                                    </button>
-                                </ShouldRender>
-                            </div>
-                            <ShouldRender
-                                if={
-
-                                    this.props.subscribed &&
-                                    showSubscriberOption
-                                }
+                            <div
+                                className="box-inner"
+                                style={{
+                                    paddingLeft: 0,
+                                    paddingRight: 0,
+                                    width: '100%',
+                                }}
                             >
-                                <SubscribeBox />
-                            </ShouldRender>
-                            <ShouldRender
-                                if={
-
-                                    this.props.noteData &&
-
-                                    !this.props.noteData.requesting &&
-
-                                    this.props.noteData.notes &&
-
-                                    this.props.noteData.notes.length
-                                }
-                            >
-                                <ul className="feed-contents plain">{note}</ul>
-                            </ShouldRender>
-
-                            <ShouldRender
-                                if={
-
-                                    (this.props.noteData &&
-
-                                        !this.props.noteData.requesting &&
-
-                                        this.props.noteData.notes &&
-
-                                        !this.props.noteData.notes.length) ||
-
-                                    (this.props.showIncidentCardState &&
-
-                                        !this.props.noteData.notes.length)
-                                }
-                            >
-                                <ul className="feed-contents plain">
-                                    <li
-                                        className="feed-item clearfix"
-                                        style={{
-                                            minHeight: '5px',
-                                            marginBottom: '10px',
-                                            display: 'flex',
-                                            flexDirection: 'row',
-                                            flexWrap: 'nowrap',
-                                            justifyContent: 'center',
-                                        }}
+                                <div className="feed-header">
+                                    <ShouldRender
+                                        if={!this.props.individualnote}
                                     >
                                         <span
-                                            className="time"
-                                            style={{
-                                                fontSize: '0.8em',
-                                                marginLeft: '0px',
-                                                ...secondaryTextColor,
-                                            }}
+                                            className="feed-title"
+                                            style={subheading}
                                         >
-
-                                            {this.props.notesmessage ? (
-
-                                                this.props.notesmessage
-                                            ) : (
-                                                <Translate>
-                                                    No incidents yet
-                                                </Translate>
-                                            )}
-                                            .
+                                            <Translate>Incidents</Translate>
                                         </span>
-                                    </li>
-                                </ul>
-                            </ShouldRender>
-                        </div>
-
-                        <ShouldRender
-                            if={
-
-                                this.props.noteData &&
-
-                                this.props.noteData.notes &&
-
-                                this.props.noteData.notes.length &&
-
-                                this.props.count > this.props.skip + 5 &&
-
-                                !this.props.noteData.requesting &&
-
-                                !this.props.requestingmore &&
-
-                                !this.props.noteData.error &&
-
-                                !this.props.individualnote &&
-
-                                !this.props.fetchingIncidentTimelines
-                            }
-                        >
-                            <button
-                                className="more button-as-anchor anchor-centered"
-                                onClick={() => this.more()}
-                            >
-                                <Translate>More</Translate>
-                            </button>
-                        </ShouldRender>
-
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                            }}
-                        >
-                            <ShouldRender
-                                if={
-
-                                    this.props.noteData &&
-
-                                    !this.props.noteData.error &&
-
-                                    !this.props.noteData.requesting &&
-
-                                    this.props.individualnote
-                                }
-                            >
-                                <button
-                                    className="all__btn"
-                                    onClick={() => this.getAll()}
+                                    </ShouldRender>
+                                    <ShouldRender
+                                        if={this.props.individualnote}
+                                    >
+                                        <span
+                                            className="feed-title"
+                                            style={primaryTextColor}
+                                        >
+                                            Incidents for{' '}
+                                            {this.props.individualnote
+                                                ? this.props.individualnote.name
+                                                : ''}{' '}
+                                            on{' '}
+                                            {this.props.individualnote
+                                                ? moment(
+                                                      this.props.individualnote
+                                                          .date
+                                                  ).format('LL')
+                                                : ''}
+                                        </span>
+                                    </ShouldRender>
+                                </div>
+                                <ShouldRender
+                                    if={
+                                        this.props.noteData &&
+                                        this.props.noteData.requesting
+                                    }
                                 >
-                                    <Translate>All Incidents</Translate>
-                                </button>
-                            </ShouldRender>
-                        </div>
-
-                        <ShouldRender
-                            if={
-
-                                this.props.noteData &&
-
-                                this.props.noteData.requesting
-                            }
-                        >
-                            <div className="ball-beat" id="notes-loader">
-                                <div
-                                    style={{ height: '12px', width: '12px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '12px', width: '12px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '12px', width: '12px' }}
-                                ></div>
-                            </div>
-                        </ShouldRender>
-
-                        <ShouldRender
-                            if={
-
-                                this.props.noteData && this.props.requestingmore
-                            }
-                        >
-                            <div className="ball-beat" id="more-loader">
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
-                                <div
-                                    style={{ height: '8px', width: '8px' }}
-                                ></div>
+                                    <div
+                                        className="ball-beat"
+                                        id="notes-loader"
+                                        style={{ marginBottom: 0 }}
+                                    >
+                                        <div
+                                            style={{
+                                                height: '12px',
+                                                width: '12px',
+                                            }}
+                                        ></div>
+                                        <div
+                                            style={{
+                                                height: '12px',
+                                                width: '12px',
+                                            }}
+                                        ></div>
+                                        <div
+                                            style={{
+                                                height: '12px',
+                                                width: '12px',
+                                            }}
+                                        ></div>
+                                    </div>
+                                </ShouldRender>
                             </div>
                         </ShouldRender>
                     </div>
                 </div>
-            ) : null;
+            );
         }
+
+        return this.props.noteData ||
+            this.props.individualnote ||
+            this.props.showIncidentCardState ? (
+            <div
+                className="twitter-feed white box"
+                style={{
+                    overflow: 'visible',
+                    marginBottom: 40,
+                    ...contentBackground,
+                }}
+                id="incidentCard"
+            >
+                <div className="messages" style={{ position: 'relative' }}>
+                    <div
+                        className="box-inner"
+                        style={{
+                            paddingLeft: 0,
+                            paddingRight: 0,
+                            width: '100%',
+                        }}
+                    >
+                        <div className="feed-header">
+                            <ShouldRender if={!this.props.individualnote}>
+                                <span className="feed-title" style={subheading}>
+                                    <Translate>Incidents</Translate>
+                                </span>
+                            </ShouldRender>
+
+                            <ShouldRender if={this.props.individualnote}>
+                                <span
+                                    className="feed-title"
+                                    style={primaryTextColor}
+                                >
+                                    Incidents for{' '}
+                                    {this.props.individualnote
+                                        ? this.props.individualnote.name
+                                        : ''}{' '}
+                                    on{' '}
+                                    {this.props.individualnote
+                                        ? moment(
+                                              this.props.individualnote.date
+                                          ).format('LL')
+                                        : ''}
+                                </span>
+                            </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    this.props.isSubscriberEnabled === true &&
+                                    showSubscriberOption
+                                }
+                            >
+                                <button
+                                    className="bs-Button-subscribe"
+                                    type="submit"
+                                    onClick={() => {
+                                        return this.subscribebutton();
+                                    }}
+                                >
+                                    <span>
+                                        <Translate>Subscribe</Translate>
+                                    </span>
+                                </button>
+                            </ShouldRender>
+                        </div>
+                        <ShouldRender
+                            if={this.props.subscribed && showSubscriberOption}
+                        >
+                            <SubscribeBox />
+                        </ShouldRender>
+                        <ShouldRender
+                            if={
+                                this.props.noteData &&
+                                !this.props.noteData.requesting &&
+                                this.props.noteData.notes &&
+                                this.props.noteData.notes.length
+                            }
+                        >
+                            <ul className="feed-contents plain">{note}</ul>
+                        </ShouldRender>
+
+                        <ShouldRender
+                            if={
+                                (this.props.noteData &&
+                                    !this.props.noteData.requesting &&
+                                    this.props.noteData.notes &&
+                                    !this.props.noteData.notes.length) ||
+                                (this.props.showIncidentCardState &&
+                                    !this.props.noteData.notes.length)
+                            }
+                        >
+                            <ul className="feed-contents plain">
+                                <li
+                                    className="feed-item clearfix"
+                                    style={{
+                                        minHeight: '5px',
+                                        marginBottom: '10px',
+                                        display: 'flex',
+                                        flexDirection: 'row',
+                                        flexWrap: 'nowrap',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <span
+                                        className="time"
+                                        style={{
+                                            fontSize: '0.8em',
+                                            marginLeft: '0px',
+                                            ...secondaryTextColor,
+                                        }}
+                                    >
+                                        {this.props.notesmessage ? (
+                                            this.props.notesmessage
+                                        ) : (
+                                            <Translate>
+                                                No incidents yet
+                                            </Translate>
+                                        )}
+                                        .
+                                    </span>
+                                </li>
+                            </ul>
+                        </ShouldRender>
+                    </div>
+
+                    <ShouldRender
+                        if={
+                            this.props.noteData &&
+                            this.props.noteData.notes &&
+                            this.props.noteData.notes.length &&
+                            this.props.count > this.props.skip + 5 &&
+                            !this.props.noteData.requesting &&
+                            !this.props.requestingmore &&
+                            !this.props.noteData.error &&
+                            !this.props.individualnote &&
+                            !this.props.fetchingIncidentTimelines
+                        }
+                    >
+                        <button
+                            className="more button-as-anchor anchor-centered"
+                            onClick={() => {
+                                return this.more();
+                            }}
+                        >
+                            <Translate>More</Translate>
+                        </button>
+                    </ShouldRender>
+
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}
+                    >
+                        <ShouldRender
+                            if={
+                                this.props.noteData &&
+                                !this.props.noteData.error &&
+                                !this.props.noteData.requesting &&
+                                this.props.individualnote
+                            }
+                        >
+                            <button
+                                className="all__btn"
+                                onClick={() => {
+                                    return this.getAll();
+                                }}
+                            >
+                                <Translate>All Incidents</Translate>
+                            </button>
+                        </ShouldRender>
+                    </div>
+
+                    <ShouldRender
+                        if={
+                            this.props.noteData &&
+                            this.props.noteData.requesting
+                        }
+                    >
+                        <div className="ball-beat" id="notes-loader">
+                            <div
+                                style={{ height: '12px', width: '12px' }}
+                            ></div>
+                            <div
+                                style={{ height: '12px', width: '12px' }}
+                            ></div>
+                            <div
+                                style={{ height: '12px', width: '12px' }}
+                            ></div>
+                        </div>
+                    </ShouldRender>
+
+                    <ShouldRender
+                        if={this.props.noteData && this.props.requestingmore}
+                    >
+                        <div className="ball-beat" id="more-loader">
+                            <div style={{ height: '8px', width: '8px' }}></div>
+                            <div style={{ height: '8px', width: '8px' }}></div>
+                            <div style={{ height: '8px', width: '8px' }}></div>
+                        </div>
+                    </ShouldRender>
+                </div>
+            </div>
+        ) : null;
     }
 }
-
 
 NotesMain.displayName = 'NotesMain';
 
@@ -924,18 +831,19 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        getStatusPageNote,
-        getStatusPageIndividualNote,
-        getMoreNote,
-        openSubscribeMenu,
-        fetchLastIncidentTimelines,
-        showIncidentCard,
-    },
-    dispatch
-);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            getStatusPageNote,
+            getStatusPageIndividualNote,
+            getMoreNote,
+            openSubscribeMenu,
+            fetchLastIncidentTimelines,
+            showIncidentCard,
+        },
+        dispatch
+    );
+};
 
 NotesMain.propTypes = {
     noteData: PropTypes.object,

@@ -8,13 +8,12 @@ const DropDownMenu: Function = ({
     value,
     updateState,
     id,
-    title
+    title,
 }: $TSFixMe) => {
     const [open, setOpen]: $TSFixMe = useState(false);
     const container: $TSFixMe = useRef(null);
 
     const handleClickOutside: Function = (event: $TSFixMe) => {
-
         if (container.current && !container.current.contains(event.target)) {
             setOpen(false);
         }
@@ -41,7 +40,9 @@ const DropDownMenu: Function = ({
                 className="bs-Button bs-DeprecatedButton ddm-button"
                 id={id}
                 title={title}
-                onClick={() => setOpen(!open)}
+                onClick={() => {
+                    return setOpen(!open);
+                }}
             >
                 <div>{value}</div>
                 <div className="caret-icon--down"></div>
@@ -49,16 +50,20 @@ const DropDownMenu: Function = ({
             {open && (
                 <div className="ddm-dropdown-wrapper">
                     <ul className="ddm-dropdown-menu">
-                        {options.map((data: $TSFixMe, index: $TSFixMe) => (
-                            <ShouldRender key={index} if={data.show}>
-                                <li
-                                    className="ddm-dropdown-menu__item"
-                                    onClick={() => onClick(data.value)}
-                                >
-                                    {data.value}
-                                </li>
-                            </ShouldRender>
-                        ))}
+                        {options.map((data: $TSFixMe, index: $TSFixMe) => {
+                            return (
+                                <ShouldRender key={index} if={data.show}>
+                                    <li
+                                        className="ddm-dropdown-menu__item"
+                                        onClick={() => {
+                                            return onClick(data.value);
+                                        }}
+                                    >
+                                        {data.value}
+                                    </li>
+                                </ShouldRender>
+                            );
+                        })}
                     </ul>
                 </div>
             )}

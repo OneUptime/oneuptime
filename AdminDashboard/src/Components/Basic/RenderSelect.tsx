@@ -12,18 +12,18 @@ const RenderSelect: Function = ({
     options = [{ value: '', label: 'Select' }],
     message,
     id,
-    autoFocus
+    autoFocus,
 }: $TSFixMe) => {
     const filteredOpt: $TSFixMe = useRef();
 
-    filteredOpt.current = options.filter(opt => opt.value === input.value);
+    filteredOpt.current = options.filter(opt => {
+        return opt.value === input.value;
+    });
 
     const [value, setValue]: $TSFixMe = useState({
         value: input.value,
         label:
-
             filteredOpt.current.length > 0
-
                 ? filteredOpt.current[0].label
                 : placeholder,
     });
@@ -32,9 +32,7 @@ const RenderSelect: Function = ({
         setValue({
             value: input.value,
             label:
-
                 filteredOpt.current.length > 0
-
                     ? filteredOpt.current[0].label
                     : placeholder,
         });
@@ -51,7 +49,6 @@ const RenderSelect: Function = ({
         <span style={{ height: '28px', width: '250px', ...style }}>
             <div style={{ display: 'flex' }}>
                 <Select
-
                     name={input.name}
                     value={value}
                     onChange={handleChange}
@@ -59,10 +56,9 @@ const RenderSelect: Function = ({
                     className={className}
                     id={id}
                     isDisabled={disabled || false}
-
-                    options={options.filter(opt =>
-                        opt.show !== undefined ? opt.show : true
-                    )}
+                    options={options.filter(opt => {
+                        return opt.show !== undefined ? opt.show : true;
+                    })}
                     autoFocus={autoFocus}
                 />
                 {message && message.length && (

@@ -6,7 +6,6 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 
 class ConfirmBalanceTopUp extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -21,10 +20,8 @@ class ConfirmBalanceTopUp extends Component<ComponentProps> {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             case 'Enter':
-
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -44,7 +41,6 @@ class ConfirmBalanceTopUp extends Component<ComponentProps> {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
-
                     <ClickOutside onClickOutside={this.props.closeThisDialog}>
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
@@ -65,7 +61,6 @@ class ConfirmBalanceTopUp extends Component<ComponentProps> {
                                             style={{
                                                 fontWeight: 'bold',
                                             }}
-
                                         >{`${this.props.data.amount}$`}</span>
                                         ?
                                     </span>
@@ -76,7 +71,6 @@ class ConfirmBalanceTopUp extends Component<ComponentProps> {
                                             id="cancelBalanceTopUp"
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -89,7 +83,6 @@ class ConfirmBalanceTopUp extends Component<ComponentProps> {
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             type="button"
                                             onClick={
-
                                                 this.props.confirmThisDialog
                                             }
                                             disabled={recharging}
@@ -118,11 +111,12 @@ class ConfirmBalanceTopUp extends Component<ComponentProps> {
     }
 }
 
-
 ConfirmBalanceTopUp.displayName = 'ConfirmBalanceTopUpFormModal';
-const mapStateToProps: Function = (state: RootState) => ({
-    isRequesting: state.project.updateBalance.requesting
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        isRequesting: state.project.updateBalance.requesting,
+    };
+};
 
 ConfirmBalanceTopUp.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,

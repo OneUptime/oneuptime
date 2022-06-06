@@ -10,7 +10,6 @@ import { closeModal } from 'CommonUI/actions/Modal';
 import { deleteProbe } from '../../actions/probe';
 
 class ProbeDeleteModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -25,7 +24,6 @@ class ProbeDeleteModal extends Component<ComponentProps> {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.handleDelete();
@@ -35,8 +33,8 @@ class ProbeDeleteModal extends Component<ComponentProps> {
     };
 
     handleDelete = () => {
-
-        const { error, modalId, closeModal, deleteProbe, probeId }: $TSFixMe = this.props;
+        const { error, modalId, closeModal, deleteProbe, probeId }: $TSFixMe =
+            this.props;
         deleteProbe(probeId).then(() => {
             if (!error) {
                 return closeModal({ id: modalId });
@@ -45,7 +43,6 @@ class ProbeDeleteModal extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { isRequesting, error, closeThisDialog }: $TSFixMe = this.props;
 
         return (
@@ -103,8 +100,9 @@ class ProbeDeleteModal extends Component<ComponentProps> {
                                             </div>
                                         </ShouldRender>
                                         <button
-                                            className={`bs-Button btn__modal ${isRequesting &&
-                                                'bs-is-disabled'}`}
+                                            className={`bs-Button btn__modal ${
+                                                isRequesting && 'bs-is-disabled'
+                                            }`}
                                             type="button"
                                             onClick={closeThisDialog}
                                             disabled={isRequesting}
@@ -116,8 +114,9 @@ class ProbeDeleteModal extends Component<ComponentProps> {
                                         </button>
                                         <button
                                             id="confirmDelete"
-                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${isRequesting &&
-                                                'bs-is-disabled'}`}
+                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${
+                                                isRequesting && 'bs-is-disabled'
+                                            }`}
                                             onClick={this.handleDelete}
                                             disabled={isRequesting}
                                             autoFocus={true}
@@ -141,7 +140,6 @@ class ProbeDeleteModal extends Component<ComponentProps> {
     }
 }
 
-
 ProbeDeleteModal.displayName = 'ProbeDeleteModal';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -159,8 +157,9 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteProbe }, dispatch);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ closeModal, deleteProbe }, dispatch);
+};
 
 ProbeDeleteModal.propTypes = {
     isRequesting: PropTypes.oneOfType([

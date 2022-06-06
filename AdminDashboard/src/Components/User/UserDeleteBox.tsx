@@ -10,7 +10,7 @@ import { deleteUser } from '../../actions/user';
 import UserDeleteModal from './UserDeleteModal';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class UserDeleteBox extends Component<ComponentProps>{
+export class UserDeleteBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -20,11 +20,9 @@ export class UserDeleteBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { deleteUser, userId }: $TSFixMe = this.props;
 
         const { deleteModalId }: $TSFixMe = this.state;
-
 
         this.props.openModal({
             id: deleteModalId,
@@ -38,7 +36,6 @@ export class UserDeleteBox extends Component<ComponentProps>{
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -46,7 +43,6 @@ export class UserDeleteBox extends Component<ComponentProps>{
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -93,13 +89,16 @@ export class UserDeleteBox extends Component<ComponentProps>{
     }
 }
 
-
 UserDeleteBox.displayName = 'UserDeleteBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ deleteUser, openModal, closeModal }, dispatch);
+};
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user
+        ? state.user.user.user._id
+        : null;
 
     return {
         userId,
@@ -109,7 +108,6 @@ const mapStateToProps: Function = (state: RootState) => {
             state.user.deleteUser.requesting,
     };
 };
-
 
 UserDeleteBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
@@ -121,7 +119,6 @@ UserDeleteBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
 };
-
 
 UserDeleteBox.contextTypes = {};
 

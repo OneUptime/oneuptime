@@ -10,7 +10,6 @@ import ErrorBoundary from './components/basic/ErrorBoundary';
 const target: $TSFixMe = document.getElementById('root');
 
 render(
-
     <Provider store={store} history={history}>
         <ErrorBoundary>
             <App />

@@ -19,39 +19,33 @@ function validate(values: $TSFixMe) {
     const errors: $TSFixMe = {};
 
     if (!Validate.email(values.email)) {
-
         errors.email = 'Email is not valid.';
     }
 
     if (!Validate.text(values.password)) {
-
         errors.password = 'Password is not valid.';
     }
 
     if (!Validate.text(values['from-name'])) {
-
         errors['from-name'] = 'Name is not valid.';
     }
 
     if (!Validate.email(values['from'])) {
-
         errors['from'] = 'Email is not valid.';
     }
 
     if (!Validate.text(values['smtp-server'])) {
-
         errors['smtp-server'] = 'SMTP Server is not valid.';
     }
 
     if (!Validate.text(values['smtp-port'])) {
-
         errors['smtp-port'] = 'SMTP Port is not valid.';
     }
 
     return errors;
 }
 
-const  settingsType: string = 'smtp';
+const settingsType: string = 'smtp';
 
 const fields: $TSFixMe = [
     {
@@ -100,21 +94,21 @@ const fields: $TSFixMe = [
         key: 'smtp-secure',
         label: 'SMTP Secure',
 
-        component: ({
-            input: { value, onChange }
-        }: $TSFixMe) => (
-            <label className="Toggler-wrap" id="label_smpt_secure">
-                <input
-                    className="btn-toggler"
-                    checked={value}
-                    onChange={onChange}
-                    type="checkbox"
-                    name="smtp-secure"
-                    id="smtp-secure"
-                />
-                <span className="TogglerBtn-slider round"></span>
-            </label>
-        ),
+        component: ({ input: { value, onChange } }: $TSFixMe) => {
+            return (
+                <label className="Toggler-wrap" id="label_smpt_secure">
+                    <input
+                        className="btn-toggler"
+                        checked={value}
+                        onChange={onChange}
+                        type="checkbox"
+                        name="smtp-secure"
+                        id="smtp-secure"
+                    />
+                    <span className="TogglerBtn-slider round"></span>
+                </label>
+            );
+        },
         explanation: 'Enabled for port 465, disabled for port 587',
     },
 ];
@@ -124,20 +118,20 @@ const emailEnableField: $TSFixMe = [
         key: 'email-enabled',
         label: 'Enable Emails',
 
-        component: ({
-            input: { value, onChange }
-        }: $TSFixMe) => (
-            <label className="Toggler-wrap" id="email-enabled">
-                <input
-                    className="btn-toggler"
-                    checked={value}
-                    onChange={onChange}
-                    type="checkbox"
-                    name="email-enabled"
-                />
-                <span className="TogglerBtn-slider round"></span>
-            </label>
-        ),
+        component: ({ input: { value, onChange } }: $TSFixMe) => {
+            return (
+                <label className="Toggler-wrap" id="email-enabled">
+                    <input
+                        className="btn-toggler"
+                        checked={value}
+                        onChange={onChange}
+                        type="checkbox"
+                        name="email-enabled"
+                    />
+                    <span className="TogglerBtn-slider round"></span>
+                </label>
+            );
+        },
     },
 ];
 
@@ -146,47 +140,47 @@ const smtpOptions: $TSFixMe = [
         key: 'internalSmtp',
         label: 'Enable internal SMTP server',
 
-        component: ({
-            input: { value, onChange }
-        }: $TSFixMe) => (
-            <label className="Toggler-wrap" id="internalSmtp">
-                {' '}
-                {/**setting id at label removes intermittent result*/}
-                <input
-                    className="btn-toggler"
-                    checked={value}
-                    onChange={onChange}
-                    type="checkbox"
-                    name="internalSmtp"
-                />
-                <span className="TogglerBtn-slider round"></span>
-            </label>
-        ),
+        component: ({ input: { value, onChange } }: $TSFixMe) => {
+            return (
+                <label className="Toggler-wrap" id="internalSmtp">
+                    {' '}
+                    {/**setting id at label removes intermittent result*/}
+                    <input
+                        className="btn-toggler"
+                        checked={value}
+                        onChange={onChange}
+                        type="checkbox"
+                        name="internalSmtp"
+                    />
+                    <span className="TogglerBtn-slider round"></span>
+                </label>
+            );
+        },
         explanation: 'Use pre-configured internal SMTP server',
     },
     {
         key: 'customSmtp',
         label: 'Enable custom SMTP server',
 
-        component: ({
-            input: { value, onChange }
-        }: $TSFixMe) => (
-            <label className="Toggler-wrap" id="customSmtp">
-                <input
-                    className="btn-toggler"
-                    checked={value}
-                    onChange={onChange}
-                    type="checkbox"
-                    name="customSmtp"
-                />
-                <span className="TogglerBtn-slider round"></span>
-            </label>
-        ),
+        component: ({ input: { value, onChange } }: $TSFixMe) => {
+            return (
+                <label className="Toggler-wrap" id="customSmtp">
+                    <input
+                        className="btn-toggler"
+                        checked={value}
+                        onChange={onChange}
+                        type="checkbox"
+                        name="customSmtp"
+                    />
+                    <span className="TogglerBtn-slider round"></span>
+                </label>
+            );
+        },
         explanation: 'Custom SMTP will also serve as backup SMTP server',
     },
 ];
 
-export class Component extends Component<ComponentProps>{
+export class Component extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
     constructor(props: $TSFixMe) {
@@ -197,8 +191,7 @@ export class Component extends Component<ComponentProps>{
         };
     }
 
-    async override componentDidMount() {
-
+    override async componentDidMount() {
         await this.props.fetchSettings(settingsType);
     }
 
@@ -209,11 +202,9 @@ export class Component extends Component<ComponentProps>{
 
         const { testModalId }: $TSFixMe = this.state;
 
-
         this.props.openModal({
             id: testModalId,
             onConfirm: (testForm: $TSFixMe) => {
-
                 const { smtpToUse }: $TSFixMe = this.props.smtpTestForm.values;
                 const { 'test-email': email } = testForm;
                 const {
@@ -244,11 +235,12 @@ export class Component extends Component<ComponentProps>{
 
                 return testSmtp(payload).then((res: ExpressResponse) => {
                     if (res && typeof res === 'string') {
-                        // prevent dismissal of modal if errored
-                        // res will only be a string if errored
+                        /*
+                         * prevent dismissal of modal if errored
+                         * res will only be a string if errored
+                         */
 
                         return this.props.openModal({
-
                             id: this.state.messageModalId,
                             content: (props: $TSFixMe) => {
                                 return (
@@ -259,7 +251,6 @@ export class Component extends Component<ComponentProps>{
                     }
 
                     return this.props.openModal({
-
                         id: this.state.messageModalId,
                         content: (props: $TSFixMe) => {
                             return <MessageModal {...props} email={email} />;
@@ -274,7 +265,6 @@ export class Component extends Component<ComponentProps>{
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeModal({ id: this.state.testModalId });
             default:
                 return false;
@@ -282,12 +272,10 @@ export class Component extends Component<ComponentProps>{
     };
 
     submitForm = (values: $TSFixMe) => {
-
         this.props.saveSettings(settingsType, values);
     };
 
     override render() {
-
         const { settings, handleSubmit, smtpForm }: $TSFixMe = this.props;
         return (
             <div
@@ -321,59 +309,60 @@ export class Component extends Component<ComponentProps>{
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <fieldset className="bs-Fieldset">
                                         <div className="bs-Fieldset-rows">
-                                            {emailEnableField.map(field => (
-                                                <div
-                                                    key={field.key}
-                                                    className="bs-Fieldset-row"
-                                                >
-                                                    <label className="bs-Fieldset-label">
-                                                        {field.label}
-                                                    </label>
+                                            {emailEnableField.map(field => {
+                                                return (
                                                     <div
-                                                        className="bs-Fieldset-fields"
-                                                        style={{
-                                                            paddingTop: 3,
-                                                        }}
+                                                        key={field.key}
+                                                        className="bs-Fieldset-row"
                                                     >
-                                                        <Field
-                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-
-                                                            type={field.type}
-                                                            name={field.key}
-                                                            id={field.key}
-                                                            placeholder={
-
-                                                                field.placeholder ||
-                                                                field.label
-                                                            }
-                                                            component={
-                                                                field.component
-                                                            }
-                                                            disabled={
-                                                                settings &&
-                                                                settings.requesting
-                                                            }
-                                                        />
-
-                                                        {field.explanation && (
-                                                            <p className="bs-Fieldset-explanation">
-                                                                {
-
-                                                                    field.explanation
+                                                        <label className="bs-Fieldset-label">
+                                                            {field.label}
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop: 3,
+                                                            }}
+                                                        >
+                                                            <Field
+                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                type={
+                                                                    field.type
                                                                 }
-                                                            </p>
-                                                        )}
+                                                                name={field.key}
+                                                                id={field.key}
+                                                                placeholder={
+                                                                    field.placeholder ||
+                                                                    field.label
+                                                                }
+                                                                component={
+                                                                    field.component
+                                                                }
+                                                                disabled={
+                                                                    settings &&
+                                                                    settings.requesting
+                                                                }
+                                                            />
+
+                                                            {field.explanation && (
+                                                                <p className="bs-Fieldset-explanation">
+                                                                    {
+                                                                        field.explanation
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                             {smtpForm.values &&
                                                 smtpForm.values[
-                                                'email-enabled'
+                                                    'email-enabled'
                                                 ] &&
                                                 smtpOptions.map(field => {
                                                     if (
                                                         field.key ===
-                                                        'internalSmtp' &&
+                                                            'internalSmtp' &&
                                                         !IS_INTERNAL_SMTP_DEPLOYED
                                                     ) {
                                                         return null;
@@ -395,7 +384,6 @@ export class Component extends Component<ComponentProps>{
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                     type={
-
                                                                         field.type
                                                                     }
                                                                     name={
@@ -405,7 +393,6 @@ export class Component extends Component<ComponentProps>{
                                                                         field.key
                                                                     }
                                                                     placeholder={
-
                                                                         field.placeholder ||
                                                                         field.label
                                                                     }
@@ -430,53 +417,58 @@ export class Component extends Component<ComponentProps>{
                                                 })}
                                             {smtpForm.values &&
                                                 smtpForm.values[
-                                                'email-enabled'
+                                                    'email-enabled'
                                                 ] &&
                                                 smtpForm.values.customSmtp &&
-                                                fields.map(field => (
-                                                    <div
-                                                        key={field.key}
-                                                        className="bs-Fieldset-row"
-                                                    >
-                                                        <label className="bs-Fieldset-label">
-                                                            {field.label}
-                                                        </label>
+                                                fields.map(field => {
+                                                    return (
                                                         <div
-                                                            className="bs-Fieldset-fields"
-                                                            style={{
-                                                                paddingTop: 3,
-                                                            }}
+                                                            key={field.key}
+                                                            className="bs-Fieldset-row"
                                                         >
-                                                            <Field
-                                                                className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                type={
-                                                                    field.type
-                                                                }
-                                                                name={field.key}
-                                                                id={field.key}
-                                                                placeholder={
-
-                                                                    field.placeholder ||
-                                                                    field.label
-                                                                }
-                                                                component={
-                                                                    field.component
-                                                                }
-                                                                disabled={
-                                                                    settings &&
-                                                                    settings.requesting
-                                                                }
-                                                            />
-                                                            {field.explanation && (
-                                                                <p className="bs-Fieldset-explanation">
-                                                                    {
-                                                                        field.explanation
+                                                            <label className="bs-Fieldset-label">
+                                                                {field.label}
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    paddingTop: 3,
+                                                                }}
+                                                            >
+                                                                <Field
+                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                    type={
+                                                                        field.type
                                                                     }
-                                                                </p>
-                                                            )}
+                                                                    name={
+                                                                        field.key
+                                                                    }
+                                                                    id={
+                                                                        field.key
+                                                                    }
+                                                                    placeholder={
+                                                                        field.placeholder ||
+                                                                        field.label
+                                                                    }
+                                                                    component={
+                                                                        field.component
+                                                                    }
+                                                                    disabled={
+                                                                        settings &&
+                                                                        settings.requesting
+                                                                    }
+                                                                />
+                                                                {field.explanation && (
+                                                                    <p className="bs-Fieldset-explanation">
+                                                                        {
+                                                                            field.explanation
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                         </div>
                                     </fieldset>
                                 </div>
@@ -519,9 +511,7 @@ export class Component extends Component<ComponentProps>{
     }
 }
 
-
 Component.displayName = 'SettingsForm';
-
 
 Component.propTypes = {
     settings: PropTypes.object.isRequired,

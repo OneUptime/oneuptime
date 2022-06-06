@@ -7,14 +7,14 @@ import { Translate } from 'react-auto-translate';
 interface AffectedResourcesProps {
     event?: object;
     monitorState?: unknown[];
-    colorStyle?: "white" | "grey";
+    colorStyle?: 'white' | 'grey';
 }
 
 const AffectedResources: Function = ({
     event,
     monitorState,
     colorStyle,
-    cleanTheme = false
+    cleanTheme = false,
 }: AffectedResourcesProps) => {
     const affectedMonitors: $TSFixMe = [];
     let monitorCount = 0;
@@ -35,8 +35,10 @@ const AffectedResources: Function = ({
         }
         return monitor;
     });
-    // check if the length of monitors on status page equals the monitor count
-    // if they are equal then all the monitors in status page is in a particular scheduled event
+    /*
+     * check if the length of monitors on status page equals the monitor count
+     * if they are equal then all the monitors in status page is in a particular scheduled event
+     */
     if (monitorCount === monitorState.length) {
         if (cleanTheme) {
             return (
@@ -86,9 +88,10 @@ const AffectedResources: Function = ({
                 </span>
             </>
         );
-    } else {
-        if (cleanTheme) {
-            return <>
+    }
+    if (cleanTheme) {
+        return (
+            <>
                 <span
                     className="ongoing__affectedmonitor--title"
                     style={{
@@ -107,14 +110,18 @@ const AffectedResources: Function = ({
                 >
                     {affectedMonitors
 
-                        .map(monitor => capitalize(monitor.name))
+                        .map((monitor) => {
+                            return capitalize(monitor.name);
+                        })
                         .join(', ')
                         .replace(/, ([^,]*)$/, ' and $1')}
                 </span>
-            </>;
-        }
+            </>
+        );
+    }
 
-        return <>
+    return (
+        <>
             <span
                 className="ongoing__affectedmonitor--title"
                 style={
@@ -135,12 +142,14 @@ const AffectedResources: Function = ({
             >
                 {affectedMonitors
 
-                    .map(monitor => capitalize(monitor.name))
+                    .map((monitor) => {
+                        return capitalize(monitor.name);
+                    })
                     .join(', ')
                     .replace(/, ([^,]*)$/, ' and $1')}
             </span>
-        </>;
-    }
+        </>
+    );
 };
 
 AffectedResources.displayName = 'AffectedResources';

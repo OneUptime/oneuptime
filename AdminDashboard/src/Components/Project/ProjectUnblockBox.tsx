@@ -7,7 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { unblockProject } from '../../actions/project';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class ProjectUnblockBox extends Component<ComponentProps>{
+export class ProjectUnblockBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -16,13 +16,11 @@ export class ProjectUnblockBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { unblockProject, project }: $TSFixMe = this.props;
         return unblockProject(project._id);
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -67,10 +65,14 @@ export class ProjectUnblockBox extends Component<ComponentProps>{
     }
 }
 
-
 ProjectUnblockBox.displayName = 'ProjectUnblockBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ unblockProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        { unblockProject, openModal, closeModal },
+        dispatch
+    );
+};
 
 const mapStateToProps: Function = (state: RootState) => {
     const project: $TSFixMe = state.project.project.project;
@@ -83,13 +85,11 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 ProjectUnblockBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     project: PropTypes.object.isRequired,
     unblockProject: PropTypes.func.isRequired,
 };
-
 
 ProjectUnblockBox.contextTypes = {};
 

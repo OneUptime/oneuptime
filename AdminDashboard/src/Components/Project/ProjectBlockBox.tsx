@@ -10,7 +10,7 @@ import { blockProject } from '../../actions/project';
 import ProjectBlockModal from './ProjectBlockModal';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class ProjectBlockBox extends Component<ComponentProps>{
+export class ProjectBlockBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -20,11 +20,9 @@ export class ProjectBlockBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { blockProject, project }: $TSFixMe = this.props;
 
         const { blockModalId }: $TSFixMe = this.state;
-
 
         this.props.openModal({
             id: blockModalId,
@@ -38,7 +36,6 @@ export class ProjectBlockBox extends Component<ComponentProps>{
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeModal({ id: this.state.blockModalId });
             default:
                 return false;
@@ -46,7 +43,6 @@ export class ProjectBlockBox extends Component<ComponentProps>{
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -93,10 +89,14 @@ export class ProjectBlockBox extends Component<ComponentProps>{
     }
 }
 
-
 ProjectBlockBox.displayName = 'ProjectBlockBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ blockProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        { blockProject, openModal, closeModal },
+        dispatch
+    );
+};
 
 const mapStateToProps: Function = (state: RootState) => {
     const project: $TSFixMe = state.project.project.project;
@@ -109,7 +109,6 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 ProjectBlockBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     project: PropTypes.object.isRequired,
@@ -117,7 +116,6 @@ ProjectBlockBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
 };
-
 
 ProjectBlockBox.contextTypes = {};
 

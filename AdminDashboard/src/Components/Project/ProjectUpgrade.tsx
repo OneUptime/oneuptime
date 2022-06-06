@@ -14,7 +14,6 @@ function validate(values: $TSFixMe) {
     const errors: $TSFixMe = {};
 
     if (!Validate.text(values.planId)) {
-
         errors.name = 'Stripe PlanID is required!';
     }
 
@@ -22,7 +21,6 @@ function validate(values: $TSFixMe) {
 }
 
 class ProjectUpgrade extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -37,8 +35,14 @@ class ProjectUpgrade extends Component<ComponentProps> {
         };
         this.plansArr = PricingPlan.getPlans();
 
-        this.getPlansFromToggle = (planDuration: $TSFixMe, plansArr: $TSFixMe) =>
-            plansArr.filter((plan: $TSFixMe) => plan.type === planDuration);
+        this.getPlansFromToggle = (
+            planDuration: $TSFixMe,
+            plansArr: $TSFixMe
+        ) => {
+            return plansArr.filter((plan: $TSFixMe) => {
+                return plan.type === planDuration;
+            });
+        };
 
         this.state = {
             isAnnual: true,
@@ -51,9 +55,7 @@ class ProjectUpgrade extends Component<ComponentProps> {
     }
 
     shouldTogglePlans = (prevstate: RootState) => {
-
         if (this.state.isAnnual !== prevState.isAnnual) {
-
             if (this.state.isAnnual) {
                 this.setState({
                     plans: this.getPlansFromToggle('annual', this.plansArr),
@@ -67,12 +69,12 @@ class ProjectUpgrade extends Component<ComponentProps> {
     };
 
     handlePlanToggle = () => {
-
-        this.setState(prevState => ({ isAnnual: !prevState.isAnnual }));
+        this.setState(prevState => {
+            return { isAnnual: !prevState.isAnnual };
+        });
     };
 
     submit = (values: $TSFixMe) => {
-
         const { project, changePlan }: $TSFixMe = this.props;
         let oldPlan, newPlan;
         const { _id, name, stripePlanId }: $TSFixMe = project;
@@ -86,7 +88,6 @@ class ProjectUpgrade extends Component<ComponentProps> {
             oldPlan = this.enterprisePlan.category;
 
             const {
-
                 category: newCategory,
 
                 type: newType,
@@ -96,7 +97,6 @@ class ProjectUpgrade extends Component<ComponentProps> {
             newPlan = `${newCategory} ${newType}ly (${newDetails})`;
         } else {
             const {
-
                 category: oldCategory,
 
                 type: oldType,
@@ -106,7 +106,6 @@ class ProjectUpgrade extends Component<ComponentProps> {
             oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
 
             const {
-
                 category: newCategory,
 
                 type: newType,
@@ -121,8 +120,8 @@ class ProjectUpgrade extends Component<ComponentProps> {
     };
 
     override render() {
-
-        const { handleSubmit, isRequesting, error, activeForm }: $TSFixMe = this.props;
+        const { handleSubmit, isRequesting, error, activeForm }: $TSFixMe =
+            this.props;
 
         const { isAnnual, plans }: $TSFixMe = this.state;
 
@@ -160,9 +159,9 @@ class ProjectUpgrade extends Component<ComponentProps> {
                                         <input
                                             className="btn-toggler"
                                             type="checkbox"
-                                            onChange={() =>
-                                                this.handlePlanToggle()
-                                            }
+                                            onChange={() => {
+                                                return this.handlePlanToggle();
+                                            }}
                                             name="planDuration"
                                             id="planDuration"
                                             checked={isAnnual}
@@ -179,63 +178,70 @@ class ProjectUpgrade extends Component<ComponentProps> {
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-rows">
                                                 <div className="price-list-4c Margin-all--16">
-                                                    {plans.map((plan: $TSFixMe) => <label
-                                                        key={plan.planId}
-                                                        htmlFor={`${plan.category}_${plan.type}`}
-                                                        style={{
-                                                            cursor:
-                                                                'pointer',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${activeForm ===
-                                                                plan.planId
-                                                                ? 'price-list-item--active'
-                                                                : ''
-                                                                }`}
-                                                            style={{
-                                                                flex: 1,
-                                                                padding: 0,
-                                                            }}
-                                                        >
-                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                                                <span
+                                                    {plans.map(
+                                                        (plan: $TSFixMe) => {
+                                                            return (
+                                                                <label
+                                                                    key={
+                                                                        plan.planId
+                                                                    }
+                                                                    htmlFor={`${plan.category}_${plan.type}`}
                                                                     style={{
-                                                                        marginBottom:
-                                                                            '4px',
+                                                                        cursor: 'pointer',
                                                                     }}
                                                                 >
-                                                                    {
-                                                                        plan.category
-                                                                    }{' '}
-                                                                    {plan.type ===
-                                                                        'month'
-                                                                        ? 'Monthly'
-                                                                        : 'Yearly'}{' '}
-                                                                    Plan
-                                                                </span>
-                                                            </span>
-                                                            <RadioInput
-                                                                id={`${plan.category}_${plan.type}`}
-                                                                details={
-                                                                    plan.details
-                                                                }
-                                                                value={
-                                                                    plan.planId
-                                                                }
-                                                                style={{
-                                                                    display:
-                                                                        'flex',
-                                                                    alignItems:
-                                                                        'center',
-                                                                    justifyContent:
-                                                                        'center',
-                                                                    color:
-                                                                        '#4c4c4c',
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    </label>)}
+                                                                    <div
+                                                                        className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
+                                                                            activeForm ===
+                                                                            plan.planId
+                                                                                ? 'price-list-item--active'
+                                                                                : ''
+                                                                        }`}
+                                                                        style={{
+                                                                            flex: 1,
+                                                                            padding: 0,
+                                                                        }}
+                                                                    >
+                                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                                            <span
+                                                                                style={{
+                                                                                    marginBottom:
+                                                                                        '4px',
+                                                                                }}
+                                                                            >
+                                                                                {
+                                                                                    plan.category
+                                                                                }{' '}
+                                                                                {plan.type ===
+                                                                                'month'
+                                                                                    ? 'Monthly'
+                                                                                    : 'Yearly'}{' '}
+                                                                                Plan
+                                                                            </span>
+                                                                        </span>
+                                                                        <RadioInput
+                                                                            id={`${plan.category}_${plan.type}`}
+                                                                            details={
+                                                                                plan.details
+                                                                            }
+                                                                            value={
+                                                                                plan.planId
+                                                                            }
+                                                                            style={{
+                                                                                display:
+                                                                                    'flex',
+                                                                                alignItems:
+                                                                                    'center',
+                                                                                justifyContent:
+                                                                                    'center',
+                                                                                color: '#4c4c4c',
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                </label>
+                                                            );
+                                                        }
+                                                    )}
                                                     <label
                                                         htmlFor={
                                                             this.enterprisePlan
@@ -246,11 +252,12 @@ class ProjectUpgrade extends Component<ComponentProps> {
                                                         }}
                                                     >
                                                         <div
-                                                            className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${activeForm ===
+                                                            className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
+                                                                activeForm ===
                                                                 'enterprise'
-                                                                ? 'price-list-item--active'
-                                                                : ''
-                                                                }`}
+                                                                    ? 'price-list-item--active'
+                                                                    : ''
+                                                            }`}
                                                             style={{
                                                                 flex: 1,
                                                                 padding: 0,
@@ -274,16 +281,14 @@ class ProjectUpgrade extends Component<ComponentProps> {
                                                             <div
                                                                 className="bs-Fieldset-field"
                                                                 style={{
-                                                                    width:
-                                                                        '100%',
+                                                                    width: '100%',
                                                                     display:
                                                                         'flex',
                                                                     alignItems:
                                                                         'center',
                                                                     justifyContent:
                                                                         'center',
-                                                                    color:
-                                                                        '#4c4c4c',
+                                                                    color: '#4c4c4c',
                                                                 }}
                                                             >
                                                                 <Field
@@ -364,9 +369,7 @@ class ProjectUpgrade extends Component<ComponentProps> {
     }
 }
 
-
 ProjectUpgrade.displayName = 'Project Upgrade';
-
 
 ProjectUpgrade.propTypes = {
     handleSubmit: PropTypes.func.isRequired,

@@ -24,7 +24,6 @@ function debounce(this: $TSFixMe, fn: $TSFixMe, ms: $TSFixMe) {
 }
 
 class MonitorInfo extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -44,13 +43,11 @@ class MonitorInfo extends Component<ComponentProps> {
     }
 
     override componentDidMount() {
-
         const { monitor }: $TSFixMe = this.props;
 
         if (monitor) {
             const endDate: $TSFixMe = moment(Date.now());
             const startDate: $TSFixMe = moment(Date.now()).subtract(90, 'days');
-
 
             this.props.fetchMonitorStatuses(
                 monitor.projectId._id || monitor.projectId,
@@ -71,7 +68,6 @@ class MonitorInfo extends Component<ComponentProps> {
 
     componentDidUpdate(prevProps: $TSFixMe) {
         const {
-
             monitor,
 
             calculateTime,
@@ -85,7 +81,6 @@ class MonitorInfo extends Component<ComponentProps> {
             monitorStatus,
         } = this.props;
 
-
         let { range } = this.props;
 
         let currentProbe =
@@ -95,34 +90,34 @@ class MonitorInfo extends Component<ComponentProps> {
         const prevProbe: $TSFixMe =
             prevProps.probes && prevProps.probes.length > 0
                 ? prevProps.probes[
-                prevProps.probes.length < 2 ? 0 : activeProbe
-                ]
+                      prevProps.probes.length < 2 ? 0 : activeProbe
+                  ]
                 : null;
 
         if (
             prevProbe?._id !== currentProbe?._id ||
             JSON.stringify(prevProps.monitorStatus) !==
-
-            JSON.stringify(this.props.monitorStatus) ||
+                JSON.stringify(this.props.monitorStatus) ||
             prevProps.range !== range
         ) {
-
             range = !this.props.theme ? 90 : range;
 
             const now: $TSFixMe = Date.now();
 
-            const monitorData: $TSFixMe = monitorState.find(
-                (a: $TSFixMe) => String(a._id) === String(monitor._id)
-            );
+            const monitorData: $TSFixMe = monitorState.find((a: $TSFixMe) => {
+                return String(a._id) === String(monitor._id);
+            });
 
             //this fixes the problem if the monitor is just created and its an api monitor
             if (monitorData?.statuses?.length === 1) {
                 currentProbe =
                     probes && probes.length > 0
-                        ? probes.filter(
-                            (probe: $TSFixMe) => String(probe._id) ===
-                                String(monitorData.statuses[0]._id)
-                        )[0]
+                        ? probes.filter((probe: $TSFixMe) => {
+                              return (
+                                  String(probe._id) ===
+                                  String(monitorData.statuses[0]._id)
+                              );
+                          })[0]
                         : null;
             }
 
@@ -137,7 +132,10 @@ class MonitorInfo extends Component<ComponentProps> {
         if (JSON.stringify(prevProps.monitor) !== JSON.stringify(monitor)) {
             if (monitor) {
                 const endDate: $TSFixMe = moment(Date.now());
-                const startDate: $TSFixMe = moment(Date.now()).subtract(90, 'days');
+                const startDate: $TSFixMe = moment(Date.now()).subtract(
+                    90,
+                    'days'
+                );
 
                 this.props.fetchMonitorStatuses(
                     monitor.projectId._id || monitor.projectId,
@@ -161,7 +159,9 @@ class MonitorInfo extends Component<ComponentProps> {
     resizeHandler() {
         // block chart scroll wrapper
         const scrollWrapper: $TSFixMe = this.scrollWrapper.current;
-        if (!scrollWrapper) return;
+        if (!scrollWrapper) {
+            return;
+        }
         scrollWrapper.style.width = 'auto';
 
         // block chart scroll content
@@ -189,20 +189,18 @@ class MonitorInfo extends Component<ComponentProps> {
     }
 
     handleMonitorStatus = (status: $TSFixMe) => {
-
         const { onlineText, offlineText, degradedText }: $TSFixMe = this.props;
         return status === 'online'
             ? onlineText
             : status === 'degraded'
-                ? degradedText
-                : offlineText;
+            ? degradedText
+            : offlineText;
     };
 
     checkOngoingEventMonitor = (events: $TSFixMe) => {
         let result = false;
         for (const event of events) {
             for (const monitor of event.monitors) {
-
                 if (monitor.monitorId._id === this.props.monitor._id) {
                     result = true;
                 }
@@ -213,7 +211,6 @@ class MonitorInfo extends Component<ComponentProps> {
 
     override render() {
         const {
-
             monitorState,
 
             monitor,
@@ -235,9 +232,7 @@ class MonitorInfo extends Component<ComponentProps> {
 
         let range = !this.props.theme && 90;
 
-
         if (this.props.theme) {
-
             const { windowSize }: $TSFixMe = this.state;
             if (windowSize <= 600) {
                 range = 30;
@@ -250,9 +245,9 @@ class MonitorInfo extends Component<ComponentProps> {
             }
         }
 
-        const monitorData: $TSFixMe = monitorState.find(
-            (a: $TSFixMe) => String(a._id) === String(monitor._id)
-        );
+        const monitorData: $TSFixMe = monitorState.find((a: $TSFixMe) => {
+            return String(a._id) === String(monitor._id);
+        });
 
         const probe: $TSFixMe =
             probes && probes.length > 0
@@ -265,7 +260,9 @@ class MonitorInfo extends Component<ComponentProps> {
             ? monitorInfo.requesting[monitor._id]
             : true;
 
-        const info: $TSFixMe = monitor ? monitorInfo.info[monitor._id] || {} : {};
+        const info: $TSFixMe = monitor
+            ? monitorInfo.info[monitor._id] || {}
+            : {};
         const timeBlock: $TSFixMe = info.timeBlock || [];
         const uptimePercent: $TSFixMe = info.uptimePercent || 'N/A';
 
@@ -291,15 +288,12 @@ class MonitorInfo extends Component<ComponentProps> {
             for (let i = 0; i < range; i++) {
                 block.unshift(
                     <BlockChart
-
                         monitorId={monitor._id}
                         monitorName={monitor.name}
                         time={timeBlock[i]}
                         key={i}
                         id={i}
-
                         theme={this.props.theme}
-
                         windowSize={this.state.windowSize}
                         range={range}
                     />
@@ -326,27 +320,22 @@ class MonitorInfo extends Component<ComponentProps> {
         const subheading: $TSFixMe = {};
         const primaryText: $TSFixMe = {};
         if (colors) {
-
             subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;
 
             primaryText.color = `rgba(${colors.primaryText.r}, ${colors.primaryText.g}, ${colors.primaryText.b}, ${colors.primaryText.a})`;
             if (monitorStatus === 'degraded') {
-
                 status.backgroundColor = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b}, ${colors.degraded.a})`; // "degraded-status";
 
                 status.font = `rgba(${colors.degraded.r}, ${colors.degraded.g}, ${colors.degraded.b}, ${colors.degraded.a})`; // "degraded-status";
             } else if (monitorStatus === 'online') {
-
                 status.backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`; // "online-status";
 
                 status.font = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`; // "online-status";
             } else if (monitorStatus === 'offline') {
-
                 status.backgroundColor = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b}, ${colors.downtime.a})`; // "red-downtime";
 
                 status.font = `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b}, ${colors.downtime.a})`; // "red-downtime";
             } else {
-
                 status.backgroundColor = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b}, ${colors.disabled.a})`; // "grey-disabled";
 
                 status.font = `rgba(${colors.disabled.r}, ${colors.disabled.g}, ${colors.disabled.b}, ${colors.disabled.a})`; // "grey-disabled";
@@ -355,7 +344,6 @@ class MonitorInfo extends Component<ComponentProps> {
 
         return (
             <>
-
                 <ShouldRender if={this.props.theme}>
                     <>
                         <div className="op-disp">
@@ -366,7 +354,6 @@ class MonitorInfo extends Component<ComponentProps> {
                                     >
                                         <div
                                             id={`monitorCategory_${monitor.name}`}
-
                                             style={monitorCategoryStyle}
                                         >
                                             <span>
@@ -415,32 +402,24 @@ class MonitorInfo extends Component<ComponentProps> {
                             <div
                                 style={{
                                     color:
-
                                         (this.props.ongoing &&
-
                                             this.props.ongoing.length > 0) ||
-
-                                            status.font === 'rgba(255, 222, 36, 1)'
+                                        status.font === 'rgba(255, 222, 36, 1)'
                                             ? '#e39f48'
-
                                             : status.font ===
-                                                'rgba(108, 219, 86, 1)'
-                                                ? '#49c3b1'
-
-                                                : status.font ===
-                                                    'rgba(250, 109, 70, 1)'
-                                                    ? '#FA6D46'
-
-                                                    : status.font,
+                                              'rgba(108, 219, 86, 1)'
+                                            ? '#49c3b1'
+                                            : status.font ===
+                                              'rgba(250, 109, 70, 1)'
+                                            ? '#FA6D46'
+                                            : status.font,
                                     textTransform: 'capitalize',
                                 }}
                             >
-
                                 {this.props.ongoing &&
-                                    this.checkOngoingEventMonitor(
-
-                                        this.props.ongoing
-                                    )
+                                this.checkOngoingEventMonitor(
+                                    this.props.ongoing
+                                )
                                     ? 'Ongoing Scheduled Event'
                                     : this.handleMonitorStatus(monitorStatus)}
                             </div>
@@ -450,7 +429,6 @@ class MonitorInfo extends Component<ComponentProps> {
                         >
                             <div
                                 className="uptime-graph-section dashboard-uptime-graph ma-t-20"
-
                                 id={this.props.id}
                                 ref={this.container}
                             >
@@ -459,7 +437,6 @@ class MonitorInfo extends Component<ComponentProps> {
                                         ref={this.scrollWrapper}
                                         className="block-chart"
                                         style={{
-
                                             overflowX: this.props.theme
                                                 ? 'none'
                                                 : 'scroll',
@@ -491,9 +468,8 @@ class MonitorInfo extends Component<ComponentProps> {
                                 <div className="alerts_days">
                                     <div
                                         style={
-
                                             subheading.color ===
-                                                'rgba(76, 76, 76, 1)'
+                                            'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
@@ -502,14 +478,12 @@ class MonitorInfo extends Component<ComponentProps> {
                                     </div>
                                     <div
                                         style={
-
                                             subheading.color ===
-                                                'rgba(76, 76, 76, 1)'
+                                            'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
                                         className={
-
                                             this.props.checkUptime
                                                 ? 'spacer bs-mar-right'
                                                 : 'spacer'
@@ -520,12 +494,11 @@ class MonitorInfo extends Component<ComponentProps> {
                                         {uptime === 'N/A' ? (
                                             <div
                                                 style={
-
                                                     subheading.color ===
-                                                        'rgba(76, 76, 76, 1)'
+                                                    'rgba(76, 76, 76, 1)'
                                                         ? {
-                                                            color: '#aaaaaa',
-                                                        }
+                                                              color: '#aaaaaa',
+                                                          }
                                                         : subheading
                                                 }
                                             >
@@ -534,12 +507,11 @@ class MonitorInfo extends Component<ComponentProps> {
                                         ) : (
                                             <div
                                                 style={
-
                                                     subheading.color ===
-                                                        'rgba(76, 76, 76, 1)'
+                                                    'rgba(76, 76, 76, 1)'
                                                         ? {
-                                                            color: '#aaaaaa',
-                                                        }
+                                                              color: '#aaaaaa',
+                                                          }
                                                         : subheading
                                                 }
                                             >
@@ -550,14 +522,12 @@ class MonitorInfo extends Component<ComponentProps> {
                                     </ShouldRender>
                                     <div
                                         style={
-
                                             subheading.color ===
-                                                'rgba(76, 76, 76, 1)'
+                                            'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
                                         className={
-
                                             this.props.checkUptime
                                                 ? 'spacer bs-mar-left'
                                                 : 'spacer'
@@ -565,9 +535,8 @@ class MonitorInfo extends Component<ComponentProps> {
                                     ></div>
                                     <div
                                         style={
-
                                             subheading.color ===
-                                                'rgba(76, 76, 76, 1)'
+                                            'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
@@ -580,11 +549,9 @@ class MonitorInfo extends Component<ComponentProps> {
                     </>
                 </ShouldRender>
 
-
                 <ShouldRender if={!this.props.theme}>
                     <div
                         className="uptime-graph-section dashboard-uptime-graph monitorLists"
-
                         id={this.props.id}
                         ref={this.container}
                     >
@@ -598,7 +565,6 @@ class MonitorInfo extends Component<ComponentProps> {
                                 <ShouldRender if={isGroupedByMonitorCategory}>
                                     <div
                                         id={`monitorCategory_${monitor.name}`}
-
                                         style={monitorCategoryStyle}
                                     >
                                         <span>
@@ -613,7 +579,6 @@ class MonitorInfo extends Component<ComponentProps> {
                                     </div>
                                 </ShouldRender>
                                 <div style={{ display: 'flex' }}>
-
                                     <ShouldRender if={!this.props.theme}>
                                         <div>
                                             <span style={status}></span>
@@ -648,7 +613,6 @@ class MonitorInfo extends Component<ComponentProps> {
                                     className="percentage"
                                     style={primaryText}
                                 >
-
                                     <ShouldRender if={!this.props.checkUptime}>
                                         {uptime === 'N/A' ? (
                                             <>
@@ -669,7 +633,6 @@ class MonitorInfo extends Component<ComponentProps> {
                                 ref={this.scrollWrapper}
                                 className="block-chart"
                                 style={{
-
                                     overflowX: this.props.theme
                                         ? 'none'
                                         : 'scroll',
@@ -700,7 +663,6 @@ class MonitorInfo extends Component<ComponentProps> {
     }
 }
 
-
 MonitorInfo.displayName = 'UptimeGraphs';
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
@@ -708,11 +670,12 @@ function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
         state.status &&
         state.status.ongoing &&
         state.status.ongoing.ongoing &&
-        state.status.ongoing.ongoing.filter(
-            (ongoingSchedule: $TSFixMe) => !ongoingSchedule.cancelled
-        );
+        state.status.ongoing.ongoing.filter((ongoingSchedule: $TSFixMe) => {
+            return !ongoingSchedule.cancelled;
+        });
 
-    const monitorStatus: $TSFixMe = state.status.monitorStatuses[ownProps.monitor._id];
+    const monitorStatus: $TSFixMe =
+        state.status.monitorStatuses[ownProps.monitor._id];
 
     return {
         monitorState: state.status.statusPage.monitorsData,
@@ -726,14 +689,15 @@ function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     };
 }
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        fetchMonitorStatuses,
-        calculateTime,
-    },
-    dispatch
-);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            fetchMonitorStatuses,
+            calculateTime,
+        },
+        dispatch
+    );
+};
 
 MonitorInfo.propTypes = {
     monitor: PropTypes.object,

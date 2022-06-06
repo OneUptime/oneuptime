@@ -10,40 +10,42 @@ const RenderTextArea: Function = ({
     maxlength,
     rows,
     disabled,
-    style
-}: $TSFixMe) => (
-    <span>
+    style,
+}: $TSFixMe) => {
+    return (
         <span>
-            <textarea
-                {...input}
-                type={type}
-                rows={rows}
-                placeholder={placeholder}
-                maxLength={maxlength}
-                className={className}
-                disabled={disabled || false}
-                style={style || {}}
-            />
-        </span>
-        <br />
-        {meta.error && meta.touched && (
-            <div
-                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                style={{ marginTop: '5px' }}
-            >
+            <span>
+                <textarea
+                    {...input}
+                    type={type}
+                    rows={rows}
+                    placeholder={placeholder}
+                    maxLength={maxlength}
+                    className={className}
+                    disabled={disabled || false}
+                    style={style || {}}
+                />
+            </span>
+            <br />
+            {meta.error && meta.touched && (
                 <div
-                    className="Box-root Margin-right--8"
-                    style={{ marginTop: '2px' }}
+                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                    style={{ marginTop: '5px' }}
                 >
-                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                    <div
+                        className="Box-root Margin-right--8"
+                        style={{ marginTop: '2px' }}
+                    >
+                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                    </div>
+                    <div className="Box-root">
+                        <span style={{ color: 'red' }}>{meta.error}</span>
+                    </div>
                 </div>
-                <div className="Box-root">
-                    <span style={{ color: 'red' }}>{meta.error}</span>
-                </div>
-            </div>
-        )}
-    </span>
-);
+            )}
+        </span>
+    );
+};
 
 RenderTextArea.displayName = 'RenderTextArea';
 

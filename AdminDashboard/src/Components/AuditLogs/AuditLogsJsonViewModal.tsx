@@ -7,7 +7,6 @@ import ReactJson from 'react-json-view';
 import ClickOutside from 'react-click-outside';
 
 class AuditLogsJsonViewModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -22,7 +21,6 @@ class AuditLogsJsonViewModal extends Component<ComponentProps> {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -31,7 +29,6 @@ class AuditLogsJsonViewModal extends Component<ComponentProps> {
 
     override render() {
         const {
-
             isRequesting,
 
             error,
@@ -142,8 +139,9 @@ class AuditLogsJsonViewModal extends Component<ComponentProps> {
                                             </div>
                                         </ShouldRender>
                                         <button
-                                            className={`bs-Button btn__modal ${isRequesting &&
-                                                'bs-is-disabled'}`}
+                                            className={`bs-Button btn__modal ${
+                                                isRequesting && 'bs-is-disabled'
+                                            }`}
                                             type="button"
                                             onClick={closeThisDialog}
                                             disabled={isRequesting}
@@ -165,7 +163,6 @@ class AuditLogsJsonViewModal extends Component<ComponentProps> {
     }
 }
 
-
 AuditLogsJsonViewModal.displayName = 'AuditLogsJsonViewModal';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -180,7 +177,6 @@ const mapStateToProps: Function = (state: RootState) => {
             state.auditLogs.auditLogs.error,
     };
 };
-
 
 AuditLogsJsonViewModal.propTypes = {
     isRequesting: PropTypes.oneOfType([

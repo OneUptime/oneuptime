@@ -10,7 +10,6 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 
 class ProjectRemoveUserModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -23,7 +22,6 @@ class ProjectRemoveUserModal extends Component<ComponentProps> {
     }
 
     handleKeyBoard = (e: $TSFixMe) => {
-
         const { data, resetTeamDelete }: $TSFixMe = this.props;
         switch (e.key) {
             case 'Escape':
@@ -37,16 +35,13 @@ class ProjectRemoveUserModal extends Component<ComponentProps> {
     };
 
     handleCloseModal = () => {
-
         this.props.closeModal({
-
             id: this.props.data.removeUserModalId,
         });
     };
 
     override render() {
         const {
-
             teamUserDelete,
 
             closeModal,
@@ -115,11 +110,11 @@ class ProjectRemoveUserModal extends Component<ComponentProps> {
                                             className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                             disabled={deleting}
                                             type="button"
-                                            onClick={() =>
-                                                data.removeTeamMember(
+                                            onClick={() => {
+                                                return data.removeTeamMember(
                                                     data.values
-                                                )
-                                            }
+                                                );
+                                            }}
                                             autoFocus={true}
                                         >
                                             {!deleting && (
@@ -143,7 +138,6 @@ class ProjectRemoveUserModal extends Component<ComponentProps> {
     }
 }
 
-
 ProjectRemoveUserModal.displayName = 'ProjectRemoveUserModal';
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
@@ -153,14 +147,15 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
             : null;
     return {
         teamUserDelete: state.project.teamDelete,
-        deleting: state.project.teamDelete.deleting.some((id: $TSFixMe) => id === userId),
+        deleting: state.project.teamDelete.deleting.some((id: $TSFixMe) => {
+            return id === userId;
+        }),
     };
 };
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ closeModal, resetTeamDelete }, dispatch);
 };
-
 
 ProjectRemoveUserModal.propTypes = {
     closeModal: PropTypes.func,

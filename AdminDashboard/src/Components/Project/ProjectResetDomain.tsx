@@ -14,12 +14,10 @@ import {
 } from '../../actions/project';
 
 class ProjectResetDomain extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
-
         this.props.resetProjectDomainOnMount();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -36,16 +34,13 @@ class ProjectResetDomain extends Component<ComponentProps> {
     };
 
     handleCloseModal = () => {
-
         this.props.closeModal({
-
             id: this.props.domainId,
         });
     };
 
     handleResetDomain = () => {
         const {
-
             resetProjectDomain,
 
             fetchProjectDomains,
@@ -55,7 +50,6 @@ class ProjectResetDomain extends Component<ComponentProps> {
             domainId,
         } = this.props;
         resetProjectDomain(projectId, domainId).then(() => {
-
             if (!this.props.resetError) {
                 fetchProjectDomains(projectId, 0, 10);
                 this.handleCloseModal();
@@ -64,7 +58,6 @@ class ProjectResetDomain extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { requesting, resetError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -125,8 +118,7 @@ class ProjectResetDomain extends Component<ComponentProps> {
                                                         <div className="Box-root">
                                                             <span
                                                                 style={{
-                                                                    color:
-                                                                        'red',
+                                                                    color: 'red',
                                                                 }}
                                                             >
                                                                 {resetError}
@@ -145,8 +137,10 @@ class ProjectResetDomain extends Component<ComponentProps> {
                                         >
                                             <button
                                                 id="cancelVerifyDomain"
-                                                className={`bs-Button btn__modal ${requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button btn__modal ${
+                                                    requesting &&
+                                                    'bs-is-disabled'
+                                                }`}
                                                 type="button"
                                                 disabled={requesting}
                                                 onClick={this.handleCloseModal}
@@ -158,8 +152,10 @@ class ProjectResetDomain extends Component<ComponentProps> {
                                             </button>
                                             <button
                                                 id="confirmVerifyDomain"
-                                                className={`bs-Button bs-Button--blue btn__modal ${requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button bs-Button--blue btn__modal ${
+                                                    requesting &&
+                                                    'bs-is-disabled'
+                                                }`}
                                                 onClick={this.handleResetDomain}
                                                 disabled={requesting}
                                                 autoFocus={true}
@@ -187,9 +183,7 @@ class ProjectResetDomain extends Component<ComponentProps> {
     }
 }
 
-
 ProjectResetDomain.displayName = 'ProjectResetDomain';
-
 
 ProjectResetDomain.propTypes = {
     closeModal: PropTypes.func,
@@ -205,22 +199,26 @@ ProjectResetDomain.propTypes = {
     resetProjectDomainOnMount: PropTypes.func,
 };
 
-const mapStateToProps: Function = (state: RootState) => ({
-    domainId: state.modal.modals[0].id,
-    domain: state.modal.modals[0].domain,
-    projectId: state.modal.modals[0].projectId,
-    requesting: state.project.resetDomain.requesting,
-    resetError: state.project.resetDomain.error
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        domainId: state.modal.modals[0].id,
+        domain: state.modal.modals[0].domain,
+        projectId: state.modal.modals[0].projectId,
+        requesting: state.project.resetDomain.requesting,
+        resetError: state.project.resetDomain.error,
+    };
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        closeModal,
-        resetProjectDomain,
-        fetchProjectDomains,
-        resetProjectDomainOnMount,
-    },
-    dispatch
-);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            closeModal,
+            resetProjectDomain,
+            fetchProjectDomains,
+            resetProjectDomainOnMount,
+        },
+        dispatch
+    );
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectResetDomain);

@@ -7,12 +7,10 @@ import { fetchUserloginHistory } from '../../actions/user';
 
 class UserHistory extends Component<ComponentProps> {
     constructor() {
-
         super();
         this.state = { page: 1 };
     }
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { userId }: $TSFixMe = this.props;
 
         this.props.fetchUserloginHistory(
@@ -25,7 +23,6 @@ class UserHistory extends Component<ComponentProps> {
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { userId }: $TSFixMe = this.props;
 
         this.props.fetchUserloginHistory(userId, skip + limit, 10);
@@ -34,7 +31,7 @@ class UserHistory extends Component<ComponentProps> {
     };
     override render() {
         return (
-            <div className="bs-BIM" >
+            <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <div className="Box-root">
@@ -55,7 +52,6 @@ class UserHistory extends Component<ComponentProps> {
                             </div>
                         </div>
                         <HistoryList
-
                             history={this.props.history}
                             prevClicked={this.prevClicked}
                             nextClicked={this.nextClicked}
@@ -67,13 +63,11 @@ class UserHistory extends Component<ComponentProps> {
     }
 }
 
-
 UserHistory.displayName = 'UserHistory';
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ fetchUserloginHistory }, dispatch);
 };
-
 
 UserHistory.propTypes = {
     fetchUserloginHistory: PropTypes.func.isRequired,

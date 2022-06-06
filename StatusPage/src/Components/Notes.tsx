@@ -57,9 +57,7 @@ class Notes extends Component<ComponentProps> {
             }
 
             if (
-
                 !incidentTimeline.incident_state &&
-
                 incidentTimeline.status === 'investigation notes deleted'
             ) {
                 timelineStatus = (
@@ -72,7 +70,6 @@ class Notes extends Component<ComponentProps> {
             if (incidentTimeline.incident_state) {
                 timelineStatus = (
                     <span className="note_status">
-
                         {capitalize(incidentTimeline.incident_state)}
                     </span>
                 );
@@ -82,7 +79,6 @@ class Notes extends Component<ComponentProps> {
         return timelineStatus;
     };
     handleNavigation = (statusPageSlug: $TSFixMe, noteSlug: $TSFixMe) => {
-
         const { history }: $TSFixMe = this.props;
 
         history.push(`/StatusPage/${statusPageSlug}/incident/${noteSlug}`);
@@ -100,15 +96,15 @@ class Notes extends Component<ComponentProps> {
                 return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
             }
             if (monitors.length > 3) {
-                return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
-                    } and ${monitors.length - 2} others`;
+                return `${monitors[0].monitorId.name}, ${
+                    monitors[1].monitorId.name
+                } and ${monitors.length - 2} others`;
             }
         }
     };
 
     override render() {
         const {
-
             statusPageSlug,
 
             uptimeColor,
@@ -121,24 +117,26 @@ class Notes extends Component<ComponentProps> {
         } = this.props;
 
         return (
-
             <ShouldRender if={this.props.notes}>
-
                 {this.props.notes.map((note: $TSFixMe, i: $TSFixMe) => {
-                    if (!note)
+                    if (!note) {
                         return (
                             <div>
                                 <Translate>No note</Translate>
                             </div>
                         );
+                    }
 
                     return (
                         <li
                             className="incidentlist feed-item clearfix"
                             key={i}
-                            onClick={() =>
-                                this.handleNavigation(statusPageSlug, note.slug)
-                            }
+                            onClick={() => {
+                                return this.handleNavigation(
+                                    statusPageSlug,
+                                    note.slug
+                                );
+                            }}
                         >
                             <div
                                 className="incident-status-bubble"
@@ -147,8 +145,8 @@ class Notes extends Component<ComponentProps> {
                                         note.incidentType === 'online'
                                             ? uptimeColor.backgroundColor
                                             : note.incidentType === 'offline'
-                                                ? downtimeColor.backgroundColor
-                                                : degradedColor.backgroundColor,
+                                            ? downtimeColor.backgroundColor
+                                            : degradedColor.backgroundColor,
                                 }}
                             ></div>
                             <div
@@ -183,7 +181,6 @@ class Notes extends Component<ComponentProps> {
                                     </span>
                                     <span
                                         style={{
-
                                             ...this.props.secondaryTextColor,
                                             color: 'rgba(0, 0, 0, 0.5)',
                                             display: 'block',
@@ -233,7 +230,6 @@ class Notes extends Component<ComponentProps> {
                                     <span
                                         className="time"
                                         style={{
-
                                             ...this.props.secondaryTextColor,
                                             marginLeft: 0,
                                             display: 'inline-block',
@@ -272,9 +268,7 @@ class Notes extends Component<ComponentProps> {
     }
 }
 
-
 Notes.displayName = 'Notes';
-
 
 Notes.propTypes = {
     notes: PropTypes.array,

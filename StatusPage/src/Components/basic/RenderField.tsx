@@ -31,27 +31,29 @@ const RenderField: Function = ({
     id,
     disabled,
     initialValue,
-    style
-}: RenderFieldProps) => (
-    <span>
+    style,
+}: RenderFieldProps) => {
+    return (
         <span>
-            <input
-                {...input}
-                type={type}
-                placeholder={placeholder}
-                className={className}
-                id={id}
-                disabled={disabled || false}
-                defaultValue={initialValue}
-                style={style || {}}
-            />
+            <span>
+                <input
+                    {...input}
+                    type={type}
+                    placeholder={placeholder}
+                    className={className}
+                    id={id}
+                    disabled={disabled || false}
+                    defaultValue={initialValue}
+                    style={style || {}}
+                />
+            </span>
+            <br />
+            {meta.error && meta.touched && (
+                <span style={errorStyle}>{meta.error}</span>
+            )}
         </span>
-        <br />
-        {meta.error && meta.touched && (
-            <span style={errorStyle}>{meta.error}</span>
-        )}
-    </span>
-);
+    );
+};
 
 RenderField.displayName = 'RenderField';
 

@@ -13,7 +13,6 @@ import { Validate } from '../../config';
 import { addUser, resetAddUser } from '../../actions/user';
 
 class UserAddModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -26,17 +25,16 @@ class UserAddModal extends Component<ComponentProps> {
     }
 
     submitForm = (values: $TSFixMe) => {
-
         const { addUser, closeThisDialog, resetAddUser }: $TSFixMe = this.props;
 
         addUser(values).then(
-            function (val: $TSFixMe) {
+            (val: $TSFixMe) => {
                 if (val === 'ok') {
                     resetAddUser();
                     closeThisDialog();
                 }
             },
-            function () {
+            () => {
                 //do nothing.
             }
         );
@@ -45,7 +43,6 @@ class UserAddModal extends Component<ComponentProps> {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 this.props.resetAddUser();
 
                 return this.props.closeThisDialog();
@@ -56,7 +53,6 @@ class UserAddModal extends Component<ComponentProps> {
 
     override render() {
         const {
-
             handleSubmit,
 
             closeThisDialog,
@@ -72,7 +68,6 @@ class UserAddModal extends Component<ComponentProps> {
         return (
             <div
                 className="ModalLayer-contents"
-
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -335,65 +330,64 @@ class UserAddModal extends Component<ComponentProps> {
     }
 }
 
-
 UserAddModal.displayName = 'UserAddModalForm';
 
 const validate: $TSFixMe = function (values: $TSFixMe) {
     const error: $TSFixMe = {};
 
+    if (!Validate.text(values.name)) {
+        error.name = 'Name is required.';
+    }
 
-    if (!Validate.text(values.name)) error.name = 'Name is required.';
-
-    if (Validate.text(values.name) && !Validate.isValidName(values.name))
-
+    if (Validate.text(values.name) && !Validate.isValidName(values.name)) {
         error.name = 'Name is not valid.';
+    }
 
+    if (!Validate.text(values.email)) {
+        error.email = 'Email is required.';
+    }
 
-    if (!Validate.text(values.email)) error.email = 'Email is required.';
-
-    if (Validate.text(values.email) && !Validate.email(values.email))
-
+    if (Validate.text(values.email) && !Validate.email(values.email)) {
         error.email = 'Email is not valid.';
+    }
 
     if (
         !Validate.isValidBusinessEmail(values.email) &&
         Validate.email(values.email)
-    )
-
+    ) {
         error.email = 'Please enter a business email address.';
+    }
 
-    if (!Validate.text(values.companyName))
-
+    if (!Validate.text(values.companyName)) {
         error.companyName = 'Company name is required.';
+    }
 
-    if (!Validate.text(values.companyPhoneNumber))
-
+    if (!Validate.text(values.companyPhoneNumber)) {
         error.companyPhoneNumber = 'Phone number is required.';
+    }
 
     if (
         Validate.text(values.companyPhoneNumber) &&
         !Validate.isValidNumber(values.companyPhoneNumber)
-    )
-
+    ) {
         error.companyPhoneNumber = 'Phone number is invalid.';
+    }
 
-    if (!Validate.text(values.password))
-
+    if (!Validate.text(values.password)) {
         error.password = 'Password is required.';
+    }
     if (
         Validate.text(values.password) &&
         !Validate.isStrongPassword(values.password)
     ) {
-
         error.password = 'Password should be atleast 8 characters long';
     }
 
-    if (!Validate.text(values.confirmPassword))
-
+    if (!Validate.text(values.confirmPassword)) {
         error.confirmPassword = 'Confirm Password is required.';
+    }
 
     if (!Validate.compare(values.password, values.confirmPassword)) {
-
         error.confirmPassword = 'Password and confirm password should match.';
     }
 
@@ -415,7 +409,6 @@ function mapStateToProps(state: RootState) {
         users: state.user.users,
     };
 }
-
 
 UserAddModal.propTypes = {
     addUser: PropTypes.func,

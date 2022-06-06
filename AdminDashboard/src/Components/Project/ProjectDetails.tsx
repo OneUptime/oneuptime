@@ -4,13 +4,13 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { DASHBOARD_URL } from '../../config';
 
-export class ProjectDetails extends Component<ComponentProps>{
+export class ProjectDetails extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
     override render() {
         return (
-            <div className="Box-root Margin-bottom--12" >
+            <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -21,10 +21,9 @@ export class ProjectDetails extends Component<ComponentProps>{
                                             className="bs-Button bs-DeprecatedButton bs-Button--White"
                                             type="submit"
                                             style={{ float: 'right' }}
-                                            onClick={() =>
-
-                                                (window.location.href = `${DASHBOARD_URL}/project/${this.props.project.slug}`)
-                                            }
+                                            onClick={() => {
+                                                return (window.location.href = `${DASHBOARD_URL}/project/${this.props.project.slug}`);
+                                            }}
                                         >
                                             <span>Goto Project</span>
                                         </button>
@@ -71,14 +70,11 @@ export class ProjectDetails extends Component<ComponentProps>{
                                                             marginTop: '6px',
                                                         }}
                                                     >
-
                                                         {this.props.project !==
                                                             null &&
-
-                                                            this.props.project.name
-
+                                                        this.props.project.name
                                                             ? this.props.project
-                                                                .name
+                                                                  .name
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
@@ -111,14 +107,11 @@ export class ProjectDetails extends Component<ComponentProps>{
                                                             marginTop: '6px',
                                                         }}
                                                     >
-
                                                         {this.props.project !==
                                                             null &&
-
-                                                            this.props.project._id
-
+                                                        this.props.project._id
                                                             ? this.props.project
-                                                                ._id
+                                                                  ._id
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
@@ -151,15 +144,12 @@ export class ProjectDetails extends Component<ComponentProps>{
                                                             marginTop: '6px',
                                                         }}
                                                     >
-
                                                         {this.props.project !==
                                                             null &&
-
-                                                            this.props.project
-                                                                .apiKey
-
+                                                        this.props.project
+                                                            .apiKey
                                                             ? this.props.project
-                                                                .apiKey
+                                                                  .apiKey
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
@@ -197,55 +187,50 @@ export class ProjectDetails extends Component<ComponentProps>{
                                                     >
                                                         {
                                                             <div
-                                                                className={`Badge Badge--color--${this.props
-
-                                                                    .project
-                                                                    .deleted
-                                                                    ? 'red'
-                                                                    : this
-                                                                        .props
-
-                                                                        .project
-                                                                        .isBlocked
-                                                                        ? 'yellow'
-                                                                        : 'green'
-                                                                    } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
-                                                            >
-                                                                <span
-                                                                    className={`Badge-text Text-color--${this
-                                                                        .props
-
+                                                                className={`Badge Badge--color--${
+                                                                    this.props
                                                                         .project
                                                                         .deleted
                                                                         ? 'red'
                                                                         : this
+                                                                              .props
+                                                                              .project
+                                                                              .isBlocked
+                                                                        ? 'yellow'
+                                                                        : 'green'
+                                                                } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                            >
+                                                                <span
+                                                                    className={`Badge-text Text-color--${
+                                                                        this
                                                                             .props
-
                                                                             .project
-                                                                            .isBlocked
+                                                                            .deleted
+                                                                            ? 'red'
+                                                                            : this
+                                                                                  .props
+                                                                                  .project
+                                                                                  .isBlocked
                                                                             ? 'yellow'
                                                                             : 'green'
-                                                                        } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                    } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                 >
                                                                     <span>
                                                                         {this
                                                                             .props
-
                                                                             .project !==
-                                                                            null
+                                                                        null
                                                                             ? this
-                                                                                .props
-
-                                                                                .project
-                                                                                .deleted
+                                                                                  .props
+                                                                                  .project
+                                                                                  .deleted
                                                                                 ? 'Deleted'
                                                                                 : this
-                                                                                    .props
-
-                                                                                    .project
-                                                                                    .isBlocked
-                                                                                    ? 'Blocked'
-                                                                                    : 'Active'
+                                                                                      .props
+                                                                                      .project
+                                                                                      .isBlocked
+                                                                                ? 'Blocked'
+                                                                                : 'Active'
                                                                             : 'LOADING...'}
                                                                     </span>
                                                                 </span>
@@ -271,7 +256,6 @@ export class ProjectDetails extends Component<ComponentProps>{
     }
 }
 
-
 ProjectDetails.displayName = 'ProjectDetails';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -282,13 +266,13 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({}, dispatch);
+};
 
 ProjectDetails.propTypes = {
     project: PropTypes.object.isRequired,
 };
-
 
 ProjectDetails.contextTypes = {};
 

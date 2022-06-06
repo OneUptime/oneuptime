@@ -10,7 +10,7 @@ import { deleteProject } from '../../actions/project';
 import ProjectDeleteModal from './ProjectDeleteModal';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class ProjectDeleteBox extends Component<ComponentProps>{
+export class ProjectDeleteBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -20,9 +20,7 @@ export class ProjectDeleteBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { deleteProject, project }: $TSFixMe = this.props;
-
 
         const { deleteModalId }: $TSFixMe = this.state;
 
@@ -38,7 +36,6 @@ export class ProjectDeleteBox extends Component<ComponentProps>{
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -46,7 +43,6 @@ export class ProjectDeleteBox extends Component<ComponentProps>{
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -93,10 +89,14 @@ export class ProjectDeleteBox extends Component<ComponentProps>{
     }
 }
 
-
 ProjectDeleteBox.displayName = 'ProjectDeleteBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        { deleteProject, openModal, closeModal },
+        dispatch
+    );
+};
 
 const mapStateToProps: Function = (state: RootState) => {
     const project: $TSFixMe = state.project.project.project;
@@ -109,7 +109,6 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 ProjectDeleteBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     project: PropTypes.object.isRequired,
@@ -117,7 +116,6 @@ ProjectDeleteBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
 };
-
 
 ProjectDeleteBox.contextTypes = {};
 

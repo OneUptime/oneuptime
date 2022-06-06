@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 import { reduxForm, Field } from 'redux-form';
 
 class Search extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -32,11 +31,10 @@ class Search extends Component<ComponentProps> {
                         Search
                     </button>
                 </div>
-            </div >
+            </div>
         );
     }
 }
-
 
 Search.displayName = 'Search';
 

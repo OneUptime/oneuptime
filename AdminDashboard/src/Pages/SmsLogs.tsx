@@ -10,7 +10,6 @@ import {
     fetchSmsLogStatus,
 } from '../actions/smsLogs';
 
-
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -26,7 +25,6 @@ class SmsLogs extends Component<ComponentProps> {
     }
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchSmsLogs, searchSmsLogs }: $TSFixMe = this.props;
@@ -45,7 +43,6 @@ class SmsLogs extends Component<ComponentProps> {
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchSmsLogs, searchSmsLogs }: $TSFixMe = this.props;
@@ -60,7 +57,6 @@ class SmsLogs extends Component<ComponentProps> {
     };
 
     componentDidMount = () => {
-
         this.props.fetchSmsLogs();
 
         this.props.fetchSmsLogStatus();
@@ -77,7 +73,6 @@ class SmsLogs extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { smsLogStatus }: $TSFixMe = this.props;
         return (
             <div
@@ -147,7 +142,6 @@ class SmsLogs extends Component<ComponentProps> {
                                                     }
                                                 >
                                                     <AlertPanel
-
                                                         className=""
                                                         message={
                                                             <span id="smsLogDisabled">
@@ -171,15 +165,11 @@ class SmsLogs extends Component<ComponentProps> {
                                             </div>
                                         </div>
                                         <SmsLogsList
-
                                             smsLogs={this.props.smsLogs || {}}
                                             prevClicked={this.prevClicked}
                                             nextClicked={this.nextClicked}
-
                                             userId={this.props.userId}
-
                                             requesting={this.props.requesting}
-
                                             page={this.state.page}
                                         />
                                     </div>
@@ -192,7 +182,6 @@ class SmsLogs extends Component<ComponentProps> {
         );
     }
 }
-
 
 SmsLogs.displayName = 'SmsLogs';
 
@@ -225,7 +214,6 @@ const mapStateToProps: Function = (state: RootState) => {
         changeSmsLogStatus,
     };
 };
-
 
 SmsLogs.propTypes = {
     fetchSmsLogs: PropTypes.func.isRequired,

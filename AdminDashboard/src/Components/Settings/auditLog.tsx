@@ -11,36 +11,32 @@ import {
 } from '../../actions/auditLogs';
 
 class AuditLog extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     handleKeyBoard: $TSFixMe;
-    async override componentDidMount() {
-
+    override async componentDidMount() {
         await this.props.fetchAuditLogStatus();
     }
-    toggleComponent = ({
-        input: { value, onChange }
-    }: $TSFixMe) => (
-        <label className="Toggler-wrap">
-            <input
-                className="btn-toggler"
-                checked={value}
-                onChange={onChange}
-                type="checkbox"
-                name="auditStatusToggler"
-                id="auditStatusToggler"
-            />
-            <span className="TogglerBtn-slider round"></span>
-        </label>
-    );
+    toggleComponent = ({ input: { value, onChange } }: $TSFixMe) => {
+        return (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="auditStatusToggler"
+                    id="auditStatusToggler"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        );
+    };
     submitForm = (values: $TSFixMe) => {
-
         this.props.auditLogStatusChange({ status: values.auditStatusToggler });
     };
     override render() {
-
         const { changeAuditLogStatus, handleSubmit }: $TSFixMe = this.props;
         return (
             <div
@@ -156,7 +152,6 @@ class AuditLog extends Component<ComponentProps> {
     }
 }
 
-
 AuditLog.displayName = 'AuditLog';
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => {
@@ -184,7 +179,6 @@ const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'audit-log-toggle-form',
     enableReinitialize: true,
 })(AuditLog);
-
 
 AuditLog.propTypes = {
     changeAuditLogStatus: PropTypes.object,

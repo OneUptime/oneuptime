@@ -24,7 +24,6 @@ import { TeamListLoader } from '../basic/Loader';
 import DropDownMenu from '../basic/DropDownMenu';
 
 class ProjectUser extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -36,14 +35,14 @@ class ProjectUser extends Component<ComponentProps> {
         };
     }
     handleClick = () => {
-
         const { addUserId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: addUserId,
-            onConfirm: () => true,
+            onConfirm: () => {
+                return true;
+            },
             content: DataPathHoC(ProjectUserAddModal, {
-
                 projectId: this.props.projectId,
 
                 projectName: this.props.projectName,
@@ -56,18 +55,18 @@ class ProjectUser extends Component<ComponentProps> {
         data.teamMemberId = values.userId;
         if (values.role === to) {
             return;
-        } else {
-
-            data.role = to;
         }
 
-        const { projectId, changeUserProjectRole, userUpdateRole }: $TSFixMe = this.props;
-        userUpdateRole(projectId, data).then((team: $TSFixMe) => changeUserProjectRole(team.data)
-        );
+        data.role = to;
+
+        const { projectId, changeUserProjectRole, userUpdateRole }: $TSFixMe =
+            this.props;
+        userUpdateRole(projectId, data).then((team: $TSFixMe) => {
+            return changeUserProjectRole(team.data);
+        });
     };
     removeTeamMember = (values: $TSFixMe) => {
         const {
-
             resetTeamDelete,
 
             teamDelete,
@@ -80,20 +79,19 @@ class ProjectUser extends Component<ComponentProps> {
             if (!value.error) {
                 resetTeamDelete();
                 return closeModal({
-
                     id: this.state.removeUserModalId,
                 });
-            } else return null;
+            }
+            return null;
         });
     };
     renderTable = () => {
+        const { handleSubmit, updateUsers, pages, membersPerPage }: $TSFixMe =
+            this.props;
 
-        const { handleSubmit, updateUsers, pages, membersPerPage }: $TSFixMe = this.props;
-
-        return this.props.users &&
-
+        return (
+            this.props.users &&
             this.props.users.teamMembers &&
-
             this.props.users.teamMembers.map((user: $TSFixMe, i: $TSFixMe) => {
                 if (
                     i >= pages * membersPerPage - membersPerPage &&
@@ -131,8 +129,9 @@ class ProjectUser extends Component<ComponentProps> {
                             </div>
                             <div className="bs-ObjectList-cell bs-u-v-middle">
                                 <div
-                                    id={`${user.role}_${user.email.split('@')[0]
-                                        }`}
+                                    id={`${user.role}_${
+                                        user.email.split('@')[0]
+                                    }`}
                                     className="bs-ObjectList-cell-row"
                                 >
                                     {user.role}
@@ -144,9 +143,9 @@ class ProjectUser extends Component<ComponentProps> {
                                         <span>
                                             {user && user.name
                                                 ? 'Online ' +
-                                                moment(
-                                                    user && user.lastActive
-                                                ).fromNow()
+                                                  moment(
+                                                      user && user.lastActive
+                                                  ).fromNow()
                                                 : 'Invitation Sent'}
                                         </span>
                                     </span>
@@ -159,7 +158,7 @@ class ProjectUser extends Component<ComponentProps> {
                                         if={
                                             !(
                                                 User.getUserId() ===
-                                                user.userId &&
+                                                    user.userId &&
                                                 user.role === 'Owner'
                                             )
                                         }
@@ -182,8 +181,7 @@ class ProjectUser extends Component<ComponentProps> {
                                                             show: true,
                                                         },
                                                         {
-                                                            value:
-                                                                'Administrator',
+                                                            value: 'Administrator',
                                                             show: true,
                                                         },
                                                         {
@@ -196,18 +194,19 @@ class ProjectUser extends Component<ComponentProps> {
                                                         },
                                                     ]}
                                                     value={'Change Role'}
-                                                    id={`changeRole_${user.email.split('@')[0]
-                                                        }`}
+                                                    id={`changeRole_${
+                                                        user.email.split('@')[0]
+                                                    }`}
                                                     title="Change Role"
-                                                    updateState={(val: $TSFixMe) => {
+                                                    updateState={(
+                                                        val: $TSFixMe
+                                                    ) => {
                                                         switch (val) {
                                                             case 'Owner':
                                                                 this.updateTeamMemberRole(
                                                                     {
-                                                                        role:
-                                                                            user.role,
-                                                                        userId:
-                                                                            user.userId,
+                                                                        role: user.role,
+                                                                        userId: user.userId,
                                                                     },
                                                                     'Owner'
                                                                 );
@@ -215,10 +214,8 @@ class ProjectUser extends Component<ComponentProps> {
                                                             case 'Administrator':
                                                                 this.updateTeamMemberRole(
                                                                     {
-                                                                        role:
-                                                                            user.role,
-                                                                        userId:
-                                                                            user.userId,
+                                                                        role: user.role,
+                                                                        userId: user.userId,
                                                                     },
                                                                     'Administrator'
                                                                 );
@@ -226,10 +223,8 @@ class ProjectUser extends Component<ComponentProps> {
                                                             case 'Member':
                                                                 this.updateTeamMemberRole(
                                                                     {
-                                                                        role:
-                                                                            user.role,
-                                                                        userId:
-                                                                            user.userId,
+                                                                        role: user.role,
+                                                                        userId: user.userId,
                                                                     },
                                                                     'Member'
                                                                 );
@@ -237,10 +232,8 @@ class ProjectUser extends Component<ComponentProps> {
                                                             case 'Viewer':
                                                                 this.updateTeamMemberRole(
                                                                     {
-                                                                        role:
-                                                                            user.role,
-                                                                        userId:
-                                                                            user.userId,
+                                                                        role: user.role,
+                                                                        userId: user.userId,
                                                                     },
                                                                     'Viewer'
                                                                 );
@@ -274,37 +267,42 @@ class ProjectUser extends Component<ComponentProps> {
                                                 </button>
                                             </ShouldRender>
                                             <button
-                                                id={`removeMember__${user.email.split('@')[0]
-                                                    }`}
+                                                id={`removeMember__${
+                                                    user.email.split('@')[0]
+                                                }`}
                                                 title="delete"
                                                 disabled={false}
                                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                 type="button"
-
-                                                onClick={handleSubmit((values: $TSFixMe) => this.props.openModal({
-                                                    id: this.state
-
-                                                        .removeUserModalId,
-                                                    content: DataPathHoC(
-                                                        ProjectRemoveUserModal,
-                                                        {
-                                                            removeUserModalId: this
-                                                                .state
-
-                                                                .removeUserModalId,
-                                                            values: {
-                                                                ...values,
-                                                                userId:
-                                                                    user.userId,
-                                                            },
-                                                            displayName:
-                                                                user.name ||
-                                                                user.email,
-                                                            removeTeamMember: this
-                                                                .removeTeamMember,
-                                                        }
-                                                    ),
-                                                })
+                                                onClick={handleSubmit(
+                                                    (values: $TSFixMe) => {
+                                                        return this.props.openModal(
+                                                            {
+                                                                id: this.state
+                                                                    .removeUserModalId,
+                                                                content:
+                                                                    DataPathHoC(
+                                                                        ProjectRemoveUserModal,
+                                                                        {
+                                                                            removeUserModalId:
+                                                                                this
+                                                                                    .state
+                                                                                    .removeUserModalId,
+                                                                            values: {
+                                                                                ...values,
+                                                                                userId: user.userId,
+                                                                            },
+                                                                            displayName:
+                                                                                user.name ||
+                                                                                user.email,
+                                                                            removeTeamMember:
+                                                                                this
+                                                                                    .removeTeamMember,
+                                                                        }
+                                                                    ),
+                                                            }
+                                                        );
+                                                    }
                                                 )}
                                             >
                                                 {!false && <span>Remove</span>}
@@ -315,14 +313,13 @@ class ProjectUser extends Component<ComponentProps> {
                             </div>
                         </div>
                     );
-                } else {
-                    return null;
                 }
-            });
+                return null;
+            })
+        );
     };
     override render() {
         const {
-
             count,
 
             updateUsers,
@@ -346,7 +343,6 @@ class ProjectUser extends Component<ComponentProps> {
                         >
                             <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                 <span
-
                                     id={`project_${this.props.projectName}`}
                                     style={{ textTransform: 'capitalize' }}
                                 >
@@ -359,7 +355,6 @@ class ProjectUser extends Component<ComponentProps> {
                                     <span
                                         style={{ textTransform: 'lowercase' }}
                                     >
-
                                         {this.props.projectName}
                                     </span>
                                 </span>
@@ -371,7 +366,6 @@ class ProjectUser extends Component<ComponentProps> {
                         >
                             <div className="Box-root">
                                 <button
-
                                     id={`btn_${this.props.projectName}`}
                                     onClick={this.handleClick}
                                     className="Button bs-ButtonLegacy ActionIconParent"
@@ -476,9 +470,11 @@ class ProjectUser extends Component<ComponentProps> {
                                     <div className="bs-Tail-copy">
                                         <span id={`count_kolawole`}>
                                             {count
-                                                ? `Page ${this.props.page
-                                                } of ${numberOfPages} (${count} User${count === 1 ? '' : 's'
-                                                })`
+                                                ? `Page ${
+                                                      this.props.page
+                                                  } of ${numberOfPages} (${count} User${
+                                                      count === 1 ? '' : 's'
+                                                  })`
                                                 : null}
                                         </span>
                                     </div>
@@ -488,13 +484,16 @@ class ProjectUser extends Component<ComponentProps> {
                                 <div className="Box-root Margin-right--8">
                                     <button
                                         data-test="TeamSettings-paginationButton"
-                                        className={`Button bs-ButtonLegacy ${!canPaginateBackward
-                                            ? 'Is--disabled'
-                                            : ''
-                                            }`}
+                                        className={`Button bs-ButtonLegacy ${
+                                            !canPaginateBackward
+                                                ? 'Is--disabled'
+                                                : ''
+                                        }`}
                                         disabled={!canPaginateBackward}
                                         type="button"
-                                        onClick={() => paginate('prev')}
+                                        onClick={() => {
+                                            return paginate('prev');
+                                        }}
                                     >
                                         <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                             <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -506,13 +505,16 @@ class ProjectUser extends Component<ComponentProps> {
                                 <div className="Box-root">
                                     <button
                                         data-test="TeamSettings-paginationButton"
-                                        className={`Button bs-ButtonLegacy ${!canPaginateForward
-                                            ? 'Is--disabled'
-                                            : ''
-                                            }`}
+                                        className={`Button bs-ButtonLegacy ${
+                                            !canPaginateForward
+                                                ? 'Is--disabled'
+                                                : ''
+                                        }`}
                                         disabled={!canPaginateForward}
                                         type="button"
-                                        onClick={() => paginate('next')}
+                                        onClick={() => {
+                                            return paginate('next');
+                                        }}
                                     >
                                         <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                             <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -530,7 +532,6 @@ class ProjectUser extends Component<ComponentProps> {
     }
 }
 
-
 ProjectUser.displayName = 'ProjectUser';
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => {
@@ -546,7 +547,6 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
         dispatch
     );
 };
-
 
 ProjectUser.propTypes = {
     users: PropTypes.oneOfType([

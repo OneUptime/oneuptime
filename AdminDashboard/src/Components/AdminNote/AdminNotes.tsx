@@ -19,7 +19,6 @@ function validate(values: $TSFixMe) {
             const adminNotesErrors: $TSFixMe = {};
             if (values.adminNotes[i] && values.adminNotes[i].note) {
                 if (!Validate.text(values.adminNotes[i].note)) {
-
                     adminNotesErrors.note = 'Note is not in text format.';
                     adminNotesArrayErrors[i] = adminNotesErrors;
                 }
@@ -27,7 +26,6 @@ function validate(values: $TSFixMe) {
         }
 
         if (adminNotesArrayErrors.length) {
-
             errors.adminNotes = adminNotesArrayErrors;
         }
     }
@@ -35,17 +33,15 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class AdminNotes extends Component<ComponentProps>{
+export class AdminNotes extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
     submitForm = async (values: $TSFixMe) => {
-
         await this.props.addNote(this.props.id, values.adminNotes);
     };
 
     override render() {
-
         const { handleSubmit, requesting }: $TSFixMe = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
@@ -101,15 +97,15 @@ export class AdminNotes extends Component<ComponentProps>{
     }
 }
 
-
 AdminNotes.displayName = 'AdminNotes';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({}, dispatch);
+};
 
 const mapStateToProps: Function = () => {
     return {};
 };
-
 
 AdminNotes.propTypes = {
     requesting: PropTypes.bool,

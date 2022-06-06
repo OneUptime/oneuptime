@@ -22,13 +22,12 @@ import AlertPanel from './basic/AlertPanel';
 import { closeModal } from '../actions/Modal';
 import { loadDashboard } from '../actions/dashboard';
 
-export class DashboardApp extends Component<ComponentProps>{
+export class DashboardApp extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
     componentDidMount = async () => {
         const {
-
             fetchLicense,
 
             user,
@@ -61,23 +60,19 @@ export class DashboardApp extends Component<ComponentProps>{
     };
 
     showProjectForm = () => {
-
         this.props.showForm();
     };
 
     hideProfileMenu = () => {
-
         this.props.hideProfileMenu();
     };
     closeNotificationMenu = () => {
-
         this.props.closeNotificationMenu();
     };
 
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 this.props.closeNotificationMenu();
 
                 this.props.hideProfileMenu();
@@ -87,12 +82,11 @@ export class DashboardApp extends Component<ComponentProps>{
         }
     };
 
-    closeModal = () =>
-
-        this.props.closeModal({
-
+    closeModal = () => {
+        return this.props.closeModal({
             id: this.props.currentModal ? this.props.currentModal.id : '',
         });
+    };
 
     override render() {
         const {
@@ -112,12 +106,10 @@ export class DashboardApp extends Component<ComponentProps>{
         return (
             <Fragment>
                 <ClickOutside onClickOutside={this.hideProfileMenu}>
-
                     <ProfileMenu visible={this.props.profile.menuVisible} />
                 </ClickOutside>
                 <ClickOutside onClickOutside={this.closeNotificationMenu}>
                     <NotificationMenu
-
                         visible={this.props.notification.notificationsVisible}
                     />
                 </ClickOutside>
@@ -152,7 +144,6 @@ export class DashboardApp extends Component<ComponentProps>{
                                             }
                                         >
                                             <AlertPanel
-
                                                 className="bs-ContentSection Card-root"
                                                 message={
                                                     <span>
@@ -179,7 +170,6 @@ export class DashboardApp extends Component<ComponentProps>{
                                             }
                                         >
                                             <AlertPanel
-
                                                 className="bs-ContentSection Card-root"
                                                 message={
                                                     <span>
@@ -266,9 +256,7 @@ export class DashboardApp extends Component<ComponentProps>{
     }
 }
 
-
 DashboardApp.displayName = 'DashboardApp';
-
 
 DashboardApp.propTypes = {
     profile: PropTypes.object.isRequired,
@@ -290,36 +278,39 @@ DashboardApp.propTypes = {
     loadDashboard: PropTypes.func,
 };
 
-const mapStateToProps: Function = (state: RootState) => ({
-    profile: state.profileSettings,
-    notification: state.notifications,
-    user: state.user,
-    license: state.license.license,
-    settings: state.settings,
-    twilio: state.settings.twilio,
-    smtp: state.settings.smtp,
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        profile: state.profileSettings,
+        notification: state.notifications,
+        user: state.user,
+        license: state.license.license,
+        settings: state.settings,
+        twilio: state.settings.twilio,
+        smtp: state.settings.smtp,
 
-    currentModal:
-        state.modal.modals && state.modal.modals.length > 0
-            ? state.modal.modals[state.modal.modals.length - 1]
-            : '',
+        currentModal:
+            state.modal.modals && state.modal.modals.length > 0
+                ? state.modal.modals[state.modal.modals.length - 1]
+                : '',
 
-    dashboardLoadState: state.dashboard
-});
+        dashboardLoadState: state.dashboard,
+    };
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        hideProfileMenu,
-        closeNotificationMenu,
-        fetchUsers,
-        fetchLicense,
-        fetchSettings,
-        closeModal,
-        loadDashboard,
-    },
-    dispatch
-);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            hideProfileMenu,
+            closeNotificationMenu,
+            fetchUsers,
+            fetchLicense,
+            fetchSettings,
+            closeModal,
+            loadDashboard,
+        },
+        dispatch
+    );
+};
 
 DashboardApp.contextTypes = {};
 

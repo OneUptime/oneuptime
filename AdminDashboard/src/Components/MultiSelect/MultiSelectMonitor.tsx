@@ -14,14 +14,16 @@ const MultiSelectMonitor: Function = ({
     meta,
     valueField,
     textField,
-    placeholder
+    placeholder,
 }: $TSFixMe) => {
     return (
         <span style={{ width: '100%' }}>
             <span>
                 <Multiselect
                     {...input}
-                    onBlur={() => input.onBlur()}
+                    onBlur={() => {
+                        return input.onBlur();
+                    }}
                     value={input.value || []} // requires value to be an array
                     data={data}
                     valueField={valueField}

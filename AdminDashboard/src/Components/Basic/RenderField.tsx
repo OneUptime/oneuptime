@@ -11,43 +11,45 @@ const RenderField: Function = ({
     disabled,
     initialValue,
     style,
-    autoFocus
-}: $TSFixMe) => (
-    <span>
+    autoFocus,
+}: $TSFixMe) => {
+    return (
         <span>
-            <input
-                {...input}
-                type={type}
-                placeholder={placeholder}
-                className={className}
-                id={id}
-                disabled={disabled || false}
-                defaultValue={initialValue}
-                style={style || {}}
-                autoFocus={autoFocus}
-            />
-        </span>
-        <br />
-        {meta.error && meta.touched && (
-            <div
-                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                style={{ marginTop: '5px' }}
-            >
+            <span>
+                <input
+                    {...input}
+                    type={type}
+                    placeholder={placeholder}
+                    className={className}
+                    id={id}
+                    disabled={disabled || false}
+                    defaultValue={initialValue}
+                    style={style || {}}
+                    autoFocus={autoFocus}
+                />
+            </span>
+            <br />
+            {meta.error && meta.touched && (
                 <div
-                    className="Box-root Margin-right--8"
-                    style={{ marginTop: '2px' }}
+                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                    style={{ marginTop: '5px' }}
                 >
-                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                    <div
+                        className="Box-root Margin-right--8"
+                        style={{ marginTop: '2px' }}
+                    >
+                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                    </div>
+                    <div className="Box-root">
+                        <span className="field-error" style={{ color: 'red' }}>
+                            {meta.error}
+                        </span>
+                    </div>
                 </div>
-                <div className="Box-root">
-                    <span className="field-error" style={{ color: 'red' }}>
-                        {meta.error}
-                    </span>
-                </div>
-            </div>
-        )}
-    </span>
-);
+            )}
+        </span>
+    );
+};
 
 RenderField.displayName = 'RenderField';
 

@@ -19,21 +19,18 @@ import ProjectBalance from '../components/project/ProjectBalance';
 import ProjectDomain from '../components/project/ProjectDomain';
 
 class Project extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     componentDidMount = async () => {
-
         this.props.fetchProject(this.props.slug);
 
         if (this.props.project._id) {
-
             this.props.fetchProjectTeam(this.props.project._id);
         }
 
-
-        const { fetchProject, slug, fetchProjectTeam, project }: $TSFixMe = this.props;
+        const { fetchProject, slug, fetchProjectTeam, project }: $TSFixMe =
+            this.props;
         fetchProject(slug);
         if (project._id) {
             fetchProjectTeam(project._id);
@@ -41,11 +38,8 @@ class Project extends Component<ComponentProps> {
     };
 
     componentDidUpdate(prevProps: $TSFixMe) {
-
         if (prevProps.project._id !== this.props.project._id) {
-
             if (this.props.project._id) {
-
                 this.props.fetchProjectTeam(this.props.project._id);
             }
         }
@@ -53,7 +47,7 @@ class Project extends Component<ComponentProps> {
 
     override render() {
         return (
-            <div className="Box-root Margin-vertical--12" >
+            <div className="Box-root Margin-vertical--12">
                 <div>
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -65,90 +59,65 @@ class Project extends Component<ComponentProps> {
                                         </div>
                                         <div className="Box-root Margin-bottom--12">
                                             <AdminNotes
-
                                                 id={
-
                                                     this.props.project &&
-
                                                     this.props.project._id
                                                 }
                                                 addNote={
-
                                                     this.props.addProjectNote
                                                 }
                                                 initialValues={
-
                                                     this.props.initialValues
                                                 }
                                             />
                                         </div>
                                         <div className="Box-root Margin-bottom--12">
                                             <ProjectUsers
-
                                                 paginate={this.props.paginate}
                                                 projectName={
-
                                                     this.props.project &&
-
                                                     this.props.project.name
                                                 }
                                                 users={
-
                                                     this.props.projectUsers &&
-
                                                     this.props.projectUsers.team
                                                 }
                                                 projectId={
-
                                                     this.props.project &&
-
                                                     this.props.project._id
                                                 }
                                                 pages={
-
                                                     this.props.projectUsers &&
-
                                                     this.props.projectUsers.page
                                                 }
                                                 membersPerPage={10}
                                                 count={
-
                                                     this.props.projectUsers &&
-
                                                     this.props.projectUsers
                                                         .team &&
-
                                                     this.props.projectUsers.team
                                                         .count
                                                 }
                                                 page={
-
                                                     this.props.projectUsers &&
-
                                                     this.props.projectUsers.page
                                                 }
                                                 canPaginateBackward={
-
                                                     this.props.projectUsers &&
-
-                                                        this.props.projectUsers
-                                                            .page > 1
+                                                    this.props.projectUsers
+                                                        .page > 1
                                                         ? true
                                                         : false
                                                 }
                                                 canPaginateForward={
-
                                                     this.props.projectUsers &&
-
-                                                        this.props.projectUsers
-                                                            .team &&
-
-                                                        this.props.projectUsers.team
-                                                            .count >
-
+                                                    this.props.projectUsers
+                                                        .team &&
+                                                    this.props.projectUsers.team
+                                                        .count >
                                                         this.props.projectUsers
                                                             .page *
-                                                        10
+                                                            10
                                                         ? true
                                                         : false
                                                 }
@@ -156,39 +125,28 @@ class Project extends Component<ComponentProps> {
                                         </div>
                                         <div className="Box-root Margin-bottom--12">
                                             <ProjectDomain
-
                                                 projectId={
-
                                                     this.props.project &&
-
                                                     this.props.project._id
                                                 }
                                             />
                                         </div>
                                         <div className="Box-root Margin-bottom--12">
                                             <ProjectBalance
-
                                                 balance={
-
                                                     this.props.project &&
-
                                                     this.props.project.balance
                                                 }
                                                 projectId={
-
                                                     this.props.project &&
-
                                                     this.props.project._id
                                                 }
                                             />
                                         </div>
                                         <ShouldRender
                                             if={
-
                                                 this.props.project &&
-
                                                 !this.props.project.deleted &&
-
                                                 !this.props.project.isBlocked &&
                                                 IS_SAAS_SERVICE
                                             }
@@ -199,11 +157,8 @@ class Project extends Component<ComponentProps> {
                                         </ShouldRender>
                                         <ShouldRender
                                             if={
-
                                                 this.props.project &&
-
                                                 !this.props.project.deleted &&
-
                                                 !this.props.project.isBlocked
                                             }
                                         >
@@ -213,9 +168,7 @@ class Project extends Component<ComponentProps> {
                                         </ShouldRender>
                                         <ShouldRender
                                             if={
-
                                                 this.props.project &&
-
                                                 this.props.project
                                                     .alertLimitReached
                                             }
@@ -226,11 +179,8 @@ class Project extends Component<ComponentProps> {
                                         </ShouldRender>
                                         <ShouldRender
                                             if={
-
                                                 this.props.project &&
-
                                                 !this.props.project.deleted &&
-
                                                 this.props.project.isBlocked
                                             }
                                         >
@@ -240,9 +190,7 @@ class Project extends Component<ComponentProps> {
                                         </ShouldRender>
                                         <ShouldRender
                                             if={
-
                                                 this.props.project &&
-
                                                 !this.props.project.deleted
                                             }
                                         >
@@ -252,9 +200,7 @@ class Project extends Component<ComponentProps> {
                                         </ShouldRender>
                                         <ShouldRender
                                             if={
-
                                                 this.props.project &&
-
                                                 this.props.project.deleted
                                             }
                                         >
@@ -298,9 +244,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-
 Project.contextTypes = {};
-
 
 Project.propTypes = {
     addProjectNote: PropTypes.func.isRequired,
@@ -312,7 +256,6 @@ Project.propTypes = {
     paginate: PropTypes.func.isRequired,
     slug: PropTypes.string,
 };
-
 
 Project.displayName = 'Project';
 

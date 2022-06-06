@@ -20,13 +20,10 @@ function validate(value: $TSFixMe) {
     const errors: $TSFixMe = {};
 
     if (!Validate.text(value.rechargeBalanceAmount)) {
-
         errors.rechargeBalanceAmount = 'Amount is required';
     } else if (!Validate.number(value.rechargeBalanceAmount)) {
-
         errors.rechargeBalanceAmount = 'Enter a valid number';
     } else if (!Validate.numberGreaterThanZero(value.rechargeBalanceAmount)) {
-
         errors.rechargeBalanceAmount = 'Enter a valid number greater than 0';
     }
 
@@ -34,7 +31,6 @@ function validate(value: $TSFixMe) {
 }
 
 class ProjectBalance extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -43,7 +39,6 @@ class ProjectBalance extends Component<ComponentProps> {
         createTopUpModalId: uuidv4(),
     };
     submitForm = (values: $TSFixMe) => {
-
         const { openModal }: $TSFixMe = this.props;
 
         const { createTopUpModalId }: $TSFixMe = this.state;
@@ -51,8 +46,12 @@ class ProjectBalance extends Component<ComponentProps> {
         if (rechargeBalanceAmount) {
             openModal({
                 id: createTopUpModalId,
-                onClose: () => '',
-                onConfirm: () => this.updateProjectBalance(values),
+                onClose: () => {
+                    return '';
+                },
+                onConfirm: () => {
+                    return this.updateProjectBalance(values);
+                },
                 content: DataPathHoC(ConfirmBalanceTopUp, {
                     amount: values.rechargeBalanceAmount,
 
@@ -62,7 +61,6 @@ class ProjectBalance extends Component<ComponentProps> {
         }
     };
     updateProjectBalance = (values: $TSFixMe) => {
-
         const { updateBalance, projectId, openModal }: $TSFixMe = this.props;
         const { MessageBoxId }: $TSFixMe = this.state;
         return updateBalance(projectId, values.rechargeBalanceAmount)
@@ -88,7 +86,6 @@ class ProjectBalance extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { balance }: $TSFixMe = this.props;
         return (
             <div className="Box-root Margin-vertical--12">
@@ -110,7 +107,6 @@ class ProjectBalance extends Component<ComponentProps> {
                                     </div>
                                 </div>
                                 <form
-
                                     onSubmit={this.props.handleSubmit(
                                         this.submitForm
                                     )}
@@ -230,7 +226,6 @@ class ProjectBalance extends Component<ComponentProps> {
                                                         required="required"
                                                         disabled={
                                                             this.props
-
                                                                 .isRequesting
                                                         }
                                                     />
@@ -245,21 +240,18 @@ class ProjectBalance extends Component<ComponentProps> {
                                                 id="rechargeAccount"
                                                 className="bs-Button bs-Button--blue"
                                                 disabled={
-
                                                     this.props.isRequesting
                                                 }
                                                 type="submit"
                                             >
                                                 <ShouldRender
                                                     if={
-
                                                         !this.props.isRequesting
                                                     }
                                                 >
                                                     <span>Update Balance</span>
                                                 </ShouldRender>
                                                 <ShouldRender
-
                                                     if={this.props.isRequesting}
                                                 >
                                                     <FormLoader />
@@ -277,9 +269,7 @@ class ProjectBalance extends Component<ComponentProps> {
     }
 }
 
-
 ProjectBalance.displayName = 'ProjectBalance';
-
 
 ProjectBalance.propTypes = {
     updateBalance: PropTypes.func.isRequired,
@@ -290,9 +280,11 @@ ProjectBalance.propTypes = {
     openModal: PropTypes.func,
 };
 
-const  formName: string = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
+const formName: string = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
 
-const onSubmitSuccess: Function = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
+const onSubmitSuccess: Function = (result: $TSFixMe, dispatch: Dispatch) => {
+    return dispatch(reset(formName));
+};
 
 const ProjectBalanceForm: $TSFixMe = new reduxForm({
     form: formName,
@@ -301,6 +293,8 @@ const ProjectBalanceForm: $TSFixMe = new reduxForm({
     onSubmitSuccess,
 })(ProjectBalance);
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, updateBalance }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ openModal, updateBalance }, dispatch);
+};
 
 export default connect(null, mapDispatchToProps)(ProjectBalanceForm);

@@ -6,7 +6,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { disableAdminMode } from '../../actions/user';
 
-export class UserAdminModeDisableBox extends Component<ComponentProps>{
+export class UserAdminModeDisableBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -15,13 +15,11 @@ export class UserAdminModeDisableBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { disableAdminMode, userId }: $TSFixMe = this.props;
         disableAdminMode(userId);
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -66,13 +64,16 @@ export class UserAdminModeDisableBox extends Component<ComponentProps>{
     }
 }
 
-
 UserAdminModeDisableBox.displayName = 'UserAdminModeDisableBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ disableAdminMode }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ disableAdminMode }, dispatch);
+};
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user
+        ? state.user.user.user._id
+        : null;
 
     return {
         userId,
@@ -83,13 +84,11 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 UserAdminModeDisableBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     disableAdminMode: PropTypes.func.isRequired,
     userId: PropTypes.string,
 };
-
 
 UserAdminModeDisableBox.contextTypes = {};
 

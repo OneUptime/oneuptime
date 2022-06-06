@@ -5,23 +5,28 @@ import routes from '../routes';
 
 const { allRoutes }: $TSFixMe = routes;
 
-const PublicPage: Function = () => (
-    <Switch>
-        {allRoutes
+const PublicPage: Function = () => {
+    return (
+        <Switch>
+            {allRoutes
 
-            .filter(route => route.isPublic)
-            .map((route, index) => (
-                <Route
-                    component={route.component}
-
-                    exact={route.exact}
-                    path={route.path}
-                    key={index}
-                />
-            ))}
-        <Redirect to="/login" />
-    </Switch>
-);
+                .filter((route) => {
+                    return route.isPublic;
+                })
+                .map((route, index) => {
+                    return (
+                        <Route
+                            component={route.component}
+                            exact={route.exact}
+                            path={route.path}
+                            key={index}
+                        />
+                    );
+                })}
+            <Redirect to="/login" />
+        </Switch>
+    );
+};
 
 PublicPage.displayName = 'PublicPage';
 

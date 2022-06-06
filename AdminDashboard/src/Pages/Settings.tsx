@@ -10,7 +10,6 @@ import EmailLog from '../components/settings/emailLog';
 import CallLog from '../components/settings/callLog';
 import SmsLog from '../components/settings/smsLog';
 
-
 const getChild: Function = (key: $TSFixMe) => {
     switch (key) {
         case '/admin/settings/smtp':
@@ -37,9 +36,7 @@ const getChild: Function = (key: $TSFixMe) => {
     }
 };
 
-const Component: Function = ({
-    location: { pathname }
-}: $TSFixMe) => {
+const Component: Function = ({ location: { pathname } }: $TSFixMe) => {
     return (
         <div className="Box-root Margin-vertical--12">
             <div>

@@ -10,7 +10,7 @@ import { enableAdminMode } from '../../actions/user';
 import UserAdminModeEnableModal from './UserAdminModeEnableModal';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class UserAdminModeEnableBox extends Component<ComponentProps>{
+export class UserAdminModeEnableBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -20,11 +20,9 @@ export class UserAdminModeEnableBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { enableAdminMode, userId }: $TSFixMe = this.props;
 
         const { AdminModeModalId }: $TSFixMe = this.state;
-
 
         this.props.openModal({
             id: AdminModeModalId,
@@ -38,9 +36,7 @@ export class UserAdminModeEnableBox extends Component<ComponentProps>{
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeModal({
-
                     id: this.state.AdminModeModalId,
                 });
             default:
@@ -49,7 +45,6 @@ export class UserAdminModeEnableBox extends Component<ComponentProps>{
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -98,13 +93,19 @@ export class UserAdminModeEnableBox extends Component<ComponentProps>{
     }
 }
 
-
 UserAdminModeEnableBox.displayName = 'UserAdminModeEnableBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ enableAdminMode, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        { enableAdminMode, openModal, closeModal },
+        dispatch
+    );
+};
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user
+        ? state.user.user.user._id
+        : null;
 
     return {
         userId,
@@ -115,7 +116,6 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 UserAdminModeEnableBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     enableAdminMode: PropTypes.func.isRequired,
@@ -123,7 +123,6 @@ UserAdminModeEnableBox.propTypes = {
     openModal: PropTypes.func.isRequired,
     userId: PropTypes.string,
 };
-
 
 UserAdminModeEnableBox.contextTypes = {};
 

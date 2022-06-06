@@ -14,12 +14,10 @@ import {
 import ShouldRender from '../basic/ShouldRender';
 
 class DeleteDomain extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
-
         this.props.resetDeleteProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -39,16 +37,13 @@ class DeleteDomain extends Component<ComponentProps> {
         }
     };
     handleCloseModal = () => {
-
         this.props.closeModal({
-
             id: this.props.domainId,
         });
     };
 
     handleDelete = () => {
         const {
-
             deleteProjectDomain,
 
             data: { projectId, domainId },
@@ -65,7 +60,6 @@ class DeleteDomain extends Component<ComponentProps> {
         });
     };
     override render() {
-
         const { isRequesting, deleteError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -170,9 +164,7 @@ class DeleteDomain extends Component<ComponentProps> {
     }
 }
 
-
 DeleteDomain.displayName = 'DeleteDomain';
-
 
 DeleteDomain.propTypes = {
     closeModal: PropTypes.func,
@@ -196,14 +188,16 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        closeModal,
-        deleteProjectDomain,
-        fetchProjectDomains,
-        resetDeleteProjectDomain,
-    },
-    dispatch
-);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            closeModal,
+            deleteProjectDomain,
+            fetchProjectDomains,
+            resetDeleteProjectDomain,
+        },
+        dispatch
+    );
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteDomain);

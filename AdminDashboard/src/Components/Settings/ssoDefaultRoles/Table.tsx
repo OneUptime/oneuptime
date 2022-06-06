@@ -2,14 +2,14 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import TableBody from './TableBody';
 import TableHeader from './TableHeader';
-const Table: Function = ({
-    ssoDefaultRoles
-}: $TSFixMe) => (
-    <table className="Table">
-        <TableHeader />
-        <TableBody ssoDefaultRoles={ssoDefaultRoles} />
-    </table>
-);
+const Table: Function = ({ ssoDefaultRoles }: $TSFixMe) => {
+    return (
+        <table className="Table">
+            <TableHeader />
+            <TableBody ssoDefaultRoles={ssoDefaultRoles} />
+        </table>
+    );
+};
 
 Table.displayName = 'Table';
 

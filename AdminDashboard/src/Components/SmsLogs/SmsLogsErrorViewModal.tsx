@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 class SmsLogsErrorViewModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -18,7 +17,6 @@ class SmsLogsErrorViewModal extends Component<ComponentProps> {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -26,8 +24,8 @@ class SmsLogsErrorViewModal extends Component<ComponentProps> {
     };
 
     override render() {
-
-        const { isRequesting, error, closeThisDialog, content }: $TSFixMe = this.props;
+        const { isRequesting, error, closeThisDialog, content }: $TSFixMe =
+            this.props;
         return (
             <div className="db-SmsLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -78,8 +76,9 @@ class SmsLogsErrorViewModal extends Component<ComponentProps> {
                                         </div>
                                     </ShouldRender>
                                     <button
-                                        className={`bs-Button btn__modal ${isRequesting &&
-                                            'bs-is-disabled'}`}
+                                        className={`bs-Button btn__modal ${
+                                            isRequesting && 'bs-is-disabled'
+                                        }`}
                                         type="button"
                                         onClick={closeThisDialog}
                                         disabled={isRequesting}
@@ -100,7 +99,6 @@ class SmsLogsErrorViewModal extends Component<ComponentProps> {
     }
 }
 
-
 SmsLogsErrorViewModal.displayName = 'SmsLogsErrorViewModal';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -115,7 +113,6 @@ const mapStateToProps: Function = (state: RootState) => {
             state.smsLogs.smsLogs.error,
     };
 };
-
 
 SmsLogsErrorViewModal.propTypes = {
     isRequesting: PropTypes.oneOfType([

@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 class ErrorBoundary extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -17,7 +16,6 @@ class ErrorBoundary extends Component<ComponentProps> {
     }
 
     override render() {
-
         if (this.state.hasError || this.state.error) {
             return (
                 <div
@@ -47,12 +45,9 @@ class ErrorBoundary extends Component<ComponentProps> {
     }
 }
 
-
 ErrorBoundary.displayName = 'ErrorBoundary';
 
-
 ErrorBoundary.contextTypes = {};
-
 
 ErrorBoundary.propTypes = {
     children: PropTypes.any,

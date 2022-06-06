@@ -6,7 +6,6 @@ import { history } from '../store';
 
 export default function (ComposedComponent: $TSFixMe) {
     class Authentication extends Component<ComponentProps> {
-
         public static displayName = '';
         public static propTypes = {};
 
@@ -22,7 +21,6 @@ export default function (ComposedComponent: $TSFixMe) {
         override componentDidMount() {
             if (!this.isAuthenticated) {
                 history.push('/login', {
-
                     continue: this.props.location.pathname,
                 });
             }
@@ -31,7 +29,6 @@ export default function (ComposedComponent: $TSFixMe) {
         componentDidUpdate() {
             if (!this.isAuthenticated) {
                 history.push('/login', {
-
                     continue: this.props.location.pathname,
                 });
             }
@@ -46,11 +43,9 @@ export default function (ComposedComponent: $TSFixMe) {
         }
     }
 
-
     Authentication.propTypes = {
         location: PropTypes.object,
     };
-
 
     Authentication.displayName = 'RequireAuth';
 

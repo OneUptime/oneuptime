@@ -44,7 +44,6 @@ class Incident extends Component<ComponentProps> {
     handleIncidentStatus: $TSFixMe;
     override componentDidMount() {
         const {
-
             match: { params },
 
             statusData,
@@ -84,13 +83,10 @@ class Incident extends Component<ComponentProps> {
             url = window.location.host;
         }
 
-
         this.props.getStatusPage(statusPageSlug, url).catch((err: $TSFixMe) => {
             if (err.message === 'Request failed with status code 401') {
-
                 const { loginRequired }: $TSFixMe = this.props.login;
                 if (loginRequired) {
-
                     window.location.href = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
                 }
             }
@@ -105,7 +101,6 @@ class Incident extends Component<ComponentProps> {
 
     componentDidUpdate(prevProps: $TSFixMe) {
         const {
-
             match: { params },
 
             statusData,
@@ -127,7 +122,6 @@ class Incident extends Component<ComponentProps> {
 
     more() {
         const {
-
             statusData,
 
             match: { params },
@@ -147,13 +141,13 @@ class Incident extends Component<ComponentProps> {
     }
 
     renderError = () => {
-
         const { error }: $TSFixMe = this.props.status;
         if (error === 'Input data schema mismatch.') {
             return 'Page Not Found';
         } else if (error === 'Project Not present') {
             return 'Invalid Project.';
-        } else return error;
+        }
+        return error;
     };
 
     handleMonitorList = (monitors: $TSFixMe) => {
@@ -168,15 +162,15 @@ class Incident extends Component<ComponentProps> {
                 return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
             }
             if (monitors.length > 3) {
-                return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
-                    } and ${monitors.length - 2} others`;
+                return `${monitors[0].monitorId.name}, ${
+                    monitors[1].monitorId.name
+                } and ${monitors.length - 2} others`;
             }
         }
     };
 
     override render() {
         const {
-
             count,
 
             history,
@@ -197,14 +191,10 @@ class Incident extends Component<ComponentProps> {
 
         let downtimeColor, uptimeColor, degradedColor;
         if (
-
             !this.props.requestingStatus &&
-
             this.props.statusData &&
-
             this.props.statusData.colors
         ) {
-
             const colors: $TSFixMe = this.props.statusData.colors;
             downtimeColor = {
                 backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`,
@@ -222,7 +212,6 @@ class Incident extends Component<ComponentProps> {
                 className="page-main-wrapper"
                 style={{ background: 'rgb(247, 247, 247)' }}
             >
-
                 {this.props.statusData.theme === 'Clean Theme' && (
                     <div
                         className="new-main-container"
@@ -303,120 +292,130 @@ class Incident extends Component<ComponentProps> {
                                             return -1;
                                         } else if (b.diff(a) < 0) {
                                             return 1;
-                                        } else {
-                                            return 0;
                                         }
+                                        return 0;
                                     })
-                                    .map((note: $TSFixMe) => <div
-                                        key={note._id}
-                                        style={{
-                                            width: '100%',
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 3fr',
-                                            gridColumnGap: 10,
-                                            marginTop: 20,
-                                        }}
-                                    >
-                                        <div>
-                                            <span
+                                    .map((note: $TSFixMe) => {
+                                        return (
+                                            <div
+                                                key={note._id}
                                                 style={{
-                                                    display: 'block',
-                                                    fontWeight: 'bold',
+                                                    width: '100%',
+                                                    display: 'grid',
+                                                    gridTemplateColumns:
+                                                        '1fr 3fr',
+                                                    gridColumnGap: 10,
+                                                    marginTop: 20,
                                                 }}
                                             >
-                                                {note.incident_state}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span
-                                                style={{
-                                                    color:
-                                                        'rgba(0, 0, 0, 0.6)',
-                                                    fontSize: 14,
-                                                    display: 'block',
-                                                    textAlign: 'justify',
-                                                }}
-                                            >
-                                                {note.content && (
-                                                    <div
-                                                        style={{
-                                                            whiteSpace:
-                                                                'pre-wrap',
-                                                        }}
-                                                    >
-                                                        {note.content
-                                                            .split('\n')
-                                                            .map(
-                                                                (
-                                                                    elem: $TSFixMe,
-                                                                    index: $TSFixMe
-                                                                ) => (
-                                                                    <Markdown
-                                                                        key={`${elem}-${index}`}
-                                                                        options={{
-                                                                            forceBlock: true,
-                                                                        }}
-                                                                    >
-                                                                        {
-                                                                            elem
-                                                                        }
-                                                                    </Markdown>
-                                                                )
-                                                            )}
-                                                    </div>
-                                                )}
-                                            </span>
-                                            {note.incident_state ===
-                                                'Identified' && (
+                                                <div>
                                                     <span
                                                         style={{
                                                             display: 'block',
-                                                            marginTop: 10,
-                                                            color: '#AAA',
-                                                            fontSize: 12,
+                                                            fontWeight: 'bold',
+                                                        }}
+                                                    >
+                                                        {note.incident_state}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span
+                                                        style={{
+                                                            color: 'rgba(0, 0, 0, 0.6)',
+                                                            fontSize: 14,
+                                                            display: 'block',
+                                                            textAlign:
+                                                                'justify',
+                                                        }}
+                                                    >
+                                                        {note.content && (
+                                                            <div
+                                                                style={{
+                                                                    whiteSpace:
+                                                                        'pre-wrap',
+                                                                }}
+                                                            >
+                                                                {note.content
+                                                                    .split('\n')
+                                                                    .map(
+                                                                        (
+                                                                            elem: $TSFixMe,
+                                                                            index: $TSFixMe
+                                                                        ) => {
+                                                                            return (
+                                                                                <Markdown
+                                                                                    key={`${elem}-${index}`}
+                                                                                    options={{
+                                                                                        forceBlock:
+                                                                                            true,
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        elem
+                                                                                    }
+                                                                                </Markdown>
+                                                                            );
+                                                                        }
+                                                                    )}
+                                                            </div>
+                                                        )}
+                                                    </span>
+                                                    {note.incident_state ===
+                                                        'Identified' && (
+                                                        <span
+                                                            style={{
+                                                                display:
+                                                                    'block',
+                                                                marginTop: 10,
+                                                                color: '#AAA',
+                                                                fontSize: 12,
+                                                            }}
+                                                        >
+                                                            <span
+                                                                style={{
+                                                                    fontWeight: 600,
+                                                                }}
+                                                            >
+                                                                <Translate>
+                                                                    Resource
+                                                                    Affected -
+                                                                </Translate>
+                                                            </span>{' '}
+                                                            <span>
+                                                                {this.handleMonitorList(
+                                                                    incident.monitors
+                                                                )}
+                                                            </span>
+                                                        </span>
+                                                    )}
+                                                    <span
+                                                        style={{
+                                                            display: 'flex',
+                                                            marginTop: 5,
+                                                            alignItems:
+                                                                'center',
                                                         }}
                                                     >
                                                         <span
                                                             style={{
-                                                                fontWeight: 600,
+                                                                color: '#AAA',
+                                                                fontSize: 12,
+                                                                display:
+                                                                    'block',
                                                             }}
                                                         >
-                                                            <Translate>
-                                                                Resource
-                                                                Affected -
-                                                            </Translate>
-                                                        </span>{' '}
-                                                        <span>
-                                                            {this.handleMonitorList(
-                                                                incident.monitors
+                                                            Posted on{' '}
+                                                            {moment(
+                                                                note.createdAt
+                                                            ).format(
+                                                                'MMMM Do YYYY, h:mm a'
                                                             )}
                                                         </span>
                                                     </span>
-                                                )}
-                                            <span
-                                                style={{
-                                                    display: 'flex',
-                                                    marginTop: 5,
-                                                    alignItems: 'center',
-                                                }}
-                                            >
-                                                <span
-                                                    style={{
-                                                        color: '#AAA',
-                                                        fontSize: 12,
-                                                        display: 'block',
-                                                    }}
-                                                >
-                                                    Posted on{' '}
-                                                    {moment(
-                                                        note.createdAt
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm a'
-                                                    )}
-                                                </span>
-                                            </span>
-                                        </div>
-                                    </div>)}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
 
                             {!fetchingIncidentNotes &&
                                 incidentNotes &&
@@ -450,7 +449,6 @@ class Incident extends Component<ComponentProps> {
                     </div>
                 )}
                 <div className="innernew">
-
                     {this.props.statusData.theme === 'Classic Theme' && (
                         <>
                             <div
@@ -471,7 +469,6 @@ class Incident extends Component<ComponentProps> {
                                             paddingBottom: 20,
                                         }}
                                     >
-
                                         {!this.props.requestingStatus &&
                                             !fetchingIncident &&
                                             incident.incidentType && (
@@ -480,15 +477,12 @@ class Incident extends Component<ComponentProps> {
                                                     style={{
                                                         backgroundColor:
                                                             incident.incidentType ===
-                                                                'online'
-
+                                                            'online'
                                                                 ? uptimeColor.backgroundColor
                                                                 : incident.incidentType ===
-                                                                    'offline'
-
-                                                                    ? downtimeColor.backgroundColor
-
-                                                                    : degradedColor.backgroundColor,
+                                                                  'offline'
+                                                                ? downtimeColor.backgroundColor
+                                                                : degradedColor.backgroundColor,
                                                     }}
                                                 ></div>
                                             )}
@@ -510,16 +504,16 @@ class Incident extends Component<ComponentProps> {
                                                 <div
                                                     className="individual-header"
                                                     style={{
-                                                        marginBottom: incident.description
-                                                            ? 25
-                                                            : 10,
+                                                        marginBottom:
+                                                            incident.description
+                                                                ? 25
+                                                                : 10,
                                                     }}
                                                 >
                                                     <span
                                                         className="feed-title"
                                                         style={{
-                                                            color:
-                                                                'rgba(76, 76, 76, 0.8)',
+                                                            color: 'rgba(76, 76, 76, 0.8)',
                                                             fontWeight: 'bold',
                                                             marginBottom: 10,
                                                             textTransform:
@@ -530,8 +524,7 @@ class Incident extends Component<ComponentProps> {
                                                     </span>
                                                     <span
                                                         style={{
-                                                            color:
-                                                                'rgba(0, 0, 0, 0.5)',
+                                                            color: 'rgba(0, 0, 0, 0.5)',
                                                         }}
                                                     >
                                                         {incident.description}
@@ -544,8 +537,7 @@ class Incident extends Component<ComponentProps> {
                                                     <span
                                                         className="ongoing__affectedmonitor--title"
                                                         style={{
-                                                            color:
-                                                                'rgba(76, 76, 76, 0.8)',
+                                                            color: 'rgba(76, 76, 76, 0.8)',
                                                         }}
                                                     >
                                                         <Translate>
@@ -555,8 +547,7 @@ class Incident extends Component<ComponentProps> {
                                                     <span
                                                         className="ongoing__affectedmonitor--content"
                                                         style={{
-                                                            color:
-                                                                'rgba(0, 0, 0, 0.5)',
+                                                            color: 'rgba(0, 0, 0, 0.5)',
                                                         }}
                                                     >
                                                         {this.handleMonitorList(
@@ -579,8 +570,7 @@ class Incident extends Component<ComponentProps> {
                                                 <span
                                                     style={{
                                                         fontSize: 14,
-                                                        color:
-                                                            'rgba(0, 0, 0, 0.5)',
+                                                        color: 'rgba(0, 0, 0, 0.5)',
                                                         paddingTop: 7,
                                                         display: 'block',
                                                     }}
@@ -628,8 +618,7 @@ class Incident extends Component<ComponentProps> {
                                                 <span
                                                     className="feed-title"
                                                     style={{
-                                                        color:
-                                                            'rgba(76, 76, 76, 0.8)',
+                                                        color: 'rgba(76, 76, 76, 0.8)',
                                                         fontWeight: 'bold',
                                                     }}
                                                 >
@@ -648,95 +637,102 @@ class Incident extends Component<ComponentProps> {
                                             {!fetchingIncidentNotes &&
                                                 incidentNotes &&
                                                 incidentNotes.length > 0 &&
-                                                incidentNotes.map((note: $TSFixMe) => <li
-                                                    key={note._id}
-                                                    className="feed-item clearfix"
-                                                >
-                                                    <div
-                                                        className="message"
-                                                        style={{
-                                                            width: '100%',
-                                                            marginLeft: 0,
-                                                            background:
-                                                                'rgb(247, 247, 247)',
-                                                        }}
-                                                    >
-                                                        <div className="note__wrapper">
-                                                            <span
-                                                                style={{
-                                                                    color:
-                                                                        'rgba(0, 0, 0, 0.5)',
-                                                                    fontSize: 14,
-                                                                    display:
-                                                                        'block',
-                                                                    textAlign:
-                                                                        'justify',
-                                                                    whiteSpace:
-                                                                        'pre-wrap',
-                                                                }}
+                                                incidentNotes.map(
+                                                    (note: $TSFixMe) => {
+                                                        return (
+                                                            <li
+                                                                key={note._id}
+                                                                className="feed-item clearfix"
                                                             >
-                                                                {note.content
-                                                                    .split(
-                                                                        '\n'
-                                                                    )
-                                                                    .map(
-                                                                        (
-                                                                            elem: $TSFixMe,
-                                                                            index: $TSFixMe
-                                                                        ) => (
-                                                                            <Markdown
-                                                                                key={`${elem}-${index}`}
-                                                                                options={{
-                                                                                    forceBlock: true,
+                                                                <div
+                                                                    className="message"
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        marginLeft: 0,
+                                                                        background:
+                                                                            'rgb(247, 247, 247)',
+                                                                    }}
+                                                                >
+                                                                    <div className="note__wrapper">
+                                                                        <span
+                                                                            style={{
+                                                                                color: 'rgba(0, 0, 0, 0.5)',
+                                                                                fontSize: 14,
+                                                                                display:
+                                                                                    'block',
+                                                                                textAlign:
+                                                                                    'justify',
+                                                                                whiteSpace:
+                                                                                    'pre-wrap',
+                                                                            }}
+                                                                        >
+                                                                            {note.content
+                                                                                .split(
+                                                                                    '\n'
+                                                                                )
+                                                                                .map(
+                                                                                    (
+                                                                                        elem: $TSFixMe,
+                                                                                        index: $TSFixMe
+                                                                                    ) => {
+                                                                                        return (
+                                                                                            <Markdown
+                                                                                                key={`${elem}-${index}`}
+                                                                                                options={{
+                                                                                                    forceBlock:
+                                                                                                        true,
+                                                                                                }}
+                                                                                            >
+                                                                                                {
+                                                                                                    elem
+                                                                                                }
+                                                                                            </Markdown>
+                                                                                        );
+                                                                                    }
+                                                                                )}
+                                                                        </span>
+                                                                        <span
+                                                                            style={{
+                                                                                display:
+                                                                                    'flex',
+                                                                                marginTop: 15,
+                                                                                alignItems:
+                                                                                    'center',
+                                                                            }}
+                                                                        >
+                                                                            <span
+                                                                                style={{
+                                                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                                                    fontSize: 12,
+                                                                                    display:
+                                                                                        'block',
                                                                                 }}
                                                                             >
+                                                                                Posted
+                                                                                on{' '}
+                                                                                {moment(
+                                                                                    note.createdAt
+                                                                                ).format(
+                                                                                    'MMMM Do YYYY, h:mm a'
+                                                                                )}
+                                                                            </span>
+                                                                            <span
+                                                                                style={{
+                                                                                    marginLeft: 15,
+                                                                                }}
+                                                                                className="note-badge badge badge__color--green"
+                                                                            >
                                                                                 {
-                                                                                    elem
+                                                                                    note.incident_state
                                                                                 }
-                                                                            </Markdown>
-                                                                        )
-                                                                    )}
-                                                            </span>
-                                                            <span
-                                                                style={{
-                                                                    display:
-                                                                        'flex',
-                                                                    marginTop: 15,
-                                                                    alignItems:
-                                                                        'center',
-                                                                }}
-                                                            >
-                                                                <span
-                                                                    style={{
-                                                                        color:
-                                                                            'rgba(0, 0, 0, 0.5)',
-                                                                        fontSize: 12,
-                                                                        display:
-                                                                            'block',
-                                                                    }}
-                                                                >
-                                                                    Posted
-                                                                    on{' '}
-                                                                    {moment(
-                                                                        note.createdAt
-                                                                    ).format(
-                                                                        'MMMM Do YYYY, h:mm a'
-                                                                    )}
-                                                                </span>
-                                                                <span
-                                                                    style={{
-                                                                        marginLeft: 15,
-                                                                    }}
-                                                                    className="note-badge badge badge__color--green"
-                                                                >
-                                                                    {
-                                                                        note.incident_state
-                                                                    }
-                                                                </span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </li>)}
+                                                                            </span>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </li>
+                                                        );
+                                                    }
+                                                )}
 
                                             {!fetchingIncidentNotes &&
                                                 incidentNotes &&
@@ -762,8 +758,7 @@ class Incident extends Component<ComponentProps> {
                                                                     '0.8em',
                                                                 marginLeft:
                                                                     '0px',
-                                                                color:
-                                                                    'rgb(76, 76, 76)',
+                                                                color: 'rgb(76, 76, 76)',
                                                             }}
                                                         >
                                                             <Translate>
@@ -785,7 +780,9 @@ class Incident extends Component<ComponentProps> {
                                     >
                                         <button
                                             className="more button-as-anchor anchor-centered"
-                                            onClick={() => this.more()}
+                                            onClick={() => {
+                                                return this.more();
+                                            }}
                                         >
                                             <Translate>More</Translate>
                                         </button>
@@ -833,7 +830,9 @@ class Incident extends Component<ComponentProps> {
                         style={{ display: 'flex', alignItems: 'center' }}
                     >
                         <span
-                            onClick={() => history.goBack()}
+                            onClick={() => {
+                                return history.goBack();
+                            }}
                             className="sp__icon sp__icon--back"
                             style={{
                                 color: 'rgb(76, 76, 76)',
@@ -865,9 +864,7 @@ class Incident extends Component<ComponentProps> {
     }
 }
 
-
 Incident.displayName = 'Incident';
-
 
 Incident.propTypes = {
     match: PropTypes.object,
@@ -907,15 +904,17 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        getStatusPage,
-        fetchIncident,
-        fetchIncidentNotes,
-        moreIncidentNotes,
-        fetchLastIncidentTimeline,
-    },
-    dispatch
-);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            getStatusPage,
+            fetchIncident,
+            fetchIncidentNotes,
+            moreIncidentNotes,
+            fetchLastIncidentTimeline,
+        },
+        dispatch
+    );
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Incident);

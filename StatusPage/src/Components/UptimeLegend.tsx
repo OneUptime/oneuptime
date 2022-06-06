@@ -20,48 +20,53 @@ const UptimeLegend: Function = ({
     uptimeColor,
     degradedColor,
     disabledColor,
-    disabled
-}: UptimeLegendProps) => (
-    <div className="uptime-legend box-inner clearfix" style={background}>
-        <span className="legend-item">
-            <span className="legend-color graph-up" style={uptimeColor}></span>
-            <label style={secondaryTextColor}>
-                100% <Translate>uptime</Translate>
-            </label>
-        </span>
-        <span className="legend-item">
-            <span
-                className="legend-color graph-mid"
-                style={degradedColor}
-            ></span>
-            <label style={secondaryTextColor}>
-                <Translate>Partial degradation</Translate>
-            </label>
-        </span>
-        <span className="legend-item">
-            <span
-                className="legend-color graph-down"
-                style={downtimeColor}
-            ></span>
-            <label style={secondaryTextColor}>
-                <Translate>Downtime</Translate>
-            </label>
-        </span>
-        {disabled ? (
+    disabled,
+}: UptimeLegendProps) => {
+    return (
+        <div className="uptime-legend box-inner clearfix" style={background}>
             <span className="legend-item">
                 <span
-                    className="legend-color graph-disabled"
-                    style={disabledColor}
+                    className="legend-color graph-up"
+                    style={uptimeColor}
                 ></span>
                 <label style={secondaryTextColor}>
-                    <Translate>Disabled</Translate>
+                    100% <Translate>uptime</Translate>
                 </label>
             </span>
-        ) : (
-            ''
-        )}
-    </div>
-);
+            <span className="legend-item">
+                <span
+                    className="legend-color graph-mid"
+                    style={degradedColor}
+                ></span>
+                <label style={secondaryTextColor}>
+                    <Translate>Partial degradation</Translate>
+                </label>
+            </span>
+            <span className="legend-item">
+                <span
+                    className="legend-color graph-down"
+                    style={downtimeColor}
+                ></span>
+                <label style={secondaryTextColor}>
+                    <Translate>Downtime</Translate>
+                </label>
+            </span>
+            {disabled ? (
+                <span className="legend-item">
+                    <span
+                        className="legend-color graph-disabled"
+                        style={disabledColor}
+                    ></span>
+                    <label style={secondaryTextColor}>
+                        <Translate>Disabled</Translate>
+                    </label>
+                </span>
+            ) : (
+                ''
+            )}
+        </div>
+    );
+};
 
 UptimeLegend.displayName = 'UptimeLegend';
 

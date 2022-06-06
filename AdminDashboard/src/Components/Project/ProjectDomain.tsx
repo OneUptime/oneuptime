@@ -15,13 +15,11 @@ import ProjectUnverifyDomain from './ProjectUnverifyDomain';
 import ProjectResetDomain from './ProjectResetDomain';
 
 class ProjectDomain extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     limit: PositiveNumber;
     constructor() {
-
         super();
         this.limit = 10;
         this.state = {
@@ -30,28 +28,22 @@ class ProjectDomain extends Component<ComponentProps> {
     }
 
     override componentDidMount() {
-
         const projectId: $TSFixMe = this.props.projectId;
         if (projectId) {
-
             this.props.fetchProjectDomains(this.props.projectId, 0, this.limit);
         }
     }
 
     componentDidUpdate(prevProps: $TSFixMe) {
-
         if (prevProps.projectId !== this.props.projectId) {
-
             const projectId: $TSFixMe = this.props.projectId;
             if (projectId) {
-
                 this.props.fetchProjectDomains(projectId, 0, this.limit);
             }
         }
     }
 
     prevClicked = (projectId: string, skip: PositiveNumber) => {
-
         const { fetchProjectDomains }: $TSFixMe = this.props;
         fetchProjectDomains(
             projectId,
@@ -61,7 +53,6 @@ class ProjectDomain extends Component<ComponentProps> {
     };
 
     nextClicked = (projectId: string, skip: PositiveNumber) => {
-
         const { fetchProjectDomains }: $TSFixMe = this.props;
         fetchProjectDomains(
             projectId,
@@ -72,7 +63,6 @@ class ProjectDomain extends Component<ComponentProps> {
 
     override render() {
         const {
-
             projectDomain: { domains },
 
             projectId,
@@ -91,7 +81,8 @@ class ProjectDomain extends Component<ComponentProps> {
         } = this.props;
         const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
-        const canNext: $TSFixMe = count > Number(skip) + Number(limit) ? true : false;
+        const canNext: $TSFixMe =
+            count > Number(skip) + Number(limit) ? true : false;
         const canPrev: $TSFixMe = Number(skip) <= 0 ? false : true;
 
         return (
@@ -135,175 +126,197 @@ class ProjectDomain extends Component<ComponentProps> {
                                     </div>
                                 </header>
                                 {domains.length > 0 &&
-                                    domains.map((eachDomain: $TSFixMe, index: $TSFixMe) => (
-                                        <div
-                                            key={eachDomain._id}
-                                            className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                                            style={{
-                                                backgroundColor: 'white',
-                                                cursor: 'pointer',
-                                            }}
-                                            id={`projectdomain_${index}`}
-                                        >
-                                            {eachDomain.verified ? (
+                                    domains.map(
+                                        (
+                                            eachDomain: $TSFixMe,
+                                            index: $TSFixMe
+                                        ) => {
+                                            return (
                                                 <div
-                                                    className="bs-ObjectList-cell bs-u-v-middle"
+                                                    key={eachDomain._id}
+                                                    className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                                     style={{
-                                                        display: 'flex',
-                                                        width: '10vw',
-                                                        whiteSpace: 'normal',
+                                                        backgroundColor:
+                                                            'white',
+                                                        cursor: 'pointer',
                                                     }}
+                                                    id={`projectdomain_${index}`}
                                                 >
-                                                    <div className="bs-ObjectList-cell-row">
-                                                        {eachDomain.domain}
-                                                    </div>
-                                                    <div
-                                                        style={{
-                                                            marginLeft: 5,
-                                                        }}
-                                                        className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                                    >
-                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                            <span>
-                                                                Verified
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div
-                                                    className="bs-ObjectList-cell bs-u-v-middle"
-                                                    style={{
-                                                        display: 'flex',
-                                                        width: '10vw',
-                                                        whiteSpace: 'normal',
-                                                    }}
-                                                >
-                                                    <div className="bs-ObjectList-cell-row">
-                                                        {eachDomain.domain}
-                                                    </div>
-                                                    <div
-                                                        style={{
-                                                            marginLeft: 5,
-                                                        }}
-                                                        className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                                    >
-                                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                            <span>
-                                                                Unverified
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div className="Box-root Flex-flex Flex-justifyContent--flexEnd">
-                                                    {!eachDomain.verified && (
-                                                        <button
-                                                            id={`verifyProjectDomain_${index}`}
-                                                            title="verify"
-                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                    {eachDomain.verified ? (
+                                                        <div
+                                                            className="bs-ObjectList-cell bs-u-v-middle"
                                                             style={{
-                                                                marginLeft: 20,
-                                                            }}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                openModal({
-                                                                    id:
-                                                                        eachDomain._id,
-                                                                    content: ProjectVerifyDomain,
-                                                                    projectId,
-                                                                    verificationToken:
-                                                                        eachDomain.verificationToken,
-                                                                    domain:
-                                                                        eachDomain.domain,
-                                                                });
+                                                                display: 'flex',
+                                                                width: '10vw',
+                                                                whiteSpace:
+                                                                    'normal',
                                                             }}
                                                         >
-                                                            <span>Verify</span>
-                                                        </button>
-                                                    )}
-                                                    {eachDomain.verified && (
-                                                        <button
-                                                            id={`unVerifyProjectDomain_${index}`}
-                                                            title="unverify"
-                                                            className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                            <div className="bs-ObjectList-cell-row">
+                                                                {
+                                                                    eachDomain.domain
+                                                                }
+                                                            </div>
+                                                            <div
+                                                                style={{
+                                                                    marginLeft: 5,
+                                                                }}
+                                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                            >
+                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span>
+                                                                        Verified
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className="bs-ObjectList-cell bs-u-v-middle"
                                                             style={{
-                                                                marginLeft: 20,
-                                                            }}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                openModal({
-                                                                    id:
-                                                                        eachDomain._id,
-                                                                    content: ProjectUnverifyDomain,
-                                                                    projectId,
-                                                                    verificationToken:
-                                                                        eachDomain.verificationToken,
-                                                                    domain:
-                                                                        eachDomain.domain,
-                                                                });
+                                                                display: 'flex',
+                                                                width: '10vw',
+                                                                whiteSpace:
+                                                                    'normal',
                                                             }}
                                                         >
-                                                            <span>
-                                                                Unverify
-                                                            </span>
-                                                        </button>
+                                                            <div className="bs-ObjectList-cell-row">
+                                                                {
+                                                                    eachDomain.domain
+                                                                }
+                                                            </div>
+                                                            <div
+                                                                style={{
+                                                                    marginLeft: 5,
+                                                                }}
+                                                                className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                            >
+                                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span>
+                                                                        Unverified
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     )}
-                                                    <button
-                                                        id={`unVerifyProjectDomain_${index}`}
-                                                        title="reset"
-                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
-                                                        style={{
-                                                            marginLeft: 20,
-                                                        }}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            openModal({
-                                                                id:
-                                                                    eachDomain._id,
-                                                                content: ProjectResetDomain,
-                                                                projectId,
-                                                                verificationToken:
-                                                                    eachDomain.verificationToken,
-                                                                domain:
-                                                                    eachDomain.domain,
-                                                            });
-                                                        }}
-                                                    >
-                                                        <span>Reset</span>
-                                                    </button>
-                                                    <button
-                                                        id={`deleteProjectDomain_${index}`}
-                                                        title="remove"
-                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                                        style={{
-                                                            marginLeft: 20,
-                                                        }}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            openModal({
-                                                                content: DataPathHoC(
-                                                                    DeleteDomain,
-                                                                    {
-                                                                        removeUserModalId: this
-                                                                            .state
-
-                                                                            .removeUserModalId,
-                                                                        domainId:
-                                                                            eachDomain._id,
+                                                    <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                        <div className="Box-root Flex-flex Flex-justifyContent--flexEnd">
+                                                            {!eachDomain.verified && (
+                                                                <button
+                                                                    id={`verifyProjectDomain_${index}`}
+                                                                    title="verify"
+                                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                                    style={{
+                                                                        marginLeft: 20,
+                                                                    }}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        openModal(
+                                                                            {
+                                                                                id: eachDomain._id,
+                                                                                content:
+                                                                                    ProjectVerifyDomain,
+                                                                                projectId,
+                                                                                verificationToken:
+                                                                                    eachDomain.verificationToken,
+                                                                                domain: eachDomain.domain,
+                                                                            }
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        Verify
+                                                                    </span>
+                                                                </button>
+                                                            )}
+                                                            {eachDomain.verified && (
+                                                                <button
+                                                                    id={`unVerifyProjectDomain_${index}`}
+                                                                    title="unverify"
+                                                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                                    style={{
+                                                                        marginLeft: 20,
+                                                                    }}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        openModal(
+                                                                            {
+                                                                                id: eachDomain._id,
+                                                                                content:
+                                                                                    ProjectUnverifyDomain,
+                                                                                projectId,
+                                                                                verificationToken:
+                                                                                    eachDomain.verificationToken,
+                                                                                domain: eachDomain.domain,
+                                                                            }
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        Unverify
+                                                                    </span>
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                id={`unVerifyProjectDomain_${index}`}
+                                                                title="reset"
+                                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--settings"
+                                                                style={{
+                                                                    marginLeft: 20,
+                                                                }}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    openModal({
+                                                                        id: eachDomain._id,
+                                                                        content:
+                                                                            ProjectResetDomain,
                                                                         projectId,
-                                                                    }
-                                                                ),
-                                                            });
-                                                        }}
-                                                    >
-                                                        <span>Remove</span>
-                                                    </button>
+                                                                        verificationToken:
+                                                                            eachDomain.verificationToken,
+                                                                        domain: eachDomain.domain,
+                                                                    });
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Reset
+                                                                </span>
+                                                            </button>
+                                                            <button
+                                                                id={`deleteProjectDomain_${index}`}
+                                                                title="remove"
+                                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                                                style={{
+                                                                    marginLeft: 20,
+                                                                }}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    openModal({
+                                                                        content:
+                                                                            DataPathHoC(
+                                                                                DeleteDomain,
+                                                                                {
+                                                                                    removeUserModalId:
+                                                                                        this
+                                                                                            .state
+                                                                                            .removeUserModalId,
+                                                                                    domainId:
+                                                                                        eachDomain._id,
+                                                                                    projectId,
+                                                                                }
+                                                                            ),
+                                                                    });
+                                                                }}
+                                                            >
+                                                                <span>
+                                                                    Remove
+                                                                </span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                            );
+                                        }
+                                    )}
                                 <ShouldRender
                                     if={
                                         !(
@@ -339,8 +352,8 @@ class ProjectDomain extends Component<ComponentProps> {
                             >
                                 <span>
                                     {(!domains || domains.length === 0) &&
-                                        !requesting &&
-                                        !error
+                                    !requesting &&
+                                    !error
                                         ? 'You have no domain at this time'
                                         : null}
                                 </span>
@@ -358,14 +371,11 @@ class ProjectDomain extends Component<ComponentProps> {
                                             id="customFieldCount"
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
-
                                             {this.props.count
-
                                                 ? this.props.count +
-
-                                                (this.props.count > 1
-                                                    ? '  Domains'
-                                                    : ' Domain')
+                                                  (this.props.count > 1
+                                                      ? '  Domains'
+                                                      : ' Domain')
                                                 : '0 Domain'}
                                         </span>
                                     </span>
@@ -376,12 +386,12 @@ class ProjectDomain extends Component<ComponentProps> {
                                     <div className="Box-root Margin-right--8">
                                         <button
                                             id="btnPrevProjectDomains"
-                                            onClick={() =>
-                                                this.prevClicked(
+                                            onClick={() => {
+                                                return this.prevClicked(
                                                     projectId,
                                                     skip
-                                                )
-                                            }
+                                                );
+                                            }}
                                             className={
                                                 'Button bs-ButtonLegacy' +
                                                 (canPrev ? '' : 'Is--disabled')
@@ -400,12 +410,12 @@ class ProjectDomain extends Component<ComponentProps> {
                                     <div className="Box-root">
                                         <button
                                             id="btnNextProjectDomains"
-                                            onClick={() =>
-                                                this.nextClicked(
+                                            onClick={() => {
+                                                return this.nextClicked(
                                                     projectId,
                                                     skip
-                                                )
-                                            }
+                                                );
+                                            }}
                                             className={
                                                 'Button bs-ButtonLegacy' +
                                                 (canNext ? '' : 'Is--disabled')
@@ -431,18 +441,18 @@ class ProjectDomain extends Component<ComponentProps> {
     }
 }
 
-
 ProjectDomain.displayName = 'ProjectDomain';
 
-const mapStateToProps: Function = (state: RootState) => ({
-    projectDomain: state.project.projectDomain,
-    requesting: state.project.projectDomain.requesting,
-    error: state.project.projectDomain.error,
-    count: state.project.projectDomain.count,
-    limit: state.project.projectDomain.limit,
-    skip: state.project.projectDomain.skip
-});
-
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        projectDomain: state.project.projectDomain,
+        requesting: state.project.projectDomain.requesting,
+        error: state.project.projectDomain.error,
+        count: state.project.projectDomain.count,
+        limit: state.project.projectDomain.limit,
+        skip: state.project.projectDomain.skip,
+    };
+};
 
 ProjectDomain.propTypes = {
     projectId: PropTypes.string,
@@ -459,6 +469,8 @@ ProjectDomain.propTypes = {
     requesting: PropTypes.bool,
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ fetchProjectDomains, openModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ fetchProjectDomains, openModal }, dispatch);
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectDomain);

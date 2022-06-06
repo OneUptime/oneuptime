@@ -6,64 +6,52 @@ import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import { history, RootState } from '../../store';
 
-export class ProjectList extends Component<ComponentProps>{
+export class ProjectList extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
     override render() {
         if (
-
             this.props.projects &&
-
             this.props.projects.skip &&
-
             typeof this.props.projects.skip === 'string'
         ) {
-
             this.props.projects.skip = parseInt(this.props.projects.skip, 10);
         }
         if (
-
             this.props.projects &&
-
             this.props.projects.limit &&
-
             typeof this.props.projects.limit === 'string'
         ) {
-
             this.props.projects.limit = parseInt(this.props.projects.limit, 10);
         }
 
-        if (!this.props.projects.skip) this.props.projects.skip = 0;
+        if (!this.props.projects.skip) {
+            this.props.projects.skip = 0;
+        }
 
-        if (!this.props.projects.limit) this.props.projects.limit = 0;
+        if (!this.props.projects.limit) {
+            this.props.projects.limit = 0;
+        }
 
         let canNext =
-
             this.props.projects &&
-
-                this.props.projects.count &&
-
-                this.props.projects.count >
-
+            this.props.projects.count &&
+            this.props.projects.count >
                 this.props.projects.skip + this.props.projects.limit
                 ? true
                 : false;
         let canPrev =
-
             this.props.projects && this.props.projects.skip <= 0 ? false : true;
 
         if (
-
             this.props.projects &&
-
             (this.props.requesting || !this.props.projects.projects)
         ) {
             canNext = false;
             canPrev = false;
         }
         const numberOfPages: $TSFixMe = Math.ceil(
-
             parseInt(this.props.projects && this.props.projects.count) / 10
         );
         return (
@@ -152,7 +140,6 @@ export class ProjectList extends Component<ComponentProps>{
                                 </td>
                                 <td
                                     id="overflow"
-
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -164,7 +151,6 @@ export class ProjectList extends Component<ComponentProps>{
                             </tr>
                         </thead>
                         <tbody className="Table-body">
-
                             {this.props.requesting ? (
                                 <Fragment>
                                     <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
@@ -185,18 +171,18 @@ export class ProjectList extends Component<ComponentProps>{
                                         </td>
                                     </tr>
                                 </Fragment>
-
                             ) : this.props.projects &&
-
-                                this.props.projects.projects &&
-
-                                this.props.projects.projects.length > 0 ? (
-
+                              this.props.projects.projects &&
+                              this.props.projects.projects.length > 0 ? (
                                 this.props.projects.projects.map(
                                     (project: $TSFixMe, index: $TSFixMe) => {
                                         const projectOwner: $TSFixMe =
                                             project.users.find(
-                                                (user: $TSFixMe) => user.role === 'Owner'
+                                                (user: $TSFixMe) => {
+                                                    return (
+                                                        user.role === 'Owner'
+                                                    );
+                                                }
                                             ) || project.users.length > 0
                                                 ? project.users[0]
                                                 : {};
@@ -209,9 +195,11 @@ export class ProjectList extends Component<ComponentProps>{
                                             ) {
                                                 usersDetail = `${projectOwner.name} and 1 other`;
                                             } else {
-                                                usersDetail = `${projectOwner.name
-                                                    } and ${project.users.length -
-                                                    1} others`;
+                                                usersDetail = `${
+                                                    projectOwner.name
+                                                } and ${
+                                                    project.users.length - 1
+                                                } others`;
                                             }
                                         } else {
                                             usersDetail = 'Not Added Yet';
@@ -225,7 +213,7 @@ export class ProjectList extends Component<ComponentProps>{
                                                 onClick={() => {
                                                     history.push(
                                                         '/admin/projects/' +
-                                                        project.slug
+                                                            project.slug
                                                     );
                                                 }}
                                             >
@@ -391,21 +379,15 @@ export class ProjectList extends Component<ComponentProps>{
                     </table>
                 </div>
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
-
                     {this.props.projects &&
-
-                        (!this.props.projects.projects ||
-
-                            !this.props.projects.projects.length) &&
-
-                        !this.props.requesting &&
-
-                        !this.props.projects.error
+                    (!this.props.projects.projects ||
+                        !this.props.projects.projects.length) &&
+                    !this.props.requesting &&
+                    !this.props.projects.error
                         ? "We don't have any projects yet"
                         : null}
 
                     {this.props.projects && this.props.projects.error
-
                         ? this.props.projects.error
                         : null}
                 </div>
@@ -415,33 +397,29 @@ export class ProjectList extends Component<ComponentProps>{
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
-                                        ? `Page ${this.props.page
-                                        } of ${numberOfPages} (${this.props
-
-                                            .projects &&
-
-                                        this.props.projects
-                                            .count} Project${this.props.projects &&
-
-                                                this.props.projects.count === 1
-                                                ? ''
-                                                : 's'
-                                        })`
-
+                                        ? `Page ${
+                                              this.props.page
+                                          } of ${numberOfPages} (${
+                                              this.props.projects &&
+                                              this.props.projects.count
+                                          } Project${
+                                              this.props.projects &&
+                                              this.props.projects.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          })`
                                         : this.props.projects &&
-
-                                            this.props.projects.count
-
-                                            ? `${this.props.projects &&
-
-                                            this.props.projects
-                                                .count} Project${this.props.projects &&
-
-                                                    this.props.projects.count === 1
-                                                    ? ''
-                                                    : 's'
-                                            }`
-                                            : null}
+                                          this.props.projects.count
+                                        ? `${
+                                              this.props.projects &&
+                                              this.props.projects.count
+                                          } Project${
+                                              this.props.projects &&
+                                              this.props.projects.count === 1
+                                                  ? ''
+                                                  : 's'
+                                          }`
+                                        : null}
                                 </span>
                             </span>
                         </span>
@@ -452,9 +430,7 @@ export class ProjectList extends Component<ComponentProps>{
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
-
                                         this.props.prevClicked(
-
                                             this.props.projects.skip,
 
                                             this.props.projects.limit
@@ -479,9 +455,7 @@ export class ProjectList extends Component<ComponentProps>{
                                 <button
                                     id="btnNext"
                                     onClick={() => {
-
                                         this.props.nextClicked(
-
                                             this.props.projects.skip,
 
                                             this.props.projects.limit
@@ -520,9 +494,7 @@ function mapStateToProps(state: RootState) {
     };
 }
 
-
 ProjectList.displayName = 'ProjectList';
-
 
 ProjectList.propTypes = {
     nextClicked: PropTypes.func.isRequired,

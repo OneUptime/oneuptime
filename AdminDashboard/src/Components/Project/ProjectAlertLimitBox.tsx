@@ -6,7 +6,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { renewAlertLimit } from '../../actions/project';
 
-export class ProjectAlertLimitBox extends Component<ComponentProps>{
+export class ProjectAlertLimitBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -26,7 +26,6 @@ export class ProjectAlertLimitBox extends Component<ComponentProps>{
     };
 
     handleClick = () => {
-
         const { renewAlertLimit, project }: $TSFixMe = this.props;
 
         const { alertLimit }: $TSFixMe = this.state;
@@ -34,7 +33,6 @@ export class ProjectAlertLimitBox extends Component<ComponentProps>{
     };
 
     override render() {
-
         const { requesting }: $TSFixMe = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
@@ -67,7 +65,6 @@ export class ProjectAlertLimitBox extends Component<ComponentProps>{
                                                         placeholder="100"
                                                         value={
                                                             this.state
-
                                                                 .alertLimit
                                                         }
                                                         onChange={this.onChange}
@@ -104,10 +101,11 @@ export class ProjectAlertLimitBox extends Component<ComponentProps>{
     }
 }
 
-
 ProjectAlertLimitBox.displayName = 'ProjectAlertLimitBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ renewAlertLimit }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ renewAlertLimit }, dispatch);
+};
 
 const mapStateToProps: Function = (state: RootState) => {
     const project: $TSFixMe = state.project.project.project;
@@ -120,13 +118,11 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 ProjectAlertLimitBox.propTypes = {
     project: PropTypes.object,
     renewAlertLimit: PropTypes.func,
     requesting: PropTypes.bool,
 };
-
 
 ProjectAlertLimitBox.contextTypes = {};
 

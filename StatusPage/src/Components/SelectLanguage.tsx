@@ -15,24 +15,22 @@ interface SelectLanguageProps {
 const SelectLanguage: Function = ({
     isShown,
     setIsShown,
-    theme
+    theme,
 }: SelectLanguageProps) => {
     const popupReff: $TSFixMe = useRef();
     const documentClickHandler: $TSFixMe = useRef();
 
     useEffect(() => {
-
         documentClickHandler.current = (e: $TSFixMe) => {
-
-            if (popupReff.current && popupReff.current.contains(e.target))
+            if (popupReff.current && popupReff.current.contains(e.target)) {
                 return;
+            }
             setIsShown(false);
             removeDocumentClickHandler();
         };
     }, []);
 
     const removeDocumentClickHandler: Function = () => {
-
         document.removeEventListener('click', documentClickHandler.current);
     };
 
@@ -49,7 +47,6 @@ const SelectLanguage: Function = ({
         >
             <ShouldRender if={isShown}>
                 <LanguageBox
-
                     theme={theme}
                     handleCloseButtonClick={handleCloseButtonClick}
                 />
@@ -65,5 +62,7 @@ SelectLanguage.propTypes = {
     theme: PropTypes.bool,
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openLanguageMenu }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ openLanguageMenu }, dispatch);
+};
 export default connect(null, mapDispatchToProps)(SelectLanguage);

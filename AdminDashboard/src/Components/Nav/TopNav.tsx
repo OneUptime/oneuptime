@@ -10,24 +10,20 @@ import { getVersion } from '../../actions/version';
 import { getProbes } from '../../actions/probe';
 
 class TopContent extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
-
         const { getVersion }: $TSFixMe = this.props;
         getVersion();
 
         this.props.getProbes(0, 10);
     }
     showProfileMenu = (e: $TSFixMe) => {
-
         this.props.showProfileMenu(e.clientX);
     };
 
     showNotificationsMenu = (e: $TSFixMe) => {
-
         this.props.openNotificationMenu(e.clientX);
     };
 
@@ -42,42 +38,35 @@ class TopContent extends Component<ComponentProps> {
 
     override render() {
         const IMG_URL: $TSFixMe =
-
             this.props.profilePic && this.props.profilePic !== ''
-
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
         const userId: $TSFixMe = User.getUserId();
         let count = 0;
         if (
-
             this.props.notifications &&
-
             this.props.notifications.notifications &&
-
             this.props.notifications.notifications.length
         ) {
-
-            this.props.notifications.notifications.map((notification: $TSFixMe) => {
-                if (notification.read.indexOf(userId) > -1) {
-                    return notification;
-                } else {
+            this.props.notifications.notifications.map(
+                (notification: $TSFixMe) => {
+                    if (notification.read.indexOf(userId) > -1) {
+                        return notification;
+                    }
                     count++;
                     return notification;
                 }
-            });
+            );
         }
 
         return (
             <div
-
                 tabIndex="0"
                 onKeyDown={this.handleKeyBoard}
                 style={{ zIndex: '2' }}
                 className="db-World-topContent Box-root Box-background--surface Padding-vertical--20"
             >
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-
                     <div className="Box-root" onClick={this.props.openSideNav}>
                         <div className="db-MenuContainer">
                             <div
@@ -93,7 +82,6 @@ class TopContent extends Component<ComponentProps> {
                     <div className="Box-root Flex-flex">
                         <div>
                             <div
-
                                 tabIndex="-1"
                                 style={{ outline: 'none', marginRight: '15px' }}
                             >
@@ -117,7 +105,6 @@ class TopContent extends Component<ComponentProps> {
                                             className="bs-Button bs-DeprecatedButton db-UserMenuX"
                                             id="profile-menu"
                                             type="button"
-
                                             tabIndex="-1"
                                             onClick={this.showProfileMenu}
                                         >
@@ -139,7 +126,6 @@ class TopContent extends Component<ComponentProps> {
     }
 }
 
-
 TopContent.displayName = 'TopContent';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -148,17 +134,18 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        showProfileMenu,
-        openNotificationMenu,
-        openSideNav,
-        getVersion,
-        getProbes,
-    },
-    dispatch
-);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            showProfileMenu,
+            openNotificationMenu,
+            openSideNav,
+            getVersion,
+            getProbes,
+        },
+        dispatch
+    );
+};
 
 TopContent.propTypes = {
     getVersion: PropTypes.func,
@@ -177,7 +164,6 @@ TopContent.propTypes = {
     map: PropTypes.func,
     getProbes: PropTypes.func.isRequired,
 };
-
 
 TopContent.contextTypes = {};
 

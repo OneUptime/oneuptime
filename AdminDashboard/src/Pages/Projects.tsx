@@ -18,7 +18,6 @@ class Projects extends Component<ComponentProps> {
     }
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchProjects, searchProjects }: $TSFixMe = this.props;
@@ -37,7 +36,6 @@ class Projects extends Component<ComponentProps> {
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchProjects, searchProjects }: $TSFixMe = this.props;
@@ -52,7 +50,6 @@ class Projects extends Component<ComponentProps> {
     };
 
     componentDidMount = () => {
-
         this.props.fetchProjects();
     };
 
@@ -134,15 +131,11 @@ class Projects extends Component<ComponentProps> {
                                             </div>
                                         </div>
                                         <ProjectList
-
                                             projects={this.props.projects || {}}
                                             prevClicked={this.prevClicked}
                                             nextClicked={this.nextClicked}
-
                                             userId={this.props.userId}
-
                                             requesting={this.props.requesting}
-
                                             page={this.state.page}
                                         />
                                     </div>
@@ -155,7 +148,6 @@ class Projects extends Component<ComponentProps> {
         );
     }
 }
-
 
 Projects.displayName = 'Projects';
 
@@ -178,7 +170,6 @@ const mapStateToProps: Function = (state: RootState) => {
         requesting,
     };
 };
-
 
 Projects.propTypes = {
     fetchProjects: PropTypes.func.isRequired,

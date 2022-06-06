@@ -14,19 +14,15 @@ import {
 } from '../../actions/project';
 
 class ProjectUnverifyDomain extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
-
         this.props.resetUnverifyProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
     handleCloseModal = () => {
-
         this.props.closeModal({
-
             id: this.props.domainId,
         });
     };
@@ -44,7 +40,6 @@ class ProjectUnverifyDomain extends Component<ComponentProps> {
 
     handleUnverifyDomain = async () => {
         const {
-
             projectId,
 
             domainId,
@@ -64,7 +59,6 @@ class ProjectUnverifyDomain extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { requesting, unverifyError }: $TSFixMe = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -130,8 +124,7 @@ class ProjectUnverifyDomain extends Component<ComponentProps> {
                                                         <div className="Box-root">
                                                             <span
                                                                 style={{
-                                                                    color:
-                                                                        'red',
+                                                                    color: 'red',
                                                                 }}
                                                             >
                                                                 {unverifyError}
@@ -150,8 +143,10 @@ class ProjectUnverifyDomain extends Component<ComponentProps> {
                                         >
                                             <button
                                                 id="cancelVerifyDomain"
-                                                className={`bs-Button btn__modal ${requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button btn__modal ${
+                                                    requesting &&
+                                                    'bs-is-disabled'
+                                                }`}
                                                 type="button"
                                                 disabled={requesting}
                                                 onClick={this.handleCloseModal}
@@ -163,8 +158,10 @@ class ProjectUnverifyDomain extends Component<ComponentProps> {
                                             </button>
                                             <button
                                                 id="confirmVerifyDomain"
-                                                className={`bs-Button bs-Button--blue btn__modal ${requesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button bs-Button--blue btn__modal ${
+                                                    requesting &&
+                                                    'bs-is-disabled'
+                                                }`}
                                                 onClick={
                                                     this.handleUnverifyDomain
                                                 }
@@ -194,26 +191,28 @@ class ProjectUnverifyDomain extends Component<ComponentProps> {
     }
 }
 
-
 ProjectUnverifyDomain.displayName = 'ProjectUnverifyDomain';
 
-const mapStateToProps: Function = (state: RootState) => ({
-    requesting: state.project.unverifyDomain.requesting,
-    unverifyError: state.project.unverifyDomain.error,
-    domainId: state.modal.modals[0].id,
-    projectId: state.modal.modals[0].projectId
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        requesting: state.project.unverifyDomain.requesting,
+        unverifyError: state.project.unverifyDomain.error,
+        domainId: state.modal.modals[0].id,
+        projectId: state.modal.modals[0].projectId,
+    };
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        closeModal,
-        unVerifyProjectDomain,
-        fetchProjectDomains,
-        resetUnverifyProjectDomain,
-    },
-    dispatch
-);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            closeModal,
+            unVerifyProjectDomain,
+            fetchProjectDomains,
+            resetUnverifyProjectDomain,
+        },
+        dispatch
+    );
+};
 
 ProjectUnverifyDomain.propTypes = {
     closeModal: PropTypes.func,

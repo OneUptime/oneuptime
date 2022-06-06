@@ -11,7 +11,9 @@ class ClipboardWrap extends Component<ComponentProps> {
         const input: $TSFixMe = this.input;
 
         this.clipboard = new Clipboard(button, {
-            target: () => input,
+            target: () => {
+                return input;
+            },
         });
     }
 
@@ -20,7 +22,6 @@ class ClipboardWrap extends Component<ComponentProps> {
     }
 
     override render() {
-
         const { value }: $TSFixMe = this.props;
 
         return (
@@ -56,9 +57,7 @@ class ClipboardWrap extends Component<ComponentProps> {
     }
 }
 
-
 ClipboardWrap.displayName = 'ClipboardWrap';
-
 
 ClipboardWrap.propTypes = {
     value: PropTypes.string,

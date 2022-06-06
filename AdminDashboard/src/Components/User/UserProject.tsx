@@ -7,12 +7,10 @@ import { fetchUserProjects } from '../../actions/project';
 
 class UserProject extends Component<ComponentProps> {
     constructor() {
-
         super();
         this.state = { page: 1 };
     }
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { userId }: $TSFixMe = this.props;
 
         this.props.fetchUserProjects(
@@ -25,7 +23,6 @@ class UserProject extends Component<ComponentProps> {
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { userId }: $TSFixMe = this.props;
 
         this.props.fetchUserProjects(userId, skip + limit, 10);
@@ -34,7 +31,7 @@ class UserProject extends Component<ComponentProps> {
     };
     override render() {
         return (
-            <div className="bs-BIM" >
+            <div className="bs-BIM">
                 <div className="Box-root Margin-bottom--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <div className="Box-root">
@@ -56,13 +53,10 @@ class UserProject extends Component<ComponentProps> {
                             </div>
                         </div>
                         <ProjectList
-
                             projects={this.props.projects || {}}
                             prevClicked={this.prevClicked}
                             nextClicked={this.nextClicked}
-
                             userId={this.props.userId}
-
                             page={this.state.page}
                         />
                     </div>
@@ -72,7 +66,6 @@ class UserProject extends Component<ComponentProps> {
     }
 }
 
-
 UserProject.displayName = 'UserProject';
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => {
@@ -80,7 +73,9 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user
+        ? state.user.user.user._id
+        : null;
 
     return {
         userId,

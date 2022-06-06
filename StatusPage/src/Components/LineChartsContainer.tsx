@@ -15,16 +15,24 @@ interface ChartContainerProps {
 const ChartContainer: Function = ({
     label,
     name,
-    data
-}: ChartContainerProps) => (
-    <Fragment>
-        <span style={{ fontSize: '13px', display: 'block', marginTop: '10px' }}>
-            {label}
-        </span>
+    data,
+}: ChartContainerProps) => {
+    return (
+        <Fragment>
+            <span
+                style={{
+                    fontSize: '13px',
+                    display: 'block',
+                    marginTop: '10px',
+                }}
+            >
+                {label}
+            </span>
 
-        <AreaChart name={name} data={data} />
-    </Fragment>
-);
+            <AreaChart name={name} data={data} />
+        </Fragment>
+    );
+};
 
 ChartContainer.displayName = 'ChartContainer';
 
@@ -44,7 +52,6 @@ interface LineChartsContainerProps {
 
 class LineChartsContainer extends React.Component<LineChartsContainerProps> {
     override render() {
-
         const { _id: monitorId } = this.props.monitor;
         let requesting = true;
         let data = [];
@@ -57,14 +64,14 @@ class LineChartsContainer extends React.Component<LineChartsContainerProps> {
             }
         }
 
-        if (requesting) return null;
+        if (requesting) {
+            return null;
+        }
 
         let earliestDate =
             data.length === 0 ? Date.now() : data[data.length - 1].createdAt;
         while (data.length < 90) {
-            earliestDate = moment(earliestDate)
-                .subtract(1, 'day')
-                .format();
+            earliestDate = moment(earliestDate).subtract(1, 'day').format();
             data.push({
                 createdAt: earliestDate,
                 cpuLoad: 0,
@@ -77,7 +84,6 @@ class LineChartsContainer extends React.Component<LineChartsContainerProps> {
 
         return (
             <Fragment>
-
                 {this.props.selectedCharts.memory && (
                     <ChartContainer label="Memory" name="memory" data={data} />
                 )}
@@ -118,9 +124,7 @@ class LineChartsContainer extends React.Component<LineChartsContainerProps> {
     }
 }
 
-
 LineChartsContainer.displayName = 'LineChartsContainer';
-
 
 LineChartsContainer.propTypes = {
     monitor: PropTypes.object,
@@ -136,12 +140,14 @@ const mapStateToProps: Function = (state: RootState) => {
     } = state;
     return { logs };
 };
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        fetchMonitorLogs,
-    },
-    dispatch
-);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            fetchMonitorLogs,
+        },
+        dispatch
+    );
+};
 
 export default connect(
     mapStateToProps,

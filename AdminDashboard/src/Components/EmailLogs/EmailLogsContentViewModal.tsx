@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 class EmailLogsContentViewModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -20,7 +19,6 @@ class EmailLogsContentViewModal extends Component<ComponentProps> {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -28,8 +26,8 @@ class EmailLogsContentViewModal extends Component<ComponentProps> {
     };
 
     override render() {
-
-        const { isRequesting, error, closeThisDialog, content }: $TSFixMe = this.props;
+        const { isRequesting, error, closeThisDialog, content }: $TSFixMe =
+            this.props;
 
         return (
             <div className="db-EmailLogsContentViewModal ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -99,8 +97,9 @@ class EmailLogsContentViewModal extends Component<ComponentProps> {
                                             </div>
                                         </ShouldRender>
                                         <button
-                                            className={`bs-Button btn__modal ${isRequesting &&
-                                                'bs-is-disabled'}`}
+                                            className={`bs-Button btn__modal ${
+                                                isRequesting && 'bs-is-disabled'
+                                            }`}
                                             type="button"
                                             onClick={closeThisDialog}
                                             disabled={isRequesting}
@@ -122,7 +121,6 @@ class EmailLogsContentViewModal extends Component<ComponentProps> {
     }
 }
 
-
 EmailLogsContentViewModal.displayName = 'EmailLogsContentViewModal';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -137,7 +135,6 @@ const mapStateToProps: Function = (state: RootState) => {
             state.emailLogs.emailLogs.error,
     };
 };
-
 
 EmailLogsContentViewModal.propTypes = {
     isRequesting: PropTypes.oneOfType([

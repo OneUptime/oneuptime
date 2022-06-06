@@ -10,7 +10,6 @@ import {
     fetchCallLogStatus,
 } from '../actions/callLogs';
 
-
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -26,7 +25,6 @@ class CallLogs extends Component<ComponentProps> {
     }
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchCallLogs, searchCallLogs }: $TSFixMe = this.props;
@@ -45,7 +43,6 @@ class CallLogs extends Component<ComponentProps> {
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchCallLogs, searchCallLogs }: $TSFixMe = this.props;
@@ -60,7 +57,6 @@ class CallLogs extends Component<ComponentProps> {
     };
 
     override componentDidMount() {
-
         this.props.fetchCallLogs();
 
         this.props.fetchCallLogStatus();
@@ -77,7 +73,6 @@ class CallLogs extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { callLogStatus }: $TSFixMe = this.props;
         return (
             <div
@@ -148,7 +143,6 @@ class CallLogs extends Component<ComponentProps> {
                                                     }
                                                 >
                                                     <AlertPanel
-
                                                         className=""
                                                         message={
                                                             <span id="callLogDisabled">
@@ -172,15 +166,11 @@ class CallLogs extends Component<ComponentProps> {
                                             </div>
                                         </div>
                                         <CallLogsList
-
                                             callLogs={this.props.callLogs || {}}
                                             prevClicked={this.prevClicked}
                                             nextClicked={this.nextClicked}
-
                                             userId={this.props.userId}
-
                                             requesting={this.props.requesting}
-
                                             page={this.state.page}
                                         />
                                     </div>
@@ -193,7 +183,6 @@ class CallLogs extends Component<ComponentProps> {
         );
     }
 }
-
 
 CallLogs.displayName = 'CallLogs';
 

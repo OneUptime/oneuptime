@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 class SsoDeleteModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -17,10 +16,8 @@ class SsoDeleteModal extends Component<ComponentProps> {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             case 'Enter':
-
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -28,12 +25,13 @@ class SsoDeleteModal extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { confirmThisDialog, closeThisDialog }: $TSFixMe = this.props;
 
         return (
             <div
-                onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
+                onKeyDown={e => {
+                    return e.key === 'Escape' && closeThisDialog();
+                }}
                 className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
             >
                 <div
@@ -88,9 +86,7 @@ class SsoDeleteModal extends Component<ComponentProps> {
     }
 }
 
-
 SsoDeleteModal.displayName = 'SsoDeleteModal';
-
 
 SsoDeleteModal.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,

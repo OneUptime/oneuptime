@@ -20,7 +20,6 @@ interface EventsProps {
 
 class Events extends Component<ComponentProps> {
     handleNavigation = (statusPageSlug: $TSFixMe, eventSlug: $TSFixMe) => {
-
         const { history }: $TSFixMe = this.props;
 
         history.push(
@@ -29,29 +28,27 @@ class Events extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { statusPageSlug }: $TSFixMe = this.props;
         return (
-
             <ShouldRender if={this.props.events}>
-
                 {this.props.events.map((event: $TSFixMe, i: $TSFixMe) => {
-                    if (!event)
+                    if (!event) {
                         return (
                             <div>
                                 <Translate>No event</Translate>
                             </div>
                         );
+                    }
                     return (
                         <li
                             className="scheduledEvent feed-item clearfix"
                             key={i}
-                            onClick={() =>
-                                this.handleNavigation(
+                            onClick={() => {
+                                return this.handleNavigation(
                                     statusPageSlug,
                                     event.slug
-                                )
-                            }
+                                );
+                            }}
                         >
                             <div
                                 className="message"
@@ -76,7 +73,6 @@ class Events extends Component<ComponentProps> {
                                         className="feed-title"
                                         id="eventTitle"
                                         style={{
-
                                             ...this.props.secondaryTextColor,
                                             color: 'rgba(76, 76, 76, 0.8)',
                                             fontWeight: 'bold',
@@ -87,7 +83,6 @@ class Events extends Component<ComponentProps> {
                                     </span>
                                     <span
                                         style={{
-
                                             ...this.props.primaryTextColor,
                                             color: 'rgba(0, 0, 0, 0.5)',
                                             display: 'block',
@@ -107,7 +102,6 @@ class Events extends Component<ComponentProps> {
                                 }
                             >
                                 <AffectedResources
-
                                     monitorState={this.props.monitorState}
                                     event={event}
                                     colorStyle="grey"
@@ -148,9 +142,7 @@ class Events extends Component<ComponentProps> {
     }
 }
 
-
 Events.displayName = 'Events';
-
 
 Events.propTypes = {
     events: PropTypes.array,

@@ -7,7 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { unblockUser } from '../../actions/user';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class UserUnblockBox extends Component<ComponentProps>{
+export class UserUnblockBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -16,13 +16,11 @@ export class UserUnblockBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { unblockUser, userId }: $TSFixMe = this.props;
         return unblockUser(userId);
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -66,10 +64,11 @@ export class UserUnblockBox extends Component<ComponentProps>{
     }
 }
 
-
 UserUnblockBox.displayName = 'UserUnblockBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ unblockUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ unblockUser, openModal, closeModal }, dispatch);
+};
 
 const mapStateToProps: Function = (state: RootState) => {
     const user: $TSFixMe = state.user.user.user || {};
@@ -84,7 +83,6 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 UserUnblockBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     userId: PropTypes.oneOfType([
@@ -93,7 +91,6 @@ UserUnblockBox.propTypes = {
     ]),
     unblockUser: PropTypes.func.isRequired,
 };
-
 
 UserUnblockBox.contextTypes = {};
 

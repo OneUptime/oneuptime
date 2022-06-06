@@ -11,7 +11,9 @@ const Account = (): ReactElement => {
         <div className="account">
             <div
                 className="preview"
-                onClick={() => setShowProfile(!showProfile)}
+                onClick={() => {
+                    return setShowProfile(!showProfile);
+                }}
             >
                 <FontAwesomeIcon icon={faUser} />
             </div>

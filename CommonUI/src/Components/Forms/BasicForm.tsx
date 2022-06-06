@@ -42,7 +42,7 @@ const BasicForm = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const getFormField = (field: DataField<T>, index: number): ReactElement => {
-        let fieldType: string = field.fieldType
+        const fieldType: string = field.fieldType
             ? getFieldType(field.fieldType)
             : 'text';
 
@@ -159,7 +159,6 @@ const BasicForm = <T extends Object>(
                     if (result) {
                         errors[name] = result;
                     }
-                    
                 }
             } else if (field.required) {
                 errors[name] = `${field.title || name} is required.`;

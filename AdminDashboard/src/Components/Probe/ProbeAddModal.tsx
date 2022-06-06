@@ -13,7 +13,6 @@ import { ValidateField } from '../../config';
 import { addProbe, resetAddProbe } from '../../actions/probe';
 
 class ProbeAddModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -26,16 +25,16 @@ class ProbeAddModal extends Component<ComponentProps> {
     }
 
     submitForm = (values: $TSFixMe) => {
-
-        const { addProbe, closeThisDialog, resetAddProbe }: $TSFixMe = this.props;
+        const { addProbe, closeThisDialog, resetAddProbe }: $TSFixMe =
+            this.props;
         addProbe(values.probe_key, values.probe_name).then(
-            function (val: $TSFixMe) {
+            (val: $TSFixMe) => {
                 if (val === 'ok') {
                     resetAddProbe();
                     closeThisDialog();
                 }
             },
-            function () {
+            () => {
                 //do nothing.
             }
         );
@@ -44,7 +43,6 @@ class ProbeAddModal extends Component<ComponentProps> {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 this.props.resetAddProbe();
 
                 return this.props.closeThisDialog();
@@ -55,7 +53,6 @@ class ProbeAddModal extends Component<ComponentProps> {
 
     override render() {
         const {
-
             handleSubmit,
 
             closeThisDialog,
@@ -66,11 +63,11 @@ class ProbeAddModal extends Component<ComponentProps> {
 
             resetAddProbe,
         } = this.props;
-        const disabled: $TSFixMe = addProbeState.requesting || probes.requesting;
+        const disabled: $TSFixMe =
+            addProbeState.requesting || probes.requesting;
         return (
             <div
                 className="ModalLayer-contents"
-
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -232,7 +229,6 @@ class ProbeAddModal extends Component<ComponentProps> {
     }
 }
 
-
 ProbeAddModal.displayName = 'ProbeAddFormModal';
 
 const ProbeAddModalForm: $TSFixMe = reduxForm({
@@ -249,7 +245,6 @@ function mapStateToProps(state: RootState) {
         probes: state.probe.probes,
     };
 }
-
 
 ProbeAddModal.propTypes = {
     addProbe: PropTypes.func,

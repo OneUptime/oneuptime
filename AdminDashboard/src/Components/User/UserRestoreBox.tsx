@@ -7,7 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { restoreUser } from '../../actions/user';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class UserRestoreBox extends Component<ComponentProps>{
+export class UserRestoreBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -16,13 +16,11 @@ export class UserRestoreBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { restoreUser, userId }: $TSFixMe = this.props;
         return restoreUser(userId);
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -66,10 +64,11 @@ export class UserRestoreBox extends Component<ComponentProps>{
     }
 }
 
-
 UserRestoreBox.displayName = 'UserRestoreBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
+};
 
 const mapStateToProps: Function = (state: RootState) => {
     const user: $TSFixMe = state.user.user.user || {};
@@ -85,7 +84,6 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 UserRestoreBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     userId: PropTypes.oneOfType([
@@ -94,7 +92,6 @@ UserRestoreBox.propTypes = {
     ]),
     restoreUser: PropTypes.func.isRequired,
 };
-
 
 UserRestoreBox.contextTypes = {};
 

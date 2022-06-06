@@ -13,39 +13,32 @@ import { CreateDefaultRoleModal } from './ssoDefaultRoles/DefaultRoleModal';
 
 class Box extends Component<ComponentProps> {
     async previousClicked() {
-
         const { skip, limit }: $TSFixMe = this.props.ssoPaginate;
         if (0 <= skip - limit) {
-
             await this.props.fetchSsoDefaultRoles(skip - limit, limit);
 
             this.props.paginate('prev');
         }
     }
     async nextClicked() {
-
         const { skip, limit }: $TSFixMe = this.props.ssoPaginate;
 
         const { count, paginate }: $TSFixMe = this.props;
         if (skip + limit < count) {
-
             await this.props.fetchSsoDefaultRoles(skip + limit, limit);
             paginate('next');
         }
     }
-    async override componentDidMount() {
-
+    override async componentDidMount() {
         this.props.fetchProjects(0, 0);
 
         await this.props.fetchSsoDefaultRoles(0, 10);
     }
     override render() {
-
         const { ssoDefaultRoles, openModal, count }: $TSFixMe = this.props;
 
         const canPrev: $TSFixMe = this.props.ssoPaginate.skip > 0;
         const canNext: $TSFixMe =
-
             this.props.ssoPaginate.skip + this.props.ssoPaginate.limit < count;
         const numberOfPages: $TSFixMe = Math.ceil(parseInt(count) / 10);
         return (
@@ -57,17 +50,16 @@ class Box extends Component<ComponentProps> {
                     <BoxHeader
                         title="SSO default roles "
                         description="Default roles of the members"
-
                         buttons={[
                             <Button
                                 text="Define new configurations"
                                 key="config"
                                 shortcut="M"
-                                onClick={() =>
-                                    openModal({
+                                onClick={() => {
+                                    return openModal({
                                         content: CreateDefaultRoleModal,
-                                    })
-                                }
+                                    });
+                                }}
                             />,
                         ]}
                     />
@@ -75,13 +67,14 @@ class Box extends Component<ComponentProps> {
                         <Table ssoDefaultRoles={ssoDefaultRoles} />
                         <BoxFooter
                             recordsCount={count}
-
                             canPrev={canPrev}
-
                             canNext={canNext}
-                            previousClicked={() => this.previousClicked()}
-                            nextClicked={() => this.nextClicked()}
-
+                            previousClicked={() => {
+                                return this.previousClicked();
+                            }}
+                            nextClicked={() => {
+                                return this.nextClicked();
+                            }}
                             page={this.props.page}
                             numberOfPages={numberOfPages}
                         />
@@ -91,7 +84,6 @@ class Box extends Component<ComponentProps> {
         );
     }
 }
-
 
 Box.displayName = 'ssoDefaultRoles';
 
@@ -105,20 +97,24 @@ Box.propTypes = {
     page: PropTypes.number,
     ssoPaginate: PropTypes.object,
 };
-const mapStateToProps: Function = (state: RootState) => ({
-    ssoDefaultRoles: state.ssoDefaultRoles.ssoDefaultRoles.ssoDefaultRoles,
-    count: state.ssoDefaultRoles.ssoDefaultRoles.count,
-    ssoPaginate: state.ssoDefaultRoles.ssoDefaultRoles,
-    page: state.ssoDefaultRoles.page
-});
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        fetchSsoDefaultRoles,
-        fetchProjects,
-        openModal,
-        paginate,
-    },
-    dispatch
-);
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        ssoDefaultRoles: state.ssoDefaultRoles.ssoDefaultRoles.ssoDefaultRoles,
+        count: state.ssoDefaultRoles.ssoDefaultRoles.count,
+        ssoPaginate: state.ssoDefaultRoles.ssoDefaultRoles,
+        page: state.ssoDefaultRoles.page,
+    };
+};
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            fetchSsoDefaultRoles,
+            fetchProjects,
+            openModal,
+            paginate,
+        },
+        dispatch
+    );
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Box);

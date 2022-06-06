@@ -42,17 +42,14 @@ function validate(values: $TSFixMe) {
     const errors: $TSFixMe = {};
 
     if (!Validate.text(values.domain)) {
-
         errors.domain = 'Domain is required.';
     }
 
     if (!Validate.text(values.project)) {
-
         errors.project = 'Project is required.';
     }
 
     if (!Validate.text(values.role)) {
-
         errors.role = 'Role is required.';
     }
 
@@ -67,17 +64,21 @@ const Form: Function = ({
     errorMessage,
     handleSubmit,
     fetchSsoDefaultRoles,
-    closeThisDialog
+    closeThisDialog,
 }: $TSFixMe) => {
     const optionsArray: $TSFixMe = [
-        ssos.map((sso: $TSFixMe) => ({
-            value: sso._id,
-            label: sso.domain
-        })),
-        projects.map((project: $TSFixMe) => ({
-            value: project._id,
-            label: project.name
-        })),
+        ssos.map((sso: $TSFixMe) => {
+            return {
+                value: sso._id,
+                label: sso.domain,
+            };
+        }),
+        projects.map((project: $TSFixMe) => {
+            return {
+                value: project._id,
+                label: project.name,
+            };
+        }),
         [
             { value: 'Administrator', label: 'Administrator' },
             { value: 'Member', label: 'Member' },
@@ -87,7 +88,9 @@ const Form: Function = ({
     const submitForm: Function = async (data: $TSFixMe) => {
         const { _id: id } = data;
         const success: $TSFixMe = await onSubmit({ id, data });
-        if (!success) return;
+        if (!success) {
+            return;
+        }
         fetchSsoDefaultRoles();
         closeThisDialog();
     };
@@ -95,7 +98,6 @@ const Form: Function = ({
         <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
             <div
                 className="ModalLayer-contents"
-
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -118,59 +120,65 @@ const Form: Function = ({
                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                 <fieldset className="bs-Fieldset">
                                     <div className="bs-Fieldset-rows">
-                                        {fields.map((field, index) => (
-                                            <div
-                                                key={field.key}
-                                                className="bs-Fieldset-row"
-                                            >
-                                                <label className="bs-Fieldset-label">
-                                                    {field.label}
-                                                </label>
+                                        {fields.map((field, index) => {
+                                            return (
                                                 <div
-                                                    className="bs-Fieldset-fields"
-                                                    style={{
-                                                        paddingTop: 3,
-                                                    }}
+                                                    key={field.key}
+                                                    className="bs-Fieldset-row"
                                                 >
-                                                    <Field
-                                                        className="db-select-nw"
-                                                        name={field.key}
-                                                        id={field.key}
-                                                        placeholder={
-                                                            field.placeholder
-                                                        }
-                                                        component={
-                                                            field.component
-                                                        }
-                                                        // disabled={
-                                                        //   sso &&
-                                                        //   sso.requesting
-                                                        // }
+                                                    <label className="bs-Fieldset-label">
+                                                        {field.label}
+                                                    </label>
+                                                    <div
+                                                        className="bs-Fieldset-fields"
                                                         style={{
-                                                            width: '350px',
-                                                        }}
-                                                        autoFocus={
-                                                            field.key ===
-                                                                'domain'
-                                                                ? true
-                                                                : false
-                                                        }
-                                                        options={
-                                                            optionsArray[index]
-                                                        }
-                                                        required
-                                                    />
-                                                    <span
-                                                        style={{
-                                                            marginTop: '10px',
+                                                            paddingTop: 3,
                                                         }}
                                                     >
-
-                                                        {field.description}
-                                                    </span>
+                                                        <Field
+                                                            className="db-select-nw"
+                                                            name={field.key}
+                                                            id={field.key}
+                                                            placeholder={
+                                                                field.placeholder
+                                                            }
+                                                            component={
+                                                                field.component
+                                                            }
+                                                            /*
+                                                             * disabled={
+                                                             *   sso &&
+                                                             *   sso.requesting
+                                                             * }
+                                                             */
+                                                            style={{
+                                                                width: '350px',
+                                                            }}
+                                                            autoFocus={
+                                                                field.key ===
+                                                                'domain'
+                                                                    ? true
+                                                                    : false
+                                                            }
+                                                            options={
+                                                                optionsArray[
+                                                                    index
+                                                                ]
+                                                            }
+                                                            required
+                                                        />
+                                                        <span
+                                                            style={{
+                                                                marginTop:
+                                                                    '10px',
+                                                            }}
+                                                        >
+                                                            {field.description}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </fieldset>
                             </div>
@@ -196,9 +204,11 @@ const Form: Function = ({
                             <button
                                 id="save-button"
                                 className="bs-Button bs-Button--blue btn__modal"
-                            // disabled={updatingSso || addingSso}
-                            // type="submit"
-                            // autoFocus={formTitle === 'Update SSO'}
+                                /*
+                                 * disabled={updatingSso || addingSso}
+                                 * type="submit"
+                                 * autoFocus={formTitle === 'Update SSO'}
+                                 */
                             >
                                 <span>Save</span>
                                 <span className="create-btn__keycode">
@@ -232,52 +242,53 @@ Form.propTypes = {
 };
 
 export const CreateDefaultRoleModal: $TSFixMe = connect(
-    state => ({
-        formTitle: 'Create New Default Role',
+    state => {
+        return {
+            formTitle: 'Create New Default Role',
 
-        ssos: state.sso.ssos.ssos,
+            ssos: state.sso.ssos.ssos,
 
-        projects: state.project.projects.projects,
+            projects: state.project.projects.projects,
 
-        errorMessage: state.ssoDefaultRoles.addSsoDefaultRole.error,
-    }),
-    dispatch => ({
-        onSubmit: ({
-            data
+            errorMessage: state.ssoDefaultRoles.addSsoDefaultRole.error,
+        };
+    },
+    dispatch => {
+        return {
+            onSubmit: ({ data }: $TSFixMe) => {
+                return dispatch(addSsoDefaultRole({ data }));
+            },
 
-        }: $TSFixMe) => dispatch(addSsoDefaultRole({ data })),
-
-        fetchSsoDefaultRoles: () => dispatch(fetchSsoDefaultRoles()),
-    })
+            fetchSsoDefaultRoles: () => {
+                return dispatch(fetchSsoDefaultRoles());
+            },
+        };
+    }
 )(ReduxConnectedForm);
 
 export const UpdateDefaultRoleModal: $TSFixMe = connect(
     state => {
         const initialValues: $TSFixMe = {
-
             ...state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole,
 
             ...(state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole.domain
                 ? {
-                    domain:
-
-                        state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole
-                            .domain._id,
-                }
+                      domain: state.ssoDefaultRoles.ssoDefaultRole
+                          .ssoDefaultRole.domain._id,
+                  }
                 : {
-                    domain: null,
-                }),
+                      domain: null,
+                  }),
 
             ...(state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole.project
                 ? {
-                    project:
-
-                        state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole
-                            .project._id,
-                }
+                      project:
+                          state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole
+                              .project._id,
+                  }
                 : {
-                    project: null,
-                }),
+                      project: null,
+                  }),
         };
         return {
             initialValues,
@@ -289,14 +300,15 @@ export const UpdateDefaultRoleModal: $TSFixMe = connect(
             errorMessage: state.ssoDefaultRoles.updateSsoDefaultRole.error,
         };
     },
-    dispatch => ({
-        onSubmit: ({
-            id,
-            data
-        }: $TSFixMe) =>
+    dispatch => {
+        return {
+            onSubmit: ({ id, data }: $TSFixMe) => {
+                return dispatch(updateSsoDefaultRole({ id, data }));
+            },
 
-            dispatch(updateSsoDefaultRole({ id, data })),
-
-        fetchSsoDefaultRoles: () => dispatch(fetchSsoDefaultRoles()),
-    })
+            fetchSsoDefaultRoles: () => {
+                return dispatch(fetchSsoDefaultRoles());
+            },
+        };
+    }
 )(ReduxConnectedForm);

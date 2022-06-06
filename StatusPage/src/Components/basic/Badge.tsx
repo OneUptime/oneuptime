@@ -33,10 +33,10 @@ function Badge({
                     style={
                         fontColor
                             ? {
-                                color: fontColor,
-                                display: 'inline-block',
-                                paddingTop: 2,
-                            }
+                                  color: fontColor,
+                                  display: 'inline-block',
+                                  paddingTop: 2,
+                              }
                             : { display: 'inline-block', paddingTop: 2 }
                     }
                 >

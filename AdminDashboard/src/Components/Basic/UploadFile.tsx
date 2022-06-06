@@ -8,7 +8,9 @@ const UploadFile: Function = ({
     meta: omitMeta,
 
     ...props
-}: $TSFixMe) => <input key={fileInputKey} type="file" {...inputProps} {...props} />;
+}: $TSFixMe) => {
+    return <input key={fileInputKey} type="file" {...inputProps} {...props} />;
+};
 
 UploadFile.propTypes = {
     input: PropTypes.object.isRequired,

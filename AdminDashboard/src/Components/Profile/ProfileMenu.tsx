@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import About from '../Modals/About';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class ProfileMenu extends Component<ComponentProps>{
+export class ProfileMenu extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -20,19 +20,18 @@ export class ProfileMenu extends Component<ComponentProps>{
     }
 
     logout() {
-
         const { logoutUser }: $TSFixMe = this.props;
         logoutUser();
     }
 
     showAboutModal = () => {
-
         this.props.hideProfileMenu();
 
         this.props.openModal({
-
             id: this.state.aboutId,
-            onClose: () => '',
+            onClose: () => {
+                return '';
+            },
             content: About,
         });
     };
@@ -59,7 +58,6 @@ export class ProfileMenu extends Component<ComponentProps>{
         const name: $TSFixMe = User.getName();
         const email: $TSFixMe = User.getEmail();
 
-
         return this.props.visible ? (
             <div
                 className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
@@ -68,7 +66,6 @@ export class ProfileMenu extends Component<ComponentProps>{
                     width: '232px',
 
                     left: this.props.position
-
                         ? `${this.props.position - 214.25}px`
                         : 'unset',
                     right: '40px',
@@ -112,9 +109,9 @@ export class ProfileMenu extends Component<ComponentProps>{
                                             className="ButtonLink db-Menu-item db-Menu-item--link"
                                             id="about-button"
                                             type="button"
-                                            onClick={() =>
-                                                this.showAboutModal()
-                                            }
+                                            onClick={() => {
+                                                return this.showAboutModal();
+                                            }}
                                             style={{ width: '100%' }}
                                         >
                                             <div
@@ -150,7 +147,9 @@ export class ProfileMenu extends Component<ComponentProps>{
                                             className="ButtonLink db-Menu-item db-Menu-item--link"
                                             id="logout-button"
                                             type="button"
-                                            onClick={() => this.logout()}
+                                            onClick={() => {
+                                                return this.logout();
+                                            }}
                                         >
                                             <div className="Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--rowReversed">
                                                 <span className="ButtonLink-label Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
@@ -171,7 +170,6 @@ export class ProfileMenu extends Component<ComponentProps>{
     }
 }
 
-
 ProfileMenu.displayName = 'ProfileMenu';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -187,7 +185,6 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     );
 };
 
-
 ProfileMenu.propTypes = {
     visible: PropTypes.bool,
     logoutUser: PropTypes.func.isRequired,
@@ -195,7 +192,6 @@ ProfileMenu.propTypes = {
     openModal: PropTypes.func.isRequired,
     hideProfileMenu: PropTypes.func,
 };
-
 
 ProfileMenu.contextTypes = {};
 

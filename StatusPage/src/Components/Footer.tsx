@@ -8,16 +8,16 @@ export interface ComponentProps {
 
 class Footer extends Component<ComponentProps> {
     override render() {
-
         const { link }: $TSFixMe = this.props;
-        if (!link.url) return null;
+        if (!link.url) {
+            return null;
+        }
         return (
             <li>
                 <a
                     rel="noopener noreferrer"
                     target="_blank"
                     href={link.url}
-
                     style={this.props.textColor}
                 >
                     {link.name}
@@ -27,9 +27,7 @@ class Footer extends Component<ComponentProps> {
     }
 }
 
-
 Footer.displayName = 'Footer';
-
 
 Footer.propTypes = {
     link: PropTypes.object,

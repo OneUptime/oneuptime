@@ -10,7 +10,7 @@ import { blockUser } from '../../actions/user';
 import UserBlockModal from './UserBlockModal';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class UserBlockBox extends Component<ComponentProps>{
+export class UserBlockBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -20,11 +20,9 @@ export class UserBlockBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { blockUser, userId }: $TSFixMe = this.props;
 
         const { blockModalId }: $TSFixMe = this.state;
-
 
         this.props.openModal({
             id: blockModalId,
@@ -38,7 +36,6 @@ export class UserBlockBox extends Component<ComponentProps>{
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeModal({ id: this.state.blockModalId });
             default:
                 return false;
@@ -46,7 +43,6 @@ export class UserBlockBox extends Component<ComponentProps>{
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -93,13 +89,16 @@ export class UserBlockBox extends Component<ComponentProps>{
     }
 }
 
-
 UserBlockBox.displayName = 'UserBlockBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ blockUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ blockUser, openModal, closeModal }, dispatch);
+};
 
 const mapStateToProps: Function = (state: RootState) => {
-    const userId: $TSFixMe = state.user.user.user ? state.user.user.user._id : null;
+    const userId: $TSFixMe = state.user.user.user
+        ? state.user.user.user._id
+        : null;
 
     return {
         userId,
@@ -110,7 +109,6 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 UserBlockBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     blockUser: PropTypes.func.isRequired,
@@ -118,7 +116,6 @@ UserBlockBox.propTypes = {
     openModal: PropTypes.func.isRequired,
     userId: PropTypes.string,
 };
-
 
 UserBlockBox.contextTypes = {};
 

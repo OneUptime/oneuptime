@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 class About extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -20,7 +19,6 @@ class About extends Component<ComponentProps> {
         switch (e.key) {
             case 'Escape':
             case 'Enter':
-
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -28,7 +26,6 @@ class About extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { versions, closeThisDialog, probes }: $TSFixMe = this.props;
         const currentYear: $TSFixMe = new Date().getFullYear();
         let probeVersion = null;
@@ -329,7 +326,6 @@ class About extends Component<ComponentProps> {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-
                                             onClick={this.props.closeThisDialog}
                                             autoFocus={true}
                                         >
@@ -349,7 +345,6 @@ class About extends Component<ComponentProps> {
     }
 }
 
-
 About.displayName = 'AboutModal';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -358,7 +353,6 @@ const mapStateToProps: Function = (state: RootState) => {
         probes: state.probe.probes.data,
     };
 };
-
 
 About.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,

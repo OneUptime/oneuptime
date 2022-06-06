@@ -3,12 +3,7 @@ import PropTypes from 'prop-types';
 
 import { Field } from 'redux-form';
 
-export function RadioInput({
-    id,
-    details,
-    value,
-    style
-}: $TSFixMe) {
+export function RadioInput({ id, details, value, style }: $TSFixMe) {
     return (
         <div
             className="bs-Fieldset-field"

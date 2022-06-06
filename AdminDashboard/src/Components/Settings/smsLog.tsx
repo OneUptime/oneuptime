@@ -8,36 +8,32 @@ import PropTypes from 'prop-types';
 import { fetchSmsLogStatus, smsLogStatusChange } from '../../actions/smsLogs';
 
 class SmsLog extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     handleKeyBoard: $TSFixMe;
-    async override componentDidMount() {
-
+    override async componentDidMount() {
         await this.props.fetchSmsLogStatus();
     }
-    toggleComponent = ({
-        input: { value, onChange }
-    }: $TSFixMe) => (
-        <label className="Toggler-wrap">
-            <input
-                className="btn-toggler"
-                checked={value}
-                onChange={onChange}
-                type="checkbox"
-                name="smsStatusToggler"
-                id="smsStatusToggler"
-            />
-            <span className="TogglerBtn-slider round"></span>
-        </label>
-    );
+    toggleComponent = ({ input: { value, onChange } }: $TSFixMe) => {
+        return (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="smsStatusToggler"
+                    id="smsStatusToggler"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        );
+    };
     submitForm = (values: $TSFixMe) => {
-
         this.props.smsLogStatusChange({ status: values.smsStatusToggler });
     };
     override render() {
-
         const { changeSmsLogStatus, handleSubmit }: $TSFixMe = this.props;
         return (
             <div
@@ -153,7 +149,6 @@ class SmsLog extends Component<ComponentProps> {
     }
 }
 
-
 SmsLog.displayName = 'SmsLog';
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => {
@@ -181,7 +176,6 @@ const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'sms-log-toggle-form',
     enableReinitialize: true,
 })(SmsLog);
-
 
 SmsLog.propTypes = {
     changeSmsLogStatus: PropTypes.object,

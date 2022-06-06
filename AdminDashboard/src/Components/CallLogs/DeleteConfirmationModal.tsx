@@ -10,7 +10,6 @@ import { deleteCallLogs } from '../../actions/callLogs';
 import { FormLoader } from '../basic/Loader';
 
 class DeleteConfirmationModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -25,7 +24,6 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.handleDelete();
@@ -35,8 +33,8 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
     };
 
     handleDelete = () => {
-
-        const { error, deleteCallLogs, closeModal, modalId }: $TSFixMe = this.props;
+        const { error, deleteCallLogs, closeModal, modalId }: $TSFixMe =
+            this.props;
         deleteCallLogs().then(() => {
             if (!error) {
                 return closeModal({ id: modalId });
@@ -44,7 +42,6 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
         });
     };
     override render() {
-
         const { closeThisDialog, deleteRequest, error }: $TSFixMe = this.props;
 
         return (
@@ -102,8 +99,10 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
                                         </ShouldRender>
                                         <button
                                             id="cancelCallDelete"
-                                            className={`bs-Button btn__modal ${deleteRequest &&
-                                                'bs-is-disabled'}`}
+                                            className={`bs-Button btn__modal ${
+                                                deleteRequest &&
+                                                'bs-is-disabled'
+                                            }`}
                                             type="button"
                                             onClick={closeThisDialog}
                                             disabled={deleteRequest}
@@ -115,8 +114,10 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
                                         </button>
                                         <button
                                             id="confirmDelete"
-                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${deleteRequest &&
-                                                'bs-is-disabled'}`}
+                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${
+                                                deleteRequest &&
+                                                'bs-is-disabled'
+                                            }`}
                                             onClick={this.handleDelete}
                                             disabled={deleteRequest}
                                             autoFocus={true}
@@ -144,17 +145,19 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps: Function = (state: RootState) => ({
-    deleteRequest: state.callLogs.callLogs.deleteRequest,
-    error: state.callLogs.callLogs.error,
-    modalId: state.modal.modals[0].id
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        deleteRequest: state.callLogs.callLogs.deleteRequest,
+        error: state.callLogs.callLogs.error,
+        modalId: state.modal.modals[0].id,
+    };
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteCallLogs }, dispatch);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ closeModal, deleteCallLogs }, dispatch);
+};
 
 DeleteConfirmationModal.displayName = 'Delete Confirmation Modal';
-
 
 DeleteConfirmationModal.propTypes = {
     closeThisDialog: PropTypes.func,

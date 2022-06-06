@@ -42,21 +42,16 @@ class Message extends Component<ComponentProps> {
         event.preventDefault();
 
         const projectId: $TSFixMe =
-
             this.props.statuspage &&
-
             this.props.statuspage.projectId &&
-
             this.props.statuspage.projectId._id;
 
         const statusPageId: $TSFixMe = this.props.statuspage._id;
 
-        const selectIndividualMonitors: $TSFixMe = this.props.statuspage
-            .selectIndividualMonitors;
-
+        const selectIndividualMonitors: $TSFixMe =
+            this.props.statuspage.selectIndividualMonitors;
 
         if (this.state.email && this.state.email.length) {
-
             const validemail: $TSFixMe = this.validation(this.state.email);
             if (validemail) {
                 const values: $TSFixMe = this.state;
@@ -74,16 +69,13 @@ class Message extends Component<ComponentProps> {
                     );
                 }
 
-
                 this.props.userData(values);
             } else {
-
                 this.props.validationError(
                     'Please enter a valid email address.'
                 );
             }
         } else {
-
             this.props.validationError('Please enter your email address.');
         }
     };
@@ -95,9 +87,8 @@ class Message extends Component<ComponentProps> {
             )
         ) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     };
 
     handleClose = (e: $TSFixMe) => {
@@ -112,122 +103,110 @@ class Message extends Component<ComponentProps> {
     override render() {
         return (
             <div>
-
-                {
-                    this.props.subscribed &&
-
-                        this.props.subscribed.success ? null : (
-                        <div className="directions">
-                            <Translate>
-                                {' '}
-                                Get email notifications when an incident is
-                            </Translate>{' '}
-                            <b>
-                                <Translate>created</Translate>
-                            </b>
-                            .
-                        </div>
-                    )
-                }
-                < form
+                {this.props.subscribed &&
+                this.props.subscribed.success ? null : (
+                    <div className="directions">
+                        <Translate>
+                            {' '}
+                            Get email notifications when an incident is
+                        </Translate>{' '}
+                        <b>
+                            <Translate>created</Translate>
+                        </b>
+                        .
+                    </div>
+                )}
+                <form
                     id="subscribe-form-email"
                     onSubmit={
-
                         this.props.subscribed && this.props.subscribed.success
                             ? this.handleClose
                             : this.handleSubmit
                     }
                 >
-
-                    {
-                        this.props.subscribed && this.props.subscribed.success ? (
-                            <div
-                                style={{
-                                    textAlign: 'center',
-                                    margin: '15px 0',
-                                    color: '#000',
-                                }}
+                    {this.props.subscribed && this.props.subscribed.success ? (
+                        <div
+                            style={{
+                                textAlign: 'center',
+                                margin: '15px 0',
+                                color: '#000',
+                            }}
+                        >
+                            <span
+                                className="subscriber-success"
+                                id="monitor-subscribe-success-message"
                             >
-                                <span
-                                    className="subscriber-success"
-                                    id="monitor-subscribe-success-message"
-                                >
-                                    <Translate>
-                                        You have subscribed to this status page
-                                        successfully
-                                    </Translate>
-                                </span>
-                            </div>
-                        ) : (
-                            <input
-                                name="email"
-                                onChange={this.handleChange}
-                                type="text"
-                                placeholder="Email Address"
-                                className="input-full"
-                            />
-                        )
-                    }
-                    < input
+                                <Translate>
+                                    You have subscribed to this status page
+                                    successfully
+                                </Translate>
+                            </span>
+                        </div>
+                    ) : (
+                        <input
+                            name="email"
+                            onChange={this.handleChange}
+                            type="text"
+                            placeholder="Email Address"
+                            className="input-full"
+                        />
+                    )}
+                    <input
                         type="submit"
                         value={
-
                             this.props.subscribed &&
-
-                                this.props.subscribed.success
+                            this.props.subscribed.success
                                 ? 'Close'
                                 : 'Subscribe'
                         }
                         className={
-
                             this.props.theme
                                 ? 'subscribe-btn-full bs-theme-btn'
                                 : 'subscribe-btn-full'
                         }
                         id="subscribe-btn-email"
-                    ></input >
-                </form >
+                    ></input>
+                </form>
                 <ShouldRender
-
                     if={this.props.subscribed && this.props.subscribed.error}
                 >
                     <div className="validation-error">
                         <span className="validation-error-icon"></span>
                         <span className="error-text">
                             <Translate>
-
                                 {this.props.subscribed &&
-
                                     this.props.subscribed.error}
                             </Translate>
                         </span>
                     </div>
                 </ShouldRender>
-            </div >
+            </div>
         );
     }
 }
 
-
 Message.displayName = 'Message';
 
-const mapStateToProps: Function = (state: RootState) => ({
-    userDetails: state.subscribe.userDetails,
-    subscribed: state.subscribe.subscribed,
-    statuspage: state.status.statusPage
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        userDetails: state.subscribe.userDetails,
+        subscribed: state.subscribe.subscribed,
+        statuspage: state.status.statusPage,
+    };
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
-    {
-        userData,
-        validationError,
-        subscribeUser,
-        openSubscribeMenu,
-        userDataReset,
-    },
-    dispatch
-);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        {
+            userData,
+            validationError,
+            subscribeUser,
+            openSubscribeMenu,
+            userDataReset,
+        },
+        dispatch
+    );
+};
 
 Message.propTypes = {
     userData: PropTypes.func,

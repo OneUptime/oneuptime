@@ -21,7 +21,11 @@ function singleChangeHandler(func: $TSFixMe) {
  */
 function multiChangeHandler(func: $TSFixMe) {
     return function handleMultiHandler(values: $TSFixMe) {
-        func(values.map((value: $TSFixMe) => value.value));
+        func(
+            values.map((value: $TSFixMe) => {
+                return value.value;
+            })
+        );
     };
 }
 
@@ -33,7 +37,9 @@ function multiChangeHandler(func: $TSFixMe) {
  * wants the array of values in the form [{ value: "grape", label: "Grape" }]
  */
 function transformValue(value: $TSFixMe, options: $TSFixMe, isMulti: $TSFixMe) {
-    if (isMulti && typeof value === 'string') return [];
+    if (isMulti && typeof value === 'string') {
+        return [];
+    }
 
     const filteredOptions = options.filter((option: $TSFixMe) => {
         return isMulti
@@ -52,7 +58,7 @@ const RFReactSelect: Function = ({
     isMulti,
     className,
     placeholder,
-    disabled
+    disabled,
 }: $TSFixMe) => {
     const { name, value, onBlur, onChange, onFocus }: $TSFixMe = input;
     const transformedValue: $TSFixMe = transformValue(value, options, isMulti);
@@ -71,7 +77,9 @@ const RFReactSelect: Function = ({
                     ? multiChangeHandler(onChange)
                     : singleChangeHandler(onChange)
             }
-            onBlur={() => onBlur(value)}
+            onBlur={() => {
+                return onBlur(value);
+            }}
             onFocus={onFocus}
             className={className}
         />

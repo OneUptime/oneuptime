@@ -9,7 +9,7 @@ import { updateTwoFactorAuthToken, setTwoFactorAuth } from '../../actions/user';
 import { openModal } from 'CommonUI/actions/Modal';
 import MessageModal from './MessageModal';
 
-export class UserSetting extends Component<ComponentProps>{
+export class UserSetting extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -21,34 +21,31 @@ export class UserSetting extends Component<ComponentProps>{
     }
 
     handleChange = () => {
-
-        const { user, updateTwoFactorAuthToken, setTwoFactorAuth }: $TSFixMe = this.props;
+        const { user, updateTwoFactorAuthToken, setTwoFactorAuth }: $TSFixMe =
+            this.props;
         if (user) {
             return !user.twoFactorAuthEnabled && user.role === 'user'
-
                 ? this.props.openModal({
-
-                    id: this.state.messageModalId,
-                    content: MessageModal,
-                })
+                      id: this.state.messageModalId,
+                      content: MessageModal,
+                  })
                 : !user.twoFactorAuthEnabled && user.role !== 'user'
-                    ? updateTwoFactorAuthToken(user._id, {
-                        twoFactorAuthEnabled: true,
-                        email: user.email,
-                    }).then(() => {
-                        setTwoFactorAuth(true);
-                    })
-                    : updateTwoFactorAuthToken(user._id, {
-                        twoFactorAuthEnabled: false,
-                        email: user.email,
-                    }).then(() => {
-                        setTwoFactorAuth(false);
-                    });
+                ? updateTwoFactorAuthToken(user._id, {
+                      twoFactorAuthEnabled: true,
+                      email: user.email,
+                  }).then(() => {
+                      setTwoFactorAuth(true);
+                  })
+                : updateTwoFactorAuthToken(user._id, {
+                      twoFactorAuthEnabled: false,
+                      email: user.email,
+                  }).then(() => {
+                      setTwoFactorAuth(false);
+                  });
         }
     };
 
     override render() {
-
         let { twoFactorAuthEnabled } = this.props.user;
         if (twoFactorAuthEnabled === undefined) {
             twoFactorAuthEnabled = false;
@@ -61,7 +58,6 @@ export class UserSetting extends Component<ComponentProps>{
                         <div className="Box-root" style={{ width: '100%' }}>
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <div>
-
                                     {this.props.user.deleted ? (
                                         <div
                                             className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
@@ -71,7 +67,6 @@ export class UserSetting extends Component<ComponentProps>{
                                                 <span>Deleted</span>
                                             </span>
                                         </div>
-
                                     ) : this.props.user.isBlocked ? (
                                         <div
                                             className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
@@ -81,7 +76,6 @@ export class UserSetting extends Component<ComponentProps>{
                                                 <span>Blocked</span>
                                             </span>
                                         </div>
-
                                     ) : this.props.user.isAdminMode ? (
                                         <div
                                             className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
@@ -140,12 +134,9 @@ export class UserSetting extends Component<ComponentProps>{
                                                 }}
                                             >
                                                 <span className="value">
-
                                                     {this.props.user !==
                                                         undefined &&
-
-                                                        this.props.user.name
-
+                                                    this.props.user.name
                                                         ? this.props.user.name
                                                         : 'LOADING...'}
                                                 </span>
@@ -175,11 +166,8 @@ export class UserSetting extends Component<ComponentProps>{
                                                 }}
                                             >
                                                 <span className="value">
-
                                                     {this.props.user !== null &&
-
-                                                        this.props.user.email
-
+                                                    this.props.user.email
                                                         ? this.props.user.email
                                                         : 'LOADING...'}
                                                 </span>
@@ -232,13 +220,10 @@ export class UserSetting extends Component<ComponentProps>{
                                                 }}
                                             >
                                                 <span className="value">
-
                                                     {this.props.user !== null &&
-
-                                                        this.props.user.companyName
-
+                                                    this.props.user.companyName
                                                         ? this.props.user
-                                                            .companyName
+                                                              .companyName
                                                         : 'LOADING...'}
                                                 </span>
                                             </div>
@@ -266,20 +251,16 @@ export class UserSetting extends Component<ComponentProps>{
                                                 }}
                                             >
                                                 <span className="value">
-
                                                     {this.props.user !== null &&
-
-                                                        this.props.user
-                                                            .companyPhoneNumber
-
+                                                    this.props.user
+                                                        .companyPhoneNumber
                                                         ? this.props.user
-                                                            .companyPhoneNumber
+                                                              .companyPhoneNumber
                                                         : 'LOADING...'}
                                                 </span>
                                             </div>
                                         </div>
                                         <ShouldRender
-
                                             if={this.props.user.role === 'user'}
                                         >
                                             <div
@@ -345,7 +326,6 @@ export class UserSetting extends Component<ComponentProps>{
                                 className="Flex-flex Flex-direction--row"
                                 style={{ marginTop: '10px' }}
                             >
-
                                 <ShouldRender if={!this.props.user}>
                                     <div className="Box-root Margin-right--8">
                                         <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root" />
@@ -365,7 +345,6 @@ export class UserSetting extends Component<ComponentProps>{
     }
 }
 
-
 UserSetting.displayName = 'UserSetting';
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => {
@@ -383,7 +362,6 @@ function mapStateToProps(state: RootState) {
     };
 }
 
-
 UserSetting.propTypes = {
     user: PropTypes.object.isRequired,
     updateTwoFactorAuthToken: PropTypes.func,
@@ -391,7 +369,6 @@ UserSetting.propTypes = {
     openModal: PropTypes.func,
     isVerified: PropTypes.bool,
 };
-
 
 UserSetting.contextTypes = {};
 

@@ -1,32 +1,33 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators, Dispatch } from 'redux';
+import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Modal from '../components/Modal';
 import { closeModal } from '../actions/Modal';
 
-export class Modals extends Component<ComponentProps>{
+export class Modals extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
     override render() {
-
         const modals = this.props.modals.map((item: $TSFixMe, i: $TSFixMe) => {
             const ModalComponent: $TSFixMe = Modal(item.content);
             return (
-                //  Modal(item.content)({
-                // 	item,
-                // 	zIndex: i,
-                // 	key: i,
-                // 	onClose: item => this.props.closeModal(item)
-                // })
+                /*
+                 *  Modal(item.content)({
+                 * 	item,
+                 * 	zIndex: i,
+                 * 	key: i,
+                 * 	onClose: item => this.props.closeModal(item)
+                 * })
+                 */
                 <ModalComponent
-
                     item={item}
                     key={i}
                     zIndex={i}
-
-                    onClose={(item: $TSFixMe) => this.props.closeModal(item)}
+                    onClose={(item: $TSFixMe) => {
+                        return this.props.closeModal(item);
+                    }}
                 />
             );
         });
@@ -34,18 +35,15 @@ export class Modals extends Component<ComponentProps>{
     }
 }
 
-
 Modals.propTypes = {
     modals: PropTypes.array.isRequired,
     closeModal: PropTypes.func.isRequired,
 };
 
-
 Modals.displayName = 'BlackBoneModals';
 
 export default connect(
     (state) => {
-
         return state.modal;
     },
     (dispatch) => {

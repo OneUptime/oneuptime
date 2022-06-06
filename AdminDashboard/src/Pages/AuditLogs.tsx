@@ -12,7 +12,6 @@ import {
     fetchAuditLogStatus,
 } from '../actions/auditLogs';
 
-
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -28,7 +27,6 @@ class AuditLogs extends Component<ComponentProps> {
     }
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchAuditLogs, searchAuditLogs }: $TSFixMe = this.props;
@@ -47,7 +45,6 @@ class AuditLogs extends Component<ComponentProps> {
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchAuditLogs, searchAuditLogs }: $TSFixMe = this.props;
@@ -62,7 +59,6 @@ class AuditLogs extends Component<ComponentProps> {
     };
 
     override componentDidMount() {
-
         this.props.fetchAuditLogs();
 
         this.props.fetchAuditLogStatus();
@@ -79,7 +75,6 @@ class AuditLogs extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { auditLogStatus }: $TSFixMe = this.props;
         return (
             <div
@@ -151,7 +146,6 @@ class AuditLogs extends Component<ComponentProps> {
                                                     }
                                                 >
                                                     <AlertPanel
-
                                                         className=""
                                                         message={
                                                             <span id="auditLogDisabled">
@@ -176,18 +170,13 @@ class AuditLogs extends Component<ComponentProps> {
                                             </div>
                                         </div>
                                         <AuditLogsList
-
                                             auditLogs={
-
                                                 this.props.auditLogs || {}
                                             }
                                             prevClicked={this.prevClicked}
                                             nextClicked={this.nextClicked}
-
                                             userId={this.props.userId}
-
                                             requesting={this.props.requesting}
-
                                             page={this.state.page}
                                         />
                                     </div>
@@ -200,7 +189,6 @@ class AuditLogs extends Component<ComponentProps> {
         );
     }
 }
-
 
 AuditLogs.displayName = 'AuditLogs';
 
@@ -233,7 +221,6 @@ const mapStateToProps: Function = (state: RootState) => {
         changeAuditLogStatus,
     };
 };
-
 
 AuditLogs.propTypes = {
     fetchAuditLogs: PropTypes.func.isRequired,

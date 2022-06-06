@@ -1,7 +1,6 @@
 import React, { Component, Fragment } from 'react';
 
 class NotFound extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -34,11 +33,10 @@ class NotFound extends Component<ComponentProps> {
                         </div>
                     </div>
                 </div>
-            </Fragment >
+            </Fragment>
         );
     }
 }
-
 
 NotFound.displayName = 'NotFound';
 

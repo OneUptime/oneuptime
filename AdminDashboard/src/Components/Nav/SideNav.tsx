@@ -12,7 +12,6 @@ import ClickOutside from 'react-click-outside';
 import { withRouter, Switch, Route } from 'react-router-dom';
 
 class SideNav extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -27,18 +26,17 @@ class SideNav extends Component<ComponentProps> {
 
     override render() {
         return (
-
-            <ClickOutside onClickOutside={this.props.closeSideNav} >
+            <ClickOutside onClickOutside={this.props.closeSideNav}>
                 <div
                     onKeyDown={this.handleKeyBoard}
-                    className={`db-World-sideNavContainer${this.props.sidenavopen ? ' open' : ''
-                        }`}
+                    className={`db-World-sideNavContainer${
+                        this.props.sidenavopen ? ' open' : ''
+                    }`}
                 >
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
                         <div className="Box-root Margin-bottom--20">
                             <div>
                                 <div>
-
                                     <div tabIndex="-1" id="AccountSwitcherId">
                                         <div className="db-AccountSwitcherX-button Box-root Flex-flex Flex-alignItems--center">
                                             <div className="Box-root Margin-right--8">
@@ -81,8 +79,12 @@ class SideNav extends Component<ComponentProps> {
                         <div className="db-SideNav-navSections Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStaIt">
                             {groups
 
-                                .filter(group => !group.isPublic)
-                                .filter(group => group.visible)
+                                .filter(group => {
+                                    return !group.isPublic;
+                                })
+                                .filter(group => {
+                                    return group.visible;
+                                })
                                 .map((group, index, array) => {
                                     const marginClass: $TSFixMe =
                                         index === array.length - 1
@@ -94,15 +96,23 @@ class SideNav extends Component<ComponentProps> {
                                             className={marginClass}
                                         >
                                             <ul>
-                                                {group.routes.map((route: $TSFixMe) => {
-                                                    return (
-                                                        <li key={route.index}>
-                                                            <NavItem
-                                                                route={route}
-                                                            />
-                                                        </li>
-                                                    );
-                                                })}
+                                                {group.routes.map(
+                                                    (route: $TSFixMe) => {
+                                                        return (
+                                                            <li
+                                                                key={
+                                                                    route.index
+                                                                }
+                                                            >
+                                                                <NavItem
+                                                                    route={
+                                                                        route
+                                                                    }
+                                                                />
+                                                            </li>
+                                                        );
+                                                    }
+                                                )}
                                             </ul>
                                         </div>
                                     );
@@ -114,7 +124,6 @@ class SideNav extends Component<ComponentProps> {
         );
     }
 }
-
 
 SideNav.displayName = 'SideNav';
 
@@ -135,7 +144,6 @@ const mapDispatchToProps: $TSFixMe = function (dispatch: Dispatch) {
     );
 };
 
-
 SideNav.propTypes = {
     closeSideNav: PropTypes.func,
     sidenavopen: PropTypes.bool,
@@ -143,22 +151,27 @@ SideNav.propTypes = {
 
 SideNav.contextTypes = {};
 
-// since sideNav is above page routes we have no access to the pages' props.match,
-// we rebuild the routes here to enable access to these properties
+/*
+ * since sideNav is above page routes we have no access to the pages' props.match,
+ * we rebuild the routes here to enable access to these properties
+ */
 
 const WrappedSideNav: Function = (props: $TSFixMe) => {
     return (
         <Switch>
             {allRoutes
-                .filter(route => route.visible)
+                .filter(route => {
+                    return route.visible;
+                })
                 .map((route, index) => {
                     return (
                         <Route
-
                             exact={route.exact}
                             path={route.path}
                             key={index}
-                            render={(routeProps: $TSFixMe) => <SideNav {...props} {...routeProps} />}
+                            render={(routeProps: $TSFixMe) => {
+                                return <SideNav {...props} {...routeProps} />;
+                            }}
                         />
                     );
                 })}

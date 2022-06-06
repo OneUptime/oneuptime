@@ -11,13 +11,12 @@ import { emaildomains } from './constants/emaildomains';
 import booleanParser from './utils/booleanParser';
 
 export const env: Function = (value: $TSFixMe) => {
-
     const { _env }: $TSFixMe = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
         process.env[`REACT_APP_${value}`]
     );
-}
+};
 
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
@@ -38,8 +37,8 @@ if (
     const address: $TSFixMe = window.location.host.includes('localhost:')
         ? 'localhost'
         : window.location.host.includes('0.0.0.0:')
-            ? '0.0.0.0'
-            : '127.0.0.1';
+        ? '0.0.0.0'
+        : '127.0.0.1';
     apiUrl = window.location.protocol + `//${address}:3002`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     adminDashboardUrl = window.location.protocol + `//${address}:3100/admin`;
@@ -162,9 +161,8 @@ export const Validate: $TSFixMe = {
     number(number: $TSFixMe) {
         if (number && number.length && !isNaN(number)) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     },
 
     isValidNumber(number: $TSFixMe) {
@@ -180,9 +178,8 @@ export const Validate: $TSFixMe = {
 
         if (number && !isNaN(number) && number > 0) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     },
 
     isStrongPassword(password: $TSFixMe) {
@@ -193,7 +190,9 @@ export const Validate: $TSFixMe = {
     },
 
     email(email: $TSFixMe) {
-        if (this.text(email)) return isEmail(email);
+        if (this.text(email)) {
+            return isEmail(email);
+        }
         return false;
     },
 
@@ -202,7 +201,9 @@ export const Validate: $TSFixMe = {
     },
     isValidBusinessEmails(emails: $TSFixMe) {
         for (const email of emails) {
-            if (!emaildomains.test(email)) return false;
+            if (!emaildomains.test(email)) {
+                return false;
+            }
         }
         return true;
     },
@@ -261,41 +262,61 @@ export const Validate: $TSFixMe = {
 };
 
 export const ValidateField: $TSFixMe = {
-    required: (value: $TSFixMe) => value && value.length ? undefined : 'This field is required',
+    required: (value: $TSFixMe) => {
+        return value && value.length ? undefined : 'This field is required';
+    },
 
-    select: (value: $TSFixMe) => value && value.length && value.trim() !== ''
-        ? undefined
-        : 'Please select a value',
+    select: (value: $TSFixMe) => {
+        return value && value.length && value.trim() !== ''
+            ? undefined
+            : 'Please select a value';
+    },
 
-    maxValue10000: (value: $TSFixMe) => value && value.length && value < 10000
-        ? undefined
-        : `input value should be less than ${10000}`,
+    maxValue10000: (value: $TSFixMe) => {
+        return value && value.length && value < 10000
+            ? undefined
+            : `input value should be less than ${10000}`;
+    },
 
-    isDomain: (domain: $TSFixMe) => domain.search(/\./) >= 0 ? undefined : 'Please enter a valid Domain',
+    isDomain: (domain: $TSFixMe) => {
+        return domain.search(/\./) >= 0
+            ? undefined
+            : 'Please enter a valid Domain';
+    },
 
-    url: (url: URL) => validUrl.isUri(url) ? undefined : 'Please enter a valid Url',
+    url: (url: URL) => {
+        return validUrl.isUri(url) ? undefined : 'Please enter a valid Url';
+    },
 
-    text: (text: $TSFixMe) => !text || text.trim() === ''
-        ? 'This field cannot be left blank'
-        : undefined,
+    text: (text: $TSFixMe) => {
+        return !text || text.trim() === ''
+            ? 'This field cannot be left blank'
+            : undefined;
+    },
 
-    number: (number: $TSFixMe) => number && number.length && !isNaN(number)
-        ? undefined
-        : 'Please enter a valid number',
+    number: (number: $TSFixMe) => {
+        return number && number.length && !isNaN(number)
+            ? undefined
+            : 'Please enter a valid number';
+    },
 
+    email: (email: $TSFixMe) => {
+        return this.text(email) && isEmail(email)
+            ? undefined
+            : 'Please enter a valid email';
+    },
 
-    email: (email: $TSFixMe) => this.text(email) && isEmail(email)
-        ? undefined
-        : 'Please enter a valid email',
+    compare: (text1: $TSFixMe, text2: $TSFixMe) => {
+        return text1 === text2 ? undefined : 'These texts donot match';
+    },
 
-    compare: (text1: $TSFixMe, text2: $TSFixMe) =>
-        text1 === text2 ? undefined : 'These texts donot match',
-
-    password6: (password: $TSFixMe) => !password || !password.length
-        ? 'Password cannot be blank'
-        : password.length < 6
+    password6: (password: $TSFixMe) => {
+        return !password || !password.length
+            ? 'Password cannot be blank'
+            : password.length < 6
             ? 'Password must be a minimum of 6 characters'
-            : undefined,
+            : undefined;
+    },
 };
 
 export const PricingPlan: $TSFixMe = {
@@ -348,58 +369,61 @@ export const PricingPlan: $TSFixMe = {
                     details: '$99/mo per user paid annually. ',
                 },
             ];
-        } else {
-            return [
-                {
-                    category: 'Startup',
-                    planId: 'plan_GoVgVbvNdbWwlm',
-                    type: 'month',
-                    amount: 25,
-                    details: '$25 / Month / User',
-                },
-                {
-                    category: 'Startup',
-                    planId: 'plan_GoVgJu5PKMLRJU',
-                    type: 'annual',
-                    amount: 264,
-                    details: '$22/mo per user paid annually. ',
-                },
-                {
-                    category: 'Growth',
-                    planId: 'plan_GoVi9EIa6MU0fG',
-                    type: 'month',
-                    amount: 59,
-                    details: '$59 / Month / User',
-                },
-                {
-                    category: 'Growth',
-                    planId: 'plan_GoViZshjqzZ0vv',
-                    type: 'annual',
-                    amount: 588,
-                    details: '$49/mo per user paid annually. ',
-                },
-                {
-                    category: 'Scale',
-                    planId: 'plan_H9Ii6Qj3HLdtty',
-                    type: 'month',
-                    amount: 99,
-                    details: '$120 / Month / User',
-                },
-                {
-                    category: 'Scale',
-                    planId: 'plan_H9IjvX2Flsvlcg',
-                    type: 'annual',
-                    amount: 1188,
-                    details: '$99/mo per user paid annually. ',
-                },
-            ];
         }
+        return [
+            {
+                category: 'Startup',
+                planId: 'plan_GoVgVbvNdbWwlm',
+                type: 'month',
+                amount: 25,
+                details: '$25 / Month / User',
+            },
+            {
+                category: 'Startup',
+                planId: 'plan_GoVgJu5PKMLRJU',
+                type: 'annual',
+                amount: 264,
+                details: '$22/mo per user paid annually. ',
+            },
+            {
+                category: 'Growth',
+                planId: 'plan_GoVi9EIa6MU0fG',
+                type: 'month',
+                amount: 59,
+                details: '$59 / Month / User',
+            },
+            {
+                category: 'Growth',
+                planId: 'plan_GoViZshjqzZ0vv',
+                type: 'annual',
+                amount: 588,
+                details: '$49/mo per user paid annually. ',
+            },
+            {
+                category: 'Scale',
+                planId: 'plan_H9Ii6Qj3HLdtty',
+                type: 'month',
+                amount: 99,
+                details: '$120 / Month / User',
+            },
+            {
+                category: 'Scale',
+                planId: 'plan_H9IjvX2Flsvlcg',
+                type: 'annual',
+                amount: 1188,
+                details: '$99/mo per user paid annually. ',
+            },
+        ];
     },
 
     getPlanById(id: $TSFixMe) {
         const plans: $TSFixMe = this.getPlans();
-        if (id) return plans.find(plan => plan.planId === id);
-        else return plans[0];
+        if (id) {
+            return plans.find((plan) => {
+                return plan.planId === id;
+            });
+        }
+        return plans[0];
     },
 };
 
@@ -476,19 +500,27 @@ export const tutorials: $TSFixMe = {
 };
 
 export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
-    if (!url) return null;
+    if (!url) {
+        return null;
+    }
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex: $TSFixMe = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return '';
+    if (!results) {
+        return null;
+    }
+    if (!results[2]) {
+        return '';
+    }
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
-}
+};
 
 export const saveFile: Function = (content: $TSFixMe, filename: $TSFixMe) => {
-    const blob: $TSFixMe = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob: $TSFixMe = new Blob([content], {
+        type: 'text/plain;charset=utf-8',
+    });
     FileSaver.saveAs(blob, filename);
-}
+};
 
 export const makeCriteria: Function = (val: $TSFixMe) => {
     const val2: $TSFixMe = {};
@@ -498,23 +530,18 @@ export const makeCriteria: Function = (val: $TSFixMe) => {
     for (let i = 0; i < val.length; i++) {
         const val3: $TSFixMe = {};
         if (val[i].responseType && val[i].responseType.length) {
-
             val3.responseType = val[i].responseType;
         }
         if (val[i].filter && val[i].filter.length) {
-
             val3.filter = val[i].filter;
         }
         if (val[i].field1 && val[i].field1.length) {
-
             val3.field1 = val[i].field1;
         }
         if (val[i].field2 && val[i].field2.length) {
-
             val3.field2 = val[i].field2;
         }
         if (val[i].collection && val[i].collection.length) {
-
             val3.collection = makeCriteria(val[i].collection);
         }
         if (val[0].match && val[0].match.length && val[0].match === 'all') {
@@ -529,7 +556,7 @@ export const makeCriteria: Function = (val: $TSFixMe) => {
 
     val2.or = or;
     return val2;
-}
+};
 
 export const mapCriteria: Function = (val: $TSFixMe) => {
     const val2: $TSFixMe = [];
@@ -537,35 +564,28 @@ export const mapCriteria: Function = (val: $TSFixMe) => {
         for (let i = 0; i < val.and.length; i++) {
             const val3: $TSFixMe = {};
             if (val.and[i].responseType && val.and[i].responseType.length) {
-
                 val3.responseType = val.and[i].responseType;
             }
             if (val.and[i].filter && val.and[i].filter.length) {
-
                 val3.filter = val.and[i].filter;
             }
             if (val.and[i].field1 && val.and[i].field1.length) {
-
                 val3.field1 = val.and[i].field1;
             }
             if (val.and[i].field2 && val.and[i].field2.length) {
-
                 val3.field2 = val.and[i].field2;
             }
             if (
                 val.and[i].collection &&
                 (val.and[i].collection.and || val.and[i].collection.or)
             ) {
-
                 val3.field3 = true;
 
                 val3.collection = mapCriteria(val.and[i].collection);
             } else {
-
                 val3.field3 = false;
             }
             if (i === 0) {
-
                 val3.match = 'all';
             }
             val2.push(val3);
@@ -575,39 +595,32 @@ export const mapCriteria: Function = (val: $TSFixMe) => {
         for (let i = 0; i < val.or.length; i++) {
             const val3: $TSFixMe = {};
             if (val.or[i].responseType && val.or[i].responseType.length) {
-
                 val3.responseType = val.or[i].responseType;
             }
             if (val.or[i].filter && val.or[i].filter.length) {
-
                 val3.filter = val.or[i].filter;
             }
             if (val.or[i].field1 && val.or[i].field1.length) {
-
                 val3.field1 = val.or[i].field1;
             }
             if (val.or[i].field2 && val.or[i].field2.length) {
-
                 val3.field2 = val.or[i].field2;
             }
             if (
                 val.or[i].collection &&
                 (val.or[i].collection.and || val.or[i].collection.or)
             ) {
-
                 val3.field3 = true;
 
                 val3.collection = mapCriteria(val.or[i].collection);
             } else {
-
                 val3.field3 = false;
             }
             if (i === 0) {
-
                 val3.match = 'any';
             }
             val2.push(val3);
         }
         return val2;
     }
-}
+};

@@ -12,7 +12,7 @@ import SsoDeleteModal from './sso/SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './sso/SsoModal';
 import ShouldRender from '../basic/ShouldRender';
 
-export class Component extends Component<ComponentProps>{
+export class Component extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
     state = {
@@ -20,8 +20,7 @@ export class Component extends Component<ComponentProps>{
         page: 1,
     };
 
-    async override componentDidMount() {
-
+    override async componentDidMount() {
         await this.props.fetchSsos();
 
         window.addEventListener('keydown', this.handleKeyboard);
@@ -32,7 +31,6 @@ export class Component extends Component<ComponentProps>{
     }
 
     handleKeyboard = (event: $TSFixMe) => {
-
         const { modalId, modalList }: $TSFixMe = this.props;
         const { ssoModalId }: $TSFixMe = this.state;
 
@@ -52,21 +50,18 @@ export class Component extends Component<ComponentProps>{
     };
 
     addSso = async () => {
-
         this.props.openModal({
             id: this.state.ssoModalId,
-            onConfirm: () => { },
+            onConfirm: () => {},
             content: SsoAddModal,
         });
         this.setState({ page: 1 });
     };
 
     deleteSso = async (ssoId: $TSFixMe) => {
-
         this.props.openModal({
             id: ssoId,
             onConfirm: async () => {
-
                 await this.props.deleteSso(ssoId);
 
                 await this.props.fetchSsoDefaultRoles();
@@ -78,13 +73,11 @@ export class Component extends Component<ComponentProps>{
     };
 
     editSso = async (ssoId: $TSFixMe) => {
-
         this.props.fetchSso(ssoId);
 
         this.props.openModal({
             id: ssoId,
             onConfirm: async () => {
-
                 return this.props.fetchSsos();
             },
             content: SsoUpdateModal,
@@ -92,7 +85,6 @@ export class Component extends Component<ComponentProps>{
     };
 
     previousClicked = async () => {
-
         const { ssos }: $TSFixMe = this.props;
         const { skip, limit }: $TSFixMe = ssos;
 
@@ -101,7 +93,6 @@ export class Component extends Component<ComponentProps>{
     };
 
     nextClicked = async () => {
-
         const { ssos }: $TSFixMe = this.props;
         const { skip, limit }: $TSFixMe = ssos;
 
@@ -110,7 +101,6 @@ export class Component extends Component<ComponentProps>{
     };
 
     override render() {
-
         const { ssos }: $TSFixMe = this.props;
         const { count, skip, limit }: $TSFixMe = ssos;
         const canPrev: $TSFixMe = skip > 0;
@@ -249,7 +239,6 @@ export class Component extends Component<ComponentProps>{
                                                 height: '1px',
                                                 minWidth: '270px',
                                             }}
-
                                             colSpan="5"
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -271,106 +260,114 @@ export class Component extends Component<ComponentProps>{
                                         </td>
                                     </tr>
                                 )}
-                                {ssos.ssos.map((sso: $TSFixMe) => <tr
-                                    key={sso._id}
-                                    className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-                                >
-                                    <td
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                        style={{
-                                            height: '1px',
-                                            minWidth: '270px',
-                                        }}
-                                    >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <div className="Box-root Margin-right--16">
-                                                    <span id="sso-domain">
-                                                        {sso.domain}
+                                {ssos.ssos.map((sso: $TSFixMe) => {
+                                    return (
+                                        <tr
+                                            key={sso._id}
+                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+                                        >
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
+                                                style={{
+                                                    height: '1px',
+                                                    minWidth: '270px',
+                                                }}
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                        <div className="Box-root Margin-right--16">
+                                                            <span id="sso-domain">
+                                                                {sso.domain}
+                                                            </span>
+                                                        </div>
                                                     </span>
                                                 </div>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td
-                                        aria-hidden="true"
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{
-                                            height: '1px',
-                                            maxWidth: '48px',
-                                            minWidth: '48px',
-                                            width: '48px',
-                                        }}
-                                    >
-                                        <div className="db-ListViewItem-link">
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                ⁣
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{ height: '1px' }}
-                                    >
-                                        <div className="db-ListViewItem-link">
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                {moment(
-                                                    sso.createdAt
-                                                ).fromNow()}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td
-                                        aria-hidden="true"
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{
-                                            height: '1px',
-                                            maxWidth: '48px',
-                                            minWidth: '48px',
-                                            width: '48px',
-                                        }}
-                                    >
-                                        <div className="db-ListViewItem-link">
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                ⁣
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{
-                                            height: '1px',
-                                            textAlign: 'right',
-                                        }}
-                                    >
-                                        <div
-                                            className="db-ListViewItem-link"
-                                            style={{
-                                                marginTop: 10,
-                                                paddingRight: 20,
-                                            }}
-                                        >
-                                            <button
-                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
-                                                id="edit-button"
-                                                onClick={() =>
-                                                    this.editSso(sso._id)
-                                                }
+                                            </td>
+                                            <td
+                                                aria-hidden="true"
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{
+                                                    height: '1px',
+                                                    maxWidth: '48px',
+                                                    minWidth: '48px',
+                                                    width: '48px',
+                                                }}
                                             >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                                id="delete-button"
-                                                onClick={() =>
-                                                    this.deleteSso(sso._id)
-                                                }
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        ⁣
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
                                             >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>)}
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        {moment(
+                                                            sso.createdAt
+                                                        ).fromNow()}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td
+                                                aria-hidden="true"
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{
+                                                    height: '1px',
+                                                    maxWidth: '48px',
+                                                    minWidth: '48px',
+                                                    width: '48px',
+                                                }}
+                                            >
+                                                <div className="db-ListViewItem-link">
+                                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                        ⁣
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{
+                                                    height: '1px',
+                                                    textAlign: 'right',
+                                                }}
+                                            >
+                                                <div
+                                                    className="db-ListViewItem-link"
+                                                    style={{
+                                                        marginTop: 10,
+                                                        paddingRight: 20,
+                                                    }}
+                                                >
+                                                    <button
+                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                        id="edit-button"
+                                                        onClick={() => {
+                                                            return this.editSso(
+                                                                sso._id
+                                                            );
+                                                        }}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                                        id="delete-button"
+                                                        onClick={() => {
+                                                            return this.deleteSso(
+                                                                sso._id
+                                                            );
+                                                        }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
 
@@ -439,9 +436,7 @@ export class Component extends Component<ComponentProps>{
     }
 }
 
-
 Component.displayName = 'SettingsForm';
-
 
 Component.propTypes = {
     ssos: PropTypes.object.isRequired,

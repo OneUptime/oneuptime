@@ -12,17 +12,17 @@ class BeforeLoad extends Component<ComponentProps> {
         this.isAuthenticated = isAuthenticated;
         const redirectTo: $TSFixMe = getQueryVar('redirectTo', initialUrl);
         const counter: $TSFixMe = getQueryVar('counter', initialUrl) || 0;
-        if (redirectTo) this.redirect = redirectTo;
+        if (redirectTo) {
+            this.redirect = redirectTo;
+        }
         if (isAuthenticated) {
             if (redirectTo) {
                 sessionStorage.removeItem('initialUrl');
                 const accessToken: $TSFixMe = User.getAccessToken();
 
-                window.location.href = `${redirectTo}?accessToken=${accessToken}&counter=${parseInt(
-
-                    counter,
-                    10
-                ) + 1}`;
+                window.location.href = `${redirectTo}?accessToken=${accessToken}&counter=${
+                    parseInt(counter, 10) + 1
+                }`;
             }
         }
     }
@@ -52,12 +52,9 @@ class BeforeLoad extends Component<ComponentProps> {
     }
 }
 
-
 BeforeLoad.displayName = 'BeforeLoad';
 
-
 BeforeLoad.contextTypes = {};
-
 
 BeforeLoad.propTypes = {
     children: PropTypes.any,

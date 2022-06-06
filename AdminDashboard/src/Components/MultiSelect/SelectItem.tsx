@@ -7,27 +7,29 @@ const DefaultRenderer: Function = ({
     checked,
     option,
     disabled,
-    onClick
-}: $TSFixMe) => (
-    <span className="db-MultiSelect-item-renderer">
-        <input
-            type="checkbox"
-            onChange={onClick}
-            checked={checked}
-            disabled={disabled}
-
-            tabIndex="-1"
-        />
-        <span className="db-MultiSelect-renderer-label">{option.label}</span>
-    </span>
-);
+    onClick,
+}: $TSFixMe) => {
+    return (
+        <span className="db-MultiSelect-item-renderer">
+            <input
+                type="checkbox"
+                onChange={onClick}
+                checked={checked}
+                disabled={disabled}
+                tabIndex="-1"
+            />
+            <span className="db-MultiSelect-renderer-label">
+                {option.label}
+            </span>
+        </span>
+    );
+};
 
 DefaultRenderer.displayName = 'DefaultRenderer';
 
 DefaultRenderer.propTypes = {
     checked: PropTypes.bool.isRequired,
     option: PropTypes.objectOf({
-
         label: PropTypes.string.isRequired,
         value: PropTypes.string.isRequired,
     }),
@@ -52,7 +54,6 @@ class SelectItem extends Component<ComponentProps> {
     }
 
     onChecked = (e: $TSFixMe) => {
-
         const { onSelectionChanged }: $TSFixMe = this.props;
         const { checked }: $TSFixMe = e.target;
 
@@ -60,13 +61,11 @@ class SelectItem extends Component<ComponentProps> {
     };
 
     toggleChecked = () => {
-
         const { checked, onSelectionChanged }: $TSFixMe = this.props;
         onSelectionChanged(!checked);
     };
 
     updateFocus() {
-
         const { focused }: $TSFixMe = this.state;
 
         if (focused && this.labelRef) {
@@ -88,8 +87,8 @@ class SelectItem extends Component<ComponentProps> {
         e.preventDefault();
     };
     override render() {
-
-        const { option, checked, disabled, ItemRenderer, focused }: $TSFixMe = this.props;
+        const { option, checked, disabled, ItemRenderer, focused }: $TSFixMe =
+            this.props;
         const { hovered }: $TSFixMe = this.state;
 
         return (
@@ -98,15 +97,21 @@ class SelectItem extends Component<ComponentProps> {
                 aria-selected={checked}
                 aria-required="true"
                 selected={checked}
-                ref={ref => (this.labelRef = ref)}
-
+                ref={ref => {
+                    return (this.labelRef = ref);
+                }}
                 tabIndex="-1"
-                className={`db-MultiSelect-select-container ${(hovered ||
-                    focused) &&
-                    'db-MultiSelect-item-container--hover'}`}
+                className={`db-MultiSelect-select-container ${
+                    (hovered || focused) &&
+                    'db-MultiSelect-item-container--hover'
+                }`}
                 onKeyDown={this.handleKeyDown}
-                onMouseOver={() => this.setState({ hovered: true })}
-                onMouseOut={() => this.setState({ hovered: false })}
+                onMouseOver={() => {
+                    return this.setState({ hovered: true });
+                }}
+                onMouseOut={() => {
+                    return this.setState({ hovered: false });
+                }}
             >
                 {ItemRenderer ? (
                     <ItemRenderer
@@ -128,14 +133,11 @@ class SelectItem extends Component<ComponentProps> {
     }
 }
 
-
 SelectItem.displayName = 'SelectItem';
-
 
 SelectItem.propTypes = {
     checked: PropTypes.bool.isRequired,
     option: PropTypes.objectOf({
-
         label: PropTypes.string.isRequired,
         value: PropTypes.string.isRequired,
         key: PropTypes.string,

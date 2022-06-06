@@ -6,7 +6,6 @@ import { User } from '../../config';
 import moment from 'moment';
 
 class NotificationMenu extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -21,7 +20,6 @@ class NotificationMenu extends Component<ComponentProps> {
                     width: '450px',
 
                     left: this.props.position
-
                         ? `${this.props.position - 391.5}px`
                         : 'unset',
                     right: '40px',
@@ -69,16 +67,15 @@ class NotificationMenu extends Component<ComponentProps> {
                                     </div>
                                 </div>
                                 <div className="Box-root Padding-vertical--8">
-
                                     {this.props.notifications &&
-
-                                        this.props.notifications.notifications &&
-
-                                        this.props.notifications.notifications
-                                            .length ? (
-
+                                    this.props.notifications.notifications &&
+                                    this.props.notifications.notifications
+                                        .length ? (
                                         this.props.notifications.notifications.map(
-                                            (notification: $TSFixMe, key: $TSFixMe) => {
+                                            (
+                                                notification: $TSFixMe,
+                                                key: $TSFixMe
+                                            ) => {
                                                 return (
                                                     <div
                                                         className={
@@ -101,24 +98,22 @@ class NotificationMenu extends Component<ComponentProps> {
                                                     >
                                                         <div className="Notify-oneuptime">
                                                             <img
-                                                                src={`/dashboard/assets/img/${notification.icon
-                                                                    ? notification.icon
-                                                                    : 'information'
-                                                                    }.svg`}
+                                                                src={`/dashboard/assets/img/${
+                                                                    notification.icon
+                                                                        ? notification.icon
+                                                                        : 'information'
+                                                                }.svg`}
                                                                 className="Notify-oneuptime-row-primary"
                                                                 style={{
-                                                                    height:
-                                                                        '20px',
-                                                                    width:
-                                                                        '20px',
+                                                                    height: '20px',
+                                                                    width: '20px',
                                                                 }}
                                                                 alt="notify"
                                                             />
                                                             <span
                                                                 className="Notify-oneuptime-row-secondary"
                                                                 style={{
-                                                                    cursor:
-                                                                        'default',
+                                                                    cursor: 'default',
                                                                 }}
                                                             >
                                                                 {
@@ -160,7 +155,6 @@ class NotificationMenu extends Component<ComponentProps> {
     }
 }
 
-
 NotificationMenu.displayName = 'NotificationMenu';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -174,7 +168,6 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 
-
 NotificationMenu.propTypes = {
     visible: PropTypes.bool,
     notifications: PropTypes.oneOfType([
@@ -185,7 +178,6 @@ NotificationMenu.propTypes = {
     map: PropTypes.func,
     position: PropTypes.number,
 };
-
 
 NotificationMenu.contextTypes = {};
 

@@ -7,7 +7,6 @@ import ClickOutside from 'react-click-outside';
 import { closeModal } from 'CommonUI/actions/Modal';
 
 class MessageBox extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -30,15 +29,12 @@ class MessageBox extends Component<ComponentProps> {
     };
 
     handleCloseModal = () => {
-
         this.props.closeModal({
-
             id: this.props.messageBoxId,
         });
     };
 
     override render() {
-
         const { data }: $TSFixMe = this.props;
 
         let { title, message, messageBoxId } = this.props;
@@ -81,12 +77,11 @@ class MessageBox extends Component<ComponentProps> {
                                             className="bs-Button bs-DeprecatedButton bs-Button--white btn__modal"
                                             type="button"
                                             id="modal-ok"
-                                            onClick={() =>
-
-                                                this.props.closeModal({
+                                            onClick={() => {
+                                                return this.props.closeModal({
                                                     id: messageBoxId,
-                                                })
-                                            }
+                                                });
+                                            }}
                                             autoFocus={true}
                                         >
                                             <span>OK</span>
@@ -105,9 +100,7 @@ class MessageBox extends Component<ComponentProps> {
     }
 }
 
-
 MessageBox.displayName = 'MessageBoxModal';
-
 
 MessageBox.propTypes = {
     closeModal: PropTypes.func.isRequired,
@@ -129,5 +122,7 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ closeModal }, dispatch);
+};
 export default connect(mapStateToProps, mapDispatchToProps)(MessageBox);

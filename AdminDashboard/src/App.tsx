@@ -20,7 +20,6 @@ if (userData !== undefined) {
     User.setEmail(userData.email);
     User.setName(userData.name);
 } else {
-
     window.location.href = ACCOUNTS_URL;
 }
 
@@ -32,7 +31,9 @@ const App: Function = () => {
                     <Suspense fallback={<LoadingState />}>
                         <Switch>
                             {allRoutes
-                                .filter(route => route.visible)
+                                .filter(route => {
+                                    return route.visible;
+                                })
                                 .map((route, index) => {
                                     return (
                                         <Route

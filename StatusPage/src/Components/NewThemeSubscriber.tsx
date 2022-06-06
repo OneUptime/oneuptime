@@ -9,24 +9,24 @@ const NewThemeSubscriber: Function = () => {
     const subRef: $TSFixMe = useRef();
 
     const handleToggleButtonClick: Function = () => {
-        setIsShown(prevState => !prevState);
+        setIsShown(prevState => {
+            return !prevState;
+        });
     };
     const handleCloseButtonClick: Function = () => {
         setIsShown(false);
     };
     useEffect(() => {
         const listener: Function = (event: $TSFixMe) => {
-
             if (!popupRef.current || popupRef.current.contains(event.target)) {
                 return;
             }
 
             if (isShown && subRef.current.contains(event.target)) {
                 return;
-            } else {
-
-                handleCloseButtonClick(event);
             }
+
+            handleCloseButtonClick(event);
         };
         document.addEventListener('mousedown', listener);
         document.addEventListener('touchstart', listener);
@@ -39,7 +39,6 @@ const NewThemeSubscriber: Function = () => {
     return (
         <div className="popup-menu-container" id="subscriber-button">
             <button
-
                 ref={subRef}
                 className="subscribe_btn"
                 onClick={handleToggleButtonClick}
@@ -48,11 +47,9 @@ const NewThemeSubscriber: Function = () => {
             </button>
             <div
                 className={`popup-menu ${isShown ? 'shown' : ''}`}
-
                 ref={popupRef}
             >
                 <SubscribeBox
-
                     theme={true}
                     handleCloseButtonClick={handleCloseButtonClick}
                 />

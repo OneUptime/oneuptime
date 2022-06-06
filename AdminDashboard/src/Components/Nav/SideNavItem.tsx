@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
 
-export class SidebarNavItem extends Component<ComponentProps>{
+export class SidebarNavItem extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -19,7 +19,6 @@ export class SidebarNavItem extends Component<ComponentProps>{
     }
 
     override componentDidMount() {
-
         const { route }: $TSFixMe = this.props;
         navKeyBind(route);
 
@@ -30,7 +29,6 @@ export class SidebarNavItem extends Component<ComponentProps>{
     }
 
     override componentWillUnmount() {
-
         const { route }: $TSFixMe = this.props;
         cleanBind(route);
 
@@ -43,7 +41,9 @@ export class SidebarNavItem extends Component<ComponentProps>{
     camalize = function camalize(str: $TSFixMe) {
         return str
             .toLowerCase()
-            .replace(/[^a-zA-Z0-9]+(.)/g, (m: $TSFixMe, chr: $TSFixMe) => chr.toUpperCase());
+            .replace(/[^a-zA-Z0-9]+(.)/g, (m: $TSFixMe, chr: $TSFixMe) => {
+                return chr.toUpperCase();
+            });
     };
 
     routeInnerDiv = (route: $TSFixMe, isLinkActive: $TSFixMe) => {
@@ -55,11 +55,13 @@ export class SidebarNavItem extends Component<ComponentProps>{
                     <div className="Box-root Flex-flex Flex-alignItems--center tooltip">
                         <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
                             <span
-                                className={`db-SideNav-icon db-SideNav-icon--${route.icon
-                                    } ${isLinkActive
+                                className={`db-SideNav-icon db-SideNav-icon--${
+                                    route.icon
+                                } ${
+                                    isLinkActive
                                         ? 'db-SideNav-icon--selected'
                                         : null
-                                    }`}
+                                }`}
                             />
                         </div>
                         <span
@@ -106,7 +108,6 @@ export class SidebarNavItem extends Component<ComponentProps>{
         };
 
         return (
-
             <div id={this.camalize(route.title)} style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
                     <ShouldRender if={route.external}>
@@ -115,7 +116,12 @@ export class SidebarNavItem extends Component<ComponentProps>{
                         </a>
                     </ShouldRender>
                     <ShouldRender if={!route.external}>
-                        <Link to={path} onClick={() => loadPage(route.title)}>
+                        <Link
+                            to={path}
+                            onClick={() => {
+                                return loadPage(route.title);
+                            }}
+                        >
                             {this.routeInnerDiv(route, isLinkActive)}
                         </Link>
                     </ShouldRender>
@@ -131,7 +137,9 @@ export class SidebarNavItem extends Component<ComponentProps>{
                             <ul style={{ marginBottom: '8px' }}>
                                 <RenderListItems
                                     active={match.url}
-                                    onLoad={(title: $TSFixMe) => loadPage(title)}
+                                    onLoad={(title: $TSFixMe) => {
+                                        return loadPage(title);
+                                    }}
                                 />
                             </ul>
                         </ShouldRender>
@@ -141,72 +149,90 @@ export class SidebarNavItem extends Component<ComponentProps>{
         );
     }
 
-    RenderListItems({
-        active,
-        onLoad
-    }: $TSFixMe) {
+    RenderListItems({ active, onLoad }: $TSFixMe) {
+        return this.props.route.subRoutes.map(
+            (child: $TSFixMe, index: $TSFixMe) => {
+                const routes: $TSFixMe =
+                    child.shortcut && child.shortcut.split('+');
 
-        return this.props.route.subRoutes.map((child: $TSFixMe, index: $TSFixMe) => {
-            const routes: $TSFixMe = child.shortcut && child.shortcut.split('+');
+                const removedLinks: $TSFixMe = ['User', 'Project'];
+                if (
+                    removedLinks.some(link => {
+                        return link === child.title;
+                    })
+                ) {
+                    return null;
+                }
 
-            const removedLinks: $TSFixMe = ['User', 'Project'];
-            if (removedLinks.some(link => link === child.title)) return null;
+                if (child.visible) {
+                    const link: $TSFixMe = child.path.replace(
+                        ':userId',
 
-            if (child.visible) {
-                const link: $TSFixMe = child.path.replace(
-                    ':userId',
-
-                    this.props.match.params.userId
-                );
-                return (
-                    <li id={this.camalize(child.title)} key={`nav ${index}`}>
-                        <div style={{ position: 'relative' }}>
-                            <Link to={link} onClick={() => onLoad(child.title)}>
-                                <div style={{ outline: 'none' }}>
-                                    <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
-                                        <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32 tooltip">
-                                            <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                <span
-                                                    className={
-                                                        link === active
-                                                            ? 'Text-color--oneuptimeblue Text-fontWeight--bold'
-                                                            : ''
-                                                    }
-                                                >
-                                                    {child.title}
+                        this.props.match.params.userId
+                    );
+                    return (
+                        <li
+                            id={this.camalize(child.title)}
+                            key={`nav ${index}`}
+                        >
+                            <div style={{ position: 'relative' }}>
+                                <Link
+                                    to={link}
+                                    onClick={() => {
+                                        return onLoad(child.title);
+                                    }}
+                                >
+                                    <div style={{ outline: 'none' }}>
+                                        <div className="NavItem Box-root Box-background--surface Box-divider--surface-bottom-1 Padding-horizontal--4 Padding-vertical--2">
+                                            <div className="Box-root Flex-flex Flex-alignItems--center Padding-left--32 tooltip">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span
+                                                        className={
+                                                            link === active
+                                                                ? 'Text-color--oneuptimeblue Text-fontWeight--bold'
+                                                                : ''
+                                                        }
+                                                    >
+                                                        {child.title}
+                                                    </span>
                                                 </span>
-                                            </span>
-                                            {child.shortcut && (
-                                                <span className="tooltiptext">
-                                                    <strong>{routes[0]}</strong>
-                                                    <span> then </span>
-                                                    <strong>{routes[1]}</strong>
-                                                </span>
-                                            )}
+                                                {child.shortcut && (
+                                                    <span className="tooltiptext">
+                                                        <strong>
+                                                            {routes[0]}
+                                                        </strong>
+                                                        <span> then </span>
+                                                        <strong>
+                                                            {routes[1]}
+                                                        </strong>
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
+                                </Link>
+                                <div className="db-SideNav-item--root">
+                                    <span></span>
                                 </div>
-                            </Link>
-                            <div className="db-SideNav-item--root">
-                                <span></span>
                             </div>
-                        </div>
-                    </li>
-                );
-            } else {
+                        </li>
+                    );
+                }
                 return null;
             }
-        });
+        );
     }
 }
 
-
 SidebarNavItem.displayName = 'SidebarNavItem';
 
-const mapStateToProps: Function = () => ({});
+const mapStateToProps: Function = () => {
+    return {};
+};
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ loadPage }, dispatch);
-
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ loadPage }, dispatch);
+};
 
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,

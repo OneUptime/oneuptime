@@ -5,25 +5,27 @@ const Button: Function = ({
     id,
     onClick = () => {},
     text,
-    shortcut
-}: $TSFixMe) => (
-    <button
-        id={id}
-        className="bs-Button bs-ButtonLegacy ActionIconParent"
-        type="button"
-        onClick={onClick}
-        style={{
-            marginLeft: '8px',
-            paddingTop: 3,
-            paddingBottom: 3,
-        }}
-    >
-        <span className="bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-            <span>{text}</span>
-            <span className="new-btn__keycode">{shortcut}</span>
-        </span>
-    </button>
-);
+    shortcut,
+}: $TSFixMe) => {
+    return (
+        <button
+            id={id}
+            className="bs-Button bs-ButtonLegacy ActionIconParent"
+            type="button"
+            onClick={onClick}
+            style={{
+                marginLeft: '8px',
+                paddingTop: 3,
+                paddingBottom: 3,
+            }}
+        >
+            <span className="bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                <span>{text}</span>
+                <span className="new-btn__keycode">{shortcut}</span>
+            </span>
+        </button>
+    );
+};
 
 Button.displayName = 'Button';
 

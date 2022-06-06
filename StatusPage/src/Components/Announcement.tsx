@@ -32,7 +32,6 @@ class Announcement extends Component<ComponentProps> {
 
     handleRouting = (announcementSlug: $TSFixMe) => {
         const {
-
             history,
 
             statusPage: { slug },
@@ -42,7 +41,6 @@ class Announcement extends Component<ComponentProps> {
 
     addMore = async () => {
         const {
-
             getAnnouncements,
 
             statusPage: { projectId, _id },
@@ -52,13 +50,11 @@ class Announcement extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { announcement, monitorState }: $TSFixMe = this.props;
         return (
             <>
                 {announcement && (
                     <>
-
                         {this.props.theme ? (
                             <div
                                 className="clean_ann"
@@ -67,7 +63,7 @@ class Announcement extends Component<ComponentProps> {
                                     this.handleRouting(announcement.slug);
                                 }}
                             >
-                                <span className="ann_header">{ }</span>
+                                <span className="ann_header">{}</span>
                                 <AnnouncementBox
                                     announcement={announcement}
                                     monitorState={monitorState}
@@ -98,9 +94,7 @@ class Announcement extends Component<ComponentProps> {
     }
 }
 
-
 Announcement.displayName = 'Announcement';
-
 
 Announcement.propTypes = {
     theme: PropTypes.string,
@@ -123,7 +117,9 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getAnnouncements }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators({ getAnnouncements }, dispatch);
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Announcement);
 
@@ -136,43 +132,49 @@ interface AnnouncementBoxProps {
 function AnnouncementBox({
     announcement,
     monitorState,
-    type
+    type,
 }: AnnouncementBoxProps) {
-    return <>
-        <div className="icon_ann">
-            <div className={type ? 'ann_title classic_font' : 'ann_title'}>
-                {announcement.name}
+    return (
+        <>
+            <div className="icon_ann">
+                <div className={type ? 'ann_title classic_font' : 'ann_title'}>
+                    {announcement.name}
+                </div>
             </div>
-        </div>
-        <div className="ann_desc" style={{ whiteSpace: 'pre-wrap' }}>
-            {announcement?.description &&
-                announcement.description.split('\n').map((elem: $TSFixMe, index: $TSFixMe) => (
-                    <Markdown
-                        key={`${elem}-${index}`}
-                        options={{
-                            forceBlock: true,
-                        }}
-                    >
-                        {elem}
-                    </Markdown>
-                ))}
-        </div>
-        <ShouldRender if={announcement.monitors.length > 0}>
-            <div className={'resources_aff'}>
-                <span className={type && 'classic_font'}>
-                    <Translate>Resources Affected: </Translate>
-                </span>
-                <span>
-                    {' '}
-                    {announcement &&
-                        handleResources(monitorState, announcement)}
-                </span>
+            <div className="ann_desc" style={{ whiteSpace: 'pre-wrap' }}>
+                {announcement?.description &&
+                    announcement.description
+                        .split('\n')
+                        .map((elem: $TSFixMe, index: $TSFixMe) => {
+                            return (
+                                <Markdown
+                                    key={`${elem}-${index}`}
+                                    options={{
+                                        forceBlock: true,
+                                    }}
+                                >
+                                    {elem}
+                                </Markdown>
+                            );
+                        })}
             </div>
-        </ShouldRender>
-        <div className="ongoing__schedulebox classic_icon_x">
-            <span className="sp__icon sp__icon--more"></span>
-        </div>
-    </>;
+            <ShouldRender if={announcement.monitors.length > 0}>
+                <div className={'resources_aff'}>
+                    <span className={type && 'classic_font'}>
+                        <Translate>Resources Affected: </Translate>
+                    </span>
+                    <span>
+                        {' '}
+                        {announcement &&
+                            handleResources(monitorState, announcement)}
+                    </span>
+                </div>
+            </ShouldRender>
+            <div className="ongoing__schedulebox classic_icon_x">
+                <span className="sp__icon sp__icon--more"></span>
+            </div>
+        </>
+    );
 }
 
 AnnouncementBox.propTypes = {

@@ -19,12 +19,10 @@ import UserAdminModeDisableBox from '../components/user/UserAdminModeDisableBox'
 import { User as LsUser } from '../config';
 
 class User extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     componentDidMount = async () => {
-
         await this.props.fetchUserProjects(this.props.match.params.userId);
 
         await this.props.fetchUser(this.props.match.params.userId);
@@ -34,7 +32,7 @@ class User extends Component<ComponentProps> {
 
     override render() {
         return (
-            <div className="Box-root Margin-vertical--12" >
+            <div className="Box-root Margin-vertical--12">
                 <div>
                     <div>
                         <div className="db-BackboneViewContainer">
@@ -50,18 +48,14 @@ class User extends Component<ComponentProps> {
                                             </div>
                                             <div className="Box-root Margin-bottom--12">
                                                 <AdminNotes
-
                                                     id={
-
                                                         this.props.match.params
                                                             .userId
                                                     }
                                                     addNote={
-
                                                         this.props.addUserNote
                                                     }
                                                     initialValues={
-
                                                         this.props.initialValues
                                                     }
                                                 />
@@ -69,7 +63,6 @@ class User extends Component<ComponentProps> {
                                             <ShouldRender
                                                 if={
                                                     LsUser.getUserId() !==
-
                                                     this.props.match.params
                                                         .userId
                                                 }
@@ -77,10 +70,8 @@ class User extends Component<ComponentProps> {
                                                 <div className="Box-root Margin-bottom--12">
                                                     <ShouldRender
                                                         if={
-
                                                             !this.props?.user
                                                                 ?.isAdminMode &&
-
                                                             !this.props?.user
                                                                 .deleted
                                                         }
@@ -89,10 +80,8 @@ class User extends Component<ComponentProps> {
                                                     </ShouldRender>
                                                     <ShouldRender
                                                         if={
-
                                                             this.props?.user
                                                                 ?.isAdminMode &&
-
                                                             !this.props?.user
                                                                 .deleted
                                                         }
@@ -103,10 +92,8 @@ class User extends Component<ComponentProps> {
                                             </ShouldRender>
                                             <div className="Box-root Margin-bottom--12">
                                                 <UserHistory
-
                                                     history={this.props.history}
                                                     userId={
-
                                                         this.props.match.params
                                                             .userId
                                                     }
@@ -115,19 +102,15 @@ class User extends Component<ComponentProps> {
                                             <ShouldRender
                                                 if={
                                                     LsUser.getUserId() !==
-
                                                     this.props.match.params
                                                         .userId
                                                 }
                                             >
                                                 <ShouldRender
                                                     if={
-
                                                         this.props.user &&
-
                                                         !this.props.user
                                                             .deleted &&
-
                                                         !this.props.user
                                                             .isBlocked
                                                     }
@@ -138,12 +121,9 @@ class User extends Component<ComponentProps> {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-
                                                         this.props.user &&
-
                                                         !this.props.user
                                                             .deleted &&
-
                                                         this.props.user
                                                             .isBlocked
                                                     }
@@ -154,9 +134,7 @@ class User extends Component<ComponentProps> {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-
                                                         this.props.user &&
-
                                                         !this.props.user.deleted
                                                     }
                                                 >
@@ -166,9 +144,7 @@ class User extends Component<ComponentProps> {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-
                                                         this.props.user &&
-
                                                         this.props.user.deleted
                                                     }
                                                 >
@@ -207,9 +183,7 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 User.contextTypes = {};
-
 
 User.propTypes = {
     match: PropTypes.object.isRequired,
@@ -221,7 +195,6 @@ User.propTypes = {
     initialValues: PropTypes.object,
     fetchUserloginHistory: PropTypes.func,
 };
-
 
 User.displayName = 'User';
 

@@ -7,16 +7,11 @@ import { connect } from 'react-redux';
  * @param {React.Props} props Props comprise an object with 3 JSX values for `HEADER`, `CONTENT` & `FOOTER`
  * @returns {JSX.Element} A modal and a child component.
  */
-export function Modalize({
-    HEADER,
-    CONTENT,
-    FOOTER
-}: $TSFixMe) {
+export function Modalize({ HEADER, CONTENT, FOOTER }: $TSFixMe) {
     return HEADER && CONTENT && FOOTER ? (
         <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
             <div
                 className="ModalLayer-contents"
-
                 tabIndex="-1"
                 style={{ marginTop: 105 }}
             >
@@ -41,11 +36,13 @@ export function Modalize({
     ) : null;
 }
 
-const mapStateToProps: Function = (state: RootState) => ({
-    HEADER: state.modal.header,
-    CONTENT: state.modal.content,
-    FOOTER: state.modal.footer
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        HEADER: state.modal.header,
+        CONTENT: state.modal.content,
+        FOOTER: state.modal.footer,
+    };
+};
 
 Modalize.propTypes = {
     HEADER: PropTypes.string.isRequired,

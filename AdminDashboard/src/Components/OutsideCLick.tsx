@@ -6,7 +6,6 @@ import React, { Component } from 'react';
 
 export default (ComposedComponent: $TSFixMe, extras: $TSFixMe) => {
     class OutsideCkick extends Component<ComponentProps> {
-
         public static displayName = '';
         public static propTypes = {};
 
@@ -44,14 +43,13 @@ export default (ComposedComponent: $TSFixMe, extras: $TSFixMe) => {
 
         override render() {
             return (
-                <div ref={this.setWrapperRef} >
+                <div ref={this.setWrapperRef}>
                     {' '}
-                    < ComposedComponent {...this.props} />{' '}
-                </div >
+                    <ComposedComponent {...this.props} />{' '}
+                </div>
             );
         }
     }
-
 
     OutsideCkick.displayName = 'OutsideCkick';
 

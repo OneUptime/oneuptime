@@ -10,10 +10,9 @@ import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
 
-const  formName: string = 'UserAdminModeEnableForm';
+const formName: string = 'UserAdminModeEnableForm';
 
 class UserAdminModeEnableModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -26,17 +25,14 @@ class UserAdminModeEnableModal extends Component<ComponentProps> {
     }
 
     submitForm = (values: $TSFixMe) => {
-
         return this.props.confirmThisDialog(values);
     };
 
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             case 'Enter':
-
                 return document.getElementById('enableAdminMode').click();
             default:
                 return false;
@@ -45,7 +41,6 @@ class UserAdminModeEnableModal extends Component<ComponentProps> {
 
     override render() {
         const {
-
             isRequesting,
 
             enableAdminModeError,
@@ -139,8 +134,7 @@ class UserAdminModeEnableModal extends Component<ComponentProps> {
                                                         <div className="Box-root">
                                                             <span
                                                                 style={{
-                                                                    color:
-                                                                        'red',
+                                                                    color: 'red',
                                                                 }}
                                                             >
                                                                 {
@@ -152,8 +146,10 @@ class UserAdminModeEnableModal extends Component<ComponentProps> {
                                                 </div>
                                             </ShouldRender>
                                             <button
-                                                className={`bs-Button btn__modal ${isRequesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button btn__modal ${
+                                                    isRequesting &&
+                                                    'bs-is-disabled'
+                                                }`}
                                                 type="button"
                                                 onClick={closeThisDialog}
                                                 disabled={isRequesting}
@@ -165,8 +161,10 @@ class UserAdminModeEnableModal extends Component<ComponentProps> {
                                             </button>
                                             <button
                                                 id="enableAdminMode"
-                                                className={`bs-Button bs-Button--red Box-background--red btn__modal ${isRequesting &&
-                                                    'bs-is-disabled'}`}
+                                                className={`bs-Button bs-Button--red Box-background--red btn__modal ${
+                                                    isRequesting &&
+                                                    'bs-is-disabled'
+                                                }`}
                                                 type="submit"
                                                 disabled={isRequesting}
                                                 autoFocus={true}
@@ -191,7 +189,6 @@ class UserAdminModeEnableModal extends Component<ComponentProps> {
     }
 }
 
-
 UserAdminModeEnableModal.displayName = 'UserAdminModeEnableModal';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -206,7 +203,6 @@ const mapStateToProps: Function = (state: RootState) => {
             state.user.enableAdminMode.error,
     };
 };
-
 
 UserAdminModeEnableModal.propTypes = {
     isRequesting: PropTypes.oneOfType([

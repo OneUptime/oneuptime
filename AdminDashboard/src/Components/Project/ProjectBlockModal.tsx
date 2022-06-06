@@ -7,7 +7,6 @@ import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
 class ProjectBlockModal extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -22,10 +21,8 @@ class ProjectBlockModal extends Component<ComponentProps> {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 return this.props.closeThisDialog();
             case 'Enter':
-
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -34,7 +31,6 @@ class ProjectBlockModal extends Component<ComponentProps> {
 
     override render() {
         const {
-
             isRequesting,
 
             error,
@@ -99,8 +95,9 @@ class ProjectBlockModal extends Component<ComponentProps> {
                                             </div>
                                         </ShouldRender>
                                         <button
-                                            className={`bs-Button btn__modal ${isRequesting &&
-                                                'bs-is-disabled'}`}
+                                            className={`bs-Button btn__modal ${
+                                                isRequesting && 'bs-is-disabled'
+                                            }`}
                                             type="button"
                                             onClick={closeThisDialog}
                                             disabled={isRequesting}
@@ -112,8 +109,9 @@ class ProjectBlockModal extends Component<ComponentProps> {
                                         </button>
                                         <button
                                             id="confirmDelete"
-                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${isRequesting &&
-                                                'bs-is-disabled'}`}
+                                            className={`bs-Button bs-Button--red Box-background--red btn__modal ${
+                                                isRequesting && 'bs-is-disabled'
+                                            }`}
                                             onClick={confirmThisDialog}
                                             disabled={isRequesting}
                                             autoFocus={true}
@@ -137,7 +135,6 @@ class ProjectBlockModal extends Component<ComponentProps> {
     }
 }
 
-
 ProjectBlockModal.displayName = 'ProjectBlockModal';
 
 const mapStateToProps: Function = (state: RootState) => {
@@ -152,7 +149,6 @@ const mapStateToProps: Function = (state: RootState) => {
             state.project.blockProject.error,
     };
 };
-
 
 ProjectBlockModal.propTypes = {
     isRequesting: PropTypes.oneOfType([

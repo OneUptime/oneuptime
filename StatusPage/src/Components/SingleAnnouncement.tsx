@@ -19,9 +19,8 @@ interface SingleAnnouncementProps {
 }
 
 class SingleAnnouncement extends Component<ComponentProps> {
-    async override componentDidMount() {
+    override async componentDidMount() {
         const {
-
             match: {
                 params: { announcementSlug, statusPageSlug },
             },
@@ -30,14 +29,12 @@ class SingleAnnouncement extends Component<ComponentProps> {
         await this.props.getStatusPage(statusPageSlug, 'null');
 
         await this.props.getSingleAnnouncement(
-
             this.props.statusPage.projectId._id,
             statusPageSlug,
             announcementSlug
         );
     }
     override render() {
-
         const { announcement, monitorState }: $TSFixMe = this.props;
 
         return (
@@ -89,8 +86,7 @@ class SingleAnnouncement extends Component<ComponentProps> {
                                             <span
                                                 className="feed-title"
                                                 style={{
-                                                    color:
-                                                        'rgba(76, 76, 76, 0.8)',
+                                                    color: 'rgba(76, 76, 76, 0.8)',
                                                     fontWeight: 'bold',
                                                     marginBottom: 25,
                                                     textTransform: 'unset',
@@ -107,16 +103,24 @@ class SingleAnnouncement extends Component<ComponentProps> {
                                                 {announcement.description &&
                                                     announcement.description
                                                         .split('\n')
-                                                        .map((elem: $TSFixMe, index: $TSFixMe) => (
-                                                            <Markdown
-                                                                key={`${elem}-${index}`}
-                                                                options={{
-                                                                    forceBlock: true,
-                                                                }}
-                                                            >
-                                                                {elem}
-                                                            </Markdown>
-                                                        ))}
+                                                        .map(
+                                                            (
+                                                                elem: $TSFixMe,
+                                                                index: $TSFixMe
+                                                            ) => {
+                                                                return (
+                                                                    <Markdown
+                                                                        key={`${elem}-${index}`}
+                                                                        options={{
+                                                                            forceBlock:
+                                                                                true,
+                                                                        }}
+                                                                    >
+                                                                        {elem}
+                                                                    </Markdown>
+                                                                );
+                                                            }
+                                                        )}
                                             </span>
                                         </div>
                                         <ShouldRender
@@ -131,8 +135,7 @@ class SingleAnnouncement extends Component<ComponentProps> {
                                                 <span
                                                     className="ongoing__affectedmonitor--title"
                                                     style={{
-                                                        color:
-                                                            'rgba(76, 76, 76, 0.8)',
+                                                        color: 'rgba(76, 76, 76, 0.8)',
                                                     }}
                                                 >
                                                     <Translate>
@@ -142,8 +145,7 @@ class SingleAnnouncement extends Component<ComponentProps> {
                                                 <span
                                                     className="ongoing__affectedmonitor--content"
                                                     style={{
-                                                        color:
-                                                            'rgba(0, 0, 0, 0.5)',
+                                                        color: 'rgba(0, 0, 0, 0.5)',
                                                     }}
                                                 >
                                                     {handleResources(
@@ -164,9 +166,7 @@ class SingleAnnouncement extends Component<ComponentProps> {
     }
 }
 
-
 SingleAnnouncement.displayName = 'SingleAnnouncement';
-
 
 SingleAnnouncement.propTypes = {
     statusPage: PropTypes.object,
@@ -185,6 +185,11 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getSingleAnnouncement, getStatusPage }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        { getSingleAnnouncement, getStatusPage },
+        dispatch
+    );
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(SingleAnnouncement);

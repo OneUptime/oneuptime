@@ -1,10 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-function Badge({
-    children,
-    color = 'green'
-}: $TSFixMe) {
+function Badge({ children, color = 'green' }: $TSFixMe) {
     return (
         <div
             className={`Badge Badge--color--blue Box-background--${color} bg-${color}-700 Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}

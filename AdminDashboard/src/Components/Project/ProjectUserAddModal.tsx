@@ -28,14 +28,13 @@ function validate(values: $TSFixMe) {
     values.emails = values.emails ? values.emails.replace(/\s/g, '') : '';
     const emails: $TSFixMe = values.emails ? values.emails.split(',') : [];
     if (!Validate.isValidBusinessEmails(emails)) {
-
         errors.emails = 'Please enter business emails of the members.';
     }
 
     return errors;
 }
 
-export class FormModal extends Component<ComponentProps>{
+export class FormModal extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -66,10 +65,10 @@ export class FormModal extends Component<ComponentProps>{
             this.showMessageBox();
         }
         userCreate(data.projectId, values).then(
-            function () {
+            () => {
                 closeThisDialog();
             },
-            function () {
+            () => {
                 //do nothing.
             }
         );
@@ -78,11 +77,9 @@ export class FormModal extends Component<ComponentProps>{
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-
                 this.props.closeThisDialog();
                 return true;
             case 'Enter':
-
                 return document
 
                     .getElementById(`btn_modal_${this.props.data.projectName}`)
@@ -92,10 +89,8 @@ export class FormModal extends Component<ComponentProps>{
         }
     };
 
-    showMessageBox = () =>
-
-        this.props.openModal({
-
+    showMessageBox = () => {
+        return this.props.openModal({
             id: this.state.messageModalId,
             content: DataPathHoC(MessageBox, {
                 message: (
@@ -117,14 +112,13 @@ export class FormModal extends Component<ComponentProps>{
                 messageBoxId: this.state.messageModalId,
             }),
         });
+    };
 
     override render() {
-
         const { handleSubmit, closeThisDialog, data }: $TSFixMe = this.props;
         return (
             <div
                 className="ModalLayer-contents"
-
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -133,7 +127,6 @@ export class FormModal extends Component<ComponentProps>{
                         <ClickOutside onClickOutside={closeThisDialog}>
                             <form
                                 id={`frm_${data.projectName}`}
-
                                 lpformnum="2"
                                 onSubmit={handleSubmit(this.submitForm)}
                             >
@@ -194,10 +187,8 @@ export class FormModal extends Component<ComponentProps>{
                                                                                     RenderField
                                                                                 }
                                                                                 style={{
-                                                                                    border:
-                                                                                        '0px',
-                                                                                    width:
-                                                                                        '100%',
+                                                                                    border: '0px',
+                                                                                    width: '100%',
                                                                                 }}
                                                                                 autoFocus={
                                                                                     true
@@ -423,7 +414,6 @@ export class FormModal extends Component<ComponentProps>{
                                         style={{ width: '100%' }}
                                     >
                                         <ShouldRender
-
                                             if={this.props.createUser.error}
                                         >
                                             <div className="bs-Tail-copy">
@@ -444,7 +434,6 @@ export class FormModal extends Component<ComponentProps>{
                                                         >
                                                             {
                                                                 this.props
-
                                                                     .createUser
                                                                     .error
                                                             }
@@ -473,13 +462,11 @@ export class FormModal extends Component<ComponentProps>{
                                                 id={`btn_modal_${data.projectName}`}
                                                 className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                                 disabled={
-
                                                     this.props.createUser
                                                         .requesting
                                                 }
                                                 type="submit"
                                             >
-
                                                 {this.props.createUser
                                                     .requesting ? (
                                                     <FormLoader />
@@ -504,7 +491,6 @@ export class FormModal extends Component<ComponentProps>{
     }
 }
 
-
 FormModal.displayName = 'InviteMemberFormModal';
 
 const ProjectUserAddModal: $TSFixMe = reduxForm({
@@ -524,7 +510,6 @@ function mapStateToProps(state: RootState) {
         createUser: state.project.createUser,
     };
 }
-
 
 FormModal.propTypes = {
     handleSubmit: PropTypes.func.isRequired,

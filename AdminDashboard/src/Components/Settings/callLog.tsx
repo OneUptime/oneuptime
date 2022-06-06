@@ -11,36 +11,32 @@ import {
 } from '../../actions/callLogs';
 
 class CallLog extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
     handleKeyBoard: $TSFixMe;
-    async override componentDidMount() {
-
+    override async componentDidMount() {
         await this.props.fetchCallLogStatus();
     }
-    toggleComponent = ({
-        input: { value, onChange }
-    }: $TSFixMe) => (
-        <label className="Toggler-wrap">
-            <input
-                className="btn-toggler"
-                checked={value}
-                onChange={onChange}
-                type="checkbox"
-                name="callStatusToggler"
-                id="callStatusToggler"
-            />
-            <span className="TogglerBtn-slider round"></span>
-        </label>
-    );
+    toggleComponent = ({ input: { value, onChange } }: $TSFixMe) => {
+        return (
+            <label className="Toggler-wrap">
+                <input
+                    className="btn-toggler"
+                    checked={value}
+                    onChange={onChange}
+                    type="checkbox"
+                    name="callStatusToggler"
+                    id="callStatusToggler"
+                />
+                <span className="TogglerBtn-slider round"></span>
+            </label>
+        );
+    };
     submitForm = (values: $TSFixMe) => {
-
         this.props.callLogStatusChange({ status: values.callStatusToggler });
     };
     override render() {
-
         const { changeCallLogStatus, handleSubmit }: $TSFixMe = this.props;
         return (
             <div
@@ -156,7 +152,6 @@ class CallLog extends Component<ComponentProps> {
     }
 }
 
-
 CallLog.displayName = 'CallLog';
 
 const mapDispatchToProps: Function = (dispatch: Dispatch) => {
@@ -184,7 +179,6 @@ const ReduxFormComponent: $TSFixMe = reduxForm({
     form: 'call-log-toggle-form',
     enableReinitialize: true,
 })(CallLog);
-
 
 CallLog.propTypes = {
     changeCallLogStatus: PropTypes.object,

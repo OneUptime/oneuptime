@@ -10,7 +10,6 @@ import {
     fetchEmailLogStatus,
 } from '../actions/emailLogs';
 
-
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -26,7 +25,6 @@ class EmailLogs extends Component<ComponentProps> {
     }
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchEmailLogs, searchEmailLogs }: $TSFixMe = this.props;
@@ -45,7 +43,6 @@ class EmailLogs extends Component<ComponentProps> {
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchEmailLogs, searchEmailLogs }: $TSFixMe = this.props;
@@ -60,7 +57,6 @@ class EmailLogs extends Component<ComponentProps> {
     };
 
     override componentDidMount() {
-
         this.props.fetchEmailLogs();
 
         this.props.fetchEmailLogStatus();
@@ -77,7 +73,6 @@ class EmailLogs extends Component<ComponentProps> {
     };
 
     override render() {
-
         const { emailLogStatus }: $TSFixMe = this.props;
         return (
             <div
@@ -148,7 +143,6 @@ class EmailLogs extends Component<ComponentProps> {
                                                     }
                                                 >
                                                     <AlertPanel
-
                                                         className=""
                                                         message={
                                                             <span id="emailLogDisabled">
@@ -173,18 +167,13 @@ class EmailLogs extends Component<ComponentProps> {
                                             </div>
                                         </div>
                                         <EmailLogsList
-
                                             emailLogs={
-
                                                 this.props.emailLogs || {}
                                             }
                                             prevClicked={this.prevClicked}
                                             nextClicked={this.nextClicked}
-
                                             userId={this.props.userId}
-
                                             requesting={this.props.requesting}
-
                                             page={this.state.page}
                                         />
                                     </div>
@@ -197,7 +186,6 @@ class EmailLogs extends Component<ComponentProps> {
         );
     }
 }
-
 
 EmailLogs.displayName = 'EmailLogs';
 

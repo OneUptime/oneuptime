@@ -7,7 +7,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { restoreProject } from '../../actions/project';
 import { openModal, closeModal } from 'CommonUI/actions/Modal';
 
-export class ProjectRestoreBox extends Component<ComponentProps>{
+export class ProjectRestoreBox extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
@@ -16,13 +16,11 @@ export class ProjectRestoreBox extends Component<ComponentProps>{
     }
 
     handleClick = () => {
-
         const { restoreProject, project }: $TSFixMe = this.props;
         return restoreProject(project._id);
     };
 
     override render() {
-
         const { isRequesting }: $TSFixMe = this.props;
 
         return (
@@ -67,10 +65,14 @@ export class ProjectRestoreBox extends Component<ComponentProps>{
     }
 }
 
-
 ProjectRestoreBox.displayName = 'ProjectRestoreBox';
 
-const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ restoreProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
+    return bindActionCreators(
+        { restoreProject, openModal, closeModal },
+        dispatch
+    );
+};
 
 const mapStateToProps: Function = (state: RootState) => {
     const project: $TSFixMe = state.project.project.project;
@@ -83,13 +85,11 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 ProjectRestoreBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     project: PropTypes.object.isRequired,
     restoreProject: PropTypes.func.isRequired,
 };
-
 
 ProjectRestoreBox.contextTypes = {};
 

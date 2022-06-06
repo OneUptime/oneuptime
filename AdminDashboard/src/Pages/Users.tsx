@@ -14,7 +14,6 @@ import UserAddModal from '../components/user/UserAddModal';
 import * as _ from 'lodash';
 
 class Users extends Component<ComponentProps> {
-
     public static displayName = '';
     public static propTypes = {};
 
@@ -39,7 +38,6 @@ class Users extends Component<ComponentProps> {
     }
 
     handleKeyboard = (event: $TSFixMe) => {
-
         const { modalId }: $TSFixMe = this.props;
 
         const { addModalId }: $TSFixMe = this.state;
@@ -60,7 +58,6 @@ class Users extends Component<ComponentProps> {
     };
 
     prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchUsers, searchUsers }: $TSFixMe = this.props;
@@ -79,7 +76,6 @@ class Users extends Component<ComponentProps> {
     };
 
     nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
-
         const { searchBox }: $TSFixMe = this.state;
 
         const { fetchUsers, searchUsers }: $TSFixMe = this.props;
@@ -104,46 +100,41 @@ class Users extends Component<ComponentProps> {
     };
 
     handleClick = () => {
-
         const { addModalId }: $TSFixMe = this.state;
 
         this.props.openModal({
             id: addModalId,
-            onConfirm: () => true,
+            onConfirm: () => {
+                return true;
+            },
             content: UserAddModal,
         });
     };
 
     override render() {
-
         const { users, user, requesting }: $TSFixMe = this.props;
         let canNext =
-
             this.props.user.users &&
-
-                this.props.user.users.count &&
-
-                this.props.user.users.count >
-
+            this.props.user.users.count &&
+            this.props.user.users.count >
                 this.props.user.users.skip + this.props.user.users.limit
                 ? true
                 : false;
         let canPrev =
-
             this.props.user.users && this.props.user.users.skip <= 0
                 ? false
                 : true;
 
         if (
-
             this.props.user.users &&
-
             (this.props.user.users.requesting || !this.props.user.users)
         ) {
             canNext = false;
             canPrev = false;
         }
-        const numberOfPages: $TSFixMe = Math.ceil(parseInt(user.users.count) / 10);
+        const numberOfPages: $TSFixMe = Math.ceil(
+            parseInt(user.users.count) / 10
+        );
         return (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -293,27 +284,31 @@ class Users extends Component<ComponentProps> {
                                                 <div className="bs-Tail-copy">
                                                     <span>
                                                         {numberOfPages > 0
-                                                            ? `Page ${this.state
-
-                                                                .page
-                                                            } of ${numberOfPages} (${user.users
-                                                                .count
-                                                            } OneUptime User${user.users
-                                                                .count ===
-                                                                1
-                                                                ? ''
-                                                                : 's'
-                                                            })`
+                                                            ? `Page ${
+                                                                  this.state
+                                                                      .page
+                                                              } of ${numberOfPages} (${
+                                                                  user.users
+                                                                      .count
+                                                              } OneUptime User${
+                                                                  user.users
+                                                                      .count ===
+                                                                  1
+                                                                      ? ''
+                                                                      : 's'
+                                                              })`
                                                             : user.users
-                                                                .count &&
-                                                            `${user.users
-                                                                .count
-                                                            } OneUptime User${user.users
-                                                                .count ===
-                                                                1
-                                                                ? ''
-                                                                : 's'
-                                                            }`}
+                                                                  .count &&
+                                                              `${
+                                                                  user.users
+                                                                      .count
+                                                              } OneUptime User${
+                                                                  user.users
+                                                                      .count ===
+                                                                  1
+                                                                      ? ''
+                                                                      : 's'
+                                                              }`}
                                                     </span>
                                                 </div>
                                                 <div className="bs-Tail-actions">
@@ -325,13 +320,11 @@ class Users extends Component<ComponentProps> {
                                                                     this.prevClicked(
                                                                         this
                                                                             .props
-
                                                                             .user
                                                                             .users
                                                                             .skip,
                                                                         this
                                                                             .props
-
                                                                             .user
                                                                             .users
                                                                             .limit
@@ -365,13 +358,11 @@ class Users extends Component<ComponentProps> {
                                                                     this.nextClicked(
                                                                         this
                                                                             .props
-
                                                                             .user
                                                                             .users
                                                                             .skip,
                                                                         this
                                                                             .props
-
                                                                             .user
                                                                             .users
                                                                             .limit
@@ -434,9 +425,7 @@ const mapStateToProps: Function = (state: RootState) => {
     };
 };
 
-
 Users.contextTypes = {};
-
 
 Users.propTypes = {
     user: PropTypes.object.isRequired,
@@ -447,7 +436,6 @@ Users.propTypes = {
     openModal: PropTypes.func,
     modalId: PropTypes.string,
 };
-
 
 Users.displayName = 'Users';
 

@@ -15,11 +15,13 @@ const SmtpTestModal: Function = ({
     closeThisDialog,
     testing,
     testError,
-    smtp
+    smtp,
 }: $TSFixMe) => {
     return (
         <div
-            onKeyDown={e => e.key === 'Escape' && closeThisDialog()}
+            onKeyDown={e => {
+                return e.key === 'Escape' && closeThisDialog();
+            }}
             className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center"
         >
             <div
@@ -91,8 +93,7 @@ const SmtpTestModal: Function = ({
                                                                     value="internalSmtp"
                                                                     style={{
                                                                         width: 0,
-                                                                        border:
-                                                                            'none',
+                                                                        border: 'none',
                                                                     }}
                                                                 />
                                                                 <span className="bs-Radio-button"></span>
@@ -142,8 +143,7 @@ const SmtpTestModal: Function = ({
                                                                     value="customSmtp"
                                                                     style={{
                                                                         width: 0,
-                                                                        border:
-                                                                            'none',
+                                                                        border: 'none',
                                                                     }}
                                                                 />
                                                                 <span className="bs-Radio-button"></span>
@@ -204,8 +204,9 @@ const SmtpTestModal: Function = ({
                                     </ShouldRender>
                                     <button
                                         id="cancelSmtpTest"
-                                        className={`bs-Button ${testing &&
-                                            'bs-is-disabled'}`}
+                                        className={`bs-Button ${
+                                            testing && 'bs-is-disabled'
+                                        }`}
                                         type="button"
                                         onClick={closeThisDialog}
                                         disabled={testing}
@@ -215,16 +216,20 @@ const SmtpTestModal: Function = ({
                                     </button>
                                     <button
                                         id="confirmSmtpTest"
-                                        className={`bs-Button bs-Button--blue ${testing &&
-                                            'bs-is-disabled'}`}
+                                        className={`bs-Button bs-Button--blue ${
+                                            testing && 'bs-is-disabled'
+                                        }`}
                                         onClick={() => {
                                             // prevent form submission if form field is empty or invalid
-                                            if (!smtp.values) return;
+                                            if (!smtp.values) {
+                                                return;
+                                            }
                                             if (
                                                 smtp.syncErrors &&
                                                 smtp.syncErrors['test-email']
-                                            )
+                                            ) {
                                                 return;
+                                            }
 
                                             confirmThisDialog(smtp.values);
                                         }}
@@ -247,11 +252,13 @@ const SmtpTestModal: Function = ({
     );
 };
 
-const mapStateToProps: Function = (state: RootState) => ({
-    testing: state.settings.testing,
-    testError: state.settings.error,
-    smtp: state.form['smtp-test-form']
-});
+const mapStateToProps: Function = (state: RootState) => {
+    return {
+        testing: state.settings.testing,
+        testError: state.settings.error,
+        smtp: state.form['smtp-test-form'],
+    };
+};
 
 SmtpTestModal.displayName = 'Test Confirmation Modal';
 
@@ -271,7 +278,6 @@ function validate(values: $TSFixMe) {
     const errors: $TSFixMe = {};
 
     if (!Validate.email(values['test-email'])) {
-
         errors['test-email'] = 'Email is not valid.';
     }
     return errors;
