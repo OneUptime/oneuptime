@@ -11,6 +11,8 @@ import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
 
+export const DefaultValidateFunction = (_values: FormValues<JSONObject>) => { return {} };
+
 export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
@@ -114,14 +116,21 @@ const BasicForm = <T extends Object>(
         return null;
     };
 
-    const validateRequired = (content: string, field: DataField<T>) => {
+    const validateRequired = (content: string, field: DataField<T>): string | null => {
         if (field.required && content.length === 0) {
             return `${field.title} is required.`;
         }
         return null;
     };
 
-    const validateData = (content: string, field: DataField<T>) => {
+    const validateMatchField = (content: string, field: DataField<T>, entity: JSONObject): string | null => {
+        if (content && field.validation?.toMatchField && entity[field.validation?.toMatchField] && (entity[field.validation?.toMatchField] as string).trim() !== content.trim()) {
+            return `${field.title} should match ${field.validation?.toMatchField}`;
+        }
+        return null;
+    };
+
+    const validateData = (content: string, field: DataField<T>): string | null => {
         if (field.fieldType === FormFieldSchemaType.Email) {
             if (!Email.isValid(content!)) {
                 return 'Email is not valid.';
@@ -130,7 +139,8 @@ const BasicForm = <T extends Object>(
         return null;
     };
 
-    const validate = (values: FormValues<T>): object => {
+    const validate = (values: FormValues<T>): JSONObject => {
+
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
@@ -153,6 +163,13 @@ const BasicForm = <T extends Object>(
                     if (resultValidateData) {
                         errors[name] = resultValidateData;
                     }
+
+                    const resultMatch = validateMatchField(content, field, entries);
+
+                    if (resultMatch) {
+                        errors[name] = resultMatch;
+                    }
+
                     // check for length of content
                     const result = validateLength(content, field);
                     if (result) {
@@ -164,19 +181,21 @@ const BasicForm = <T extends Object>(
                 errors[name] = `${field.title || name} is required.`;
             }
         }
-        return errors;
+
+        let customValidateResult = {}
+
+        if (props.onValidate) {
+            customValidateResult = props.onValidate(values);
+        }
+        
+        return {...errors, ...customValidateResult};
     };
 
     return (
         <div>
             <Formik
                 initialValues={props.initialValues}
-                validate={(values: FormValues<T>) => {
-                    if (props.onValidate) {
-                        return props.onValidate(values);
-                    }
-                    return validate(values);
-                }}
+                validate={validate}
                 validateOnChange={true}
                 validateOnBlur={true}
                 onSubmit={(values: FormValues<T>, { setSubmitting }) => {

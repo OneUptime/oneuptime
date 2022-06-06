@@ -9,7 +9,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 
 const RegisterPage: FunctionComponent = () => {
     const user: User = new User();
-
+    
     return (
         <Container title="Register">
             <BasicModelForm<User>
@@ -71,6 +71,7 @@ const RegisterPage: FunctionComponent = () => {
                         },
                         validation: {
                             minLength: 6,
+                            toMatchField: 'password'
                         },
                         fieldType: FormFieldSchemaType.Password,
                         placeholder: 'Confirm Password',
