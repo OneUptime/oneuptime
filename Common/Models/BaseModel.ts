@@ -29,16 +29,16 @@ import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 
 export type DbTypes =
-    string |
-    number |
-    PositiveNumber |
-    Email |
-    HashedString |
-    URL |
-    Phone |
-    JSONObject |
-    JSONArray |
-    Buffer;
+    | string
+    | number
+    | PositiveNumber
+    | Email
+    | HashedString
+    | URL
+    | Phone
+    | JSONObject
+    | JSONArray
+    | Buffer;
 
 export default class BaseModel extends BaseEntity {
     @TableColumn({ title: 'ID' })
@@ -152,16 +152,16 @@ export default class BaseModel extends BaseEntity {
         return new Columns(Object.keys(getTableColumns(this)));
     }
 
-    public hasValue(columnName: string) {
-        return !!(this as any)[columnName];
+    public hasValue(columnName: string): boolean {
+        return Boolean((this as any)[columnName]);
     }
 
     public getValue<T extends DbTypes>(columnName: string): T {
         return (this as any)[columnName] as T;
     }
 
-    public setValue<T extends DbTypes>(columnName: string, value: T) {
-        return (this as any)[columnName] = value;
+    public setValue<T extends DbTypes>(columnName: string, value: T): void {
+        (this as any)[columnName] = value;
     }
 
     public getUniqueColumns(): Columns {

@@ -33,7 +33,6 @@ export default class HashedString extends DatabaseProperty {
     protected static override toDatabase(
         value: HashedString | FindOperator<HashedString>
     ): string | null {
-        
         if (value) {
             return value.toString();
         }
@@ -57,7 +56,6 @@ export default class HashedString extends DatabaseProperty {
         const valueToHash: string = (encryptionSecret || '') + this.value;
         this.isHashed = true;
 
-        
         this.value = CryptoJS.SHA256(valueToHash).toString();
         return this.value;
     }

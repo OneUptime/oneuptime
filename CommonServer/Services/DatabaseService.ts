@@ -123,12 +123,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     protected async hash(data: TBaseModel): Promise<TBaseModel> {
         const columns: Columns = data.getHashedColumns();
-        
-        
+
         for (const key of columns.columns) {
             if (
-                data.hasValue(key) && 
-                !((data.getValue(key) as HashedString).isValueHashed())
+                data.hasValue(key) &&
+                !(data.getValue(key) as HashedString).isValueHashed()
             ) {
                 await ((data as any)[key] as HashedString).hashValue(
                     EncryptionSecret
