@@ -11,6 +11,8 @@ import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
 
+export const DefaultValidateFunction = (_values: FormValues<JSONObject>) => { return {} };
+
 export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
@@ -193,12 +195,7 @@ const BasicForm = <T extends Object>(
         <div>
             <Formik
                 initialValues={props.initialValues}
-                validate={(values: FormValues<T>) => {
-                    if (props.onValidate) {
-                        return props.onValidate(values);
-                    }
-                    return validate(values);
-                }}
+                validate={validate}
                 validateOnChange={true}
                 validateOnBlur={true}
                 onSubmit={(values: FormValues<T>, { setSubmitting }) => {

@@ -3,7 +3,7 @@ import { FormikErrors } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
-import BasicForm from './BasicForm';
+import BasicForm, { DefaultValidateFunction } from './BasicForm';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -21,8 +21,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const BasicModelForm = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
-    const defaultValidateFunction = () => { return {} };
 
     const initialValues: FormValues<TBaseModel> = {};
 
@@ -58,7 +56,7 @@ const BasicModelForm = <TBaseModel extends BaseModel>(
         <BasicForm<TBaseModel>
             fields={fields}
             id={props.id}
-            onValidate={props.onValidate ? props.onValidate : defaultValidateFunction}
+            onValidate={props.onValidate ? props.onValidate : DefaultValidateFunction}
             onSubmit={props.onSubmit}
             initialValues={initialValues}
             requiredfields={{}}
