@@ -26,7 +26,7 @@ const BasicModelForm: FunctionComponent = <TBaseModel extends BaseModel>(
 ): ReactElement => {
     const initialValues: FormValues<TBaseModel> = {};
 
-    const fields = [];
+    const fields: Fields<TBaseModel> = [];
     // Prep
     for (const field of props.fields) {
         if (Object.keys(field.field).length > 0) {

@@ -1,6 +1,10 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
-import React, { ReactElement, MouseEventHandler } from 'react';
+import React, {
+    ReactElement,
+    MouseEventHandler,
+    FunctionComponent,
+} from 'react';
 import './NavDropDown.scss';
 
 export interface ComponentProps {
@@ -15,7 +19,7 @@ const NavDropDown: FunctionComponent<ComponentProps> = ({
     items,
     action,
     showDropdownItems,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="nav-dropdown" onClick={action}>
             <div className="nav-dropdown__name">

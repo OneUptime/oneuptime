@@ -14,7 +14,7 @@ const Breadcrumb: FunctionComponent<ComponentProps> = ({
     icon,
     title,
     children,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="breadcrumb-container">
             <div className="breadcrumb_detail">

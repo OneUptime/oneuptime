@@ -8,7 +8,7 @@ export interface ComponentProps {
 const NavLink: FunctionComponent<ComponentProps> = ({
     children,
     isActive,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className={`${isActive ? 'active' : ''} nav-item`}>{children}</div>
     );

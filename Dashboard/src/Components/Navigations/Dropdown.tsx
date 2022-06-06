@@ -1,9 +1,9 @@
-import React, { ReactElement, useState } from 'react';
+import React, { ReactElement, useState, FunctionComponent } from 'react';
 import OutsideClickHandler from 'react-outside-click-handler';
 import NavDropDown from 'CommonUI/src/Components/Dashboard/TopBar/NavLink/NavDropDown/NavDropDown';
 import NavDropDownItem from 'CommonUI/src/Components/Dashboard/TopBar/NavLink/NavDropDown/NavDropDownItem';
 
-const Dropdown = (): ReactElement => {
+const Dropdown: FunctionComponent = (): ReactElement => {
     const [showDropdownItems, setShowDropDownItems] = useState(false);
     const toggle: Function = () => {
         return setShowDropDownItems(!showDropdownItems);

@@ -10,7 +10,7 @@ const SidebarItem: FunctionComponent<ComponentProps> = ({
     isActive,
     children,
     title,
-}:ComponentProps): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="side_bar">
             <div className={`sidebar_label ${isActive && 'active_sidebar'}`}>

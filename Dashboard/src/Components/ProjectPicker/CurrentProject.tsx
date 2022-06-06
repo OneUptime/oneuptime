@@ -1,11 +1,11 @@
-import React, { ReactElement, useState } from 'react';
+import React, { ReactElement, useState, FunctionComponent } from 'react';
 import ProjectList from './ProjectList';
 import OutsideClickHandler from 'react-outside-click-handler';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Project.scss';
 
-const CurrentProject = (): ReactElement => {
+const CurrentProject: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
 
     return (

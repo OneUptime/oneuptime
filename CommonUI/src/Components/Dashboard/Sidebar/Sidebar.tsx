@@ -9,7 +9,7 @@ export interface ComponentProps {
 const Sidebar: FunctionComponent<ComponentProps> = ({
     title,
     children,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="sideBar">
             <h2>{title}</h2>

@@ -1,5 +1,9 @@
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
-import React, { ReactElement, MouseEventHandler, FunctionComponent } from 'react';
+import React, {
+    ReactElement,
+    MouseEventHandler,
+    FunctionComponent,
+} from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import './MenuButton.scss';
@@ -17,7 +21,7 @@ export const MenuIconButton: FunctionComponent<ComponentProps> = ({
     action,
     showModal,
     modalContent,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="button-layout">
             <div className="icon-button" onClick={action}>

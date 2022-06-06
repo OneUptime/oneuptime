@@ -1,4 +1,8 @@
-import React, { ReactElement, MouseEventHandler } from 'react';
+import React, {
+    ReactElement,
+    MouseEventHandler,
+    FunctionComponent,
+} from 'react';
 
 export interface ComponentProps {
     title: string;
@@ -8,7 +12,7 @@ export interface ComponentProps {
 const SubItem: FunctionComponent<ComponentProps> = ({
     title,
     action,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="subsidebar" onClick={action}>
             {title}

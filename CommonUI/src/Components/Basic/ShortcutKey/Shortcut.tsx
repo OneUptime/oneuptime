@@ -1,8 +1,8 @@
 import React, { ReactElement, FunctionComponent } from 'react';
 import Char from 'Common/Types/Char';
 
-export interface ComponentProps{
-     shortcuts: Array<Char> 
+export interface ComponentProps {
+    shortcuts: Array<Char>;
 }
 
 const Shortcut: FunctionComponent<ComponentProps> = ({
