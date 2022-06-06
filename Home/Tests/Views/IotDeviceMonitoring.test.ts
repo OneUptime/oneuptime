@@ -1,6 +1,5 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import PuppeteerHelper from 'Common/Tests/TestingUtils/PuppeteerHelper';
-
 import {
     OPERATION_TIMEOUT,
     PUPPETEER_OPTIONS,
@@ -10,7 +9,7 @@ import {
 
 let browser: Browser, page: Page;
 
-describe('Server monitoring page test', () => {
+describe('IOT device monitoring page test', () => {
     beforeAll(async () => {
         jest.setTimeout(OPERATION_TIMEOUT);
         browser = await puppeteer.launch(PUPPETEER_OPTIONS);
@@ -26,7 +25,7 @@ describe('Server monitoring page test', () => {
         'Title of the page',
         async () => {
             await page.goto(
-                `${HOME_URL.toString()}/product/server-monitoring`,
+                `${HOME_URL.toString()}/product/iot-device-monitoring`,
                 {
                     waitUntil: 'networkidle0',
                     timeout: OPERATION_TIMEOUT,
@@ -34,24 +33,24 @@ describe('Server monitoring page test', () => {
             );
             const title = await page.title();
             expect(title).toBe(
-                `OneUptime | Monitor your Server's every second`
+                `OneUptime | Monitor your IoT Device's every second`
             );
         },
         OPERATION_TIMEOUT
     );
 
     test(
-        'Animated gif on page',
+        'Animated gifs on page',
         async () => {
             await page.goto(
-                `${HOME_URL.toString()}/product/server-monitoring`,
+                `${HOME_URL.toString()}/product/iot-device-monitoring`,
                 {
                     waitUntil: 'networkidle0',
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-            const imgGif = await page.waitForSelector('#uptime-monitoring-gif');
-            expect(imgGif).toBeTruthy();
+            const imgGif1 = await page.waitForSelector('#gif-1');
+            expect(imgGif1).toBeTruthy();
         },
         OPERATION_TIMEOUT
     );
@@ -60,12 +59,13 @@ describe('Server monitoring page test', () => {
         'Confirm text on page',
         async () => {
             await page.goto(
-                `${HOME_URL.toString()}/product/server-monitoring`,
+                `${HOME_URL.toString()}/product/iot-device-monitoring`,
                 {
                     waitUntil: 'networkidle0',
                     timeout: OPERATION_TIMEOUT,
                 }
             );
+
             const pageTittle = await PuppeteerHelper.getTextContent(
                 page,
                 '.Header-title'
@@ -78,18 +78,19 @@ describe('Server monitoring page test', () => {
                 page,
                 '#help-your-biz'
             );
-            const webSiteScan = await PuppeteerHelper.getTextContent(
+            const teamSchedule = await PuppeteerHelper.getTextContent(
                 page,
-                '#website-scans'
+                '#team-schedule'
             );
             const enterpriseIntegration = await PuppeteerHelper.getTextContent(
                 page,
                 '#enterprise-integration'
             );
+
             expect(pageTittle).toBeDefined();
             expect(compareRate).toBeDefined();
             expect(helpYourBiz).toBeDefined();
-            expect(webSiteScan).toBeDefined();
+            expect(teamSchedule).toBeDefined();
             expect(enterpriseIntegration).toBeDefined();
         },
         OPERATION_TIMEOUT
@@ -99,7 +100,7 @@ describe('Server monitoring page test', () => {
         'Request demo button',
         async () => {
             await page.goto(
-                `${HOME_URL.toString()}/product/server-monitoring`,
+                `${HOME_URL.toString()}/product/iot-device-monitoring`,
                 {
                     waitUntil: 'networkidle0',
                     timeout: OPERATION_TIMEOUT,
@@ -111,6 +112,7 @@ describe('Server monitoring page test', () => {
                 page,
                 '.common-PageTitle'
             );
+
             expect(text).toContain('Request Demo');
             expect(page.url()).toBe(`${HOME_URL.toString()}/enterprise/demo`);
         },
@@ -121,7 +123,7 @@ describe('Server monitoring page test', () => {
         'Customer icons',
         async () => {
             await page.goto(
-                `${HOME_URL.toString()}/product/server-monitoring`,
+                `${HOME_URL.toString()}/product/iot-device-monitoring`,
                 {
                     waitUntil: 'networkidle0',
                     timeout: OPERATION_TIMEOUT,
