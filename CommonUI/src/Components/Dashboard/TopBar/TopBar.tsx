@@ -1,26 +1,69 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Account from '../Account/Account';
-import CurrentProject from '../ProjectPicker/CurrentProject';
-import SearchBar from './SearchBar/SearchBar';
-import { faCog } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './TopBar.scss';
 
-const TopBar: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+    leftContents?: Array<ReactElement>;
+    middleContents?: Array<ReactElement>;
+    rightContents?: Array<ReactElement>;
+    navContents?: {
+        leftContents?: Array<ReactElement>;
+        rightContents?: Array<ReactElement>;
+    };
+}
+
+const TopBar: FunctionComponent<ComponentProps> = ({
+    leftContents,
+    rightContents,
+    middleContents,
+    navContents,
+}): ReactElement => {
     return (
         <div className="root">
             <header>
-                <CurrentProject />
-                <SearchBar />
                 <div>
-                    <div>Create</div>
-                    <div>Help</div>
-                    <div>Notifications</div>
-                    <FontAwesomeIcon icon={faCog} />
-                    <Account />
+                    {leftContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <div key={index}>{content}</div>
+                        )
+                    )}
+                </div>
+                <div className="middle">
+                    {middleContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <div key={index}>{content}</div>
+                        )
+                    )}
+                </div>
+                <div className="right">
+                    {rightContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <React.Fragment key={index}>
+                                {content}
+                            </React.Fragment>
+                        )
+                    )}
                 </div>
             </header>
-            <nav></nav>
+            <nav>
+                <div>
+                    {navContents?.leftContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <React.Fragment key={index}>
+                                {content}
+                            </React.Fragment>
+                        )
+                    )}
+                </div>
+                <div>
+                    {navContents?.rightContents?.map(
+                        (content: ReactElement, index: number) => (
+                            <React.Fragment key={index}>
+                                {content}
+                            </React.Fragment>
+                        )
+                    )}
+                </div>
+            </nav>
         </div>
     );
 };

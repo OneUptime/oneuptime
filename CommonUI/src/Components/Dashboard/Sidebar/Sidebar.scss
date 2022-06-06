@@ -1,0 +1,45 @@
+.sideBar {
+    margin: 10px 0;
+
+    h2 {
+        font-size: 1.8rem;
+    }
+
+    .sidebar_list {
+        margin-top: 20px;
+        border-left: 1px solid rgb(236, 236, 236);
+
+        .side_bar {
+            margin: 10px auto;
+            cursor: pointer;
+            border-left: 1px solid transparent;
+
+            &:hover {
+                border-left: 1px solid rgb(48, 46, 46);
+            }
+
+            .sidebar_label {
+                font-size: 1.4rem;
+                padding: 0 10px;
+                color: #444;
+            }
+
+            .subsidebar {
+                padding-top: 5px;
+                margin-left: 20px;
+                font-size: 1.3rem;
+                color: #666;
+            }
+        }
+
+        .active_sidebar {
+            border-left: 2px solid rgb(48, 46, 46);
+            color: #000 !important;
+            font-weight: 600 !important;
+
+            &:hover {
+                border-left: 2px solid rgb(48, 46, 46);
+            }
+        }
+    }
+}

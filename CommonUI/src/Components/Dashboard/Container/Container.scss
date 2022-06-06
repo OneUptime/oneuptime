@@ -1,0 +1,26 @@
+.container {
+    margin: 0;
+    padding: 0;
+
+    .main {
+        width: 100vw;
+        height: calc(100vh - 100px);
+        display: flex;
+        margin: 10px auto;
+
+        .sidebar {
+            margin-left: 30px;
+            flex: 0 0 13%;
+            overflow: auto;
+        }
+
+        .main_layout {
+            padding: 5px 20px;
+            margin: 5px;
+            margin-left: 20px;
+            margin-right: 20px;
+            flex: 1;
+            overflow: auto;
+        }
+    }
+}

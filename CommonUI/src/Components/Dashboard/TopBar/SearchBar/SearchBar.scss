@@ -4,11 +4,11 @@ $transition: all 0.2s linear;
 
 .top-search {
     background-color: white;
-    flex: 0 0 35% !important;
+    flex: 1 1 25% !important;
     display: flex;
     align-items: center;
     padding: 0 15px;
-    border: 1px solid darken($primaryColor, 4%);
+    outline: 1px solid darken($primaryColor, 5%);
     border-radius: 100px;
 
     & > * {
@@ -17,8 +17,8 @@ $transition: all 0.2s linear;
     }
 
     svg {
-        font-size: 1.2rem;
-        color: darken($primaryColor, 60%);
+        font-size: 1.1rem !important;
+        color: darken($primaryColor, 30%) !important;
         cursor: text;
     }
 
@@ -34,7 +34,7 @@ $transition: all 0.2s linear;
     }
 
     svg:last-child {
-        font-size: 0.8rem;
+        font-size: 0.8rem !important;
         color: darken($primaryColor, 25%);
         transform: rotate(80deg);
     }
@@ -47,7 +47,7 @@ $transition: all 0.2s linear;
         flex: 1;
         border: none;
         outline: none;
-        padding: 5px;
+        padding: 4px;
         font-size: 1.2rem;
 
         &::placeholder {
