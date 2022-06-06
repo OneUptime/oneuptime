@@ -5,7 +5,7 @@ type Props = {
     title: string;
 };
 
-const Container: FC<Props> = ({ children, title }) => {
+const Container: FC<Props> = ({ children, title }: Props) => {
     useEffect(() => {
         document.title = `OneUptime | ${title}`;
     }, []);

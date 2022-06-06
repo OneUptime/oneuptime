@@ -1,8 +1,7 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import { ErrorMessage, Field, Form, Formik, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
 import FormValues from './Types/FormValues';
-import RequiredFormFields from './Types/RequiredFormFields';
 import Fields from './Types/Fields';
 import DataField from './Types/Field';
 import ButtonTypes from '../Basic/Button/ButtonTypes';
@@ -10,15 +9,14 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
+import { string } from 'yup';
 
 export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
     onValidate?: (values: FormValues<T>) => FormikErrors<FormValues<T>>;
-    requiredfields: RequiredFormFields<T>;
     fields: Fields<T>;
-    model: T;
     submitButtonText?: string;
     title?: string;
     description?: string;
@@ -38,10 +36,13 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
     }
 }
 
-const BasicForm = <T extends Object>(
+const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const getFormField = (field: DataField<T>, index: number): ReactElement => {
+    const getFormField: Function = (
+        field: DataField<T>,
+        index: number
+    ): ReactElement => {
         const fieldType: string = field.fieldType
             ? getFieldType(field.fieldType)
             : 'text';
@@ -91,7 +92,7 @@ const BasicForm = <T extends Object>(
         );
     };
 
-    const validateLength = (
+    const validateLength: Function = (
         content: string,
         field: DataField<T>
     ): string | null => {
@@ -115,14 +116,17 @@ const BasicForm = <T extends Object>(
         return null;
     };
 
-    const validateRequired = (content: string, field: DataField<T>) => {
+    const validateRequired: Function = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
         if (field.required && content.length === 0) {
             return `${field.title} is required.`;
         }
         return null;
     };
 
-    const validateData = (content: string, field: DataField<T>) => {
+    const validateData: Function = (content: string, field: DataField<T>) => {
         if (field.fieldType === FormFieldSchemaType.Email) {
             if (!Email.isValid(content!)) {
                 return 'Email is not valid.';
@@ -131,31 +135,31 @@ const BasicForm = <T extends Object>(
         return null;
     };
 
-    const validate = (values: FormValues<T>): object => {
+    const validate: Function = (values: FormValues<T>): object => {
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
         for (const field of props.fields) {
-            const name = field.overideFieldKey
+            const name: string = field.overideFieldKey
                 ? field.overideFieldKey
                 : (Object.keys(field.field)[0] as string);
             if (name in values) {
-                const content = entries[name]?.toString();
+                const content: string | undefined = entries[name]?.toString();
 
-                if (content) {
+                if ( entries[name]) {
                     // Check Required fields.
-                    const resultRequired = validateRequired(content, field);
+                    const resultRequired: string | null = validateRequired(content, field);
                     if (resultRequired) {
                         errors[name] = resultRequired;
                     }
 
                     // Check for valid email data.
-                    const resultValidateData = validateData(content, field);
+                    const resultValidateData : string | null= validateData(content, field);
                     if (resultValidateData) {
                         errors[name] = resultValidateData;
                     }
                     // check for length of content
-                    const result = validateLength(content, field);
+                    const result: string | null = validateLength(content, field);
                     if (result) {
                         errors[name] = result;
                     }
