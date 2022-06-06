@@ -6,10 +6,10 @@ export interface ComponentProps {
 
 const NavContainer: FunctionComponent<ComponentProps> = ({
     navigations,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="navigation-rack">
-            {navigations.map((navigation, index) => {
+            {navigations.map((navigation: ReactElement, index: number) => {
                 return (
                     <React.Fragment key={index}>{navigation}</React.Fragment>
                 );

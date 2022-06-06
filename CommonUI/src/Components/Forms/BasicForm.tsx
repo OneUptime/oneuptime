@@ -230,12 +230,21 @@ const BasicForm: FunctionComponent = <T extends Object>(
                 validate={validate}
                 validateOnChange={true}
                 validateOnBlur={true}
-                onSubmit={(values: FormValues<T>, { setSubmitting }) => {
+                onSubmit={(
+                    values: FormValues<T>,
+                    { setSubmitting }: { setSubmitting: Function }
+                ) => {
                     props.onSubmit(values);
                     setSubmitting(false);
                 }}
             >
-                {({ isSubmitting, isValid }) => {
+                {({
+                    isSubmitting,
+                    isValid,
+                }: {
+                    isSubmitting: boolean;
+                    isValid: boolean;
+                }) => {
                     return (
                         <Form
                             autoComplete="off"
@@ -248,7 +257,7 @@ const BasicForm: FunctionComponent = <T extends Object>(
                             <div className={`grid_${props.showAsColumns}`}>
                                 {props.fields &&
                                     props.fields.map(
-                                        (field: DataField<T>, i) => {
+                                        (field: DataField<T>, i: number) => {
                                             return getFormField(field, i);
                                         }
                                     )}

@@ -38,7 +38,7 @@ export const MenuOutlineButton: FunctionComponent<ComponentProps> = ({
     action,
     showModal,
     modalContent,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="button-layout">
             <div className="button" onClick={action}>

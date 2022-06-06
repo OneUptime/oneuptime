@@ -28,7 +28,7 @@ const NavDropDown: FunctionComponent<ComponentProps> = ({
             </div>
             {showDropdownItems && (
                 <div className="nav-dropdown__modal">
-                    {items.map((item, index) => {
+                    {items.map((item: ReactElement, index: number) => {
                         return (
                             <React.Fragment key={index}>{item}</React.Fragment>
                         );

@@ -23,7 +23,7 @@ const Breadcrumb: FunctionComponent<ComponentProps> = ({
                     <h2>{title}</h2>
                 </div>
                 <div className="breadcrumb_detail__crumbs">
-                    {children.map((child, index) => {
+                    {children.map((child: ReactElement, index: number) => {
                         return (
                             <React.Fragment key={index}>
                                 {child}

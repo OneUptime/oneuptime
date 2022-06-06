@@ -9,12 +9,12 @@ export interface ComponentProps {
 const TopbarMenu: FunctionComponent<ComponentProps> = ({
     legend,
     items,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="lists">
             <p className="legend">{legend}</p>
             <>
-                {items.map((item, index) => {
+                {items.map((item: ReactElement, index: number) => {
                     return <React.Fragment key={index}>{item}</React.Fragment>;
                 })}
             </>

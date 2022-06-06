@@ -48,7 +48,9 @@ const HelpButton: FunctionComponent = (): ReactElement => {
                         <hr />
                         <TopbarMenu
                             legend="Get in touch"
-                            items={[<MenuLinkItem text="Share feedback" />]}
+                            items={[
+                                <MenuLinkItem key={1} text="Share feedback" />,
+                            ]}
                         />
                     </>
                 }

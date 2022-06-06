@@ -15,7 +15,7 @@ const ErrorBoundary: FunctionComponent<ComponentProps> = (
             return props.children;
         }
     } catch (e) {
-        const exception = e as Exception;
+        const exception: Exception = e as Exception;
         setError(exception.message);
     }
 
