@@ -28,6 +28,7 @@ import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/DB/UpdateByID';
 import ObjectID from 'Common/Types/ObjectID';
 import Role from 'Common/Types/Role';
+import Columns from 'Common/Types/Database/Columns';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
@@ -121,10 +122,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     protected async hash(data: TBaseModel): Promise<TBaseModel> {
-        for (const key of data.getHashedColumns().columns) {
+        const columns: Columns = data.getHashedColumns();
+        
+        
+        for (const key of columns.columns) {
             if (
-                (data as any)[key] &&
-                !((data as any)[key] as HashedString).isValueHashed
+                data.hasValue(key) && 
+                !((data.getValue(key) as HashedString).isValueHashed())
             ) {
                 await ((data as any)[key] as HashedString).hashValue(
                     EncryptionSecret
@@ -140,8 +144,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         for (const key of data.getEncryptedColumns().columns) {
             // If data is an object.
-            if (typeof (data as any)[key] === 'object') {
-                const dataObj: JSONObject = (data as any)[key];
+            if (typeof data.getValue(key) === 'object') {
+                const dataObj: JSONObject = data.getValue(key) as JSONObject;
 
                 for (const key in dataObj) {
                     dataObj[key] = Encryption.decrypt(
@@ -150,10 +154,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     );
                 }
 
-                (data as any)[key] = dataObj;
+                data.setValue(key, dataObj);
             } else {
                 //If its string or other type.
-                (data as any)[key] = Encryption.decrypt((data as any)[key], iv);
+                data.setValue(key, Encryption.decrypt((data as any)[key], iv));
             }
         }
 

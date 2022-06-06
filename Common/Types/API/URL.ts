@@ -98,10 +98,10 @@ export default class URL extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: URL | FindOperator<URL>
+        value: URL | FindOperator<URL>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        if (value) {
+            return value.toString();
         }
 
         return null;

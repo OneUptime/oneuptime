@@ -24,6 +24,21 @@ import ObjectID from '../Types/ObjectID';
 import AccessControl from '../Types/Database/AccessControls/AccessControl';
 import Dictionary from '../Types/Dictionary';
 import HashedString from '../Types/HashedString';
+import Email from '../Types/Email';
+import Phone from '../Types/Phone';
+import PositiveNumber from '../Types/PositiveNumber';
+
+export type DbTypes =
+    string |
+    number |
+    PositiveNumber |
+    Email |
+    HashedString |
+    URL |
+    Phone |
+    JSONObject |
+    JSONArray |
+    Buffer;
 
 export default class BaseModel extends BaseEntity {
     @TableColumn({ title: 'ID' })
@@ -135,6 +150,18 @@ export default class BaseModel extends BaseEntity {
 
     public getTableColumns(): Columns {
         return new Columns(Object.keys(getTableColumns(this)));
+    }
+
+    public hasValue(columnName: string) {
+        return !!(this as any)[columnName];
+    }
+
+    public getValue<T extends DbTypes>(columnName: string): T {
+        return (this as any)[columnName] as T;
+    }
+
+    public setValue<T extends DbTypes>(columnName: string, value: T) {
+        return (this as any)[columnName] = value;
     }
 
     public getUniqueColumns(): Columns {

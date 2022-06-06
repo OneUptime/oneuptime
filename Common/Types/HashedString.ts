@@ -2,8 +2,8 @@ import { FindOperator } from 'typeorm';
 import UUID from '../Utils/UUID';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadOperationException from './Exception/BadOperationException';
-import EncryptionAlgorithm from './EncryptionAlgorithm';
 import ObjectID from './ObjectID';
+import CryptoJS from 'crypto-js';
 
 export default class HashedString extends DatabaseProperty {
     private isHashed: boolean = false;
@@ -31,10 +31,11 @@ export default class HashedString extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: HashedString | FindOperator<HashedString>
+        value: HashedString | FindOperator<HashedString>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        
+        if (value) {
+            return value.toString();
         }
 
         return null;
@@ -56,26 +57,9 @@ export default class HashedString extends DatabaseProperty {
         const valueToHash: string = (encryptionSecret || '') + this.value;
         this.isHashed = true;
 
-        // encode as UTF-8
-        const msgBuffer: Uint8Array = new TextEncoder().encode(valueToHash);
-
-        // hash the message
-        const hashBuffer: ArrayBuffer = await crypto.subtle.digest(
-            EncryptionAlgorithm.SHA256,
-            msgBuffer
-        );
-
-        // convert ArrayBuffer to Array
-        const hashArray: Array<number> = Array.from(new Uint8Array(hashBuffer));
-
-        // convert bytes to hex string
-        const hashHex: string = hashArray
-            .map((b: number) => {
-                return b.toString(16).padStart(2, '0');
-            })
-            .join('');
-        this.value = hashHex;
-        return hashHex;
+        
+        this.value = CryptoJS.SHA256(valueToHash).toString();
+        return this.value;
     }
 
     public static async hashValue(
