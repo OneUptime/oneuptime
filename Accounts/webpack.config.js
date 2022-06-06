@@ -22,7 +22,7 @@ module.exports = {
         publicPath: "/accounts/assets/",
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss']
+        extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.scss']
     },
     externals: {
         'react-native-sqlite-storage': 'react-native-sqlite-storage'
