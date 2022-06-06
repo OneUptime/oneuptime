@@ -8,7 +8,9 @@ import UserInfo from './UserInfo';
 
 const UserProfileButton: FunctionComponent = (): ReactElement => {
     const [showProfile, setShowProfile] = useState(false);
-    const toggle = () => setShowProfile(!showProfile);
+    const toggle = () => {
+        return setShowProfile(!showProfile);
+    };
 
     return (
         <OutsideClickHandler

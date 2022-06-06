@@ -6,9 +6,9 @@ const Shortcut: FC<{ shortcuts: Array<Char> }> = ({
 }): ReactElement => {
     return (
         <div className="shortcut">
-            {shortcuts.map((shortcut, index) => (
-                <code key={index}>{shortcut}</code>
-            ))}
+            {shortcuts.map((shortcut, index) => {
+                return <code key={index}>{shortcut}</code>;
+            })}
         </div>
     );
 };

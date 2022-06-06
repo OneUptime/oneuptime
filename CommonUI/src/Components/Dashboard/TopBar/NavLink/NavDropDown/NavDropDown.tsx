@@ -24,9 +24,11 @@ const NavDropDown: FC<ComponentProps> = ({
             </div>
             {showDropdownItems && (
                 <div className="nav-dropdown__modal">
-                    {items.map((item, index) => (
-                        <React.Fragment key={index}>{item}</React.Fragment>
-                    ))}
+                    {items.map((item, index) => {
+                        return (
+                            <React.Fragment key={index}>{item}</React.Fragment>
+                        );
+                    })}
                 </div>
             )}
         </div>

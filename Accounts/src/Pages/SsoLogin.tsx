@@ -25,8 +25,8 @@ const SsoLoginPage: FunctionComponent = () => {
                         title: 'Email',
                     },
                 ]}
-                onSubmit={(values: FormValues<User>) => {
-                    console.log(values);
+                onSubmit={(_values: FormValues<User>) => {
+                    
                 }}
                 submitButtonText={'Continue with SSO'}
                 title={'Sign in to your account'}

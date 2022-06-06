@@ -12,7 +12,9 @@ import {
 
 const CreateButton: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
-    const toggle = () => setShowList(!showList);
+    const toggle = () => {
+        return setShowList(!showList);
+    };
 
     return (
         <OutsideClickHandler

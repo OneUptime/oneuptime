@@ -25,8 +25,8 @@ const ForgotPasswordPage: FunctionComponent = () => {
                         fieldType: FormFieldSchemaType.Email,
                     },
                 ]}
-                onSubmit={(values: FormValues<User>) => {
-                    console.log(values);
+                onSubmit={(_values: FormValues<User>) => {
+                    
                 }}
                 submitButtonText={'Continue'}
                 title={'Reset your password'}

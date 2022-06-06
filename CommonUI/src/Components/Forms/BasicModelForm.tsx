@@ -9,7 +9,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
     id: string;
     onSubmit: (values: FormValues<TBaseModel>) => void;
-    onValidate?: (values: FormValues<TBaseModel>) => FormikErrors<FormValues<TBaseModel>>;
+    onValidate?: (
+        values: FormValues<TBaseModel>
+    ) => FormikErrors<FormValues<TBaseModel>>;
     fields: Fields<TBaseModel>;
     submitButtonText?: string;
     title?: string;
@@ -22,7 +24,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const BasicModelForm = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const initialValues: FormValues<TBaseModel> = {};
 
     const fields = [];
@@ -58,7 +59,9 @@ const BasicModelForm = <TBaseModel extends BaseModel>(
             isLoading={props.isLoading || false}
             fields={fields}
             id={props.id}
-            onValidate={props.onValidate ? props.onValidate : DefaultValidateFunction}
+            onValidate={
+                props.onValidate ? props.onValidate : DefaultValidateFunction
+            }
             onSubmit={props.onSubmit}
             initialValues={initialValues}
             submitButtonText={props.submitButtonText || 'Save'}

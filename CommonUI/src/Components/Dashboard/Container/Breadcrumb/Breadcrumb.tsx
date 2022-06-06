@@ -23,12 +23,14 @@ const Breadcrumb: FunctionComponent<ComponentProps> = ({
                     <h2>{title}</h2>
                 </div>
                 <div className="breadcrumb_detail__crumbs">
-                    {children.map((child, index) => (
-                        <React.Fragment key={index}>
-                            {child}
-                            <FontAwesomeIcon icon={faChevronRight} />
-                        </React.Fragment>
-                    ))}
+                    {children.map((child, index) => {
+                        return (
+                            <React.Fragment key={index}>
+                                {child}
+                                <FontAwesomeIcon icon={faChevronRight} />
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
             </div>
         </div>

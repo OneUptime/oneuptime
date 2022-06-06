@@ -10,7 +10,9 @@ import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
 
-export const DefaultValidateFunction = (_values: FormValues<JSONObject>) => { return {} };
+export const DefaultValidateFunction = (_values: FormValues<JSONObject>) => {
+    return {};
+};
 
 export interface ComponentProps<T extends Object> {
     id: string;
@@ -117,21 +119,37 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
         return null;
     };
 
-    const validateRequired = (content: string, field: DataField<T>): string | null => {
+    const validateRequired = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
         if (field.required && content.length === 0) {
             return `${field.title} is required.`;
         }
         return null;
     };
 
-    const validateMatchField = (content: string, field: DataField<T>, entity: JSONObject): string | null => {
-        if (content && field.validation?.toMatchField && entity[field.validation?.toMatchField] && (entity[field.validation?.toMatchField] as string).trim() !== content.trim()) {
+    const validateMatchField = (
+        content: string,
+        field: DataField<T>,
+        entity: JSONObject
+    ): string | null => {
+        if (
+            content &&
+            field.validation?.toMatchField &&
+            entity[field.validation?.toMatchField] &&
+            (entity[field.validation?.toMatchField] as string).trim() !==
+                content.trim()
+        ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
         return null;
     };
 
-    const validateData = (content: string, field: DataField<T>): string | null => {
+    const validateData = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
         if (field.fieldType === FormFieldSchemaType.Email) {
             if (!Email.isValid(content!)) {
                 return 'Email is not valid.';
@@ -141,7 +159,6 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
     };
 
     const validate: Function = (values: FormValues<T>): JSONObject => {
-
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
@@ -154,25 +171,38 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
 
                 if (content) {
                     // Check Required fields.
-                    const resultRequired: string | null = validateRequired(content, field);
+                    const resultRequired: string | null = validateRequired(
+                        content,
+                        field
+                    );
                     if (resultRequired) {
                         errors[name] = resultRequired;
                     }
 
                     // Check for valid email data.
-                    const resultValidateData : string | null= validateData(content, field);
+                    const resultValidateData: string | null = validateData(
+                        content,
+                        field
+                    );
                     if (resultValidateData) {
                         errors[name] = resultValidateData;
                     }
 
-                    const resultMatch = validateMatchField(content, field, entries);
+                    const resultMatch = validateMatchField(
+                        content,
+                        field,
+                        entries
+                    );
 
                     if (resultMatch) {
                         errors[name] = resultMatch;
                     }
 
                     // check for length of content
-                    const result: string | null = validateLength(content, field);
+                    const result: string | null = validateLength(
+                        content,
+                        field
+                    );
                     if (result) {
                         errors[name] = result;
                     }
@@ -182,13 +212,13 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
             }
         }
 
-        let customValidateResult = {}
+        let customValidateResult = {};
 
         if (props.onValidate) {
             customValidateResult = props.onValidate(values);
         }
-        
-        return {...errors, ...customValidateResult};
+
+        return { ...errors, ...customValidateResult };
     };
 
     return (

@@ -7,9 +7,11 @@ export interface ComponentProps {
 const NavContainer: FC<ComponentProps> = ({ navigations }): ReactElement => {
     return (
         <div className="navigation-rack">
-            {navigations.map((navigation, index) => (
-                <React.Fragment key={index}>{navigation}</React.Fragment>
-            ))}
+            {navigations.map((navigation, index) => {
+                return (
+                    <React.Fragment key={index}>{navigation}</React.Fragment>
+                );
+            })}
         </div>
     );
 };

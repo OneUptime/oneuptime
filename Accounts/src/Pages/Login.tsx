@@ -42,8 +42,8 @@ const LoginPage: FunctionComponent = () => {
                         },
                     },
                 ]}
-                onSubmit={(values: FormValues<User>) => {
-                    console.log(values);
+                onSubmit={(_values: FormValues<User>) => {
+                   
                 }}
                 submitButtonText={'Login'}
                 title={'Sign in to your account'}

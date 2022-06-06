@@ -8,7 +8,6 @@ import Container from 'CommonUI/src/Container';
 import IdentityAPI from 'CommonUI/src/Utils/API/IdentityAPI';
 import Route from 'Common/Types/API/Route';
 import { JSONObject } from 'Common/Types/JSON';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const RegisterPage: FunctionComponent = () => {
@@ -16,16 +15,13 @@ const RegisterPage: FunctionComponent = () => {
 
     const user: User = new User();
 
-    const submitForm = async (values: FormValues<User>) => {
+    const submitForm: Function = async (values: FormValues<User>) => {
         setIsLoading(true);
 
-        const response: HTTPResponse<JSONObject> =
-            await IdentityAPI.post<JSONObject>(new Route('/signup'), {
-                user: values as JSONObject,
-            });
+        await IdentityAPI.post<JSONObject>(new Route('/signup'), {
+            user: values as JSONObject,
+        });
 
-        // navigate to dashboard.
-        console.log(response);
         setIsLoading(false);
     };
 
@@ -91,7 +87,7 @@ const RegisterPage: FunctionComponent = () => {
                         },
                         validation: {
                             minLength: 6,
-                            toMatchField: 'password'
+                            toMatchField: 'password',
                         },
                         fieldType: FormFieldSchemaType.Password,
                         placeholder: 'Confirm Password',

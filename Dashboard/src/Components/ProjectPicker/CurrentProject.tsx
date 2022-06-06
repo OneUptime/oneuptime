@@ -17,7 +17,12 @@ const CurrentProject = (): ReactElement => {
             }}
         >
             <div className="projectPreview">
-                <div className="preview" onClick={() => setShowList(!showList)}>
+                <div
+                    className="preview"
+                    onClick={() => {
+                        return setShowList(!showList);
+                    }}
+                >
                     <img src="img/placeholder.png" alt="Project Image" />
                     <p>Flow</p>
                     <FontAwesomeIcon icon={faChevronDown} />
