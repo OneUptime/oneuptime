@@ -1,4 +1,4 @@
-import React, { ReactElement, FC } from 'react';
+import React, { ReactElement, FunctionComponent }  from 'react';
 
 export interface ComponentProps {
     isActive?: boolean;
@@ -6,7 +6,7 @@ export interface ComponentProps {
     title: string;
 }
 
-const SidebarItem: FC<ComponentProps> = ({
+const SidebarItem: FunctionComponent<ComponentProps> = ({
     isActive,
     children,
     title,

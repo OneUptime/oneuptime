@@ -10,7 +10,7 @@ export interface ComponentProps {
     showDropdownItems?: boolean;
 }
 
-const NavDropDown: FC<ComponentProps> = ({
+const NavDropDown: FunctionComponent<ComponentProps> = ({
     title,
     items,
     action,

@@ -1,7 +1,7 @@
 import React, { FC, ReactElement } from 'react';
 import Char from 'Common/Types/Char';
 
-const Shortcut: FC<{ shortcuts: Array<Char> }> = ({
+const Shortcut: FunctionComponent<{ shortcuts: Array<Char> }> = ({
     shortcuts,
 }): ReactElement => {
     return (

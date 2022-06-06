@@ -1,8 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 
-export interface ComponentProps {}
-
-const NotFound: FunctionComponent = (_props: ComponentProps): ReactElement => {
+const NotFound: FunctionComponent = (): ReactElement => {
     return (
         <div>
             <div>

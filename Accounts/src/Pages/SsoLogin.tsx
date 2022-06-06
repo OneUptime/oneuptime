@@ -25,9 +25,7 @@ const SsoLoginPage: FunctionComponent = () => {
                         title: 'Email',
                     },
                 ]}
-                onSubmit={(_values: FormValues<User>) => {
-                    
-                }}
+                onSubmit={(_values: FormValues<User>) => {}}
                 submitButtonText={'Continue with SSO'}
                 title={'Sign in to your account'}
                 footer={

@@ -42,9 +42,7 @@ const LoginPage: FunctionComponent = () => {
                         },
                     },
                 ]}
-                onSubmit={(_values: FormValues<User>) => {
-                   
-                }}
+                onSubmit={(_values: FormValues<User>) => {}}
                 submitButtonText={'Login'}
                 title={'Sign in to your account'}
                 footer={

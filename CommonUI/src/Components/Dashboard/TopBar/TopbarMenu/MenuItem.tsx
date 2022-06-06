@@ -13,7 +13,7 @@ export interface ComponentProps {
     action?: MouseEventHandler;
 }
 
-const MenuItem: FC<ComponentProps> = ({
+const MenuItem: FunctionComponent<ComponentProps> = ({
     text,
     icon,
     shortcuts,

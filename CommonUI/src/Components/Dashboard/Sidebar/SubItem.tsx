@@ -5,7 +5,7 @@ export interface ComponentProps {
     action?: MouseEventHandler;
 }
 
-const SubItem: FC<ComponentProps> = ({ title, action }): ReactElement => {
+const SubItem: FunctionComponent<ComponentProps> = ({ title, action }): ReactElement => {
     return (
         <div className="subsidebar" onClick={action}>
             {title}

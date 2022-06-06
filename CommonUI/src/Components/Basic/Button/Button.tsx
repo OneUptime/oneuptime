@@ -32,14 +32,17 @@ const Button: FunctionComponent<ComponentProps> = (
         // componentDidUnmount
         return () => {
             if (props.shortcutKey) {
-                window.removeEventListener('keydown', (e: KeyboardEventProp) => {
-                    return handleKeyboard(e);
-                });
+                window.removeEventListener(
+                    'keydown',
+                    (e: KeyboardEventProp) => {
+                        return handleKeyboard(e);
+                    }
+                );
             }
         };
     });
 
-    const handleKeyboard = (event: KeyboardEventProp) => {
+    const handleKeyboard: Function = (event: KeyboardEventProp): void => {
         if (
             event.target instanceof HTMLBodyElement &&
             event.key &&
@@ -66,19 +69,21 @@ const Button: FunctionComponent<ComponentProps> = (
             type={props.type}
             disabled={props.disabled}
         >
-            {!props.isLoading && <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                <div className="Box-root Margin-right--8">
-                    <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+            {!props.isLoading && (
+                <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                    <div className="Box-root Margin-right--8">
+                        <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+                    </div>
+                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                        <span>{props.title}</span>
+                        {props.shortcutKey && (
+                            <span className="new-btn__keycode">
+                                {props.shortcutKey}
+                            </span>
+                        )}
+                    </span>
                 </div>
-                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                    <span>{props.title}</span>
-                    {props.shortcutKey && (
-                        <span className="new-btn__keycode">
-                            {props.shortcutKey}
-                        </span>
-                    )}
-                </span>
-            </div>}
+            )}
             {props.isLoading && <div>Implement Loader here</div>}
         </button>
     );

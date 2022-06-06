@@ -1,11 +1,11 @@
-import React, { ReactElement, Fragment, FC } from 'react';
+import React, { ReactElement, Fragment, FunctionComponent }  from 'react';
 
 export interface ComponentProps {
     name: string;
     role: string;
 }
 
-const UserInfo: FC<ComponentProps> = ({ name, role }): ReactElement => {
+const UserInfo: FunctionComponent<ComponentProps> = ({ name, role }): ReactElement => {
     return (
         <Fragment>
             <h3 className="modal-text">{name}</h3>

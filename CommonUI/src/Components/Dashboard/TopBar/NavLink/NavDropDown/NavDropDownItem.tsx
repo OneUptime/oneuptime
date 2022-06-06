@@ -8,7 +8,7 @@ export interface ComponentProps {
     action?: MouseEventHandler;
 }
 
-const NavDropDownItem: FC<ComponentProps> = ({
+const NavDropDownItem: FunctionComponent<ComponentProps> = ({
     title,
     description,
     action,

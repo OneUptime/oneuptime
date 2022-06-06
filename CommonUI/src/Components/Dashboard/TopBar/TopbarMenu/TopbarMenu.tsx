@@ -1,4 +1,4 @@
-import React, { ReactElement, FC } from 'react';
+import React, { ReactElement, FunctionComponent }  from 'react';
 import './MenuItem.tsx';
 
 export interface ComponentProps {
@@ -6,7 +6,7 @@ export interface ComponentProps {
     items: Array<ReactElement>;
 }
 
-const TopbarMenu: FC<ComponentProps> = ({ legend, items }): ReactElement => {
+const TopbarMenu: FunctionComponent<ComponentProps> = ({ legend, items }): ReactElement => {
     return (
         <div className="lists">
             <p className="legend">{legend}</p>

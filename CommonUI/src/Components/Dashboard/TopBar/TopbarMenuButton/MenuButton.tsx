@@ -12,7 +12,7 @@ export interface ComponentProps {
     showModal?: boolean;
 }
 
-export const MenuIconButton: FC<ComponentProps> = ({
+export const MenuIconButton: FunctionComponent<ComponentProps> = ({
     icon,
     action,
     showModal,
@@ -28,7 +28,7 @@ export const MenuIconButton: FC<ComponentProps> = ({
     );
 };
 
-export const MenuOutlineButton: FC<ComponentProps> = ({
+export const MenuOutlineButton: FunctionComponent<ComponentProps> = ({
     text,
     icon,
     action,
@@ -46,7 +46,7 @@ export const MenuOutlineButton: FC<ComponentProps> = ({
     );
 };
 
-const MenuButton: FC<ComponentProps> = ({
+const MenuButton: FunctionComponent<ComponentProps> = ({
     text,
     icon,
     action,
