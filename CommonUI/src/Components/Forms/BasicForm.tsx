@@ -9,7 +9,8 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
-import { string } from 'yup';
+
+export const DefaultValidateFunction = (_values: FormValues<JSONObject>) => { return {} };
 
 export interface ComponentProps<T extends Object> {
     id: string;
@@ -116,17 +117,21 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
         return null;
     };
 
-    const validateRequired: Function = (
-        content: string,
-        field: DataField<T>
-    ): string | null => {
+    const validateRequired = (content: string, field: DataField<T>): string | null => {
         if (field.required && content.length === 0) {
             return `${field.title} is required.`;
         }
         return null;
     };
 
-    const validateData: Function = (content: string, field: DataField<T>) => {
+    const validateMatchField = (content: string, field: DataField<T>, entity: JSONObject): string | null => {
+        if (content && field.validation?.toMatchField && entity[field.validation?.toMatchField] && (entity[field.validation?.toMatchField] as string).trim() !== content.trim()) {
+            return `${field.title} should match ${field.validation?.toMatchField}`;
+        }
+        return null;
+    };
+
+    const validateData = (content: string, field: DataField<T>): string | null => {
         if (field.fieldType === FormFieldSchemaType.Email) {
             if (!Email.isValid(content!)) {
                 return 'Email is not valid.';
@@ -135,7 +140,8 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
         return null;
     };
 
-    const validate: Function = (values: FormValues<T>): object => {
+    const validate: Function = (values: FormValues<T>): JSONObject => {
+
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
@@ -146,7 +152,7 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
             if (name in values) {
                 const content: string | undefined = entries[name]?.toString();
 
-                if ( entries[name]) {
+                if (content) {
                     // Check Required fields.
                     const resultRequired: string | null = validateRequired(content, field);
                     if (resultRequired) {
@@ -158,6 +164,13 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
                     if (resultValidateData) {
                         errors[name] = resultValidateData;
                     }
+
+                    const resultMatch = validateMatchField(content, field, entries);
+
+                    if (resultMatch) {
+                        errors[name] = resultMatch;
+                    }
+
                     // check for length of content
                     const result: string | null = validateLength(content, field);
                     if (result) {
@@ -168,19 +181,21 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
                 errors[name] = `${field.title || name} is required.`;
             }
         }
-        return errors;
+
+        let customValidateResult = {}
+
+        if (props.onValidate) {
+            customValidateResult = props.onValidate(values);
+        }
+        
+        return {...errors, ...customValidateResult};
     };
 
     return (
         <div>
             <Formik
                 initialValues={props.initialValues}
-                validate={(values: FormValues<T>) => {
-                    if (props.onValidate) {
-                        return props.onValidate(values);
-                    }
-                    return validate(values);
-                }}
+                validate={validate}
                 validateOnChange={true}
                 validateOnBlur={true}
                 onSubmit={(values: FormValues<T>, { setSubmitting }) => {

@@ -91,6 +91,7 @@ const RegisterPage: FunctionComponent = () => {
                         },
                         validation: {
                             minLength: 6,
+                            toMatchField: 'password'
                         },
                         fieldType: FormFieldSchemaType.Password,
                         placeholder: 'Confirm Password',

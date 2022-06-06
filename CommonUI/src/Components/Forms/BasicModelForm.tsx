@@ -3,14 +3,14 @@ import { FormikErrors } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
-import BasicForm from './BasicForm';
+import BasicForm, { DefaultValidateFunction } from './BasicForm';
 
-export interface ComponentProps<T extends BaseModel> {
-    model: T;
+export interface ComponentProps<TBaseModel extends BaseModel> {
+    model: TBaseModel;
     id: string;
-    onSubmit: (values: FormValues<T>) => void;
-    onValidate?: (values: FormValues<T>) => FormikErrors<FormValues<T>>;
-    fields: Fields<T>;
+    onSubmit: (values: FormValues<TBaseModel>) => void;
+    onValidate?: (values: FormValues<TBaseModel>) => FormikErrors<FormValues<TBaseModel>>;
+    fields: Fields<TBaseModel>;
     submitButtonText?: string;
     title?: string;
     description?: string;
@@ -22,6 +22,7 @@ export interface ComponentProps<T extends BaseModel> {
 const BasicModelForm = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
+
     const initialValues: FormValues<TBaseModel> = {};
 
     const fields = [];
@@ -57,6 +58,7 @@ const BasicModelForm = <TBaseModel extends BaseModel>(
             isLoading={props.isLoading || false}
             fields={fields}
             id={props.id}
+            onValidate={props.onValidate ? props.onValidate : DefaultValidateFunction}
             onSubmit={props.onSubmit}
             initialValues={initialValues}
             submitButtonText={props.submitButtonText || 'Save'}
