@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect, FunctionComponent }  from 'react';
+import React, { ReactElement, useEffect, FunctionComponent } from 'react';
 import './Container.scss';
 
 export interface ComponentProps {
@@ -11,7 +11,7 @@ const Container: FunctionComponent<ComponentProps> = ({
     title,
     children,
     sideBar,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     useEffect(() => {
         document.title = title;
     }, [title]);

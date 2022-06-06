@@ -12,7 +12,7 @@ import {
 
 const CreateButton: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
-    const toggle = () => {
+    const toggle: Function = () => {
         return setShowList(!showList);
     };
 

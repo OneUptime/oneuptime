@@ -1,4 +1,4 @@
-import React, { ReactElement, FC, MouseEventHandler } from 'react';
+import React, { ReactElement, MouseEventHandler } from 'react';
 import Shortcut from '../../../Basic/ShortcutKey/Shortcut';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';

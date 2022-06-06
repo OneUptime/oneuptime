@@ -1,4 +1,4 @@
-import React, { ReactElement, FunctionComponent }  from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import './Sidebar.scss';
 
 export interface ComponentProps {
@@ -6,7 +6,10 @@ export interface ComponentProps {
     children: Array<ReactElement>;
 }
 
-const Sidebar: FunctionComponent<ComponentProps> = ({ title, children }): ReactElement => {
+const Sidebar: FunctionComponent<ComponentProps> = ({
+    title,
+    children,
+}): ReactElement => {
     return (
         <div className="sideBar">
             <h2>{title}</h2>

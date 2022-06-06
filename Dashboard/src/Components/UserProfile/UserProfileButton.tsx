@@ -8,7 +8,7 @@ import UserInfo from './UserInfo';
 
 const UserProfileButton: FunctionComponent = (): ReactElement => {
     const [showProfile, setShowProfile] = useState(false);
-    const toggle = () => {
+    const toggle: Function = () => {
         return setShowProfile(!showProfile);
     };
 
@@ -30,9 +30,10 @@ const UserProfileButton: FunctionComponent = (): ReactElement => {
                             <UserInfo
                                 name="Caleb Okpara"
                                 role="Administrator"
+                                key={1}
                             />,
-                            <MenuLinkItem text="Profile" />,
-                            <MenuLinkItem text="Sign out" />,
+                            <MenuLinkItem text="Profile" key={2} />,
+                            <MenuLinkItem text="Sign out" key={3} />,
                         ]}
                     />
                 }

@@ -10,7 +10,9 @@ import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
 
-export const DefaultValidateFunction = (_values: FormValues<JSONObject>) => {
+export const DefaultValidateFunction: Function = (
+    _values: FormValues<JSONObject>
+): JSONObject => {
     return {};
 };
 
@@ -39,7 +41,7 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
     }
 }
 
-const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
+const BasicForm: FunctionComponent = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const getFormField: Function = (
@@ -119,7 +121,7 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
         return null;
     };
 
-    const validateRequired = (
+    const validateRequired: Function = (
         content: string,
         field: DataField<T>
     ): string | null => {
@@ -129,7 +131,7 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
         return null;
     };
 
-    const validateMatchField = (
+    const validateMatchField: Function = (
         content: string,
         field: DataField<T>,
         entity: JSONObject
@@ -146,7 +148,7 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
         return null;
     };
 
-    const validateData = (
+    const validateData: Function = (
         content: string,
         field: DataField<T>
     ): string | null => {
@@ -188,7 +190,7 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
                         errors[name] = resultValidateData;
                     }
 
-                    const resultMatch = validateMatchField(
+                    const resultMatch: string | null = validateMatchField(
                         content,
                         field,
                         entries
@@ -212,7 +214,7 @@ const BasicForm: FunctionComponent<ComponentProps<Object>> = <T extends Object>(
             }
         }
 
-        let customValidateResult = {};
+        let customValidateResult: JSONObject = {};
 
         if (props.onValidate) {
             customValidateResult = props.onValidate(values);

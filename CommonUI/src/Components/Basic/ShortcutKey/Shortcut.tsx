@@ -1,12 +1,16 @@
-import React, { FC, ReactElement } from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import Char from 'Common/Types/Char';
 
-const Shortcut: FunctionComponent<{ shortcuts: Array<Char> }> = ({
+export interface ComponentProps{
+     shortcuts: Array<Char> 
+}
+
+const Shortcut: FunctionComponent<ComponentProps> = ({
     shortcuts,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="shortcut">
-            {shortcuts.map((shortcut, index) => {
+            {shortcuts.map((shortcut: Char, index: number) => {
                 return <code key={index}>{shortcut}</code>;
             })}
         </div>

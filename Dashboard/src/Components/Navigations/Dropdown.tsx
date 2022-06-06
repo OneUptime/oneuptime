@@ -5,7 +5,7 @@ import NavDropDownItem from 'CommonUI/src/Components/Dashboard/TopBar/NavLink/Na
 
 const Dropdown = (): ReactElement => {
     const [showDropdownItems, setShowDropDownItems] = useState(false);
-    const toggle = () => {
+    const toggle: Function = () => {
         return setShowDropDownItems(!showDropdownItems);
     };
 

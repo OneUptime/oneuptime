@@ -1,4 +1,4 @@
-import React, { ReactElement, FunctionComponent }  from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import { faUpRightFromSquare } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 

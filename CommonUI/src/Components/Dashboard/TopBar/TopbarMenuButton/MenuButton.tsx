@@ -1,5 +1,5 @@
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
-import React, { ReactElement, FC, MouseEventHandler } from 'react';
+import React, { ReactElement, MouseEventHandler, FunctionComponent } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import './MenuButton.scss';
