@@ -63,11 +63,10 @@ const BasicForm: FunctionComponent = <T extends Object>(
                         <span>
                             <a
                                 href={field.sideLink?.url.toString()}
-                                target={`${
-                                    field.sideLink?.openLinkInNewTab
+                                target={`${field.sideLink?.openLinkInNewTab
                                         ? '_blank'
                                         : '_self'
-                                }`}
+                                    }`}
                             >
                                 {field.sideLink?.text}
                             </a>
@@ -104,17 +103,15 @@ const BasicForm: FunctionComponent = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${
-                        field.validation.minLength
-                    } characters.`;
+                    return `${field.title || name} cannot be less than ${field.validation.minLength
+                        } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${
-                        field.validation.maxLength
-                    } characters.`;
+                    return `${field.title || name} cannot be more than ${field.validation.maxLength
+                        } characters.`;
                 }
             }
         }
@@ -141,7 +138,7 @@ const BasicForm: FunctionComponent = <T extends Object>(
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
             (entity[field.validation?.toMatchField] as string).trim() !==
-                content.trim()
+            content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -238,42 +235,34 @@ const BasicForm: FunctionComponent = <T extends Object>(
                     setSubmitting(false);
                 }}
             >
-                {({
-                    isSubmitting,
-                    isValid,
-                }: {
-                    isSubmitting: boolean;
-                    isValid: boolean;
-                }) => {
-                    return (
-                        <Form
-                            autoComplete="off"
-                            className={`grid_form_${props.showAsColumns}`}
-                        >
-                            <h1>{props.title}</h1>
 
-                            <p className="description">{props.description}</p>
+                <Form
+                    autoComplete="off"
+                    className={`grid_form_${props.showAsColumns}`}
+                >
+                    <h1>{props.title}</h1>
 
-                            <div className={`grid_${props.showAsColumns}`}>
-                                {props.fields &&
-                                    props.fields.map(
-                                        (field: DataField<T>, i: number) => {
-                                            return getFormField(field, i);
-                                        }
-                                    )}
-                            </div>
+                    <p className="description">{props.description}</p>
 
-                            <Button
-                                title={props.submitButtonText || 'Submit'}
-                                disabled={isSubmitting || !isValid}
-                                type={ButtonTypes.Submit}
-                                id={`${props.id}-submit-button`}
-                                isLoading={props.isLoading || false}
-                            />
-                            {props.footer}
-                        </Form>
-                    );
-                }}
+                    <div className={`grid_${props.showAsColumns}`}>
+                        {props.fields &&
+                            props.fields.map(
+                                (field: DataField<T>, i: number) => {
+                                    return getFormField(field, i);
+                                }
+                            )}
+                    </div>
+
+                    <Button
+                        title={props.submitButtonText || 'Submit'}
+                        type={ButtonTypes.Submit}
+                        id={`${props.id}-submit-button`}
+                        isLoading={props.isLoading || false}
+                    />
+                    {props.footer}
+                </Form>
+
+
             </Formik>
         </div>
     );

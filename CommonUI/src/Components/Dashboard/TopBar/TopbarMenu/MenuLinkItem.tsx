@@ -12,7 +12,7 @@ export interface ComponentProps {
 const MenuLinkItem: FunctionComponent<ComponentProps> = ({
     text,
     openInNewTab,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="menu-link">
             <div className="name">

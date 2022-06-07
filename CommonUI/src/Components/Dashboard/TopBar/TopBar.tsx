@@ -16,7 +16,7 @@ const TopBar: FunctionComponent<ComponentProps> = ({
     rightContents,
     middleContents,
     navContents,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="root">
             <header>

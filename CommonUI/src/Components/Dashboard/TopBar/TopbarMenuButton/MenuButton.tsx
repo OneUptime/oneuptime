@@ -8,20 +8,26 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import './MenuButton.scss';
 
-export interface ComponentProps {
-    text?: string;
+export interface MenuIconButtonComponentProps {
     icon?: IconProp;
     action?: MouseEventHandler;
     modalContent?: ReactElement;
     showModal?: boolean;
 }
 
-export const MenuIconButton: FunctionComponent<ComponentProps> = ({
+export interface MenuOutlineButtonComponentProps
+    extends MenuIconButtonComponentProps {
+    text?: string;
+}
+
+export const MenuIconButton: FunctionComponent<
+    MenuIconButtonComponentProps
+> = ({
     icon,
     action,
     showModal,
     modalContent,
-}: ComponentProps): ReactElement => {
+}: MenuIconButtonComponentProps): ReactElement => {
     return (
         <div className="button-layout">
             <div className="icon-button" onClick={action}>
@@ -32,13 +38,15 @@ export const MenuIconButton: FunctionComponent<ComponentProps> = ({
     );
 };
 
-export const MenuOutlineButton: FunctionComponent<ComponentProps> = ({
+export const MenuOutlineButton: FunctionComponent<
+    MenuOutlineButtonComponentProps
+> = ({
     text,
     icon,
     action,
     showModal,
     modalContent,
-}: ComponentProps): ReactElement => {
+}: MenuOutlineButtonComponentProps): ReactElement => {
     return (
         <div className="button-layout">
             <div className="button" onClick={action}>
@@ -50,13 +58,13 @@ export const MenuOutlineButton: FunctionComponent<ComponentProps> = ({
     );
 };
 
-const MenuButton: FunctionComponent<ComponentProps> = ({
+const MenuButton: FunctionComponent<MenuOutlineButtonComponentProps> = ({
     text,
     icon,
     action,
     showModal,
     modalContent,
-}): ReactElement => {
+}: MenuOutlineButtonComponentProps): ReactElement => {
     return (
         <div className="button-layout">
             <div className="menu-button" onClick={action}>
