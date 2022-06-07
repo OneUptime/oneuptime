@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -31,7 +32,7 @@ describe('Download resource page test', () => {
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe(`OneUptime | Download Resource`);
         },
         OPERATION_TIMEOUT
@@ -48,19 +49,15 @@ describe('Download resource page test', () => {
                 }
             );
 
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.Header-title'
             );
-            const firstIntrotext = await PuppeteerHelper.getTextContent(
-                page,
-                '.common-IntroText'
-            );
-            const secondIntrotext = await PuppeteerHelper.getTextContent(
-                page,
-                '.intro-text'
-            );
-            const headline = await PuppeteerHelper.getTextContent(
+            const firstIntrotext: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '.common-IntroText');
+            const secondIntrotext: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '.intro-text');
+            const headline: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.cta-headline'
             );
@@ -83,35 +80,33 @@ describe('Download resource page test', () => {
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-            const fullName = await PuppeteerHelper.getTextContent(
+            const fullName: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 'input[name=fullname]'
             );
-            const email = await PuppeteerHelper.getTextContent(
+            const email: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 'input[name=email]'
             );
-            const phone = await PuppeteerHelper.getTextContent(
+            const phone: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 'input[name=phone]'
             );
 
-            const website = await PuppeteerHelper.getTextContent(
+            const website: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 'input[name=website]'
             );
 
-            const country = await PuppeteerHelper.getTextContent(
+            const country: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 'select[name=country]'
             );
 
-            const companySize = await PuppeteerHelper.getTextContent(
-                page,
-                'select[id=volume]'
-            );
+            const companySize: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, 'select[id=volume]');
 
-            const button = await PuppeteerHelper.getTextContent(
+            const button: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 'input[id=request-resource-btn]'
             );

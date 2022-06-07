@@ -1,11 +1,11 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import PuppeteerHelper from 'Common/Tests/TestingUtils/PuppeteerHelper';
-
 import {
     OPERATION_TIMEOUT,
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -32,7 +32,7 @@ describe('Kubernetes monitoring page test', () => {
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe(
                 `OneUptime | Monitor your kubernetes cluster every second`
             );
@@ -50,7 +50,9 @@ describe('Kubernetes monitoring page test', () => {
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-            const imgGif = await page.waitForSelector('#uptime-monitoring-gif');
+            const imgGif: VALUE_TYPE = await page.waitForSelector(
+                '#uptime-monitoring-gif'
+            );
             expect(imgGif).toBeTruthy();
         },
         OPERATION_TIMEOUT
@@ -66,18 +68,17 @@ describe('Kubernetes monitoring page test', () => {
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.Header-title'
             );
-            const compareRate = await PuppeteerHelper.getTextContent(
-                page,
-                '#compare-rate'
-            );
-            const enterpriseIntegration = await PuppeteerHelper.getTextContent(
-                page,
-                '#enterprise-integration'
-            );
+            const compareRate: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#compare-rate');
+            const enterpriseIntegration: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(
+                    page,
+                    '#enterprise-integration'
+                );
 
             expect(pageTittle).toBeDefined();
             expect(compareRate).toBeDefined();
@@ -99,7 +100,7 @@ describe('Kubernetes monitoring page test', () => {
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
 
-            const text = await PuppeteerHelper.getTextContent(
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.common-PageTitle'
             );
@@ -120,12 +121,20 @@ describe('Kubernetes monitoring page test', () => {
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-            const sodexoImg = await page.waitForSelector('.sodexo');
-            const viewsonicImg = await page.waitForSelector('.viewsonic');
-            const siemensImg = await page.waitForSelector('.siemens');
-            const securonixImg = await page.waitForSelector('.securonix');
-            const amerscImg = await page.waitForSelector('.amersc');
-            const freshsalesImg = await page.waitForSelector('.freshsales');
+            const sodexoImg: VALUE_TYPE = await page.waitForSelector('.sodexo');
+            const viewsonicImg: VALUE_TYPE = await page.waitForSelector(
+                '.viewsonic'
+            );
+            const siemensImg: VALUE_TYPE = await page.waitForSelector(
+                '.siemens'
+            );
+            const securonixImg: VALUE_TYPE = await page.waitForSelector(
+                '.securonix'
+            );
+            const amerscImg: VALUE_TYPE = await page.waitForSelector('.amersc');
+            const freshsalesImg: VALUE_TYPE = await page.waitForSelector(
+                '.freshsales'
+            );
 
             expect(sodexoImg).toBeTruthy();
             expect(viewsonicImg).toBeTruthy();

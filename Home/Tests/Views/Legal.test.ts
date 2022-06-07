@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -28,7 +29,7 @@ describe('Legal page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe(`OneUptime | Legal Center`);
         },
         OPERATION_TIMEOUT
@@ -42,7 +43,7 @@ describe('Legal page test', () => {
                 timeout: OPERATION_TIMEOUT,
             });
 
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.legal'
             );
@@ -61,7 +62,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/terms"]');
             await page.click('a[href$="/legal/terms"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('Terms of Use');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/terms`);
         },
@@ -77,7 +78,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/privacy"]');
             await page.click('a[href$="/legal/privacy"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('Privacy Policy');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/privacy`);
         },
@@ -92,7 +93,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/sla"]');
             await page.click('a[href$="/legal/sla"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('Service Level Agreement');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/sla`);
         },
@@ -107,7 +108,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/gdpr"]');
             await page.click('a[href$="/legal/gdpr"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('General Data Protection Regulation (GDPR)');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/gdpr`);
         },
@@ -122,7 +123,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/ccpa"]');
             await page.click('a[href$="/legal/ccpa"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('CCPA');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/ccpa`);
         },
@@ -137,7 +138,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/hipaa"]');
             await page.click('a[href$="/legal/hipaa"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain(
                 'Health Insurance Portability and Accountability Act'
             );
@@ -155,7 +156,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/iso-27001"]');
             await page.click('a[href$="/legal/iso-27001"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain(
                 'ISO/IEC 27001 INFORMATION SECURITY MANAGEMENT'
             );
@@ -173,7 +174,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/iso-27017"]');
             await page.click('a[href$="/legal/iso-27017"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('ISO/IEC 27017:2015');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/iso-27017`);
         },
@@ -189,7 +190,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/iso-27018"]');
             await page.click('a[href$="/legal/iso-27018"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('ISO/IEC 27018:2014');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/iso-27018`);
         },
@@ -205,7 +206,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/soc-2"]');
             await page.click('a[href$="/legal/soc-2"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('SOC 2');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/soc-2`);
         },
@@ -221,7 +222,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/soc-3"]');
             await page.click('a[href$="/legal/soc-3"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('SOC 3');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/soc-3`);
         },
@@ -237,7 +238,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/data-residency"]');
             await page.click('a[href$="/legal/data-residency"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain(
                 'Data Residency for OneUptime Enterprise Customers'
             );
@@ -257,7 +258,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/pci"]');
             await page.click('a[href$="/legal/pci"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('PCI DSS');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/pci`);
         },
@@ -273,7 +274,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/dmca"]');
             await page.click('a[href$="/legal/dmca"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('DMCA Policy');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/dmca`);
         },
@@ -289,7 +290,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/subprocessors"]');
             await page.click('a[href$="/legal/subprocessors"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('Subprocessors');
             expect(page.url()).toBe(
                 `${HOME_URL.toString()}/legal/subprocessors`
@@ -307,7 +308,7 @@ describe('Legal page test', () => {
             });
             await page.waitForSelector('a[href$="/legal/contact"]');
             await page.click('a[href$="/legal/contact"]');
-            const text = await PuppeteerHelper.getTextContent(page, '#title');
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(page, '#title');
             expect(text).toContain('Contact');
             expect(page.url()).toBe(`${HOME_URL.toString()}/legal/contact`);
         },

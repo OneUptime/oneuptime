@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -28,7 +29,7 @@ describe('Resources page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe(`OneUptime | Resources and Whitepapers`);
         },
         OPERATION_TIMEOUT
@@ -42,11 +43,14 @@ describe('Resources page test', () => {
                 timeout: OPERATION_TIMEOUT,
             });
 
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.Header-title'
             );
-            const title = await PuppeteerHelper.getTextContent(page, '.title');
+            const title: VALUE_TYPE = await PuppeteerHelper.getTextContent(
+                page,
+                '.title'
+            );
 
             expect(pageTittle).toBeDefined();
             expect(title).toBeDefined();
@@ -63,7 +67,7 @@ describe('Resources page test', () => {
             });
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
-            const text = await PuppeteerHelper.getTextContent(
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.common-PageTitle'
             );

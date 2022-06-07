@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -28,7 +29,7 @@ describe('Enterprice Overview page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe(`OneUptime | Enterprises`);
         },
         OPERATION_TIMEOUT
@@ -42,26 +43,26 @@ describe('Enterprice Overview page test', () => {
                 timeout: OPERATION_TIMEOUT,
             });
 
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.Header-title'
             );
-            const engineer = await PuppeteerHelper.getTextContent(
+            const engineer: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#engineer'
             );
-            const installCloud = await PuppeteerHelper.getTextContent(
-                page,
-                '#install-cloud'
-            );
-            const securityEncruption = await PuppeteerHelper.getTextContent(
-                page,
-                '#security-encryption'
-            );
-            const enterpriseIntegration = await PuppeteerHelper.getTextContent(
-                page,
-                '#enterprise-integration'
-            );
+            const installCloud: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#install-cloud');
+            const securityEncruption: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(
+                    page,
+                    '#security-encryption'
+                );
+            const enterpriseIntegration: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(
+                    page,
+                    '#enterprise-integration'
+                );
             expect(pageTittle).toBeDefined();
             expect(engineer).toBeDefined();
             expect(installCloud).toBeDefined();
@@ -80,7 +81,7 @@ describe('Enterprice Overview page test', () => {
             });
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
-            const text = await PuppeteerHelper.getTextContent(
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.common-PageTitle'
             );
@@ -97,12 +98,24 @@ describe('Enterprice Overview page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const cloudboostImg = await page.waitForSelector('.cloudboost');
-            const viewsonicImg = await page.waitForSelector('.viewsonic');
-            const siemensImg = await page.waitForSelector('.siemens');
-            const hersheysImg = await page.waitForSelector('.hersheys');
-            const elasticstackImg = await page.waitForSelector('.elasticstack');
-            const freshsalesImg = await page.waitForSelector('.freshsales');
+            const cloudboostImg: VALUE_TYPE = await page.waitForSelector(
+                '.cloudboost'
+            );
+            const viewsonicImg: VALUE_TYPE = await page.waitForSelector(
+                '.viewsonic'
+            );
+            const siemensImg: VALUE_TYPE = await page.waitForSelector(
+                '.siemens'
+            );
+            const hersheysImg: VALUE_TYPE = await page.waitForSelector(
+                '.hersheys'
+            );
+            const elasticstackImg: VALUE_TYPE = await page.waitForSelector(
+                '.elasticstack'
+            );
+            const freshsalesImg: VALUE_TYPE = await page.waitForSelector(
+                '.freshsales'
+            );
 
             expect(cloudboostImg).toBeTruthy();
             expect(viewsonicImg).toBeTruthy();

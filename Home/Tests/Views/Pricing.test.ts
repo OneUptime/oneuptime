@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -28,7 +29,7 @@ describe('Pricing page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
 
             expect(title).toBe('OneUptime | Pricing');
         },
@@ -42,22 +43,18 @@ describe('Pricing page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#page-title'
             );
-            const compareRate = await PuppeteerHelper.getTextContent(
-                page,
-                '#compare-rate'
-            );
-            const enterprise = await PuppeteerHelper.getTextContent(
+            const compareRate: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#compare-rate');
+            const enterprise: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.Plan-title--enterprise'
             );
-            const commonBodyText = await PuppeteerHelper.getTextContent(
-                page,
-                '.common-BodyText'
-            );
+            const commonBodyText: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '.common-BodyText');
 
             expect(pageTittle).toBeDefined();
             expect(enterprise).toBe('Enterprise');
@@ -76,15 +73,15 @@ describe('Pricing page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const startUp = await PuppeteerHelper.getTextContent(
+            const startUp: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#startup-rate'
             );
-            const growth = await PuppeteerHelper.getTextContent(
+            const growth: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#growth-rate'
             );
-            const scale = await PuppeteerHelper.getTextContent(
+            const scale: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#scale-rate'
             );
@@ -105,7 +102,7 @@ describe('Pricing page test', () => {
             });
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
-            const text = await PuppeteerHelper.getTextContent(
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.common-PageTitle'
             );

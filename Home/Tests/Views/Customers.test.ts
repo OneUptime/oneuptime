@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -28,7 +29,7 @@ describe('Customers page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe(
                 `OneUptime | One Complete SRE and DevOps platform.`
             );
@@ -43,18 +44,18 @@ describe('Customers page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const img1 = await page.waitForSelector('.Icon-img24');
-            const img2 = await page.waitForSelector('.Icon-img29');
-            const img3 = await page.waitForSelector('.Icon-img12');
-            const img4 = await page.waitForSelector('.Icon-img23');
-            const img5 = await page.waitForSelector('.Icon-img34');
-            const img6 = await page.waitForSelector('.Icon-img17');
-            const img7 = await page.waitForSelector('.Icon-img38');
-            const img8 = await page.waitForSelector('.Icon-img13');
-            const img9 = await page.waitForSelector('.Icon-img19');
-            const img10 = await page.waitForSelector('.Icon-img15');
-            const img11 = await page.waitForSelector('.Icon-img27');
-            const img12 = await page.waitForSelector('.Icon-img4');
+            const img1: VALUE_TYPE = await page.waitForSelector('.Icon-img24');
+            const img2: VALUE_TYPE = await page.waitForSelector('.Icon-img29');
+            const img3: VALUE_TYPE = await page.waitForSelector('.Icon-img12');
+            const img4: VALUE_TYPE = await page.waitForSelector('.Icon-img23');
+            const img5: VALUE_TYPE = await page.waitForSelector('.Icon-img34');
+            const img6: VALUE_TYPE = await page.waitForSelector('.Icon-img17');
+            const img7: VALUE_TYPE = await page.waitForSelector('.Icon-img38');
+            const img8: VALUE_TYPE = await page.waitForSelector('.Icon-img13');
+            const img9: VALUE_TYPE = await page.waitForSelector('.Icon-img19');
+            const img10: VALUE_TYPE = await page.waitForSelector('.Icon-img15');
+            const img11: VALUE_TYPE = await page.waitForSelector('.Icon-img27');
+            const img12: VALUE_TYPE = await page.waitForSelector('.Icon-img4');
             expect(img1).toBeTruthy();
             expect(img2).toBeTruthy();
             expect(img3).toBeTruthy();
@@ -79,11 +80,14 @@ describe('Customers page test', () => {
                 timeout: OPERATION_TIMEOUT,
             });
 
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.Header-title'
             );
-            const title = await PuppeteerHelper.getTextContent(page, '.title');
+            const title: VALUE_TYPE = await PuppeteerHelper.getTextContent(
+                page,
+                '.title'
+            );
 
             expect(pageTittle).toBeDefined();
             expect(title).toBeDefined();
@@ -100,7 +104,7 @@ describe('Customers page test', () => {
             });
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
-            const text = await PuppeteerHelper.getTextContent(
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.common-PageTitle'
             );

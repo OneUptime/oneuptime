@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -28,7 +29,7 @@ describe('Ccpa page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe(`OneUptime | Legal Center`);
         },
         OPERATION_TIMEOUT
@@ -41,15 +42,13 @@ describe('Ccpa page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#title'
             );
-            const dataPrivacy = await PuppeteerHelper.getTextContent(
-                page,
-                '#data-privacy'
-            );
-            const contact = await PuppeteerHelper.getTextContent(
+            const dataPrivacy: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#data-privacy');
+            const contact: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#contact'
             );

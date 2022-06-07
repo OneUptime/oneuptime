@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -28,7 +29,7 @@ describe('Terms page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe(`OneUptime | Legal Center`);
         },
         OPERATION_TIMEOUT
@@ -42,18 +43,16 @@ describe('Terms page test', () => {
                 timeout: OPERATION_TIMEOUT,
             });
 
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#title'
             );
-            const acceptance = await PuppeteerHelper.getTextContent(
+            const acceptance: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#acceptance'
             );
-            const miscellaneous = await PuppeteerHelper.getTextContent(
-                page,
-                '#miscellaneous'
-            );
+            const miscellaneous: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#miscellaneous');
 
             expect(pageTittle).toBe('Terms of Use');
             expect(acceptance).toBe('1. Acceptance of Terms and Conditions');

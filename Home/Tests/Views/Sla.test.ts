@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -28,7 +29,7 @@ describe('Sla page test', () => {
                 waitUntil: 'networkidle0',
                 timeout: OPERATION_TIMEOUT,
             });
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe(`OneUptime | Legal Center`);
         },
         OPERATION_TIMEOUT
@@ -42,23 +43,22 @@ describe('Sla page test', () => {
                 timeout: OPERATION_TIMEOUT,
             });
 
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#title'
             );
-            const definitions = await PuppeteerHelper.getTextContent(
-                page,
-                '#definitions'
-            );
-            const privasionServices = await PuppeteerHelper.getTextContent(
-                page,
-                '#provision-services'
-            );
-            const accoutType = await PuppeteerHelper.getTextContent(
+            const definitions: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#definitions');
+            const privasionServices: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(
+                    page,
+                    '#provision-services'
+                );
+            const accoutType: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#account-type'
             );
-            const disclaimer = await PuppeteerHelper.getTextContent(
+            const disclaimer: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '#disclaimer'
             );
