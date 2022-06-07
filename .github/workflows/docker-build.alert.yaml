@@ -6,7 +6,8 @@ on:
       - 'hotfix-*'   
       - 'release'
       - 'staging-release'
-
+  pull_request:
+  
 jobs:
  # define job to build docker image
    docker-build:
