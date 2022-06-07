@@ -63,10 +63,11 @@ const BasicForm: Function = <T extends Object>(
                         <span>
                             <a
                                 href={field.sideLink?.url.toString()}
-                                target={`${field.sideLink?.openLinkInNewTab
+                                target={`${
+                                    field.sideLink?.openLinkInNewTab
                                         ? '_blank'
                                         : '_self'
-                                    }`}
+                                }`}
                             >
                                 {field.sideLink?.text}
                             </a>
@@ -103,15 +104,17 @@ const BasicForm: Function = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${field.validation.minLength
-                        } characters.`;
+                    return `${field.title || name} cannot be less than ${
+                        field.validation.minLength
+                    } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${field.validation.maxLength
-                        } characters.`;
+                    return `${field.title || name} cannot be more than ${
+                        field.validation.maxLength
+                    } characters.`;
                 }
             }
         }
@@ -138,7 +141,7 @@ const BasicForm: Function = <T extends Object>(
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
             (entity[field.validation?.toMatchField] as string).trim() !==
-            content.trim()
+                content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -157,7 +160,10 @@ const BasicForm: Function = <T extends Object>(
         return null;
     };
 
-    const validate: ((values: FormValues<T>) => void | object | Promise<FormikErrors<FormValues<T>>>) & Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
+    const validate: ((
+        values: FormValues<T>
+    ) => void | object | Promise<FormikErrors<FormValues<T>>>) &
+        Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
@@ -217,7 +223,9 @@ const BasicForm: Function = <T extends Object>(
             customValidateResult = props.onValidate(values);
         }
 
-        return { ...errors, ...customValidateResult } as FormikErrors<FormValues<T>>;
+        return { ...errors, ...customValidateResult } as FormikErrors<
+            FormValues<T>
+        >;
     };
 
     return (
