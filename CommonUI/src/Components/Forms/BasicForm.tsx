@@ -63,10 +63,11 @@ const BasicForm: FunctionComponent = <T extends Object>(
                         <span>
                             <a
                                 href={field.sideLink?.url.toString()}
-                                target={`${field.sideLink?.openLinkInNewTab
+                                target={`${
+                                    field.sideLink?.openLinkInNewTab
                                         ? '_blank'
                                         : '_self'
-                                    }`}
+                                }`}
                             >
                                 {field.sideLink?.text}
                             </a>
@@ -103,15 +104,17 @@ const BasicForm: FunctionComponent = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${field.validation.minLength
-                        } characters.`;
+                    return `${field.title || name} cannot be less than ${
+                        field.validation.minLength
+                    } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${field.validation.maxLength
-                        } characters.`;
+                    return `${field.title || name} cannot be more than ${
+                        field.validation.maxLength
+                    } characters.`;
                 }
             }
         }
@@ -138,7 +141,7 @@ const BasicForm: FunctionComponent = <T extends Object>(
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
             (entity[field.validation?.toMatchField] as string).trim() !==
-            content.trim()
+                content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -235,7 +238,6 @@ const BasicForm: FunctionComponent = <T extends Object>(
                     setSubmitting(false);
                 }}
             >
-
                 <Form
                     autoComplete="off"
                     className={`grid_form_${props.showAsColumns}`}
@@ -261,8 +263,6 @@ const BasicForm: FunctionComponent = <T extends Object>(
                     />
                     {props.footer}
                 </Form>
-
-
             </Formik>
         </div>
     );
