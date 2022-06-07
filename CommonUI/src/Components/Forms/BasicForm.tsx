@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 import { ErrorMessage, Field, Form, Formik, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
 import FormValues from './Types/FormValues';
@@ -20,7 +20,7 @@ export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
-    onValidate?: (values: FormValues<T>) => FormikErrors<FormValues<T>>;
+    onValidate?: (values: FormValues<T>) => JSONObject;
     fields: Fields<T>;
     submitButtonText?: string;
     title?: string;
@@ -41,7 +41,7 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
     }
 }
 
-const BasicForm: FunctionComponent = <T extends Object>(
+const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
     const getFormField: Function = (
@@ -63,11 +63,10 @@ const BasicForm: FunctionComponent = <T extends Object>(
                         <span>
                             <a
                                 href={field.sideLink?.url.toString()}
-                                target={`${
-                                    field.sideLink?.openLinkInNewTab
+                                target={`${field.sideLink?.openLinkInNewTab
                                         ? '_blank'
                                         : '_self'
-                                }`}
+                                    }`}
                             >
                                 {field.sideLink?.text}
                             </a>
@@ -104,17 +103,15 @@ const BasicForm: FunctionComponent = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${
-                        field.validation.minLength
-                    } characters.`;
+                    return `${field.title || name} cannot be less than ${field.validation.minLength
+                        } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${
-                        field.validation.maxLength
-                    } characters.`;
+                    return `${field.title || name} cannot be more than ${field.validation.maxLength
+                        } characters.`;
                 }
             }
         }
@@ -141,7 +138,7 @@ const BasicForm: FunctionComponent = <T extends Object>(
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
             (entity[field.validation?.toMatchField] as string).trim() !==
-                content.trim()
+            content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -160,7 +157,7 @@ const BasicForm: FunctionComponent = <T extends Object>(
         return null;
     };
 
-    const validate: Function = (values: FormValues<T>): JSONObject => {
+    const validate: ((values: FormValues<T>) => void | object | Promise<FormikErrors<FormValues<T>>>) & Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
@@ -220,7 +217,7 @@ const BasicForm: FunctionComponent = <T extends Object>(
             customValidateResult = props.onValidate(values);
         }
 
-        return { ...errors, ...customValidateResult };
+        return { ...errors, ...customValidateResult } as FormikErrors<FormValues<T>>;
     };
 
     return (

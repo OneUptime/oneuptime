@@ -1,4 +1,4 @@
-import React, { ReactElement, FunctionComponent } from 'react';
+import React, { ReactElement } from 'react';
 import { FormikErrors } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
@@ -21,7 +21,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isLoading?: boolean;
 }
 
-const BasicModelForm: FunctionComponent = <TBaseModel extends BaseModel>(
+const BasicModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const initialValues: FormValues<TBaseModel> = {};
