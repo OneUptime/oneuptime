@@ -1,4 +1,4 @@
-import { Page } from '../../../Home/node_modules/puppeteer/lib/types';
+import { Page } from '../../../Home/node_modules/puppeteer';
 
 export default class PuppeteerHelper {
     public static async getTextContent(page: Page, selector: string) {

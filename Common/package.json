@@ -23,6 +23,7 @@
         "moment": "^2.29.2",
         "nanoid": "^3.3.2",
         "nanoid-dictionary": "^4.3.0",
+        "puppeteer": "^14.3.0",
         "reflect-metadata": "^0.1.13",
         "slugify": "^1.6.5",
         "typeorm": "^0.3.6",
