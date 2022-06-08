@@ -9,22 +9,24 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
     id: string;
     onSubmit: (values: FormValues<TBaseModel>) => void;
-    onValidate?: (values: FormValues<TBaseModel>) => FormikErrors<FormValues<TBaseModel>>;
+    onValidate?: (
+        values: FormValues<TBaseModel>
+    ) => FormikErrors<FormValues<TBaseModel>>;
     fields: Fields<TBaseModel>;
     submitButtonText?: string;
     title?: string;
     description?: string;
     showAsColumns?: number;
     footer: ReactElement;
+    isLoading?: boolean;
 }
 
-const BasicModelForm = <TBaseModel extends BaseModel>(
+const BasicModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const initialValues: FormValues<TBaseModel> = {};
 
-    const fields = [];
+    const fields: Fields<TBaseModel> = [];
     // Prep
     for (const field of props.fields) {
         if (Object.keys(field.field).length > 0) {
@@ -54,13 +56,14 @@ const BasicModelForm = <TBaseModel extends BaseModel>(
 
     return (
         <BasicForm<TBaseModel>
+            isLoading={props.isLoading || false}
             fields={fields}
             id={props.id}
-            onValidate={props.onValidate ? props.onValidate : DefaultValidateFunction}
+            onValidate={
+                props.onValidate ? props.onValidate : DefaultValidateFunction
+            }
             onSubmit={props.onSubmit}
             initialValues={initialValues}
-            requiredfields={{}}
-            model={props.model}
             submitButtonText={props.submitButtonText || 'Save'}
             title={props.title || ''}
             description={props.description || ''}

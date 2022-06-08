@@ -1,20 +1,36 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Footer from '../Footer';
 import Container from 'CommonUI/src/Container';
+import IdentityAPI from 'CommonUI/src/Utils/API/IdentityAPI';
+import Route from 'Common/Types/API/Route';
+import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const RegisterPage: FunctionComponent = () => {
+    const [isLaoding, setIsLoading] = useState<boolean>(false);
+
     const user: User = new User();
-    
+
+    const submitForm: Function = async (values: FormValues<User>) => {
+        setIsLoading(true);
+
+        await IdentityAPI.post<JSONObject>(new Route('/signup'), {
+            user: values as JSONObject,
+        });
+
+        setIsLoading(false);
+    };
+
     return (
         <Container title="Register">
             <BasicModelForm<User>
                 model={user}
-                id="login-form"
+                isLoading={isLaoding}
+                id="register-form"
                 showAsColumns={2}
                 fields={[
                     {
@@ -71,7 +87,7 @@ const RegisterPage: FunctionComponent = () => {
                         },
                         validation: {
                             minLength: 6,
-                            toMatchField: 'password'
+                            toMatchField: 'password',
                         },
                         fieldType: FormFieldSchemaType.Password,
                         placeholder: 'Confirm Password',
@@ -80,16 +96,14 @@ const RegisterPage: FunctionComponent = () => {
                         required: true,
                     },
                 ]}
-                onSubmit={(values: FormValues<User>) => {
-                    console.log(values);
-                }}
+                onSubmit={submitForm}
                 submitButtonText={'Sign Up'}
                 title={'Create your OneUptime account'}
                 footer={
                     <div className="actions">
                         <p>
                             <span>Have an account? </span>
-                            <Link to="/login">Login</Link>
+                            <Link to="/accounts/login">Login</Link>
                         </p>
                     </div>
                 }

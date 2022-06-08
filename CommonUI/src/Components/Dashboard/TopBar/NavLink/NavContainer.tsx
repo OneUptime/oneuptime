@@ -1,15 +1,19 @@
-import React, { ReactElement, FC } from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 
 export interface ComponentProps {
     navigations: Array<ReactElement>;
 }
 
-const NavContainer: FC<ComponentProps> = ({ navigations }): ReactElement => {
+const NavContainer: FunctionComponent<ComponentProps> = ({
+    navigations,
+}: ComponentProps): ReactElement => {
     return (
         <div className="navigation-rack">
-            {navigations.map((navigation, index) => (
-                <React.Fragment key={index}>{navigation}</React.Fragment>
-            ))}
+            {navigations.map((navigation: ReactElement, index: number) => {
+                return (
+                    <React.Fragment key={index}>{navigation}</React.Fragment>
+                );
+            })}
         </div>
     );
 };

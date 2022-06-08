@@ -1,6 +1,6 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
-const SingleProject = (): ReactElement => {
+const SingleProject: FunctionComponent = (): ReactElement => {
     return (
         <div>
             <div>

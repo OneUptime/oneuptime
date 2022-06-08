@@ -14,7 +14,7 @@ const Breadcrumb: FunctionComponent<ComponentProps> = ({
     icon,
     title,
     children,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="breadcrumb-container">
             <div className="breadcrumb_detail">
@@ -23,12 +23,14 @@ const Breadcrumb: FunctionComponent<ComponentProps> = ({
                     <h2>{title}</h2>
                 </div>
                 <div className="breadcrumb_detail__crumbs">
-                    {children.map((child, index) => (
-                        <React.Fragment key={index}>
-                            {child}
-                            <FontAwesomeIcon icon={faChevronRight} />
-                        </React.Fragment>
-                    ))}
+                    {children.map((child: ReactElement, index: number) => {
+                        return (
+                            <React.Fragment key={index}>
+                                {child}
+                                <FontAwesomeIcon icon={faChevronRight} />
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
             </div>
         </div>

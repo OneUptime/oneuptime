@@ -18,43 +18,44 @@ const App: FunctionComponent = () => {
     return (
         <div className="App">
             <TopBar
-                leftContents={[<CurrentProject />]}
-                middleContents={[<SearchBar />]}
+                leftContents={[<CurrentProject key={1} />]}
+                middleContents={[<SearchBar key={1} />]}
                 rightContents={[
-                    <CreateButton />,
-                    <HelpButton />,
-                    <MenuIconButton icon={faBell} />,
-                    <MenuIconButton icon={faCog} />,
-                    <UserProfileButton />,
+                    <CreateButton key={1} />,
+                    <HelpButton key={2} />,
+                    <MenuIconButton key={3} icon={faBell} />,
+                    <MenuIconButton key={4} icon={faCog} />,
+                    <UserProfileButton key={5} />,
                 ]}
                 navContents={{
                     leftContents: [
                         <NavContainer
+                            key={1}
                             navigations={[
-                                <NavLink>
+                                <NavLink key={1}>
                                     <p>Home</p>
                                 </NavLink>,
-                                <NavLink isActive={true}>
+                                <NavLink key={2} isActive={true}>
                                     <p>Monitors</p>
                                 </NavLink>,
-                                <NavLink>
+                                <NavLink key={3}>
                                     <p>Incidents</p>
                                 </NavLink>,
-                                <NavLink>
+                                <NavLink key={4}>
                                     <p>Status Pages</p>
                                 </NavLink>,
-                                <NavLink>
+                                <NavLink key={5}>
                                     <p>Logs</p>
                                 </NavLink>,
-                                <Dropdown />,
+                                <Dropdown key={6} />,
                             ]}
                         />,
                     ],
                     rightContents: [
-                        <NavLink>
+                        <NavLink key={1}>
                             <p>Automation Scripts</p>
                         </NavLink>,
-                        <NavLink>
+                        <NavLink key={2}>
                             <p>Reports</p>
                         </NavLink>,
                     ],

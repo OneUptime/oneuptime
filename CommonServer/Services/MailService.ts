@@ -1,4 +1,5 @@
-import HTTPResponse from 'Common/Types/API/Response';
+import EmptyResponseData from 'Common/Types/API/EmptyResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import Dictionary from 'Common/Types/Dictionary';
@@ -19,7 +20,7 @@ export default class MailService {
             projectId?: ObjectID;
             forceSendFromGlobalMailServer?: boolean;
         }
-    ): Promise<HTTPResponse> {
+    ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             toEmail: to.toString(),
             subject,
@@ -35,7 +36,7 @@ export default class MailService {
                 options.forceSendFromGlobalMailServer;
         }
 
-        return await API.post(
+        return await API.post<EmptyResponseData>(
             new URL(
                 HttpProtocol,
                 MailHostname,

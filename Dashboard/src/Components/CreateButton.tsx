@@ -12,7 +12,9 @@ import {
 
 const CreateButton: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
-    const toggle = () => setShowList(!showList);
+    const toggle: Function = () => {
+        return setShowList(!showList);
+    };
 
     return (
         <OutsideClickHandler
@@ -35,16 +37,19 @@ const CreateButton: FunctionComponent = (): ReactElement => {
                                 text="Invoice"
                                 icon={faFileInvoice}
                                 shortcuts={['c', 'i']}
+                                key={1}
                             />,
                             <MenuItem
                                 text="Subscription"
                                 icon={faRecycle}
                                 shortcuts={['c', 's']}
+                                key={2}
                             />,
                             <MenuItem
                                 text="Payment link"
                                 icon={faLink}
                                 shortcuts={['c', 'l']}
+                                key={3}
                             />,
                         ]}
                     />

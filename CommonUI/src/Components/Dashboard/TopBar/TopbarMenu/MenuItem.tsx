@@ -1,4 +1,8 @@
-import React, { ReactElement, FC, MouseEventHandler } from 'react';
+import React, {
+    ReactElement,
+    MouseEventHandler,
+    FunctionComponent,
+} from 'react';
 import Shortcut from '../../../Basic/ShortcutKey/Shortcut';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
@@ -13,12 +17,12 @@ export interface ComponentProps {
     action?: MouseEventHandler;
 }
 
-const MenuItem: FC<ComponentProps> = ({
+const MenuItem: FunctionComponent<ComponentProps> = ({
     text,
     icon,
     shortcuts,
     action,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div onClick={action} className="menu-item">
             <div className="name">

@@ -81,6 +81,7 @@ class User extends BaseModel {
         length: ColumnLength.HashedString,
         unique: false,
         nullable: true,
+        transformer: HashedString.getDatabaseTransformer(),
     })
     public password?: HashedString = undefined;
 

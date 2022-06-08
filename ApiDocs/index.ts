@@ -1,12 +1,13 @@
-import {
+import Express, {
+    ExpressApplication,
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
 
-import app from 'CommonServer/Utils/StartServer';
-
 import path from 'path';
+
+const app: ExpressApplication = Express.getExpressApp();
 
 // Set the view engine to ejs
 app.set('views', path.join(__dirname, 'views'));

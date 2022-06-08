@@ -6,7 +6,7 @@
     "scripts": {
         "start": "ts-node Index.ts",
         "compile": "tsc",
-        "dev": "ts-node-dev --inspect=0.0.0.0 Index.ts",
+        "dev": "nodemon",
         "test": "echo 'no tests'"
     },
     "author": "",

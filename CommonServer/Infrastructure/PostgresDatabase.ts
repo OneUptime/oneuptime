@@ -12,6 +12,7 @@ import Entities from 'Common/Models/Index';
 import AppEnvironment from 'Common/Types/AppEnvironment';
 import DatabaseType from 'Common/Types/DatabaseType';
 import Faker from 'Common/Tests/TestingUtils/Faker';
+import logger from '../Utils/Logger';
 
 export default class Database {
     private dataSource!: DataSource | null;
@@ -57,12 +58,20 @@ export default class Database {
     public async connect(
         dataSourceOptions: DataSourceOptions
     ): Promise<DataSource> {
-        const PostgresDataSource: DataSource = new DataSource(
-            dataSourceOptions
-        );
-        const dataSource: DataSource = await PostgresDataSource.initialize();
-        this.dataSource = dataSource;
-        return dataSource;
+        try {
+            const PostgresDataSource: DataSource = new DataSource(
+                dataSourceOptions
+            );
+            const dataSource: DataSource =
+                await PostgresDataSource.initialize();
+            logger.info('Posgres Database Connected');
+            this.dataSource = dataSource;
+            return dataSource;
+        } catch (err) {
+            logger.error('Posgres Database Connection Failed');
+            logger.error(err);
+            throw err;
+        }
     }
 
     public async disconnect(): Promise<void> {
