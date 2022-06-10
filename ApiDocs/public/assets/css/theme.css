@@ -60,7 +60,7 @@ h1 {
 	float: right !important
 }
 
-.navicon-button {
+.naviconButton {
 	cursor: pointer;
 	display: none;
 	opacity: .8;
@@ -72,55 +72,55 @@ h1 {
 	z-index: 10001
 }
 
-.navicon-button .navicon:before,
-.navicon-button .navicon:after {
+.naviconButton .navicon:before,
+.naviconButton .navicon:after {
 	transition: .25s
 }
 
-.navicon-button:hover {
+.naviconButton:hover {
 	opacity: 1;
 	transition: .5s
 }
 
-.navicon-button:hover .navicon:before,
-.navicon-button:hover .navicon:after {
+.naviconButton:hover .navicon:before,
+.naviconButton:hover .navicon:after {
 	transition: .25s
 }
 
-.navicon-button:hover .navicon:before {
+.naviconButton:hover .navicon:before {
 	top: .625rem
 }
 
-.navicon-button:hover .navicon:after {
+.naviconButton:hover .navicon:after {
 	top: -.625rem
 }
 
-.navicon-button.open:not(.steps) .navicon:before,
-.navicon-button.open:not(.steps) .navicon:after {
+.naviconButton.open:not(.steps) .navicon:before,
+.naviconButton.open:not(.steps) .navicon:after {
 	top: 0 !important
 }
 
-.navicon-button.open .navicon:before,
-.navicon-button.open .navicon:after {
+.naviconButton.open .navicon:before,
+.naviconButton.open .navicon:after {
 	transition: .5s
 }
 
-.navicon-button.open {
+.naviconButton.open {
 	transform: scale(.75)
 }
 
-.navicon-button.open.larr .navicon:before,
-.navicon-button.open.larr .navicon:after,
-.navicon-button.open.rarr .navicon:before,
-.navicon-button.open.rarr .navicon:after,
-.navicon-button.open.uarr .navicon:before,
-.navicon-button.open.uarr .navicon:after {
+.naviconButton.open.larr .navicon:before,
+.naviconButton.open.larr .navicon:after,
+.naviconButton.open.rarr .navicon:before,
+.naviconButton.open.rarr .navicon:after,
+.naviconButton.open.uarr .navicon:before,
+.naviconButton.open.uarr .navicon:after {
 	width: 1.5rem
 }
 
-.navicon-button.open.larr .navicon:before,
-.navicon-button.open.rarr .navicon:before,
-.navicon-button.open.uarr .navicon:before {
+.naviconButton.open.larr .navicon:before,
+.naviconButton.open.rarr .navicon:before,
+.naviconButton.open.uarr .navicon:before {
 	-webkit-transform: rotate(35deg);
 	-moz-transform: rotate(35deg);
 	-ms-transform: rotate(35deg);
@@ -129,9 +129,9 @@ h1 {
 	transform-origin: left top
 }
 
-.navicon-button.open.larr .navicon:after,
-.navicon-button.open.rarr .navicon:after,
-.navicon-button.open.uarr .navicon:after {
+.naviconButton.open.larr .navicon:after,
+.naviconButton.open.rarr .navicon:after,
+.naviconButton.open.uarr .navicon:after {
 	-webkit-transform: rotate(-35deg);
 	-moz-transform: rotate(-35deg);
 	-ms-transform: rotate(-35deg);
@@ -140,27 +140,27 @@ h1 {
 	transform-origin: left bottom
 }
 
-.navicon-button.open.uarr {
+.naviconButton.open.uarr {
 	transform: scale(.75) rotate(90deg)
 }
 
-.navicon-button.open.rarr .navicon:before {
+.naviconButton.open.rarr .navicon:before {
 	transform: translate3d(1em, 0, 0) rotate(-35deg);
 	transform-origin: right top
 }
 
-.navicon-button.open.rarr .navicon:after {
+.naviconButton.open.rarr .navicon:after {
 	transform: translate3d(1em, 0, 0) rotate(35deg);
 	transform-origin: right bottom
 }
 
-.navicon-button.open.plus .navicon,
-.navicon-button.open.x .navicon {
+.naviconButton.open.plus .navicon,
+.naviconButton.open.x .navicon {
 	background: transparent
 }
 
-.navicon-button.open.plus .navicon:before,
-.navicon-button.open.x .navicon:before {
+.naviconButton.open.plus .navicon:before,
+.naviconButton.open.x .navicon:before {
 	-webkit-transform: rotate(-45deg);
 	-moz-transform: rotate(-45deg);
 	-ms-transform: rotate(-45deg);
@@ -168,8 +168,8 @@ h1 {
 	transform: rotate(-45deg)
 }
 
-.navicon-button.open.plus .navicon:after,
-.navicon-button.open.x .navicon:after {
+.naviconButton.open.plus .navicon:after,
+.naviconButton.open.x .navicon:after {
 	-webkit-transform: rotate(45deg);
 	-moz-transform: rotate(45deg);
 	-ms-transform: rotate(45deg);
@@ -177,7 +177,7 @@ h1 {
 	transform: rotate(45deg)
 }
 
-.navicon-button.open.plus {
+.naviconButton.open.plus {
 	transform: scale(.75) rotate(45deg)
 }
 

@@ -384,7 +384,7 @@ class ProjectUser extends Component<ComponentProps> {
 
                                         <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                             <span>Add User</span>
-                                            <span className="new-btn__keycode">
+                                            <span className="newButtonKeycode">
                                                 N
                                             </span>
                                         </span>

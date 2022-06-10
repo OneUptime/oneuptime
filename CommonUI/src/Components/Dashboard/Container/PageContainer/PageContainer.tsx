@@ -20,7 +20,7 @@ const PageContainer: FC<ComponentProps> = ({
         <div className="container">
             <main className="main">
                 {sideBar && <div className="sidebar">{sideBar}</div>}
-                <div className="main_layout">{children}</div>
+                <div className="mainLayout">{children}</div>
             </main>
         </div>
     );

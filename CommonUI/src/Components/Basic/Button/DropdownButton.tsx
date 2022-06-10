@@ -17,15 +17,15 @@ const DropdownButton: FC<ComponentProps> = ({
     showDropdown,
 }): ReactElement => {
     return (
-        <div className="dropdown-button">
+        <div className="dropdownButton">
             <MenuOutlineButton
-                id="table_button"
+                id="tableButton"
                 text={title}
                 icon={faChevronDown}
                 onClick={onClick!}
             />
             {showDropdown && (
-                <div className="dropdown-button-lists">{children}</div>
+                <div className="dropdownButtonLists">{children}</div>
             )}
         </div>
     );

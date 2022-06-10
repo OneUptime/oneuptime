@@ -32,13 +32,13 @@ const Container: FC<ComponentProps> = ({
                 </div>
             </div>
             <div
-                className="tableContainer_body"
+                className="tableContainerBody"
                 style={{ overflow: 'auto hidden' }}
             >
                 {children}
             </div>
-            <div className="tableContainer_footer">
-                <div className="tableContainer_footer__details">
+            <div className="tableContainerFooter">
+                <div className="tableContainerFooterDetails">
                     <p>{footerText}</p>
                 </div>
                 {pagination}

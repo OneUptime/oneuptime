@@ -22,12 +22,12 @@ const MonitorTable = (): ReactElement => {
                     <Button
                         title="Previous"
                         type={ButtonTypes.Button}
-                        id="table_button"
+                        id="tableButton"
                     />
                     <Button
                         title="Next"
                         type={ButtonTypes.Button}
-                        id="table_button"
+                        id="tableButton"
                     />
                 </Pagination>
             }
@@ -43,7 +43,7 @@ const MonitorTable = (): ReactElement => {
                 </DropdownButton>,
                 <Button
                     title="Create New Monitor"
-                    id="table_button"
+                    id="tableButton"
                     type={ButtonTypes.Button}
                     shortcutKey={ShortcutKey.New}
                 />,

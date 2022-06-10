@@ -21,11 +21,11 @@ export const MenuIconButton: FC<ComponentProps> = ({
     modalContent,
 }): ReactElement => {
     return (
-        <div className="button-layout">
-            <div className="icon-button" onClick={onClick}>
+        <div className="buttonLayout">
+            <div className="iconButton" onClick={onClick}>
                 {icon && <FontAwesomeIcon icon={icon} />}
             </div>
-            {showModal && <div className="button-modal">{modalContent}</div>}
+            {showModal && <div className="buttonModal">{modalContent}</div>}
         </div>
     );
 };
@@ -40,12 +40,12 @@ export const MenuOutlineButton: FC<ComponentProps> = ({
     id,
 }): ReactElement => {
     return (
-        <div className="button-layout">
+        <div className="buttonLayout">
             <div className={`button ${className}`} id={id} onClick={onClick}>
                 <span>{text}</span>
                 {icon && <FontAwesomeIcon icon={icon} />}
             </div>
-            {showModal && <div className="button-modal">{modalContent}</div>}
+            {showModal && <div className="buttonModal">{modalContent}</div>}
         </div>
     );
 };
@@ -58,12 +58,12 @@ const MenuButton: FC<ComponentProps> = ({
     modalContent,
 }): ReactElement => {
     return (
-        <div className="button-layout">
-            <div className="menu-button" onClick={onClick}>
+        <div className="buttonLayout">
+            <div className="menuButton" onClick={onClick}>
                 {icon && <FontAwesomeIcon icon={icon} />}
                 <span>{text}</span>
             </div>
-            {showModal && <div className="button-modal">{modalContent}</div>}
+            {showModal && <div className="buttonModal">{modalContent}</div>}
         </div>
     );
 };

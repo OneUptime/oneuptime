@@ -150,7 +150,7 @@ class Probes extends Component<ComponentProps> {
                                                                                     New
                                                                                     Probe
                                                                                 </span>
-                                                                                <span className="new-btn__keycode">
+                                                                                <span className="newButtonKeycode">
                                                                                     N
                                                                                 </span>
                                                                             </span>

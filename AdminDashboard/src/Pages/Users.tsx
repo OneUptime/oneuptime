@@ -230,7 +230,7 @@ class Users extends Component<ComponentProps> {
                                                                                         New
                                                                                         User
                                                                                     </span>
-                                                                                    <span className="new-btn__keycode">
+                                                                                    <span className="newButtonKeycode">
                                                                                         N
                                                                                     </span>
                                                                                 </span>

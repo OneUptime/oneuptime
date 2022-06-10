@@ -14,7 +14,7 @@ const DropdownItem: FunctionComponent<ComponentProps> = ({
     title,
 }): ReactElement => {
     return (
-        <div className="dropdown-button-lists__list" onClick={action}>
+        <div className="dropdownButtonListItem" onClick={action}>
             {title}
         </div>
     );

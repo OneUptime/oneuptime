@@ -38630,7 +38630,7 @@ div.dispute-evidence-view .header .backButton:after {
 div.dispute-evidence-view .header .backButton:hover {
   text-decoration: none;
 }
-div.dispute-evidence-view .header .dispute-formMenu-button {
+div.dispute-evidence-view .header .dispute-formmenuButton {
   display: inline-block;
   position: relative;
   float: right;
@@ -38646,15 +38646,15 @@ div.dispute-evidence-view .header .dispute-formMenu-button {
   cursor: pointer;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2) {
-  div.dispute-evidence-view .header .dispute-formMenu-button {
+  div.dispute-evidence-view .header .dispute-formmenuButton {
     background-image: url('disputes/button-options@2x-8ff957f004fa33bd206752b6429e2a10.png');
   }
 }
-div.dispute-evidence-view .header .dispute-formMenu-button:active {
+div.dispute-evidence-view .header .dispute-formmenuButton:active {
   padding-top: 9px;
   padding-bottom: 8px;
 }
-div.dispute-evidence-view .header .dispute-formMenu-button:before {
+div.dispute-evidence-view .header .dispute-formmenuButton:before {
   content: ' ';
   display: block;
   width: 30px;
@@ -38663,7 +38663,7 @@ div.dispute-evidence-view .header .dispute-formMenu-button:before {
   background-size: 100% 100%;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2) {
-  div.dispute-evidence-view .header .dispute-formMenu-button:before {
+  div.dispute-evidence-view .header .dispute-formmenuButton:before {
     background-image: url('disputes/button-options-icon@2x-2096fc52ddb698b60f486e600356dc7a.png');
   }
 }

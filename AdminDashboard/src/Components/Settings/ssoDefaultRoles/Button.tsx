@@ -20,7 +20,7 @@ const Button: Function = ({
     >
         <span className="bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
             <span>{text}</span>
-            <span className="new-btn__keycode">{shortcut}</span>
+            <span className="newButtonKeycode">{shortcut}</span>
         </span>
     </button>
 );

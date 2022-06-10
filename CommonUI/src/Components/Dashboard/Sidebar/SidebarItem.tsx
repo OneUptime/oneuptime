@@ -12,8 +12,8 @@ const SidebarItem: FC<ComponentProps> = ({
     title,
 }): ReactElement => {
     return (
-        <div className="side_bar">
-            <div className={`sidebar_label ${isActive && 'active_sidebar'}`}>
+        <div className="sideBar">
+            <div className={`sidebarLabel ${isActive && 'activeSidebar'}`}>
                 {title}
             </div>
             {children}

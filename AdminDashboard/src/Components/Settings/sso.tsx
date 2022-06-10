@@ -159,7 +159,7 @@ export class Component extends Component<ComponentProps>{
                                             >
                                                 <span className="bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                     <span>Add SSO</span>
-                                                    <span className="new-btn__keycode">
+                                                    <span className="newButtonKeycode">
                                                         N
                                                     </span>
                                                 </span>

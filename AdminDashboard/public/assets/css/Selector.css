@@ -132,7 +132,7 @@
 }
 
 .cancel-btn__keycode,
-.new-btn__keycode {
+.newButtonKeycode {
     background: #c5c5c59e;
     border-radius: 5px;
     font-size: 12px;
@@ -150,7 +150,7 @@
     text-transform: lowercase;
 }
 
-.new-btn__keycode {
+.newButtonKeycode {
     line-height: 20px;
     text-transform: capitalize;
     width: 20px;
