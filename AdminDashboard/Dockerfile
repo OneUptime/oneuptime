@@ -1,5 +1,5 @@
 #
-# OneUptime-AdminDashboard Dockerfile
+# AdminDashboard Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -8,24 +8,11 @@ FROM node:alpine
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
 
-# Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
-
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 
-#SET ENV Variables
-ENV PRODUCTION=true
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
-# Because of this error during build
-# Error message "error:0308010C:digital envelope routines::unsupported"
-ENV NODE_OPTIONS=--openssl-legacy-provider
-
 RUN mkdir /usr/src
-RUN mkdir /usr/src/app
-
 
 # Install common
 RUN mkdir /usr/src/Common
@@ -43,6 +30,7 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
+
 # Install CommonUI
 RUN mkdir /usr/src/CommonUI
 WORKDIR /usr/src/CommonUI
@@ -50,6 +38,13 @@ COPY ./CommonUI/package*.json /usr/src/CommonUI/
 RUN npm install
 COPY ./CommonUI /usr/src/CommonUI
 RUN npm run compile
+
+
+#SET ENV Variables
+ENV PRODUCTION=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
@@ -66,8 +61,8 @@ COPY ./AdminDashboard /usr/src/app
 RUN npm run build
 
 # Expose ports.
-#   - 3100:  OneUptime-AdminDashboard
-EXPOSE 3100
+#   - 3005:  AdminDashboard
+EXPOSE 3005
 
 #Run the app
 CMD [ "npm", "start" ]

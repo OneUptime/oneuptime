@@ -2,7 +2,6 @@ import React, { ReactElement } from 'react';
 import { ErrorMessage, Field, Form, Formik, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
 import FormValues from './Types/FormValues';
-import RequiredFormFields from './Types/RequiredFormFields';
 import Fields from './Types/Fields';
 import DataField from './Types/Field';
 import ButtonTypes from '../Basic/Button/ButtonTypes';
@@ -11,19 +10,24 @@ import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
 
+export const DefaultValidateFunction: Function = (
+    _values: FormValues<JSONObject>
+): JSONObject => {
+    return {};
+};
+
 export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
-    onValidate?: (values: FormValues<T>) => FormikErrors<FormValues<T>>;
-    requiredfields: RequiredFormFields<T>;
+    onValidate?: (values: FormValues<T>) => JSONObject;
     fields: Fields<T>;
-    model: T;
     submitButtonText?: string;
     title?: string;
     description?: string;
     showAsColumns?: number;
     footer: ReactElement;
+    isLoading?: boolean;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -37,11 +41,14 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
     }
 }
 
-const BasicForm = <T extends Object>(
+const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const getFormField = (field: DataField<T>, index: number): ReactElement => {
-        let fieldType: string = field.fieldType
+    const getFormField: Function = (
+        field: DataField<T>,
+        index: number
+    ): ReactElement => {
+        const fieldType: string = field.fieldType
             ? getFieldType(field.fieldType)
             : 'text';
 
@@ -90,7 +97,7 @@ const BasicForm = <T extends Object>(
         );
     };
 
-    const validateLength = (
+    const validateLength: Function = (
         content: string,
         field: DataField<T>
     ): string | null => {
@@ -114,14 +121,37 @@ const BasicForm = <T extends Object>(
         return null;
     };
 
-    const validateRequired = (content: string, field: DataField<T>) => {
+    const validateRequired: Function = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
         if (field.required && content.length === 0) {
             return `${field.title} is required.`;
         }
         return null;
     };
 
-    const validateData = (content: string, field: DataField<T>) => {
+    const validateMatchField: Function = (
+        content: string,
+        field: DataField<T>,
+        entity: JSONObject
+    ): string | null => {
+        if (
+            content &&
+            field.validation?.toMatchField &&
+            entity[field.validation?.toMatchField] &&
+            (entity[field.validation?.toMatchField] as string).trim() !==
+                content.trim()
+        ) {
+            return `${field.title} should match ${field.validation?.toMatchField}`;
+        }
+        return null;
+    };
+
+    const validateData: Function = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
         if (field.fieldType === FormFieldSchemaType.Email) {
             if (!Email.isValid(content!)) {
                 return 'Email is not valid.';
@@ -130,89 +160,114 @@ const BasicForm = <T extends Object>(
         return null;
     };
 
-    const validate = (values: FormValues<T>): object => {
+    const validate: ((
+        values: FormValues<T>
+    ) => void | object | Promise<FormikErrors<FormValues<T>>>) &
+        Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
         for (const field of props.fields) {
-            const name = field.overideFieldKey
+            const name: string = field.overideFieldKey
                 ? field.overideFieldKey
                 : (Object.keys(field.field)[0] as string);
             if (name in values) {
-                const content = entries[name]?.toString();
+                const content: string | undefined = entries[name]?.toString();
 
                 if (content) {
                     // Check Required fields.
-                    const resultRequired = validateRequired(content, field);
+                    const resultRequired: string | null = validateRequired(
+                        content,
+                        field
+                    );
                     if (resultRequired) {
                         errors[name] = resultRequired;
                     }
 
                     // Check for valid email data.
-                    const resultValidateData = validateData(content, field);
+                    const resultValidateData: string | null = validateData(
+                        content,
+                        field
+                    );
                     if (resultValidateData) {
                         errors[name] = resultValidateData;
                     }
+
+                    const resultMatch: string | null = validateMatchField(
+                        content,
+                        field,
+                        entries
+                    );
+
+                    if (resultMatch) {
+                        errors[name] = resultMatch;
+                    }
+
                     // check for length of content
-                    const result = validateLength(content, field);
+                    const result: string | null = validateLength(
+                        content,
+                        field
+                    );
                     if (result) {
                         errors[name] = result;
                     }
-                    
                 }
             } else if (field.required) {
                 errors[name] = `${field.title || name} is required.`;
             }
         }
-        return errors;
+
+        let customValidateResult: JSONObject = {};
+
+        if (props.onValidate) {
+            customValidateResult = props.onValidate(values);
+        }
+
+        return { ...errors, ...customValidateResult } as FormikErrors<
+            FormValues<T>
+        >;
     };
 
     return (
         <div>
             <Formik
                 initialValues={props.initialValues}
-                validate={(values: FormValues<T>) => {
-                    if (props.onValidate) {
-                        return props.onValidate(values);
-                    }
-                    return validate(values);
-                }}
+                validate={validate}
                 validateOnChange={true}
                 validateOnBlur={true}
-                onSubmit={(values: FormValues<T>, { setSubmitting }) => {
+                onSubmit={(
+                    values: FormValues<T>,
+                    { setSubmitting }: { setSubmitting: Function }
+                ) => {
                     props.onSubmit(values);
                     setSubmitting(false);
                 }}
             >
-                {({ isSubmitting, isValid }) => {
-                    return (
-                        <Form
-                            autoComplete="off"
-                            className={`grid_form_${props.showAsColumns}`}
-                        >
-                            <h1>{props.title}</h1>
+                <Form
+                    autoComplete="off"
+                    className={`grid_form_${props.showAsColumns}`}
+                >
+                    <h1>{props.title}</h1>
 
-                            <p className="description">{props.description}</p>
+                    <p className="description">{props.description}</p>
 
-                            <div className={`grid_${props.showAsColumns}`}>
-                                {props.fields &&
-                                    props.fields.map(
-                                        (field: DataField<T>, i) => {
-                                            return getFormField(field, i);
-                                        }
-                                    )}
-                            </div>
+                    <div className={`grid_${props.showAsColumns}`}>
+                        {props.fields &&
+                            props.fields.map(
+                                (field: DataField<T>, i: number) => {
+                                    return getFormField(field, i);
+                                }
+                            )}
+                    </div>
 
-                            <Button
-                                title={props.submitButtonText || 'Submit'}
-                                disabled={isSubmitting || !isValid}
-                                type={ButtonTypes.Submit}
-                                id={`${props.id}-submit-button`}
-                            />
-                            {props.footer}
-                        </Form>
-                    );
-                }}
+                    <Button
+                        title={props.submitButtonText || 'Submit'}
+                        type={ButtonTypes.Submit}
+                        id={`${props.id}-submit-button`}
+                        isLoading={props.isLoading || false}
+                    />
+                    {props.footer}
+                </Form>
             </Formik>
         </div>
     );

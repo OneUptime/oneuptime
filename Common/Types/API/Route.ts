@@ -19,6 +19,11 @@ export default class Route {
         }
     }
 
+    public addRoute(route: Route): Route {
+        const newRoute: Route = new Route(this.route + route.toString());
+        return newRoute;
+    }
+
     public toString(): string {
         return this.route;
     }

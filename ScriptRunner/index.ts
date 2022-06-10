@@ -1,12 +1,13 @@
-import app from 'CommonServer/utils/StartServer';
+import { ExpressApplication } from 'CommonServer/Utils/Express';
+import App from 'CommonServer/Utils/StartServer';
 import cron from 'node-cron';
 import main from './workers/main';
-
-// API
-
 import ScriptAPI from './api/script';
 
-app.use('/script', ScriptAPI);
+export const APP_NAME: string = 'script';
+const app: ExpressApplication = App(APP_NAME);
+
+app.use(`/${APP_NAME}`, ScriptAPI);
 
 const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 

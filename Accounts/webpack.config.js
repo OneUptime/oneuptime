@@ -1,20 +1,43 @@
 const path = require("path");
 const webpack = require("webpack");
+const dotenv = require('dotenv');
+
+const readEnvFile = (pathToFile) => {
+    const parsed = dotenv.config({ path: pathToFile }).parsed;
+
+    const env = {};
+    for (const key in parsed) {
+        env[key] = JSON.stringify(parsed[key]);
+    }
+
+    return env;
+}
 
 module.exports = {
     entry: "./src/Index.tsx",
     mode: "development",
     output: {
         filename: "bundle.js",
-        path: path.resolve("dist"),
-        publicPath: "/",
+        path: path.resolve(__dirname, "dist"),
+        publicPath: "/accounts/assets/",
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss']
+        extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.scss']
     },
     externals: {
         'react-native-sqlite-storage': 'react-native-sqlite-storage'
     },
+    plugins: [
+        new webpack.DefinePlugin({
+            'process': {
+                'env': {
+                    ...readEnvFile('../Common/.env'),
+                    ...readEnvFile('../CommonUI/.env'),
+                    ...readEnvFile('./.env')
+                }
+            }
+        }),
+    ],
     module: {
         rules: [
             {
@@ -33,7 +56,9 @@ module.exports = {
     },
     devServer: {
         historyApiFallback: true,
+        devMiddleware: {
+            writeToDisk: true,
+        },
     },
     devtool: 'inline-source-map',
-
 }

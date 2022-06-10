@@ -1,30 +1,24 @@
-import winston from 'winston';
+import { createLogger, format, Logger, transports } from 'winston';
 
-const consoleTransport: winston.transports.ConsoleTransportInstance =
-    new winston.transports.Console({
-        format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.cli({
-                colors: {
-                    error: 'red',
-                    warn: 'yellow',
-                    info: 'blue',
-                    http: 'green',
-                    verbose: 'cyan',
-                    debug: 'white',
-                },
-            })
-        ),
-        handleExceptions: true,
-    });
+const { combine, timestamp, errors, colorize, cli } = format;
 
-const transports: Array<winston.transports.ConsoleTransportInstance> = [];
-
-// Configure transports (defined above)
-transports.push(consoleTransport);
-
-const logger: winston.Logger = winston.createLogger({
-    transports,
+const logger: Logger = createLogger({
+    format: combine(
+        colorize(),
+        cli({
+            colors: {
+                error: 'red',
+                warn: 'yellow',
+                info: 'blue',
+                http: 'green',
+                verbose: 'cyan',
+                debug: 'white',
+            },
+        }),
+        errors({ stack: true }), // <-- use errors format
+        timestamp()
+    ),
+    transports: [new transports.Console()],
 });
 
 export default logger;

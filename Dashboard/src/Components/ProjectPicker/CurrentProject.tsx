@@ -1,11 +1,11 @@
-import React, { ReactElement, useState } from 'react';
+import React, { ReactElement, useState, FunctionComponent } from 'react';
 import ProjectList from './ProjectList';
 import OutsideClickHandler from 'react-outside-click-handler';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Project.scss';
 
-const CurrentProject = (): ReactElement => {
+const CurrentProject: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
 
     return (
@@ -17,7 +17,12 @@ const CurrentProject = (): ReactElement => {
             }}
         >
             <div className="projectPreview">
-                <div className="preview" onClick={() => setShowList(!showList)}>
+                <div
+                    className="preview"
+                    onClick={() => {
+                        return setShowList(!showList);
+                    }}
+                >
                     <img src="img/placeholder.png" alt="Project Image" />
                     <p>Flow</p>
                     <FontAwesomeIcon icon={faChevronDown} />

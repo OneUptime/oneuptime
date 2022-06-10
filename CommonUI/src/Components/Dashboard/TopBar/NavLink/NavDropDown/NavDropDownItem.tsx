@@ -1,4 +1,8 @@
-import React, { FC, MouseEventHandler, ReactElement } from 'react';
+import React, {
+    MouseEventHandler,
+    ReactElement,
+    FunctionComponent,
+} from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 
@@ -8,11 +12,11 @@ export interface ComponentProps {
     action?: MouseEventHandler;
 }
 
-const NavDropDownItem: FC<ComponentProps> = ({
+const NavDropDownItem: FunctionComponent<ComponentProps> = ({
     title,
     description,
     action,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="body" onClick={action}>
             <div className="nav-details">

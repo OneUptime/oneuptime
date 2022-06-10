@@ -7,7 +7,9 @@ import TopbarMenu from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/Topb
 
 const HelpButton: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
-    const toggle = () => setShowList(!showList);
+    const toggle: Function = () => {
+        return setShowList(!showList);
+    };
 
     return (
         <OutsideClickHandler
@@ -28,20 +30,27 @@ const HelpButton: FunctionComponent = (): ReactElement => {
                             legend="Resources"
                             items={[
                                 <MenuLinkItem
+                                    key={1}
                                     text="Support articles"
                                     openInNewTab={true}
                                 />,
                                 <MenuLinkItem
+                                    key={2}
                                     text="Developer docs"
                                     openInNewTab={true}
                                 />,
-                                <MenuLinkItem text="Keyboard shortcuts" />,
+                                <MenuLinkItem
+                                    key={1}
+                                    text="Keyboard shortcuts"
+                                />,
                             ]}
                         />
                         <hr />
                         <TopbarMenu
                             legend="Get in touch"
-                            items={[<MenuLinkItem text="Share feedback" />]}
+                            items={[
+                                <MenuLinkItem key={1} text="Share feedback" />,
+                            ]}
                         />
                     </>
                 }

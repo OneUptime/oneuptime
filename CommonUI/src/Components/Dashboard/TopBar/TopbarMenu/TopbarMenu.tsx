@@ -1,4 +1,4 @@
-import React, { ReactElement, FC } from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import './MenuItem.tsx';
 
 export interface ComponentProps {
@@ -6,12 +6,15 @@ export interface ComponentProps {
     items: Array<ReactElement>;
 }
 
-const TopbarMenu: FC<ComponentProps> = ({ legend, items }): ReactElement => {
+const TopbarMenu: FunctionComponent<ComponentProps> = ({
+    legend,
+    items,
+}: ComponentProps): ReactElement => {
     return (
         <div className="lists">
             <p className="legend">{legend}</p>
             <>
-                {items.map((item, index) => {
+                {items.map((item: ReactElement, index: number) => {
                     return <React.Fragment key={index}>{item}</React.Fragment>;
                 })}
             </>
