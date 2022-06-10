@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import Protocol from './Protocol';
 import Route from './Route';
 import Hostname from './Hostname';
