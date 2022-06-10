@@ -5,6 +5,7 @@ import {
     PUPPETEER_OPTIONS,
     VIEW_PORT_OPTIONS,
     HOME_URL,
+    VALUE_TYPE,
 } from '../Config';
 
 let browser: Browser, page: Page;
@@ -31,7 +32,7 @@ describe('Uptime monitoring page test', () => {
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-            const title = await page.title();
+            const title: VALUE_TYPE = await page.title();
             expect(title).toBe('OneUptime | Uptime Monitoring');
         },
         OPERATION_TIMEOUT
@@ -48,27 +49,19 @@ describe('Uptime monitoring page test', () => {
                 }
             );
 
-            const pageTittle = await PuppeteerHelper.getTextContent(
+            const pageTittle: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.Header-title'
             );
-            const compareRate = await PuppeteerHelper.getTextContent(
-                page,
-                '#compare-rate'
-            );
-            const helpYourBiz = await PuppeteerHelper.getTextContent(
-                page,
-                '#helps-your-biz'
-            );
+            const compareRate: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#compare-rate');
+            const helpYourBiz: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#helps-your-biz');
 
-            const setCriteria = await PuppeteerHelper.getTextContent(
-                page,
-                '#set-criteria'
-            );
-            const webSiteScans = await PuppeteerHelper.getTextContent(
-                page,
-                '#website-scans'
-            );
+            const setCriteria: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#set-criteria');
+            const webSiteScans: VALUE_TYPE =
+                await PuppeteerHelper.getTextContent(page, '#website-scans');
 
             expect(pageTittle).toBeDefined();
             expect(compareRate).toBeDefined();
@@ -91,7 +84,7 @@ describe('Uptime monitoring page test', () => {
             );
             await page.waitForSelector('#request-demo');
             await page.click('#request-demo');
-            const text = await PuppeteerHelper.getTextContent(
+            const text: VALUE_TYPE = await PuppeteerHelper.getTextContent(
                 page,
                 '.common-PageTitle'
             );
@@ -111,12 +104,20 @@ describe('Uptime monitoring page test', () => {
                     timeout: OPERATION_TIMEOUT,
                 }
             );
-            const sodexoImg = await page.waitForSelector('.sodexo');
-            const viewsonicImg = await page.waitForSelector('.viewsonic');
-            const siemensImg = await page.waitForSelector('.siemens');
-            const securonixImg = await page.waitForSelector('.securonix');
-            const amerscImg = await page.waitForSelector('.amersc');
-            const freshsalesImg = await page.waitForSelector('.freshsales');
+            const sodexoImg: VALUE_TYPE = await page.waitForSelector('.sodexo');
+            const viewsonicImg: VALUE_TYPE = await page.waitForSelector(
+                '.viewsonic'
+            );
+            const siemensImg: VALUE_TYPE = await page.waitForSelector(
+                '.siemens'
+            );
+            const securonixImg: VALUE_TYPE = await page.waitForSelector(
+                '.securonix'
+            );
+            const amerscImg: VALUE_TYPE = await page.waitForSelector('.amersc');
+            const freshsalesImg: VALUE_TYPE = await page.waitForSelector(
+                '.freshsales'
+            );
 
             expect(sodexoImg).toBeTruthy();
             expect(viewsonicImg).toBeTruthy();

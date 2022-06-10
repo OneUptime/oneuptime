@@ -6,6 +6,7 @@ on:
       - 'hotfix-*'   
       - 'release'
       - 'staging-release'
+  pull_request:
 
 jobs:
   test:
