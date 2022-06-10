@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import URL from 'Common/Types/API/URL';
 import { ElementHandle } from 'puppeteer';
 
