@@ -2,7 +2,7 @@ import Protocol from './Protocol';
 import Route from './Route';
 import Hostname from './Hostname';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { FindOperator } from 'typeorm';
+// import { FindOperator } from 'typeorm';
 
 export default class URL extends DatabaseProperty {
     private _route: Route = new Route();
@@ -97,9 +97,7 @@ export default class URL extends DatabaseProperty {
         return new URL(protocol, hostname, route);
     }
 
-    protected static override toDatabase(
-        value: URL | FindOperator<URL>
-    ): string | null {
+    protected static override toDatabase(value: URL): string | null {
         if (value) {
             return value.toString();
         }
