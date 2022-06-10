@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import Hostname from '../../../Types/API/Hostname';
 import Protocol from '../../../Types/API/Protocol';
 import Route from '../../../Types/API/Route';
