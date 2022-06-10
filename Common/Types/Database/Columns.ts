@@ -14,4 +14,8 @@ export default class Columns {
     public addColumn(columnName: string): void {
         this.columns.push(columnName);
     }
+
+    public hasColumn(columnName: string): boolean {
+        return this.columns.includes(columnName);
+    }
 }

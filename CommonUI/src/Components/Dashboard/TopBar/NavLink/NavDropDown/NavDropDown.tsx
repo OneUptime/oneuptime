@@ -1,6 +1,10 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
-import React, { ReactElement, FC, MouseEventHandler } from 'react';
+import React, {
+    ReactElement,
+    MouseEventHandler,
+    FunctionComponent,
+} from 'react';
 import './NavDropDown.scss';
 
 export interface ComponentProps {
@@ -10,12 +14,12 @@ export interface ComponentProps {
     showDropdownItems?: boolean;
 }
 
-const NavDropDown: FC<ComponentProps> = ({
+const NavDropDown: FunctionComponent<ComponentProps> = ({
     title,
     items,
     action,
     showDropdownItems,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="nav-dropdown" onClick={action}>
             <div className="nav-dropdown__name">
@@ -24,9 +28,11 @@ const NavDropDown: FC<ComponentProps> = ({
             </div>
             {showDropdownItems && (
                 <div className="nav-dropdown__modal">
-                    {items.map((item, index) => (
-                        <React.Fragment key={index}>{item}</React.Fragment>
-                    ))}
+                    {items.map((item: ReactElement, index: number) => {
+                        return (
+                            <React.Fragment key={index}>{item}</React.Fragment>
+                        );
+                    })}
                 </div>
             )}
         </div>

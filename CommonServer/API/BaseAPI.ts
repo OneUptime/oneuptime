@@ -17,46 +17,46 @@ export default class BaseAPI<
     TBaseModel extends BaseModel,
     TBaseService extends DatabaseService<BaseModel>
 > {
-    private entityName: string;
+    private entityType: { new (): TBaseModel };
 
     public router: ExpressRouter;
     private service: TBaseService;
 
     public constructor(type: { new (): TBaseModel }, service: TBaseService) {
-        this.entityName = type.name;
+        this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
 
         // Create
         router.post(
-            `${this.entityName}/`,
+            `${this.entityType.name}/`,
             UserMiddleware.getUserMiddleware,
             this.createItem
         );
 
         // List
         router.get(
-            `${this.entityName}/list`,
+            `${this.entityType.name}/list`,
             UserMiddleware.getUserMiddleware,
             this.getList
         );
 
         // Get Item
         router.get(
-            `${this.entityName}/id/:id`,
+            `${this.entityType.name}/id/:id`,
             UserMiddleware.getUserMiddleware,
             this.getItem
         );
 
         // Update
         router.put(
-            `${this.entityName}/id/:id`,
+            `${this.entityType.name}/id/:id`,
             UserMiddleware.getUserMiddleware,
             this.updateItem
         );
 
         // Delete
         router.delete(
-            `${this.entityName}/id/:id`,
+            `${this.entityType.name}/id/:id`,
             UserMiddleware.getUserMiddleware,
             this.deleteItem
         );
@@ -145,8 +145,9 @@ export default class BaseAPI<
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
-            body['data'] as JSONObject
-        );
+            body['data'] as JSONObject,
+            this.entityType
+        ) as TBaseModel;
 
         await this.service.updateByRole(oneuptimeRequest.role, {
             query: {
@@ -166,8 +167,9 @@ export default class BaseAPI<
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
-            body['data'] as JSONObject
-        );
+            body['data'] as JSONObject,
+            this.entityType
+        ) as TBaseModel;
 
         const savedItem: BaseModel = await this.service.createByRole(
             oneuptimeRequest.role,
@@ -182,6 +184,6 @@ export default class BaseAPI<
     }
 
     public getEntityName(): string {
-        return this.entityName;
+        return this.entityType.name;
     }
 }

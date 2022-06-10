@@ -1,11 +1,14 @@
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
-import React, { ReactElement, FC, MouseEventHandler } from 'react';
+import React, {
+    ReactElement,
+    MouseEventHandler,
+    FunctionComponent,
+} from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import './MenuButton.scss';
 
-export interface ComponentProps {
-    text?: string;
+export interface MenuIconButtonComponentProps {
     icon?: IconProp;
     onClick?: MouseEventHandler;
     modalContent?: ReactElement;
@@ -14,12 +17,19 @@ export interface ComponentProps {
     id?: string;
 }
 
-export const MenuIconButton: FC<ComponentProps> = ({
+export interface MenuOutlineButtonComponentProps
+    extends MenuIconButtonComponentProps {
+    text?: string;
+}
+
+export const MenuIconButton: FunctionComponent<
+    MenuIconButtonComponentProps
+> = ({
     icon,
     onClick,
     showModal,
     modalContent,
-}): ReactElement => {
+}: MenuIconButtonComponentProps): ReactElement => {
     return (
         <div className="buttonLayout">
             <div className="iconButton" onClick={onClick}>
@@ -30,7 +40,9 @@ export const MenuIconButton: FC<ComponentProps> = ({
     );
 };
 
-export const MenuOutlineButton: FC<ComponentProps> = ({
+export const MenuOutlineButton: FunctionComponent<
+    MenuOutlineButtonComponentProps
+> = ({
     text,
     icon,
     onClick,
@@ -38,7 +50,7 @@ export const MenuOutlineButton: FC<ComponentProps> = ({
     modalContent,
     className,
     id,
-}): ReactElement => {
+}: MenuOutlineButtonComponentProps): ReactElement => {
     return (
         <div className="buttonLayout">
             <div className={`button ${className}`} id={id} onClick={onClick}>
@@ -50,13 +62,13 @@ export const MenuOutlineButton: FC<ComponentProps> = ({
     );
 };
 
-const MenuButton: FC<ComponentProps> = ({
+const MenuButton: FunctionComponent<MenuOutlineButtonComponentProps> = ({
     text,
     icon,
     onClick,
     showModal,
     modalContent,
-}): ReactElement => {
+}: MenuOutlineButtonComponentProps): ReactElement => {
     return (
         <div className="buttonLayout">
             <div className="menuButton" onClick={onClick}>

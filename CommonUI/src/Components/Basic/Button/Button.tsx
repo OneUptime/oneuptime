@@ -10,6 +10,7 @@ export interface ComponentProps {
     id: string;
     shortcutKey?: ShortcutKey;
     type?: ButtonType;
+    isLoading?: boolean;
 }
 
 const Button: FunctionComponent<ComponentProps> = (
@@ -23,22 +24,25 @@ const Button: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         // componentDidMount
         if (props.shortcutKey) {
-            window.addEventListener('keydown', e =>
-                handleKeyboard(e as KeyboardEventProp)
-            );
+            window.addEventListener('keydown', (e: KeyboardEventProp) => {
+                return handleKeyboard(e);
+            });
         }
 
         // componentDidUnmount
         return () => {
             if (props.shortcutKey) {
-                window.removeEventListener('keydown', e =>
-                    handleKeyboard(e as KeyboardEventProp)
+                window.removeEventListener(
+                    'keydown',
+                    (e: KeyboardEventProp) => {
+                        return handleKeyboard(e);
+                    }
                 );
             }
         };
     });
 
-    const handleKeyboard = (event: KeyboardEventProp) => {
+    const handleKeyboard: Function = (event: KeyboardEventProp): void => {
         if (
             event.target instanceof HTMLBodyElement &&
             event.key &&
@@ -62,7 +66,7 @@ const Button: FunctionComponent<ComponentProps> = (
             type={props.type}
             disabled={props.disabled}
         >
-            <div>
+             {!props.isLoading && (<div>
                 <div>
                     <div></div>
                 </div>
@@ -75,6 +79,8 @@ const Button: FunctionComponent<ComponentProps> = (
                     )}
                 </span>
             </div>
+                )}
+            {props.isLoading && <div>Implement Loader here</div>}
         </button>
     );
 };

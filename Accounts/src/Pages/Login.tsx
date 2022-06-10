@@ -11,8 +11,6 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
 
-    user.getPublicCreateableColumns();
-
     return (
         <Container title="Login">
             <BasicModelForm<User>
@@ -39,26 +37,24 @@ const LoginPage: FunctionComponent = () => {
                         fieldType: FormFieldSchemaType.Password,
                         sideLink: {
                             text: 'Forgot password?',
-                            url: new Route('/forgot-password'),
+                            url: new Route('/accounts/forgot-password'),
                             openLinkInNewTab: false,
                         },
                     },
                 ]}
-                onSubmit={(values: FormValues<User>) => {
-                    console.log(values);
-                }}
+                onSubmit={(_values: FormValues<User>) => {}}
                 submitButtonText={'Login'}
                 title={'Sign in to your account'}
                 footer={
                     <div className="actions">
                         <p>
-                            <Link to="/login/sso">
+                            <Link to="/accounts/login/sso">
                                 Use single sign-on (SSO) instead
                             </Link>
                         </p>
                         <p>
                             <span>Don&apos;t have an account? </span>
-                            <Link to="/register">Sign up</Link>
+                            <Link to="/accounts/register">Sign up</Link>
                         </p>
                     </div>
                 }

@@ -14,15 +14,24 @@ function App(): ReactElement {
             </div>
             <Router>
                 <Routes>
-                    <Route path="/" element={<LoginPage />} />
-                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/accounts" element={<LoginPage />} />
+                    <Route path="/accounts/login" element={<LoginPage />} />
                     <Route
-                        path="/forgot-password"
+                        path="/accounts/forgot-password"
                         element={<ForgotPasswordPage />}
                     />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/login/sso" element={<SsoLoginPage />} />
-                    <Route path="/verify-email" element={<LoginPage />} />
+                    <Route
+                        path="/accounts/register"
+                        element={<RegisterPage />}
+                    />
+                    <Route
+                        path="/accounts/login/sso"
+                        element={<SsoLoginPage />}
+                    />
+                    <Route
+                        path="/accounts/verify-email"
+                        element={<LoginPage />}
+                    />
                 </Routes>
             </Router>
         </div>

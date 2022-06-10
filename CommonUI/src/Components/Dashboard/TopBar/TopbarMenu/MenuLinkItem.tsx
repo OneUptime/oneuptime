@@ -1,4 +1,4 @@
-import React, { ReactElement, FC } from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import { faUpRightFromSquare } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
@@ -9,10 +9,10 @@ export interface ComponentProps {
     openInNewTab?: boolean;
 }
 
-const MenuLinkItem: FC<ComponentProps> = ({
+const MenuLinkItem: FunctionComponent<ComponentProps> = ({
     text,
     openInNewTab,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="menu-link">
             <div className="name">
