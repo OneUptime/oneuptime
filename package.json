@@ -5,8 +5,7 @@
     "main": "index.ts",
     "type": "module",
     "dependencies": {
-        "eslint-plugin-progress": "^0.0.1",
-        "typeorm": "^0.3.6"
+        "eslint-plugin-progress": "^0.0.1"
     },
     "devDependencies": {
         "@babel/core": "^7.17.8",

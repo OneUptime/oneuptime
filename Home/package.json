@@ -30,6 +30,7 @@
         "ejs": "^3.1.6",
         "express": "^4.17.3",
         "reflect-metadata": "^0.1.13",
+        "typeorm": "^0.3.6",
         "xmlbuilder2": "^3.0.2"
     },
     "resolutions": {},
