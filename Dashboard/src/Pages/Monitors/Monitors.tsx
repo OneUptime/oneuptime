@@ -3,7 +3,7 @@ import PageContainer from 'CommonUI/src/Components/Dashboard/Container/PageConta
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
 import SidebarItem from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarItem';
 import SubItem from 'CommonUI/src/Components/Dashboard/Sidebar/SubItem';
-import MonitorTable from '../Components/Monitor/MonitorTable';
+import MonitorTable from '../../Components/Monitor/MonitorTable';
 
 const Monitors: FunctionComponent = (): ReactElement => {
     return (

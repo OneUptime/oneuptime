@@ -3,28 +3,68 @@ import NavItem from 'CommonUI/src/Components/Dashboard/Navbar/NavItem';
 import NavDropDown from 'CommonUI/src/Components/Dashboard/NavBar/NavDropDown/NavDropDown';
 import NavDropDownItem from 'CommonUI/src/Components/Dashboard/NavBar/NavDropDown/NavDropDownItem';
 import React, { FunctionComponent } from 'react';
+import Route from 'Common/Types/API/Route';
 
 const NavBarComponent: FunctionComponent = () => {
     return (
-        <NavBar rightContent={[<NavItem title="Settings" key={1} />]}>
-            <NavItem title="Home" />
+        <NavBar
+            rightContent={[
+                <NavItem
+                    route={new Route('/projectId/settings')}
+                    title="Settings"
+                    key={1}
+                />,
+            ]}
+        >
+            <NavItem route={new Route('/projectId/home')} title="Home" />
 
-            <NavItem title="Monitors" isActive={true} />
+            <NavItem
+                route={new Route('/projectId/monitors')}
+                title="Monitors"
+                isActive={true}
+            />
 
-            <NavItem title="Incidents" />
+            <NavItem
+                route={new Route('/projectId/incidents')}
+                title="Incidents"
+            />
 
-            <NavItem title="Status Pages" />
+            <NavItem
+                route={new Route('/projectId/statuspages')}
+                title="Status Pages"
+            />
 
-            <NavItem title="Logs" />
+            <NavItem route={new Route('/projectId/logs')} title="Logs" />
 
             <NavDropDown title="More">
-                <NavDropDownItem title="On-Call Duty" />
-                <NavDropDownItem title="Scheduled Maintainance" />
-                <NavDropDownItem title="Error Tracking" />
-                <NavDropDownItem title="Performance Tracker" />
-                <NavDropDownItem title="Security" />
-                <NavDropDownItem title="Automation Script" />
-                <NavDropDownItem title="Reports" />
+                <NavDropDownItem
+                    route={new Route('/projectId/home')}
+                    title="On-Call Duty"
+                />
+                <NavDropDownItem
+                    route={new Route('/projectId/home')}
+                    title="Scheduled Maintainance"
+                />
+                <NavDropDownItem
+                    route={new Route('/projectId/home')}
+                    title="Error Tracking"
+                />
+                <NavDropDownItem
+                    route={new Route('/projectId/home')}
+                    title="Performance Tracker"
+                />
+                <NavDropDownItem
+                    route={new Route('/projectId/home')}
+                    title="Security"
+                />
+                <NavDropDownItem
+                    route={new Route('/projectId/home')}
+                    title="Automation Script"
+                />
+                <NavDropDownItem
+                    route={new Route('/projectId/home')}
+                    title="Reports"
+                />
             </NavDropDown>
         </NavBar>
     );
