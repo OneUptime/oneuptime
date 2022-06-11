@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, MouseEventHandler, ReactElement, useState } from 'react';
 import Container from 'CommonUI/src/Components/Dashboard/Container/Container/Container';
 import Pagination from 'CommonUI/src/Components/Dashboard/Container/Container/Pagination';
 import Table from 'CommonUI/src/Components/Dashboard/Table/Table';
@@ -37,7 +37,7 @@ const MonitorTable: FunctionComponent = (): ReactElement => {
                 <DropdownButton
                     key={1}
                     title="Filter By"
-                    onClick={toggleDropdown}
+                    onClick={toggleDropdown as MouseEventHandler}
                     showDropdown={showList}
                 >
                     <DropdownItem title="Clear Filters" />
