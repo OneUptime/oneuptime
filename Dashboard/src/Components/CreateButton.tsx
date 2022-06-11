@@ -4,7 +4,6 @@ import React, {
     useState,
     MouseEventHandler,
 } from 'react';
-import OutsideClickHandler from 'react-outside-click-handler';
 import { MenuOutlineButton } from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
 import TopbarMenu from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/TopbarMenu';
 import MenuItem from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/MenuItem';
@@ -22,13 +21,7 @@ const CreateButton: FunctionComponent = (): ReactElement => {
     };
 
     return (
-        <OutsideClickHandler
-            onOutsideClick={() => {
-                if (showList) {
-                    toggle();
-                }
-            }}
-        >
+       
             <MenuOutlineButton
                 text="Create"
                 icon={faChevronDown}
@@ -60,7 +53,7 @@ const CreateButton: FunctionComponent = (): ReactElement => {
                     />
                 }
             />
-        </OutsideClickHandler>
+       
     );
 };
 

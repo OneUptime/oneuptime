@@ -4,7 +4,7 @@ import React, {
     ReactElement,
     useState,
 } from 'react';
-import OutsideClickHandler from 'react-outside-click-handler';
+
 import MenuButton from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
 import MenuLinkItem from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/MenuLinkItem';
 import { faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
@@ -17,13 +17,7 @@ const HelpButton: FunctionComponent = (): ReactElement => {
     };
 
     return (
-        <OutsideClickHandler
-            onOutsideClick={() => {
-                if (showList) {
-                    toggle();
-                }
-            }}
-        >
+       
             <MenuButton
                 icon={faQuestionCircle}
                 onClick={toggle as MouseEventHandler}
@@ -59,7 +53,6 @@ const HelpButton: FunctionComponent = (): ReactElement => {
                     </>
                 }
             />
-        </OutsideClickHandler>
     );
 };
 

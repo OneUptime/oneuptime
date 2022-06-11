@@ -4,7 +4,6 @@ import React, {
     useState,
     MouseEventHandler,
 } from 'react';
-import OutsideClickHandler from 'react-outside-click-handler';
 import TopbarMenu from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/TopbarMenu';
 import MenuLinkItem from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/MenuLinkItem';
 import { MenuIconButton } from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
@@ -18,13 +17,7 @@ const UserProfileButton: FunctionComponent = (): ReactElement => {
     };
 
     return (
-        <OutsideClickHandler
-            onOutsideClick={() => {
-                if (showProfile) {
-                    toggle();
-                }
-            }}
-        >
+        
             <MenuIconButton
                 icon={faUser}
                 showModal={showProfile}
@@ -43,7 +36,7 @@ const UserProfileButton: FunctionComponent = (): ReactElement => {
                     />
                 }
             />
-        </OutsideClickHandler>
+       
     );
 };
 

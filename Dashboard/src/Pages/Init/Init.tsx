@@ -6,8 +6,8 @@ const Init: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
-        <PageContainer title="OneUptime | Home">
-            <div></div>
+        <PageContainer title="OneUptime | Loading">
+            <div> Laoding...</div>
         </PageContainer>
     );
 };

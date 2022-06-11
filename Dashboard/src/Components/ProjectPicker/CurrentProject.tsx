@@ -1,6 +1,5 @@
 import React, { ReactElement, useState, FunctionComponent } from 'react';
 import ProjectList from './ProjectList';
-import OutsideClickHandler from 'react-outside-click-handler';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Project.scss';
@@ -9,13 +8,7 @@ const CurrentProject: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
 
     return (
-        <OutsideClickHandler
-            onOutsideClick={() => {
-                if (showList) {
-                    setShowList(false);
-                }
-            }}
-        >
+        
             <div className="projectPreview">
                 <div
                     className="preview"
@@ -29,7 +22,7 @@ const CurrentProject: FunctionComponent = (): ReactElement => {
                 </div>
                 {showList && <ProjectList />}
             </div>
-        </OutsideClickHandler>
+       
     );
 };
 
