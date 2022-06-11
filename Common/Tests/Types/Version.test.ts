@@ -1,7 +1,7 @@
 import BadDataException from '../../Types/Exception/BadDataException';
 import Version from '../../Types/Version';
 
-describe.skip('class Version', () => {
+describe('class Version', () => {
     test('should create a version if version string is valid', () => {
         expect(new Version('1.2.1').toString()).toEqual('1.2.1');
         expect(new Version('1.2.1').version).toEqual('1.2.1');
