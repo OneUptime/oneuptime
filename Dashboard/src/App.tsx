@@ -23,7 +23,6 @@ import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
 const App: FunctionComponent = () => {
-    
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
 

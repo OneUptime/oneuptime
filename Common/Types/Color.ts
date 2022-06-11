@@ -1,5 +1,4 @@
 export default class Color {
-    
     private _color!: string;
     public get color(): string {
         return this._color;

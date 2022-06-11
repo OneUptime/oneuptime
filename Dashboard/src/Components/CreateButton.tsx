@@ -21,39 +21,37 @@ const CreateButton: FunctionComponent = (): ReactElement => {
     };
 
     return (
-       
-            <MenuOutlineButton
-                text="Create"
-                icon={faChevronDown}
-                onClick={toggle as MouseEventHandler}
-                showModal={showList}
-                modalContent={
-                    <TopbarMenu
-                        legend="Online Payments"
-                        items={[
-                            <MenuItem
-                                text="Invoice"
-                                icon={faFileInvoice}
-                                shortcuts={['c', 'i']}
-                                key={1}
-                            />,
-                            <MenuItem
-                                text="Subscription"
-                                icon={faRecycle}
-                                shortcuts={['c', 's']}
-                                key={2}
-                            />,
-                            <MenuItem
-                                text="Payment link"
-                                icon={faLink}
-                                shortcuts={['c', 'l']}
-                                key={3}
-                            />,
-                        ]}
-                    />
-                }
-            />
-       
+        <MenuOutlineButton
+            text="Create"
+            icon={faChevronDown}
+            onClick={toggle as MouseEventHandler}
+            showModal={showList}
+            modalContent={
+                <TopbarMenu
+                    legend="Online Payments"
+                    items={[
+                        <MenuItem
+                            text="Invoice"
+                            icon={faFileInvoice}
+                            shortcuts={['c', 'i']}
+                            key={1}
+                        />,
+                        <MenuItem
+                            text="Subscription"
+                            icon={faRecycle}
+                            shortcuts={['c', 's']}
+                            key={2}
+                        />,
+                        <MenuItem
+                            text="Payment link"
+                            icon={faLink}
+                            shortcuts={['c', 'l']}
+                            key={3}
+                        />,
+                    ]}
+                />
+            }
+        />
     );
 };
 

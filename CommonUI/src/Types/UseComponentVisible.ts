@@ -1,7 +1,20 @@
-import { useState, useEffect, useRef, MouseEventHandler, MouseEvent } from 'react';
+import {
+    useState,
+    useEffect,
+    useRef,
+    MouseEventHandler,
+    MouseEvent,
+} from 'react';
 
-const useComponentVisible = (isVisible: boolean) => {
-    const [isComponentVisible, setIsComponentVisible] = useState<boolean>(isVisible);
+const useComponentVisible: Function = (
+    isVisible: boolean
+): {
+    ref: any;
+    isComponentVisible: boolean;
+    setIsComponentVisible: Function;
+} => {
+    const [isComponentVisible, setIsComponentVisible] =
+        useState<boolean>(isVisible);
     const ref: any = useRef<any>(null);
 
     const handleClickOutside: MouseEventHandler = (event: MouseEvent) => {
@@ -13,11 +26,15 @@ const useComponentVisible = (isVisible: boolean) => {
     useEffect(() => {
         document.addEventListener('click', handleClickOutside as any, true);
         return () => {
-            document.removeEventListener('click', handleClickOutside as any, true);
+            document.removeEventListener(
+                'click',
+                handleClickOutside as any,
+                true
+            );
         };
     }, []);
 
     return { ref, isComponentVisible, setIsComponentVisible };
-}
+};
 
 export default useComponentVisible;

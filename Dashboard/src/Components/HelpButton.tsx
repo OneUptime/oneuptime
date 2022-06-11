@@ -17,42 +17,36 @@ const HelpButton: FunctionComponent = (): ReactElement => {
     };
 
     return (
-       
-            <MenuButton
-                icon={faQuestionCircle}
-                onClick={toggle as MouseEventHandler}
-                showModal={showList}
-                modalContent={
-                    <>
-                        <TopbarMenu
-                            legend="Resources"
-                            items={[
-                                <MenuLinkItem
-                                    key={1}
-                                    text="Support articles"
-                                    openInNewTab={true}
-                                />,
-                                <MenuLinkItem
-                                    key={2}
-                                    text="Developer docs"
-                                    openInNewTab={true}
-                                />,
-                                <MenuLinkItem
-                                    key={1}
-                                    text="Keyboard shortcuts"
-                                />,
-                            ]}
-                        />
-                        <hr />
-                        <TopbarMenu
-                            legend="Get in touch"
-                            items={[
-                                <MenuLinkItem key={1} text="Share feedback" />,
-                            ]}
-                        />
-                    </>
-                }
-            />
+        <MenuButton
+            icon={faQuestionCircle}
+            onClick={toggle as MouseEventHandler}
+            showModal={showList}
+            modalContent={
+                <>
+                    <TopbarMenu
+                        legend="Resources"
+                        items={[
+                            <MenuLinkItem
+                                key={1}
+                                text="Support articles"
+                                openInNewTab={true}
+                            />,
+                            <MenuLinkItem
+                                key={2}
+                                text="Developer docs"
+                                openInNewTab={true}
+                            />,
+                            <MenuLinkItem key={1} text="Keyboard shortcuts" />,
+                        ]}
+                    />
+                    <hr />
+                    <TopbarMenu
+                        legend="Get in touch"
+                        items={[<MenuLinkItem key={1} text="Share feedback" />]}
+                    />
+                </>
+            }
+        />
     );
 };
 

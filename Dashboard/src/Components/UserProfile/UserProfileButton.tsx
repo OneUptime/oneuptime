@@ -17,26 +17,24 @@ const UserProfileButton: FunctionComponent = (): ReactElement => {
     };
 
     return (
-        
-            <MenuIconButton
-                icon={faUser}
-                showModal={showProfile}
-                onClick={toggle as MouseEventHandler}
-                modalContent={
-                    <TopbarMenu
-                        items={[
-                            <UserInfo
-                                name="Caleb Okpara"
-                                role="Administrator"
-                                key={1}
-                            />,
-                            <MenuLinkItem text="Profile" key={2} />,
-                            <MenuLinkItem text="Sign out" key={3} />,
-                        ]}
-                    />
-                }
-            />
-       
+        <MenuIconButton
+            icon={faUser}
+            showModal={showProfile}
+            onClick={toggle as MouseEventHandler}
+            modalContent={
+                <TopbarMenu
+                    items={[
+                        <UserInfo
+                            name="Caleb Okpara"
+                            role="Administrator"
+                            key={1}
+                        />,
+                        <MenuLinkItem text="Profile" key={2} />,
+                        <MenuLinkItem text="Sign out" key={3} />,
+                    ]}
+                />
+            }
+        />
     );
 };
 

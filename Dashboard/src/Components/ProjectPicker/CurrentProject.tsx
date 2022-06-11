@@ -6,10 +6,10 @@ import './Project.scss';
 import useComponentVisible from 'CommonUI/src/Types/UseComponentVisible';
 
 const CurrentProject: FunctionComponent = (): ReactElement => {
-    const { ref, isComponentVisible, setIsComponentVisible } = useComponentVisible(false);
+    const { ref, isComponentVisible, setIsComponentVisible } =
+        useComponentVisible(false);
 
     return (
-
         <div className="projectPreview">
             <div
                 ref={ref}
@@ -24,7 +24,6 @@ const CurrentProject: FunctionComponent = (): ReactElement => {
             </div>
             {isComponentVisible && <ProjectList />}
         </div>
-
     );
 };
 

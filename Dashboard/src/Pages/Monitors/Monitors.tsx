@@ -29,7 +29,7 @@ const Monitors: FunctionComponent<PageComponentProps> = ({
                         )}
                     />
                     <SidebarItem
-                        title="Create a new Monitor"
+                        title="Create New Monitor"
                         route={pageRoute.addRoute(
                             RouteDictionary['Create'] as Route
                         )}

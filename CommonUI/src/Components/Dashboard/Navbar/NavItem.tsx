@@ -11,7 +11,6 @@ const NavLink: FunctionComponent<ComponentProps> = ({
     title,
     route,
 }: ComponentProps): ReactElement => {
-
     return (
         <div
             onClick={() => {
