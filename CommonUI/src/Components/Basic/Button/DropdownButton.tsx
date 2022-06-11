@@ -23,7 +23,6 @@ const DropdownButton: FunctionComponent<ComponentProps> = ({
     return (
         <div className="dropdownButton">
             <MenuOutlineButton
-                id="tableButton"
                 text={title}
                 icon={faChevronDown}
                 onClick={onClick!}
