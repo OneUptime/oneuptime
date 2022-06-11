@@ -1,9 +1,14 @@
 import Route from 'Common/Types/API/Route';
-import { useNavigate } from 'react-router-dom';
+import { NavigateFunction } from 'react-router-dom';
 
-class Navigation {
+abstract class Navigation {
+
+    public static navigateHook: NavigateFunction;
+
     public static navigate(route: Route): void {
-        useNavigate()(route.toString());
+        if (this.navigateHook) {
+            this.navigateHook(route.toString());
+       }
     }
 }
 

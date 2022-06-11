@@ -5,7 +5,13 @@ import NavDropDownItem from 'CommonUI/src/Components/Dashboard/NavBar/NavDropDow
 import React, { FunctionComponent } from 'react';
 import Route from 'Common/Types/API/Route';
 
-const NavBarComponent: FunctionComponent = () => {
+export interface ComponentProps{
+   
+}
+
+const NavBarComponent: FunctionComponent<ComponentProps> = ({
+    
+}: ComponentProps) => {
     return (
         <NavBar
             rightContent={[
@@ -13,6 +19,7 @@ const NavBarComponent: FunctionComponent = () => {
                     route={new Route('/projectId/settings')}
                     title="Settings"
                     key={1}
+                    
                 />,
             ]}
         >

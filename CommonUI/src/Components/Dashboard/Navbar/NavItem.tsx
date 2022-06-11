@@ -13,6 +13,7 @@ const NavLink: FunctionComponent<ComponentProps> = ({
     isActive,
     route,
 }: ComponentProps): ReactElement => {
+   
     return (
         <div
             onClick={() => {
