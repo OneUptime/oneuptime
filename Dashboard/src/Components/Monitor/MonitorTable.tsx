@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Container from 'CommonUI/src/Components/Dashboard/Container/Container/Container';
 import Pagination from 'CommonUI/src/Components/Dashboard/Container/Container/Pagination';
 import Table from 'CommonUI/src/Components/Dashboard/Table/Table';
@@ -9,10 +9,10 @@ import DropdownItem from 'CommonUI/src/Components/Basic/Button/DropdownItem';
 import ShortcutKey from 'CommonUI/src/Components/Basic/ShortcutKey/ShortcutKey';
 import { ColumnSort } from 'CommonUI/src/Components/Dashboard/Table/Type/Table';
 
-const MonitorTable = (): ReactElement => {
+const MonitorTable: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
-    const toggleDropdown = () => {
-        return setShowList(!showList);
+    const toggleDropdown: Function = (): void => {
+        setShowList(!showList);
     };
     return (
         <Container
@@ -35,6 +35,7 @@ const MonitorTable = (): ReactElement => {
             }
             headerButtons={[
                 <DropdownButton
+                    key={1}
                     title="Filter By"
                     onClick={toggleDropdown}
                     showDropdown={showList}
@@ -44,6 +45,7 @@ const MonitorTable = (): ReactElement => {
                     <DropdownItem title="Unresolved" />
                 </DropdownButton>,
                 <Button
+                    key={2}
                     title="Create New Monitor"
                     id="tableButton"
                     type={ButtonTypes.Button}

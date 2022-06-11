@@ -1,4 +1,4 @@
-import React, { ReactElement, FC } from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import './Container.scss';
 
 export interface ComponentProps {
@@ -10,7 +10,7 @@ export interface ComponentProps {
     children: ReactElement;
 }
 
-const Container: FC<ComponentProps> = ({
+const Container: FunctionComponent<ComponentProps> = ({
     title,
     description,
     footerText,

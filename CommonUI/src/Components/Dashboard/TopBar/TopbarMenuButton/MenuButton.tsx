@@ -13,13 +13,13 @@ export interface MenuIconButtonComponentProps {
     onClick?: MouseEventHandler;
     modalContent?: ReactElement;
     showModal?: boolean;
-    className?: string;
-    id?: string;
 }
 
 export interface MenuOutlineButtonComponentProps
     extends MenuIconButtonComponentProps {
     text?: string;
+    className?: string;
+    id?: string;
 }
 
 export const MenuIconButton: FunctionComponent<
