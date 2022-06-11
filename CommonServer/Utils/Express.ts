@@ -2,7 +2,7 @@ import express from 'express';
 import logger from './Logger';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import { JSONWebTokenData } from '../Utils/JsonWebToken';
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Role from 'Common/Types/Role';
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
@@ -61,17 +61,20 @@ class Express {
         return this.app;
     }
 
-    public static launchApplication(): express.Application {
-        if (!this.app) {
-            this.setupExpress();
-        }
+    public static async launchApplication(
+        appName: string
+    ): Promise<express.Application> {
+        return new Promise<express.Application>((resolve: Function) => {
+            if (!this.app) {
+                this.setupExpress();
+            }
 
-        this.app.listen(this.app.get('port'), () => {
-            // eslint-disable-next-line
-            logger.info(`Server started on port: ${this.app.get('port')}`);
+            this.app.listen(this.app.get('port'), () => {
+                // eslint-disable-next-line
+                logger.info(`${appName} server started on port: ${this.app.get('port')}`);
+                return resolve(this.app);
+            });
         });
-
-        return this.app;
     }
 }
 

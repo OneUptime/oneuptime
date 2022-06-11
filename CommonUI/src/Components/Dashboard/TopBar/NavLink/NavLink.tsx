@@ -1,11 +1,14 @@
-import React, { ReactElement, FC } from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 
 export interface ComponentProps {
     children: ReactElement;
     isActive?: boolean;
 }
 
-const NavLink: FC<ComponentProps> = ({ children, isActive }): ReactElement => {
+const NavLink: FunctionComponent<ComponentProps> = ({
+    children,
+    isActive,
+}: ComponentProps): ReactElement => {
     return (
         <div className={`${isActive ? 'active' : ''} nav-item`}>{children}</div>
     );

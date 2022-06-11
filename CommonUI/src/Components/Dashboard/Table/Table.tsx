@@ -4,55 +4,67 @@ import {
     faSortAlphaDownAlt,
     faUnsorted,
 } from '@fortawesome/free-solid-svg-icons';
-import React, { FC, ReactElement } from 'react';
-import TableRecord, { ColumnSort, TableColumn } from './Type/Table';
+import React, { FunctionComponent, ReactElement } from 'react';
+import { ColumnSort, TableColumn } from './Type/Table';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { JSONObject } from 'Common/Types/JSON';
 
 export interface ComponentProps {
     columns: Array<TableColumn>;
-    records: Array<TableRecord>;
+    records: Array<JSONObject>;
 }
 
-const Table: FC<ComponentProps> = ({ columns, records }): ReactElement => {
-    const getSortIcon = (direction: ColumnSort): IconProp => {
+const Table: FunctionComponent<ComponentProps> = ({
+    columns,
+    records,
+}: ComponentProps): ReactElement => {
+    const getSortIcon: Function = (direction: ColumnSort): IconProp => {
         if (!direction || direction === ColumnSort.DEFAULT) {
             return faUnsorted;
-        } else {
-            if (direction === ColumnSort.ASC) {
-                return faSortAlphaUpAlt;
-            }
-
-            return faSortAlphaDownAlt;
         }
+        if (direction === ColumnSort.ASC) {
+            return faSortAlphaUpAlt;
+        }
+
+        return faSortAlphaDownAlt;
     };
 
     return (
         <table>
             <thead>
                 <tr>
-                    {columns.map(column => (
-                        <th key={column.key}>
-                            {column.title}
-                            {column.isSortable && (
-                                <FontAwesomeIcon
-                                    icon={getSortIcon(
-                                        column.sortDirection ||
-                                            ColumnSort.DEFAULT
-                                    )}
-                                />
-                            )}
-                        </th>
-                    ))}
+                    {columns.map((column: TableColumn, i: number) => {
+                        return (
+                            <th key={column.key}>
+                                {column.title}
+                                {column.isSortable && (
+                                    <FontAwesomeIcon
+                                        key={i}
+                                        icon={getSortIcon(
+                                            column.sortDirection ||
+                                                ColumnSort.DEFAULT
+                                        )}
+                                    />
+                                )}
+                            </th>
+                        );
+                    })}
                 </tr>
             </thead>
             <tbody>
                 {records.length > 0 ? (
-                    records.map((record, index) => {
+                    records.map((record: JSONObject, index: number) => {
                         return (
                             <tr key={index}>
-                                {columns.map((item, index) => (
-                                    <td key={index}>{record[item.key]}</td>
-                                ))}
+                                {columns.map(
+                                    (item: TableColumn, index: number) => {
+                                        return (
+                                            <td key={index}>
+                                                {record[item.key] as string}
+                                            </td>
+                                        );
+                                    }
+                                )}
                             </tr>
                         );
                     })

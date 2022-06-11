@@ -1,11 +1,13 @@
-import React, { FC, ReactElement } from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import '../../Table/Table.scss';
 
 export interface ComponentProps {
     children: Array<ReactElement> | ReactElement;
 }
 
-const Pagination: FC<ComponentProps> = ({ children }): ReactElement => {
+const Pagination: FunctionComponent<ComponentProps> = ({
+    children,
+}: ComponentProps): ReactElement => {
     return <div className="pager">{children}</div>;
 };
 

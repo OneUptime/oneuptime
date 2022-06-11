@@ -1,4 +1,9 @@
-import React, { ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    MouseEventHandler,
+    ReactElement,
+    useState,
+} from 'react';
 import Container from 'CommonUI/src/Components/Dashboard/Container/Container/Container';
 import Pagination from 'CommonUI/src/Components/Dashboard/Container/Container/Pagination';
 import Table from 'CommonUI/src/Components/Dashboard/Table/Table';
@@ -9,9 +14,11 @@ import DropdownItem from 'CommonUI/src/Components/Basic/Button/DropdownItem';
 import ShortcutKey from 'CommonUI/src/Components/Basic/ShortcutKey/ShortcutKey';
 import { ColumnSort } from 'CommonUI/src/Components/Dashboard/Table/Type/Table';
 
-const MonitorTable = (): ReactElement => {
+const MonitorTable: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
-    const toggleDropdown = () => setShowList(!showList);
+    const toggleDropdown: Function = (): void => {
+        setShowList(!showList);
+    };
     return (
         <Container
             title="Monitors"
@@ -22,19 +29,20 @@ const MonitorTable = (): ReactElement => {
                     <Button
                         title="Previous"
                         type={ButtonTypes.Button}
-                        id="table_button"
+                        id="tableButton"
                     />
                     <Button
                         title="Next"
                         type={ButtonTypes.Button}
-                        id="table_button"
+                        id="tableButton"
                     />
                 </Pagination>
             }
             headerButtons={[
                 <DropdownButton
+                    key={1}
                     title="Filter By"
-                    onClick={toggleDropdown}
+                    onClick={toggleDropdown as MouseEventHandler}
                     showDropdown={showList}
                 >
                     <DropdownItem title="Clear Filters" />
@@ -42,8 +50,9 @@ const MonitorTable = (): ReactElement => {
                     <DropdownItem title="Unresolved" />
                 </DropdownButton>,
                 <Button
+                    key={2}
                     title="Create New Monitor"
-                    id="table_button"
+                    id="tableButton"
                     type={ButtonTypes.Button}
                     shortcutKey={ShortcutKey.New}
                 />,

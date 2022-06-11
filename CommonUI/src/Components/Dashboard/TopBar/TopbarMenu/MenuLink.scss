@@ -1,8 +1,8 @@
 $primaryColor: rgb(246, 248, 250);
 $lightDark: #888;
 $dark: #333;
-$blue: #948dfc;
-$transition: all 0.2s ease;
+$black: black;
+$transition: all 0.1s ease;
 
 .legend {
     font-size: 1.3rem;
@@ -39,7 +39,7 @@ $transition: all 0.2s ease;
         svg {
             font-size: 1.3rem;
             font-weight: 700;
-            color: $blue;
+            color: $black;
         }
 
         p {
@@ -47,7 +47,7 @@ $transition: all 0.2s ease;
             padding: 5px 0;
             margin: 0;
             font-size: 1.5rem;
-            color: $blue;
+            color: $black;
             padding-right: 7px;
         }
 

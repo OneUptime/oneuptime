@@ -1,4 +1,8 @@
-import React, { FC, MouseEventHandler, ReactElement } from 'react';
+import React, {
+    MouseEventHandler,
+    ReactElement,
+    FunctionComponent,
+} from 'react';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import './DropdownButton.scss';
 import { MenuOutlineButton } from '../../Dashboard/TopBar/TopbarMenuButton/MenuButton';
@@ -10,22 +14,21 @@ export interface ComponentProps {
     title: string;
 }
 
-const DropdownButton: FC<ComponentProps> = ({
+const DropdownButton: FunctionComponent<ComponentProps> = ({
     onClick,
     title,
     children,
     showDropdown,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
-        <div className="dropdown-button">
+        <div className="dropdownButton">
             <MenuOutlineButton
-                id="table_button"
                 text={title}
                 icon={faChevronDown}
                 onClick={onClick!}
             />
             {showDropdown && (
-                <div className="dropdown-button-lists">{children}</div>
+                <div className="dropdownButtonLists">{children}</div>
             )}
         </div>
     );

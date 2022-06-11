@@ -29,9 +29,17 @@ export default class URL extends DatabaseProperty {
         this._protocol = v;
     }
 
-    public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
+    public constructor(
+        protocol: Protocol,
+        hostname: Hostname | string,
+        route?: Route
+    ) {
         super();
-        this.hostname = hostname;
+        if (hostname instanceof Hostname) {
+            this.hostname = hostname;
+        } else if (typeof hostname === 'string') {
+            this.hostname = Hostname.fromString(hostname);
+        }
 
         this.protocol = protocol;
 
@@ -90,10 +98,10 @@ export default class URL extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: URL | FindOperator<URL>
+        value: URL | FindOperator<URL>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        if (value) {
+            return value.toString();
         }
 
         return null;

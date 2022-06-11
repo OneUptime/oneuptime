@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect, FC } from 'react';
+import React, { ReactElement, useEffect, FunctionComponent } from 'react';
 import './PageContainer.scss';
 
 export interface ComponentProps {
@@ -7,11 +7,11 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
 }
 
-const PageContainer: FC<ComponentProps> = ({
+const PageContainer: FunctionComponent<ComponentProps> = ({
     title,
     children,
     sideBar,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     useEffect(() => {
         document.title = title;
     }, [title]);
@@ -20,7 +20,7 @@ const PageContainer: FC<ComponentProps> = ({
         <div className="container">
             <main className="main">
                 {sideBar && <div className="sidebar">{sideBar}</div>}
-                <div className="main_layout">{children}</div>
+                <div className="mainLayout">{children}</div>
             </main>
         </div>
     );

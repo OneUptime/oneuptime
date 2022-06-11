@@ -1,11 +1,11 @@
-import React, { FC, ReactElement, useEffect } from 'react';
+import React, { ReactElement, useEffect, FunctionComponent } from 'react';
 
 type Props = {
     children: Array<ReactElement>;
     title: string;
 };
 
-const Container: FC<Props> = ({ children, title }) => {
+const Container: FunctionComponent<Props> = ({ children, title }: Props) => {
     useEffect(() => {
         document.title = `OneUptime | ${title}`;
     }, []);

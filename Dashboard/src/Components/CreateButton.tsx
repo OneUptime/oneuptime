@@ -1,4 +1,9 @@
-import React, { ReactElement, FunctionComponent, useState } from 'react';
+import React, {
+    ReactElement,
+    FunctionComponent,
+    useState,
+    MouseEventHandler,
+} from 'react';
 import OutsideClickHandler from 'react-outside-click-handler';
 import { MenuOutlineButton } from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
 import TopbarMenu from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/TopbarMenu';
@@ -12,7 +17,9 @@ import {
 
 const CreateButton: FunctionComponent = (): ReactElement => {
     const [showList, setShowList] = useState(false);
-    const toggle = () => setShowList(!showList);
+    const toggle: Function = () => {
+        return setShowList(!showList);
+    };
 
     return (
         <OutsideClickHandler
@@ -25,7 +32,7 @@ const CreateButton: FunctionComponent = (): ReactElement => {
             <MenuOutlineButton
                 text="Create"
                 icon={faChevronDown}
-                onClick={toggle}
+                onClick={toggle as MouseEventHandler}
                 showModal={showList}
                 modalContent={
                     <TopbarMenu
@@ -35,16 +42,19 @@ const CreateButton: FunctionComponent = (): ReactElement => {
                                 text="Invoice"
                                 icon={faFileInvoice}
                                 shortcuts={['c', 'i']}
+                                key={1}
                             />,
                             <MenuItem
                                 text="Subscription"
                                 icon={faRecycle}
                                 shortcuts={['c', 's']}
+                                key={2}
                             />,
                             <MenuItem
                                 text="Payment link"
                                 icon={faLink}
                                 shortcuts={['c', 'l']}
+                                key={3}
                             />,
                         ]}
                     />

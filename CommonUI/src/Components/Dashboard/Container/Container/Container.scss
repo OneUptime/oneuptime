@@ -1,4 +1,4 @@
-.new-btn__keycode {
+.newButtonKeycode {
     color: #474747;
     font-size: 1.1rem;
     margin-left: 5px;
@@ -49,7 +49,7 @@
             }
         }
 
-        #table_button,
+        #tableButton,
         button {
             display: flex;
             align-items: center;
@@ -91,17 +91,17 @@
         }
     }
 
-    .tableContainer_body {
+    .tableContainerBody {
         flex: 1;
     }
 
-    .tableContainer_footer {
+    .tableContainerFooter {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 5px 15px;
 
-        .tableContainer_footer__details {
+        .tableContainerFooterDetails {
             font-size: 1.3rem;
             font-weight: 600;
             color: #444;

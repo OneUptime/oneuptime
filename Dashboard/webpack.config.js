@@ -1,5 +1,17 @@
 const path = require("path");
 const webpack = require("webpack");
+const dotenv = require('dotenv');
+
+const readEnvFile = (pathToFile) => {
+    const parsed = dotenv.config({ path: pathToFile }).parsed;
+
+    const env = {};
+    for (const key in parsed) {
+        env[key] = JSON.stringify(parsed[key]);
+    }
+
+    return env;
+}
 
 module.exports = {
     entry: "./src/Index.tsx",
@@ -15,6 +27,17 @@ module.exports = {
     externals: {
         'react-native-sqlite-storage': 'react-native-sqlite-storage'
     },
+    plugins: [
+        new webpack.DefinePlugin({
+            'process': {
+                'env': {
+                    ...readEnvFile('../Common/.env'),
+                    ...readEnvFile('../CommonUI/.env'),
+                    ...readEnvFile('./.env')
+                }
+            }
+          }),
+    ],
     module: {
         rules: [
             {
@@ -35,5 +58,4 @@ module.exports = {
         historyApiFallback: true,
     },
     devtool: 'inline-source-map',
-
 }

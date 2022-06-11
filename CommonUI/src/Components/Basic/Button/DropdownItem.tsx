@@ -12,9 +12,9 @@ export interface ComponentProps {
 const DropdownItem: FunctionComponent<ComponentProps> = ({
     action,
     title,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
-        <div className="dropdown-button-lists__list" onClick={action}>
+        <div className="dropdownButtonListItem" onClick={action}>
             {title}
         </div>
     );

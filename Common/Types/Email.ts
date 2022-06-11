@@ -75,10 +75,10 @@ export default class Email extends DatabaseProperty {
     }
 
     public static override toDatabase(
-        _value: Email | FindOperator<Email>
+        value: Email | FindOperator<Email>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        if (value) {
+            return value.toString();
         }
 
         return null;

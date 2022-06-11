@@ -4,5 +4,9 @@ import Express, { ExpressApplication } from '../Utils/Express';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-app.use('/version', version);
-app.use('/status', status);
+const init: Function = (appName: string): void => {
+    app.use([`/${appName}`, '/'], version);
+    app.use([`/${appName}`, '/'], status);
+};
+
+export default init;

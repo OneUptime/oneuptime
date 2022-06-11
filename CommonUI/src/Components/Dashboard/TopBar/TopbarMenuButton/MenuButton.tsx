@@ -1,69 +1,77 @@
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
-import React, { ReactElement, FC, MouseEventHandler } from 'react';
+import React, {
+    ReactElement,
+    MouseEventHandler,
+    FunctionComponent,
+} from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import './MenuButton.scss';
 
-export interface ComponentProps {
-    text?: string;
+export interface MenuIconButtonComponentProps {
     icon?: IconProp;
     onClick?: MouseEventHandler;
     modalContent?: ReactElement;
     showModal?: boolean;
-    className?: string;
-    id?: string;
 }
 
-export const MenuIconButton: FC<ComponentProps> = ({
+export interface MenuOutlineButtonComponentProps
+    extends MenuIconButtonComponentProps {
+    text?: string;
+}
+
+export const MenuIconButton: FunctionComponent<
+    MenuIconButtonComponentProps
+> = ({
     icon,
     onClick,
     showModal,
     modalContent,
-}): ReactElement => {
+}: MenuIconButtonComponentProps): ReactElement => {
     return (
-        <div className="button-layout">
-            <div className="icon-button" onClick={onClick}>
+        <div className="buttonLayout">
+            <div className="iconButton" onClick={onClick}>
                 {icon && <FontAwesomeIcon icon={icon} />}
             </div>
-            {showModal && <div className="button-modal">{modalContent}</div>}
+            {showModal && <div className="buttonModal">{modalContent}</div>}
         </div>
     );
 };
 
-export const MenuOutlineButton: FC<ComponentProps> = ({
+export const MenuOutlineButton: FunctionComponent<
+    MenuOutlineButtonComponentProps
+> = ({
     text,
     icon,
     onClick,
     showModal,
     modalContent,
-    className,
-    id,
-}): ReactElement => {
+}: MenuOutlineButtonComponentProps): ReactElement => {
     return (
-        <div className="button-layout">
-            <div className={`button ${className}`} id={id} onClick={onClick}>
+        <div className="buttonLayout">
+            <div className={`button`} onClick={onClick}>
                 <span>{text}</span>
                 {icon && <FontAwesomeIcon icon={icon} />}
             </div>
-            {showModal && <div className="button-modal">{modalContent}</div>}
+            {showModal && <div className="buttonModal">{modalContent}</div>}
         </div>
     );
 };
 
-const MenuButton: FC<ComponentProps> = ({
+const MenuButton: FunctionComponent<MenuOutlineButtonComponentProps> = ({
     text,
     icon,
     onClick,
     showModal,
     modalContent,
-}): ReactElement => {
+}: MenuOutlineButtonComponentProps): ReactElement => {
     return (
-        <div className="button-layout">
-            <div className="menu-button" onClick={onClick}>
+        <div className="buttonLayout">
+            <div className="menuButton" onClick={onClick}>
                 {icon && <FontAwesomeIcon icon={icon} />}
                 <span>{text}</span>
             </div>
-            {showModal && <div className="button-modal">{modalContent}</div>}
+            {showModal && <div className="buttonModal">{modalContent}</div>}
         </div>
     );
 };
