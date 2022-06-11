@@ -12,7 +12,7 @@ $colorGrey: #808080;
 $lightBlue: rgb(23, 38, 176);
 $colorLightGrey: rgb(202, 202, 202);
 
-$transition: all 0.2s ease-in-out;
+$transition: all 0.1s ease-in-out;
 
 @mixin responsive($query) {
     @media (min-width: $query) {
