@@ -1,0 +1,165 @@
+.confirmDialog {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+
+    .icon {
+        font-size: 5rem;
+    }
+
+    .info {
+        color: blue;
+    }
+
+    .danger {
+        color: red;
+    }
+
+    .success {
+        color: green;
+    }
+
+    &__text {
+        padding-top: 3px;
+        color: #666;
+        font-size: 1.4rem;
+        word-spacing: 1.1px;
+        word-break: break-all;
+    }
+}
+
+.basic-modal-backdrop {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    background-color: rgba(128, 128, 128, 0.15);
+    z-index: 50;
+}
+
+.basic-modal {
+    min-width: 500px !important;
+    min-height: 200px !important;
+    width: fit-content;
+    height: max-content;
+    position: absolute;
+    left: 50%;
+    top: 5%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: 'Poppins', sans-serif;
+    transform: translateX(-50%);
+    background-color: #ffffff;
+    border-radius: 5px;
+    border: 1px solid rgba(160, 159, 159, 0.4);
+    box-shadow: 1px 1px 3px #b7bbc3;
+    padding: 10px 0;
+    z-index: 55;
+
+    &__details {
+        user-select: none;
+        padding: 0 20px;
+
+        &-title {
+            font-size: 2rem;
+            font-weight: 500;
+            margin: 0;
+            line-height: 24px;
+            word-spacing: 1.2px;
+            color: rgb(69, 68, 68);
+            text-transform: capitalize;
+        }
+
+        &-description {
+            padding-top: 3px;
+            color: #666;
+            font-size: 1.4rem;
+            font-weight: 300;
+            word-spacing: 1.1px;
+            word-break: break-all;
+        }
+    }
+
+    &__content {
+        flex: 1;
+        margin: 5px 0;
+    }
+
+    &__footer {
+        user-select: none;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 0 20px;
+
+        button {
+            display: flex;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+            color: #000000;
+            background: transparent;
+            border: 0;
+            cursor: pointer;
+            outline: none;
+
+            flex: 0 0 auto;
+            padding: 7px 10px;
+            margin-left: 10px;
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 0 0 1px rgb(50 50 93 / 10%),
+                0 2px 5px 0 rgb(50 50 93 / 8%), 0 1px 1.5px 0 rgb(0 0 0 / 7%),
+                0 1px 2px 0 rgb(0 0 0 / 8%), 0 0 0 0 transparent;
+            color: #000000;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.6;
+            text-align: left;
+            text-decoration: none;
+            vertical-align: middle;
+            white-space: nowrap;
+            word-break: keep-all;
+            transition: box-shadow 0.08s ease-in, color 0.08s ease-in;
+
+            svg {
+                margin-left: 5px;
+                color: #000000 !important;
+            }
+
+            &:hover {
+                color: #4c4c4c;
+            }
+
+            .new-btn__keycode {
+                color: #474747;
+                font-size: 1.1rem;
+                text-transform: lowercase;
+                margin-left: 5px;
+                padding: 3px 5px;
+                background-color: #dbdbdb;
+                border-radius: 5px;
+            }
+        }
+
+        #primary {
+            background-color: #333;
+            color: white;
+
+            .new-btn__keycode {
+                color: #e4e2e2;
+                font-size: 1.1rem;
+                text-transform: lowercase;
+                margin-left: 5px;
+                padding: 3px 5px;
+                background-color: #646363;
+                border-radius: 5px;
+            }
+        }
+    }
+}
