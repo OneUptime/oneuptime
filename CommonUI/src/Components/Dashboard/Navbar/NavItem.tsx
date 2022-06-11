@@ -4,13 +4,11 @@ import Navigation from '../../../Utils/Navigation';
 
 export interface ComponentProps {
     title: string;
-    isActive?: boolean;
     route: Route;
 }
 
 const NavLink: FunctionComponent<ComponentProps> = ({
     title,
-    isActive,
     route,
 }: ComponentProps): ReactElement => {
    
@@ -19,7 +17,7 @@ const NavLink: FunctionComponent<ComponentProps> = ({
             onClick={() => {
                 Navigation.navigate(route);
             }}
-            className={`${isActive ? 'active' : ''} nav-item`}
+            className={`${Navigation.getLocation().toString() === route.toString() ? 'active' : ''} nav-item`}
         >
             <p>{title}</p>
         </div>

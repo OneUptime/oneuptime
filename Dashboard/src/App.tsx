@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import TopBar from './Components/TopBar/TopBar';
 import NavBar from './Components/NavBar/NavBar';
 import './App.scss';
@@ -15,7 +15,8 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const App: FunctionComponent = () => {
     // set navigate hook for the app.
-    Navigation.navigateHook = useNavigate();
+    Navigation.setNavigateHook(useNavigate());
+    Navigation.setLocation(useLocation());
 
     return (
 

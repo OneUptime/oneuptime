@@ -23,7 +23,7 @@ const CurrentProject: FunctionComponent = (): ReactElement => {
                         return setShowList(!showList);
                     }}
                 >
-                    <img src="img/placeholder.png" alt="Project Image" />
+                    <img src="/img/placeholder.png" alt="Project Image" />
                     <p>Flow</p>
                     <FontAwesomeIcon icon={faChevronDown} />
                 </div>

@@ -1,9 +1,22 @@
 import Route from 'Common/Types/API/Route';
-import { NavigateFunction } from 'react-router-dom';
+import { NavigateFunction, Location } from 'react-router-dom';
 
 abstract class Navigation {
 
-    public static navigateHook: NavigateFunction;
+    private static navigateHook: NavigateFunction;
+    private static location: Location;
+
+    public static setNavigateHook(navigateHook: NavigateFunction) {
+        this.navigateHook = navigateHook;
+    }
+
+    public static setLocation(location: Location) {
+        this.location = location;
+    }
+
+    public static getLocation(): Route {
+        return new Route(this.location.pathname);
+    }
 
     public static navigate(route: Route): void {
         if (this.navigateHook) {

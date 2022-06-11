@@ -28,7 +28,6 @@ const NavBarComponent: FunctionComponent<ComponentProps> = ({
             <NavItem
                 route={new Route('/projectId/monitors')}
                 title="Monitors"
-                isActive={true}
             />
 
             <NavItem
