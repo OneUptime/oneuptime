@@ -5,7 +5,7 @@ table {
     display: table;
     border-color: #fdfdfd;
     border-collapse: collapse;
-    transition: all 0.2s ease-in;
+    transition: all 0.1s ease-in;
     color: rgb(77, 76, 76);
     filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0.1)) !important;
     font-family: Camphor, Segoe UI, Open Sans, sans-serif;
@@ -41,7 +41,7 @@ table {
         text-align: left;
         padding: 10px 15px;
         cursor: pointer;
-        transition: all 0.2s linear;
+        transition: all 0.1s linear;
 
         & > svg {
             margin-left: 5px;
