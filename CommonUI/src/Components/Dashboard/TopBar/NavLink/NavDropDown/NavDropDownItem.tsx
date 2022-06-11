@@ -16,7 +16,7 @@ const NavDropDownItem: FunctionComponent<ComponentProps> = ({
     title,
     description,
     onClick,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="body" onClick={onClick}>
             <div className="nav-details">

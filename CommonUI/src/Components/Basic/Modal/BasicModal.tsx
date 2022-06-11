@@ -11,7 +11,6 @@ export interface ComponentProps {
     description?: string;
     children: Array<ReactElement> | ReactElement;
     onClick?: MouseOnClick;
-    closeModal?: Function;
     showPrimaryButton?: boolean;
     showCancelButton?: boolean;
     primaryButtonText?: string;
@@ -27,7 +26,7 @@ const BasicModal: FunctionComponent<ComponentProps> = ({
     primaryButtonText = 'Save',
     cancelButtonText = 'Cancel',
     onClick,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <>
             <div className="basic-modal-backdrop"></div>

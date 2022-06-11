@@ -21,10 +21,10 @@ const App: FunctionComponent = () => {
                 leftContents={[<CurrentProject key={1} />]}
                 middleContents={[<SearchBar key={1} />]}
                 rightContents={[
-                    <CreateButton />,
-                    <HelpButton />,
-                    <MenuIconButton icon={faBell} />,
-                    <UserProfileButton />,
+                    <CreateButton key={1} />,
+                    <HelpButton key={2} />,
+                    <MenuIconButton key={3} icon={faBell} />,
+                    <UserProfileButton key={4} />,
                 ]}
                 navContents={{
                     leftContents: [
@@ -50,7 +50,7 @@ const App: FunctionComponent = () => {
                             ]}
                         />,
                     ],
-                    rightContents: [<MenuIconButton icon={faCog} />],
+                    rightContents: [<MenuIconButton key={1} icon={faCog} />],
                 }}
             />
             <Router>
