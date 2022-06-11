@@ -1,28 +1,30 @@
-import React, { ReactElement, useState, FunctionComponent } from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import ProjectList from './ProjectList';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Project.scss';
+import useComponentVisible from 'CommonUI/src/Types/UseComponentVisible';
 
 const CurrentProject: FunctionComponent = (): ReactElement => {
-    const [showList, setShowList] = useState(false);
+    const { ref, isComponentVisible, setIsComponentVisible } = useComponentVisible(false);
 
     return (
-        
-            <div className="projectPreview">
-                <div
-                    className="preview"
-                    onClick={() => {
-                        return setShowList(!showList);
-                    }}
-                >
-                    <img src="/img/placeholder.png" alt="Project Image" />
-                    <p>Flow</p>
-                    <FontAwesomeIcon icon={faChevronDown} />
-                </div>
-                {showList && <ProjectList />}
+
+        <div className="projectPreview">
+            <div
+                ref={ref}
+                className="preview"
+                onClick={() => {
+                    return setIsComponentVisible(!isComponentVisible);
+                }}
+            >
+                <img src="/img/placeholder.png" alt="Project Image" />
+                <p>Project</p>
+                <FontAwesomeIcon icon={faChevronDown} />
             </div>
-       
+            {isComponentVisible && <ProjectList />}
+        </div>
+
     );
 };
 
