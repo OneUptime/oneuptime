@@ -4,7 +4,6 @@ import React, {
     useState,
     MouseEventHandler,
 } from 'react';
-import OutsideClickHandler from 'react-outside-click-handler';
 import TopbarMenu from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/TopbarMenu';
 import MenuLinkItem from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/MenuLinkItem';
 import { MenuIconButton } from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
@@ -18,32 +17,24 @@ const UserProfileButton: FunctionComponent = (): ReactElement => {
     };
 
     return (
-        <OutsideClickHandler
-            onOutsideClick={() => {
-                if (showProfile) {
-                    toggle();
-                }
-            }}
-        >
-            <MenuIconButton
-                icon={faUser}
-                showModal={showProfile}
-                onClick={toggle as MouseEventHandler}
-                modalContent={
-                    <TopbarMenu
-                        items={[
-                            <UserInfo
-                                name="Caleb Okpara"
-                                role="Administrator"
-                                key={1}
-                            />,
-                            <MenuLinkItem text="Profile" key={2} />,
-                            <MenuLinkItem text="Sign out" key={3} />,
-                        ]}
-                    />
-                }
-            />
-        </OutsideClickHandler>
+        <MenuIconButton
+            icon={faUser}
+            showModal={showProfile}
+            onClick={toggle as MouseEventHandler}
+            modalContent={
+                <TopbarMenu
+                    items={[
+                        <UserInfo
+                            name="Caleb Okpara"
+                            role="Administrator"
+                            key={1}
+                        />,
+                        <MenuLinkItem text="Profile" key={2} />,
+                        <MenuLinkItem text="Sign out" key={3} />,
+                    ]}
+                />
+            }
+        />
     );
 };
 

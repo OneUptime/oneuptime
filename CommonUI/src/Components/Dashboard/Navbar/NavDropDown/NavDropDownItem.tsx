@@ -1,24 +1,27 @@
-import React, {
-    MouseEventHandler,
-    ReactElement,
-    FunctionComponent,
-} from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import Route from 'Common/Types/API/Route';
+import Navigation from '../../../../Utils/Navigation';
 
 export interface ComponentProps {
     title: string;
     description?: string;
-    onClick?: MouseEventHandler;
+    route: Route;
 }
 
 const NavDropDownItem: FunctionComponent<ComponentProps> = ({
     title,
     description,
-    onClick,
+    route,
 }: ComponentProps): ReactElement => {
     return (
-        <div className="body" onClick={onClick}>
+        <div
+            className="body"
+            onClick={() => {
+                Navigation.navigate(route);
+            }}
+        >
             <div className="nav-details">
                 <h4>{title}</h4>
                 {description && <p>{description}</p>}

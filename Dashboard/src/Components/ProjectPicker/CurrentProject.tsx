@@ -1,35 +1,29 @@
-import React, { ReactElement, useState, FunctionComponent } from 'react';
+import React, { ReactElement, FunctionComponent } from 'react';
 import ProjectList from './ProjectList';
-import OutsideClickHandler from 'react-outside-click-handler';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Project.scss';
+import useComponentOutsideClick from 'CommonUI/src/Types/UseComponentOutsideClick';
 
 const CurrentProject: FunctionComponent = (): ReactElement => {
-    const [showList, setShowList] = useState(false);
+    const { ref, isComponentVisible, setIsComponentVisible } =
+        useComponentOutsideClick(false);
 
     return (
-        <OutsideClickHandler
-            onOutsideClick={() => {
-                if (showList) {
-                    setShowList(false);
-                }
-            }}
-        >
-            <div className="projectPreview">
-                <div
-                    className="preview"
-                    onClick={() => {
-                        return setShowList(!showList);
-                    }}
-                >
-                    <img src="img/placeholder.png" alt="Project Image" />
-                    <p>Flow</p>
-                    <FontAwesomeIcon icon={faChevronDown} />
-                </div>
-                {showList && <ProjectList />}
+        <div className="projectPreview">
+            <div
+                ref={ref}
+                className="preview"
+                onClick={() => {
+                    return setIsComponentVisible(!isComponentVisible);
+                }}
+            >
+                <img src="/img/placeholder.png" alt="Project Image" />
+                <p>Project</p>
+                <FontAwesomeIcon icon={faChevronDown} />
             </div>
-        </OutsideClickHandler>
+            {isComponentVisible && <ProjectList />}
+        </div>
     );
 };
 

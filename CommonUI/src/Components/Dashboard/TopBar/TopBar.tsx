@@ -2,40 +2,35 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import './TopBar.scss';
 
 export interface ComponentProps {
-    leftContents?: Array<ReactElement>;
-    middleContents?: Array<ReactElement>;
-    rightContents?: Array<ReactElement>;
-    navContents?: {
-        leftContents?: Array<ReactElement>;
-        rightContents?: Array<ReactElement>;
-    };
+    leftContent?: Array<ReactElement>;
+    middleContent?: Array<ReactElement>;
+    rightContent?: Array<ReactElement>;
 }
 
 const TopBar: FunctionComponent<ComponentProps> = ({
-    leftContents,
-    rightContents,
-    middleContents,
-    navContents,
+    leftContent,
+    rightContent,
+    middleContent,
 }: ComponentProps): ReactElement => {
     return (
         <div className="root">
             <header>
                 <div>
-                    {leftContents?.map(
+                    {leftContent?.map(
                         (content: ReactElement, index: number) => {
                             return <div key={index}>{content}</div>;
                         }
                     )}
                 </div>
                 <div className="middle">
-                    {middleContents?.map(
+                    {middleContent?.map(
                         (content: ReactElement, index: number) => {
                             return <div key={index}>{content}</div>;
                         }
                     )}
                 </div>
                 <div className="right">
-                    {rightContents?.map(
+                    {rightContent?.map(
                         (content: ReactElement, index: number) => {
                             return (
                                 <React.Fragment key={index}>
@@ -46,30 +41,6 @@ const TopBar: FunctionComponent<ComponentProps> = ({
                     )}
                 </div>
             </header>
-            <nav>
-                <div>
-                    {navContents?.leftContents?.map(
-                        (content: ReactElement, index: number) => {
-                            return (
-                                <React.Fragment key={index}>
-                                    {content}
-                                </React.Fragment>
-                            );
-                        }
-                    )}
-                </div>
-                <div>
-                    {navContents?.rightContents?.map(
-                        (content: ReactElement, index: number) => {
-                            return (
-                                <React.Fragment key={index}>
-                                    {content}
-                                </React.Fragment>
-                            );
-                        }
-                    )}
-                </div>
-            </nav>
         </div>
     );
 };

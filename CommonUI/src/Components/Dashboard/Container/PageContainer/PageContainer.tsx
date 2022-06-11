@@ -2,13 +2,13 @@ import React, { ReactElement, useEffect, FunctionComponent } from 'react';
 import './PageContainer.scss';
 
 export interface ComponentProps {
-    title: string;
+    title?: string;
     sideBar?: ReactElement;
     children: ReactElement | Array<ReactElement>;
 }
 
 const PageContainer: FunctionComponent<ComponentProps> = ({
-    title,
+    title = 'OneUptime',
     children,
     sideBar,
 }: ComponentProps): ReactElement => {

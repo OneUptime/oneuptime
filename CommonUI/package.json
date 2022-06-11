@@ -22,9 +22,9 @@
         "prop-types": "^15.8.1",
         "react": "^18.1.0",
         "react-dom": "^18.1.0",
-        "react-outside-click-handler": "^1.3.0",
         "react-router": "^6.2.2",
         "react-router-dom": "^6.3.0",
+        "react-spinners": "^0.12.0",
         "redux": "^4.2.0",
         "universal-cookie": "^4.0.4",
         "web-vitals": "^2.1.4",
@@ -32,7 +32,6 @@
     },
     "devDependencies": {
         "@types/node": "^17.0.23",
-        "@types/react": "^18.0.9",
-        "@types/react-outside-click-handler": "^1.3.1"
+        "@types/react": "^18.0.9"
     }
 }
