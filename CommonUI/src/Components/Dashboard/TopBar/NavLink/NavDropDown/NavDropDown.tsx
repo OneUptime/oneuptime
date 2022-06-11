@@ -9,14 +9,14 @@ import './NavDropDown.scss';
 
 export interface ComponentProps {
     title: string;
-    items: Array<ReactElement>;
+    children: Array<ReactElement>;
     action?: MouseEventHandler;
     showDropdownItems?: boolean;
 }
 
 const NavDropDown: FunctionComponent<ComponentProps> = ({
     title,
-    items,
+    children,
     action,
     showDropdownItems,
 }: ComponentProps): ReactElement => {
@@ -28,7 +28,7 @@ const NavDropDown: FunctionComponent<ComponentProps> = ({
             </div>
             {showDropdownItems && (
                 <div className="nav-dropdown__modal">
-                    {items.map((item: ReactElement, index: number) => {
+                    {children.map((item: ReactElement, index: number) => {
                         return (
                             <React.Fragment key={index}>{item}</React.Fragment>
                         );

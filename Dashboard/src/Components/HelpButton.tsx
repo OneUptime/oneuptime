@@ -25,7 +25,6 @@ const HelpButton: FunctionComponent = (): ReactElement => {
             }}
         >
             <MenuButton
-                text="Help"
                 icon={faQuestionCircle}
                 onClick={toggle as MouseEventHandler}
                 showModal={showList}

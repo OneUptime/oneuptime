@@ -29,13 +29,13 @@ const ConfirmTextModal: FunctionComponent<ComponentProps> = ({
     icon,
     showSecondaryButton,
     primaryButtonText = 'OKAY',
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     const [theme, setTheme] = useState<ConfirmModal>({
         theme: 'info',
         icon: faInfoCircle,
     });
 
-    const getIconProperty = (icon: ModalIcons): ConfirmModal => {
+    const getIconProperty: Function = (icon: ModalIcons): ConfirmModal => {
         switch (icon) {
             case ModalIcons.ERROR:
                 return {

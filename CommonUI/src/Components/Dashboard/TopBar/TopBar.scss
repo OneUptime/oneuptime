@@ -75,13 +75,13 @@ $primaryColor: rgb(246, 248, 250);
             }
 
             .active {
-                background-color: black;
+                background-color: #000;
                 font-weight: 400;
                 color: white;
-                border-radius:  5px;
+                border-radius: 150px;
 
                 &:hover {
-                    background-color: #333;
+                    background-color: #000;
                 }
             }
         }

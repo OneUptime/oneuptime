@@ -26,14 +26,15 @@ const Dropdown: FunctionComponent = (): ReactElement => {
                 title="More"
                 action={toggle as MouseEventHandler}
                 showDropdownItems={showDropdownItems}
-                items={[
-                    <NavDropDownItem key={1} title="On-Call Duty" />,
-                    <NavDropDownItem key={2} title="Scheduled Maintainance" />,
-                    <NavDropDownItem key={3} title="Error Tracking" />,
-                    <NavDropDownItem key={4} title="Performance Tracker" />,
-                    <NavDropDownItem key={5} title="Security" />,
-                ]}
-            />
+            >
+                <NavDropDownItem title="On-Call Duty" />
+                <NavDropDownItem title="Scheduled Maintainance" />
+                <NavDropDownItem title="Error Tracking" />
+                <NavDropDownItem title="Performance Tracker" />
+                <NavDropDownItem title="Security" />
+                <NavDropDownItem title="Automation Script" />
+                <NavDropDownItem title="Reports" />
+            </NavDropDown>
         </OutsideClickHandler>
     );
 };

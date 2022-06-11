@@ -24,8 +24,7 @@ const App: FunctionComponent = () => {
                     <CreateButton key={1} />,
                     <HelpButton key={2} />,
                     <MenuIconButton key={3} icon={faBell} />,
-                    <MenuIconButton key={4} icon={faCog} />,
-                    <UserProfileButton key={5} />,
+                    <UserProfileButton key={4} />,
                 ]}
                 navContents={{
                     leftContents: [
@@ -51,14 +50,7 @@ const App: FunctionComponent = () => {
                             ]}
                         />,
                     ],
-                    rightContents: [
-                        <NavLink key={1}>
-                            <p>Automation Scripts</p>
-                        </NavLink>,
-                        <NavLink key={2}>
-                            <p>Reports</p>
-                        </NavLink>,
-                    ],
+                    rightContents: [<MenuIconButton key={1} icon={faCog} />],
                 }}
             />
             <Router>
