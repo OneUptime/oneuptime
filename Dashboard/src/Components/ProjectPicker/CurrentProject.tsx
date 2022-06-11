@@ -3,11 +3,11 @@ import ProjectList from './ProjectList';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Project.scss';
-import useComponentVisible from 'CommonUI/src/Types/UseComponentVisible';
+import useComponentOutsideClick from 'CommonUI/src/Types/UseComponentOutsideClick';
 
 const CurrentProject: FunctionComponent = (): ReactElement => {
     const { ref, isComponentVisible, setIsComponentVisible } =
-        useComponentVisible(false);
+        useComponentOutsideClick(false);
 
     return (
         <div className="projectPreview">

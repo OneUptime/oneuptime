@@ -6,7 +6,7 @@ import {
     MouseEvent,
 } from 'react';
 
-const useComponentVisible: Function = (
+const useComponentOutsideClick: Function = (
     isVisible: boolean
 ): {
     ref: any;
@@ -37,4 +37,4 @@ const useComponentVisible: Function = (
     return { ref, isComponentVisible, setIsComponentVisible };
 };
 
-export default useComponentVisible;
+export default useComponentOutsideClick;
