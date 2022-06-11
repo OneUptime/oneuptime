@@ -2,15 +2,14 @@ import Route from 'Common/Types/API/Route';
 import { NavigateFunction, Location } from 'react-router-dom';
 
 abstract class Navigation {
-
     private static navigateHook: NavigateFunction;
     private static location: Location;
 
-    public static setNavigateHook(navigateHook: NavigateFunction) {
+    public static setNavigateHook(navigateHook: NavigateFunction): void {
         this.navigateHook = navigateHook;
     }
 
-    public static setLocation(location: Location) {
+    public static setLocation(location: Location): void {
         this.location = location;
     }
 
@@ -21,7 +20,7 @@ abstract class Navigation {
     public static navigate(route: Route): void {
         if (this.navigateHook) {
             this.navigateHook(route.toString());
-       }
+        }
     }
 }
 

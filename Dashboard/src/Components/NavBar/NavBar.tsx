@@ -4,43 +4,38 @@ import NavDropDown from 'CommonUI/src/Components/Dashboard/NavBar/NavDropDown/Na
 import NavDropDownItem from 'CommonUI/src/Components/Dashboard/NavBar/NavDropDown/NavDropDownItem';
 import React, { FunctionComponent } from 'react';
 import Route from 'Common/Types/API/Route';
+import PageMap from '../../Utils/PageMap';
+import RouteMap from '../../Utils/RouteMap';
 
-export interface ComponentProps{
-   
-}
-
-const NavBarComponent: FunctionComponent<ComponentProps> = ({
-    
-}: ComponentProps) => {
+const NavBarComponent: FunctionComponent = () => {
     return (
         <NavBar
             rightContent={[
                 <NavItem
-                    route={new Route('/projectId/settings')}
+                    route={RouteMap[PageMap.SETTINGS] as Route}
                     title="Settings"
                     key={1}
-                    
                 />,
             ]}
         >
-            <NavItem route={new Route('/projectId/home')} title="Home" />
+            <NavItem route={RouteMap[PageMap.HOME] as Route} title="Home" />
 
             <NavItem
-                route={new Route('/projectId/monitors')}
+                route={RouteMap[PageMap.MONITORS] as Route}
                 title="Monitors"
             />
 
             <NavItem
-                route={new Route('/projectId/incidents')}
+                route={RouteMap[PageMap.INCIDENTS] as Route}
                 title="Incidents"
             />
 
             <NavItem
-                route={new Route('/projectId/statuspages')}
+                route={RouteMap[PageMap.STATUS_PAGE] as Route}
                 title="Status Pages"
             />
 
-            <NavItem route={new Route('/projectId/logs')} title="Logs" />
+            <NavItem route={RouteMap[PageMap.LOGS] as Route} title="Logs" />
 
             <NavDropDown title="More">
                 <NavDropDownItem

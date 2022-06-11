@@ -2,14 +2,14 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import PageContainer from 'CommonUI/src/Components/Dashboard/Container/PageContainer/PageContainer';
 import PageComponentProps from '../PageComponentProps';
 
-const Settings: FunctionComponent<PageComponentProps> = (
-    __props: PageComponentProps
+const Init: FunctionComponent<PageComponentProps> = (
+    _props: PageComponentProps
 ): ReactElement => {
     return (
-        <PageContainer title="OneUptime | Settings">
+        <PageContainer title="OneUptime | Home">
             <div></div>
         </PageContainer>
     );
 };
 
-export default Settings;
+export default Init;

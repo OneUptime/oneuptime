@@ -1,19 +1,29 @@
+import Route from 'Common/Types/API/Route';
 import React, { ReactElement, FunctionComponent } from 'react';
+import Navigation from '../../../Utils/Navigation';
 
 export interface ComponentProps {
-    isActive?: boolean;
     children?: Array<ReactElement> | ReactElement;
     title: string;
+    route: Route;
 }
 
 const SidebarItem: FunctionComponent<ComponentProps> = ({
-    isActive,
     children,
     title,
+    route,
 }: ComponentProps): ReactElement => {
     return (
         <div className="sideBar">
-            <div className={`sidebarLabel ${isActive && 'activeSidebar'}`}>
+            <div
+                className={`sidebarLabel ${
+                    route.toString() === Navigation.getLocation().toString() &&
+                    'activeSidebar'
+                }`}
+                onClick={() => {
+                    Navigation.navigate(route);
+                }}
+            >
                 {title}
             </div>
             {children}

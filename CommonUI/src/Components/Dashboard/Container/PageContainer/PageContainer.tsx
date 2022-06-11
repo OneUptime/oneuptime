@@ -8,7 +8,7 @@ export interface ComponentProps {
 }
 
 const PageContainer: FunctionComponent<ComponentProps> = ({
-    title,
+    title = 'OneUptime',
     children,
     sideBar,
 }: ComponentProps): ReactElement => {
