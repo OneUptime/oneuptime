@@ -3,9 +3,13 @@ import {
     ExpressResponse,
     NextFunction,
     ExpressStatic,
+    ExpressApplication,
 } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
-import app from 'CommonServer/Utils/StartServer';
+import App from 'CommonServer/Utils/StartServer';
+
+export const APP_NAME: string = 'api';
+const app: ExpressApplication = App(APP_NAME);
 
 import expressRequestId from 'express-request-id';
 
@@ -132,176 +136,197 @@ app.use(AuditLogsMiddleware.log);
 // Routes(API)
 
 app.use(
-    ['/incomingHttpRequest', '/api/incomingHttpRequest'],
+    ['/incomingHttpRequest', `${APP_NAME}/incomingHttpRequest`],
     IncomingHTTPRequestAPI
 );
 
-app.use(['/alert', '/api/alert'], AlertAPI);
+app.use(['/alert', `${APP_NAME}/alert`], AlertAPI);
 
-app.use(['/user', '/api/user'], UserAPI);
+app.use(['/user', `${APP_NAME}/user`], UserAPI);
 
-app.use(['/history', '/api/history'], LoginHistoryAPI);
+app.use(['/history', `${APP_NAME}/history`], LoginHistoryAPI);
 
-app.use(['/token', '/api/token'], TokenAPI);
+app.use(['/token', `${APP_NAME}/token`], TokenAPI);
 
-app.use(['/team', '/api/team'], TeamAPI);
+app.use(['/team', `${APP_NAME}/team`], TeamAPI);
 
-app.use(['/project', '/api/project'], ProjectAPI);
+app.use(['/project', `${APP_NAME}/project`], ProjectAPI);
 
-app.use(['/invoice', '/api/invoice'], InvoiceAPI);
+app.use(['/invoice', `${APP_NAME}/invoice`], InvoiceAPI);
 
-app.use(['/schedule', '/api/schedule'], ScheduleAPI);
+app.use(['/schedule', `${APP_NAME}/schedule`], ScheduleAPI);
 
-app.use(['/monitor', '/api/monitor'], MonitorAPI);
+app.use(['/monitor', `${APP_NAME}/monitor`], MonitorAPI);
 
-app.use(['/StatusPage', '/api/StatusPage'], StatusPageAPI);
+app.use(['/StatusPage', `${APP_NAME}/StatusPage`], StatusPageAPI);
 
-app.use(['/file', '/api/file'], FileAPI);
+app.use(['/file', `${APP_NAME}/file`], FileAPI);
 
-app.use(['/incident', '/api/incident'], IncidentAPI);
+app.use(['/incident', `${APP_NAME}/incident`], IncidentAPI);
 
 app.use(
-    ['/incidentPriorities', '/api/incidentPriorities'],
+    ['/incidentPriorities', `${APP_NAME}/incidentPriorities`],
     IncidentPriorityAPI
 );
 
-app.use(['/incidentSettings', '/api/incidentSettings'], IncidentSettingsAPI);
+app.use(
+    ['/incidentSettings', `${APP_NAME}/incidentSettings`],
+    IncidentSettingsAPI
+);
 
-app.use(['/reports', '/api/reports'], ReportAPI);
+app.use(['/reports', `${APP_NAME}/reports`], ReportAPI);
 
-app.use(['/lead', '/api/lead'], LeadAPI);
+app.use(['/lead', `${APP_NAME}/lead`], LeadAPI);
 
-app.use(['/feedback', '/api/feedback'], FeedbackAPI);
+app.use(['/feedback', `${APP_NAME}/feedback`], FeedbackAPI);
 
-app.use(['/twilio', '/api/twilio'], TwilioAPI);
+app.use(['/twilio', `${APP_NAME}/twilio`], TwilioAPI);
 
-app.use(['/sso', '/api/sso'], SsoAPI);
+app.use(['/sso', `${APP_NAME}/sso`], SsoAPI);
 
-app.use(['/ssoDefaultRoles', '/api/ssoDefaultRoles'], SsoDefaultRoleAPI);
+app.use(['/ssoDefaultRoles', `${APP_NAME}/ssoDefaultRoles`], SsoDefaultRoleAPI);
 
-app.use(['/zapier', '/api/zapier'], ZapierAPI);
+app.use(['/zapier', `${APP_NAME}/zapier`], ZapierAPI);
 
-app.use(['/slack', '/api/slack'], SlackAPI);
+app.use(['/slack', `${APP_NAME}/slack`], SlackAPI);
 
-app.use(['/webhook', '/api/webhook'], WebHookAPI);
+app.use(['/webhook', `${APP_NAME}/webhook`], WebHookAPI);
 
-app.use(['/server', '/api/server'], ServerAPI);
+app.use(['/server', `${APP_NAME}/server`], ServerAPI);
 
-app.use(['/notification', '/api/notification'], NotificationAPI);
+app.use(['/notification', `${APP_NAME}/notification`], NotificationAPI);
 
-app.use(['/stripe', '/api/stripe'], StripeAPI);
+app.use(['/stripe', `${APP_NAME}/stripe`], StripeAPI);
 
-app.use(['/subscriber', '/api/subscriber'], SubscriberAPI);
-
-app.use(['/subscriberAlert', '/api/subscriberAlert'], SubscriberAlertAPI);
-
-app.use(['/emailTemplate', '/api/emailTemplate'], EmailTemplateAPI);
-
-app.use(['/emailSmtp', '/api/emailSmtp'], EmailSmtpAPI);
-
-app.use(['/smsTemplate', '/api/smsTemplate'], SmsTemplateAPI);
-
-app.use(['/smsSmtp', '/api/smsSmtp'], SmsSmtpAPI);
-
-app.use(['/resourceCategory', '/api/resourceCategory'], ResourceCategoryAPI);
+app.use(['/subscriber', `${APP_NAME}/subscriber`], SubscriberAPI);
 
 app.use(
-    ['/statusPageCategory', '/api/statusPageCategory'],
+    ['/subscriberAlert', `${APP_NAME}/subscriberAlert`],
+    SubscriberAlertAPI
+);
+
+app.use(['/emailTemplate', `${APP_NAME}/emailTemplate`], EmailTemplateAPI);
+
+app.use(['/emailSmtp', `${APP_NAME}/emailSmtp`], EmailSmtpAPI);
+
+app.use(['/smsTemplate', `${APP_NAME}/smsTemplate`], SmsTemplateAPI);
+
+app.use(['/smsSmtp', `${APP_NAME}/smsSmtp`], SmsSmtpAPI);
+
+app.use(
+    ['/resourceCategory', `${APP_NAME}/resourceCategory`],
+    ResourceCategoryAPI
+);
+
+app.use(
+    ['/statusPageCategory', `${APP_NAME}/statusPageCategory`],
     StatusPageCategoryAPI
 );
 
-app.use(['/monitorCriteria', '/api/monitorCriteria'], MonitorCriteriaAPI);
+app.use(
+    ['/monitorCriteria', `${APP_NAME}/monitorCriteria`],
+    MonitorCriteriaAPI
+);
 
-app.use(['/scheduledEvent', '/api/scheduledEvent'], ScheduledEventAPI);
+app.use(['/scheduledEvent', `${APP_NAME}/scheduledEvent`], ScheduledEventAPI);
 
-app.use(['/probe', '/api/probe'], ProbeAPI);
+app.use(['/probe', `${APP_NAME}/probe`], ProbeAPI);
 
-app.use(['/application', '/api/application'], ApplicationScannerAPI);
+app.use(['/application', `${APP_NAME}/application`], ApplicationScannerAPI);
 
-app.use(['/container', '/api/container'], ContainerScannerAPI);
+app.use(['/container', `${APP_NAME}/container`], ContainerScannerAPI);
 
-app.use(['/lighthouse', '/api/lighthouse'], LighthouseAPI);
+app.use(['/lighthouse', `${APP_NAME}/lighthouse`], LighthouseAPI);
 
-app.use(['/tutorial', '/api/tutorial'], TutorialAPI);
+app.use(['/tutorial', `${APP_NAME}/tutorial`], TutorialAPI);
 
-app.use(['/audit-logs', '/api/audit-logs'], AuditLogAPI);
+app.use(['/audit-logs', `${APP_NAME}/audit-logs`], AuditLogAPI);
 
-app.use(['/email-logs', '/api/email-logs'], EmailLogsAPI);
+app.use(['/email-logs', `${APP_NAME}/email-logs`], EmailLogsAPI);
 
-app.use(['/call-logs', '/api/call-logs'], CallLogsAPI);
-
-app.use(['/automated-scripts', '/api/automated-scripts'], AutomatedScriptAPI);
-
-app.use(['/sms-logs', '/api/sms-logs'], SMSLogAPI);
-
-app.use(['/component', '/api/component'], ComponentAPI);
-
-app.use(['/application-log', '/api/application-log'], ApplicationLogAPI);
-
-app.use(['/globalConfig', '/api/globalConfig'], GlobalConfigAPI);
+app.use(['/call-logs', `${APP_NAME}/call-logs`], CallLogsAPI);
 
 app.use(
-    ['/domainVerificationToken', '/api/domainVerificationToken'],
+    ['/automated-scripts', `${APP_NAME}/automated-scripts`],
+    AutomatedScriptAPI
+);
+
+app.use(['/sms-logs', `${APP_NAME}/sms-logs`], SMSLogAPI);
+
+app.use(['/component', `${APP_NAME}/component`], ComponentAPI);
+
+app.use(['/application-log', `${APP_NAME}/application-log`], ApplicationLogAPI);
+
+app.use(['/globalConfig', `${APP_NAME}/globalConfig`], GlobalConfigAPI);
+
+app.use(
+    ['/domainVerificationToken', `${APP_NAME}/domainVerificationToken`],
     DomainVerificationTokenAPI
 );
 
-app.use(['/security', '/api/security'], ContainerSecurityAPI);
+app.use(['/security', `${APP_NAME}/security`], ContainerSecurityAPI);
 
-app.use(['/security', '/api/security'], ApplciationSecurityAPI);
+app.use(['/security', `${APP_NAME}/security`], ApplciationSecurityAPI);
 
-app.use(['/credential', '/api/credential'], GitCredentialsAPI);
+app.use(['/credential', `${APP_NAME}/credential`], GitCredentialsAPI);
 
-app.use(['/credential', '/api/credential'], DockerCredentialsAPI);
+app.use(['/credential', `${APP_NAME}/credential`], DockerCredentialsAPI);
 
-app.use(['/securityLog', '/api/securityLog'], ApplicationSecurityLogAPI);
+app.use(['/securityLog', `${APP_NAME}/securityLog`], ApplicationSecurityLogAPI);
 
-app.use(['/securityLog', '/api/securityLog'], ContainerSecurityLogAPI);
+app.use(['/securityLog', `${APP_NAME}/securityLog`], ContainerSecurityLogAPI);
 
-app.use(['/error-tracker', '/api/error-tracker'], ErrorTrackerAPI);
-
-app.use(['/incidentSla', '/api/incidentSla'], IncidentCommunicationSlaAPI);
-
-app.use(['/monitorSla', '/api/monitorSla'], MonitorSlaAPI);
-
-app.use(['/incoming-request', '/api/incoming-request'], IncomingHTTPRequestAPI);
-
-app.use(['/ScriptRunner', '/api/ScriptRunner'], ScriptRunnerAPI);
-
-app.use(['/customField', '/api/customField'], CustomFieldAPI);
-
-app.use(['/search', '/api/search'], SearchAPI);
+app.use(['/error-tracker', `${APP_NAME}/error-tracker`], ErrorTrackerAPI);
 
 app.use(
-    ['/monitorCustomField', '/api/monitorCustomField'],
+    ['/incidentSla', `${APP_NAME}/incidentSla`],
+    IncidentCommunicationSlaAPI
+);
+
+app.use(['/monitorSla', `${APP_NAME}/monitorSla`], MonitorSlaAPI);
+
+app.use(
+    ['/incoming-request', `${APP_NAME}/incoming-request`],
+    IncomingHTTPRequestAPI
+);
+
+app.use(['/ScriptRunner', `${APP_NAME}/ScriptRunner`], ScriptRunnerAPI);
+
+app.use(['/customField', `${APP_NAME}/customField`], CustomFieldAPI);
+
+app.use(['/search', `${APP_NAME}/search`], SearchAPI);
+
+app.use(
+    ['/monitorCustomField', `${APP_NAME}/monitorCustomField`],
     MonitorCustomFieldAPI
 );
 
-app.use(['/callRouting', '/api/callRouting'], CallRoutingAPI);
+app.use(['/callRouting', `${APP_NAME}/callRouting`], CallRoutingAPI);
 
-app.use(['/group', '/api/group'], GroupsAPI);
+app.use(['/group', `${APP_NAME}/group`], GroupsAPI);
 
-app.use(['/ssl', '/api/ssl'], SslAPI);
+app.use(['/ssl', `${APP_NAME}/ssl`], SslAPI);
 
-app.use(['/account', '/api/account'], AccountStoreAPI);
+app.use(['/account', `${APP_NAME}/account`], AccountStoreAPI);
 
-app.use(['/certificate', '/api/certificate'], CertificateStoreAPI);
+app.use(['/certificate', `${APP_NAME}/certificate`], CertificateStoreAPI);
 
-app.use(['/manager', '/api/manager'], SiteManagerAPI);
+app.use(['/manager', `${APP_NAME}/manager`], SiteManagerAPI);
 
-app.use(['/manager', '/api/manager'], DefaultManagerAPI);
+app.use(['/manager', `${APP_NAME}/manager`], DefaultManagerAPI);
 
 app.use(
-    ['/performanceTracker', '/api/performanceTracker'],
+    ['/performanceTracker', `${APP_NAME}/performanceTracker`],
     PerformanceTrackerAPI
 );
 
 app.use(
-    ['/performanceMetric', '/api/performanceMetric'],
+    ['/performanceMetric', `${APP_NAME}/performanceMetric`],
     PerformanceTrackerMetricAPI
 );
 
 app.use(
-    ['/incidentNoteTemplate', '/api/incidentNoteTemplate'],
+    ['/incidentNoteTemplate', `${APP_NAME}/incidentNoteTemplate`],
     IncidentNoteTemplateAPI
 );
 

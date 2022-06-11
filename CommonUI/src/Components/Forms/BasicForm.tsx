@@ -2,32 +2,56 @@ import React, { ReactElement } from 'react';
 import { ErrorMessage, Field, Form, Formik, FormikErrors } from 'formik';
 import Button from '../Basic/Button/Button';
 import FormValues from './Types/FormValues';
-import RequiredFormFields from './Types/RequiredFormFields';
 import Fields from './Types/Fields';
 import DataField from './Types/Field';
 import ButtonTypes from '../Basic/Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
+import FormFieldSchemaType from './Types/FormFieldSchemaType';
+import Email from 'Common/Types/Email';
+
+export const DefaultValidateFunction: Function = (
+    _values: FormValues<JSONObject>
+): JSONObject => {
+    return {};
+};
 
 export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
-    onValidate?: (values: FormValues<T>) => FormikErrors<FormValues<T>>;
-    requiredfields: RequiredFormFields<T>;
+    onValidate?: (values: FormValues<T>) => JSONObject;
     fields: Fields<T>;
-    model: T;
     submitButtonText?: string;
     title?: string;
     description?: string;
-    children: ReactElement;
+    showAsColumns?: number;
+    footer: ReactElement;
+    isLoading?: boolean;
 }
 
-const BasicForm = <T extends Object>(
+function getFieldType(fieldType: FormFieldSchemaType): string {
+    switch (fieldType) {
+        case FormFieldSchemaType.Email:
+            return 'email';
+        case FormFieldSchemaType.Password:
+            return 'password';
+        default:
+            return 'text';
+    }
+}
+
+const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
-    const getFormField = (field: DataField<T>, index: number): ReactElement => {
-        const fieldType = 'text';
+    const getFormField: Function = (
+        field: DataField<T>,
+        index: number
+    ): ReactElement => {
+        const fieldType: string = field.fieldType
+            ? getFieldType(field.fieldType)
+            : 'text';
+
         if (Object.keys(field.field).length === 0) {
             throw new BadDataException('Object cannot be without Field');
         }
@@ -55,78 +79,195 @@ const BasicForm = <T extends Object>(
                     autoFocus={index === 0 ? true : false}
                     placeholder={field.placeholder}
                     type={fieldType}
-                    name={Object.keys(field.field)[0] as string}
+                    name={
+                        field.overideFieldKey
+                            ? field.overideFieldKey
+                            : (Object.keys(field.field)[0] as string)
+                    }
                 />
                 <ErrorMessage
-                    name={Object.keys(field.field)[0] as string}
+                    name={
+                        field.overideFieldKey
+                            ? field.overideFieldKey
+                            : (Object.keys(field.field)[0] as string)
+                    }
                     component="div"
                 />
             </div>
         );
     };
 
-    const validate = (values: FormValues<T>): object => {
+    const validateLength: Function = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
+        if (field.validation) {
+            if (field.validation.minLength) {
+                if (content.trim().length < field.validation?.minLength) {
+                    return `${field.title || name} cannot be less than ${
+                        field.validation.minLength
+                    } characters.`;
+                }
+            }
 
+            if (field.validation.maxLength) {
+                if (content.trim().length > field.validation?.maxLength) {
+                    return `${field.title || name} cannot be more than ${
+                        field.validation.maxLength
+                    } characters.`;
+                }
+            }
+        }
+        return null;
+    };
+
+    const validateRequired: Function = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
+        if (field.required && content.length === 0) {
+            return `${field.title} is required.`;
+        }
+        return null;
+    };
+
+    const validateMatchField: Function = (
+        content: string,
+        field: DataField<T>,
+        entity: JSONObject
+    ): string | null => {
+        if (
+            content &&
+            field.validation?.toMatchField &&
+            entity[field.validation?.toMatchField] &&
+            (entity[field.validation?.toMatchField] as string).trim() !==
+                content.trim()
+        ) {
+            return `${field.title} should match ${field.validation?.toMatchField}`;
+        }
+        return null;
+    };
+
+    const validateData: Function = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
+        if (field.fieldType === FormFieldSchemaType.Email) {
+            if (!Email.isValid(content!)) {
+                return 'Email is not valid.';
+            }
+        }
+        return null;
+    };
+
+    const validate: ((
+        values: FormValues<T>
+    ) => void | object | Promise<FormikErrors<FormValues<T>>>) &
+        Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
         const errors: JSONObject = {};
         const entries: JSONObject = { ...values } as JSONObject;
 
-        // Check Required fields. 
         for (const field of props.fields) {
-            const name = Object.keys(field.field)[0] as string;
+            const name: string = field.overideFieldKey
+                ? field.overideFieldKey
+                : (Object.keys(field.field)[0] as string);
             if (name in values) {
-                if (entries[name]?.toString().trim().length === 0) {
-                    errors[name] = `${field.title || name} is required.`;
+                const content: string | undefined = entries[name]?.toString();
+
+                if (content) {
+                    // Check Required fields.
+                    const resultRequired: string | null = validateRequired(
+                        content,
+                        field
+                    );
+                    if (resultRequired) {
+                        errors[name] = resultRequired;
+                    }
+
+                    // Check for valid email data.
+                    const resultValidateData: string | null = validateData(
+                        content,
+                        field
+                    );
+                    if (resultValidateData) {
+                        errors[name] = resultValidateData;
+                    }
+
+                    const resultMatch: string | null = validateMatchField(
+                        content,
+                        field,
+                        entries
+                    );
+
+                    if (resultMatch) {
+                        errors[name] = resultMatch;
+                    }
+
+                    // check for length of content
+                    const result: string | null = validateLength(
+                        content,
+                        field
+                    );
+                    if (result) {
+                        errors[name] = result;
+                    }
                 }
-            } else if (field.required && !(name in values)) {
+            } else if (field.required) {
                 errors[name] = `${field.title || name} is required.`;
             }
         }
 
-        // Check for valid data. 
+        let customValidateResult: JSONObject = {};
 
-        return errors;
+        if (props.onValidate) {
+            customValidateResult = props.onValidate(values);
+        }
+
+        return { ...errors, ...customValidateResult } as FormikErrors<
+            FormValues<T>
+        >;
     };
 
     return (
         <div>
             <Formik
                 initialValues={props.initialValues}
-                validate={(values: FormValues<T>) => {
-                    if (props.onValidate) {
-                        return props.onValidate(values);
-                    }
-
-                    return validate(values);
-                }}
+                validate={validate}
                 validateOnChange={true}
                 validateOnBlur={true}
-                onSubmit={(values: FormValues<T>) => {
+                onSubmit={(
+                    values: FormValues<T>,
+                    { setSubmitting }: { setSubmitting: Function }
+                ) => {
                     props.onSubmit(values);
+                    setSubmitting(false);
                 }}
             >
-                {({ isSubmitting, isValidating, isValid }) => {
-                    return (
-                        <Form autoComplete="off">
-                            <h1>{props.title}</h1>
+                <Form
+                    autoComplete="off"
+                    className={`grid_form_${props.showAsColumns}`}
+                >
+                    <h1>{props.title}</h1>
 
-                            <p className="description">{props.description}</p>
+                    <p className="description">{props.description}</p>
 
-                            {props.fields &&
-                                props.fields.map((field: DataField<T>, i) => {
+                    <div className={`grid_${props.showAsColumns}`}>
+                        {props.fields &&
+                            props.fields.map(
+                                (field: DataField<T>, i: number) => {
                                     return getFormField(field, i);
-                                })}
-                            <Button
-                                title={props.submitButtonText || 'Submit'}
-                                disabled={
-                                    isSubmitting || !isValid || isValidating
                                 }
-                                type={ButtonTypes.Submit}
-                                id={`${props.id}-submit-button`}
-                            />
-                            {props.children}
-                        </Form>
-                    );
-                }}
+                            )}
+                    </div>
+
+                    <Button
+                        title={props.submitButtonText || 'Submit'}
+                        type={ButtonTypes.Submit}
+                        id={`${props.id}-submit-button`}
+                        isLoading={props.isLoading || false}
+                    />
+                    {props.footer}
+                </Form>
             </Formik>
         </div>
     );

@@ -9,11 +9,13 @@ export interface ComponentProps {
     disabled?: boolean;
     id: string;
     shortcutKey?: ShortcutKey;
-    type?: ButtonType
+    type?: ButtonType;
+    isLoading?: boolean;
 }
 
-const Button: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
-
+const Button: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     // props validation
     if (!props.type) {
         props.type = ButtonType.Button;
@@ -22,21 +24,30 @@ const Button: FunctionComponent<ComponentProps> = (props: ComponentProps): React
     useEffect(() => {
         // componentDidMount
         if (props.shortcutKey) {
-            window.addEventListener('keydown', (e) => handleKeyboard(e as KeyboardEventProp));
+            window.addEventListener('keydown', (e: KeyboardEventProp) => {
+                return handleKeyboard(e);
+            });
         }
 
         // componentDidUnmount
         return () => {
             if (props.shortcutKey) {
-                window.removeEventListener('keydown', (e) => handleKeyboard(e as KeyboardEventProp));
+                window.removeEventListener(
+                    'keydown',
+                    (e: KeyboardEventProp) => {
+                        return handleKeyboard(e);
+                    }
+                );
             }
-        }
-    })
+        };
+    });
 
-
-    const handleKeyboard = (event: KeyboardEventProp) => {
-
-        if (event.target instanceof HTMLBodyElement && event.key && props.shortcutKey) {
+    const handleKeyboard: Function = (event: KeyboardEventProp): void => {
+        if (
+            event.target instanceof HTMLBodyElement &&
+            event.key &&
+            props.shortcutKey
+        ) {
             switch (event.key) {
                 case props.shortcutKey.toUpperCase():
                 case props.shortcutKey.toLowerCase():
@@ -46,30 +57,33 @@ const Button: FunctionComponent<ComponentProps> = (props: ComponentProps): React
                     return;
             }
         }
-    }
+    };
 
-    return (<button
-        id={props.id}
-        onClick={props.onClick}
-        className={`${'Button bs-ButtonLegacy ActionIconParent'} ${props.disabled ? 'Is--disabled' : ''
-            }`}
-        type={props.type}
-        disabled={props.disabled}
-    >
-        <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-            <div className="Box-root Margin-right--8">
-                <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-            </div>
-            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                <span>{props.title}</span>
-                {props.shortcutKey && (
-                    <span className="new-btn__keycode">
-                        {props.shortcutKey}
+    return (
+        <button
+            id={props.id}
+            onClick={props.onClick}
+            type={props.type}
+            disabled={props.disabled}
+        >
+            {!props.isLoading && (
+                <div>
+                    <div>
+                        <div></div>
+                    </div>
+                    <span>
+                        <span>{props.title}</span>
+                        {props.shortcutKey && (
+                            <span className="newButtonKeycode">
+                                {props.shortcutKey}
+                            </span>
+                        )}
                     </span>
-                )}
-            </span>
-        </div>
-    </button>);
-}
+                </div>
+            )}
+            {props.isLoading && <div>Implement Loader here</div>}
+        </button>
+    );
+};
 
 export default Button;

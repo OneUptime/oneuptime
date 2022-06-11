@@ -12,7 +12,7 @@ $colorGrey: #808080;
 $lightBlue: rgb(23, 38, 176);
 $colorLightGrey: rgb(202, 202, 202);
 
-$transition: all 0.2s ease-in-out;
+$transition: all 0.1s ease-in-out;
 
 @mixin responsive($query) {
     @media (min-width: $query) {
@@ -24,6 +24,11 @@ $transition: all 0.2s ease-in-out;
     padding: 0;
     margin: 0;
     box-sizing: border-box;
+}
+
+:disabled {
+    cursor: not-allowed;
+    background-color: $colorGrey !important;
 }
 
 html {
@@ -72,18 +77,7 @@ body {
     }
 }
 
-form {
-    height: fit-content;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: $bglight;
-    border-radius: 5px;
-    box-shadow: 1px 2px 10px lighten($bgDark, 85%);
-    padding: 50px 70px;
-    z-index: 40;
-
+.grid_form_1 {
     @include responsive($xs) {
         width: 95%;
         padding: 25px;
@@ -106,13 +100,51 @@ form {
     @include responsive($xl) {
         width: 35%;
     }
+}
+
+.grid_form_2 {
+    width: 45%;
+    margin-top: 10px;
+
+    @include responsive($xs) {
+        width: 100%;
+    }
+
+    @include responsive($sm) {
+        width: 90%;
+    }
+
+    @include responsive($med) {
+        width: 75%;
+    }
+
+    @include responsive($lg) {
+        width: 50%;
+    }
+
+    @include responsive($xl) {
+        width: 50%;
+    }
+}
+
+form {
+    height: fit-content;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: $bglight;
+    border-radius: 5px;
+    box-shadow: 1px 2px 10px lighten($bgDark, 85%);
+    padding: 50px 70px;
+    z-index: 40;
 
     h1 {
         color: lighten($bgDark, 20%);
         font-family: 'Helvetica Neue', sans-serif;
         font-size: 2.4rem;
         font-weight: 500;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
         letter-spacing: -0.2px;
         line-height: 32px;
     }
@@ -123,53 +155,74 @@ form {
         color: lighten($bgDark, 40%);
     }
 
-    div {
+    .grid_1 {
         display: flex;
         flex-direction: column;
+    }
 
+    .grid_2 {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        width: 100%;
+
+        div {
+            flex: 0 0 48%;
+            input {
+                padding: 10px 15px;
+            }
+        }
+    }
+
+    div {
         &:not(:last-child) {
-            margin-bottom: 30px;
+            margin-bottom: 10px;
         }
 
-        label {
-            font-size: 1.35rem;
-            font-weight: 400;
-            color: lighten($bgDark, 20%);
-            margin-bottom: 5px;
-
+        div {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
 
-            span:last-child {
-                color: $lightBlue;
-                cursor: pointer;
-                transition: $transition;
+            label {
+                font-size: 1.35rem;
+                font-weight: 400;
+                color: lighten($bgDark, 20%);
+                margin-bottom: 5px;
 
-                &:hover {
-                    color: darken($lightBlue, 50%);
+                display: flex;
+                justify-content: space-between;
+
+                span:last-child {
+                    color: $lightBlue;
+                    cursor: pointer;
+                    transition: $transition;
+
+                    &:hover {
+                        color: darken($lightBlue, 50%);
+                    }
                 }
             }
-        }
 
-        input {
-            width: 100%;
-            padding: 15px 20px;
-            border: 1px solid $colorLightGrey;
-            border-radius: 5px;
-            outline: none;
-            appearance: none;
-            background: transparent;
-            font-size: 1.3rem;
-            color: darken($colorLightGrey, 50%);
+            input {
+                width: 100%;
+                padding: 15px 20px;
+                border: 1px solid $colorLightGrey;
+                border-radius: 5px;
+                outline: none;
+                appearance: none;
+                background: transparent;
+                font-size: 1.3rem;
+                color: darken($colorLightGrey, 50%);
 
-            &:focus {
-                outline: 2px solid rgba(84, 84, 238, 0.72);
-            }
+                &:focus {
+                    outline: 2px solid rgba(84, 84, 238, 0.72);
+                }
 
-            & + div {
-                color: rgb(189, 11, 11);
-                margin-top: 5px;
-                font-size: 1.2rem;
+                & + div {
+                    color: rgb(189, 11, 11);
+                    margin-top: 5px;
+                    font-size: 1.2rem;
+                }
             }
         }
     }

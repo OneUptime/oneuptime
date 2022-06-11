@@ -1,38 +1,17 @@
 import React from 'react';
-import { Provider } from 'react-redux';
 
-import { Frontload } from 'react-frontload';
-import ReactGA from 'react-ga';
+/// Load Styles
+import 'CommonUI/src/Styles/Bootstrap';
 
-import { ThroughProvider } from 'react-through';
-
-import { render } from 'react-dom';
-import * as serviceWorker from './serviceWorker';
-import store, { history, isApiServer } from './store';
+import ReactDOM from 'react-dom/client';
 import App from './App';
-import './index.css';
-import ErrorBoundary from './components/basic/ErrorBoundary';
 
-if (!isApiServer) {
-    ReactGA.initialize('UA-115085157-1');
-}
-
-const target: $TSFixMe = document.getElementById('root');
-
-render(
-    <ThroughProvider>
-
-        <Provider store={store} history={history}>
-            <Frontload noServerRender={true}>
-                <ErrorBoundary>
-                    <App />
-                </ErrorBoundary>
-            </Frontload>
-        </Provider>
-    </ThroughProvider>,
-    target
+const root: any = ReactDOM.createRoot(
+    document.getElementById('root') as HTMLElement
 );
 
-// this will enable the app to work offline and load faster
-
-serviceWorker.register();
+root.render(
+    <React.StrictMode>
+        <App />
+    </React.StrictMode>
+);

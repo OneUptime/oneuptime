@@ -11,6 +11,7 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
+RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
@@ -31,14 +32,6 @@ COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
 WORKDIR /usr/src/app
-
-# Install kubectl for kubernetes monitor scanning
-RUN curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/$(OS_ARCHITECTURE)/kubectl"
-RUN chmod +x ./kubectl
-RUN mv ./kubectl /usr/local/bin/kubectl && \
-  chown root: /usr/local/bin/kubectl
-
-
 
 # Install app dependencies
 RUN cd /usr/src/app

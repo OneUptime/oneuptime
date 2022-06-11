@@ -41,13 +41,11 @@ RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
-# Install trivy for container scanning
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
-
 # Install app dependencies
 COPY ./Identity/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
+RUN npm install -g ts-node-dev
 
 # Bundle app source
 COPY ./Identity /usr/src/app

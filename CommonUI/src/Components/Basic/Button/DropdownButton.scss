@@ -1,0 +1,31 @@
+.dropdownButton {
+    position: relative;
+    user-select: none;
+
+    .dropdownButtonLists {
+        position: absolute;
+        top: 110%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 150%;
+        height: fit-content;
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        z-index: 20;
+
+        .dropdownButtonListItem {
+            width: 100%;
+            padding: 10px;
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: rgb(128, 127, 127);
+            cursor: pointer;
+
+            &:hover {
+                box-shadow: 1px 1px 100px rgba(244, 243, 243, 0.2) inset;
+            }
+        }
+    }
+}

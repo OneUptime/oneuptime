@@ -14,5 +14,11 @@ export default interface Field<TEntity> {
         url: Route | URL;
         openLinkInNewTab?: boolean;
     };
+    validation?: {
+        minLength?: number;
+        maxLength?: number;
+        toMatchField?: string;
+    };
     fieldType?: FormFieldSchemaType;
+    overideFieldKey?: string;
 }

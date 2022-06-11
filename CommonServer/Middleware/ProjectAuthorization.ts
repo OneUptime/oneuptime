@@ -1,4 +1,4 @@
-import ProjectServiceType from '../Services/ProjectService';
+import ProjectService from '../Services/ProjectService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import {
@@ -8,11 +8,9 @@ import {
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
-import Services from '../Services/Index';
+
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import Role from 'Common/Types/Role';
-
-const ProjectService: ProjectServiceType = Services.ProjectService;
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {

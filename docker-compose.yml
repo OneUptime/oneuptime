@@ -1,12 +1,16 @@
 version: '3.7'
+
+x-common-variables: &common-variables
+   IS_SAAS_SERVICE: ${IS_SAAS_SERVICE}
+
+
 services:
     
     postgres:
         image: postgres:latest
         restart: always
-        environment:
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=postgres
+        env_file:
+            - ./Postgres/.env
         ports:
             - '5400:5432'
         volumes: 
@@ -17,31 +21,28 @@ services:
         ports:
             - 9876:8080
             - 8443:8443
-        environment:
-            - SIMPLESAMLPHP_SP_ENTITY_ID=hackerbay.io
-            - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback
-            - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp
+        env_file:
+            - ./SAML/.env
         volumes:
-            - ./saml/users.php:/var/www/simplesamlphp/config/authsources.php
+            - ./SAML/users.php:/var/www/simplesamlphp/config/authsources.php
 
     redis:
         image: redis:5.0.7
         ports:
             - '6379:6379'
         command: redis-server
+        env_file:
+            - ./Redis/.env
         
     dashboard-api:
         ports:
             - '3002:3002'
         image: oneuptime/dashboard-api:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./DashboardAPI/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - CLUSTER_KEY=test
-            - REALTIME_URL=http://realtime:3300
+        environment: *common-variables
         depends_on:
             - redis
             - haraka
@@ -51,27 +52,24 @@ services:
             - '3087:3087'
         image: oneuptime/identity:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Identity/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
+            - mail
             
     alert:
         ports:
             - '3088:3088'
         image: oneuptime/alert:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Alert/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
@@ -81,12 +79,10 @@ services:
             - '3089:3089'
         image: oneuptime/integration:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Integration/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
@@ -96,19 +92,22 @@ services:
             - '3003:3003'
         image: oneuptime/accounts:latest
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Accounts/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         depends_on:
-            - dashboard-api
+            - identity
+        
     dashboard:
         ports:
             - '3000:3000'
         image: oneuptime/dashboard:latest
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Dashboard/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         depends_on:
             - dashboard-api
             - accounts
@@ -116,174 +115,182 @@ services:
         ports:
             - '1444:1444'
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Home/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         image: oneuptime/home:latest
+    
     status-page:
         ports:
             - '3006:3006'
         image: oneuptime/status-page:latest
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./StatusPage/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         depends_on:
             - dashboard-api
             - accounts
             - dashboard
+            
     admin-dashboard:
         ports:
             - '3100:3100'
         image: oneuptime/admin-dashboard:latest
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./AdminDashboard/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         depends_on:
             - dashboard-api
             - accounts
+            
     http-test-server:
         ports:
             - '3010:3010'
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./HttpTestServer/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         image: oneuptime/http-test-server:latest
+    
     licensing:
         ports:
             - '3004:3004'
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Licensing/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
         image: oneuptime/licensing:latest
+    
     data-ingestor:
         ports:
             - '3200:3200'
         image: oneuptime/data-ingestor:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./DataIngestor/.env
-        environment:
-            - SERVER_URL=http://dashboard-api:3002
-            - CLUSTER_KEY=test
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - REALTIME_URL=http://realtime:3300
+        environment: *common-variables
         depends_on:
             - script-runner
             - dashboard-api
             - realtime
+            
     realtime:
         ports:
             - '3300:3300'
         image: oneuptime/realtime:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Realtime/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3300
+        environment: *common-variables
+
+            
     helmchart:
         ports:
             - '3423:3423'
         image: oneuptime/helmchart:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./HelmChart/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3423        
+        environment: *common-variables
+
+               
     probe-api:
         ports:
             - '3400:3400'
         image: oneuptime/probe-api:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ProbeAPI/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3400
-            - REALTIME_URL=http://realtime:3300
+        environment: *common-variables
+            
     probe1:
         image: oneuptime/probe:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Probe/.env
-        environment:
-            - PORT=3024
-            - SERVER_URL=http://dashboard-api:3002
-            - PROBE_NAME=Probe 1
-            - PROBE_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
-            - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - PROBE_API_URL=http://probe-api:3400
+        environment: 
+            <<: *common-variables
+            PROBE_NAME: Probe 1
+            PROBE_KEY: test-key
         depends_on:
             - dashboard-api
             - data-ingestor
+            
     probe2:
         image: oneuptime/probe:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Probe/.env
-        environment:
-            - PORT=3025
-            - SERVER_URL=http://dashboard-api:3002
-            - PROBE_NAME=Probe 2
-            - PROBE_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
-            - DATA_INGESTOR_URL=http://data-ingestor:3200
+        environment: 
+            <<: *common-variables
+            PROBE_NAME: Probe 2
+            PROBE_KEY: test-key
         depends_on:
             - dashboard-api
             - data-ingestor
+            
     api-docs:
         ports:
             - '1445:1445'
         image: oneuptime/api-docs:latest
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./ApiDocs/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        environment: *common-variables
    
     haraka:
         ports:
             - '2525:2525'
         image: oneuptime/haraka:latest
-        environment:
-            - SMTP_USER=user@oneuptime.com
-            - SMTP_PASSWORD=oneuptime
-            - DOMAIN="${DOMAIN}"
-            - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
-            - TLS_CERT="${TLS_CERT}"
-            - TLS_KEY="${TLS_KEY}"
+        env_file:
+            - ./Haraka/.env
+        
     script-runner:
         ports:
             - '3009:3009'
         image: oneuptime/script-runner:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ScriptRunner/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SERVER_URL=http://dashboard-api:3002
-            - CLUSTER_KEY=test
+        environment: *common-variables
+           
     mail:
         ports:
             - '3009:3009'
         image: oneuptime/mail:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Mail/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SERVER_URL=http://mail:3190
-            - CLUSTER_KEY=test
+        environment: *common-variables
+        depends_on:
+            - haraka
+            - ppostgres
+            
     application-scanner:
         ports:
             - '3005:3005'
         image: oneuptime/application-scanner:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ApplicationScanner/.env
-        environment:
-            - PORT=3005
-            - SERVER_URL=http://dashboard-api:3002
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - dashboard-api
             
@@ -292,12 +299,10 @@ services:
             - '3055:3055'
         image: oneuptime/container-scanner:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./ContainerScanner/.env
-        environment:
-            - PORT=3055
-            - SERVER_URL=http://dashboard-api:3002
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - dashboard-api
     lighthouse-runner:
@@ -305,12 +310,10 @@ services:
             - '3015:3015'
         image: oneuptime/lighthouse-runner:latest
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./LighthouseRunner/.env
-        environment:
-            - PORT=3015
-            - SERVER_URL=http://dashboard-api:3002
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - dashboard-api
             

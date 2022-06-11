@@ -1,0 +1,89 @@
+$primaryColor: rgb(246, 248, 250);
+
+.root {
+    width: 100vw;
+    height: 90px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+
+    header {
+        height: 45px;
+        background-color: $primaryColor;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 30px;
+        box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+
+        .middle {
+            flex: 0 0 25%;
+            align-self: center;
+        }
+
+        .right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+
+            & > * {
+                padding-left: 20px;
+            }
+        }
+    }
+
+    nav {
+        width: 95%;
+        margin: 1px auto;
+        height: 35px;
+        background-color: white;
+        border-bottom: 1px solid rgba(229, 228, 228, 0.5);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        div {
+            display: flex;
+            align-items: center;
+
+            .navigation-rack {
+                display: flex;
+                align-items: center;
+            }
+
+            .nav-item {
+                display: flex;
+                align-items: center;
+                margin-right: 5px;
+                padding: 2px 15px;
+                color: #333;
+                font-weight: 500;
+                cursor: pointer;
+                width: max-content;
+
+                & > * {
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+                    font-size: 1.4rem;
+                }
+
+                &:hover {
+                    background-color: rgba(190, 186, 186, 0.306);
+                    border-radius: 5px;
+                }
+            }
+
+            .active {
+                background-color: #000;
+                font-weight: 400;
+                color: white;
+                border-radius: 150px;
+
+                &:hover {
+                    background-color: #000;
+                }
+            }
+        }
+    }
+}

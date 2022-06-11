@@ -5,9 +5,9 @@ import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import OneUptimeDate from 'Common/Types/Date';
 
-export default class Service extends DatabaseService<Model> {
-    public constructor(database: PostgresDatabase) {
-        super(Model, database);
+export class Service extends DatabaseService<Model> {
+    public constructor(postgresDatabase?: PostgresDatabase) {
+        super(Model, postgresDatabase);
     }
 
     public async createProbe(
@@ -64,3 +64,5 @@ export default class Service extends DatabaseService<Model> {
         });
     }
 }
+
+export default new Service();

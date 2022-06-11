@@ -5,14 +5,14 @@ import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Route from 'Common/Types/API/Route';
 import Footer from '../Footer';
+import Container from 'CommonUI/src/Container';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
 
-    user.getPublicCreateableColumns();
-
     return (
-        <>
+        <Container title="Login">
             <BasicModelForm<User>
                 model={user}
                 id="login-form"
@@ -22,6 +22,7 @@ const LoginPage: FunctionComponent = () => {
                             email: true,
                         },
                         title: 'Email',
+                        fieldType: FormFieldSchemaType.Email,
                         required: true,
                     },
                     {
@@ -30,33 +31,36 @@ const LoginPage: FunctionComponent = () => {
                         },
                         title: 'Password',
                         required: true,
+                        validation: {
+                            minLength: 6,
+                        },
+                        fieldType: FormFieldSchemaType.Password,
                         sideLink: {
                             text: 'Forgot password?',
-                            url: new Route('/forgot-password'),
+                            url: new Route('/accounts/forgot-password'),
                             openLinkInNewTab: false,
                         },
                     },
                 ]}
-                onSubmit={(values: FormValues<User>) => {
-                    console.log(values);
-                }}
+                onSubmit={(_values: FormValues<User>) => {}}
                 submitButtonText={'Login'}
                 title={'Sign in to your account'}
-            >
-                <div className="actions">
-                    <p>
-                        <Link to="/login/sso">
-                            Use single sign-on (SSO) instead
-                        </Link>
-                    </p>
-                    <p>
-                        <span>Don&apos;t have an account? </span>
-                        <Link to="/register">Sign up</Link>
-                    </p>
-                </div>
-            </BasicModelForm>
+                footer={
+                    <div className="actions">
+                        <p>
+                            <Link to="/accounts/login/sso">
+                                Use single sign-on (SSO) instead
+                            </Link>
+                        </p>
+                        <p>
+                            <span>Don&apos;t have an account? </span>
+                            <Link to="/accounts/register">Sign up</Link>
+                        </p>
+                    </div>
+                }
+            />
             <Footer />
-        </>
+        </Container>
     );
 };
 

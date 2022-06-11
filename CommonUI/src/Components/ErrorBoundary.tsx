@@ -5,8 +5,9 @@ export interface ComponentProps {
     children: ReactElement;
 }
 
-const ErrorBoundary: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement  => {
-    
+const ErrorBoundary: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     const [error, setError] = useState<string | null>(null);
 
     try {
@@ -14,7 +15,7 @@ const ErrorBoundary: FunctionComponent<ComponentProps> = (props: ComponentProps)
             return props.children;
         }
     } catch (e) {
-        const exception = e as Exception;
+        const exception: Exception = e as Exception;
         setError(exception.message);
     }
 
@@ -35,11 +36,11 @@ const ErrorBoundary: FunctionComponent<ComponentProps> = (props: ComponentProps)
             }}
         >
             <div>
-                An unexpected error has occured. Please reload the page
-                to continue
+                An unexpected error has occured. Please reload the page to
+                continue
             </div>
         </div>
     );
-}
+};
 
 export default ErrorBoundary;

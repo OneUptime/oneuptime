@@ -72,11 +72,11 @@
                 "winston-slack-webhook-transport": "^2.1.0"
         },
         "scripts": {
-                "start": "ts-node index.ts",
+                "start": "ts-node Index.ts",
                 "compile": "tsc",
-                "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts --ignore greenlock.d/* -- --staging",
-                "test": "cross-env NODE_ENV=development nyc --reporter=lcov --reporter=text mocha --exit test/index.ts",
-                "enterprise-test": "cross-env NODE_ENV=development IS_TESTING=true nyc --reporter=lcov --reporter=text mocha --exit test/enterprise.js",
+                "dev": "nodemon",
+                "test": "nyc --reporter=lcov --reporter=text mocha --exit test/index.ts",
+                "enterprise-test": "IS_TESTING=true nyc --reporter=lcov --reporter=text mocha --exit test/enterprise.js",
                 "audit": "npm audit --audit-level=low",
                 "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
                 "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,oneuptime-acme-http-01,oneuptime-gl-manager,oneuptime-le-store'"

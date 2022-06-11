@@ -1,18 +1,16 @@
-import React, { FunctionComponent, ReactElement } from 'react'
-import {
-    FontAwesomeIcon,
-} from '@fortawesome/react-fontawesome'
+import React, { FunctionComponent, ReactElement } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export enum SizeProp {
-    ExtraSmall = "xs",
-    Small = "sm",
-    Regular = "1x",
-    Large = "lg",
-    ExtraLarge = "3x"
+    ExtraSmall = 'xs',
+    Small = 'sm',
+    Regular = '1x',
+    Large = 'lg',
+    ExtraLarge = '3x',
 }
 
 export enum IconProp {
-    File = "file",
+    File = 'file',
 }
 
 export interface ComponentProps {
@@ -22,13 +20,13 @@ export interface ComponentProps {
 
 const Icon: FunctionComponent<ComponentProps> = ({
     icon,
-    size
+    size = SizeProp.Regular,
 }: ComponentProps): ReactElement => {
     return (
         <span>
             <FontAwesomeIcon icon={icon} size={size} />
         </span>
     );
-}
+};
 
 export default Icon;

@@ -15,6 +15,7 @@ RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
+RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
@@ -34,24 +35,15 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
-#SET ENV Variables
-
-WORKDIR /usr/src/app
-
-# Install trivy for container scanning
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
-
+WORKDIR /usr/src/app/
 # Install app dependencies
-RUN cd /usr/src/app
-
-RUN mkdir -p greenlock.d || echo "Directory already exists"
-
-# Copy package.json files
-COPY ./Identity/package.json /usr/src/app/package.json
-COPY ./Identity/package-lock.json /usr/src/app/package-lock.json
-
-
+COPY ./Identity/package*.json /usr/src/app/
 RUN npm install
+RUN npm install -g ts-node
+
+
+# Bundle app source
+COPY ./Identity /usr/src/app
 
 # Expose ports.
 #   - 3087: OneUptime-identity

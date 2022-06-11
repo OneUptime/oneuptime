@@ -1,5 +1,5 @@
 #
-# OneUptime Status Page Dockerfile
+# StatusPage Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -30,13 +30,19 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
-#SET ENV Variables. 
+
+# Install CommonUI
+RUN mkdir /usr/src/CommonUI
+WORKDIR /usr/src/CommonUI
+COPY ./CommonUI/package*.json /usr/src/CommonUI/
+RUN npm install
+COPY ./CommonUI /usr/src/CommonUI
+RUN npm run compile
+
+
+#SET ENV Variables
 ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
-# Because of this error during build
-# Error message "error:0308010C:digital envelope routines::unsupported"
-ENV NODE_OPTIONS=--openssl-legacy-provider
 
 RUN mkdir /usr/src/app
 
@@ -44,24 +50,19 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./StatusPage/package*.json /usr/src/app/
-
 RUN npm install  
 RUN npm install -g ts-node
-RUN npm install -g serve
-RUN npm install -g eslint
+RUN npm install -g ts-node-dev
 
-# Bundle app source
+# Copy app source
 COPY ./StatusPage /usr/src/app
 
+# Bundle app source
 RUN npm run build
 
 # Expose ports.
-#   - 3006: HTTP OneUptime Status Page
-EXPOSE 3006
-
-# Expose ports.
-#   - 3007: HTTPS OneUptime Status Page
-EXPOSE 3007
+#   - 3005:  StatusPage
+EXPOSE 3005
 
 #Run the app
 CMD [ "npm", "start" ]

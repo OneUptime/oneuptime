@@ -48,6 +48,7 @@ RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contri
 COPY ./Integration/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
+RUN npm install -g ts-node-dev
 
 # Bundle app source
 COPY ./Integration /usr/src/app

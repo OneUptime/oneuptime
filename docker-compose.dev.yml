@@ -2,6 +2,10 @@
 # It connects to debugging ports that help you debug the app.
 
 version: '3.7'
+
+x-common-variables: &common-variables
+   IS_SAAS_SERVICE: ${IS_SAAS_SERVICE}
+
 services:
     ##IMPORTANT:
     ## This container is an SMTP server used to send emails.
@@ -14,20 +18,14 @@ services:
             context: ./Haraka
             args:
                 PORT: '2525'
-        environment:
-            - SMTP_USER=user@oneuptime.com
-            - SMTP_PASSWORD=oneuptime
-            - DOMAIN="${DOMAIN}"
-            - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
-            - TLS_CERT="${TLS_CERT}"
-            - TLS_KEY="${TLS_KEY}"
+        env_file:
+            - ./Haraka/.env
 
     postgres:
         image: postgres:latest
         restart: always
-        environment:
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=postgres
+        env_file:
+            - ./Postgres/.env
         ports:
             - '5400:5432'
         volumes: 
@@ -42,22 +40,34 @@ services:
             context: .
             dockerfile: ./Mail/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Mail/.env
-        environment:
-            - PORT=3190
-            - SERVER_URL=http://mail:3190
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
+        environment: *common-variables
+        depends_on:
+            - haraka
+            - postgres
+        volumes:
+            - ./Mail:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
 
     saml:
         image: kenchan0130/simplesamlphp
         ports:
             - 9876:8080
             - 8443:8443
-        environment:
-            - SIMPLESAMLPHP_SP_ENTITY_ID=hackerbay.io
-            - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback
-            - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./SAML/.env
         volumes:
             - ./saml/users.php:/var/www/simplesamlphp/config/authsources.php
 
@@ -66,6 +76,8 @@ services:
         ports:
             - '6390:6379'
         command: redis-server
+        env_file:
+            - ./Redis/.env
 
     accounts:
         ports:
@@ -75,185 +87,233 @@ services:
             context: .
             dockerfile: ./Accounts/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
             - ./Accounts/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        volumes:
-            - ./accounts:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-
-    data-ingestor:
-        ports:
-            - '3200:3200'
-            - '9338:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./DataIngestor/Dockerfile.dev
-        env_file:
-            - ./DataIngestor/.env
-        environment:
-            - SERVER_URL=http://dashboard-api:3002
-            - CLUSTER_KEY=test
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
-
-            - REALTIME_URL=http://realtime:3300
+        environment: *common-variables
         depends_on:
-
-            - script-runner
-            - dashboard-api
-            - realtime
+            - identity
         volumes:
-            - ./data-ingestor:/usr/src/app
+            - ./Accounts:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
 
-    realtime:
-        ports:
-            - '3300:3300'
-            - '9250:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./Realtime/Dockerfile.dev
-        env_file:
-            - ./Realtime/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3300
-        volumes:
-            - ./realtime:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules
-    helmchart:
-        ports:
-            - '3423:3423'
-        build:
-            network: host
-            context: .
-            dockerfile: ./HelmChart/Dockerfile
-        env_file:
-            - ./HelmChart/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3423
-    probe-api:
-        ports:
-            - '3400:3400'
-            - '9251:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./ProbeAPI/Dockerfile.dev
-        env_file:
-            - ./ProbeAPI/.env
-        environment:
-            - CLUSTER_KEY=test
-            - PORT=3400
 
-            - REALTIME_URL=http://realtime:3300
-        volumes:
-            - ./probe-api:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - /usr/src/app/greenlock.d/
+    # data-ingestor:
+    #     ports:
+    #         - '3200:3200'
+    #         - '9338:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./DataIngestor/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./DataIngestor/.env
+    #     environment: *common-variables
+    #     depends_on:
+    #         - script-runner
+    #         - dashboard-api
+    #         - realtime
+    #     volumes:
+    #         - ./DataIngestor:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
-    # There can only be one probe in developer docker compose.
-    probe:
-        ports:
-            - '9238:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./Probe/Dockerfile.dev
-        env_file:
-            - ./Probe/.env
-        environment:
-            - PORT=3008
-            - SERVER_URL=http://dashboard-api:3002
-            - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - PROBE_NAME=Probe 1
-            - PROBE_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
-            - PROBE_API_URL=http://probe-api:3400
-        volumes:
-            - ./probe:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - /usr/src/app/greenlock.d/
+    # realtime:
+    #     ports:
+    #         - '3300:3300'
+    #         - '9250:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./Realtime/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./Realtime/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./Realtime:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
+            
+    # helmchart:
+    #     ports:
+    #         - '3423:3423'
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./HelmChart/Dockerfile
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./HelmChart/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./HelmChart:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
-    api-docs:
-        ports:
-            - '1445:1445'
-        build:
-            network: host
-            context: .
-            dockerfile: ./ApiDocs/Dockerfile.dev
-        env_file:
-            - ./ApiDocs/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        volumes:
-            - ./api-docs:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+            
+    # probe-api:
+    #     ports:
+    #         - '3400:3400'
+    #         - '9251:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./ProbeAPI/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./ProbeAPI/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./ProbeAPI:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
+
+    # # There can only be one probe in developer docker compose.
+    # probe:
+    #     ports:
+    #         - '9238:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./Probe/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./Probe/.env
+    #     environment: 
+    #         <<: *common-variables
+    #         PROBE_NAME: Probe 1
+    #         PROBE_KEY: test-key
+    #     volumes:
+    #         - ./Probe:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
+
+    # api-docs:
+    #     ports:
+    #         - '1445:1445'
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./ApiDocs/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./ApiDocs/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./ApiDocs:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
    
-    script-runner:
-        ports:
-            - '3009:3009'
-            - '9236:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./ScriptRunner/Dockerfile.dev
-        env_file:
-            - ./ScriptRunner/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SERVER_URL=http://dashboard-api:3002
-            - CLUSTER_KEY=test
-        volumes:
-            - ./script-runner:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+    # script-runner:
+    #     ports:
+    #         - '3009:3009'
+    #         - '9236:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./ScriptRunner/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./ScriptRunner/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./ScriptRunner:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
-    dashboard-api:
-        ports:
-            - '3002:3002' # Service Port.
-            - '9232:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./DashboardAPI/Dockerfile.dev
-        env_file:
-            - ./DashboardAPI/.env
-        environment:
-            - REDIS_HOST=redis
-            - REDIS_PORT=6379
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
-            - CLUSTER_KEY=test
-            - REALTIME_URL=http://realtime:3300
-        depends_on:
-            - redis
-        volumes:
-            - ./dashboard-api:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-
-            # Exclude greenlock as well.
-            - /usr/src/app/greenlock.d/
+    # dashboard-api:
+    #     ports:
+    #         - '3002:3002' # Service Port.
+    #         - '9232:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./DashboardAPI/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./DashboardAPI/.env
+    #     environment: *common-variables
+    #     depends_on:
+    #         - redis
+    #     volumes:
+    #         - ./DashboardAPI:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
     identity:
         ports:
@@ -264,245 +324,311 @@ services:
             context: .
             dockerfile: ./Identity/Dockerfile.dev
         env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
             - ./Identity/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
+        environment: *common-variables
         depends_on:
             - redis
             - postgres
+            - mail
+        links:
+            - redis
+            - postgres
+            - mail
         volumes:
             - ./Identity:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
     
-    alert:
-        ports:
-            - '3088:3088'
-            - '9133:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./Alert/Dockerfile.dev
-        env_file:
-            - ./Alert/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
-        depends_on:
-            - redis
-            - postgres
-        volumes:
-            - ./Alert:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+    # alert:
+    #     ports:
+    #         - '3088:3088'
+    #         - '9133:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./Alert/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./Alert/.env
+    #     environment: *common-variables
+    #     depends_on:
+    #         - redis
+    #         - postgres
+    #     volumes:
+    #         - ./Alert:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
     
-    integration:
-        ports:
-            - '3089:3089'
-            - '9134:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./Integration/Dockerfile.dev
-        env_file:
-            - ./Integration/.env
-        environment:
-            - REDIS_HOST=redis
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - DATABASE_HOST=postgres
-            - CLUSTER_KEY=test
-        depends_on:
-            - redis
-            - postgres
-        volumes:
-            - ./Integration:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+    # integration:
+    #     ports:
+    #         - '3089:3089'
+    #         - '9134:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./Integration/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./Integration/.env
+    #     environment: *common-variables
+    #     depends_on:
+    #         - redis
+    #         - postgres
+    #     volumes:
+    #         - ./Integration:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
-    dashboard:
-        ports:
-            - '3000:3000'
-        build:
-            network: host
-            context: .
-            dockerfile: ./dashboard/Dockerfile.dev
-        env_file:
-            - ./Dashboard/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        volumes:
-            - ./dashboard:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+    # dashboard:
+    #     ports:
+    #         - '3000:3000'
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./dashboard/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonUI/.env
+    #         - ./Dashboard/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./Dashboard:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
-    home:
-        ports:
-            - '1444:1444'
-            - '9235:9229' # Debugging port.
-        env_file:
-            - ./Home/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        build:
-            network: host
-            context: .
-            dockerfile: ./home/Dockerfile.dev
-        volumes:
-            - ./home:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+    # home:
+    #     ports:
+    #         - '1444:1444'
+    #         - '9235:9229' # Debugging port.
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./Home/.env
+    #     environment: *common-variables
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./Home/Dockerfile.dev
+    #     volumes:
+    #         - ./Home:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
-    status-page:
-        ports:
-            - '3006:3006'
-        build:
-            network: host
-            context: .
-            dockerfile: ./StatusPage/Dockerfile.dev
-        env_file:
-            - ./StatusPage/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        volumes:
-            - ./status-page:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+    # status-page:
+    #     ports:
+    #         - '3006:3006'
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./StatusPage/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonUI/.env
+    #         - ./StatusPage/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./StatusPage:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
-    admin-dashboard:
-        ports:
-            - '3100:3100'
-        build:
-            network: host
-            context: .
-            dockerfile: ./AdminDashboard/Dockerfile.dev
-        env_file:
-            - ./AdminDashboard/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        volumes:
-            - ./admin-dashboard:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+    # admin-dashboard:
+    #     ports:
+    #         - '3100:3100'
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./AdminDashboard/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonUI/.env
+    #         - ./AdminDashboard/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./AdminDashboard:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
-    http-test-server:
-        ports:
-            - '3010:3010'
-            - '9234:9229' # Debugging port.
-        env_file:
-            - ./HttpTestServer/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        build:
-            network: host
-            context: .
-            dockerfile: ./HTTPTestServer/Dockerfile.dev
-        volumes:
-            - ./HttpTestServer:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+    # http-test-server:
+    #     ports:
+    #         - '3010:3010'
+    #         - '9234:9229' # Debugging port.
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonUI/.env
+    #         - ./HttpTestServer/.env
+    #     environment: *common-variables
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./HTTPTestServer/Dockerfile.dev
+    #     volumes:
+    #         - ./HttpTestServer:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
 
-    licensing:
-        ports:
-            - '3004:3004'
-            - '9233:9229' # Debugging port.
-        env_file:
-            - ./Licensing/.env
-        environment:
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        build:
-            network: host
-            context: .
-            dockerfile: ./Licensing/Dockerfile.dev
-        volumes:
-            - ./Licensing:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-    application-scanner:
-        ports:
-            - '3005:3005'
-            - '9240:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./ApplicationScanner/Dockerfile.dev
-        env_file:
-            - ./ApplicationScanner/.env
-        environment:
-            - PORT=3005
-            - SERVER_URL=http://dashboard-api:3002
-            - APPLICATION_SCANNER_NAME=US
-            - APPPLICATION_SCANNER_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
-        volumes:
-            - ./ApplicationScanner:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-    container-scanner:
-        ports:
-            - '3055:3055'
-            - '9242:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./ContainerScanner/Dockerfile.dev
-        env_file:
-            - ./ContainerScanner/.env
-        environment:
-            - PORT=3055
-            - SERVER_URL=http://dashboard-api:3002
-            - CONTAINER_SCANNER_NAME=US
-            - CONTAINER_SCANNER_KEY=test-key
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
-        volumes:
-            - ./ContainerScanner:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-    lighthouse-runner:
-        ports:
-            - '3015:3015'
-            - '9241:9229' # Debugging port.
-        build:
-            network: host
-            context: .
-            dockerfile: ./LighthouseRunner/Dockerfile.dev
-        env_file:
-            - ./LighthouseRunner/.env
-        environment:
-            - PORT=3015
-            - SERVER_URL=http://dashboard-api:3002
-            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - CLUSTER_KEY=test
-        volumes:
-            - ./LighthouseRunner:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
+    # licensing:
+    #     ports:
+    #         - '3004:3004'
+    #         - '9233:9229' # Debugging port.
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./Licensing/.env
+    #     environment: *common-variables
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./Licensing/Dockerfile.dev
+    #     volumes:
+    #         - ./Licensing:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
+            
+    # application-scanner:
+    #     ports:
+    #         - '3005:3005'
+    #         - '9240:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./ApplicationScanner/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./ApplicationScanner/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./ApplicationScanner:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
+            
+    # container-scanner:
+    #     ports:
+    #         - '3055:3055'
+    #         - '9242:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./ContainerScanner/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./ContainerScanner/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./ContainerScanner:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
+            
+    # lighthouse-runner:
+    #     ports:
+    #         - '3015:3015'
+    #         - '9241:9229' # Debugging port.
+    #     build:
+    #         network: host
+    #         context: .
+    #         dockerfile: ./LighthouseRunner/Dockerfile.dev
+    #     env_file:
+    #         - ./Common/.env
+    #         - ./CommonServer/.env
+    #         - ./LighthouseRunner/.env
+    #     environment: *common-variables
+    #     volumes:
+    #         - ./LighthouseRunner:/usr/src/app
+    #         # Use node modules of the container and not host system.
+    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    #         - /usr/src/app/node_modules/
+    #         - ./Common:/usr/src/Common
+    #         - ./CommonServer:/usr/src/CommonServer
+    #         - ./CommonUI:/usr/src/CommonUI
+    #         - /usr/src/Common/node_modules/
+    #         - /usr/src/CommonUI/node_modules/
+    #         - /usr/src/CommonServer/node_modules/
     nginx:
         depends_on:
-
-            - dashboard-api
-            - home
-            - dashboard
+            - identity
             - accounts
-            - admin-dashboard
         restart: always
         build:
             dockerfile: Dockerfile

@@ -4,9 +4,9 @@
     "description": "A project to handle all realtime processing for OneUptime",
     "main": "index.ts",
     "scripts": {
-        "start": "ts-node index.ts",
+        "start": "ts-node Index.ts",
         "compile": "tsc",
-        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "dev": "nodemon",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
     },

@@ -57,6 +57,7 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
 COPY ./DataIngestor/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
+RUN npm install -g ts-node-dev
 
 # Bundle app source
 COPY ./DataIngestor /usr/src/app

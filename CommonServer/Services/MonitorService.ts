@@ -8,9 +8,9 @@ import DatabaseService from './DatabaseService';
 import { In, IsNull, LessThan } from 'typeorm';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 
-export default class Service extends DatabaseService<Model> {
-    public constructor(database: PostgresDatabase) {
-        super(Model, database);
+export class Service extends DatabaseService<Model> {
+    public constructor(postgresDatabase?: PostgresDatabase) {
+        super(Model, postgresDatabase);
     }
 
     public async getMonitorsNotPingedByProbeInLastMinute(
@@ -78,3 +78,4 @@ export default class Service extends DatabaseService<Model> {
         return [];
     }
 }
+export default new Service();
