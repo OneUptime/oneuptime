@@ -17,7 +17,7 @@ const Container: FC<ComponentProps> = ({
     headerButtons,
     pagination,
     children,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="tableContainer">
             <div className="tableContainer_header">
@@ -26,9 +26,11 @@ const Container: FC<ComponentProps> = ({
                     <p>{description}</p>
                 </div>
                 <div className="tableContainer_header__aside">
-                    {headerButtons?.map((item, index) => (
-                        <React.Fragment key={index}>{item}</React.Fragment>
-                    ))}
+                    {headerButtons?.map((item: ReactElement, index: number) => {
+                        return (
+                            <React.Fragment key={index}>{item}</React.Fragment>
+                        );
+                    })}
                 </div>
             </div>
             <div

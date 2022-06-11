@@ -66,20 +66,21 @@ const Button: FunctionComponent<ComponentProps> = (
             type={props.type}
             disabled={props.disabled}
         >
-             {!props.isLoading && (<div>
+            {!props.isLoading && (
                 <div>
-                    <div></div>
+                    <div>
+                        <div></div>
+                    </div>
+                    <span>
+                        <span>{props.title}</span>
+                        {props.shortcutKey && (
+                            <span className="newButtonKeycode">
+                                {props.shortcutKey}
+                            </span>
+                        )}
+                    </span>
                 </div>
-                <span>
-                    <span>{props.title}</span>
-                    {props.shortcutKey && (
-                        <span className="newButtonKeycode">
-                            {props.shortcutKey}
-                        </span>
-                    )}
-                </span>
-            </div>
-                )}
+            )}
             {props.isLoading && <div>Implement Loader here</div>}
         </button>
     );

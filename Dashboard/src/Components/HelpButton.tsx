@@ -1,4 +1,9 @@
-import React, { FunctionComponent, MouseEventHandler, ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    MouseEventHandler,
+    ReactElement,
+    useState,
+} from 'react';
 import OutsideClickHandler from 'react-outside-click-handler';
 import MenuButton from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
 import MenuLinkItem from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/MenuLinkItem';

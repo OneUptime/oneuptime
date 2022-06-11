@@ -11,7 +11,9 @@ import { ColumnSort } from 'CommonUI/src/Components/Dashboard/Table/Type/Table';
 
 const MonitorTable = (): ReactElement => {
     const [showList, setShowList] = useState(false);
-    const toggleDropdown = () => setShowList(!showList);
+    const toggleDropdown = () => {
+        return setShowList(!showList);
+    };
     return (
         <Container
             title="Monitors"

@@ -15,7 +15,7 @@ const DropdownButton: FC<ComponentProps> = ({
     title,
     children,
     showDropdown,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
     return (
         <div className="dropdownButton">
             <MenuOutlineButton

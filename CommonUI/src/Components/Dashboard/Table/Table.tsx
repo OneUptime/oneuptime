@@ -18,32 +18,33 @@ const Table: FC<ComponentProps> = ({ columns, records }): ReactElement => {
     const getSortIcon = (direction: ColumnSort): IconProp => {
         if (!direction || direction === ColumnSort.DEFAULT) {
             return faUnsorted;
-        } else {
-            if (direction === ColumnSort.ASC) {
-                return faSortAlphaUpAlt;
-            }
-
-            return faSortAlphaDownAlt;
         }
+        if (direction === ColumnSort.ASC) {
+            return faSortAlphaUpAlt;
+        }
+
+        return faSortAlphaDownAlt;
     };
 
     return (
         <table>
             <thead>
                 <tr>
-                    {columns.map(column => (
-                        <th key={column.key}>
-                            {column.title}
-                            {column.isSortable && (
-                                <FontAwesomeIcon
-                                    icon={getSortIcon(
-                                        column.sortDirection ||
-                                            ColumnSort.DEFAULT
-                                    )}
-                                />
-                            )}
-                        </th>
-                    ))}
+                    {columns.map(column => {
+                        return (
+                            <th key={column.key}>
+                                {column.title}
+                                {column.isSortable && (
+                                    <FontAwesomeIcon
+                                        icon={getSortIcon(
+                                            column.sortDirection ||
+                                                ColumnSort.DEFAULT
+                                        )}
+                                    />
+                                )}
+                            </th>
+                        );
+                    })}
                 </tr>
             </thead>
             <tbody>
@@ -51,11 +52,13 @@ const Table: FC<ComponentProps> = ({ columns, records }): ReactElement => {
                     records.map((record, index) => {
                         return (
                             <tr key={index}>
-                                {columns.map((item, index) => (
-                                    <td key={index}>
-                                        {record[item.key] as string}
-                                    </td>
-                                ))}
+                                {columns.map((item, index) => {
+                                    return (
+                                        <td key={index}>
+                                            {record[item.key] as string}
+                                        </td>
+                                    );
+                                })}
                             </tr>
                         );
                     })
