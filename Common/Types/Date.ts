@@ -38,7 +38,7 @@ export default class OneUptimeDate {
 
     public static getSomeSecondsAgo(seconds: PositiveNumber): Date {
         return this.getCurrentMomentDate()
-            .add(-1 * seconds.toNumber(), 'days')
+            .add(-1 * seconds.toNumber(), 'seconds')
             .toDate();
     }
 
@@ -70,7 +70,7 @@ export default class OneUptimeDate {
 
     public static getSomeSecondsAfter(seconds: PositiveNumber): Date {
         return this.getCurrentMomentDate()
-            .add(seconds.toNumber(), 'days')
+            .add(seconds.toNumber(), 'seconds')
             .toDate();
     }
 
