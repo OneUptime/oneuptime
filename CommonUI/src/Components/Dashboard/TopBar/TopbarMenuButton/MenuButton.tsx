@@ -10,7 +10,7 @@ import './MenuButton.scss';
 
 export interface MenuIconButtonComponentProps {
     icon?: IconProp;
-    action?: MouseEventHandler;
+    onClick?: MouseEventHandler;
     modalContent?: ReactElement;
     showModal?: boolean;
 }
@@ -24,16 +24,16 @@ export const MenuIconButton: FunctionComponent<
     MenuIconButtonComponentProps
 > = ({
     icon,
-    action,
+    onClick,
     showModal,
     modalContent,
 }: MenuIconButtonComponentProps): ReactElement => {
     return (
-        <div className="button-layout">
-            <div className="icon-button" onClick={action}>
+        <div className="buttonLayout">
+            <div className="iconButton" onClick={onClick}>
                 {icon && <FontAwesomeIcon icon={icon} />}
             </div>
-            {showModal && <div className="button-modal">{modalContent}</div>}
+            {showModal && <div className="buttonModal">{modalContent}</div>}
         </div>
     );
 };
@@ -43,17 +43,17 @@ export const MenuOutlineButton: FunctionComponent<
 > = ({
     text,
     icon,
-    action,
+    onClick,
     showModal,
     modalContent,
 }: MenuOutlineButtonComponentProps): ReactElement => {
     return (
-        <div className="button-layout">
-            <div className="button" onClick={action}>
+        <div className="buttonLayout">
+            <div className={`button`} onClick={onClick}>
                 <span>{text}</span>
                 {icon && <FontAwesomeIcon icon={icon} />}
             </div>
-            {showModal && <div className="button-modal">{modalContent}</div>}
+            {showModal && <div className="buttonModal">{modalContent}</div>}
         </div>
     );
 };
@@ -61,17 +61,17 @@ export const MenuOutlineButton: FunctionComponent<
 const MenuButton: FunctionComponent<MenuOutlineButtonComponentProps> = ({
     text,
     icon,
-    action,
+    onClick,
     showModal,
     modalContent,
 }: MenuOutlineButtonComponentProps): ReactElement => {
     return (
-        <div className="button-layout">
-            <div className="menu-button" onClick={action}>
+        <div className="buttonLayout">
+            <div className="menuButton" onClick={onClick}>
                 {icon && <FontAwesomeIcon icon={icon} />}
                 <span>{text}</span>
             </div>
-            {showModal && <div className="button-modal">{modalContent}</div>}
+            {showModal && <div className="buttonModal">{modalContent}</div>}
         </div>
     );
 };

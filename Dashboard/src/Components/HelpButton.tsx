@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    MouseEventHandler,
+    ReactElement,
+    useState,
+} from 'react';
 import OutsideClickHandler from 'react-outside-click-handler';
 import MenuButton from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
 import MenuLinkItem from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenu/MenuLinkItem';
@@ -22,7 +27,7 @@ const HelpButton: FunctionComponent = (): ReactElement => {
             <MenuButton
                 text="Help"
                 icon={faQuestionCircle}
-                action={toggle}
+                onClick={toggle as MouseEventHandler}
                 showModal={showList}
                 modalContent={
                     <>

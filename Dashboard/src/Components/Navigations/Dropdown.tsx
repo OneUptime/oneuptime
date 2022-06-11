@@ -1,4 +1,9 @@
-import React, { ReactElement, useState, FunctionComponent } from 'react';
+import React, {
+    ReactElement,
+    useState,
+    FunctionComponent,
+    MouseEventHandler,
+} from 'react';
 import OutsideClickHandler from 'react-outside-click-handler';
 import NavDropDown from 'CommonUI/src/Components/Dashboard/TopBar/NavLink/NavDropDown/NavDropDown';
 import NavDropDownItem from 'CommonUI/src/Components/Dashboard/TopBar/NavLink/NavDropDown/NavDropDownItem';
@@ -19,7 +24,7 @@ const Dropdown: FunctionComponent = (): ReactElement => {
         >
             <NavDropDown
                 title="More"
-                action={toggle}
+                action={toggle as MouseEventHandler}
                 showDropdownItems={showDropdownItems}
                 items={[
                     <NavDropDownItem key={1} title="On-Call Duty" />,

@@ -63,21 +63,18 @@ const Button: FunctionComponent<ComponentProps> = (
         <button
             id={props.id}
             onClick={props.onClick}
-            className={`${'Button bs-ButtonLegacy ActionIconParent'} ${
-                props.disabled ? 'Is--disabled' : ''
-            }`}
             type={props.type}
             disabled={props.disabled}
         >
             {!props.isLoading && (
-                <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                    <div className="Box-root Margin-right--8">
-                        <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
+                <div>
+                    <div>
+                        <div></div>
                     </div>
-                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                    <span>
                         <span>{props.title}</span>
                         {props.shortcutKey && (
-                            <span className="new-btn__keycode">
+                            <span className="newButtonKeycode">
                                 {props.shortcutKey}
                             </span>
                         )}

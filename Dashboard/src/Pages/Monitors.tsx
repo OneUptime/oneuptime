@@ -1,15 +1,13 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import { Link } from 'react-router-dom';
-import Container from 'CommonUI/src/Components/Dashboard/Container/Container';
-import Breadcrumb from 'CommonUI/src/Components/Dashboard/Container/Breadcrumb/Breadcrumb';
+import PageContainer from 'CommonUI/src/Components/Dashboard/Container/PageContainer/PageContainer';
 import Sidebar from 'CommonUI/src/Components/Dashboard/Sidebar/Sidebar';
 import SidebarItem from 'CommonUI/src/Components/Dashboard/Sidebar/SidebarItem';
 import SubItem from 'CommonUI/src/Components/Dashboard/Sidebar/SubItem';
-import { faSignal } from '@fortawesome/free-solid-svg-icons';
+import MonitorTable from '../Components/Monitor/MonitorTable';
 
 const Monitors: FunctionComponent = (): ReactElement => {
     return (
-        <Container
+        <PageContainer
             title="OneUptime | Monitors"
             sideBar={
                 <Sidebar title="Monitors">
@@ -25,11 +23,8 @@ const Monitors: FunctionComponent = (): ReactElement => {
                 </Sidebar>
             }
         >
-            <Breadcrumb title="Monitors" icon={faSignal}>
-                <Link to="/">Monitors</Link>
-                <Link to="/status-page">Status Page</Link>
-            </Breadcrumb>
-        </Container>
+            <MonitorTable />
+        </PageContainer>
     );
 };
 

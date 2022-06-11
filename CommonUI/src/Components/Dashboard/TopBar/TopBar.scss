@@ -70,15 +70,15 @@ $primaryColor: rgb(246, 248, 250);
 
                 &:hover {
                     background-color: rgba(190, 186, 186, 0.306);
-                    border-radius: 150px;
+                    border-radius: 5px;
                 }
             }
 
             .active {
-                background-color: #555;
+                background-color: black;
                 font-weight: 400;
                 color: white;
-                border-radius: 150px;
+                border-radius:  5px;
 
                 &:hover {
                     background-color: #333;

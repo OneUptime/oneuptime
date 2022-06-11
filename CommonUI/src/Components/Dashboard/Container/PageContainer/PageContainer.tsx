@@ -1,5 +1,5 @@
 import React, { ReactElement, useEffect, FunctionComponent } from 'react';
-import './Container.scss';
+import './PageContainer.scss';
 
 export interface ComponentProps {
     title: string;
@@ -7,7 +7,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
 }
 
-const Container: FunctionComponent<ComponentProps> = ({
+const PageContainer: FunctionComponent<ComponentProps> = ({
     title,
     children,
     sideBar,
@@ -20,10 +20,10 @@ const Container: FunctionComponent<ComponentProps> = ({
         <div className="container">
             <main className="main">
                 {sideBar && <div className="sidebar">{sideBar}</div>}
-                <div className="main_layout">{children}</div>
+                <div className="mainLayout">{children}</div>
             </main>
         </div>
     );
 };
 
-export default Container;
+export default PageContainer;

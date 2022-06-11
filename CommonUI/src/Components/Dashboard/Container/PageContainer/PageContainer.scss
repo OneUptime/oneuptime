@@ -14,11 +14,13 @@
             overflow: auto;
         }
 
-        .main_layout {
+        .mainLayout {
+            border-radius: 5px;
             padding: 5px 20px;
-            margin: 5px;
+            margin: 0;
             margin-left: 20px;
             margin-right: 20px;
+            margin-bottom: 5px;
             flex: 1;
             overflow: auto;
         }
