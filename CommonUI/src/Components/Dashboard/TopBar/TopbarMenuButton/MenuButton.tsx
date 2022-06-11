@@ -18,8 +18,6 @@ export interface MenuIconButtonComponentProps {
 export interface MenuOutlineButtonComponentProps
     extends MenuIconButtonComponentProps {
     text?: string;
-    className?: string;
-    id?: string;
 }
 
 export const MenuIconButton: FunctionComponent<
@@ -48,12 +46,10 @@ export const MenuOutlineButton: FunctionComponent<
     onClick,
     showModal,
     modalContent,
-    className,
-    id,
 }: MenuOutlineButtonComponentProps): ReactElement => {
     return (
         <div className="buttonLayout">
-            <div className={`button ${className}`} id={id} onClick={onClick}>
+            <div className={`button`} onClick={onClick}>
                 <span>{text}</span>
                 {icon && <FontAwesomeIcon icon={icon} />}
             </div>

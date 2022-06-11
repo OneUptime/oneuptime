@@ -56,13 +56,15 @@ const Table: FunctionComponent<ComponentProps> = ({
                     records.map((record: JSONObject, index: number) => {
                         return (
                             <tr key={index}>
-                                {columns.map((item: TableColumn, index: number) => {
-                                    return (
-                                        <td key={index}>
-                                            {record[item.key] as string}
-                                        </td>
-                                    );
-                                })}
+                                {columns.map(
+                                    (item: TableColumn, index: number) => {
+                                        return (
+                                            <td key={index}>
+                                                {record[item.key] as string}
+                                            </td>
+                                        );
+                                    }
+                                )}
                             </tr>
                         );
                     })

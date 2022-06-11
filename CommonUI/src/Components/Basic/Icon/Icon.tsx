@@ -20,7 +20,7 @@ export interface ComponentProps {
 
 const Icon: FunctionComponent<ComponentProps> = ({
     icon,
-    size,
+    size = SizeProp.Regular,
 }: ComponentProps): ReactElement => {
     return (
         <span>
