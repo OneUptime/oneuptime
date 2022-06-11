@@ -11,13 +11,14 @@ const NavLink: FunctionComponent<ComponentProps> = ({
     title,
     route,
 }: ComponentProps): ReactElement => {
+
     return (
         <div
             onClick={() => {
                 Navigation.navigate(route);
             }}
             className={`${
-                Navigation.getLocation().toString() === route.toString()
+                Navigation.getLocation().toString().startsWith(route.toString())
                     ? 'active'
                     : ''
             } nav-item`}
