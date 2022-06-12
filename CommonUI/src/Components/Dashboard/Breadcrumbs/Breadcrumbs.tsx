@@ -13,7 +13,6 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
     title,
     children,
 }: ComponentProps): ReactElement => {
-
     if (!Array.isArray(children)) {
         children = [children];
     }

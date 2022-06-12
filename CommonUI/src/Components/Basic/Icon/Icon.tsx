@@ -30,7 +30,7 @@ export enum IconProp {
     Help = 'Help',
     ChevronDown = 'ChevronDown',
     ChevronRight = 'ChevronRight',
-    Home = "Home"
+    Home = 'Home',
 }
 
 const IconDictionary: Dictionary<IconDefinition> = {
@@ -47,13 +47,13 @@ const IconDictionary: Dictionary<IconDefinition> = {
 export interface ComponentProps {
     icon: IconProp;
     size?: SizeProp;
-    className?: string
+    className?: string;
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
     icon,
-    className, 
+    className,
 }: ComponentProps): ReactElement => {
     return (
         <span

@@ -1,7 +1,7 @@
 import React, { ReactElement, FunctionComponent } from 'react';
 import useComponentOutsideClick from '../../../../Types/UseComponentOutsideClick';
 import Icon, { IconProp, SizeProp } from '../../Icon/Icon';
-import './IconButton.scss'
+import './IconButton.scss';
 
 export interface ComponentProps {
     icon?: IconProp;
@@ -31,7 +31,11 @@ const IconButton: FunctionComponent<ComponentProps> = ({
                 }}
             >
                 {icon && (
-                    <Icon className="icon" icon={icon} size={size ? size : SizeProp.Regular} />
+                    <Icon
+                        className="icon"
+                        icon={icon}
+                        size={size ? size : SizeProp.Regular}
+                    />
                 )}
             </div>
             {isComponentVisible && (
