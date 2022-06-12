@@ -1,7 +1,7 @@
 import React, { ReactElement, FunctionComponent } from 'react';
 import MenuItem from 'CommonUI/src/Components/Basic/Button/MenuButton/MenuItem';
 import MenuLegend from 'CommonUI/src/Components/Basic/Button/MenuButton/MenuLegend';
-import IconButton from 'CommonUI/src/Components/Basic/Button/IconButton';
+import IconButton from 'CommonUI/src/Components/Basic/Button/MenuButton/IconButton';
 import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
 
 const NotificationButton: FunctionComponent = (): ReactElement => {

@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { FontAwesomeIcon, FontAwesomeIconProps } from '@fortawesome/react-fontawesome';
 
 export enum SizeProp {
     ExtraSmall = 'xs',
@@ -10,11 +10,11 @@ export enum SizeProp {
 }
 
 export enum IconProp {
-    File = 'file',
-    User = 'user',
-    Settings = 'cog',
-    Notification = 'bell',
-    Help = 'question',
+    File = 'fa-file',
+    User = 'fa-user',
+    Settings = 'fa-cog',
+    Notification = 'fa-bell',
+    Help = 'fa-circle-question',
 }
 
 export interface ComponentProps {
