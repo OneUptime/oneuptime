@@ -11,11 +11,15 @@ export enum SizeProp {
 
 export enum IconProp {
     File = 'file',
+    User = 'user',
+    Settings = 'cog',
+    Notification = 'bell',
+    Help = 'question',
 }
 
 export interface ComponentProps {
     icon: IconProp;
-    size: SizeProp;
+    size?: SizeProp;
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({

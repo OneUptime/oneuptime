@@ -7,23 +7,24 @@ export interface ComponentProps {
     title: string;
     onClick?: MouseOnClick;
     disabled?: boolean;
-    id: string;
+    id?: string;
     shortcutKey?: ShortcutKey;
     type?: ButtonType;
     isLoading?: boolean;
 }
 
-const Button: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
-): ReactElement => {
-    // props validation
-    if (!props.type) {
-        props.type = ButtonType.Button;
-    }
-
+const Button: FunctionComponent<ComponentProps> = ({
+    title,
+    onClick,
+    disabled,
+    id,
+    shortcutKey,
+    type = ButtonType.Button,
+    isLoading = false,
+}: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
-        if (props.shortcutKey) {
+        if (shortcutKey) {
             window.addEventListener('keydown', (e: KeyboardEventProp) => {
                 return handleKeyboard(e);
             });
@@ -31,7 +32,7 @@ const Button: FunctionComponent<ComponentProps> = (
 
         // componentDidUnmount
         return () => {
-            if (props.shortcutKey) {
+            if (shortcutKey) {
                 window.removeEventListener(
                     'keydown',
                     (e: KeyboardEventProp) => {
@@ -46,12 +47,12 @@ const Button: FunctionComponent<ComponentProps> = (
         if (
             event.target instanceof HTMLBodyElement &&
             event.key &&
-            props.shortcutKey
+            shortcutKey
         ) {
             switch (event.key) {
-                case props.shortcutKey.toUpperCase():
-                case props.shortcutKey.toLowerCase():
-                    props.onClick && props.onClick();
+                case shortcutKey.toUpperCase():
+                case shortcutKey.toLowerCase():
+                    onClick && onClick();
                     return;
                 default:
                     return;
@@ -60,28 +61,23 @@ const Button: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <button
-            id={props.id}
-            onClick={props.onClick}
-            type={props.type}
-            disabled={props.disabled}
-        >
-            {!props.isLoading && (
+        <button id={id} onClick={onClick} type={type} disabled={disabled}>
+            {!isLoading && (
                 <div>
                     <div>
                         <div></div>
                     </div>
                     <span>
-                        <span>{props.title}</span>
-                        {props.shortcutKey && (
+                        <span>{title}</span>
+                        {shortcutKey && (
                             <span className="newButtonKeycode">
-                                {props.shortcutKey}
+                                {shortcutKey}
                             </span>
                         )}
                     </span>
                 </div>
             )}
-            {props.isLoading && <div>Implement Loader here</div>}
+            {isLoading && <div>Implement Loader here</div>}
         </button>
     );
 };
