@@ -8,11 +8,13 @@ describe('class HashedString', () => {
         expect(hashedString.hashValue(ObjectID.generate())).toBeTruthy();
     });
 
-    // TODO: Make this test pass. 
+    // TODO: Make this test pass.
     test.skip('should SHA256 hash', () => {
         const hashedString: HashedString = new HashedString('stringToHash');
         expect(hashedString).toBeInstanceOf(HashedString);
         expect(hashedString.isValueHashed()).toBe(false);
-        expect(hashedString.hashValue(null)).toBe("d3cd003df301cb1adf26fd3af623a0d372403f71b23bd099511cee06e7029b37");
+        expect(hashedString.hashValue(null)).toBe(
+            'd3cd003df301cb1adf26fd3af623a0d372403f71b23bd099511cee06e7029b37'
+        );
     });
 });
