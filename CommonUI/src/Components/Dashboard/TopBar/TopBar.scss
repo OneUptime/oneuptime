@@ -1,0 +1,35 @@
+$primaryColor: rgb(246, 248, 250);
+
+.root {
+    width: 100vw;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+
+    header {
+        height: 45px;
+        background-color: $primaryColor;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 30px;
+        box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1);
+
+        .middle {
+            flex: 0 0 25%;
+            align-self: center;
+        }
+
+        .right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+
+            & > * {
+                padding-left: 20px;
+            }
+        }
+    }
+
+    
+}

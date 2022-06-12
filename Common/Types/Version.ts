@@ -8,17 +8,17 @@ export default class Version extends DatabaseProperty {
         return this._version;
     }
     public set version(v: string) {
+        const re: RegExp =
+            /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[a-zA-Z\d][-a-zA-Z.\d]*)?(\+[a-zA-Z\d][-a-zA-Z.\d]*)?$/i;
+        const isValid: boolean = re.test(v);
+        if (!isValid) {
+            throw new BadDataException('Version is not in valid format.');
+        }
         this._version = v;
     }
 
     public constructor(version: string) {
         super();
-        const re: RegExp =
-            /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[a-zA-Z\d][-a-zA-Z.\d]*)?(\+[a-zA-Z\d][-a-zA-Z.\d]*)?$/i;
-        const isValid: boolean = re.test(version);
-        if (!isValid) {
-            throw new BadDataException('Version is not in valid format.');
-        }
         this.version = version;
     }
 
@@ -27,10 +27,10 @@ export default class Version extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: Version | FindOperator<Version>
+        value: Version | FindOperator<Version>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        if (value) {
+            return value.toString();
         }
 
         return null;

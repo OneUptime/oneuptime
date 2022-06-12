@@ -5,7 +5,7 @@
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "ts-node Index.ts",
         "compile": "tsc",
-        "dev": "ts-node-dev --inspect=0.0.0.0 Index.ts",
+        "dev": "nodemon",
         "test": "jest",
         "lighthouse-test": "jest --forceExit lighthouse-tests/test/index.test.js --env=node",
         "lighthouse": "start-server-and-test http://localhost:1444",
@@ -15,7 +15,6 @@
         "light-house-mobile": "node lighthouse.js --mobile",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,puppeteer'"
     },
-    "type": "module",
     "dependencies": {
         "@types/body-parser": "^1.19.2",
         "@types/cli-table": "^0.3.0",
@@ -30,8 +29,6 @@
         "compression": "^1.7.4",
         "ejs": "^3.1.6",
         "express": "^4.17.3",
-        "minify": "^8.0.4",
-        "try-to-catch": "^3.0.1",
         "xmlbuilder2": "^3.0.2"
     },
     "resolutions": {},

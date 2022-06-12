@@ -17,12 +17,15 @@
         "ts-jest": "^27.1.4"
     },
     "dependencies": {
+        "@types/crypto-js": "^4.1.1",
         "@types/nanoid-dictionary": "^4.2.0",
         "@types/uuid": "^8.3.4",
         "axios": "^0.26.1",
+        "crypto-js": "^4.1.1",
         "moment": "^2.29.2",
         "nanoid": "^3.3.2",
         "nanoid-dictionary": "^4.3.0",
+        "process": "^0.11.10",
         "reflect-metadata": "^0.1.13",
         "slugify": "^1.6.5",
         "typeorm": "^0.3.6",

@@ -13,6 +13,7 @@ import ListData from 'Common/Types/ListData';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import URL from 'Common/Types/API/URL';
 import BaseModel from 'Common/Models/BaseModel';
+import EmptyResponse from 'Common/Types/API/EmptyResponse';
 
 export default class Response {
     private static logResponse(
@@ -64,7 +65,7 @@ export default class Response {
         );
         oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
-        oneUptimeResponse.status(200).send();
+        oneUptimeResponse.status(200).send({} as EmptyResponse);
 
         return this.logResponse(req, res, undefined);
     }

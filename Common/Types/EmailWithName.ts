@@ -5,8 +5,14 @@ export default class EmailWithName {
     public get email(): Email {
         return this._email;
     }
-    public set email(v: Email) {
-        this._email = v;
+    public set email(v: Email | string) {
+        if (typeof v === 'string') {
+            this._email = new Email(v);
+        }
+
+        if (v instanceof Email) {
+            this._email = v;
+        }
     }
 
     private _name: string = '';
@@ -18,14 +24,7 @@ export default class EmailWithName {
     }
 
     public constructor(name: string, email: string | Email) {
-        if (typeof email === 'string') {
-            this.email = new Email(email);
-        }
-
-        if (email instanceof Email) {
-            this.email = email;
-        }
-
+        this.email = email;
         this.name = name;
     }
 

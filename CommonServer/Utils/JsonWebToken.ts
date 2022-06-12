@@ -5,13 +5,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import UserRole from 'Common/Types/UserRole';
 import jwt from 'jsonwebtoken';
 import { EncryptionSecret } from '../Config';
-
-export interface JSONWebTokenData {
-    userId: ObjectID;
-    email: Email;
-    roles: Array<UserRole>;
-    isMasterAdmin: boolean;
-}
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 
 class JSONWebToken {
     public static sign(

@@ -4,6 +4,7 @@
         "ecmaFeatures": {
             "experimentalObjectRestSpread": true,
             "jsx": true,
+            "tsx": true,
             "spread": true
         },
         "sourceType": "module",
@@ -179,7 +180,7 @@
     },
     "settings": {
         "react": {
-            "version": "16.5"
+            "version": "18.1.0"
         }
     }
 }

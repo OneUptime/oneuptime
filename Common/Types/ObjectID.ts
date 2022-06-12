@@ -26,10 +26,10 @@ export default class ObjectID extends DatabaseProperty {
     }
 
     protected static override toDatabase(
-        _value: ObjectID | FindOperator<ObjectID>
+        value: ObjectID | FindOperator<ObjectID>
     ): string | null {
-        if (_value) {
-            return _value.toString();
+        if (value) {
+            return value.toString();
         }
 
         return null;

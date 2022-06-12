@@ -1,21 +1,10 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 
-export interface ComponentProps {
-    onConfirm?: Function;
-    onClose: Function;
-    zIndex: number;
-    title: string;
-    body: object;
-}
-
-const Modal: FunctionComponent<ComponentProps> = (_props: ComponentProps): ReactElement => {
-
+const Modal: FunctionComponent = (): ReactElement => {
     const mainClass: string = `modal-dialog-view`;
 
     return (
-        <div
-            className={mainClass}
-        >
+        <div className={mainClass}>
             <div
                 className="modal_overlay"
                 style={{
@@ -35,13 +24,10 @@ const Modal: FunctionComponent<ComponentProps> = (_props: ComponentProps): React
                         display: 'block',
                         top: '0px',
                     }}
-                >
-
-                </div>
+                ></div>
             </div>
         </div>
     );
-}
-
+};
 
 export default Modal;
