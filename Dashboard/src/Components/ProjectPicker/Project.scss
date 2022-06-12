@@ -1,4 +1,4 @@
-$primaryColor: rgb(246, 248, 250);
+@use '../../../../CommonUI/src/Styles/BrandColors.scss';
 
 .projectPreview {
     position: relative;
@@ -20,13 +20,13 @@ $primaryColor: rgb(246, 248, 250);
             padding: 0;
             margin: 0;
             font-size: 1.3rem;
-            color: rgb(77, 75, 75);
+            color: BrandColors.$color-grey;
             font-weight: 400;
             margin-right: 7px;
         }
 
         svg {
-            color: rgb(144, 139, 139);
+            color: BrandColors.$color-light-grey;
             font-size: 1.2rem;
         }
     }
@@ -40,8 +40,8 @@ $primaryColor: rgb(246, 248, 250);
         height: fit-content;
         background-color: white;
         border-radius: 5px;
-        box-shadow: 1px 3px 10px rgba(0, 0, 0, 0.2);
-        color: darken($primaryColor, 70%);
+        box-shadow: BrandColors.$box-shadow;
+        color:  BrandColors.$color-grey;
         animation: fadeIn 0.2s linear;
 
         div {
@@ -71,8 +71,8 @@ $primaryColor: rgb(246, 248, 250);
             }
 
             &:hover {
-                color: $primaryColor !important;
-                background-color: #333;
+                color: BrandColors.$color-grey;
+                background-color: BrandColors.$color-very-light-grey;
             }
         }
     }
