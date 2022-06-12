@@ -7,7 +7,6 @@ const SingleProject: FunctionComponent = (): ReactElement => {
                 <img src="/img/placeholder.png" alt="Project Image" />
                 <p>Project name</p>
             </div>
-            <span>Edit</span>
         </div>
     );
 };

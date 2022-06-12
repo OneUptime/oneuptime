@@ -3,18 +3,20 @@ import React, {
     FunctionComponent,
 } from 'react';
 import useComponentOutsideClick from '../../../../Types/UseComponentOutsideClick';
-import Icon, { IconProp } from '../../Icon/Icon';
+import Icon, { IconProp, SizeProp } from '../../Icon/Icon';
 
 export interface ComponentProps {
     icon?: IconProp;
     onClick?: Function;
     children: ReactElement | Array<ReactElement>;
+    size?: SizeProp
 }
 
 const IconButton: FunctionComponent<ComponentProps> = ({
     icon,
     onClick,
     children,
+    size
 }: ComponentProps): ReactElement => {
 
     const { ref, isComponentVisible, setIsComponentVisible } =
@@ -27,7 +29,7 @@ const IconButton: FunctionComponent<ComponentProps> = ({
                     onClick();
                 }
             }}>
-                {icon && <Icon icon={icon} />}
+                {icon && <Icon icon={icon} size={size ? size : SizeProp.Regular} />}
             </div>
             {isComponentVisible && <div className="dropdownButtonLists">{children}</div>}
         </div>

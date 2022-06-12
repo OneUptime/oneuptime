@@ -2,11 +2,11 @@ import React, { ReactElement, FunctionComponent } from 'react';
 import MenuItem from 'CommonUI/src/Components/Basic/Button/MenuButton/MenuItem';
 import MenuLegend from 'CommonUI/src/Components/Basic/Button/MenuButton/MenuLegend';
 import IconButton from 'CommonUI/src/Components/Basic/Button/MenuButton/IconButton';
-import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
+import { IconProp, SizeProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
 
 const CreateButton: FunctionComponent = (): ReactElement => {
     return (
-        <IconButton icon={IconProp.Help}>
+        <IconButton icon={IconProp.Help} size={SizeProp.Large}>
             <MenuLegend title="Basic" />
             <MenuItem title="Monitors" />
             <MenuItem title="Incident" />
