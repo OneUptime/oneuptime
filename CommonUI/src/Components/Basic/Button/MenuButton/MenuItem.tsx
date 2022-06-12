@@ -15,13 +15,19 @@ export interface ComponentProps {
 const MenuItem: FunctionComponent<ComponentProps> = ({
     onClick,
     title,
-    route
+    route,
 }: ComponentProps): ReactElement => {
     return (
-        <div className="dropdownButtonListItem" onClick={route ? () => {
-            Navigation.navigate(route);
-        } : onClick
-        }>
+        <div
+            className="dropdownButtonListItem"
+            onClick={
+                route
+                    ? () => {
+                          Navigation.navigate(route);
+                      }
+                    : onClick
+            }
+        >
             {title}
         </div>
     );
