@@ -1,0 +1,11 @@
+
+@use '../../../../Styles/BrandColors.scss';
+
+.icon {
+
+    color: BrandColors.$color-grey !important;
+
+    &:hover {
+        color: BrandColors.$color-black !important;
+    }   
+}

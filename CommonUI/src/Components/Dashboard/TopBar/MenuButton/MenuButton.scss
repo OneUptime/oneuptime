@@ -1,0 +1,9 @@
+
+@use '../../../../Styles/BrandColors.scss';
+
+.dropdownButton > .button{
+    &:hover {
+        background: BrandColors.$color-black !important;
+        color: BrandColors.$color-white !important;
+    }
+}

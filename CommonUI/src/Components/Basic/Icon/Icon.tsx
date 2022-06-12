@@ -6,12 +6,14 @@ import {
     faCog,
     faBell,
     faFile,
-    IconDefinition
+    faChevronDown,
+    IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 import Dictionary from 'Common/Types/Dictionary';
 
 export enum SizeProp {
     ExtraSmall = '8px',
+    Smaller = '10px',
     Small = '12px',
     Regular = '15px',
     Large = '18px',
@@ -24,6 +26,7 @@ export enum IconProp {
     Settings = 'Settings',
     Notification = 'Notifications',
     Help = 'Help',
+    ChevronDown = 'ChevronDown',
 }
 
 const IconDictionary: Dictionary<IconDefinition> = {
@@ -31,29 +34,34 @@ const IconDictionary: Dictionary<IconDefinition> = {
     [IconProp.User]: faUser,
     [IconProp.Notification]: faBell,
     [IconProp.Settings]: faCog,
-    [IconProp.File]: faFile
-}
+    [IconProp.File]: faFile,
+    [IconProp.ChevronDown]: faChevronDown,
+};
 
 export interface ComponentProps {
     icon: IconProp;
     size?: SizeProp;
+    className?: string
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
-    icon
+    icon,
+    className, 
 }: ComponentProps): ReactElement => {
     return (
-        <span style={ 
-            {
-                cursor: "pointer"
-            }
-        }>
-            <FontAwesomeIcon icon={IconDictionary[icon] as IconDefinition} style={ 
-                {
-                    fontSize: size
-                }
-            } />
+        <span
+            style={{
+                cursor: 'pointer',
+            }}
+            className={className ? className : ''}
+        >
+            <FontAwesomeIcon
+                icon={IconDictionary[icon] as IconDefinition}
+                style={{
+                    fontSize: size,
+                }}
+            />
         </span>
     );
 };

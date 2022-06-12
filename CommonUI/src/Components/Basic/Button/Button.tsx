@@ -2,6 +2,8 @@ import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import { MouseOnClick, KeyboardEventProp } from '../../../Types/HtmlEvents';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
+import CSS from 'csstype';
+import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 
 export interface ComponentProps {
     title: string;
@@ -11,6 +13,10 @@ export interface ComponentProps {
     shortcutKey?: ShortcutKey;
     type?: ButtonType;
     isLoading?: boolean;
+    style?: CSS.Properties;
+    icon?: IconProp;
+    showIconOnRight?: boolean;
+    iconSize?: SizeProp;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -21,6 +27,10 @@ const Button: FunctionComponent<ComponentProps> = ({
     shortcutKey,
     type = ButtonType.Button,
     isLoading = false,
+    style,
+    icon,
+    iconSize,
+    showIconOnRight = false,
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -61,14 +71,45 @@ const Button: FunctionComponent<ComponentProps> = ({
     };
 
     return (
-        <button id={id} onClick={onClick} type={type} disabled={disabled}>
+        <button
+            style={style}
+            id={id}
+            onClick={onClick}
+            type={type}
+            disabled={disabled}
+            className="button"
+        >
             {!isLoading && (
                 <div>
                     <div>
                         <div></div>
                     </div>
                     <span>
+                        <span>
+                            {icon && !showIconOnRight && (
+                                <Icon
+                                    icon={icon}
+                                    size={
+                                        iconSize ? iconSize : SizeProp.Regular
+                                    }
+                                />
+                            )}
+                        </span>
                         <span>{title}</span>
+                        <span
+                            style={{
+                                marginLeft: '5px',
+                            }}
+                        >
+                            {icon && showIconOnRight && (
+                                <Icon
+                                    icon={icon}
+                                    size={
+                                        iconSize ? iconSize : SizeProp.Regular
+                                    }
+                                />
+                            )}
+                        </span>
                         {shortcutKey && (
                             <span className="newButtonKeycode">
                                 {shortcutKey}

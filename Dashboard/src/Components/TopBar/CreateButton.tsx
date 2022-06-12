@@ -1,5 +1,5 @@
 import React, { ReactElement, FunctionComponent } from 'react';
-import MenuButton from 'CommonUI/src/Components/Basic/Button/MenuButton/MenuButton';
+import MenuButton from 'CommonUI/src/Components/Dashboard/TopBar/MenuButton/MenuButton';
 import MenuItem from 'CommonUI/src/Components/Basic/Button/MenuButton/MenuItem';
 import MenuLegend from 'CommonUI/src/Components/Basic/Button/MenuButton/MenuLegend';
 
