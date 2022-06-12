@@ -7,7 +7,9 @@ import {
     faBell,
     faFile,
     faChevronDown,
+    faChevronRight,
     IconDefinition,
+    faHome,
 } from '@fortawesome/free-solid-svg-icons';
 import Dictionary from 'Common/Types/Dictionary';
 
@@ -27,6 +29,8 @@ export enum IconProp {
     Notification = 'Notifications',
     Help = 'Help',
     ChevronDown = 'ChevronDown',
+    ChevronRight = 'ChevronRight',
+    Home = "Home"
 }
 
 const IconDictionary: Dictionary<IconDefinition> = {
@@ -36,6 +40,8 @@ const IconDictionary: Dictionary<IconDefinition> = {
     [IconProp.Settings]: faCog,
     [IconProp.File]: faFile,
     [IconProp.ChevronDown]: faChevronDown,
+    [IconProp.ChevronRight]: faChevronRight,
+    [IconProp.Home]: faHome,
 };
 
 export interface ComponentProps {
