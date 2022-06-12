@@ -1,7 +1,7 @@
 import NavBar from 'CommonUI/src/Components/Dashboard/Navbar/NavBar';
 import NavItem from 'CommonUI/src/Components/Dashboard/Navbar/NavItem';
-import NavDropDown from 'CommonUI/src/Components/Dashboard/NavBar/NavDropDown/NavDropDown';
-import NavDropDownItem from 'CommonUI/src/Components/Dashboard/NavBar/NavDropDown/NavDropDownItem';
+import NavDropDown from 'CommonUI/src/Components/Dashboard/Navbar/NavDropDown/NavDropDown';
+import NavDropDownItem from 'CommonUI/src/Components/Dashboard/Navbar/NavDropDown/NavDropDownItem';
 import React, { FunctionComponent } from 'react';
 import Route from 'Common/Types/API/Route';
 import PageMap from '../../Utils/PageMap';

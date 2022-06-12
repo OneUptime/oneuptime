@@ -1,0 +1,10 @@
+@use '../../../../Styles/Variables/Colors' as colors;
+.badge {
+    display: inline-block;
+    padding: 0.5rem 0.75rem;
+}
+
+.badge-info {
+    background-color: colors.$primaryColor;
+    color: colors.$lightDark;
+}
