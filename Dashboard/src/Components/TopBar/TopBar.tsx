@@ -1,12 +1,11 @@
 import TopBar from 'CommonUI/src/Components/Dashboard/TopBar/TopBar';
 import CurrentProject from '../../Components/ProjectPicker/CurrentProject';
 import SearchBar from 'CommonUI/src/Components/Dashboard/TopBar/SearchBar/SearchBar';
-import { MenuIconButton } from 'CommonUI/src/Components/Dashboard/TopBar/TopbarMenuButton/MenuButton';
-import { faBell } from '@fortawesome/free-solid-svg-icons';
-import CreateButton from '../../Components/CreateButton';
-import HelpButton from '../../Components/HelpButton';
-import UserProfileButton from '../../Components/UserProfile/UserProfileButton';
+import CreateButton from './CreateButton';
+import HelpButton from './HelpButton';
+import UserProfileButton from './UserProfileButton';
 import React, { FunctionComponent } from 'react';
+import NotificationButton from './NotificationButton';
 
 const TopBarComponent: FunctionComponent = () => {
     return (
@@ -16,7 +15,7 @@ const TopBarComponent: FunctionComponent = () => {
             rightContent={[
                 <CreateButton key={1} />,
                 <HelpButton key={2} />,
-                <MenuIconButton key={3} icon={faBell} />,
+                <NotificationButton key={3} />,
                 <UserProfileButton key={4} />,
             ]}
         />

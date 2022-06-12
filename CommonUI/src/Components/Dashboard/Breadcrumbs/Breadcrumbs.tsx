@@ -1,25 +1,27 @@
-import { IconProp } from '@fortawesome/fontawesome-svg-core';
-import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { FunctionComponent, ReactElement } from 'react';
-import './Breadcrumb.scss';
+import './Breadcrumbs.scss';
+import Icon, { IconProp } from '../../Basic/Icon/Icon';
 
 export interface ComponentProps {
     icon: IconProp;
     title: string;
-    children: Array<ReactElement>;
+    children: ReactElement | Array<ReactElement>;
 }
 
-const Breadcrumb: FunctionComponent<ComponentProps> = ({
+const Breadcrumbs: FunctionComponent<ComponentProps> = ({
     icon,
     title,
     children,
 }: ComponentProps): ReactElement => {
+    if (!Array.isArray(children)) {
+        children = [children];
+    }
+
     return (
         <div className="breadcrumb-container">
             <div className="breadcrumb_detail">
                 <div className="breadcrumb_detail__summary">
-                    <FontAwesomeIcon icon={icon} />
+                    <Icon icon={icon} />
                     <h2>{title}</h2>
                 </div>
                 <div className="breadcrumb_detail__crumbs">
@@ -27,7 +29,7 @@ const Breadcrumb: FunctionComponent<ComponentProps> = ({
                         return (
                             <React.Fragment key={index}>
                                 {child}
-                                <FontAwesomeIcon icon={faChevronRight} />
+                                <Icon icon={IconProp.ChevronRight} />
                             </React.Fragment>
                         );
                     })}
@@ -37,4 +39,4 @@ const Breadcrumb: FunctionComponent<ComponentProps> = ({
     );
 };
 
-export default Breadcrumb;
+export default Breadcrumbs;

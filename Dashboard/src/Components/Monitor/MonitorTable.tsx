@@ -1,24 +1,15 @@
-import React, {
-    FunctionComponent,
-    MouseEventHandler,
-    ReactElement,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Container from 'CommonUI/src/Components/Dashboard/Container/Container/Container';
 import Pagination from 'CommonUI/src/Components/Dashboard/Container/Container/Pagination';
 import Table from 'CommonUI/src/Components/Dashboard/Table/Table';
 import Button from 'CommonUI/src/Components/Basic/Button/Button';
 import ButtonTypes from 'CommonUI/src/Components/Basic/Button/ButtonTypes';
-import DropdownButton from 'CommonUI/src/Components/Basic/Button/DropdownButton';
-import DropdownItem from 'CommonUI/src/Components/Basic/Button/DropdownItem';
+import MenuButton from 'CommonUI/src/Components/Basic/Button/MenuButton/MenuButton';
+import MenuItem from 'CommonUI/src/Components/Basic/Button/MenuButton/MenuItem';
 import ShortcutKey from 'CommonUI/src/Components/Basic/ShortcutKey/ShortcutKey';
 import { ColumnSort } from 'CommonUI/src/Components/Dashboard/Table/Type/Table';
 
 const MonitorTable: FunctionComponent = (): ReactElement => {
-    const [showList, setShowList] = useState(false);
-    const toggleDropdown: Function = (): void => {
-        setShowList(!showList);
-    };
     return (
         <Container
             title="Monitors"
@@ -39,16 +30,11 @@ const MonitorTable: FunctionComponent = (): ReactElement => {
                 </Pagination>
             }
             headerButtons={[
-                <DropdownButton
-                    key={1}
-                    title="Filter By"
-                    onClick={toggleDropdown as MouseEventHandler}
-                    showDropdown={showList}
-                >
-                    <DropdownItem title="Clear Filters" />
-                    <DropdownItem title="Unacknowledged" />
-                    <DropdownItem title="Unresolved" />
-                </DropdownButton>,
+                <MenuButton key={1} title="Filter By">
+                    <MenuItem title="Clear Filters" />
+                    <MenuItem title="Unacknowledged" />
+                    <MenuItem title="Unresolved" />
+                </MenuButton>,
                 <Button
                     key={2}
                     title="Create New Monitor"

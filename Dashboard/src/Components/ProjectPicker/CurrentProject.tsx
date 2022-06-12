@@ -15,7 +15,7 @@ const CurrentProject: FunctionComponent = (): ReactElement => {
                 ref={ref}
                 className="preview"
                 onClick={() => {
-                    return setIsComponentVisible(!isComponentVisible);
+                    return setIsComponentVisible(true);
                 }}
             >
                 <img src="/img/placeholder.png" alt="Project Image" />
