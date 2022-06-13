@@ -105,6 +105,32 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
 
+    dashboard:
+        ports:
+            - '3009:3009'
+        build:
+            network: host
+            context: .
+            dockerfile: ./Dashboard/Dockerfile.dev
+        env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
+            - ./Accounts/.env
+        environment: *common-variables
+        depends_on:
+            - identity
+            - accounts
+        volumes:
+            - ./Dashboard:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
 
     # data-ingestor:
     #     ports:
@@ -404,30 +430,6 @@ services:
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
 
-    # dashboard:
-    #     ports:
-    #         - '3000:3000'
-    #     build:
-    #         network: host
-    #         context: .
-    #         dockerfile: ./dashboard/Dockerfile.dev
-    #     env_file:
-    #         - ./Common/.env
-    #         - ./CommonUI/.env
-    #         - ./Dashboard/.env
-    #     environment: *common-variables
-    #     volumes:
-    #         - ./Dashboard:/usr/src/app
-    #         # Use node modules of the container and not host system.
-    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-    #         - /usr/src/app/node_modules/
-    #         - ./Common:/usr/src/Common
-    #         - ./CommonServer:/usr/src/CommonServer
-    #         - ./CommonUI:/usr/src/CommonUI
-    #         - /usr/src/Common/node_modules/
-    #         - /usr/src/CommonUI/node_modules/
-    #         - /usr/src/CommonServer/node_modules/
-
     # home:
     #     ports:
     #         - '1444:1444'
@@ -629,6 +631,7 @@ services:
         depends_on:
             - identity
             - accounts
+            - dashboard
         restart: always
         build:
             dockerfile: Dockerfile
