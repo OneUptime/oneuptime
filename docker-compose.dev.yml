@@ -5,6 +5,7 @@ version: '3.7'
 
 x-common-variables: &common-variables
    IS_SAAS_SERVICE: ${IS_SAAS_SERVICE}
+   DEBUG: 'express:*'
 
 services:
     ##IMPORTANT:
