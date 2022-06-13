@@ -1,4 +1,4 @@
-import {
+import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
@@ -15,7 +15,7 @@ import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
 export const APP_NAME: string = 'home';
-const app: ExpressApplication = App(APP_NAME);
+const app: ExpressApplication = Express.getExpressApp();
 
 //View engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -815,3 +815,5 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
         requestDemoCta: false,
     });
 });
+
+App(APP_NAME);

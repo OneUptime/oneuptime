@@ -430,30 +430,30 @@ services:
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
 
-    # home:
-    #     ports:
-    #         - '1444:1444'
-    #         - '9235:9229' # Debugging port.
-    #     env_file:
-    #         - ./Common/.env
-    #         - ./CommonServer/.env
-    #         - ./Home/.env
-    #     environment: *common-variables
-    #     build:
-    #         network: host
-    #         context: .
-    #         dockerfile: ./Home/Dockerfile.dev
-    #     volumes:
-    #         - ./Home:/usr/src/app
-    #         # Use node modules of the container and not host system.
-    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-    #         - /usr/src/app/node_modules/
-    #         - ./Common:/usr/src/Common
-    #         - ./CommonServer:/usr/src/CommonServer
-    #         - ./CommonUI:/usr/src/CommonUI
-    #         - /usr/src/Common/node_modules/
-    #         - /usr/src/CommonUI/node_modules/
-    #         - /usr/src/CommonServer/node_modules/
+    home:
+        ports:
+            - '1444:1444'
+            - '9235:9229' # Debugging port.
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Home/.env
+        environment: *common-variables
+        build:
+            network: host
+            context: .
+            dockerfile: ./Home/Dockerfile.dev
+        volumes:
+            - ./Home:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
 
     # status-page:
     #     ports:
@@ -632,6 +632,7 @@ services:
             - identity
             - accounts
             - dashboard
+            - home
         restart: always
         build:
             dockerfile: Dockerfile
