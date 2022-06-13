@@ -5,7 +5,8 @@ on:
       - 'hotfix-*'   
       - 'release'
       - 'staging-release'
-
+  pull_request:
+  
 jobs:
  # define jobs to build docker imag
   docker-build:

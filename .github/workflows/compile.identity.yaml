@@ -6,7 +6,8 @@ on:
       - 'hotfix-*'   
       - 'release'
       - 'staging-release'
-
+  pull_request:
+  
 jobs:
   compile:
     runs-on: ubuntu-latest

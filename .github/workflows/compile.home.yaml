@@ -6,7 +6,8 @@ on:
       - 'hotfix-*'   
       - 'release'
       - 'staging-release'
-
+  pull_request:
+  
 jobs:
   compile:
     runs-on: ubuntu-latest
@@ -17,5 +18,5 @@ jobs:
           check-latest: true
       - run: cd Common && npm install
       - run: cd CommonServer && npm install
-      - run: cd Home && npm install && npm run compile
+      - run: cd Home && npm install --legacy-peer-deps && npm run compile
   

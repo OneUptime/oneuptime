@@ -6,7 +6,8 @@ on:
       - 'hotfix-*'   # excludes hotfix branches
       - 'release'
       - 'staging-release'
-
+  pull_request:
+  
 jobs:
   lint:
     runs-on: ubuntu-latest

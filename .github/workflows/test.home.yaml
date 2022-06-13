@@ -6,6 +6,7 @@ on:
       - 'hotfix-*'   # excludes hotfix branches
       - 'release'
       - 'staging-release'
+  pull_request:
 
 jobs:
   test:
@@ -15,5 +16,5 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           check-latest: true
-      - run: cd Home && npm install && npm run test
+      - run: cd Home && npm install --legacy-peer-deps && npm run test
   
