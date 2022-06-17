@@ -17,6 +17,10 @@ db.createUser(
 ## Create OneUptime User
 
 ```
+use admin
+
+db.auth("root", "<password>")
+
 use oneuptimedb
 
 db.createUser(
