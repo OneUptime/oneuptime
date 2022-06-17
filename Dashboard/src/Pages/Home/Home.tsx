@@ -10,10 +10,10 @@ const Home: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     return (
         <PageContainer title="OneUptime | Home">
-            <Breadcrumbs icon={IconProp.Home} title="Home">
+            <Breadcrumbs icon={IconProp.Home}>
                 <BreadcrumbItem title="Home" />
                 <BreadcrumbItem title="Monitors" />
-                <div>Hello</div>
+                <BreadcrumbItem title="Hello" />
             </Breadcrumbs>
         </PageContainer>
     );

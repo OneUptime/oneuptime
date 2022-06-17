@@ -1,72 +1,58 @@
-.breadcrumb-container {
-    width: 100%;
-    max-width: 100%;
-    height: fit-content;
+@use '../../../Styles/BrandColors.scss';
+
+.breadcrumb_detail__crumbs{
     display: flex;
-    justify-content: space-between;
-    background-color: #fff;
-    border: 1px solid #e1e5e9;
-    border-radius: 5px;
-    box-shadow: 1px 1px 3px #e0e0e3;
-    padding: 20px;
+}
 
-    .breadcrumb_detail {
-        display: flex;
-        flex-direction: column;
+.breadcrumb_detail{
+    padding-bottom: 2px;
+}
 
-        &__summary {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
+.crumb{
+    color: BrandColors.$color-light-grey !important;
+    display: flex;
+    
+    &:hover {
+        color: BrandColors.$color-black !important;
+    } 
+}
 
-            svg {
-                margin-right: 5px;
-                font-size: 1.5rem;
-            }
+.breadcrumb-container{
+    border-bottom: 1px solid rgba(229, 228, 228, 0.5);
+}
 
-            h2 {
-                font-size: 1.8rem;
-                font-weight: 600;
-                margin: 0;
-                padding: 0;
-            }
-        }
+.breadcrumbs_first_icon{
+    color: BrandColors.$color-light-grey !important;
+    margin-top: -3px;
 
-        &__crumbs {
-            display: flex;
-            align-items: center;
+    &:hover {
+        color: BrandColors.$color-black !important;
+    } 
+}
 
-            > * {
-                margin: 0;
-                padding: 0;
-                margin-right: 5px;
-                color: #5a5656;
-                font-weight: 300;
-                font-size: 1.33rem;
-                cursor: pointer;
+.breadcrumb_text{
+    margin: 0;
+    display: flex;
+    align-items: center;
+    font-size: 1.4rem;
+    margin-top: -5px;
+    color: BrandColors.$color-light-grey;
+    cursor: pointer;
+    margin-left: 10px;
+    margin-right: 10px;
 
-                &:hover {
-                    color: lighten(#5a5656, 10%);
-                }
+    &:hover {
+        color: BrandColors.$color-black !important;
+    }   
+}
 
-                &:last-of-type {
-                    color: #000;
-                    font-weight: 500;
-                    &:hover {
-                        color: lighten(#000, 10%);
-                    }
-                }
-            }
+.breadcrumbs_chevron_icon{
+    margin-right: 10px;
+    margin-left: 10px;
+    color: BrandColors.$color-lighter-grey;
 
-            svg {
-                color: #a2a0a0 !important;
-                font-size: 1.1rem;
-                cursor: default;
+}
 
-                &:last-of-type {
-                    display: none;
-                }
-            }
-        }
-    }
+.breadcrumbs_first_icon{
+    color: black
 }
