@@ -4,17 +4,15 @@ import VariantIcon, { IconProps } from './VariantIcon';
 
 interface BadgeProps extends IconProps {
     text: string;
-    Icon?: ReactElement;
 }
 const Badge: FunctionComponent<BadgeProps> = ({
     variant,
     text,
-    Icon,
 }: BadgeProps): ReactElement => {
     return (
-        <div className={`badge badge-${variant}`}>
-            <em>{text}</em>
-            {Icon || <VariantIcon variant={variant} />}
+        <div aria-label={text} className={`badge ${variant || ''}`}>
+            <span>{text}</span>
+            <VariantIcon variant={variant} />
         </div>
     );
 };

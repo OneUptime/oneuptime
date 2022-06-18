@@ -15,7 +15,7 @@ const TopBar: FunctionComponent<ComponentProps> = ({
     return (
         <div className="root">
             <header>
-                <div>
+                <div className="left">
                     {leftContent?.map(
                         (content: ReactElement, index: number) => {
                             return <div key={index}>{content}</div>;

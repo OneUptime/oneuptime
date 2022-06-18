@@ -10,6 +10,10 @@ import {
     faChevronRight,
     IconDefinition,
     faHome,
+    faCheck,
+    faExclamation,
+    faTriangleExclamation,
+    faInfo,
 } from '@fortawesome/free-solid-svg-icons';
 import Dictionary from 'Common/Types/Dictionary';
 
@@ -21,7 +25,6 @@ export enum SizeProp {
     Large = '18px',
     ExtraLarge = '25px',
 }
-
 export enum IconProp {
     File = 'File',
     User = 'User',
@@ -31,6 +34,10 @@ export enum IconProp {
     ChevronDown = 'ChevronDown',
     ChevronRight = 'ChevronRight',
     Home = 'Home',
+    CheckMark = 'CherkMark',
+    Exclamation = 'Exclamation',
+    TriangleExclamation = 'TriangleExclamation',
+    Info = 'Info',
 }
 
 const IconDictionary: Dictionary<IconDefinition> = {
@@ -42,6 +49,10 @@ const IconDictionary: Dictionary<IconDefinition> = {
     [IconProp.ChevronDown]: faChevronDown,
     [IconProp.ChevronRight]: faChevronRight,
     [IconProp.Home]: faHome,
+    [IconProp.CheckMark]: faCheck,
+    [IconProp.Exclamation]: faExclamation,
+    [IconProp.TriangleExclamation]: faTriangleExclamation,
+    [IconProp.Info]: faInfo,
 };
 
 export interface ComponentProps {

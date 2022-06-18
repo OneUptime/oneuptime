@@ -1,8 +1,8 @@
-const path = require("path");
-const webpack = require("webpack");
+const path = require('path');
+const webpack = require('webpack');
 const dotenv = require('dotenv');
 
-const readEnvFile = (pathToFile) => {
+const readEnvFile = pathToFile => {
     const parsed = dotenv.config({ path: pathToFile }).parsed;
 
     const env = {};
@@ -11,51 +11,54 @@ const readEnvFile = (pathToFile) => {
     }
 
     return env;
-}
+};
 
 module.exports = {
-    entry: "./src/Index.tsx",
-    mode: "development",
+    entry: './src/Index.tsx',
+    mode: 'development',
     output: {
-        filename: "bundle.js",
-        path: path.resolve("dist"),
-        publicPath: "/",
+        filename: 'bundle.js',
+        path: path.resolve('dist'),
+        publicPath: '/',
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss']
+        extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss'],
+        alias: {
+            react: path.resolve('./node_modules/react'),
+        },
     },
     externals: {
-        'react-native-sqlite-storage': 'react-native-sqlite-storage'
+        'react-native-sqlite-storage': 'react-native-sqlite-storage',
     },
     plugins: [
         new webpack.DefinePlugin({
-            'process': {
-                'env': {
+            process: {
+                env: {
                     ...readEnvFile('../Common/.env'),
                     ...readEnvFile('../CommonUI/.env'),
-                    ...readEnvFile('./.env')
-                }
-            }
-          }),
+                    ...readEnvFile('./.env'),
+                },
+            },
+        }),
     ],
     module: {
         rules: [
             {
                 test: /\.(ts|tsx)$/,
-                use: 'ts-loader'
+                use: 'ts-loader',
             },
             {
                 test: /\.s[ac]ss$/i,
-                use: ['style-loader', 'css-loader', "sass-loader"]
+                use: ['style-loader', 'css-loader', 'sass-loader'],
             },
             {
                 test: /\.(png|j?g|svg|gif)?$/,
-                use: 'file-loader'
-            }
+                use: 'file-loader',
+            },
         ],
     },
     devServer: {
         historyApiFallback: true,
     },
     devtool: 'inline-source-map',
-}
+};

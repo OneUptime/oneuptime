@@ -1,0 +1,29 @@
+@use '../../../Styles/BrandColors' as colors;
+.badge {
+    padding: 0.5rem 0.75rem !important;
+    margin: 0.2rem 0.9rem;
+    border-radius: 0.8rem;
+    color: colors.$color-light-grey;
+    cursor: pointer;
+    display: flex;
+    &.danger {
+        background-color: colors.$color-very-light-red;
+        color: colors.$color-dark-red;
+        &:hover {
+            background-color: colors.$color-dark-red;
+            color: colors.$color-white;
+        }
+    }
+    &.info {
+        background-color: colors.$color-light-grey;
+        color: colors.$color-very-light-grey;
+    }
+
+    span {
+        font-size: 1rem;
+        align-self: center;
+        justify-self: center;
+        padding: 0 0.2rem;
+        margin: 0px;
+    }
+}
