@@ -24,7 +24,7 @@ OneUptime does:
 -   Performance Monitoring just like NewRelic
 -   Error Tracking just like Sentry
 
-All under one platform.
+All under one platform..
 
 ## Contents
 
