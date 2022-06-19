@@ -1,0 +1,27 @@
+@use '../../../Styles/BrandColors.scss' as Colors;
+.notification-panel {
+    min-width: 20rem;
+}
+
+.notification-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1rem;
+    padding: 2rem 1rem;
+    h5 {
+        margin: 0px;
+    }
+    button {
+        //reset button styles
+        background-color: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+        &:hover {
+            background-color: transparent;
+        }
+    }
+}

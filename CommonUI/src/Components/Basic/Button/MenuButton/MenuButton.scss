@@ -1,19 +1,27 @@
-.dropdownButton {
+.buttonLayout {
     position: relative;
     user-select: none;
+    top: 0;
 
     .dropdownButtonLists {
         position: absolute;
         top: 110%;
         left: 50%;
-        transform: translateX(-50%);
-        width: 150%;
+        overflow-y: auto;
+        max-height: 100vh;
+        transform: translateX(-100%);
+        // transform: translateY(-100%);
+        width: auto;
         height: fit-content;
         background-color: white;
         border-radius: 5px;
         box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(0, 0, 0, 0.1);
         z-index: 20;
+        &.float-right {
+            right: 0;
+            transform: translateX(100%);
+        }
 
         .dropdownButtonListItem {
             width: 100%;

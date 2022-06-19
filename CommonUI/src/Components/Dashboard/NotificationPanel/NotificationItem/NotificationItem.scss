@@ -1,0 +1,22 @@
+@use '../../../../Styles/BrandColors' as Colors;
+.notification-item {
+    padding: 0.8rem 1rem;
+    border-top: 0.1rem solid Colors.$color-box-shadow;
+    &.not-read {
+        background-color: Colors.$color-very-light-grey;
+    }
+    .notification-date {
+        font-size: 1rem;
+    }
+    p {
+        font-size: 1.2rem;
+    }
+    .notification-link {
+        color: Colors.$color-light-grey;
+        font-size: 1.2rem;
+        &:hover {
+            color: Colors.$color-light-grey;
+            color: Colors.$color-grey;
+        }
+    }
+}
