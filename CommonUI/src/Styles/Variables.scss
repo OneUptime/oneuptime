@@ -121,6 +121,7 @@ $grays: (
 // fusv-enable
 
 $blue: #7a7fdc;
+$black: #000000;
 $indigo: #564ab1;
 $purple: #6f42c1;
 $pink: #e83e8c;
@@ -146,10 +147,11 @@ $colors: (
   "white": $white,
   "gray": $gray-600,
   "gray-dark": $gray-800,
+  "black": $black,
 );
 // scss-docs-end colors-map
 
-$primary: $blue;
+$primary: $black;
 $secondary: $gray-600;
 $success: $green;
 $info: $cyan;
@@ -193,6 +195,16 @@ $blue-600: shade-color($blue, 20%);
 $blue-700: shade-color($blue, 40%);
 $blue-800: shade-color($blue, 60%);
 $blue-900: shade-color($blue, 80%);
+
+$black-100: tint-color($black, 80%);
+$black-200: tint-color($black, 60%);
+$black-300: tint-color($black, 40%);
+$black-400: tint-color($black, 20%);
+$black-500: $black;
+$black-600: shade-color($black, 20%);
+$black-700: shade-color($black, 40%);
+$black-800: shade-color($black, 60%);
+$black-900: shade-color($blue, 80%);
 
 $indigo-100: tint-color($indigo, 80%);
 $indigo-200: tint-color($indigo, 60%);

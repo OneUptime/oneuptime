@@ -6,10 +6,9 @@ import {
     useNavigate,
     useLocation,
 } from 'react-router-dom';
-import Page from 'CommonUI/src/Components/Page/Page';
+import MasterPage from './Components/MasterPage/MasterPage';
 // Pages
 import Init from './Pages/Init/Init';
-import Monitors from './Pages/Monitors/Monitors';
 import Home from './Pages/Home/Home';
 import Settings from './Pages/Settings/Settings';
 import StatusPages from './Pages/StatusPages/StatusPages';
@@ -27,7 +26,7 @@ const App: FunctionComponent = () => {
     Navigation.setLocation(useLocation());
 
     return (
-        <Page>
+        <MasterPage>
             <Routes>
                 <PageRoute
                     path={RouteMap[PageMap.INIT]?.toString()}
@@ -44,7 +43,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={RouteMap[PageMap.MONITORS]?.toString()}
                     element={
-                        <Monitors
+                        <Init
                             pageRoute={RouteMap[PageMap.MONITORS] as Route}
                         />
                     }
@@ -80,7 +79,7 @@ const App: FunctionComponent = () => {
                     }
                 />
             </Routes>
-        </Page>
+        </MasterPage>
     );
 };
 

@@ -1,15 +1,20 @@
-import React from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
-const Footer = () => {
+export interface ComponentProps {
+  left?: ReactElement | Array<ReactElement> | null
+  right?: ReactElement | Array<ReactElement> | null
+}
+
+const Footer: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   return (
     <React.Fragment>
       <footer className="footer">
         <div className="container-fluid">
           <div className="row">
-            <div className="col-md-6">2022 © OneUptime Limited.</div>
-            <div className="col-md-6">
-              <div className="text-sm-end d-none d-sm-block">Design &amp; Develop by<a className="ms-1 text-decoration-underline" href="/dashboard">Themesbrand</a></div>
-            </div>
+            {props.left && <div className="col-md-6">{props.left}</div>}
+            {props.right && <div className="col-md-6">
+              {props.right}
+            </div>}
           </div>
         </div>
       </footer>

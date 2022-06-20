@@ -1,26 +1,28 @@
-import React, { ReactElement } from "react";
+import React from 'react';
 
-//components
-import Navbar from "../Navbar/NavBar";
-import Header from "../Header/Header";
-import Footer from "../Footer/Footer";
-
-export interface ComponentProps {
-  children: ReactElement;
+const Page = () => {
+    return (<div className="page-content">
+    <div className="container-fluid">
+      <div className="row">
+        <div className="col-12">
+          <div className="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 className="mb-0 font-size-18">Dashboard</h4>
+            <div className="page-title-right">
+              <ol className="breadcrumb m-0">
+                <li className="breadcrumb-item">
+                  <a href="/dashboard">Dashboard</a>
+                </li>
+                <li className="active breadcrumb-item" aria-current="page">
+                  <a href="/dashboard">Dashboard</a>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  )
 }
 
-const Page = (props: ComponentProps) => {
-
-  return (
-    <React.Fragment>
-      <div id="layout-wrapper">
-        <Header />
-        <Navbar />
-        <div className="main-content">{props.children}</div>
-        <Footer />
-      </div>
-    </React.Fragment>
-  );
-};
-
-export default Page;
+export default Page; 
