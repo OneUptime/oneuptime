@@ -31,14 +31,10 @@ if (
     accountsUrl = protocol + '//localhost:3003/accounts';
     realtimeUrl = protocol + '//localhost:3300/realtime';
 } else if (env('ONEUPTIME_HOST')) {
-    const ONEUPTIME_HOST = env('ONEUPTIME_HOST').replace(
-        /(http:\/\/|https:\/\/)/,
-        ''
-    ); // remove any protocol that might have been added
-    apiUrl = protocol + `//${ONEUPTIME_HOST}/api`;
-    dashboardUrl = protocol + `//${ONEUPTIME_HOST}/dashboard`;
-    accountsUrl = protocol + `//${ONEUPTIME_HOST}/accounts`;
-    realtimeUrl = protocol + `//${ONEUPTIME_HOST}/realtime`;
+    apiUrl = protocol + `//oneuptime.com/api`;
+    dashboardUrl = protocol + `//oneuptime.com/dashboard`;
+    accountsUrl = protocol + `//oneuptime.com/accounts`;
+    realtimeUrl = protocol + `//oneuptime.com/realtime`;
 }
 
 export const API_URL = apiUrl;
