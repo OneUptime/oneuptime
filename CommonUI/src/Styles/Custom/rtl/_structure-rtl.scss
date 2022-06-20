@@ -204,7 +204,7 @@ body[data-sidebar-size="md"] {
 
 // Horizontal Layout
 
-body[data-layout="horizontal"] {
+body {
   .main-content{
     margin-right: 0 !important;
   }
@@ -222,7 +222,7 @@ body[data-layout="horizontal"] {
 }
 
 @media (min-width: 992px){
-  body[data-layout="horizontal"] {
+  body {
       .navbar-brand-box {
         padding-left: 1.5rem;
         padding-right: 0;

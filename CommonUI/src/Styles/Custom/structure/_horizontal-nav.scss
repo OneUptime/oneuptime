@@ -92,7 +92,7 @@
 
 @include media-breakpoint-up(xl) {
 
-    body[data-layout="horizontal"] {
+    body {
         .container-fluid,
         .navbar-header {
             max-width: 85%;
@@ -265,7 +265,7 @@
 
 // Colored Topbar 
 
-body[data-layout="horizontal"][data-topbar="colored"] {
+body[data-topbar="colored"] {
     #page-topbar{
         background-color: $primary;
         box-shadow: none;

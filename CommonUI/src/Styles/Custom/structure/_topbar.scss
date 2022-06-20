@@ -304,7 +304,7 @@ body[data-topbar="dark"] {
     }
 }
 
-body[data-layout="horizontal"] {
+body {
     .navbar-brand-box {
         width: auto;
         border: 0;
@@ -336,7 +336,7 @@ body[data-layout="horizontal"] {
 }
 
 @media (max-width: 992px) { 
-    body[data-layout="horizontal"] {
+    body {
         .page-content {
             margin-top: 15px;
         }    

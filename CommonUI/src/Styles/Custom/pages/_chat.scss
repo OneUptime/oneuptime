@@ -312,7 +312,7 @@
   }
 }
 
-body[data-layout="horizontal"] {
+body {
   .chat-message-list {
     height: calc(100vh - 346px);
     @media (min-width: 992px) {

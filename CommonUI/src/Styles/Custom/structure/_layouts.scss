@@ -45,7 +45,7 @@ body[data-layout-size="boxed"] {
 
 // Horizontal Boxed Layout
 
-body[data-layout="horizontal"][data-layout-size="boxed"]{
+body[data-layout-size="boxed"]{
     #page-topbar, #layout-wrapper, .footer {
         max-width: 100%;
     }
@@ -63,7 +63,7 @@ body[data-layout-scrollable="true"] {
         }
     }
 
-    &[data-layout="horizontal"]{
+    &{
         @media (min-width: 992px) {
             #page-topbar, .topnav{
                 position: absolute;
