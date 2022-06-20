@@ -1,0 +1,146 @@
+/* ==============
+  Calendar
+===================*/
+
+
+.fc td, .fc th{
+    border: $table-border-width solid $table-border-color;
+}
+
+
+
+.fc {
+    .fc-toolbar {
+        h2 {
+            font-size: 16px;
+            line-height: 30px;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 767.98px) {
+
+            .fc-left,
+            .fc-right,
+            .fc-center {
+                float: none;
+                display: block;
+                text-align: center;
+                clear: both;
+                margin: 10px 0;
+            }
+
+            >*>* {
+                float: none;
+            }
+
+            .fc-today-button {
+                display: none;
+            }
+        }
+
+        .btn {
+            text-transform: capitalize;
+        }
+
+    }
+}
+
+.fc {
+    th.fc-widget-header {
+        background: $gray-300;
+        color: $gray-700;
+        line-height: 20px;
+        padding: 10px 0;
+        text-transform: uppercase;
+        font-weight: $font-weight-bold;
+    }
+}
+
+.fc-unthemed {
+
+    .fc-content,
+    .fc-divider,
+    .fc-list-heading td,
+    .fc-list-view,
+    .fc-popover,
+    .fc-row,
+    tbody,
+    td,
+    th,
+    thead {
+        border-color: $gray-300;
+    }
+
+    td.fc-today {
+        background: lighten($gray-200, 2%);
+    }
+}
+
+.fc-button {
+    background: $card-bg;
+    border-color: $border-color;
+    color: $gray-700;
+    text-transform: capitalize;
+    box-shadow: none;
+    padding: 6px 12px !important;
+    height: auto !important;
+}
+
+.fc-state-down,
+.fc-state-active,
+.fc-state-disabled {
+    background-color: $primary;
+    color: $white;
+    text-shadow: none;
+}
+
+.fc-event {
+    border-radius: 2px;
+    border: none;
+    cursor: move;
+    font-size: 0.8125rem;
+    margin: 5px 7px;
+    padding: 5px 5px;
+    text-align: center;
+}
+
+.fc-event,
+.fc-event-dot {
+    background-color: $primary;
+}
+
+.fc-event .fc-content {
+    color: $white;
+}
+
+#external-events {
+    .external-event {
+        text-align: left;
+        padding: 8px 16px;
+    }
+}
+
+
+.fc-day-grid-event.fc-h-event.fc-event.fc-start.fc-end.bg-dark {
+    .fc-content{
+      color: $light;  
+    }
+  }
+  
+
+// RTL
+[dir="rtl"]{
+    .fc-header-toolbar {
+        direction: ltr !important;
+    }
+
+    .fc-toolbar>*>:not(:first-child) {
+        margin-left: .75em;
+    }
+}
+
+.fc-toolbar{
+    @media (max-width: 575.98px) {
+        flex-direction: column;
+    }
+}

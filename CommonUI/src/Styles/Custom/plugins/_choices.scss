@@ -1,0 +1,122 @@
+
+//
+// choices
+//
+
+.choices__inner{
+  padding: 0.25rem ($form-select-padding-x + $form-select-indicator-padding) 0.25rem 0.5rem;
+  background-color: $form-select-bg;
+  vertical-align: middle;
+  border-radius: $form-select-border-radius;
+  border: $form-select-border-width solid $form-select-border-color;
+  min-height: 38px;
+}
+
+
+.choices[data-type*=select-one]{
+  .choices__inner{
+    padding-bottom: 0.25rem;
+  }
+
+  &:after{
+    border-color: $dark transparent transparent;
+    right: 11.5px;
+    left: auto;
+  } 
+
+  &.is-open:after{
+    border-color: transparent transparent $dark;
+  }
+}
+
+.choices__input{
+  background-color: $input-bg;
+  margin-bottom: 0;
+}
+
+.choices__list--multiple{
+  display: inline-flex;
+  flex-wrap: wrap;
+  .choices__item{
+    background-color: $primary;
+    border-color: $primary;
+    margin-bottom: 0;
+    margin-right: 7px;
+    font-weight: $font-weight-normal;
+    &.is-highlighted{
+      background-color: $primary;
+      border: 1px solid $primary;
+    }
+  }
+}
+
+.choices.is-disabled {
+  .choices__inner, .choices__input{
+    background-color: $light;
+  }
+}
+
+.is-disabled .choices__list--multiple {
+  .choices__item{
+    background-color: $secondary;
+    border-color: $secondary;
+  }
+}
+
+.choices[data-type*=select-multiple], .choices[data-type*=text]{
+  .choices__button{
+    border-left: 1px solid rgba($white, 0.5);
+    margin: 0 -4px 0 8px;
+    border-right: 0;
+  }
+}
+
+
+// Dark layout
+
+body[data-layout-mode="dark"] {
+  .choices__inner{
+    color: $gray-dark-500;
+    background-color: lighten($gray-dark-200,2%);
+    border: 1px solid $gray-dark-300;
+  }
+
+  .choices__input{
+    background-color: lighten($gray-dark-200,2%);
+    color: $gray-dark-500;
+  }
+
+  .choices[data-type*=select-one]{
+    &:after{
+      border-color: $gray-dark-500 transparent transparent;
+    } 
+  
+    &.is-open:after{
+      border-color: transparent transparent $gray-dark-500;
+    }
+
+    .choices__input{
+      background-color: lighten($gray-dark-200,2%);
+      border: 1px solid $gray-dark-300;
+      color: $gray-dark-500;
+    }
+  }
+
+  .choices__list--dropdown{
+    background-color: lighten($gray-dark-200,2%);
+    border-color: $gray-dark-300;
+
+    .choices__item--selectable{
+      &.is-highlighted{
+        background-color: $gray-dark-300;
+      }
+    }
+  }
+
+  .choices.is-disabled {
+    .choices__inner, .choices__input{
+      background-color: lighten($gray-dark-200,2%);
+    }
+  }
+}
+

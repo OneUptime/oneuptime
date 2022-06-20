@@ -1,0 +1,11 @@
+
+body[data-layout-mode="dark"] {
+    background-color: $gray-dark-200;
+    color: $gray-dark-600;
+
+
+    .h1,.h2,.h3,.h4,.h5,.h6,
+    h1,h2,h3,h4,h5,h6 {
+        color: $gray-dark-600;
+    }
+}

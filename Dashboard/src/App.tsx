@@ -6,10 +6,7 @@ import {
     useNavigate,
     useLocation,
 } from 'react-router-dom';
-import TopBar from './Components/TopBar/TopBar';
-import NavBar from './Components/NavBar/NavBar';
-import './App.scss';
-
+import Page from 'CommonUI/src/Components/Page/Page';
 // Pages
 import Init from './Pages/Init/Init';
 import Monitors from './Pages/Monitors/Monitors';
@@ -22,14 +19,15 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
+// Import CSS
+import 'CommonUI/src/Styles/theme.scss'
+
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
 
     return (
-        <div className="App">
-            <TopBar />
-            <NavBar />
+        <Page>
             <Routes>
                 <PageRoute
                     path={RouteMap[PageMap.INIT]?.toString()}
@@ -82,7 +80,7 @@ const App: FunctionComponent = () => {
                     }
                 />
             </Routes>
-        </div>
+        </Page>
     );
 };
 

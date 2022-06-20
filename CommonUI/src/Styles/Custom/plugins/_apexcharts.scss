@@ -1,0 +1,99 @@
+
+//
+// apexcharts.scss
+//
+.apex-charts {
+    min-height: 10px !important;
+    text {
+        font-family: $font-family-base !important;
+        fill: $gray-500;
+    }
+    .apexcharts-canvas {
+        margin: 0 auto;
+    }
+}
+
+.apexcharts-tooltip-title,
+.apexcharts-tooltip-text {
+    font-family: $font-family-base !important;
+}
+
+.apexcharts-legend-series {
+    font-weight: $font-weight-medium;
+}
+
+.apexcharts-gridline {
+    pointer-events: none;
+    stroke: $apex-grid-color;
+}
+
+.apexcharts-legend-text {
+    color: $gray-600 !important;
+    font-family: $font-family-base !important;
+    font-size: 13px !important;
+}
+
+.apexcharts-pie-label {
+    fill: $white !important;
+}
+
+.apexcharts-yaxis,
+.apexcharts-xaxis {
+    text {
+        font-family: $font-family-base !important;
+        fill: $gray-500;
+    }
+}
+
+body[data-layout-mode="dark"] {
+
+    .apexcharts-gridline {
+        stroke: lighten($gray-dark-200,2.5%);
+    }
+
+    .apexcharts-tooltip.apexcharts-theme-light {
+        background-color: $gray-dark-200;
+        border-color: lighten($gray-dark-200,2.5%);
+
+        .apexcharts-tooltip-title {
+            background-color: $gray-dark-300;
+            border-color: lighten($gray-dark-300,2.5%);
+        }
+    }
+
+    .apexcharts-legend-text {
+        color: $gray-dark-500 !important;
+    }
+
+    .apexcharts-yaxis-texts-g.apexcharts-xaxis-inversed-texts-g,
+    .apexcharts-grid-row {
+        + line {
+            stroke: lighten($gray-dark-300,2.5%);
+        }
+    }
+
+    .apexcharts-xaxis line,
+    .apexcharts-treemap-rect,
+    .apexcharts-heatmap-rect,
+    .apexcharts-pie-area {
+        stroke: lighten($gray-dark-300,2.5%);
+    }
+
+    .apexcharts-radialbar-track.apexcharts-track {
+        path {
+            stroke: lighten($gray-dark-300,2.5%);
+        }
+    }
+    .apexcharts-radar-series.apexcharts-plot-series {
+        polygon,
+        line {
+            fill: $gray-dark-300;
+            stroke: lighten($gray-dark-300,2.5%);
+        }
+    }
+    .apexcharts-pie {
+        circle {
+            stroke: lighten($gray-dark-300,2.5%);
+        }
+    }
+}

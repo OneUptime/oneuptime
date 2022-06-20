@@ -1,0 +1,316 @@
+// 
+// pages-rtl.scss
+//
+
+// 
+
+#external-events {
+    .external-event{
+        text-align: right;
+    }
+}
+
+// email
+
+.email-leftbar{
+    float: right;
+}
+
+.email-rightbar {
+    margin-right: 245px;
+    margin-left: 0px;
+}
+
+.message-list {
+    li {
+        .col-mail{
+            float: right;
+        }
+        .col-mail-1{
+            .star-toggle, .checkbox-wrapper-mail, .dot{
+                float: right
+            }
+            .checkbox-wrapper-mail {
+                margin: 15px 20px 0 10px;
+            }
+            .star-toggle {
+                margin-right: 5px;
+            }
+            
+            .title {
+                right: 90px;
+                left: 0;
+            }
+        }
+        .col-mail-2{
+            right: 260px;
+            left: 0;
+
+            .subject {
+                right: 0;
+                left: 200px;
+            }
+
+            .date {
+                left: 0;
+                right: auto;
+                padding-right: 80px;
+                padding-left: 0px;
+            }
+        
+        }
+    }
+    .checkbox-wrapper-mail {
+        label{
+            &:before{
+                right: 4px;
+            }
+        }
+    }
+}
+
+@media (max-width: 767px){
+    .email-leftbar {
+        float: none !important;
+        width: 100%;
+    }
+    .email-rightbar {
+        margin-right: 0;
+    }
+}
+
+
+
+.close{
+    right: auto !important;
+    top: 0;
+    left: 0;
+}
+  
+
+.modal-open{
+      padding-right: 0px !important;
+}
+
+
+// timeline
+.timeline {
+    .timeline-right {
+        text-align: right;
+        .timeline-icon{
+            text-align: left;
+            &:after{
+                right: auto;
+                left: -7px;
+            }
+        }
+
+        .timeline-box{
+            &:after{
+                border-color: $light $light transparent transparent;
+                right: -8px;
+                left: 100%;
+            }
+        }
+    }
+
+    .timeline-left{
+        text-align: left;
+        .timeline-icon{
+            text-align: right;
+            &:after{
+                left: auto;
+                right: -7px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .event-content{
+              padding-left: 0;
+              padding-right: 24px;
+            }
+      
+            .timeline-text {
+              margin-left: 0;
+              margin-right: 40px;
+            }
+        }
+
+        .timeline-date {
+            left: auto;
+            right: 20px;
+            @media (max-width: 767.98px) {
+                right: -70px;
+                left: auto;
+              }
+        }
+
+        .timeline-box{
+            &:after{
+                border-color: transparent transparent $light $light;
+                left: -8px;
+                right: auto;
+            }
+        }
+    }
+
+    @media (min-width: 768px) {
+        .event-content{
+          padding-right: 0;
+          padding-left: 24px;
+        }
+  
+        .timeline-text {
+          margin-right: 0;
+          margin-left: 40px;
+        }
+
+        .timeline-launch .timeline-box::after{
+            left: 50% !important;
+            right: auto !important;
+        }
+    }
+
+    .timeline-launch .timeline-box::after{
+        left: auto;
+        right: 32px;
+    }
+}
+
+.timeline-date{
+    right: auto;
+    left: 20px;
+    @media (max-width: 767.98px) {
+        right: -70px;
+        left: auto;
+    }
+}
+
+@media (max-width: 767px) {
+    .timeline{
+        .timeline-continue{
+            &:after {
+                left: auto;
+                right: 40px;
+            }
+        }
+
+        .timeline-end,
+        .timeline-start,
+        .timeline-year {
+            text-align: right;
+        }
+        .row.timeline-left {
+                text-align: right;
+            .timeline-icon {
+                text-align: right;
+                margin-left: 0;
+                margin-right: 55px;
+                &::after {
+                    left: auto;
+                    right: 43px;
+                }
+            }
+
+            .timeline-box {
+                &::after {
+                    right: -8px;
+                    border-color: $light $light transparent transparent;
+                    left: auto;
+                }
+            }
+        }
+        .row.timeline-right {
+            .timeline-icon {
+                text-align: right;
+                margin-left: 0;
+                margin-right: 55px;
+                &::after {
+                    left: auto;
+                    right: 43px;
+                }
+            }
+            text-align: right;
+        }
+
+        .timeline-box {
+            margin-right: 82px;
+            margin-left: 0;
+        }
+        .timeline-launch {
+            text-align: right;
+        }
+
+
+        .timeline-launch .timeline-box{
+            margin-right: 0;
+        }
+    }
+}
+
+// chat page
+
+.search-box .search-icon-search{
+    left: auto !important;
+    right: 13px !important;
+}
+
+.chat-conversation {
+    .conversation-list{
+        .ctext-wrap-content{
+            border-radius: 8px 0px 8px 8px;
+            margin-left: 0;
+            margin-right: 16px;
+            &:before{
+                left: auto;
+                right: -10px;
+                border-right-color: transparent;
+                border-left-color: $primary;
+            }
+        }
+
+        .conversation-name .time{
+            margin-left: 0;
+            margin-right: 8px;
+        }
+    }
+
+    .right{
+        .conversation-list{
+            float: left;
+            text-align: left;
+
+            .ctext-wrap {
+                .ctext-wrap-content{
+                    text-align: left;
+                    border-radius: 0px 8px 8px 8px;
+                    margin-right: 0;
+                    margin-left: 16px;
+                    &::before{
+                        right: auto;
+                        left: -10px;
+                        border-left-color: transparent;
+                        border-right-color: rgba($light, 0.5);
+                    }
+                }
+
+                .conversation-name .time{
+                    margin-right: 0;
+                    margin-left: 8px;
+                }
+            }
+        }
+    }
+}
+
+// maintenance
+.maintenance-cog-icon .cog-icon{
+    right: auto;
+    left: 14px;
+}
+
+// coming soon
+.count-num::after{
+    right: auto;
+    left: -16px;
+}

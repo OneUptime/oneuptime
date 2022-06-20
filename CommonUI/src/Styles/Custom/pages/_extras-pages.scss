@@ -1,0 +1,83 @@
+// 
+// Extras pages.scss
+//
+
+
+/*********************
+    Maintenance
+**********************/ 
+
+.maintenance-cog-icon{
+    .cog-icon{
+        position: relative;
+        bottom: 24px;
+        right: 14px;    
+    }
+}
+
+
+// pricing
+
+
+.pricing-badge {
+    position: absolute;
+    top: 0;
+    z-index: 9;
+    right: 0;
+    width: 100%;
+    display: block;
+    font-size: 15px;
+    padding: 0;
+    overflow: hidden;
+    height: 100px;
+    .badge {
+      float: right;
+      transform: rotate(45deg);
+      right: -67px;
+      top: 17px;
+      position: relative;
+      text-align: center;
+      width: 200px;
+      font-size: 13px;
+      margin: 0;
+      padding: 7px 10px;
+      font-weight: 500;
+      color: $primary;
+      background: $white;
+    }
+}
+
+
+
+// PRICING TAB
+
+.pricing-tab-box{
+  .nav-link{
+    padding: 16px 20px;
+    border: 1px solid $gray-200;
+    &.active{
+      border: 1px solid $primary;
+      background: transparent;
+      padding: 16px 20px;
+      i{
+        color: $primary;
+      }
+      h1{
+        color: $primary;
+      }
+    }
+   
+  }
+}
+
+body[data-layout-mode=dark]{
+  .pricing-tab-box {
+    .nav-link{
+      border-color: $gray-dark-300;
+
+      &.active{
+        border-color: $primary;
+      }
+    }
+  }
+}

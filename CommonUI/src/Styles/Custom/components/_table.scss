@@ -1,0 +1,74 @@
+// 
+// _table.scss
+// 
+
+.table {
+  th {
+      font-weight: $font-weight-bold;
+  }
+
+  .table-light{
+    color: $body-color;
+    border-color: $table-border-color;
+    background-color: $table-head-bg;
+  }
+}
+
+.table-bordered {
+  border: $table-border-width solid $table-border-color;
+
+  th,
+  td {
+    border: $table-border-width solid $table-border-color;
+  }
+}
+
+
+.table-dark>:not(:last-child)>:last-child>*{
+  border-bottom-color:  $table-dark-border-color;
+}
+
+.table-nowrap {
+  th, td {
+    white-space: nowrap;
+  }
+}
+
+
+body[data-layout-mode="dark"] {
+  // table 
+  .table {
+      border-color: lighten($gray-dark-200,5%);
+      color: $gray-dark-400;
+  }
+
+  .table-bordered {
+      border-color: $gray-dark-300;
+    
+      th,
+      td {
+        border-color: $gray-dark-300;
+      }
+  }
+
+  .table>:not(:last-child)>:last-child>* {
+      border-bottom-color: $gray-dark-300;
+  }
+
+  .table-striped>tbody>tr:nth-of-type(odd),
+  .table-hover>tbody>tr:hover,
+  .table .table-light {
+      --bs-table-accent-bg: #363a38;
+      color: $gray-dark-400;
+  }
+
+  // table
+  .table-dark{
+    background-color: $gray-dark-300;
+    >:not(caption)>*>*{
+        background-color: $gray-dark-300;
+    }
+  }
+}
+
+

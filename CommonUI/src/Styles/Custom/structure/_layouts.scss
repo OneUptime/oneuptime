@@ -1,0 +1,84 @@
+// 
+// _layouts.scss
+// 
+
+body[data-layout-size="boxed"] {
+    background-color: $boxed-body-bg;
+    #layout-wrapper {
+        background-color: $body-bg;
+        max-width: $boxed-layout-width;
+        margin: 0 auto;
+        box-shadow: $box-shadow;
+        min-height: 100vh;
+    }
+
+    #page-topbar {
+        max-width: $boxed-layout-width;
+        margin: 0 auto;
+    }
+
+    .footer {
+        margin: 0 auto;
+        max-width: calc(#{$boxed-layout-width} - #{$sidebar-width});
+    }
+
+    &[data-sidebar-size="sm"] {
+        @media (min-width: 992px) {
+            #layout-wrapper {
+                min-height: 1200px;
+            }
+        }
+
+        .footer {
+            max-width: calc(#{$boxed-layout-width} - #{$sidebar-collapsed-width});
+        }
+    }
+
+    &[data-sidebar-size="md"] {
+
+        .footer {
+            max-width: calc(#{$boxed-layout-width} - #{$sidebar-width-sm});
+        }
+    }
+}
+
+
+// Horizontal Boxed Layout
+
+body[data-layout="horizontal"][data-layout-size="boxed"]{
+    #page-topbar, #layout-wrapper, .footer {
+        max-width: 100%;
+    }
+    .container-fluid, .navbar-header {
+        max-width: $boxed-layout-width;
+    }
+}
+
+// Scrollable layout
+
+body[data-layout-scrollable="true"] {
+    @media (min-width: 992px) {
+        #page-topbar, .vertical-menu{
+            position: absolute;
+        }
+    }
+
+    &[data-layout="horizontal"]{
+        @media (min-width: 992px) {
+            #page-topbar, .topnav{
+                position: absolute;
+            }
+        }
+    }
+}
+
+body[data-layout-mode="dark"] {
+    &[data-layout-size="boxed"] {
+        background-color: lighten($gray-dark-200, 4%);
+
+        #layout-wrapper {
+            background-color: $gray-dark-200;
+        }
+    }
+}
+

@@ -1,0 +1,113 @@
+// 
+// _nav.scss
+// 
+
+.nav-tabs,
+.nav-pills {
+    >li {
+        >a {
+            color: $gray-700;
+            font-weight: $font-weight-medium;
+        }
+    }
+}
+
+.nav-pills {
+    >a {
+        color: $gray-700;
+        font-weight: $font-weight-medium;
+    }
+}
+
+
+.nav-tabs-custom {
+    border-bottom: 1px solid $gray-300;
+
+    .nav-item {
+        position: relative;
+        color: $dark;
+
+        .nav-link {
+            border: none;
+
+            &::after {
+                content: "";
+                background: $primary;
+                height: 1px;
+                position: absolute;
+                width: 100%;
+                left: 0;
+                bottom: -1px;
+                transition: all 250ms ease 0s;
+                transform: scale(0);
+            }
+
+            &.active {
+                color: $primary;
+
+                &:after {
+                    transform: scale(1);
+                }
+            }
+
+        }
+    }
+
+    &.card-header-tabs {
+        border-bottom: none;
+        
+        .nav-link {
+            padding: $card-cap-padding-y $nav-link-padding-x;
+            font-weight: $font-weight-medium;
+        }
+    }
+}
+
+
+// vertical nav
+
+.vertical-nav {
+    .nav {
+        .nav-link {
+            padding: 24px 16px;
+            text-align: center;
+            margin-bottom: 8px;
+
+            .nav-icon {
+                font-size: 24px;
+            }
+        }
+    }
+}
+
+
+body[data-layout-mode="dark"] {
+
+    // .nav-tabs
+    .nav-link{
+        color: $gray-dark-500;
+    }
+
+    .nav-tabs{
+        border-color: $gray-dark-300;
+        .nav-link{
+            color: $gray-dark-600;
+            &:focus, &:hover{
+                border-color:$gray-dark-300 $gray-dark-300 $gray-dark-300;
+            }
+            &.active{
+                background-color: $gray-dark-200;
+                border-color:$gray-dark-300 $gray-dark-300 $gray-dark-200;
+            }
+        }
+    }
+    
+    .nav-pills{
+        .nav-link{
+            color: $gray-dark-600;
+            &.active{
+                color: $white;
+            }
+        }
+    }
+}

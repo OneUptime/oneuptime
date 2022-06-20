@@ -1,0 +1,37 @@
+//
+// plugins-rtl.scss
+//
+
+// lightbox
+
+.modal-video-close-btn{
+    left: 0px;
+    right: auto;
+    @media (orientation: landscape) {
+        right: auto;
+        left: -45px;
+    }
+}
+
+// rdw-editor
+
+.rdw-dropdown-carettoclose, .rdw-dropdown-carettoopen{
+    right: auto;
+    left: 10%;
+}
+
+// form wizard
+
+.twitter-bs-wizard {
+    .twitter-bs-wizard-nav {
+        .nav-link::after{
+            left: auto;
+            right: 62%;
+        }
+    }
+
+    .twitter-bs-wizard-pager-link li.next{
+        float: left;
+    }
+}
+

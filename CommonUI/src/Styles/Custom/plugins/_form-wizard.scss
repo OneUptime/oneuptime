@@ -1,0 +1,119 @@
+//
+// Form Wizard
+//
+
+// twitter-bs-wizard
+
+.twitter-bs-wizard{
+  .twitter-bs-wizard-nav{
+
+    .step-icon{
+      display: inline-block;
+      width: 56px;
+      height: 56px;
+      line-height: 54px;
+      border: 1px solid rgba($primary, 0.2);
+      color: $primary;
+      text-align: center;
+      border-radius: 50%;
+      position: relative;
+      z-index: 1;
+      font-size: 20px;
+
+      @media (max-width: 575.98px) {
+        width: 40px;
+        height: 40px;
+        line-height: 38px;
+      }
+    }
+
+    .step-title{
+      margin-left: 6px;
+    }
+
+    .nav-item{
+      &:last-child{
+        .nav-link{
+          &::after{
+            display: none;
+          }
+        }
+      }
+
+      .nav-link{
+        &.done{
+          .step-icon{
+            background-color: $primary;
+            color: $white;
+          }
+          .uil{
+            &:before{
+              content: "\e9c3";
+            }
+          }
+        }
+      }
+    }
+
+    .nav-link{
+      font-size: 14px;
+      position: relative;
+      @media (max-width: 575.98px) {
+        padding: 0.5rem;
+      }
+      &::after{
+        content: "";
+        position: absolute;
+        width: 75%;
+        height: 2px;
+        background-color: $border-color;
+        left: 62%;
+        top: 50%;
+        transform: translateY(-50%);
+        @media (max-width: 575.98px) {
+          display: none;
+        }
+      }
+      &.active{
+        color: $gray-700;
+        background-color: transparent;
+
+        .step-icon{
+          background-color: rgba($primary, 0.2);
+          color: $primary;
+          border-color: rgba($primary, 0.2);
+        }
+      }
+    }
+  }
+  
+  .twitter-bs-wizard-pager-link{
+    padding-top: 24px;
+      padding-left: 0;
+      list-style: none;
+      margin-bottom: 0;
+      li{
+        display: inline-block;
+
+        &.next{
+          float: right;
+        }
+      }
+    }
+}
+
+.twitter-bs-wizard-tab-content{
+  padding-top: 24px;
+  min-height: 262px;
+}
+
+// Dark layout
+body[data-layout-mode="dark"] {
+  .twitter-bs-wizard {
+    .twitter-bs-wizard-nav {
+      .nav-link::after{
+        background-color: $gray-dark-300;
+      }
+    }
+  }
+}
