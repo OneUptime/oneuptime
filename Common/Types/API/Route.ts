@@ -6,7 +6,7 @@ export default class Route {
     }
     public set route(v: string) {
         const matchRouteCharacters: RegExp =
-            /^[a-zA-Z\d\-!#$&'()*+,/:;=?@[\]]*$/;
+            /^[a-zA-Z\d\-!#$&'()*+,./:;=?@[\]]*$/;
         if (v && !matchRouteCharacters.test(v)) {
             throw new BadDataException(`Invalid route: ${v}`);
         }

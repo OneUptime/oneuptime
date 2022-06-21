@@ -1,3 +1,4 @@
+import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
 import {
     FiHome,
@@ -9,7 +10,17 @@ import {
     FiBell,
     FiCheckCircle,
     FiSearch,
-    FiHelpCircle
+    FiHelpCircle,
+    FiPower,
+    FiCreditCard,
+    FiUser,
+    FiChevronDown,
+    FiChevronRight,
+    FiChevronLeft,
+    FiChevronUp,
+    FiMail,
+    FiSlack,
+    FiClock
 } from "react-icons/fi";
 
 export enum SizeProp {
@@ -30,6 +41,8 @@ export enum IconProp {
     Help = 'Help',
     ChevronDown = 'ChevronDown',
     ChevronRight = 'ChevronRight',
+    ChevronUp = 'ChevronUp',
+    ChevronLeft = 'ChevronLeft',
     Home = 'Home',
     Grid = 'Grid',
     More = 'More',
@@ -37,19 +50,26 @@ export enum IconProp {
     Alert = 'Alert',
     Call = 'Call',
     CheckCircle = 'CheckCircle',
-    Search = 'Search'
+    Search = 'Search',
+    Logout = 'Logout',
+    Billing = "Billing",
+    Email = "Email",
+    Slack = "Slack",
+    Time = "Time"
 }
 
 export interface ComponentProps {
     icon: IconProp;
     size?: SizeProp;
     className?: string;
+    color?: Color | null
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
     icon,
     className,
+    color
 }: ComponentProps): ReactElement => {
 
     return (
@@ -59,16 +79,26 @@ const Icon: FunctionComponent<ComponentProps> = ({
             }}
             className={className ? className : ''}
         >
-            {icon === IconProp.Home && <FiHome size={size} />} 
-            {icon === IconProp.More && <FiGrid size={size} />} 
-            {icon === IconProp.Activity && <FiActivity size={size} />} 
-            {icon === IconProp.Alert && <FiAlertOctagon size={size} />} 
-            {icon === IconProp.Call && <FiPhoneCall size={size} />} 
-            {icon === IconProp.Settings && <FiSettings size={size} />} 
-            {icon === IconProp.Notification && <FiBell size={size} />} 
-            {icon === IconProp.CheckCircle && <FiCheckCircle size={size} />} 
-            {icon === IconProp.Search && <FiSearch size={size} />} 
-            {icon === IconProp.Help && <FiHelpCircle size={size}/>} 
+            {icon === IconProp.Home && <FiHome size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.More && <FiGrid size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Activity && <FiActivity size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Alert && <FiAlertOctagon size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Call && <FiPhoneCall size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Settings && <FiSettings size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Notification && <FiBell size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.CheckCircle && <FiCheckCircle size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Search && <FiSearch size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Help && <FiHelpCircle size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Logout && <FiPower size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Billing && <FiCreditCard size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.User && <FiUser size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.ChevronDown && <FiChevronDown size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.ChevronLeft && <FiChevronLeft size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.ChevronRight && <FiChevronRight size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.ChevronUp && <FiChevronUp size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Email && <FiMail size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Slack && <FiSlack size={size} color={color ? color.toString() : '' } />} 
+            {icon === IconProp.Time && <FiClock size={size} color={color ? color.toString() : '' } />} 
         </span>
     );
 };

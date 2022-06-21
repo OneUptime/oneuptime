@@ -1,17 +1,20 @@
+import Route from "Common/Types/API/Route";
 import React, { ReactElement } from "react";
+import Icon, { IconProp } from "../../Basic/Icon/Icon";
+import Link from "../../Link/Link";
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>
 }
 
 const Notifications = (props: ComponentProps): ReactElement => {
-    return (<div tabIndex={-1} role="menu" aria-hidden="true" className="dropdown-menu-lg dropdown-menu-end p-0 dropdown-menu">
+    return (<div tabIndex={-1} role="menu" aria-hidden="true" style={{ "position": "absolute", "willChange": "transform", "top": "0px", "left": "0px", "transform": "translate3d(0px, 5px, 0px)" }} className="dropdown-menu-lg dropdown-menu-end p-0 dropdown-menu show">
         <div className="p-3">
             <div className="align-items-center row">
                 <div className="col">
                     <h6 className="m-0"> Notifications </h6>
                 </div>
-                <div className="col-auto"><a className="small" href="/dashboard"> Mark as read</a></div>
+                <div className="col-auto"><a className="small" href="/dashboard"> Mark all as read</a></div>
             </div>
         </div>
         <div data-simplebar="init" style={{ height: '230px' }}><div className="simplebar-wrapper" style={{ margin: '0px' }}>
@@ -29,7 +32,9 @@ const Notifications = (props: ComponentProps): ReactElement => {
             <div className="simplebar-placeholder" style={{ width: '0px', height: '0px' }} />
         </div>
             <div className="simplebar-track simplebar-horizontal" style={{ visibility: 'hidden' }}><div className="simplebar-scrollbar" style={{ width: '0px', display: 'none' }} /></div><div className="simplebar-track simplebar-vertical" style={{ visibility: 'hidden' }}><div className="simplebar-scrollbar" style={{ height: '0px', display: 'none' }} /></div></div>
-        <div className="p-2 border-top d-grid"><a className="btn btn-sm btn-link font-size-14 btn-block text-center" href="/dashboard"><i className="mdi mdi-arrow-right-circle me-1" /> View all </a></div></div>)
+        <div className="p-2 border-top d-grid">
+            <Link className="btn btn-sm btn-link font-size-14 btn-block text-center" to={new Route("/notifications")}>
+                <span>View all</span><Icon icon={IconProp.ChevronRight} /></Link></div></div>)
 }
 
 

@@ -1,6 +1,6 @@
 import React, { ReactElement } from "react";
 import CircularIconImage from "../../Basic/Icon/CircularIconImage";
-import { IconProp } from "../../Basic/Icon/Icon";
+import Icon, { IconProp } from "../../Basic/Icon/Icon";
 import OneUptimeDate from 'Common/Types/Date';
 
 export interface ComponentProps {
@@ -18,7 +18,7 @@ const NotificationItem = (props: ComponentProps): ReactElement => {
                 <h6 className="mt-0 mb-1">{props.title}</h6>
                 <div className="font-size-12 text-muted">
                     <p className="mb-1">{props.description}</p>
-                    <p className="mb-0"><i className="mdi mdi-clock-outline" />{OneUptimeDate.fromNow(props.createdAt)} </p>
+                    <p className="mb-0"><Icon icon={IconProp.Time}/> &nbsp;{OneUptimeDate.fromNow(props.createdAt)} </p>
                 </div>
             </div>
         </div>
