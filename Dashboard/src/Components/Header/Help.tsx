@@ -1,21 +1,30 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
-import Notifications from 'CommonUI/src/Components/Header/Notifications/Notifications';
-import NotificationItem from 'CommonUI/src/Components/Header/Notifications/NotificationItem';
+import IconDropdwonItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
+import IconDropdwonMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
+import IconDropdwonRow from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownRow';
 import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
+import URL from 'Common/Types/API/URL';
 
 const Help: FunctionComponent = (): ReactElement => {
     return (
-        <HeaderIconDropdownButton icon={IconProp.Notification} badge={4}>
-            <Notifications>
-                <NotificationItem
-                    title="Sample Title"
-                    description="Sample Description"
-                    createdAt={new Date()}
-                    icon={IconProp.Home}
+        <HeaderIconDropdownButton icon={IconProp.Help}>
+        <IconDropdwonMenu>
+            <IconDropdwonRow>
+                <IconDropdwonItem
+                    title="Support Email"
+                    icon={IconProp.Email}
+                    url={URL.fromString('https://google.com')}
                 />
-            </Notifications>
-        </HeaderIconDropdownButton>
+                <IconDropdwonItem
+                    title="Chat on Slack"
+                    icon={IconProp.Slack}
+                    url={URL.fromString('https://google.com')}
+                />
+            </IconDropdwonRow>
+        </IconDropdwonMenu>
+    </HeaderIconDropdownButton>
+       
     );
 };
 
