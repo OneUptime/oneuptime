@@ -15,7 +15,7 @@ const Link: FunctionComponent<ComponentProps> = (
     let children: ReactElement | Array<ReactElement>;
 
     if (typeof props.children === 'string') {
-        children = <p>{props.children}</p>;
+        children = <span>{props.children}</span>;
     } else {
         children = props.children;
     }

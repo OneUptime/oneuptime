@@ -1,0 +1,7 @@
+.underline-on-hover {
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline !important;
+    }
+}
