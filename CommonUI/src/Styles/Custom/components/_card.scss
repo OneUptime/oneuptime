@@ -2,6 +2,8 @@
 // _card.scss
 //
 
+@use 'sass:math';
+
 .card {
   margin-bottom: $grid-gutter-width;
 }
@@ -28,7 +30,7 @@
 }
 
 .card-header-pills {
-  margin: -$card-cap-padding-y / 2;
+  margin: math.div(-$card-cap-padding-y, 2);
 }
 
 body[data-layout-mode="dark"] {

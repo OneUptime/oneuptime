@@ -1,9 +1,5 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import PageContainer from 'CommonUI/src/Components/Dashboard/Container/PageContainer/PageContainer';
 import PageComponentProps from '../PageComponentProps';
-import Laoder, {
-    LoaderType,
-} from 'CommonUI/src/Components/Basic/Loader/Loader';
 
 const Init: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -12,9 +8,7 @@ const Init: FunctionComponent<PageComponentProps> = (
         // set slug to latest project and redirect to home.
     });
     return (
-        <PageContainer>
-            <Laoder loaderType={LoaderType.Bar} />
-        </PageContainer>
+        <div></div>
     );
 };
 

@@ -31,4 +31,8 @@ export default class Route {
     public toString(): string {
         return this.route;
     }
+
+    public static fromString(route: string): Route{
+        return new Route(route);
+    }
 }

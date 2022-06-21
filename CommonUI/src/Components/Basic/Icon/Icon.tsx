@@ -1,17 +1,16 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    faCircleQuestion,
-    faUser,
-    faCog,
-    faBell,
-    faFile,
-    faChevronDown,
-    faChevronRight,
-    IconDefinition,
-    faHome,
-} from '@fortawesome/free-solid-svg-icons';
-import Dictionary from 'Common/Types/Dictionary';
+    FiHome,
+    FiGrid,
+    FiActivity,
+    FiAlertOctagon,
+    FiPhoneCall,
+    FiSettings,
+    FiBell,
+    FiCheckCircle,
+    FiSearch,
+    FiHelpCircle
+} from "react-icons/fi";
 
 export enum SizeProp {
     ExtraSmall = '8px',
@@ -19,6 +18,7 @@ export enum SizeProp {
     Small = '12px',
     Regular = '15px',
     Large = '18px',
+    Larger = '21px',
     ExtraLarge = '25px',
 }
 
@@ -31,18 +31,14 @@ export enum IconProp {
     ChevronDown = 'ChevronDown',
     ChevronRight = 'ChevronRight',
     Home = 'Home',
+    Grid = 'Grid',
+    More = 'More',
+    Activity = 'Activity',
+    Alert = 'Alert',
+    Call = 'Call',
+    CheckCircle = 'CheckCircle',
+    Search = 'Search'
 }
-
-const IconDictionary: Dictionary<IconDefinition> = {
-    [IconProp.Help]: faCircleQuestion,
-    [IconProp.User]: faUser,
-    [IconProp.Notification]: faBell,
-    [IconProp.Settings]: faCog,
-    [IconProp.File]: faFile,
-    [IconProp.ChevronDown]: faChevronDown,
-    [IconProp.ChevronRight]: faChevronRight,
-    [IconProp.Home]: faHome,
-};
 
 export interface ComponentProps {
     icon: IconProp;
@@ -55,6 +51,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     icon,
     className,
 }: ComponentProps): ReactElement => {
+
     return (
         <span
             style={{
@@ -62,12 +59,16 @@ const Icon: FunctionComponent<ComponentProps> = ({
             }}
             className={className ? className : ''}
         >
-            <FontAwesomeIcon
-                icon={IconDictionary[icon] as IconDefinition}
-                style={{
-                    fontSize: size,
-                }}
-            />
+            {icon === IconProp.Home && <FiHome size={size} />} 
+            {icon === IconProp.More && <FiGrid size={size} />} 
+            {icon === IconProp.Activity && <FiActivity size={size} />} 
+            {icon === IconProp.Alert && <FiAlertOctagon size={size} />} 
+            {icon === IconProp.Call && <FiPhoneCall size={size} />} 
+            {icon === IconProp.Settings && <FiSettings size={size} />} 
+            {icon === IconProp.Notification && <FiBell size={size} />} 
+            {icon === IconProp.CheckCircle && <FiCheckCircle size={size} />} 
+            {icon === IconProp.Search && <FiSearch size={size} />} 
+            {icon === IconProp.Help && <FiHelpCircle size={size}/>} 
         </span>
     );
 };

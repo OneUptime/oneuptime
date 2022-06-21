@@ -11,14 +11,6 @@ a {
     box-shadow: 0 2px 6px 0 rgba($color, 0.5);
 }
 
-// Button Shadows
-@each $color,
-$value in $theme-colors {
-    .btn-#{$color} {
-        @include button-shadow($value);
-    }
-}
-
 .btn-warning {
     color: $white !important;
 }

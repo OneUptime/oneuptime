@@ -6,6 +6,10 @@ export default class OneUptimeDate {
         return moment().toDate();
     }
 
+    public static fromNow(date: Date): string { 
+        return moment(date).fromNow();
+    }
+
     public static getCurrentMomentDate(): moment.Moment {
         return moment();
     }
