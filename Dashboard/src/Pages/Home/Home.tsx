@@ -5,9 +5,7 @@ import PageComponentProps from '../PageComponentProps';
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    return (
-        <div></div>
-    );
+    return <div></div>;
 };
 
 export default Home;

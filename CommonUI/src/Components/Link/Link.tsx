@@ -1,32 +1,36 @@
 import React from 'react';
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import { ReactElement } from "react"
-import Navigation from "../../Utils/Navigation";
+import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import { ReactElement } from 'react';
+import Navigation from '../../Utils/Navigation';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement> | string;
     className?: string;
-    to: Route | URL | null
+    to: Route | URL | null;
 }
 
 const Link = (props: ComponentProps) => {
     let children: ReactElement | Array<ReactElement>;
 
-    if (typeof props.children === "string") {
-        children = (<p>{props.children}</p>);
+    if (typeof props.children === 'string') {
+        children = <p>{props.children}</p>;
     } else {
         children = props.children;
     }
 
-    return (<a className={props.className || ''}
-        onClick={() => {
-            if (props.to) {
-                Navigation.navigate(props.to);
-            }
-        }}>
-        {children}
-    </a>)
-}
+    return (
+        <a
+            className={props.className || ''}
+            onClick={() => {
+                if (props.to) {
+                    Navigation.navigate(props.to);
+                }
+            }}
+        >
+            {children}
+        </a>
+    );
+};
 
 export default Link;

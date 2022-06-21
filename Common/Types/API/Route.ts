@@ -32,7 +32,7 @@ export default class Route {
         return this.route;
     }
 
-    public static fromString(route: string): Route{
+    public static fromString(route: string): Route {
         return new Route(route);
     }
 }

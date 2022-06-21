@@ -1,8 +1,8 @@
-import React, { ReactElement } from "react";
+import React, { ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
-    title?: string
+    title?: string;
 }
 
 const NavBarMenuColumn = (props: ComponentProps) => {
@@ -11,14 +11,11 @@ const NavBarMenuColumn = (props: ComponentProps) => {
             {props.title && <div className="menu-title">{props.title}</div>}
             <div className="row">
                 <div className="col-lg-12">
-                    <div>
-                        {props.children}
-                    </div>
+                    <div>{props.children}</div>
                 </div>
             </div>
         </div>
-    )
-}
-
+    );
+};
 
 export default NavBarMenuColumn;

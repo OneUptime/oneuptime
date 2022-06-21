@@ -19,7 +19,7 @@ import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
 // Import CSS
-import 'CommonUI/src/Styles/theme.scss'
+import 'CommonUI/src/Styles/theme.scss';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -43,9 +43,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={RouteMap[PageMap.MONITORS]?.toString()}
                     element={
-                        <Init
-                            pageRoute={RouteMap[PageMap.MONITORS] as Route}
-                        />
+                        <Init pageRoute={RouteMap[PageMap.MONITORS] as Route} />
                     }
                 />
                 <PageRoute

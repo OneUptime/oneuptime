@@ -54,10 +54,10 @@ export default class URL extends DatabaseProperty {
 
     public override toString(): string {
         let urlString: string = `${this.protocol}${this.hostname}`;
-        if (this.route.toString().startsWith("/")) {
+        if (this.route.toString().startsWith('/')) {
             urlString += this.route.toString();
         } else {
-            urlString+="/"+this.route.toString()
+            urlString += '/' + this.route.toString();
         }
         return urlString;
     }

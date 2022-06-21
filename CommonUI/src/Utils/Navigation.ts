@@ -23,7 +23,7 @@ abstract class Navigation {
             this.navigateHook(to.toString());
         }
 
-        // if its an external link outside of react. 
+        // if its an external link outside of react.
         if (to instanceof URL) {
             window.location.href = to.toString();
         }

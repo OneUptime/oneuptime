@@ -1,7 +1,7 @@
-import URL from "Common/Types/API/URL";
-import React, { ReactElement } from "react";
-import Icon, { IconProp, SizeProp } from "../../Basic/Icon/Icon";
-import Link from "../../Link/Link";
+import URL from 'Common/Types/API/URL';
+import React, { ReactElement } from 'react';
+import Icon, { IconProp, SizeProp } from '../../Basic/Icon/Icon';
+import Link from '../../Link/Link';
 
 export interface ComponentProps {
     url: URL;
@@ -17,8 +17,7 @@ const IconDropdown = (props: ComponentProps): ReactElement => {
                 <span>{props.title}</span>
             </Link>
         </div>
-    )
-}
-
+    );
+};
 
 export default IconDropdown;

@@ -7,9 +7,7 @@ const Init: FunctionComponent<PageComponentProps> = (
     useEffect(() => {
         // set slug to latest project and redirect to home.
     });
-    return (
-        <div></div>
-    );
+    return <div></div>;
 };
 
 export default Init;
