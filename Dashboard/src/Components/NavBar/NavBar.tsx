@@ -6,6 +6,8 @@ import NavBarMenuItem from 'CommonUI/src/Components/Navbar/NavBarMenuItem';
 import NavBarMenuColumn from 'CommonUI/src/Components/Navbar/NavBarMenuColumn';
 import Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
+import PageMap from '../../Utils/PageMap';
+import RouteMap from '../../Utils/RouteMap';
 
 const DashboardNavbar: FunctionComponent = () => {
     return (
@@ -20,18 +22,20 @@ const DashboardNavbar: FunctionComponent = () => {
             <NavBarItem
                 title="Home"
                 icon={IconProp.Home}
+                route={RouteMap[PageMap.HOME] as Route}
                 isActive={true}
             ></NavBarItem>
 
-            <NavBarItem title="Monitors" icon={IconProp.Activity}></NavBarItem>
+            <NavBarItem title="Monitors" route={RouteMap[PageMap.MONITORS] as Route} icon={IconProp.Activity}></NavBarItem>
 
-            <NavBarItem title="Incidents" icon={IconProp.Alert}></NavBarItem>
+            <NavBarItem title="Incidents" route={RouteMap[PageMap.INCIDENTS] as Route} icon={IconProp.Alert}></NavBarItem>
 
-            <NavBarItem title="On-Call Duty" icon={IconProp.Call}></NavBarItem>
+            <NavBarItem title="On-Call Duty" route={RouteMap[PageMap.ON_CALL] as Route} icon={IconProp.Call}></NavBarItem>
 
             <NavBarItem
                 title="Status Pages"
                 icon={IconProp.CheckCircle}
+                route={RouteMap[PageMap.STATUS_PAGE] as Route}
             ></NavBarItem>
 
             <NavBarItem title="More" icon={IconProp.More}>
@@ -39,24 +43,24 @@ const DashboardNavbar: FunctionComponent = () => {
                     <NavBarMenuColumn title="More">
                         <NavBarMenuItem
                             title="Logs Management"
-                            route={new Route('/')}
+                            route={RouteMap[PageMap.LOGS] as Route}
                             icon={IconProp.Terminal}
                         />
                         <NavBarMenuItem
                             title="Error Tracker"
-                            route={new Route('/')}
+                            route={RouteMap[PageMap.ERROR_TRACKER] as Route}
                             icon={IconProp.Error}
                         />
                     </NavBarMenuColumn>
                     <NavBarMenuColumn title="Advanced">
                         <NavBarMenuItem
                             title="Automation Scripts"
-                            route={new Route('/')}
+                            route={RouteMap[PageMap.AUTOMATION_SCRIPTS] as Route}
                             icon={IconProp.Code}
                         />
                         <NavBarMenuItem
                             title="Reports"
-                            route={new Route('/')}
+                            route={RouteMap[PageMap.REPORTS] as Route}
                             icon={IconProp.Report}
                         />
                     </NavBarMenuColumn>
