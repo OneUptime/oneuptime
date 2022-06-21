@@ -40,21 +40,24 @@ const DashboardNavbar: FunctionComponent = () => {
                         <NavBarMenuItem
                             title="Logs Management"
                             route={new Route('/')}
-                            icon={IconProp.CheckCircle}
+                            icon={IconProp.Terminal}
                         />
                         <NavBarMenuItem
                             title="Error Tracker"
                             route={new Route('/')}
+                            icon={IconProp.Error}
                         />
                     </NavBarMenuColumn>
                     <NavBarMenuColumn title="Advanced">
                         <NavBarMenuItem
                             title="Automation Scripts"
                             route={new Route('/')}
+                            icon={IconProp.Code}
                         />
                         <NavBarMenuItem
                             title="Reports"
                             route={new Route('/')}
+                            icon={IconProp.Report}
                         />
                     </NavBarMenuColumn>
                 </NavBarMenu>

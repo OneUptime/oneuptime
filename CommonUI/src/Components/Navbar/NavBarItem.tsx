@@ -15,9 +15,9 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <li className={`nav-item dropdown ${props.isActive ? 'active' : ''}`}>
+        <li className={`nav-item pointer dropdown ${props.isActive ? 'active' : ''}`}>
             <Link
-                className="nav-link dropdown-toggle arrow-none active"
+                className="nav-link dropdown-toggle arrow-none"
                 to={props.route ? props.route : null}
             >
                 {props.icon ? <Icon icon={props.icon} /> : <></>}

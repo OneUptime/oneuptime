@@ -21,6 +21,10 @@ import {
     FiMail,
     FiSlack,
     FiClock,
+    FiTerminal,
+    FiAlertTriangle,
+    FiCode,
+    FiPieChart
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -34,28 +38,32 @@ export enum SizeProp {
 }
 
 export enum IconProp {
-    File = 'File',
-    User = 'User',
-    Settings = 'Settings',
-    Notification = 'Notifications',
-    Help = 'Help',
-    ChevronDown = 'ChevronDown',
-    ChevronRight = 'ChevronRight',
-    ChevronUp = 'ChevronUp',
-    ChevronLeft = 'ChevronLeft',
-    Home = 'Home',
-    Grid = 'Grid',
-    More = 'More',
-    Activity = 'Activity',
-    Alert = 'Alert',
-    Call = 'Call',
-    CheckCircle = 'CheckCircle',
-    Search = 'Search',
-    Logout = 'Logout',
-    Billing = 'Billing',
-    Email = 'Email',
-    Slack = 'Slack',
-    Time = 'Time',
+    File,
+    User,
+    Settings,
+    Notification,
+    Help,
+    ChevronDown,
+    ChevronRight,
+    ChevronUp,
+    ChevronLeft,
+    Home,
+    Grid,
+    More,
+    Activity,
+    Alert,
+    Call,
+    CheckCircle,
+    Search,
+    Logout,
+    Billing,
+    Email,
+    Slack,
+    Time,
+    Terminal,
+    Error,
+    Code,
+    Report
 }
 
 export interface ComponentProps {
@@ -164,6 +172,18 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.Time && (
                 <FiClock size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Terminal && (
+                <FiTerminal size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Error && (
+                <FiAlertTriangle size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Code && (
+                <FiCode size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Report && (
+                <FiPieChart size={size} color={color ? color.toString() : ''} />
             )}
         </span>
     );

@@ -53,6 +53,7 @@
         
         .dropdown-item{
             color: $menu-item-color;
+            cursor: pointer;
             &.active, &:hover{
                 color: $menu-item-active-color;
             }
